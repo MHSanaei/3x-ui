@@ -37,6 +37,12 @@ is_valid_port() {
 # busybox grep (Alpine) has no -P.
 get_ssh_ports() {
     local ports=""
+    # Docker with network_mode: host has no sshd of its own; honor the same
+    # XUI_SSH_PORTS override that DockerEntrypoint.sh uses.
+    if [[ "${XUI_SSH_PORTS:-}" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+        echo "${XUI_SSH_PORTS}"
+        return 0
+    fi
     if command -v sshd > /dev/null 2>&1; then
         ports=$(sshd -T 2> /dev/null | awk '$1 == "port" {print $2}' | sort -un | paste -sd, -)
     fi

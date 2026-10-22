@@ -1312,10 +1312,16 @@ EOF
                 fi
             fi
 
-            # Abort rather than print credentials that were never applied: on any
-            # error here the panel would still be on admin/admin with base path "/".
-            if ! ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"; then
-                echo -e "${red}Failed to apply panel credentials/port. The panel still has its DEFAULT login; fix the error above and re-run the installer.${plain}"
+            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
+            # `x-ui setting` exits 0 even when the database cannot be opened, so
+            # read the values back instead of trusting the exit code. If they did
+            # not land, the panel would still be on admin/admin with base path "/".
+            local applied_settings
+            applied_settings=$(${xui_folder}/x-ui setting -show true 2> /dev/null)
+            if ! grep -q "hasDefaultCredential: false" <<< "${applied_settings}" \
+                || [[ "$(grep -Eo 'port: [0-9]+' <<< "${applied_settings}" | awk '{print $2}')" != "${config_port}" ]] \
+                || ! grep -q "webBasePath: /${config_webBasePath}/" <<< "${applied_settings}"; then
+                echo -e "${red}Failed to apply panel credentials/port (is the database reachable?). The panel still has its DEFAULT login; fix the error above and re-run the installer.${plain}"
                 exit 1
             fi
 
