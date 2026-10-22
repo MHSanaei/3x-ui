@@ -19,6 +19,34 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
+# LOGW was called in three places but never defined; "command not found"
+# returned 127 and made ssl_cert_issue abort on every unlisted distro.
+function LOGW() {
+    echo -e "${yellow}[WRN] $* ${plain}"
+}
+
+# Reject anything but a plain TCP port number before it reaches
+# `x-ui setting -port`: the Go flag parser exits on a non-integer value.
+is_valid_port() {
+    # No leading zero: bash arithmetic would read "080" as invalid octal.
+    [[ "$1" =~ ^[1-9][0-9]{0,4}$ ]] && (("$1" <= 65535))
+}
+
+# Prints the SSH port(s) as a comma-separated list (default 22). `sshd -T`
+# resolves Include files (sshd_config.d/*.conf); the fallback uses ERE because
+# busybox grep (Alpine) has no -P.
+get_ssh_ports() {
+    local ports=""
+    if command -v sshd > /dev/null 2>&1; then
+        ports=$(sshd -T 2> /dev/null | awk '$1 == "port" {print $2}' | sort -un | paste -sd, -)
+    fi
+    if [[ -z "$ports" ]]; then
+        ports=$(cat /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2> /dev/null \
+            | grep -E '^[[:space:]]*Port[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | sort -un | paste -sd, -)
+    fi
+    echo "${ports:-22}"
+}
+
 # Port helpers: detect listener and owning process (best effort)
 is_port_in_use() {
     local port="$1"
@@ -99,7 +127,7 @@ iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
 confirm() {
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
         echo && read -rp "$1 [Default $2]: " temp
         if [[ "${temp}" == "" ]]; then
             temp=$2
@@ -151,7 +179,10 @@ update() {
     bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
-        before_show_menu
+        # `x-ui update` (with an argument) must not drop into the menu.
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
     fi
 }
 
@@ -169,7 +200,9 @@ update_dev() {
     XUI_UPDATE_TAG="dev-latest" bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Dev update is complete, Panel has automatically restarted "
-        before_show_menu
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
     fi
 }
 
@@ -234,7 +267,7 @@ update_menu() {
 
     if replace_xui_script "$(installed_script_url)" "false"; then
         chmod +x ${xui_folder}/x-ui.sh
-        echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
+        echo -e "${green}Menu script updated. Run 'x-ui' again to use it.${plain}"
         exit 0
     else
         echo -e "${red}Failed to update the menu.${plain}"
@@ -245,16 +278,17 @@ update_menu() {
 legacy_version() {
     echo -n "Enter the panel version (like 2.4.0):"
     read -r tag_version
+    tag_version="${tag_version// /}"
+    tag_version="${tag_version#v}" # accept both 2.4.0 and v2.4.0
 
-    if [ -z "$tag_version" ]; then
-        echo "Panel version cannot be empty. Exiting."
+    # Strict format check; the value used to go through `eval` unvalidated.
+    if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "Invalid panel version '${tag_version}'. Use the form 2.4.0. Exiting."
         exit 1
     fi
-    # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
-    eval $install_command
+    bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v${tag_version}/install.sh") "v${tag_version}"
 }
 
 # Function to handle the deletion of the script file
@@ -278,6 +312,16 @@ xui_env_file_path() {
 }
 
 uninstall() {
+    # Inside Docker /etc/x-ui is the mounted data volume and /app is the image:
+    # "uninstalling" would only wipe the user's database. Remove the container.
+    if [[ "${running_in_docker}" == "true" ]]; then
+        LOGE "Uninstall is not supported inside Docker; it would only delete your data volume."
+        LOGI "Remove the container (and its volume, if you really want to) from the host instead."
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 1
+    fi
     confirm "Are you sure you want to uninstall the panel? xray will also uninstalled!" "n"
     if [[ $? != 0 ]]; then
         if [[ $# == 0 ]]; then
@@ -499,11 +543,17 @@ check_config() {
 set_port() {
     echo -n "Enter port number[1-65535]: "
     read -r port
+    port="${port// /}"
     if [[ -z "${port}" ]]; then
         LOGD "Cancelled"
         before_show_menu
+    elif ! is_valid_port "${port}"; then
+        # An out-of-range value would be stored and the panel could not bind
+        # on restart, locking the admin out.
+        LOGE "Invalid port '${port}'. Enter a number between 1 and 65535."
+        before_show_menu
     else
-        ${xui_folder}/x-ui setting -port ${port}
+        ${xui_folder}/x-ui setting -port "${port}"
         echo -e "The port is set, Please restart the panel now, and use the new port ${green}${port}${plain} to access web panel"
         confirm_restart
     fi
@@ -1087,8 +1137,33 @@ firewall_menu() {
 install_firewall() {
     if ! command -v ufw &> /dev/null; then
         echo "ufw firewall is not installed. Installing now..."
-        apt-get update
-        apt-get install -y ufw
+        case "${release}" in
+            ubuntu | debian | armbian)
+                apt-get update && apt-get install -y ufw
+                ;;
+            fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos)
+                if command -v dnf &> /dev/null; then
+                    dnf install -y epel-release > /dev/null 2>&1
+                    dnf install -y ufw
+                else
+                    yum install -y epel-release > /dev/null 2>&1
+                    yum install -y ufw
+                fi
+                ;;
+            arch | manjaro | parch)
+                pacman -Sy --noconfirm ufw
+                ;;
+            alpine)
+                apk add ufw
+                ;;
+            *)
+                apt-get update && apt-get install -y ufw
+                ;;
+        esac
+        if ! command -v ufw &> /dev/null; then
+            LOGE "ufw could not be installed on this system; install it manually."
+            return 1
+        fi
     else
         echo "ufw firewall is already installed"
     fi
@@ -1098,15 +1173,27 @@ install_firewall() {
         echo "Firewall is already active"
     else
         echo "Activating firewall..."
-        # Open the necessary ports
-        ufw allow ssh
+        # Open the ports actually in use. The old fixed list (ssh=22, 2053) locked
+        # the admin out whenever SSH ran on another port or the panel used the
+        # random port install.sh assigns.
+        local ssh_port panel_port
+        for ssh_port in $(get_ssh_ports | tr ',' ' '); do
+            ufw allow "${ssh_port}/tcp"
+        done
         ufw allow http
         ufw allow https
-        ufw allow 2053/tcp #webPort
-        ufw allow 2096/tcp #subport
+        panel_port=$(${xui_folder}/x-ui setting -show true 2> /dev/null | grep -Eo 'port: .+' | awk '{print $2}')
+        if is_valid_port "${panel_port}"; then
+            ufw allow "${panel_port}/tcp" # webPort
+        else
+            LOGW "Could not read the panel port; not enabling the firewall to avoid a lockout."
+            return 1
+        fi
+        ufw allow 2096/tcp # default subscription port
 
         # Enable the firewall
         ufw --force enable
+        LOGI "Opened SSH ($(get_ssh_ports)), 80, 443, panel ${panel_port} and 2096. Open your inbound ports with option 3."
     fi
 }
 
@@ -1117,7 +1204,7 @@ open_ports() {
     # Check if the input is valid
     if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
         echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
-        exit 1
+        return 1
     fi
 
     # Open the specified ports using ufw
@@ -1169,7 +1256,7 @@ delete_ports() {
         # Validate the input
         if ! [[ $rule_numbers =~ ^([0-9]+)(,[0-9]+)*$ ]]; then
             echo "Error: Invalid input. Please enter a comma-separated list of rule numbers." >&2
-            exit 1
+            return 1
         fi
 
         # Split numbers into an array
@@ -1188,7 +1275,7 @@ delete_ports() {
         # Validate the input
         if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
             echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
-            exit 1
+            return 1
         fi
 
         # Split ports into an array
@@ -1221,8 +1308,8 @@ delete_ports() {
             fi
         done
     else
-        echo "${red}Error:${plain} Invalid choice. Please enter 1 or 2." >&2
-        exit 1
+        echo -e "${red}Error:${plain} Invalid choice. Please enter 1 or 2." >&2
+        return 1
     fi
 }
 
@@ -1385,7 +1472,7 @@ ssl_cert_issue_main() {
                 echo "Existing domains:"
                 echo "$domains"
                 read -rp "Please enter a domain from the list to revoke and remove the certificate: " domain
-                if echo "$domains" | grep -qw "$domain"; then
+                if [[ -n "$domain" ]] && echo "$domains" | grep -Fxq -- "$domain"; then
                     # The IP-cert flow (option 6) stores files under /root/cert/ip, but acme.sh
                     # tracks the cert under the actual IP address(es). Resolve those so renewal
                     # state is torn down too; otherwise the acme.sh cron re-creates the deleted cert.
@@ -1426,7 +1513,7 @@ ssl_cert_issue_main() {
                 echo "Existing domains:"
                 echo "$domains"
                 read -rp "Please enter a domain from the list to renew the SSL certificate: " domain
-                if echo "$domains" | grep -qw "$domain"; then
+                if [[ -n "$domain" ]] && echo "$domains" | grep -Fxq -- "$domain"; then
                     ~/.acme.sh/acme.sh --renew -d ${domain} --force
                     LOGI "Certificate forcefully renewed for domain: $domain"
                 else
@@ -1493,7 +1580,7 @@ ssl_cert_issue_main() {
                 echo "$domains"
                 read -rp "Please choose a domain to set the panel paths: " domain
 
-                if echo "$domains" | grep -qw "$domain"; then
+                if [[ -n "$domain" ]] && echo "$domains" | grep -Fxq -- "$domain"; then
                     local webCertFile="/root/cert/${domain}/fullchain.pem"
                     local webKeyFile="/root/cert/${domain}/privkey.pem"
 
@@ -1699,7 +1786,7 @@ ssl_cert_issue_for_ip() {
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
         [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
-        rm -rf ${certPath} 2> /dev/null
+        # ${certPath} is kept: it may hold the certificate the panel serves now.
         return 1
     else
         LOGI "Certificate issued successfully for IP: ${server_ip}"
@@ -1719,7 +1806,7 @@ ssl_cert_issue_for_ip() {
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
         [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
-        rm -rf ${certPath} 2> /dev/null
+        # ${certPath} is kept: it may hold the certificate the panel serves now.
         return 1
     fi
 
@@ -1797,11 +1884,13 @@ ssl_cert_issue() {
             LOGW "Unsupported OS for automatic socat installation"
             ;;
     esac
-    if [ $? -ne 0 ]; then
-        LOGE "install socat failed, please check logs"
+    # Check the result, not the exit code of the last command in the case
+    # above (a failing `apt-get update` from an unrelated repo used to abort).
+    if ! command -v socat &> /dev/null; then
+        LOGE "socat is not installed and could not be installed automatically; install it manually."
         exit 1
     else
-        LOGI "install socat succeed..."
+        LOGI "socat is available..."
     fi
 
     # get the domain here, and we need to verify it
@@ -1852,14 +1941,12 @@ ssl_cert_issue() {
         LOGI "Your domain is ready for issuing certificates now..."
     fi
 
-    # create a directory for the certificate
+    # create a directory for the certificate. An existing one is NOT wiped: the
+    # panel may be serving these files, and if issuance below fails the panel
+    # would silently fall back to plain HTTP. --installcert --force overwrites
+    # the files only once a new certificate actually exists.
     certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
-    else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
-    fi
+    mkdir -p "$certPath"
 
     # get the port number for the standalone server
     local WebPort=80
@@ -1881,7 +1968,7 @@ ssl_cert_issue() {
             rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
             exit 1
         else
-            LOGE "Issuing certificate succeeded, installing certificates..."
+            LOGI "Issuing certificate succeeded, installing certificates..."
         fi
     else
         LOGI "Using existing certificate, installing certificates..."
@@ -1940,13 +2027,13 @@ ssl_cert_issue() {
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade
     if [ $? -ne 0 ]; then
         LOGE "Auto renew failed, certificate details:"
-        ls -lah cert/*
+        ls -lah "$certPath"/
         chmod 600 $certPath/privkey.pem
         chmod 644 $certPath/fullchain.pem
         exit 1
     else
         LOGI "Auto renew succeeded, certificate details:"
-        ls -lah cert/*
+        ls -lah "$certPath"/
         chmod 600 $certPath/privkey.pem
         chmod 644 $certPath/fullchain.pem
     fi
@@ -1999,6 +2086,11 @@ ssl_cert_issue_CF() {
 
         LOGD "Please set a domain name:"
         read -rp "Input your domain here: " CF_Domain
+        CF_Domain="${CF_Domain// /}"
+        if ! is_domain "${CF_Domain}"; then
+            LOGE "Invalid domain '${CF_Domain}'."
+            return 1
+        fi
         LOGD "Your domain name is set to: ${CF_Domain}"
 
         # Cloudflare API credentials: an API Token (recommended, scoped to a
@@ -2032,7 +2124,7 @@ ssl_cert_issue_CF() {
         fi
 
         # Issue the certificate using Cloudflare DNS
-        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log --force
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d "${CF_Domain}" -d "*.${CF_Domain}" --log --force
         if [ $? -ne 0 ]; then
             LOGE "Certificate issuance failed, script exiting..."
             exit 1
@@ -2077,7 +2169,7 @@ ssl_cert_issue_CF() {
                     ;;
             esac
         fi
-        ~/.acme.sh/acme.sh --installcert --force -d ${CF_Domain} -d *.${CF_Domain} \
+        ~/.acme.sh/acme.sh --installcert --force -d "${CF_Domain}" -d "*.${CF_Domain}" \
             --key-file ${certPath}/privkey.pem \
             --fullchain-file ${certPath}/fullchain.pem --reloadcmd "${reloadCmd}"
 
@@ -2297,7 +2389,7 @@ setup_fail2ban_iplimit() {
         case "${release}" in
             ubuntu)
                 apt-get update
-                if [[ "${os_version}" -ge 2400 ]]; then
+                if [[ "${os_version:-0}" -ge 2400 ]]; then
                     apt-get install python3-pip -y
                     python3 -m pip install pyasynchat --break-system-packages
                 fi
@@ -2305,7 +2397,7 @@ setup_fail2ban_iplimit() {
                 ;;
             debian)
                 apt-get update
-                if [ "$os_version" -ge 12 ]; then
+                if [ "${os_version:-0}" -ge 12 ]; then
                     apt-get install -y python3-systemd
                 fi
                 apt-get install -y fail2ban nftables
@@ -2524,7 +2616,7 @@ create_iplimit_jails() {
 
     # Debian 12+ / Ubuntu 22.04+ log sshd to the journal only; a jail.d override
     # survives package upgrades. Only the stock 'backend = auto' is overridden.
-    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]] &&
+    if [[ ( "${release}" == "debian" && ${os_version:-0} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version:-0} -ge 2200 ) ]] &&
         sed -n '0,/action =/p' /etc/fail2ban/jail.conf | grep -q '^backend = auto'; then
         cat << EOF > /etc/fail2ban/jail.d/3x-ipl-backend.conf
 [DEFAULT]
@@ -2556,8 +2648,7 @@ EOF
     # TCP and UDP port (including all Xray inbounds, e.g. UDP-based Hysteria2), so
     # IP-limit keeps working for inbounds added later without regenerating these files.
     local ssh_ports
-    ssh_ports=$(grep -oP '^[[:space:]]*Port[[:space:]]+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | paste -sd, -)
-    [[ -z "${ssh_ports}" ]] && ssh_ports="22"
+    ssh_ports=$(get_ssh_ports)
     local panel_port
     panel_port=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo 'port: .+' | awk '{print $2}')
     local exempt_ports="${ssh_ports}"
@@ -3639,7 +3730,7 @@ show_menu() {
     esac
 }
 
-if [[ $# > 0 ]]; then
+if [[ $# -gt 0 ]]; then
     case $1 in
         "start")
             check_install 0 && start 0
