@@ -77,7 +77,7 @@
     "oxlint": "1.87.0",
     "oxlint-tsgolint": "^7.0.2004",
     "playwright": "^1.64.0",
-    "storybook": "^10.6.1",
+    "storybook": "^10.6.2",
     "typescript": "7.0.2",
     "vite": "8.3.4",
     "vitest": "^5.0.3"
