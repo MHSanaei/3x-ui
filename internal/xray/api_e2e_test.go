@@ -1,6 +1,7 @@
 package xray
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	statsService "github.com/xtls/xray-core/app/stats/command"
 )
 
 // TestXrayAPI_E2E exercises the gRPC hot-apply surface (outbounds, inbounds,
@@ -87,6 +90,7 @@ func TestXrayAPI_E2E(t *testing.T) {
 		t.Fatalf("api init: %v", err)
 	}
 	defer api.Close()
+	waitForXrayAPIReady(t, &api, apiPort)
 
 	// --- outbounds ---
 	socksOutbound := []byte(`{"protocol":"socks","settings":{"servers":[{"address":"127.0.0.1","port":10808}]},"tag":"test-out"}`)
@@ -254,4 +258,41 @@ func waitForPort(t *testing.T, port int) {
 		time.Sleep(200 * time.Millisecond)
 	}
 	t.Fatalf("xray api port %d did not open in time", port)
+}
+
+func waitForXrayAPIReady(t *testing.T, api *XrayAPI, apiPort int) {
+	t.Helper()
+	deadline := time.NewTimer(15 * time.Second)
+	defer deadline.Stop()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		if api.StatsServiceClient == nil {
+			if err := api.Init(apiPort); err != nil {
+				t.Fatalf("reinitialize Xray API client: %v", err)
+			}
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		resp, err := (*api.StatsServiceClient).GetSysStats(ctx, &statsService.SysStatsRequest{})
+		cancel()
+		if err == nil && resp != nil {
+			return
+		}
+		if err != nil {
+			lastErr = err
+		} else {
+			lastErr = fmt.Errorf("GetSysStats returned a nil response")
+		}
+
+		api.Close()
+
+		select {
+		case <-deadline.C:
+			t.Fatalf("xray API did not become ready: %v", lastErr)
+		case <-ticker.C:
+		}
+	}
 }

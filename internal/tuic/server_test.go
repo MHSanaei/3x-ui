@@ -410,7 +410,7 @@ func TestServerUDPStreamE2E(t *testing.T) {
 
 func testServerUDPStreamE2E(t *testing.T, controller string) {
 	certPEM, keyPEM := generateTestCert(t)
-	socksAddr, socksCleanup := startMockSocks5Server(t, "stream@example.com", "mock-socks-pass")
+	socksAddr, socksCleanup := startMockSocks5ServerWithUDPLoopback(t, udpEchoLoopback(t), "stream@example.com", "mock-socks-pass")
 	defer socksCleanup()
 
 	testUUID := uuid.New()

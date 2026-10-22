@@ -179,7 +179,24 @@ func TestPipeBiDirectional(t *testing.T) {
 	}
 }
 
+func udpEchoLoopback(t *testing.T) string {
+	t.Helper()
+	conn, err := net.ListenPacket("udp6", "[::1]:0")
+	if err == nil {
+		_ = conn.Close()
+		return "::1"
+	}
+	t.Logf("IPv6 loopback unavailable for SOCKS UDP echo: %v; using IPv4 loopback", err)
+	return "127.0.0.1"
+}
+
 func startMockSocks5Server(t *testing.T, expectedUser, expectedPass string) (string, func()) {
+	t.Helper()
+	return startMockSocks5ServerWithUDPLoopback(t, "127.0.0.1", expectedUser, expectedPass)
+}
+
+func startMockSocks5ServerWithUDPLoopback(t *testing.T, udpIP, expectedUser, expectedPass string) (string, func()) {
+	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
@@ -198,7 +215,7 @@ func startMockSocks5Server(t *testing.T, expectedUser, expectedPass string) (str
 					return
 				}
 			}
-			go handleMockSocksConn(conn, expectedUser, expectedPass)
+			go handleMockSocksConnWithUDPLoopback(conn, udpIP, expectedUser, expectedPass)
 		}
 	}()
 
@@ -209,6 +226,10 @@ func startMockSocks5Server(t *testing.T, expectedUser, expectedPass string) (str
 }
 
 func handleMockSocksConn(conn net.Conn, expectedUser, expectedPass string) {
+	handleMockSocksConnWithUDPLoopback(conn, "127.0.0.1", expectedUser, expectedPass)
+}
+
+func handleMockSocksConnWithUDPLoopback(conn net.Conn, udpIP, expectedUser, expectedPass string) {
 	defer conn.Close()
 	// Read greeting
 	var greeting [4]byte
@@ -277,7 +298,7 @@ func handleMockSocksConn(conn net.Conn, expectedUser, expectedPass string) {
 		_, _ = io.Copy(conn, conn)
 	case 0x03: // UDP ASSOCIATE
 		// Bind a UDP listener for the mock
-		u, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+		u, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP(udpIP), Port: 0})
 		if err != nil {
 			return
 		}
@@ -285,13 +306,19 @@ func handleMockSocksConn(conn net.Conn, expectedUser, expectedPass string) {
 		bindAddr := u.LocalAddr().(*net.UDPAddr)
 		bindPort := uint16(bindAddr.Port)
 
-		resp := make([]byte, 10)
+		var resp []byte
+		if bindAddr.IP.To4() != nil {
+			resp = make([]byte, 10)
+			resp[3] = 0x01
+			copy(resp[4:8], bindAddr.IP.To4())
+			binary.BigEndian.PutUint16(resp[8:10], bindPort)
+		} else {
+			resp = make([]byte, 22)
+			resp[3] = 0x04
+			copy(resp[4:20], bindAddr.IP.To16())
+			binary.BigEndian.PutUint16(resp[20:22], bindPort)
+		}
 		resp[0] = 0x05
-		resp[1] = 0x00
-		resp[2] = 0x00
-		resp[3] = 0x01
-		copy(resp[4:8], bindAddr.IP.To4())
-		binary.BigEndian.PutUint16(resp[8:10], bindPort)
 		if _, err := conn.Write(resp); err != nil {
 			return
 		}
