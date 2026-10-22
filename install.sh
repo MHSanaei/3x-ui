@@ -34,11 +34,43 @@ arch() {
         armv6* | armv6) echo 'armv6' ;;
         armv5* | armv5) echo 'armv5' ;;
         s390x) echo 's390x' ;;
-        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f "$(realpath "$0")" && exit 1 ;;
+        *) echo -e "${red}Unsupported CPU architecture: $(uname -m)${plain}" && return 1 ;;
     esac
 }
 
-echo "Arch: $(arch)"
+# arch() is only ever called as $(arch), so an `exit` inside it would only leave
+# the subshell. Validate once here, where a failure can stop the whole script.
+if ! xui_arch="$(arch)"; then
+    echo -e "${xui_arch}"
+    exit 1
+fi
+echo "Arch: ${xui_arch}"
+
+# Reject anything but a plain TCP port number before it reaches
+# `x-ui setting -port`: the Go flag parser exits on a non-integer value and then
+# applies NONE of the other settings passed in the same call.
+is_valid_port() {
+    # No leading zero: bash arithmetic would read "080" as invalid octal.
+    [[ "$1" =~ ^[1-9][0-9]{0,4}$ ]] && (("$1" <= 65535))
+}
+
+# Loads KEY=VALUE pairs from a service env file WITHOUT shell evaluation.
+# `source` would execute characters such as & ; $( ) that are legal in a
+# PostgreSQL DSN. Surrounding single/double quotes are stripped, like systemd.
+load_env_file_safe() {
+    local file="$1" line key value
+    [[ -r "$file" ]] || return 0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] || continue
+        key="${BASH_REMATCH[2]}"
+        value="${BASH_REMATCH[3]}"
+        if [[ "$value" =~ ^\"(.*)\"$ || "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+        export "${key}=${value}"
+    done < "$file"
+}
 
 # Non-interactive mode: triggered explicitly via XUI_NONINTERACTIVE=1, or
 # implicitly when stdin is not a TTY (e.g. `curl ... | bash`, cloud-init).
@@ -596,10 +628,10 @@ setup_ip_certificate() {
     if [ $? -ne 0 ]; then
         echo -e "${red}Failed to issue IP certificate${plain}"
         echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
+        # Cleanup acme.sh data for both IPv4 and IPv6 if specified. ${certDir} is
+        # left alone: it may hold the certificate the panel is serving right now.
         rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
         return 1
     fi
 
@@ -619,7 +651,6 @@ setup_ip_certificate() {
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${ipv4} ~/.acme.sh/${ipv4}_ecc 2> /dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} ~/.acme.sh/${ipv6}_ecc 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
         return 1
     fi
 
@@ -725,14 +756,12 @@ ssl_cert_issue() {
         echo -e "${green}Your domain is ready for issuing certificates now...${plain}"
     fi
 
-    # create a directory for the certificate
+    # create a directory for the certificate. An existing one is NOT wiped: the
+    # panel may be serving these files, and if issuance below fails the panel
+    # would silently fall back to plain HTTP. --installcert --force overwrites
+    # the files only once a new certificate actually exists.
     certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
-    else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
-    fi
+    mkdir -p "$certPath"
 
     # get the port number for the standalone server
     local WebPort=80
@@ -1257,6 +1286,10 @@ EOF
 
             if [[ "$NONINTERACTIVE" == "1" ]]; then
                 if [[ -n "${XUI_PANEL_PORT:-}" ]]; then
+                    if ! is_valid_port "${XUI_PANEL_PORT}"; then
+                        echo -e "${red}XUI_PANEL_PORT='${XUI_PANEL_PORT}' is not a valid port (1-65535); aborting.${plain}"
+                        exit 1
+                    fi
                     config_port="${XUI_PANEL_PORT}"
                     echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
                 else
@@ -1266,7 +1299,12 @@ EOF
             else
                 read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/n]: " config_confirm
                 if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-                    read -rp "Please set up the panel port: " config_port
+                    while true; do
+                        read -rp "Please set up the panel port [1-65535]: " config_port
+                        config_port="${config_port// /}"
+                        is_valid_port "${config_port}" && break
+                        echo -e "${red}Invalid port '${config_port}'. Enter a number between 1 and 65535.${plain}"
+                    done
                     echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
                 else
                     config_port=$(shuf -i 1024-62000 -n 1)
@@ -1275,6 +1313,17 @@ EOF
             fi
 
             ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
+            # `x-ui setting` exits 0 even when the database cannot be opened, so
+            # read the values back instead of trusting the exit code. If they did
+            # not land, the panel would still be on admin/admin with base path "/".
+            local applied_settings
+            applied_settings=$(${xui_folder}/x-ui setting -show true 2> /dev/null)
+            if ! grep -q "hasDefaultCredential: false" <<< "${applied_settings}" \
+                || [[ "$(grep -Eo 'port: [0-9]+' <<< "${applied_settings}" | awk '{print $2}')" != "${config_port}" ]] \
+                || ! grep -q "webBasePath: /${config_webBasePath}/" <<< "${applied_settings}"; then
+                echo -e "${red}Failed to apply panel credentials/port (is the database reachable?). The panel still has its DEFAULT login; fix the error above and re-run the installer.${plain}"
+                exit 1
+            fi
 
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -1524,12 +1573,7 @@ _xui_service_write_paths_dropin() {
                 ;;
         esac
     fi
-    if [[ -r "$env_file" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_file"
-        set +a
-    fi
+    load_env_file_safe "$env_file"
 
     # XUI_* wins over the script's own default: the unit hands that same env
     # file to the panel through EnvironmentFile=, so these are the folders it
@@ -1707,7 +1751,16 @@ require_repo_files() {
 }
 
 install_x-ui() {
-    cd ${xui_folder%/x-ui}/
+    # The release tarball always extracts into a folder named "x-ui", and the
+    # archive is staged next to it, so the main folder must end in /x-ui.
+    if [[ "$(basename "${xui_folder}")" != "x-ui" ]]; then
+        echo -e "${red}XUI_MAIN_FOLDER (${xui_folder}) must end in /x-ui, e.g. /opt/x-ui. Nothing was changed.${plain}"
+        exit 1
+    fi
+    mkdir -p "${xui_folder%/x-ui}" && cd "${xui_folder%/x-ui}/" || {
+        echo -e "${red}Cannot enter ${xui_folder%/x-ui}. Nothing was changed.${plain}"
+        exit 1
+    }
 
     # Download resources
     if [ $# == 0 ]; then
@@ -1819,11 +1872,14 @@ install_x-ui() {
                 echo -e "${yellow}Could not back up bin/ -- custom files there will not be preserved across this update${plain}"
             fi
         fi
-        # Sole cleanup path for the backup from here on -- covers both the
-        # two `exit 1`s below (extraction/binary-missing failures) and an
-        # interrupted update (Ctrl-C, signal) before the restore runs.
-        # Cleared once the restore below finishes normally.
-        trap '[[ -n "${custom_bin_backup}" ]] && rm -rf "${custom_bin_backup}"' EXIT INT TERM
+        # If the install dies before the restore below (extraction failure,
+        # missing binary, Ctrl-C), the old folder is already gone and this
+        # backup is the ONLY copy of the admin's custom bin/ files -- keep it
+        # and say where it is instead of deleting it. INT/TERM must exit:
+        # a trap that returns lets bash carry on with the next command.
+        trap '[[ -n "${custom_bin_backup}" && -d "${custom_bin_backup}" ]] && echo -e "${yellow}Install did not finish; your previous bin/ files are kept in ${custom_bin_backup}${plain}"' EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
         rm ${xui_folder}/ -rf
     fi
 
@@ -1947,7 +2003,9 @@ install_x-ui() {
         fi
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
-        rc-service x-ui start
+        # restart, not start: the SSL step above may already have started the
+        # panel, and `start` on a running service would keep the old process.
+        rc-service x-ui restart
     else
         # Install systemd service file
         service_installed=false
@@ -2016,7 +2074,11 @@ install_x-ui() {
             chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
             systemctl daemon-reload
             systemctl enable x-ui
-            systemctl start x-ui
+            # restart, not start: on a reinstall the SSL step (its reloadcmd or
+            # "systemctl restart") may already have started the panel under the
+            # OLD unit; `start` would then be a no-op and the new unit and
+            # sandbox drop-in would not apply until the next restart.
+            systemctl restart x-ui
         else
             echo -e "${red}Failed to install x-ui.service file${plain}"
             exit 1
