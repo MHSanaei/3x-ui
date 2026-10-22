@@ -34,6 +34,13 @@ _openapi:
         clients.
       url: '#lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients'
     - depth: 2
+      title: Whether this host can run an AmneziaWG inbound on the kernel module.
+        Returns ready, host blocker codes (root/tools/module/nft), and the
+        command that fixes them. Saving an inbound also checks its features and
+        rejects IPv6, port forwarding, routeThroughXray, or a pinned listen
+        address that the kernel backend cannot honor.
+      url: '#whether-this-host-can-run-an-amneziawg-inbound-on-the-kernel-module-returns-ready-host-blocker-codes-roottoolsmodulenft-and-the-command-that-fixes-them-saving-an-inbound-also-checks-its-features-and-rejects-ipv6-port-forwarding-routethroughxray-or-a-pinned-listen-address-that-the-kernel-backend-cannot-honor'
+    - depth: 2
       title: Return every protocol URL (vless://, vmess://, trojan://, ss://,
         hysteria://, mtproto) across all inbounds and all of their clients.
         Links are rendered through the subscription engine, so the configured
@@ -131,6 +138,12 @@ _openapi:
           clientStats so the payload stays small even on panels with thousands
           of clients.
         id: lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+      - content: Whether this host can run an AmneziaWG inbound on the kernel module.
+          Returns ready, host blocker codes (root/tools/module/nft), and the
+          command that fixes them. Saving an inbound also checks its features
+          and rejects IPv6, port forwarding, routeThroughXray, or a pinned
+          listen address that the kernel backend cannot honor.
+        id: whether-this-host-can-run-an-amneziawg-inbound-on-the-kernel-module-returns-ready-host-blocker-codes-roottoolsmodulenft-and-the-command-that-fixes-them-saving-an-inbound-also-checks-its-features-and-rejects-ipv6-port-forwarding-routethroughxray-or-a-pinned-listen-address-that-the-kernel-backend-cannot-honor
       - content: Return every protocol URL (vless://, vmess://, trojan://, ss://,
           hysteria://, mtproto) across all inbounds and all of their clients.
           Links are rendered through the subscription engine, so the configured
@@ -201,7 +214,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/amneziawgKernelReadiness","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
     </>
   );
 }

@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Space, Switch } from 'antd';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { Alert, Button, Form, Input, InputNumber, Space, Switch, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
+import { useAmneziawgKernelReadiness } from '@/api/queries/useAmneziawgKernelReadiness';
 
 interface AmneziawgFieldsProps {
   awgPubKey: string;
@@ -16,6 +18,18 @@ export default function AmneziawgFields({
   regenInboundAwgObfuscation,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
+  const kernelModeOn = useWatch({ name: 'settings.server.kernelMode' });
+  const nodeId = useWatch({ name: 'nodeId' }) as number | null | undefined;
+  const remoteTarget = typeof nodeId === 'number';
+  const { formState } = useFormContext();
+  const { data: readiness } = useAmneziawgKernelReadiness(!remoteTarget);
+  const hostReady = remoteTarget || readiness?.ready !== false;
+  // The master can probe only its local host; a remote node checks on apply.
+  const savedKernelMode = Boolean(
+    (formState.defaultValues as { settings?: { server?: { kernelMode?: boolean } } } | undefined)
+      ?.settings?.server?.kernelMode,
+  );
+  const toggleDisabled = !hostReady && !savedKernelMode;
   return (
     <>
       <Form.Item label={t('pages.xray.amneziawg.privateKey')}>
@@ -211,6 +225,44 @@ export default function AmneziawgFields({
       >
         <Switch />
       </FormField>
+      <FormField
+        name={['settings', 'server', 'kernelMode']}
+        label={t('pages.xray.amneziawg.kernelMode')}
+        extra={t('pages.xray.amneziawg.kernelModeHint')}
+        valueProp="checked"
+      >
+        <Switch disabled={toggleDisabled} />
+      </FormField>
+      {!hostReady && (
+        <Alert
+          type={kernelModeOn ? 'warning' : 'info'}
+          showIcon
+          message={t('pages.xray.amneziawg.kernelUnavailable')}
+          description={
+            <>
+              <ul style={{ margin: '0 0 8px', paddingInlineStart: 20 }}>
+                {(readiness?.blockers ?? []).map((b) => (
+                  <li key={`${b.code}:${b.detail ?? ''}`}>
+                    {t(`pages.xray.amneziawg.kernelBlocker.${b.code}`, {
+                      defaultValue: b.code,
+                    })}
+                    {b.detail ? ` (${b.detail})` : ''}
+                  </li>
+                ))}
+              </ul>
+              {readiness?.installCommand ? (
+                <Typography.Paragraph
+                  copyable={{ text: readiness.installCommand }}
+                  code
+                  style={{ marginBottom: 0 }}
+                >
+                  {readiness.installCommand}
+                </Typography.Paragraph>
+              ) : null}
+            </>
+          }
+        />
+      )}
     </>
   );
 }

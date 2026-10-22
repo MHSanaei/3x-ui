@@ -333,6 +333,7 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
       primaryDns: '8.8.8.8',
       secondaryDns: '8.8.4.4',
       externalInterface: '',
+      kernelMode: false,
       ipv6Enabled: false,
       ipv6Subnet: '',
       ipv6ExternalInterface: '',

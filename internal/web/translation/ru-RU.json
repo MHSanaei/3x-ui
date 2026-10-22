@@ -2186,7 +2186,19 @@
         "disableCookiesHint": "Не отправлять cookie reply — убирает сигнатуру для DPI, но ослабляет защиту от флуда.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "На этом хосте режим ядра пока недоступен",
+        "kernelBlocker": {
+          "root": "Панель работает не от root и не может создать сетевой интерфейс",
+          "tools": "amneziawg-tools не установлены",
+          "module": "Модуль ядра amneziawg не загружен",
+          "nft": "nftables не установлен, а он нужен для правил NAT туннеля",
+          "ipv6": "Персональный IPv6 на пира в режиме ядра пока не поддерживается",
+          "portForwarding": "Проброс портов к клиенту в режиме ядра пока не поддерживается",
+          "routeThroughXray": "routeThroughXray не реализован в режиме ядра и оставит туннель без выхода в сеть"
+        },
+        "kernelMode": "Режим ядра",
+        "kernelModeHint": "Обрабатывать этот инбаунд модулем ядра AmneziaWG вместо встроенного userspace-стека. Быстрее и заметно дешевле по CPU, но правила маршрутизации Xray, sniffing, IPv6 и проброс портов к его пирам не применяются. Требует модуль DKMS и amneziawg-tools на хосте."
       },
       "tuic": {
         "congestionControl": "Контроль перегрузок",
