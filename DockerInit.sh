@@ -1,29 +1,45 @@
 #!/bin/sh
 set -e
+# $1 = TARGETARCH, $2 = TARGETVARIANT (buildx). buildx sends "386" (not
+# "i386") and "arm" + variant "v6"/"v7", never "armv6"/"armv7"; the old
+# mapping sent linux/386 to the default amd64 branch and gave arm/v6 an ARMv7
+# Xray. The file names must match what the panel looks for at runtime:
+#   xray-linux-<GOARCH, with arm -> arm32>   (internal/xray/process.go)
+#   mtg-linux-<GOARCH>                       (internal/mtproto/process.go)
+VARIANT="${2:-}"
 case $1 in
     amd64)
         ARCH="64"
         FNAME="amd64"
+        MTGNAME="amd64"
+        MTGARCH="amd64"
         ;;
-    i386)
+    386 | i386)
         ARCH="32"
-        FNAME="i386"
+        FNAME="386"
+        MTGNAME="386"
+        MTGARCH="386"
         ;;
     armv8 | arm64 | aarch64)
         ARCH="arm64-v8a"
         FNAME="arm64"
+        MTGNAME="arm64"
+        MTGARCH="arm64"
         ;;
-    armv7 | arm | arm32)
-        ARCH="arm32-v7a"
+    arm | arm32 | armv7 | armv6)
         FNAME="arm32"
-        ;;
-    armv6)
-        ARCH="arm32-v6"
-        FNAME="armv6"
+        MTGNAME="arm"
+        if [ "$VARIANT" = "v6" ] || [ "$1" = "armv6" ]; then
+            ARCH="arm32-v6"
+            MTGARCH="armv6"
+        else
+            ARCH="arm32-v7a"
+            MTGARCH="armv7"
+        fi
         ;;
     *)
-        ARCH="64"
-        FNAME="amd64"
+        echo "DockerInit: unsupported TARGETARCH '$1'" >&2
+        exit 1
         ;;
 esac
 MTG_MULTI_VER=$(curl -sfL "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
@@ -39,17 +55,12 @@ rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"
 # mtg-multi (MTProto sidecar) ships prebuilt release binaries for every target
 # we package, so download and unpack the matching one instead of compiling.
-case $FNAME in
-    i386) MTGARCH="386" ;;
-    arm32) MTGARCH="armv7" ;;
-    *) MTGARCH="$FNAME" ;;
-esac
 MTG_PKG="mtg-multi-${MTG_MULTI_VER#v}-linux-${MTGARCH}"
 curl -sfLRO "https://github.com/mhsanaei/mtg-multi/releases/download/${MTG_MULTI_VER}/${MTG_PKG}.tar.gz"
 tar -xzf "${MTG_PKG}.tar.gz"
-mv "${MTG_PKG}/mtg-multi" "mtg-linux-${FNAME}"
+mv "${MTG_PKG}/mtg-multi" "mtg-linux-${MTGNAME}"
 rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
-chmod +x "mtg-linux-${FNAME}"
+chmod +x "mtg-linux-${MTGNAME}"
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
 curl -sfLRo geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
