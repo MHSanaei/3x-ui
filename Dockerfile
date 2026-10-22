@@ -14,6 +14,7 @@ RUN npm run build
 # ========================================================
 FROM golang:1.27-alpine AS builder
 WORKDIR /app
+ARG TARGETARCH
 ARG TARGETVARIANT
 
 RUN apk --no-cache --update add \
