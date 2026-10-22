@@ -10,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,23 @@ type ClientController struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	happGenerator  service.HappLinkGenerator
+}
+
+// assertClientOwnership rejects the request when a reseller is acting on a
+// client that does not belong to them. Admins are unaffected.
+func (a *ClientController) assertClientOwnership(c *gin.Context, email string) error {
+	user := session.GetLoginUser(c)
+	if user == nil || user.Role != model.UserRoleReseller {
+		return nil
+	}
+	owned, err := a.clientService.OwnsClient(email, user.Id)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return errors.New("reseller does not own this client")
+	}
+	return nil
 }
 
 func NewClientController(g *gin.RouterGroup) *ClientController {
@@ -94,7 +112,12 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *ClientController) list(c *gin.Context) {
-	rows, err := a.clientService.List()
+	user := session.GetLoginUser(c)
+	userId := 0
+	if user != nil && user.Role == model.UserRoleReseller {
+		userId = user.Id
+	}
+	rows, err := a.clientService.List(userId)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -117,6 +140,10 @@ func (a *ClientController) listPaged(c *gin.Context) {
 	if err := c.ShouldBindQuery(&params); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
+	}
+	user := session.GetLoginUser(c)
+	if user != nil && user.Role == model.UserRoleReseller {
+		params.UserId = user.Id
 	}
 	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
 	if err != nil {
@@ -202,6 +229,10 @@ func (a *ClientController) create(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	// The actor is always the logged-in user; never trust userId from the body.
+	if u := session.GetLoginUser(c); u != nil {
+		payload.UserId = u.Id
+	}
 	needRestart, err := a.clientService.Create(&a.inboundService, &payload)
 	// Flagged before the error check: a partly-applied create leaves clients
 	// committed on the inbounds that succeeded, and those still need the restart.
@@ -222,6 +253,10 @@ func (a *ClientController) create(c *gin.Context) {
 
 func (a *ClientController) update(c *gin.Context) {
 	email := c.Param("email")
+	if err := a.assertClientOwnership(c, email); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 	var req struct {
 		model.Client
 		LimitHwid int `json:"limitHwid"`
@@ -251,6 +286,10 @@ func (a *ClientController) update(c *gin.Context) {
 
 func (a *ClientController) delete(c *gin.Context) {
 	email := c.Param("email")
+	if err := a.assertClientOwnership(c, email); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 	keepTraffic := c.Query("keepTraffic") == "1"
 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
 	// Flagged before the error check: a partly-applied delete already removed
@@ -280,6 +319,10 @@ type externalLinksBody struct {
 
 func (a *ClientController) attach(c *gin.Context) {
 	email := c.Param("email")
+	if err := a.assertClientOwnership(c, email); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -689,6 +732,10 @@ func (a *ClientController) generateHappLink(c *gin.Context) {
 
 func (a *ClientController) detach(c *gin.Context) {
 	email := c.Param("email")
+	if err := a.assertClientOwnership(c, email); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)

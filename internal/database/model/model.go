@@ -37,12 +37,39 @@ const (
 	MASQUE      Protocol = "masque"
 )
 
-// User represents a user account in the 3x-ui panel.
+// UserRole is the account role: a full panel admin or a reseller scoped to
+// the inbounds the admin assigned to them.
+type UserRole string
+
+const (
+	UserRoleAdmin    UserRole = "admin"
+	UserRoleReseller UserRole = "reseller"
+)
+
+// User represents a user account in the 3x-ui panel. A user with
+// Role == UserRoleReseller is a reseller created by the admin (ParentId);
+// resellers log in with the same username/password flow but can only create
+// clients on the inbounds the admin assigned to them, within their traffic
+// and client-count quotas.
 type User struct {
 	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username   string `json:"username"`
 	Password   string `json:"password"`
 	LoginEpoch int64  `json:"-" gorm:"default:0"`
+	// Role is "admin" for the panel owner and "reseller" for a reseller account.
+	Role string `json:"role" gorm:"default:admin"`
+	// ParentId is the admin user who created this reseller (0 for admins).
+	ParentId int `json:"parentId" gorm:"default:0;index"`
+	// TotalGB is the traffic quota (in GB) the reseller is allowed to allocate
+	// to their clients. 0 means unlimited.
+	TotalGB int64 `json:"totalGB" gorm:"default:0"`
+	// UsedGB is the traffic currently allocated to the reseller's clients.
+	UsedGB int64 `json:"usedGB" gorm:"default:0"`
+	// MaxClients is the maximum number of clients the reseller may create.
+	// 0 means unlimited.
+	MaxClients int `json:"maxClients" gorm:"default:0"`
+	// Enable allows the admin to disable a reseller account without deleting it.
+	Enable bool `json:"enable" gorm:"default:true"`
 }
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
@@ -955,6 +982,9 @@ type Client struct {
 	SubID               string           `json:"subId" form:"subId"`               // Subscription identifier
 	Group               string           `json:"group,omitempty" form:"group"`     // Logical grouping label
 	Comment             string           `json:"comment" form:"comment"`           // Client comment
+	// UserId is the panel user (admin or reseller) who owns this client. It is
+	// not part of the wire config, so it is kept out of JSON.
+	UserId              int              `json:"-"`
 	Reset               int              `json:"reset" form:"reset"`               // Reset period in days
 	ResetDay            int              `json:"resetDay" form:"resetDay"`         // Calendar renewal day 1-31, 0 disables monthly renewal
 	ResetWeekday        int              `json:"resetWeekday" form:"resetWeekday"` // Calendar weekday 1-7 (Mon-Sun), 0 disables weekly renewal
@@ -969,6 +999,10 @@ type Client struct {
 type ClientRecord struct {
 	Id              int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Email           string `json:"email" gorm:"uniqueIndex;not null"`
+	// UserId is the id of the panel user (admin or reseller) who owns this
+	// client. Clients owned by a reseller are billed against that reseller's
+	// traffic and client-count quotas and are invisible to other resellers.
+	UserId int `json:"userId" gorm:"index;default:0"`
 	SubID           string `json:"subId" gorm:"index;column:sub_id"`
 	UUID            string `json:"uuid" gorm:"column:uuid"`
 	Password        string `json:"password"`
@@ -1017,6 +1051,18 @@ type ClientGroup struct {
 }
 
 func (ClientGroup) TableName() string { return "client_groups" }
+
+// ResellerInbound assigns an inbound to a reseller so the reseller may create
+// clients on it. The inbound itself remains owned by the panel admin (its
+// Inbound.UserId stays the admin's id); this join table only grants the
+// reseller permission to use it. Traffic of the reseller's clients and the
+// admin's clients is tracked separately through ClientRecord.UserId.
+type ResellerInbound struct {
+	ResellerId int `json:"resellerId" gorm:"primaryKey;column:reseller_id"`
+	InboundId  int `json:"inboundId" gorm:"primaryKey;column:inbound_id"`
+}
+
+func (ResellerInbound) TableName() string { return "reseller_inbounds" }
 
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its
@@ -1205,6 +1251,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		TgID:            c.TgID,
 		Group:           c.Group,
 		Comment:         c.Comment,
+		UserId:          c.UserId,
 		Reset:           c.Reset,
 		ResetDay:        c.ResetDay,
 		ResetWeekday:    c.ResetWeekday,
@@ -1349,6 +1396,13 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 
 	incomingNewer := incoming.UpdatedAt > existing.UpdatedAt ||
 		(incoming.UpdatedAt == existing.UpdatedAt && incoming.CreatedAt > existing.CreatedAt)
+
+	// An explicit incoming owner wins; a zero-value incoming UserId means
+	// "unchanged" so an admin-initiated update of a reseller's client never
+	// orphans it.
+	if incoming.UserId != 0 && existing.UserId != incoming.UserId {
+		existing.UserId = incoming.UserId
+	}
 
 	if existing.UUID != incoming.UUID && incoming.UUID != "" {
 		if incomingNewer || existing.UUID == "" {

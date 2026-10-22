@@ -126,7 +126,8 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "resellers": "Resellers"
   },
   "pages": {
     "login": {
@@ -2435,6 +2436,36 @@
       "visit": "Visit",
       "yourBrand": "Your brand here",
       "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day."
+    },
+    "resellers": {
+      "title": "Resellers",
+      "createReseller": "Create Reseller",
+      "editReseller": "Edit Reseller",
+      "username": "Username",
+      "password": "Password",
+      "totalTrafficGB": "Total Traffic Quota (GB)",
+      "totalTrafficGBDesc": "How much traffic the reseller can allocate to their clients",
+      "maxClients": "Max Clients",
+      "maxClientsDesc": "Maximum number of clients the reseller can create",
+      "enable": "Enabled",
+      "status": "Status",
+      "assignedInbounds": "Assigned Inbounds",
+      "assignedInboundsDesc": "Inbounds the reseller may create clients on",
+      "trafficUsage": "Traffic Usage",
+      "clientCount": "Clients",
+      "used": "Used",
+      "remaining": "Remaining",
+      "unlimited": "Unlimited",
+      "noResellers": "No resellers yet",
+      "createSuccess": "Reseller created",
+      "updateSuccess": "Reseller updated",
+      "deleteSuccess": "Reseller deleted",
+      "deleteConfirm": "Are you sure you want to delete this reseller?",
+      "deleteConfirmHasClients": "This reseller still has clients. Remove them first.",
+      "inboundsNotAssigned": "No inbound assigned",
+      "traffic": "Traffic",
+      "clients": "Clients",
+      "actions": "Actions"
     }
   },
   "tgbot": {

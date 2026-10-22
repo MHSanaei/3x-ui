@@ -22,6 +22,7 @@ type APIController struct {
 	hostController        *HostController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
+	resellerController    *ResellerController
 	userService           panel.UserService
 	apiTokenService       panel.ApiTokenService
 	Tgbot                 tgbot.Tgbot
@@ -230,6 +231,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)
+
+	// Reseller management
+	a.resellerController = NewResellerController(api)
 
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)

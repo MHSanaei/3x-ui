@@ -63,6 +63,9 @@ type ClientPageParams struct {
 	HasTgID    string `form:"hasTgId"`
 	HasComment string `form:"hasComment"`
 	Group      string `form:"group"`
+	// UserId scopes the listing to a single panel user's clients. Zero means
+	// no scope (the panel admin sees everything).
+	UserId int `form:"userId"`
 }
 
 // ClientPageResponse is the shape returned by ListPaged. `Total` is the
@@ -169,6 +172,8 @@ type clientQuery struct {
 	nowMs            int64
 	expireDiffMs     int64
 	trafficDiffBytes int64
+	// userId scopes the listing to one panel user's clients (0 = no scope).
+	userId int
 }
 
 type clientQueryJoin struct {
@@ -209,6 +214,9 @@ func (q clientQuery) from() *gorm.DB {
 	tx := q.db.Table("clients AS c")
 	for _, j := range q.joins {
 		tx = tx.Joins(j.sql, j.args...)
+	}
+	if q.userId > 0 {
+		tx = tx.Where("c.user_id = ?", q.userId)
 	}
 	return tx
 }
@@ -397,9 +405,14 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 
 	onlines := inboundSvc.GetOnlineClients()
 	q := newClientQuery(db, time.Now().UnixMilli(), expireDiffMs, trafficDiffBytes)
+	q.userId = params.UserId
 
 	var total int64
-	if err := db.Model(&model.ClientRecord{}).Count(&total).Error; err != nil {
+	base := db.Model(&model.ClientRecord{})
+	if params.UserId > 0 {
+		base = base.Where("user_id = ?", params.UserId)
+	}
+	if err := base.Count(&total).Error; err != nil {
 		return nil, err
 	}
 

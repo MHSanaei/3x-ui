@@ -88,6 +88,7 @@ func allModels() []any {
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
 		&model.TuicTrafficReceipt{},
+		&model.ResellerInbound{},
 	}
 }
 
@@ -123,6 +124,12 @@ func initModels() error {
 		return err
 	}
 	if err := migrateInboundExcludeFromSubColumn(); err != nil {
+		return err
+	}
+	if err := migrateUserResellerColumns(); err != nil {
+		return err
+	}
+	if err := migrateClientUserIdColumn(); err != nil {
 		return err
 	}
 	models := allModels()
@@ -405,6 +412,52 @@ func migrateClientEmailLowerIndex() error {
 		return nil
 	}
 	return db.Exec("CREATE INDEX IF NOT EXISTS idx_clients_email_lower ON clients (LOWER(email))").Error
+}
+
+// migrateUserResellerColumns adds the reseller columns to the users table on
+// existing installations. AutoMigrate already creates them on fresh DBs; this
+// backfills older ones so the reseller feature works without a schema reset.
+func migrateUserResellerColumns() error {
+	m := db.Migrator()
+	add := func(mdl any, column string) error {
+		if m.HasColumn(mdl, column) {
+			return nil
+		}
+		return m.AddColumn(mdl, column)
+	}
+	user := &model.User{}
+	for _, col := range []string{"Role", "ParentId", "TotalGB", "UsedGB", "MaxClients", "Enable"} {
+		if err := add(user, col); err != nil {
+			return err
+		}
+	}
+	// Backfill existing users as admins so nothing loses access.
+	if err := db.Model(&model.User{}).Where("role IS NULL OR TRIM(role) = ''").Update("role", string(model.UserRoleAdmin)).Error; err != nil {
+		return err
+	}
+	if err := db.Model(&model.User{}).Where("enable IS NULL").Update("enable", true).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// migrateClientUserIdColumn backfills the clients.user_id column on existing
+// installations. Legacy clients belong to the panel admin (user id 1).
+func migrateClientUserIdColumn() error {
+	m := db.Migrator()
+	if !m.HasColumn(&model.ClientRecord{}, "user_id") {
+		if err := m.AddColumn(&model.ClientRecord{}, "UserId"); err != nil {
+			return err
+		}
+	}
+	var adminId int
+	if err := db.Model(&model.User{}).Where("role = ?", string(model.UserRoleAdmin)).Order("id ASC").Limit(1).Pluck("id", &adminId).Error; err != nil {
+		return err
+	}
+	if adminId > 0 {
+		return db.Model(&model.ClientRecord{}).Where("user_id = 0 OR user_id IS NULL").Update("user_id", adminId).Error
+	}
+	return nil
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {

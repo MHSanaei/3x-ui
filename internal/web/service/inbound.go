@@ -188,11 +188,22 @@ func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
 	return nil
 }
 
+// scopeInboundsForUser scopes an inbound query to the inbounds a user may see.
+// An admin sees their own inbounds; a reseller also sees the inbounds the admin
+// assigned to them (reseller_inbounds). Traffic of a reseller's clients and the
+// admin's clients stays separated through ClientRecord.UserId.
+func scopeInboundsForUser(db *gorm.DB, userId int) *gorm.DB {
+	if userId <= 0 {
+		return db
+	}
+	return db.Where("user_id = ? OR id IN (SELECT inbound_id FROM reseller_inbounds WHERE reseller_id = ?)", userId, userId)
+}
+
 // GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := scopeInboundsForUser(db.Model(model.Inbound{}).Preload("ClientStats"), userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -235,7 +246,7 @@ func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := scopeInboundsForUser(db.Model(model.Inbound{}).Preload("ClientStats"), userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -382,12 +393,11 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		NodeAddress       string `gorm:"column:node_address"`
 		DisableFlow       bool   `gorm:"column:disable_flow"`
 	}
-	err := db.Table("inbounds").
+	q := db.Table("inbounds").
 		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address, inbounds.disable_flow").
-		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
-		Where("inbounds.user_id = ?", userId).
-		Order("inbounds.id ASC").
-		Scan(&rows).Error
+		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id")
+	q = scopeInboundsForUser(q, userId)
+	err := q.Order("inbounds.id ASC").Scan(&rows).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}

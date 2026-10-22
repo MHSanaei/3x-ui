@@ -57,6 +57,9 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		if !ldapEnabled {
 			return nil, errors.New("invalid credentials")
 		}
+	} else if user.Role == model.UserRoleReseller && !user.Enable {
+		return nil, errors.New("reseller account is disabled")
+	}
 
 		host, _ := s.settingService.GetLdapHost()
 		port, _ := s.settingService.GetLdapPort()

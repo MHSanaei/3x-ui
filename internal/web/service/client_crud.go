@@ -173,6 +173,16 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, common.NewError("at least one inbound is required")
 	}
 
+	// The actor is the session user; a reseller may only create clients on the
+	// inbounds the admin assigned to them, within their client-count and
+	// traffic quotas. Zero UserId means the panel admin (no restrictions).
+	if err := s.enforceResellerCreateConstraints(payload.UserId, payload.InboundIds, client.TotalGB); err != nil {
+		return false, err
+	}
+	// Record who owns this client so its traffic is billed separately from
+	// other resellers' and the admin's clients.
+	client.UserId = payload.UserId
+
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
@@ -260,6 +270,96 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	// standing makes the next node merge prune the new client's inbound links.
 	withdrawClientTombstones(client.Email)
 	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
+}
+
+// enforceResellerCreateConstraints validates that the actor (zero = admin) may
+// create clients on the given inbounds within their reseller quotas. It is a
+// no-op for the admin and for a UserId that does not belong to a reseller.
+func (s *ClientService) enforceResellerCreateConstraints(actorUserId int, inboundIds []int, clientTotalGB int64) error {
+	if actorUserId == 0 {
+		return nil
+	}
+	db := database.GetDB()
+	actor := &model.User{}
+	if err := db.Model(&model.User{}).Where("id = ?", actorUserId).First(actor).Error; err != nil {
+		return common.NewError("actor user not found:", err)
+	}
+	if actor.Role != string(model.UserRoleReseller) {
+		return nil
+	}
+	if !actor.Enable {
+		return common.NewError("reseller account is disabled")
+	}
+
+	assigned, err := s.AssignedInboundIdsForReseller(actorUserId)
+	if err != nil {
+		return err
+	}
+	allowed := make(map[int]struct{}, len(assigned))
+	for _, id := range assigned {
+		allowed[id] = struct{}{}
+	}
+	for _, ibId := range inboundIds {
+		if _, ok := allowed[ibId]; !ok {
+			return common.NewError("inbound", ibId, "is not assigned to this reseller")
+		}
+	}
+
+	if actor.MaxClients > 0 {
+		var count int64
+		if err := db.Model(&model.ClientRecord{}).Where("user_id = ?", actorUserId).Count(&count).Error; err != nil {
+			return err
+		}
+		if int(count) >= actor.MaxClients {
+			return common.NewError("reseller client limit reached")
+		}
+	}
+
+	if actor.TotalGB > 0 && clientTotalGB > 0 {
+		remaining, err := s.RemainingGBForUser(actorUserId)
+		if err != nil {
+			return err
+		}
+		if clientTotalGB > remaining {
+			return common.NewError("reseller traffic quota exceeded")
+		}
+	}
+	return nil
+}
+
+// AssignedInboundIdsForReseller returns the inbound ids a reseller may create
+// clients on.
+func (s *ClientService) AssignedInboundIdsForReseller(resellerId int) ([]int, error) {
+	var ids []int
+	if err := database.GetDB().Model(&model.ResellerInbound{}).
+		Where("reseller_id = ?", resellerId).
+		Pluck("inbound_id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// RemainingGBForUser returns how many more GB a user may allocate to clients.
+// Zero means unlimited.
+func (s *ClientService) RemainingGBForUser(userId int) (int64, error) {
+	user := &model.User{}
+	if err := database.GetDB().Model(&model.User{}).Where("id = ?", userId).First(user).Error; err != nil {
+		return 0, err
+	}
+	if user.TotalGB <= 0 {
+		return 0, nil
+	}
+	var used int64
+	database.GetDB().Table("clients c").
+		Select("COALESCE(SUM(ct.up + ct.down), 0)").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Where("c.user_id = ?", userId).
+		Scan(&used)
+	usedGB := used / (1024 * 1024 * 1024)
+	if usedGB >= user.TotalGB {
+		return 0, nil
+	}
+	return user.TotalGB - usedGB, nil
 }
 
 // inboundFanoutConcurrency caps how many inbounds one client op applies at

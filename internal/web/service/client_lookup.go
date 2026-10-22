@@ -144,6 +144,20 @@ func (s *ClientService) GetInboundIdsForRecord(id int) ([]int, error) {
 	return ids, nil
 }
 
+// OwnsClient reports whether the given client email belongs to userId. Used
+// to prevent a reseller from touching another reseller's (or the admin's)
+// clients.
+func (s *ClientService) OwnsClient(email string, userId int) (bool, error) {
+	if userId == 0 {
+		return true, nil
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	return rec.UserId == userId, nil
+}
+
 // TunnelAllowedIPsByInbound returns, for each given WireGuard/AmneziaWG
 // inbound id, the real AllowedIPs this email currently has on that specific
 // inbound's own settings JSON -- joined comma-separated, matching the form
@@ -179,10 +193,15 @@ func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, em
 	return result, nil
 }
 
-func (s *ClientService) List() ([]ClientWithAttachments, error) {
+func (s *ClientService) List(userId int) ([]ClientWithAttachments, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
-	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
+	q := db.Order("id ASC")
+	// A reseller only sees their own clients; the admin (userId == 0) sees all.
+	if userId > 0 {
+		q = q.Where("user_id = ?", userId)
+	}
+	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	if len(rows) == 0 {
