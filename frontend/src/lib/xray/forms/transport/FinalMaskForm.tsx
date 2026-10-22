@@ -36,8 +36,8 @@ export interface FinalMaskFormProps {
   // network/protocol. Used by the global sub-JSON finalmask editor where
   // the masks apply to every stream rather than one specific transport.
   showAll?: boolean;
-  // udphop runs only on the dialing side (the core refuses it on a listener), so a server
-  // keeps the advertised hop range in quicParams.udpHop and a client gets the mask.
+  // udphop runs only on the dialing side (the core refuses it on a listener), so a server keeps
+  // the advertised hop range in quicParams.udpHop; filter is the listener-only counterpart.
   side?: 'server' | 'client';
 }
 
@@ -332,7 +332,7 @@ export default function FinalMaskForm({
 
   return (
     <>
-      {showTcp && <TcpMasksList base={base} form={form} />}
+      {showTcp && <TcpMasksList base={base} form={form} allowFilter={side === 'server'} />}
       {showUdp && (
         <UdpMasksList
           base={base}
@@ -341,6 +341,7 @@ export default function FinalMaskForm({
           isWireguard={isWireguard}
           network={network}
           allowUdpHop={side === 'client'}
+          allowFilter={side === 'server'}
         />
       )}
       {showQuic && (
@@ -366,7 +367,15 @@ export default function FinalMaskForm({
   );
 }
 
-function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+function TcpMasksList({
+  base,
+  form,
+  allowFilter,
+}: {
+  base: (string | number)[];
+  form: FormInstance;
+  allowFilter: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <Form.List name={[...base, 'tcp']}>
@@ -390,6 +399,7 @@ function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormIns
               displayIndex={mIdx + 1}
               form={form}
               listPath={[...base, 'tcp']}
+              allowFilter={allowFilter}
               onRemove={() => remove(field.name)}
             />
           ))}
@@ -404,12 +414,14 @@ function TcpMaskItem({
   displayIndex,
   form,
   listPath,
+  allowFilter,
   onRemove,
 }: {
   fieldName: number;
   displayIndex: number;
   form: FormInstance;
   listPath: (string | number)[];
+  allowFilter: boolean;
   onRemove: () => void;
 }) {
   // Absolute path for setFieldValue side effects (resetting settings on
@@ -442,6 +454,7 @@ function TcpMaskItem({
             { value: 'header-custom', label: 'Header Custom' },
             { value: 'sudoku', label: 'Sudoku' },
             { value: 'xmc', label: 'XMC (Minecraft)' },
+            ...(allowFilter ? [FILTER_MASK_OPTION] : []),
           ]}
         />
       </Form.Item>
@@ -493,6 +506,7 @@ function TcpMaskItem({
             );
           }
           if (type === 'sudoku') return <SudokuSettings fieldName={fieldName} />;
+          if (type === 'filter') return <FilterMaskSettings fieldName={fieldName} />;
           if (type === 'header-custom') {
             return (
               <HeaderCustomGroups
@@ -540,6 +554,41 @@ function TcpMaskItem({
         }}
       </Form.Item>
     </div>
+  );
+}
+
+const FILTER_MASK_OPTION = { value: 'filter', label: 'Filter (source IPs)' };
+
+// xray-core 26.10.21 (#7206) screens a listener's source IPs; a blocked match wins over an allowed
+// one, and an empty list leaves that side open. Links and JSON subscriptions drop it.
+function FilterMaskSettings({ fieldName }: { fieldName: number }) {
+  return (
+    <>
+      <Form.Item
+        label="Allowed Source IPs"
+        name={[fieldName, 'settings', 'allowedSourceIPs']}
+        tooltip="Only these sources may connect; empty allows every source"
+      >
+        <Select
+          mode="tags"
+          style={{ width: '100%' }}
+          tokenSeparators={[',', ' ']}
+          placeholder="10.0.0.0/8, geoip:ir"
+        />
+      </Form.Item>
+      <Form.Item
+        label="Blocked Source IPs"
+        name={[fieldName, 'settings', 'blockedSourceIPs']}
+        tooltip="These sources are dropped before any other mask runs"
+      >
+        <Select
+          mode="tags"
+          style={{ width: '100%' }}
+          tokenSeparators={[',', ' ']}
+          placeholder="203.0.113.7, geoip:cn"
+        />
+      </Form.Item>
+    </>
   );
 }
 
@@ -882,6 +931,7 @@ function UdpMasksList({
   isWireguard,
   network,
   allowUdpHop,
+  allowFilter,
 }: {
   base: (string | number)[];
   form: FormInstance;
@@ -889,6 +939,7 @@ function UdpMasksList({
   isWireguard: boolean;
   network: string;
   allowUdpHop: boolean;
+  allowFilter: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -918,6 +969,7 @@ function UdpMasksList({
               isWireguard={isWireguard}
               network={network}
               allowUdpHop={allowUdpHop}
+              allowFilter={allowFilter}
               onRemove={() => remove(field.name)}
             />
           ))}
@@ -936,6 +988,7 @@ function UdpMaskItem({
   isWireguard,
   network,
   allowUdpHop,
+  allowFilter,
   onRemove,
 }: {
   fieldName: number;
@@ -946,6 +999,7 @@ function UdpMaskItem({
   isWireguard: boolean;
   network: string;
   allowUdpHop: boolean;
+  allowFilter: boolean;
   onRemove: () => void;
 }) {
   const absolutePath = [...listPath, fieldName];
@@ -960,8 +1014,9 @@ function UdpMaskItem({
   };
 
   const udpHopOption = allowUdpHop ? [{ value: 'udphop', label: 'UDP Hop' }] : [];
+  const filterOption = allowFilter ? [FILTER_MASK_OPTION] : [];
   const options = isHysteria
-    ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }, ...udpHopOption]
+    ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }, ...udpHopOption, ...filterOption]
     : [
         // Salamander is the mask xray-core's own wireguard finalmask example
         // uses; it stays hysteria-only elsewhere to keep legacy parity.
@@ -974,6 +1029,7 @@ function UdpMaskItem({
         { value: 'noise', label: 'Noise' },
         { value: 'sudoku', label: 'Sudoku' },
         ...udpHopOption,
+        ...filterOption,
       ];
 
   return (
@@ -1039,6 +1095,7 @@ function UdpMaskItem({
           if (type === 'udphop') {
             return <UdpHopSettings udpFieldName={fieldName} />;
           }
+          if (type === 'filter') return <FilterMaskSettings fieldName={fieldName} />;
           if (type === 'xicmp') {
             return (
               <>
@@ -1430,23 +1487,44 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
               />
             </Form.Item>
             {resolvers.map((resolver, ri) => (
-              <Form.Item key={resolver.key} label={`Resolver ${ri + 1}`}>
-                <Space.Compact block>
-                  <Form.Item name={[resolver.name, 'addrs']} noStyle>
-                    <Select
-                      mode="tags"
-                      style={{ width: '100%' }}
-                      tokenSeparators={[',', ' ']}
-                      placeholder="udp://8.8.8.8:53, tcp://1.1.1.1"
-                    />
-                  </Form.Item>
-                  <Button
-                    icon={<DeleteOutlined />}
+              <div key={resolver.key}>
+                <Divider style={{ margin: 0 }}>
+                  Resolver {ri + 1}
+                  <DeleteOutlined
+                    className="danger-icon"
+                    role="button"
+                    tabIndex={0}
                     aria-label={t('remove')}
                     onClick={() => remove(resolver.name)}
+                    onKeyDown={activateOnKey(() => remove(resolver.name))}
                   />
-                </Space.Compact>
-              </Form.Item>
+                </Divider>
+                <Form.Item label="Addresses" name={[resolver.name, 'addrs']}>
+                  <Select
+                    mode="tags"
+                    style={{ width: '100%' }}
+                    tokenSeparators={[',', ' ']}
+                    placeholder="udp://8.8.8.8:53, https://dns.google/dns-query"
+                  />
+                </Form.Item>
+                <Form.Item label="Workers" name={[resolver.name, 'worker']}>
+                  <InputNumber min={1} placeholder="32" />
+                </Form.Item>
+                <Form.Item
+                  label="DoH TLS"
+                  name={[resolver.name, 'tlsConfig']}
+                  tooltip="tlsSettings for the https:// addresses, e.g. a serverName to front the domain"
+                >
+                  <JsonObjectInput placeholder='{"serverName": "dns.google", "fingerprint": "chrome"}' />
+                </Form.Item>
+                <Form.Item
+                  label="DoH QUIC"
+                  name={[resolver.name, 'quicConfig']}
+                  tooltip="QUIC parameters for an https:// address reached over h3"
+                >
+                  <JsonObjectInput placeholder='{"congestion": "bbr"}' />
+                </Form.Item>
+              </div>
             ))}
           </>
         )}
@@ -1531,7 +1609,47 @@ function validateNoiseReset(_: unknown, value: unknown) {
   return valid ? Promise.resolve() : Promise.reject(new Error('seconds, e.g. 0 or 60-120'));
 }
 
+// xray-core 26.10.17 (#7124) refuses a noise script beside noise items, so a script replaces the list.
 function NoiseItems({
+  udpFieldName,
+  form,
+  absoluteSettingsPath,
+}: {
+  udpFieldName: number;
+  form: FormInstance;
+  absoluteSettingsPath: (string | number)[];
+}) {
+  const script = Form.useWatch([...absoluteSettingsPath, 'script'], form) as string | undefined;
+  return (
+    <>
+      <Form.Item
+        label="Reset"
+        name={[udpFieldName, 'settings', 'reset']}
+        tooltip="Seconds before the noise is sent to a destination again; 0 sends it once"
+        rules={[{ validator: validateNoiseReset }]}
+      >
+        <Input placeholder="0 or 60-120" />
+      </Form.Item>
+      <Form.Item
+        label="Script"
+        name={[udpFieldName, 'settings', 'script']}
+        tooltip="A Lua file xray-core runs to build the noise, found beside the xray binary; replaces the noise list"
+        normalize={(value: string) => value || undefined}
+      >
+        <Input allowClear placeholder="noise.lua" />
+      </Form.Item>
+      {!script && (
+        <NoiseItemList
+          udpFieldName={udpFieldName}
+          form={form}
+          absoluteSettingsPath={absoluteSettingsPath}
+        />
+      )}
+    </>
+  );
+}
+
+function NoiseItemList({
   udpFieldName,
   form,
   absoluteSettingsPath,
@@ -1543,14 +1661,6 @@ function NoiseItems({
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item
-        label="Reset"
-        name={[udpFieldName, 'settings', 'reset']}
-        tooltip="Seconds before the noise is sent to a destination again; 0 sends it once"
-        rules={[{ validator: validateNoiseReset }]}
-      >
-        <Input placeholder="0 or 60-120" />
-      </Form.Item>
       <Form.List name={[udpFieldName, 'settings', 'noise']}>
         {(items, { add, remove }) => (
           <>
@@ -1617,12 +1727,14 @@ function validateCustomVarName(_: unknown, value: unknown) {
 }
 
 // Hands the form only a parsed JSON object, so half-typed text never reaches the config.
-function TransformEditor({
+function JsonObjectInput({
   value,
   onChange,
+  placeholder,
 }: {
   value?: Record<string, unknown>;
   onChange?: (next: Record<string, unknown> | undefined) => void;
+  placeholder?: string;
 }) {
   const [text, setText] = useState(() => (value ? JSON.stringify(value) : ''));
   const [invalid, setInvalid] = useState(false);
@@ -1631,7 +1743,7 @@ function TransformEditor({
       <Input.TextArea
         value={text}
         autoSize={{ minRows: 2, maxRows: 8 }}
-        placeholder='{"op": "concat", "args": [{"reuse": "nonce"}]}'
+        placeholder={placeholder}
         onChange={(e) => {
           const next = e.target.value;
           setText(next);
@@ -1755,7 +1867,7 @@ function ItemEditor({
           tooltip='An expression tree, e.g. {"op": "concat", "args": [{"type": "str", "bytes": "OK "}, {"reuse": "nonce"}]}'
           rules={[{ required: true, message: 'enter the transform expression' }]}
         >
-          <TransformEditor />
+          <JsonObjectInput placeholder='{"op": "concat", "args": [{"reuse": "nonce"}]}' />
         </Form.Item>
       )}
 

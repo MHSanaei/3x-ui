@@ -22,7 +22,7 @@ import {
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
   MASQUE_NETWORK_OPTION,
-  NETWORK_OPTIONS,
+  networkOptionsFor,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
   TARGET_STRATEGY_OPTIONS,
@@ -265,9 +265,11 @@ export default function OutboundFormModal({
    * wsSettings, etc.) so the DU branch matches. Preserve security if
    * the new network supports it, otherwise force back to 'none'.
    */
+  // xray-core 26.10.17 (#7182) dials XDRIVE only through Mux, so picking XDRIVE turns Mux on.
   function onNetworkChange(next: string) {
     const stream = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
     methods.setValue('streamSettings', applyNetworkChange(protocol, stream, next) as StreamValue);
+    if (next === 'xdrive') methods.setValue('mux.enabled', true);
   }
 
   function onXmuxToggle(checked: boolean) {
@@ -499,7 +501,7 @@ export default function OutboundFormModal({
                                   ? [HYSTERIA_NETWORK_OPTION]
                                   : protocol === 'masque'
                                     ? [MASQUE_NETWORK_OPTION]
-                                    : NETWORK_OPTIONS
+                                    : networkOptionsFor(protocol)
                               }
                             />
                           </Form.Item>
