@@ -50,7 +50,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.90.0",
-    "react-i18next": "^17.0.16",
+    "react-i18next": "^17.1.0",
     "react-router": "^8.4.0",
     "swagger-ui-react": "^5.33.1",
     "uplot": "^1.6.32",
