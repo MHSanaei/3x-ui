@@ -113,7 +113,10 @@ func runWebServer() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	server := web.NewServer()
+	// The share-link provider is installed with the server: the panel answers
+	// link requests as soon as it serves, and one that arrived before the
+	// provider was registered got "sub link provider not registered".
+	server := web.NewServer(sub.NewLinkProvider())
 	global.SetWebServer(server)
 	err = server.Start()
 	if err != nil {
@@ -121,7 +124,6 @@ func runWebServer() {
 	}
 
 	sub.SetDistFS(web.EmbeddedDist())
-	service.RegisterSubLinkProvider(sub.NewLinkProvider())
 	subServer := sub.NewServer()
 	global.SetSubServer(subServer)
 	err = subServer.Start()
@@ -175,7 +177,7 @@ func runWebServer() {
 				logger.Debug("Error stopping sub server:", err)
 			}
 
-			server = web.NewServer()
+			server = web.NewServer(sub.NewLinkProvider())
 			global.SetWebServer(server)
 			err = server.StartPanelOnly()
 			if err != nil {
