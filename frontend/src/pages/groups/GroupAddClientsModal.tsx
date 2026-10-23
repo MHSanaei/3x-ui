@@ -138,6 +138,7 @@ export default function GroupAddClientsModal({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('pages.inbounds.attachClientsSearchPlaceholder')}
+            aria-label={t('pages.inbounds.attachClientsSearchPlaceholder')}
             style={{ maxWidth: 320 }}
           />
           <Typography.Text type="secondary">

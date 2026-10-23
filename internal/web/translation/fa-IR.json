@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "حفظ تنظیمات این دستگاه",
-      "importKeepHostSettingsDesc": "آدرس‌ها و پورت‌های شنود، مسیر پایه، گواهی‌ها و هویت نودِ همین پنل را نگه می‌دارد و آن‌ها را از فایل بارگذاری‌شده نمی‌گیرد."
+      "importKeepHostSettingsDesc": "آدرس‌ها و پورت‌های شنود، مسیر پایه، گواهی‌ها و هویت نودِ همین پنل را نگه می‌دارد و آن‌ها را از فایل بارگذاری‌شده نمی‌گیرد.",
+      "logLines": "تعداد خطوط",
+      "timeRange": "بازه زمانی"
     },
     "inbounds": {
       "totalDownUp": "دریافت/ارسال کل",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS سیستم به گیت‌وی",
         "autoSystemDnsToGatewayTooltip": "فقط لینوکس: systemd-resolved را به گیت‌وی TUN می‌برد تا کوئری‌های سیستم از Xray عبور کنند. به گیت‌وی نیاز دارد و اگر این کار شکست بخورد TUN اجرا نمی‌شود.",
         "autoSystemWfpBlockLeak": "جلوگیری از نشت (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "فقط ویندوز، همراه با مسیریابی خودکار سیستم: dns ترافیک DNS را داخل TUN نگه می‌دارد (به سرور DNS نیاز دارد) و misconfigtun نسخه‌ای از IP را که هیچ مسیری به TUN نمی‌فرستد مسدود می‌کند."
+        "autoSystemWfpBlockLeakTooltip": "فقط ویندوز، همراه با مسیریابی خودکار سیستم: dns ترافیک DNS را داخل TUN نگه می‌دارد (به سرور DNS نیاز دارد) و misconfigtun نسخه‌ای از IP را که هیچ مسیری به TUN نمی‌فرستد مسدود می‌کند.",
+        "maxVersion": "حداکثر نسخه",
+        "headerName": "نام هدر",
+        "headerValue": "مقدار هدر"
       },
       "info": {
         "mode": "حالت",

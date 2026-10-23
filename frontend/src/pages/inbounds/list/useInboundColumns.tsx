@@ -130,7 +130,11 @@ export function useInboundColumns({
         align: 'center',
         width: 80,
         render: (_, record) => (
-          <Switch checked={record.enable} onChange={(next) => onSwitchEnable(record, next)} />
+          <Switch
+            aria-label={t('pages.inbounds.enable')}
+            checked={record.enable}
+            onChange={(next) => onSwitchEnable(record, next)}
+          />
         ),
       },
     ];
@@ -293,7 +297,7 @@ export function useInboundColumns({
                 className="client-count-tag"
                 style={{ margin: 0, marginRight: 4, padding: '0 2px' }}
               >
-                <TeamOutlined /> {cc.clients}
+                <TeamOutlined aria-hidden /> {cc.clients}
               </Tag>
               {cc.active.length > 0 ? (
                 <Popover

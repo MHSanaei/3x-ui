@@ -111,6 +111,7 @@ export default function BulkAttachInboundsModal({
               onChange={setTargetIds}
               options={targetOptions}
               placeholder={t('pages.clients.attachToInboundsTargets')}
+              aria-label={t('pages.clients.attachToInboundsTargets')}
               showSearch={{ optionFilterProp: 'label' }}
               autoFocus
             />

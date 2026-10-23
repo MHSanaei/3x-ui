@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -46,6 +46,7 @@ export default function FilterDrawer({
   nodes,
 }: FilterDrawerProps) {
   const { t } = useTranslation();
+  const uid = useId();
 
   function patch<K extends keyof ClientFilters>(key: K, value: ClientFilters[K]) {
     onChange({ ...filters, [key]: value });
@@ -113,8 +114,9 @@ export default function FilterDrawer({
           </Checkbox.Group>
         </Form.Item>
 
-        <Form.Item label={t('pages.inbounds.protocol')}>
+        <Form.Item label={t('pages.inbounds.protocol')} htmlFor={`${uid}-protocols`}>
           <Select
+            id={`${uid}-protocols`}
             mode="multiple"
             value={filters.protocols}
             onChange={(v) => patch('protocols', v as string[])}
@@ -125,8 +127,9 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
-        <Form.Item label={t('inbounds')}>
+        <Form.Item label={t('inbounds')} htmlFor={`${uid}-inbounds`}>
           <Select
+            id={`${uid}-inbounds`}
             mode="multiple"
             value={filters.inboundIds}
             onChange={(v) => patch('inboundIds', v as number[])}
@@ -140,8 +143,9 @@ export default function FilterDrawer({
         </Form.Item>
 
         {nodes.length > 0 && (
-          <Form.Item label={t('pages.clients.filters.nodes')}>
+          <Form.Item label={t('pages.clients.filters.nodes')} htmlFor={`${uid}-nodes`}>
             <Select
+              id={`${uid}-nodes`}
               mode="multiple"
               value={filters.nodeIds}
               onChange={(v) => patch('nodeIds', v as number[])}
@@ -155,8 +159,9 @@ export default function FilterDrawer({
           </Form.Item>
         )}
 
-        <Form.Item label={t('pages.clients.group')}>
+        <Form.Item label={t('pages.clients.group')} htmlFor={`${uid}-groups`}>
           <Select
+            id={`${uid}-groups`}
             mode="multiple"
             value={filters.groups}
             onChange={(v) => patch('groups', v as string[])}
@@ -169,8 +174,9 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
-        <Form.Item label={t('pages.clients.expiryTime')}>
+        <Form.Item label={t('pages.clients.expiryTime')} htmlFor={`${uid}-expiry`}>
           <DatePicker.RangePicker
+            id={`${uid}-expiry`}
             value={dateRange}
             onChange={(range) => {
               const from = range?.[0]?.startOf('day').valueOf();
@@ -182,10 +188,11 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
-        <Form.Item label={`${t('pages.clients.traffic')} (GB)`}>
+        <Form.Item label={`${t('pages.clients.traffic')} (GB)`} htmlFor={`${uid}-usage-from`}>
           <Row gutter={8}>
             <Col span={12}>
               <InputNumber
+                id={`${uid}-usage-from`}
                 value={filters.usageFromGB}
                 min={0}
                 step={1}
@@ -196,6 +203,7 @@ export default function FilterDrawer({
             </Col>
             <Col span={12}>
               <InputNumber
+                aria-label={`${t('pages.clients.traffic')} (GB) ${t('to')}`}
                 value={filters.usageToGB}
                 min={0}
                 step={1}

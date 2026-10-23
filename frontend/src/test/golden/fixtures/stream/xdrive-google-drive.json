@@ -3,7 +3,7 @@
   "address": "142.250.0.1",
   "port": 443,
   "xdriveSettings": {
-    "service": "Google Drive",
+    "service": "google-drive",
     "remoteFolder": "xray-tunnel",
     "secrets": [
       "000000000000-example.apps.googleusercontent.com",

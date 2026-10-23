@@ -16,7 +16,7 @@ function BecomeButton({ contact, block }: { contact?: string; block?: boolean })
   return (
     <Button
       type="primary"
-      icon={<CrownOutlined />}
+      icon={<CrownOutlined aria-hidden />}
       href={contact}
       target="_blank"
       rel="noopener noreferrer"
@@ -32,7 +32,7 @@ function YourBrandCard({ contact }: { contact?: string }) {
   return (
     <div className="sponsors-yourbrand">
       <span className="sponsors-yourbrand-icon">
-        <PlusOutlined />
+        <PlusOutlined aria-hidden />
       </span>
       <div className="sponsors-yourbrand-title">{t('pages.sponsors.yourBrand')}</div>
       <div className="sponsors-yourbrand-text">{t('pages.sponsors.yourBrandText')}</div>
@@ -64,7 +64,8 @@ export default function SponsorsPage() {
               <div className="sponsors-header">
                 <div>
                   <Typography.Title level={3} className="sponsors-title">
-                    <CrownOutlined className="sponsors-title-icon" /> {t('pages.sponsors.title')}
+                    <CrownOutlined aria-hidden className="sponsors-title-icon" />{' '}
+                    {t('pages.sponsors.title')}
                   </Typography.Title>
                   <Typography.Text type="secondary">{t('pages.sponsors.intro')}</Typography.Text>
                 </div>

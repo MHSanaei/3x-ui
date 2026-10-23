@@ -109,7 +109,7 @@ export default function SubscriptionOutbounds({
     const r = testResult(subscriptionTestStates, key);
     if (!r)
       return isTesting(subscriptionTestStates, key) ? (
-        <LoadingOutlined />
+        <LoadingOutlined aria-label={t('loading')} />
       ) : (
         <span className="empty">—</span>
       );
@@ -127,7 +127,7 @@ export default function SubscriptionOutbounds({
           size={isMobile ? 'small' : undefined}
           loading={isTesting(subscriptionTestStates, key)}
           disabled={!record.tag || isUntestable(record) || isTesting(subscriptionTestStates, key)}
-          icon={<ThunderboltOutlined />}
+          icon={<ThunderboltOutlined aria-hidden />}
           onClick={() => onTestSubscription(record as unknown as Record<string, unknown>, testMode)}
         />
       </Tooltip>

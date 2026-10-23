@@ -256,9 +256,6 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		// already existed, and a create the panel reported as failed must not.
 		return needRestart, fanoutErr
 	}
-	// A re-created email is a live identity again: a delete tombstone left
-	// standing makes the next node merge prune the new client's inbound links.
-	withdrawClientTombstones(client.Email)
 	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
 }
 
