@@ -1203,8 +1203,11 @@ func vlessClientEncryption(settings map[string]any) string {
 }
 
 // vlessFlowAllowed mirrors inboundCanEnableTlsFlow in internal/web/service: Vision runs over
-// TLS/REALITY on raw TCP, or inside VLESS encryption on any transport.
+// TLS/REALITY on raw TCP, or inside VLESS encryption on any transport but XDRIVE.
 func vlessFlowAllowed(network, security string, settings map[string]any) bool {
+	if network == "xdrive" {
+		return false
+	}
 	if network == "tcp" && (security == "tls" || security == "reality") {
 		return true
 	}
@@ -2704,6 +2707,28 @@ var validFinalMaskTCPTypes = map[string]struct{}{
 	"fragment":      {},
 	"sudoku":        {},
 	"xmc":           {},
+}
+
+// dropServerOnlyFinalMasks removes the inbound "filter" mask (xray-core 26.10.21, #7206): it only
+// screens the listener's source IPs, and a client core older than it refuses the unknown type.
+func dropServerOnlyFinalMasks(finalmask any) {
+	fm, _ := finalmask.(map[string]any)
+	for _, layer := range []string{"tcp", "udp"} {
+		masks, ok := fm[layer].([]any)
+		if !ok {
+			continue
+		}
+		kept := slices.DeleteFunc(masks, func(entry any) bool {
+			mask, _ := entry.(map[string]any)
+			maskType, _ := mask["type"].(string)
+			return strings.EqualFold(maskType, "filter")
+		})
+		if len(kept) == 0 {
+			delete(fm, layer)
+		} else {
+			fm[layer] = kept
+		}
+	}
 }
 
 // applyKcpShareParams reconstructs legacy KCP share-link fields from either

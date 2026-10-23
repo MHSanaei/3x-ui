@@ -172,9 +172,26 @@ function withLegacyFragmentRanges(finalmask: FinalMaskStreamSettings): FinalMask
   return changed ? { ...finalmask, tcp } : finalmask;
 }
 
+// The "filter" mask (xray-core 26.10.21) screens the listener's source IPs, and a client core older
+// than it refuses the unknown type. Mirrors dropServerOnlyFinalMasks in internal/sub.
+function withoutServerOnlyMasks(finalmask: FinalMaskStreamSettings): FinalMaskStreamSettings {
+  const next: Record<string, unknown> = { ...finalmask };
+  let changed = false;
+  for (const layer of ['tcp', 'udp'] as const) {
+    const masks = finalmask[layer];
+    if (!Array.isArray(masks)) continue;
+    const kept = masks.filter((mask) => mask?.type !== 'filter');
+    if (kept.length === masks.length) continue;
+    changed = true;
+    if (kept.length > 0) next[layer] = kept;
+    else delete next[layer];
+  }
+  return changed ? (next as FinalMaskStreamSettings) : finalmask;
+}
+
 function serializeFinalMask(finalmask: FinalMaskStreamSettings | undefined): string {
   if (!finalmask) return '';
-  const shareable = withLegacyFragmentRanges(finalmask);
+  const shareable = withLegacyFragmentRanges(withoutServerOnlyMasks(finalmask));
   return hasShareableFinalMaskValue(shareable) ? JSON.stringify(shareable) : '';
 }
 

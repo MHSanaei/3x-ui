@@ -288,6 +288,22 @@ describe('genVlessLink TCP fragment finalmask compatibility', () => {
     expect(exported).toEqual(finalmask);
   });
 
+  // xray-core 26.10.21's filter screens the listener's own source IPs; a client core older than
+  // it refuses the unknown type, and the lists would hand clients the server's IP policy.
+  it('leaves the inbound-only filter mask out of the link', () => {
+    const exported = finalmaskFrom(
+      linkFor({
+        tcp: [{ type: 'filter', settings: { allowedSourceIPs: ['10.0.0.0/8'] } }],
+        udp: [
+          { type: 'filter', settings: { blockedSourceIPs: ['geoip:cn'] } },
+          { type: 'salamander', settings: { password: 'p' } },
+        ],
+      }),
+    );
+
+    expect(exported).toEqual({ udp: [{ type: 'salamander', settings: { password: 'p' } }] });
+  });
+
   it('exports a stored UDP-only finalmask whose empty tcp list was dropped on save', () => {
     const udpOnly = { udp: [{ type: 'salamander', settings: { password: 'p' } }] };
     const inbound = inboundFromDb({
