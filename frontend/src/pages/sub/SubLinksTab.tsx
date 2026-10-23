@@ -49,13 +49,13 @@ export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }:
                 href={appendRawView(row.url)}
                 target="_blank"
                 rel="noopener noreferrer"
-                icon={<DownloadOutlined />}
+                icon={<DownloadOutlined aria-hidden />}
                 aria-label={t('download')}
                 title={t('download')}
               />
             )}
             <Button
-              icon={<CopyOutlined />}
+              icon={<CopyOutlined aria-hidden />}
               onClick={() => onCopy(row.url)}
               aria-label={t('copy')}
               title={t('copy')}

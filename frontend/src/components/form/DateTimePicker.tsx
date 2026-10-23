@@ -19,6 +19,8 @@ interface DateTimePickerProps {
   disabled?: boolean;
   allowClear?: boolean;
   maxDate?: Dayjs;
+  id?: string;
+  'aria-label'?: string;
 }
 
 const LIGHT_THEME = {
@@ -57,6 +59,8 @@ export default function DateTimePicker({
   disabled = false,
   allowClear = true,
   maxDate,
+  id,
+  'aria-label': ariaLabel,
 }: DateTimePickerProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -97,7 +101,10 @@ export default function DateTimePicker({
   useEffect(() => {
     if (datepicker !== 'jalalian') return;
     const input = jalaliRef.current?.querySelector('input');
-    if (input) input.placeholder = placeholder;
+    if (!input) return;
+    input.placeholder = placeholder;
+    if (id) input.id = id;
+    if (ariaLabel) input.setAttribute('aria-label', ariaLabel);
   });
 
   if (datepicker === 'jalalian') {
@@ -137,7 +144,7 @@ export default function DateTimePicker({
               setClearNonce((n) => n + 1);
             }}
           >
-            <CloseCircleFilled />
+            <CloseCircleFilled aria-hidden />
           </button>
         )}
       </div>
@@ -156,6 +163,8 @@ export default function DateTimePicker({
       disabled={disabled}
       allowClear={allowClear}
       maxDate={maxDate}
+      id={id}
+      aria-label={ariaLabel}
       style={{ width: '100%' }}
     />
   );

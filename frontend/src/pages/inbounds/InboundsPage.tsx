@@ -754,9 +754,11 @@ export default function InboundsPage() {
                             value={0}
                             formatter={() => (
                               <span>
-                                <ArrowUpOutlined /> {SizeFormatter.sizeFormat(totals.up)}
+                                <ArrowUpOutlined aria-hidden />{' '}
+                                {SizeFormatter.sizeFormat(totals.up)}
                                 {' / '}
-                                <ArrowDownOutlined /> {SizeFormatter.sizeFormat(totals.down)}
+                                <ArrowDownOutlined aria-hidden />{' '}
+                                {SizeFormatter.sizeFormat(totals.down)}
                               </span>
                             )}
                           />
@@ -765,14 +767,14 @@ export default function InboundsPage() {
                           <Statistic
                             title={t('pages.inbounds.totalUsage')}
                             value={SizeFormatter.sizeFormat(totals.up + totals.down)}
-                            prefix={<PieChartOutlined />}
+                            prefix={<PieChartOutlined aria-hidden />}
                           />
                         </Col>
                         <Col xs={24} sm={24} md={8}>
                           <Statistic
                             title={t('pages.inbounds.inboundCount')}
                             value={String(dbInbounds.length)}
-                            prefix={<BarsOutlined />}
+                            prefix={<BarsOutlined aria-hidden />}
                           />
                         </Col>
                       </Row>

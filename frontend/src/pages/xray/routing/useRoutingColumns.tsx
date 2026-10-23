@@ -84,7 +84,7 @@ export function useRoutingColumns({
               <Button
                 shape="circle"
                 size="small"
-                icon={<EditOutlined />}
+                icon={<EditOutlined aria-hidden />}
                 aria-label={t('edit')}
                 onClick={() => openEdit(index)}
               />
@@ -99,7 +99,7 @@ export function useRoutingColumns({
                           key: 'edit',
                           label: (
                             <>
-                              <EditOutlined /> {t('edit')}
+                              <EditOutlined aria-hidden /> {t('edit')}
                             </>
                           ),
                           onClick: () => openEdit(index),
@@ -110,7 +110,7 @@ export function useRoutingColumns({
                     key: 'up',
                     label: (
                       <>
-                        <ArrowUpOutlined /> {t('pages.inbounds.form.moveUp')}
+                        <ArrowUpOutlined aria-hidden /> {t('pages.inbounds.form.moveUp')}
                       </>
                     ),
                     disabled: index === 0,
@@ -120,7 +120,7 @@ export function useRoutingColumns({
                     key: 'down',
                     label: (
                       <>
-                        <ArrowDownOutlined /> {t('pages.inbounds.form.moveDown')}
+                        <ArrowDownOutlined aria-hidden /> {t('pages.inbounds.form.moveDown')}
                       </>
                     ),
                     disabled: index === rowsLength - 1,
@@ -131,7 +131,7 @@ export function useRoutingColumns({
                     danger: true,
                     label: (
                       <>
-                        <DeleteOutlined /> {t('delete')}
+                        <DeleteOutlined aria-hidden /> {t('delete')}
                       </>
                     ),
                     onClick: () => confirmDelete(index),
@@ -139,7 +139,12 @@ export function useRoutingColumns({
                 ],
               }}
             >
-              <Button shape="circle" size="small" icon={<MoreOutlined />} aria-label={t('more')} />
+              <Button
+                shape="circle"
+                size="small"
+                icon={<MoreOutlined aria-hidden />}
+                aria-label={t('more')}
+              />
             </Dropdown>
           </div>
         ),
@@ -152,6 +157,7 @@ export function useRoutingColumns({
         render: (_v, _r, index) => (
           <Switch
             size="small"
+            aria-label={t('enable')}
             checked={_r.enabled !== false}
             onChange={(checked) => toggleRule(index, checked)}
             disabled={isApiRule(_r)}
