@@ -3,6 +3,7 @@ package service
 import (
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -215,6 +216,59 @@ func TestUpdateInbound_ExternalProxyChangeLeavesUnchangedEntriesAlone(t *testing
 			}
 			if rows := hostRows(t, "address = ?", "a.cdn.example"); !reflect.DeepEqual(rows, kept) {
 				t.Fatalf("A rows = %+v, want the admin's rows untouched: %+v", rows, kept)
+			}
+		})
+	}
+}
+
+// Leftover entries pair up by position only after unchanged ones are set aside; otherwise
+// removing or inserting an entry ahead of an admin-owned host shifts every pairing after it.
+func TestUpdateInbound_ExternalProxyShiftLeavesAdminHostAlone(t *testing.T) {
+	const entryA = `{"forceTls":"tls","dest":"a.cdn.example","port":8443,"remark":"A"}`
+	const entryB = `{"forceTls":"tls","dest":"b.cdn.example","port":8443,"remark":"B"}`
+	const entryC = `{"forceTls":"tls","dest":"c.cdn.example","port":8443,"remark":"C"}`
+	stream := func(entries ...string) string {
+		return `{"network":"ws","security":"none","wsSettings":{"path":"/ws"},"externalProxy":[` + strings.Join(entries, ",") + `]}`
+	}
+	cases := []struct {
+		name  string
+		after string
+		want  []string
+	}{
+		{"removed ahead", stream(entryB), []string{"B edited"}},
+		{"inserted ahead", stream(entryC, entryA, entryB), []string{"A", "B edited", "C"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			setupConflictDB(t)
+			hostSvc := &HostService{}
+			created := addExternalProxyInbound(t, "edge-shift", 8086, stream(entryA, entryB))
+			imported := map[string]model.Host{}
+			for _, h := range hostsByGroup(t, "inbound_id = ?", created.Id) {
+				imported[h.Remark] = h
+			}
+			edited, err := hostSvc.GetHostGroup(imported["B"].GroupId)
+			if err != nil {
+				t.Fatalf("GetHostGroup B: %v", err)
+			}
+			edited.Remark = "B edited"
+			if _, err := hostSvc.UpdateHostGroup(edited.GroupId, edited); err != nil {
+				t.Fatalf("UpdateHostGroup B: %v", err)
+			}
+			kept := hostRows(t, "group_id = ?", edited.GroupId)
+
+			updateStreamSettings(t, created, c.after)
+
+			var remarks []string
+			for _, h := range hostsByGroup(t, "inbound_id = ?", created.Id) {
+				remarks = append(remarks, h.Remark)
+			}
+			slices.Sort(remarks)
+			if !slices.Equal(remarks, c.want) {
+				t.Fatalf("host remarks = %q, want %q: B once as the admin left it, no import moved onto another entry's host", remarks, c.want)
+			}
+			if rows := hostRows(t, "group_id = ?", edited.GroupId); !reflect.DeepEqual(rows, kept) {
+				t.Fatalf("edited B rows = %+v, want them untouched: %+v", rows, kept)
 			}
 		})
 	}
