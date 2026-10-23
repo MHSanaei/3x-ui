@@ -324,7 +324,7 @@ export default function BalancersTab({
                 aria-label={t('edit')}
                 shape="circle"
                 size="small"
-                icon={<EditOutlined />}
+                icon={<EditOutlined aria-hidden />}
                 onClick={() => openEdit(index)}
               />
             )}
@@ -338,7 +338,7 @@ export default function BalancersTab({
                           key: 'edit',
                           label: (
                             <>
-                              <EditOutlined /> {t('edit')}
+                              <EditOutlined aria-hidden /> {t('edit')}
                             </>
                           ),
                           onClick: () => openEdit(index),
@@ -350,7 +350,7 @@ export default function BalancersTab({
                     danger: true,
                     label: (
                       <>
-                        <DeleteOutlined /> {t('delete')}
+                        <DeleteOutlined aria-hidden /> {t('delete')}
                       </>
                     ),
                     onClick: () => confirmDelete(index),
@@ -358,7 +358,12 @@ export default function BalancersTab({
                 ],
               }}
             >
-              <Button aria-label={t('more')} shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button
+                aria-label={t('more')}
+                shape="circle"
+                size="small"
+                icon={<MoreOutlined aria-hidden />}
+              />
             </Dropdown>
           </div>
         </div>
@@ -458,6 +463,7 @@ export default function BalancersTab({
         return (
           <Select
             size="small"
+            aria-label={t('pages.xray.balancerOverride')}
             style={{ width: 170 }}
             placeholder={t('pages.xray.balancerOverridePh')}
             allowClear
@@ -475,20 +481,20 @@ export default function BalancersTab({
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       {rows.length === 0 ? (
         <Empty description={t('emptyBalancersDesc')}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+          <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={openAdd}>
             {t('pages.xray.Balancers')}
           </Button>
         </Empty>
       ) : (
         <>
           <Space>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+            <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={openAdd}>
               {t('pages.xray.Balancers')}
             </Button>
             <Tooltip title={t('pages.xray.balancerLiveRefresh')}>
               <Button
                 aria-label={t('pages.xray.balancerLiveRefresh')}
-                icon={<SyncOutlined spin={liveLoading} />}
+                icon={<SyncOutlined aria-hidden spin={liveLoading} />}
                 onClick={refreshLive}
               />
             </Tooltip>
@@ -516,7 +522,7 @@ export default function BalancersTab({
           {
             key: 'balancers',
             label: catTabLabel(
-              <DeploymentUnitOutlined />,
+              <DeploymentUnitOutlined aria-hidden />,
               t('pages.xray.tabBalancerSettings'),
               isMobile,
             ),
@@ -524,7 +530,11 @@ export default function BalancersTab({
           },
           {
             key: 'observatory',
-            label: catTabLabel(<RadarChartOutlined />, t('pages.xray.tabObservatory'), isMobile),
+            label: catTabLabel(
+              <RadarChartOutlined aria-hidden />,
+              t('pages.xray.tabObservatory'),
+              isMobile,
+            ),
             children: (
               <ObservatorySettingsTab templateSettings={templateSettings} mutate={mutate} />
             ),

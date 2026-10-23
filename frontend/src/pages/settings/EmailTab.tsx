@@ -56,7 +56,11 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
       items={[
         {
           key: '1',
-          label: catTabLabel(<SettingOutlined />, t('pages.settings.smtpSettings'), isMobile),
+          label: catTabLabel(
+            <SettingOutlined aria-hidden />,
+            t('pages.settings.smtpSettings'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -184,7 +188,7 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
               <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
                 <Button
                   type="primary"
-                  icon={<SendOutlined />}
+                  icon={<SendOutlined aria-hidden />}
                   loading={testLoading}
                   onClick={handleTestSmtp}
                 >
@@ -213,7 +217,11 @@ export default function EmailTab({ allSetting, updateSetting }: EmailTabProps) {
         },
         {
           key: '2',
-          label: catTabLabel(<MailOutlined />, t('pages.settings.emailNotifications'), isMobile),
+          label: catTabLabel(
+            <MailOutlined aria-hidden />,
+            t('pages.settings.emailNotifications'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
