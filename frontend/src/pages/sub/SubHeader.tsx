@@ -53,14 +53,20 @@ export default function SubHeader({ title, sId, email, lang, onLangChange }: Sub
     [],
   );
 
-  const themeIcon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
+  const themeIcon = !isDark ? (
+    <SunOutlined aria-hidden />
+  ) : !isUltra ? (
+    <MoonOutlined aria-hidden />
+  ) : (
+    <MoonFilled aria-hidden />
+  );
   const initial = Array.from(title)[0]?.toUpperCase();
 
   return (
     <header className="sub-header">
       <div className="sub-brand">
         <span className="sub-brand-mark" aria-hidden="true">
-          {initial ?? <WifiOutlined />}
+          {initial ?? <WifiOutlined aria-hidden />}
         </span>
         <div className="sub-brand-text">
           <div className="sub-brand-title" dir="auto">
@@ -103,7 +109,7 @@ export default function SubHeader({ title, sId, email, lang, onLangChange }: Sub
             size="large"
             className="toolbar-btn"
             aria-label={t('pages.settings.language')}
-            icon={<TranslationOutlined />}
+            icon={<TranslationOutlined aria-hidden />}
           />
         </Popover>
       </div>

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -10,6 +11,7 @@ const MASQ_DOT = 'streamSettings.hysteriaSettings.masquerade';
 
 export default function HysteriaForm() {
   const { t } = useTranslation();
+  const uid = useId();
   const { control, setValue } = useFormContext();
   const masquerade = useWatch({ control, name: MASQ_DOT }) as { type?: string } | undefined;
   return (
@@ -33,8 +35,9 @@ export default function HysteriaForm() {
         <InputNumber min={2} max={600} style={{ width: '100%' }} />
       </FormField>
 
-      <Form.Item label={t('pages.inbounds.form.masquerade')}>
+      <Form.Item label={t('pages.inbounds.form.masquerade')} htmlFor={`${uid}-masquerade`}>
         <Switch
+          id={`${uid}-masquerade`}
           checked={!!masquerade}
           onChange={(checked) =>
             setValue(
