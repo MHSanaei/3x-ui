@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
@@ -59,6 +59,7 @@ export default function RealityForm({
   clearMldsa65,
 }: RealityFormProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const { getFieldState, trigger } = useFormContext();
   const [scannerOpen, setScannerOpen] = useState(false);
   const mldsa65Seed = useWatch({ name: 'streamSettings.realitySettings.mldsa65Seed' });
@@ -113,6 +114,7 @@ export default function RealityForm({
         <Select options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))} />
       </FormField>
       <Form.Item
+        htmlFor={`${uid}-target`}
         label={t('pages.inbounds.form.target')}
         tooltip={t('pages.inbounds.form.realityTargetHint')}
       >
@@ -127,19 +129,27 @@ export default function RealityForm({
               },
             }}
           >
-            <Input style={{ flex: 1 }} placeholder="example.com:443" />
+            <Input
+              id={`${uid}-target`}
+              aria-describedby={`${uid}-target-hint`}
+              style={{ flex: 1 }}
+              placeholder="example.com:443"
+            />
           </FormField>
           <Button
-            icon={<RadarChartOutlined />}
+            icon={<RadarChartOutlined aria-hidden />}
             loading={scanning}
             onClick={() => scanRealityTarget()}
           >
             {t('pages.inbounds.form.scan')}
           </Button>
-          <Button icon={<SearchOutlined />} onClick={() => setScannerOpen(true)}>
+          <Button icon={<SearchOutlined aria-hidden />} onClick={() => setScannerOpen(true)}>
             {t('pages.inbounds.form.findTargets')}
           </Button>
         </Space.Compact>
+        <span id={`${uid}-target-hint`} hidden>
+          {t('pages.inbounds.form.realityTargetHint')}
+        </span>
       </Form.Item>
       {scanResult && (
         <Form.Item label=" " colon={false}>
@@ -235,32 +245,45 @@ export default function RealityForm({
       >
         <Input placeholder="x.y.z" />
       </FormField>
-      <Form.Item label={t('pages.inbounds.form.shortIds')}>
+      <Form.Item htmlFor={`${uid}-shortIds`} label={t('pages.inbounds.form.shortIds')}>
         <Space.Compact block style={{ display: 'flex' }}>
           <FormField name={['streamSettings', 'realitySettings', 'shortIds']} noStyle>
-            <Select mode="tags" tokenSeparators={[',']} style={{ flex: 1 }} />
+            <Select
+              id={`${uid}-shortIds`}
+              mode="tags"
+              tokenSeparators={[',']}
+              style={{ flex: 1 }}
+            />
           </FormField>
           <Button
             aria-label={t('regenerate')}
-            icon={<ReloadOutlined />}
+            icon={<ReloadOutlined aria-hidden />}
             onClick={randomizeShortIds}
           />
         </Space.Compact>
       </Form.Item>
       <Form.Item
+        htmlFor={`${uid}-spiderX`}
         label={t('pages.inbounds.form.spiderX')}
         tooltip={t('pages.inbounds.form.spiderXHint')}
       >
         <Space.Compact block style={{ display: 'flex' }}>
           <FormField name={['streamSettings', 'realitySettings', 'settings', 'spiderX']} noStyle>
-            <Input style={{ flex: 1 }} />
+            <Input
+              id={`${uid}-spiderX`}
+              aria-describedby={`${uid}-spiderX-hint`}
+              style={{ flex: 1 }}
+            />
           </FormField>
           <Button
             aria-label={t('regenerate')}
-            icon={<ReloadOutlined />}
+            icon={<ReloadOutlined aria-hidden />}
             onClick={randomizeSpiderX}
           />
         </Space.Compact>
+        <span id={`${uid}-spiderX-hint`} hidden>
+          {t('pages.inbounds.form.spiderXHint')}
+        </span>
       </Form.Item>
       <FormField
         name={['streamSettings', 'realitySettings', 'settings', 'publicKey']}

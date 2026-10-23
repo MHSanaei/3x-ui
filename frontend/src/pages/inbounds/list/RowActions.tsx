@@ -40,69 +40,82 @@ export function buildRowActionsMenu({
 }): MenuProps['items'] {
   const items: MenuProps['items'] = [];
   if (isMobile) {
-    items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
+    items.push({ key: 'edit', icon: <EditOutlined aria-hidden />, label: t('edit') });
   }
   if (isInboundMultiUser(record)) {
-    items.push({ key: 'export', icon: <ExportOutlined />, label: t('pages.inbounds.export') });
+    items.push({
+      key: 'export',
+      icon: <ExportOutlined aria-hidden />,
+      label: t('pages.inbounds.export'),
+    });
     if (subEnable) {
       items.push({
         key: 'subs',
-        icon: <ExportOutlined />,
+        icon: <ExportOutlined aria-hidden />,
         label: `${t('pages.inbounds.export')} — ${t('pages.settings.subSettings')}`,
       });
     }
   } else {
     items.push({
       key: 'showInfo',
-      icon: <InfoCircleOutlined />,
+      icon: <InfoCircleOutlined aria-hidden />,
       label: t('pages.inbounds.inboundInfo'),
     });
   }
   items.push({
     key: 'clipboard',
-    icon: <CopyOutlined />,
+    icon: <CopyOutlined aria-hidden />,
     label: t('pages.inbounds.exportInbound'),
   });
   items.push({
     key: 'resetTraffic',
-    icon: <RetweetOutlined />,
+    icon: <RetweetOutlined aria-hidden />,
     label: t('pages.inbounds.resetTraffic'),
   });
-  items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
+  items.push({
+    key: 'clone',
+    icon: <BlockOutlined aria-hidden />,
+    label: t('pages.inbounds.clone'),
+  });
   if (isInboundMultiUser(record)) {
     items.push({
       key: 'attachExisting',
-      icon: <UsergroupAddOutlined />,
+      icon: <UsergroupAddOutlined aria-hidden />,
       label: t('pages.inbounds.attachExistingClients'),
     });
   }
   if (isInboundMultiUser(record) && hasClients) {
     items.push({
       key: 'attachClients',
-      icon: <UsergroupAddOutlined />,
+      icon: <UsergroupAddOutlined aria-hidden />,
       label: t('pages.inbounds.attachClients'),
     });
     items.push({
       key: 'detachClients',
-      icon: <UsergroupDeleteOutlined />,
+      icon: <UsergroupDeleteOutlined aria-hidden />,
       label: t('pages.inbounds.detachClients'),
     });
     items.push({
       key: 'addToGroup',
-      icon: <TagsOutlined />,
+      icon: <TagsOutlined aria-hidden />,
       label: t('pages.inbounds.addClientsToGroup'),
     });
     items.push({ type: 'divider' });
     items.push({
       key: 'delAllClients',
-      icon: <UsergroupDeleteOutlined />,
+      icon: <UsergroupDeleteOutlined aria-hidden />,
       danger: true,
       label: t('pages.inbounds.delAllClients'),
     });
   } else {
     items.push({ type: 'divider' });
   }
-  items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });
+  items.push({
+    key: 'delete',
+    icon: <DeleteOutlined aria-hidden />,
+    danger: true,
+    label: t('delete'),
+  });
   return items;
 }
 
@@ -114,7 +127,7 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
         type="text"
         size="small"
         style={{ fontSize: 16 }}
-        icon={<EditOutlined />}
+        icon={<EditOutlined aria-hidden />}
         aria-label={t('edit')}
         onClick={() => onClick('edit')}
       />
@@ -129,7 +142,7 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
           type="text"
           size="small"
           style={{ fontSize: 16 }}
-          icon={<MoreOutlined />}
+          icon={<MoreOutlined aria-hidden />}
           aria-label={t('more')}
         />
       </Dropdown>

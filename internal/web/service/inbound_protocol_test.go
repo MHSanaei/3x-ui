@@ -26,10 +26,11 @@ func TestInboundCanEnableTlsFlow(t *testing.T) {
 		{"vmess tcp tls", string(model.VMESS), `{"network":"tcp","security":"tls"}`, "", false},
 		{"empty stream", string(model.VLESS), "", "", false},
 
-		// xray-core runs Vision inside VLESS encryption on any transport (encryption.CommonConn).
+		// xray-core runs Vision inside VLESS encryption on any transport (encryption.CommonConn)
+		// but XDRIVE, which refuses a flow since 26.10.17 (#7182).
 		{"vless raw vlessenc", string(model.VLESS), `{"network":"tcp","security":"none"}`, `{"decryption":"mlkem768x25519plus.native.600s.mMFxPe7lz5xoq2qBk22cQYefu5fpc_2dGR8lMOKem0E","encryption":"mlkem768x25519plus.native.0rtt.hT4AY_tPWY9NVuKR3BIXxXq6zx9DqN2X86QPYW09XEM"}`, true},
 		{"vless ws vlessenc", string(model.VLESS), `{"network":"ws","security":"none"}`, `{"encryption":"` + vlessEncValue + `"}`, true},
-		{"vless xdrive vlessenc", string(model.VLESS), `{"network":"xdrive","security":"none"}`, `{"decryption":"` + vlessEncValue + `"}`, true},
+		{"vless xdrive vlessenc", string(model.VLESS), `{"network":"xdrive","security":"none"}`, `{"decryption":"` + vlessEncValue + `"}`, false},
 		{"vless xdrive no encryption", string(model.VLESS), `{"network":"xdrive","security":"none"}`, `{"decryption":"none"}`, false},
 
 		// XHTTP + VLESS encryption (the #5157 case).

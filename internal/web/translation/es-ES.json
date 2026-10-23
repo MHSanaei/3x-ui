@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Mantener la configuración de esta máquina",
-      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido."
+      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido.",
+      "logLines": "Número de líneas",
+      "timeRange": "Rango de tiempo"
     },
     "inbounds": {
       "totalDownUp": "Subidas/Descargas Totales",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
         "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
         "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN."
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN.",
+        "maxVersion": "Versión máxima",
+        "headerName": "Nombre de cabecera",
+        "headerValue": "Valor de cabecera"
       },
       "info": {
         "mode": "Modo",

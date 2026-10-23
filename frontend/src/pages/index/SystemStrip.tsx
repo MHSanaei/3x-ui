@@ -26,7 +26,7 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
       <div className="ov-strip-grid">
         <div className="ov-strip-cell">
           <div className="ov-kicker ov-kicker-icon">
-            <ClockCircleOutlined />
+            <ClockCircleOutlined aria-hidden />
             {t('pages.index.uptime')}
           </div>
           <div className="ov-strip-split">
@@ -46,7 +46,7 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
 
         <div className="ov-strip-cell">
           <div className="ov-kicker ov-kicker-icon">
-            <DatabaseOutlined />
+            <DatabaseOutlined aria-hidden />
             {t('pages.index.panel')}
           </div>
           <div className="ov-strip-split">
@@ -64,7 +64,7 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
 
         <div className="ov-strip-cell">
           <div className="ov-kicker ov-kicker-icon">
-            <GlobalOutlined />
+            <GlobalOutlined aria-hidden />
             {t('pages.index.ipAddresses')}
             <Tooltip title={t('pages.index.toggleIpVisibility')}>
               {showIp ? (
