@@ -2465,7 +2465,14 @@
       "inboundsNotAssigned": "No inbound assigned",
       "traffic": "Traffic",
       "clients": "Clients",
-      "actions": "Actions"
+      "actions": "Actions",
+      "assignClients": "Assign Clients",
+      "assignClientsTitle": "Assign Clients to Reseller",
+      "clientsAssigned": "Clients assigned to reseller",
+      "noClients": "No clients found",
+      "ownerAdmin": "Admin",
+      "clientsSelected": "client(s) selected",
+      "ownerLabel": "Assign to reseller"
     }
   },
   "tgbot": {

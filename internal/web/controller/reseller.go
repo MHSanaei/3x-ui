@@ -40,6 +40,9 @@ func (a *ResellerController) initRouter(g *gin.RouterGroup) {
 	// Assigned inbounds: admin manages any reseller's, a reseller sees their own.
 	resellers.GET("/:id/inbounds", a.inbounds)
 	resellers.POST("/:id/inbounds", a.requireAdmin, a.assignInbounds)
+
+	// Assign existing clients to a reseller (admin only).
+	resellers.POST("/:id/clients/assign", a.requireAdmin, a.assignClients)
 }
 
 func (a *ResellerController) loginUser(c *gin.Context) *model.User {
@@ -206,4 +209,25 @@ func (a *ResellerController) assignInbounds(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
+}
+
+// assignClients moves the given clients under the ownership of the reseller.
+func (a *ResellerController) assignClients(c *gin.Context) {
+	resellerId, err := strconv.Atoi(c.Param("id"))
+	if err != nil || resellerId < 1 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	var body struct {
+		ClientEmails []string `json:"clientEmails"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := a.resellerService.AssignClientsToReseller(resellerId, body.ClientEmails); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.resellers.clientsAssigned"), nil)
 }

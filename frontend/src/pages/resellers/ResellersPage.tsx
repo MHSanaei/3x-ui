@@ -18,7 +18,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
+import { PlusOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -39,6 +39,15 @@ interface InboundOption {
 interface ResellerUsage {
   clientCount: number;
   usedGB: number; // bytes
+}
+
+interface ClientItem {
+  id: number;
+  email: string;
+  userId: number;
+  enable: boolean;
+  totalGB: number;
+  expiryTime: number;
 }
 
 interface Reseller {
@@ -87,6 +96,13 @@ export default function ResellersPage() {
   const [assignResellerId, setAssignResellerId] = useState<number | null>(null);
   const [assignedInboundIds, setAssignedInboundIds] = useState<number[]>([]);
 
+  // Client assignment to a reseller
+  const [clientAssignOpen, setClientAssignOpen] = useState(false);
+  const [clientAssignResellerId, setClientAssignResellerId] = useState<number | null>(null);
+  const [allClients, setAllClients] = useState<ClientItem[]>([]);
+  const [selectedClientEmails, setSelectedClientEmails] = useState<string[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+
   const fetchList = useCallback(async () => {
     setLoading(true);
     try {
@@ -118,10 +134,44 @@ export default function ResellersPage() {
     }
   }, []);
 
+  const fetchClients = useCallback(async () => {
+    setClientsLoading(true);
+    try {
+      const msg = await HttpUtil.get<any[]>(
+        '/panel/api/clients/list',
+        undefined,
+        { silent: true },
+      );
+      if (msg?.success && Array.isArray(msg.obj)) {
+        setAllClients(
+          msg.obj.map((c: any) => ({
+            id: c.id,
+            email: c.email,
+            userId: c.userId ?? 0,
+            enable: c.enable ?? true,
+            totalGB: c.totalGB ?? 0,
+            expiryTime: c.expiryTime ?? 0,
+          })),
+        );
+      }
+    } catch (err: any) {
+      messageApi.error(err?.msg || t('somethingWentWrong'));
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [messageApi, t]);
+
   useEffect(() => {
     fetchList();
     fetchInbounds();
   }, [fetchList, fetchInbounds]);
+
+  // Load clients when the client-assign modal opens so we can show current ownership.
+  useEffect(() => {
+    if (clientAssignOpen) {
+      fetchClients();
+    }
+  }, [clientAssignOpen, fetchClients]);
 
   const cols = useMemo(
     () => [
@@ -174,10 +224,17 @@ export default function ResellersPage() {
             <Button
               size="small"
               onClick={() => openEdit(id)}
-              style={{ marginRight: 8 }}
+              style={{ marginRight: 6 }}
             >
               {t('edit')}
             </Button>
+            <Button
+              size="small"
+              icon={<UserOutlined />}
+              onClick={() => openClientAssign(id)}
+              style={{ marginRight: 6 }}
+              title={t('pages.resellers.assignClients')}
+            />
             <Popconfirm
               title={t('pages.resellers.deleteConfirm')}
               onConfirm={() => handleDelete(id)}
@@ -313,6 +370,36 @@ export default function ResellersPage() {
     }
   };
 
+  const openClientAssign = (id: number) => {
+    setClientAssignResellerId(id);
+    setSelectedClientEmails([]);
+    setClientAssignOpen(true);
+  };
+
+  const saveClientAssign = async () => {
+    if (clientAssignResellerId == null) return;
+    setSaveLoading(true);
+    try {
+      const msg = await HttpUtil.post(
+        `/panel/api/resellers/${clientAssignResellerId}/clients/assign`,
+        { clientEmails: selectedClientEmails },
+        { silent: true },
+      );
+      if (msg?.success) {
+        messageApi.success(t('pages.resellers.clientsAssigned'));
+        setClientAssignOpen(false);
+        setSelectedClientEmails([]);
+        fetchList();
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } catch (err: any) {
+      messageApi.error(err?.msg || t('somethingWentWrong'));
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   const formRef = useRef<Form.Instance>(null);
 
   const pageClass = useMemo(() => {
@@ -403,7 +490,94 @@ export default function ResellersPage() {
                 onChange={setAssignedInboundIds}
               />
             </Modal>
-          </Layout.Content>
+
+            {/* Client assignment modal: assign existing clients to a reseller */}
+            <Modal
+              open={clientAssignOpen}
+              title={t('pages.resellers.assignClientsTitle')}
+              okText={t('save')}
+              cancelText={t('cancel')}
+              confirmLoading={saveLoading}
+              onOk={saveClientAssign}
+              onCancel(() => setClientAssignOpen(false))
+              width={700}
+            >
+              <div style={{ padding: 16 }}>
+                {clientsLoading ? (
+                  <Spin />
+                ) : (
+                  <div style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 6, padding: 8, background: 'var(--item-bg)' }}>
+                    {allClients.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-color-secondary)' }}>
+                        {t('pages.resellers.noClients')}
+                      </div>
+                    ) : (
+                      allClients.map((client) => {
+                        const alreadyOwner = client.userId === clientAssignResellerId;
+                        const selected = selectedClientEmails.includes(client.email);
+                        const ownerLabel =
+                          client.userId === 0
+                            ? t('pages.resellers.ownerAdmin')
+                            : `#${client.userId}`;
+                        return (
+                          <div
+                            key={client.email}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: 8,
+                              borderBottom: '1px solid var(--border-color)',
+                              background: selected ? 'var(--primary-color)' : 'transparent',
+                              color: selected ? '#fff' : 'inherit',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => {
+                              if (selected) {
+                                setSelectedClientEmails(
+                                  selectedClientEmails.filter((e) => e !== client.email),
+                                );
+                              } else {
+                                setSelectedClientEmails([...selectedClientEmails, client.email]);
+                              }
+                            }}
+                          >
+                                                        <span style={{ marginRight: 10, minWidth: 30 }}>
+                              {selected ? '✓' : '○'}
+                            </span>
+                                                        <span style={{ flex: 1, fontSize: 13 }}>{client.email}</span>
+                                                        <span
+                                                          style={{
+                                                            fontSize: 11,
+                                                            padding: '2px 6px',
+                                                            borderRadius: 10,
+                                                            background: alreadyOwner
+                                                              ? 'var(--success-color)'
+                                                              : 'var(--border-color)',
+                                                            color: alreadyOwner ? '#fff' : 'var(--text-color-secondary)',
+                                                            marginRight: 8,
+                                                          }}
+                                                        >
+                                                          {ownerLabel}
+                                                        </span>
+                                                    </div>
+                                                  );
+                                                })
+                                              )}
+                                          </div>
+                                        )}
+                                        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span style={{ fontSize: 12, color: 'var(--text-color-secondary)' }}>
+                                            {selectedClientEmails.length} {t('pages.resellers.clientsSelected')}
+                                          </span>
+                                          <span style={{ fontSize: 12, color: 'var(--text-color-secondary)' }}>
+                                            {t('pages.resellers.ownerLabel')}:
+                                            {' '}
+                                            <strong style={{ color: 'var(--primary-color)' }}>{`#${clientAssignResellerId}`}</strong>
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </Modal>
+                                  </Layout.Content>
         </Layout>
       </Layout>
     </ConfigProvider>

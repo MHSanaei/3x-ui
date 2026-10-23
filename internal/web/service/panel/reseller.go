@@ -2,6 +2,7 @@ package panel
 
 import (
 	"errors"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -229,6 +230,60 @@ func (s *ResellerService) AssignedInbounds(resellerId int) ([]int, error) {
 		return nil, err
 	}
 	return ids, nil
+}
+
+// AssignClientsToReseller moves the given clients (by email) under the
+// ownership of the reseller. From then on their traffic counts against the
+// reseller's quota and they are invisible to other resellers. Only the panel
+// admin may call this.
+func (s *ResellerService) AssignClientsToReseller(resellerId int, clientEmails []string) error {
+	user, err := s.GetReseller(resellerId, 0)
+	if err != nil {
+		return errors.New("reseller not found")
+	}
+	if !user.Enable {
+		return errors.New("reseller account is disabled")
+	}
+
+	emails := make([]string, 0, len(clientEmails))
+	for _, e := range clientEmails {
+		if e = strings.TrimSpace(e); e != "" {
+			emails = append(emails, e)
+		}
+	}
+	if len(emails) == 0 {
+		return nil
+	}
+
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		// Verify every email exists and is not already owned by another reseller
+		// (admin-owned clients, user_id == 0, are assignable).
+		var existing []model.ClientRecord
+		if err := tx.Where("email IN ?", emails).Find(&existing).Error; err != nil {
+			return err
+		}
+		found := make(map[string]bool, len(existing))
+		for _, rec := range existing {
+			found[rec.Email] = true
+			if rec.UserId != 0 && rec.UserId != resellerId {
+				return errors.New("client " + rec.Email + " already assigned to another reseller")
+			}
+		}
+		for _, e := range emails {
+			if !found[e] {
+				return errors.New("client not found: " + e)
+			}
+		}
+
+		// Update ownership. Admin-owned clients (user_id == 0) become the
+		// reseller's; clients already owned by this reseller stay.
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("email IN ? AND (user_id = 0 OR user_id = ?)", emails, resellerId).
+			Update("user_id", resellerId).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // UsageFor computes a reseller's current traffic consumption (bytes) and
