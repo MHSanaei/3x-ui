@@ -57,11 +57,7 @@ func Dialect() string {
 	return db.Name()
 }
 
-const (
-	defaultUsername       = "admin"
-	defaultPassword       = "admin"
-	sqliteBackupDirPrefix = ".x-ui-backup-"
-)
+const sqliteBackupDirPrefix = ".x-ui-backup-"
 
 func allModels() []any {
 	return []any{
@@ -1316,26 +1312,22 @@ func isIgnorableDuplicateColumnErr(gdb *gorm.DB, err error, mdl any) bool {
 	return false
 }
 
-func initUser() error {
+// EnsureFirstUser creates the panel's first user with random credentials and returns
+// them, or returns "" when one exists; only the starting server calls it, so it can print them.
+func EnsureFirstUser() (username, password string, err error) {
 	empty, err := isTableEmpty("users")
+	if err != nil || !empty {
+		return "", "", err
+	}
+	username, password = random.Seq(10), random.Seq(16)
+	hashedPassword, err := crypto.HashPasswordAsBcrypt(password)
 	if err != nil {
-		log.Printf("Error checking if users table is empty: %v", err)
-		return err
+		return "", "", err
 	}
-	if empty {
-		hashedPassword, err := crypto.HashPasswordAsBcrypt(defaultPassword)
-		if err != nil {
-			log.Printf("Error hashing default password: %v", err)
-			return err
-		}
-
-		user := &model.User{
-			Username: defaultUsername,
-			Password: hashedPassword,
-		}
-		return db.Create(user).Error
+	if err := db.Create(&model.User{Username: username, Password: hashedPassword}).Error; err != nil {
+		return "", "", err
 	}
-	return nil
+	return username, password, nil
 }
 
 func seedRandomSubscriptionPaths() error {
@@ -3144,10 +3136,6 @@ func InitDB(dbPath string) error {
 		if err := seedRandomSubscriptionPaths(); err != nil {
 			return err
 		}
-	}
-
-	if err := initUser(); err != nil {
-		return err
 	}
 	return runSeeders(isUsersEmpty)
 }

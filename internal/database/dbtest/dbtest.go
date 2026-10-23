@@ -41,6 +41,10 @@ func InitDB(t testing.TB, path string) {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
+	// A serving panel always has its first user; a copied template already does.
+	if _, _, err := database.EnsureFirstUser(); err != nil {
+		t.Fatalf("EnsureFirstUser: %v", err)
+	}
 }
 
 func migratedTemplate() ([]byte, error) {
@@ -53,6 +57,10 @@ func migratedTemplate() ([]byte, error) {
 		defer os.RemoveAll(dir)
 		path := filepath.Join(dir, "template.db")
 		if err := database.InitDB(path); err != nil {
+			migrated.err = err
+			return
+		}
+		if _, _, err := database.EnsureFirstUser(); err != nil {
 			migrated.err = err
 			return
 		}
