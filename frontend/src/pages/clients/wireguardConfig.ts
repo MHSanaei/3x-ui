@@ -1,5 +1,6 @@
 import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { joinConfLines } from '@/lib/xray/conf-lines';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
@@ -54,5 +55,5 @@ export function buildWireguardClientConfig(
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
   if (client.keepAlive && client.keepAlive > 0)
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
-  return lines.join('\n');
+  return joinConfLines(lines);
 }
