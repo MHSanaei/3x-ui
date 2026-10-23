@@ -182,8 +182,8 @@ main() {
 
     install_dependencies
     clone_repo
-    build_backend
-    build_frontend
+    build_frontend   # frontend first -> internal/web/dist/
+    build_backend    # backend embeds internal/web/dist/
     create_service
     show_summary
 }
