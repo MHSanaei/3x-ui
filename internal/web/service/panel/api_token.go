@@ -1,7 +1,6 @@
 package panel
 
 import (
-	"crypto/subtle"
 	"errors"
 	"strings"
 	"time"
@@ -257,35 +256,30 @@ func requireExpectedScope(expectedScope string) (string, error) {
 }
 
 // MatchToken returns the enabled, non-expired api_token row whose stored
-// SHA-256 hash matches the presented bearer value, or (nil,false). The loop
-// scans every enabled row with constant-time compares, then applies expiry and
-// scope checks to avoid treating corrupt values as admin.
+// SHA-256 hash matches the presented bearer value, or (nil,false). The lookup
+// is one indexed seek on the hash; expiry and scope are checked afterwards so
+// a corrupt value is not treated as admin.
 func (s *ApiTokenService) MatchToken(presented string) (*model.ApiToken, bool) {
 	if presented == "" {
 		return nil, false
 	}
 	db := database.GetDB()
-	var rows []*model.ApiToken
-	if err := db.Model(model.ApiToken{}).Where("enabled = ?", true).Find(&rows).Error; err != nil {
+	var row model.ApiToken
+	// The database compares hashes, not secrets: a timing leak would expose the
+	// stored hash, which cannot authenticate (the server re-hashes whatever is
+	// presented).
+	if err := db.Model(model.ApiToken{}).
+		Where("token = ? AND enabled = ?", crypto.HashTokenSHA256(presented), true).
+		First(&row).Error; err != nil {
 		return nil, false
 	}
-	presentedHash := []byte(crypto.HashTokenSHA256(presented))
-	var matched *model.ApiToken
-	for _, r := range rows {
-		if subtle.ConstantTimeCompare([]byte(r.Token), presentedHash) == 1 {
-			matched = r
-		}
-	}
-	if matched == nil {
+	if !model.IsKnownApiScope(row.Scope) {
 		return nil, false
 	}
-	if !model.IsKnownApiScope(matched.Scope) {
+	if row.ExpiresAt != 0 && nowMilli() >= row.ExpiresAt {
 		return nil, false
 	}
-	if matched.ExpiresAt != 0 && nowMilli() >= matched.ExpiresAt {
-		return nil, false
-	}
-	return matched, true
+	return &row, true
 }
 
 // Match is the legacy boolean form for callers that do not need scope.

@@ -205,6 +205,9 @@ func initModels() error {
 	if err := migrateClientEmailLowerIndex(); err != nil {
 		return err
 	}
+	if err := migrateApiTokenTokenIndex(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -405,6 +408,15 @@ func migrateClientEmailLowerIndex() error {
 		return nil
 	}
 	return db.Exec("CREATE INDEX IF NOT EXISTS idx_clients_email_lower ON clients (LOWER(email))").Error
+}
+
+// The bearer-token lookup matches the presented token's SHA-256 hash against
+// the stored hash; without an index it seq-scans every enabled token.
+func migrateApiTokenTokenIndex() error {
+	if db.Migrator().HasIndex(&model.ApiToken{}, "idx_api_tokens_token") {
+		return nil
+	}
+	return db.Migrator().CreateIndex(&model.ApiToken{}, "Token")
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
