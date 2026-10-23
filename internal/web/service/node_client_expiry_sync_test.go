@@ -55,12 +55,6 @@ func TestNodeDisableIsStale(t *testing.T) {
 	}{
 		{name: "nil master", node: xray.ClientTraffic{ExpiryTime: earlyAbs}},
 		{
-			name:      "matching limits with empty counters are stale, not genuine",
-			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
-			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
-			wantStale: true,
-		},
-		{
 			name:      "node still holds the pre-extension deadline",
 			master:    &xray.ClientTraffic{ExpiryTime: lateAbs},
 			node:      xray.ClientTraffic{ExpiryTime: earlyAbs},
@@ -69,7 +63,7 @@ func TestNodeDisableIsStale(t *testing.T) {
 		{
 			name:      "node still holds the pre-top-up quota",
 			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: 2 * quota, Up: 60, Down: 50},
-			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
+			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 60, Down: 50},
 			wantStale: true,
 		},
 		{
@@ -103,24 +97,20 @@ func TestNodeDisableIsStale(t *testing.T) {
 			wantStale: true,
 		},
 		{
-			// #6870: matching limits no longer prove the verdict — stale when
-			// the master's own counters still permit the client.
-			name:      "matching limits but master allows the client (#6870)",
+			name:      "matching limits, neither master nor node usage spends the quota (#6870)",
 			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 10, Down: 10},
-			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Enable: false},
+			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 10, Down: 10},
 			wantStale: true,
 		},
 		{
-			// Counterpart: matching limits AND the master's own numbers disallow
-			// the client — a real combined-quota or expiry verdict still latches.
-			name:   "matching limits and master over quota still latch",
-			master: &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 60, Down: 50},
-			node:   xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Enable: false},
+			name:   "node usage spends the quota the master undercounts (#4917)",
+			master: &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 40, Down: 50},
+			node:   xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 60, Down: 50},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := nodeDisableIsStale(c.master, c.node, now, c.deltaUp, c.deltaDown); got != c.wantStale {
+			if got := nodeDisableIsStale(c.master, c.node.Up+c.node.Down, now, c.deltaUp, c.deltaDown); got != c.wantStale {
 				t.Fatalf("nodeDisableIsStale(...) = %v, want %v", got, c.wantStale)
 			}
 		})
@@ -404,9 +394,9 @@ func TestNodeStaleLift_MarksNodeDirty(t *testing.T) {
 	}
 }
 
-// A node disable the master's own counters also justify still one-way-merges
-// enable=false onto the master (#4917). Pre-seed over quota so it latches.
-func TestNodeQuotaDisable_MasterOverQuotaStillLatches(t *testing.T) {
+// A node that counted past the quota latches enable=false even while the master,
+// seeded at zero on adoption, still counts below it (#4917).
+func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
 	svc := &InboundService{}
@@ -417,15 +407,32 @@ func TestNodeQuotaDisable_MasterOverQuotaStillLatches(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
 		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: expiry, Enable: true,
 	})
-	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
-		Updates(map[string]any{"up": int64(80), "down": int64(30)}).Error; err != nil {
-		t.Fatalf("seed over-quota master: %v", err)
-	}
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
-		Email: email, Up: 80, Down: 30, Total: 100, ExpiryTime: expiry, Enable: false,
+		Email: email, Up: 60, Down: 50, Total: 100, ExpiryTime: expiry, Enable: false,
 	})
 	if got := readTraffic(t, db, email); got.Enable {
-		t.Fatal("over-quota master must still latch enable off (#4917)")
+		t.Fatal("same-expiry node disable must still latch master enable off (#4917)")
+	}
+}
+
+// A stray node enable=false that neither the node's usage nor the master's limits
+// justify must not latch onto the master and loop back to the node (#6870).
+func TestNodeStrayDisable_DoesNotLatch(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	svc := &InboundService{}
+
+	const email = "stray"
+	const expiry = int64(1893456000000)
+
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: expiry, Enable: true,
+	})
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 20, Down: 20, Total: 100, ExpiryTime: expiry, Enable: false,
+	})
+	if got := readTraffic(t, db, email); !got.Enable {
+		t.Fatal("stray node disable within quota and expiry latched master enable off (#6870)")
 	}
 }
 
@@ -889,6 +896,7 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 		masterUp, masterDown, tot int64
 		deltaUp, deltaDown        int64
 		nodeExpiry, nodeTotal     int64
+		nodeUp, nodeDown          int64
 		nodeEnable                bool
 		wantExpiry                int64
 		wantEnable                bool
@@ -940,13 +948,18 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			wantExpiry: lateAbs, wantEnable: false,
 		},
 		{
-			// #6870: matching limits with master below quota must not latch;
-			// mirrors the Go helper case above.
-			name:         "matching limits, master allows, node disable is stale",
+			name:         "matching limits, master and node under quota (#6870)",
 			masterExpiry: lateAbs, masterEnable: true,
 			masterUp: 10, masterDown: 10, tot: 100,
-			nodeExpiry: lateAbs, nodeTotal: 100, nodeEnable: false,
+			nodeExpiry: lateAbs, nodeTotal: 100, nodeUp: 10, nodeDown: 10, nodeEnable: false,
 			wantExpiry: lateAbs, wantEnable: true,
+		},
+		{
+			name:         "node usage spends the quota the master undercounts (#4917)",
+			masterExpiry: lateAbs, masterEnable: true,
+			masterUp: 40, masterDown: 50, tot: 100,
+			nodeExpiry: lateAbs, nodeTotal: 100, nodeUp: 60, nodeDown: 50, nodeEnable: false,
+			wantExpiry: lateAbs, wantEnable: false,
 		},
 	}
 
@@ -967,8 +980,8 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			}
 			wantExpiry := mergeActivationExpiry(c.masterExpiry, c.nodeExpiry)
 			wantEnable := c.masterEnable
-			node := xray.ClientTraffic{ExpiryTime: c.nodeExpiry, Total: c.nodeTotal}
-			if !c.nodeEnable && !nodeDisableIsStale(master, node, now, c.deltaUp, c.deltaDown) {
+			node := xray.ClientTraffic{ExpiryTime: c.nodeExpiry, Total: c.nodeTotal, Up: c.nodeUp, Down: c.nodeDown}
+			if !c.nodeEnable && !nodeDisableIsStale(master, node.Up+node.Down, now, c.deltaUp, c.deltaDown) {
 				wantEnable = false
 			}
 			if wantExpiry != c.wantExpiry || wantEnable != c.wantEnable {
@@ -981,7 +994,7 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 					`UPDATE client_traffics SET enable = %s, expiry_time = %s WHERE email = ?`,
 					enableExpr, expiryExpr,
 				),
-				c.nodeEnable, now, c.deltaUp, c.deltaDown,
+				c.nodeEnable, now, c.deltaUp, c.deltaDown, node.Up, node.Down,
 				c.nodeExpiry,
 				rowEmail,
 			).Error; err != nil {
