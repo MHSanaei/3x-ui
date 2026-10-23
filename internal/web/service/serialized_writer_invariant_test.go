@@ -92,3 +92,46 @@ func TestDelInboundRunsOnTheSerialWriter(t *testing.T) {
 		t.Fatalf("inbound %d still present after the delete", ib.Id)
 	}
 }
+
+// TestDelDepletedClientsRunsOnTheSerialWriter pins the depleted-client purge to
+// the single traffic writer. It writes inbounds and client_traffics in the
+// opposite order to the poll, so running it on its own goroutine can deadlock
+// the poll on Postgres (SQLSTATE 40P01).
+func TestDelDepletedClientsRunsOnTheSerialWriter(t *testing.T) {
+	startSerializedWriter(t)
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	clients := []model.Client{{Email: "depleted@x", ID: "aaaaaaaa-0000-0000-0000-000000000301", Enable: true}}
+	ib := mkInbound(t, 54102, model.VLESS, clientsSettings(t, clients))
+	if err := (&ClientService{}).SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	mkTraffic(t, ib.Id, "depleted@x", 60, 60, 100, 0, true)
+
+	release := parkSerializedWriter(t)
+	done := make(chan error, 1)
+	go func() { done <- svc.DelDepletedClients(-1) }()
+
+	queued := waitForQueuedWrite()
+	release()
+	if err := waitWriterResult(t, done); err != nil {
+		t.Fatalf("DelDepletedClients: %v", err)
+	}
+	if !queued {
+		t.Fatal("the depleted-client purge bypassed the serial traffic writer and opened its own transaction")
+	}
+	var inbounds int64
+	if err := db.Model(&model.Inbound{}).Where("id = ?", ib.Id).Count(&inbounds).Error; err != nil {
+		t.Fatalf("count inbounds: %v", err)
+	}
+	if inbounds != 0 {
+		t.Fatalf("depleted inbound %d still present after the purge", ib.Id)
+	}
+	var traffics int64
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", "depleted@x").Count(&traffics).Error; err != nil {
+		t.Fatalf("count traffic rows: %v", err)
+	}
+	if traffics != 0 {
+		t.Fatalf("traffic rows for the depleted client = %d, want 0", traffics)
+	}
+}
