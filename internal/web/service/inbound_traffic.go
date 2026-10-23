@@ -861,6 +861,8 @@ func (s *InboundService) propagateResetAllTrafficsToNodes() {
 			if e := rt.ResetAllTraffics(context.Background()); e != nil {
 				logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
 			}
+		} else {
+			logger.Warning("ResetAllTraffics: runtime lookup failed for node", ids[i], ":", err)
 		}
 		return struct{}{}
 	})
