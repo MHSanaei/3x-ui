@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "الاحتفاظ بإعدادات هذا الجهاز",
-      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع."
+      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع.",
+      "logLines": "عدد الأسطر",
+      "timeRange": "النطاق الزمني"
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS النظام إلى البوابة",
         "autoSystemDnsToGatewayTooltip": "على لينكس بس: بيوجّه systemd-resolved لبوابة TUN عشان استعلامات النظام تعدّي من Xray. محتاج بوابة، والـTUN مش هيشتغل لو ده فشل.",
         "autoSystemWfpBlockLeak": "منع التسريب (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "على ويندوز بس، مع Auto system routes: ‏dns بيخلّي DNS جوّه الـTUN (محتاج سيرفرات DNS)، وmisconfigtun بيمنع نسخة IP مفيش مسار بيوديها للـTUN."
+        "autoSystemWfpBlockLeakTooltip": "على ويندوز بس، مع Auto system routes: ‏dns بيخلّي DNS جوّه الـTUN (محتاج سيرفرات DNS)، وmisconfigtun بيمنع نسخة IP مفيش مسار بيوديها للـTUN.",
+        "maxVersion": "الحد الأقصى للإصدار",
+        "headerName": "اسم الترويسة",
+        "headerValue": "قيمة الترويسة"
       },
       "info": {
         "mode": "الوضع",

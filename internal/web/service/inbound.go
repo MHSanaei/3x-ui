@@ -666,6 +666,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
+	inbound.StreamSettings = canonicalizeXDriveService(inbound.StreamSettings)
 }
 
 // canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
@@ -1006,6 +1007,11 @@ func validateFinalMaskSalamander(streamSettings string) error {
 	return maskcompat.CheckSalamanderPasswords(stream["finalmask"])
 }
 
+const (
+	xdriveServiceGoogleDrive       = "google-drive"
+	xdriveServiceGoogleDriveLegacy = "Google Drive"
+)
+
 // validateXDriveStorage refuses at save the XDRIVE storage xray-core refuses when an inbound starts
 // listening (stopping every inbound) or an outbound dials.
 func validateXDriveStorage(streamSettings string) error {
@@ -1028,7 +1034,7 @@ func validateXDriveStorage(streamSettings string) error {
 		if !hasFolder {
 			return common.NewError(`XDRIVE needs a "remoteFolder": the local folder both ends share.`)
 		}
-	case "Google Drive":
+	case xdriveServiceGoogleDrive, xdriveServiceGoogleDriveLegacy:
 		if !hasFolder {
 			return common.NewError(`XDRIVE needs a "remoteFolder": the id of the shared Google Drive folder.`)
 		}
@@ -1041,9 +1047,50 @@ func validateXDriveStorage(streamSettings string) error {
 		}
 		return validateXDriveTemplate(xd.Template)
 	default:
-		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, Google Drive or template.", xd.Service))
+		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, google-drive or template.", xd.Service))
 	}
 	return nil
+}
+
+// validateXDriveInbound refuses what xray-core 26.10.17 refuses on an XDRIVE inbound (#7182): any
+// protocol but VLESS, and VLESS without "decryption". Flow is never emitted there and the port is single.
+func validateXDriveInbound(protocol, settings, streamSettings string) error {
+	var stream struct {
+		Network string `json:"network"`
+	}
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil || stream.Network != "xdrive" {
+		return nil
+	}
+	if protocol != string(model.VLESS) {
+		return common.NewError(fmt.Sprintf("XDRIVE carries only VLESS, not %s.", protocol))
+	}
+	var vless struct {
+		Decryption string `json:"decryption"`
+	}
+	_ = json.Unmarshal([]byte(settings), &vless)
+	if !vlessEncValueSet(vless.Decryption) {
+		return common.NewError(`XDRIVE needs VLESS encryption: set the inbound's Decryption.`)
+	}
+	return nil
+}
+
+// canonicalizeXDriveService stores the "google-drive" service xray-core 26.10.17 names
+// (#7182) in place of "Google Drive", which it still reads with a deprecation warning.
+func canonicalizeXDriveService(streamSettings string) string {
+	var stream map[string]any
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil {
+		return streamSettings
+	}
+	xd, _ := stream["xdriveSettings"].(map[string]any)
+	if xd == nil || xd["service"] != xdriveServiceGoogleDriveLegacy {
+		return streamSettings
+	}
+	xd["service"] = xdriveServiceGoogleDrive
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
 
 // validateXDriveTemplate applies the checks of xray-core's newTemplateStorage
@@ -1252,6 +1299,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateXDriveInbound(string(inbound.Protocol), inbound.Settings, inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
@@ -1903,6 +1953,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateXDriveInbound(string(inbound.Protocol), inbound.Settings, inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {

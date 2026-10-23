@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AutoComplete,
@@ -261,6 +261,7 @@ export default function ClientFormModal({
   onOpenChange,
 }: ClientFormModalProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
 
@@ -911,7 +912,7 @@ export default function ClientFormModal({
                 <Button
                   color="danger"
                   variant="filled"
-                  icon={<RetweetOutlined />}
+                  icon={<RetweetOutlined aria-hidden />}
                   loading={resetting}
                 >
                   {t('pages.inbounds.resetTraffic')}
@@ -939,9 +940,14 @@ export default function ClientFormModal({
                     <>
                       <Row gutter={16}>
                         <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.email')} required>
+                          <Form.Item
+                            label={t('pages.clients.email')}
+                            required
+                            htmlFor={`${uid}-email`}
+                          >
                             <Space.Compact style={{ display: 'flex' }}>
                               <Input
+                                id={`${uid}-email`}
                                 value={email}
                                 placeholder={t('pages.clients.email')}
                                 style={{ flex: 1 }}
@@ -950,7 +956,7 @@ export default function ClientFormModal({
                               {!isEdit && (
                                 <Button
                                   aria-label={t('regenerate')}
-                                  icon={<ReloadOutlined />}
+                                  icon={<ReloadOutlined aria-hidden />}
                                   onClick={() =>
                                     methods.setValue('email', RandomUtil.randomLowerAndNum(12))
                                   }
@@ -971,6 +977,7 @@ export default function ClientFormModal({
                         </Col>
                         <Col xs={24} md={12}>
                           <Form.Item
+                            htmlFor={`${uid}-limit-ip`}
                             label={t('pages.clients.limitIp')}
                             tooltip={t('pages.clients.limitIpDesc')}
                           >
@@ -978,6 +985,8 @@ export default function ClientFormModal({
                               <span style={{ display: 'flex', width: '100%' }}>
                                 <Space.Compact style={{ display: 'flex', flex: 1 }}>
                                   <InputNumber
+                                    id={`${uid}-limit-ip`}
+                                    aria-describedby={`${uid}-limit-ip-hint`}
                                     value={limitIp}
                                     min={0}
                                     disabled={limitIpDisabled}
@@ -991,7 +1000,7 @@ export default function ClientFormModal({
                                     <Tooltip title={t('pages.clients.ipLog')}>
                                       <Button
                                         aria-label={t('pages.clients.ipLog')}
-                                        icon={<EyeOutlined />}
+                                        icon={<EyeOutlined aria-hidden />}
                                         loading={ipsLoading}
                                         onClick={openIpsModal}
                                       >
@@ -1002,15 +1011,21 @@ export default function ClientFormModal({
                                 </Space.Compact>
                               </span>
                             </Tooltip>
+                            <span id={`${uid}-limit-ip-hint`} hidden>
+                              {t('pages.clients.limitIpDesc')}
+                            </span>
                           </Form.Item>
                         </Col>
                         <Col xs={24} md={12}>
                           <Form.Item
+                            htmlFor={`${uid}-limit-hwid`}
                             label={t('pages.clients.limitHwid')}
                             tooltip={t('pages.clients.limitHwidDesc')}
                           >
                             <Space.Compact style={{ display: 'flex' }}>
                               <InputNumber
+                                id={`${uid}-limit-hwid`}
+                                aria-describedby={`${uid}-limit-hwid-hint`}
                                 value={limitHwid}
                                 min={0}
                                 style={{ flex: 1 }}
@@ -1020,7 +1035,7 @@ export default function ClientFormModal({
                                 <Tooltip title={t('pages.clients.hwidLog')}>
                                   <Button
                                     aria-label={t('pages.clients.hwidLog')}
-                                    icon={<EyeOutlined />}
+                                    icon={<EyeOutlined aria-hidden />}
                                     loading={hwidsLoading}
                                     onClick={openHwidsModal}
                                   >
@@ -1029,6 +1044,9 @@ export default function ClientFormModal({
                                 </Tooltip>
                               )}
                             </Space.Compact>
+                            <span id={`${uid}-limit-hwid-hint`} hidden>
+                              {t('pages.clients.limitHwidDesc')}
+                            </span>
                           </Form.Item>
                         </Col>
                       </Row>
@@ -1044,8 +1062,12 @@ export default function ClientFormModal({
                               <InputNumber min={0} style={{ width: '100%' }} />
                             </FormField>
                           ) : (
-                            <Form.Item label={t('pages.clients.expiryTime')}>
+                            <Form.Item
+                              label={t('pages.clients.expiryTime')}
+                              htmlFor={`${uid}-expiry`}
+                            >
                               <DateTimePicker
+                                id={`${uid}-expiry`}
                                 value={expiryDayjs}
                                 onChange={(d) =>
                                   methods.setValue('expiryDate', d ? d.valueOf() : 0)
@@ -1055,8 +1077,12 @@ export default function ClientFormModal({
                           )}
                         </Col>
                         <Col xs={12} md={6}>
-                          <Form.Item label={t('pages.clients.delayedStart')}>
+                          <Form.Item
+                            label={t('pages.clients.delayedStart')}
+                            htmlFor={`${uid}-delayed-start`}
+                          >
                             <Switch
+                              id={`${uid}-delayed-start`}
                               checked={delayedStart}
                               onChange={(v) => {
                                 methods.setValue('delayedStart', v);
@@ -1127,8 +1153,12 @@ export default function ClientFormModal({
 
                       <Row gutter={16}>
                         <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.hostRuleOverride')}>
+                          <Form.Item
+                            label={t('pages.clients.hostRuleOverride')}
+                            htmlFor={`${uid}-host-rule-override`}
+                          >
                             <Select
+                              id={`${uid}-host-rule-override`}
                               mode="multiple"
                               value={clientHostRuleIds || []}
                               onChange={(v) => methods.setValue('clientHostRuleIds', v)}
@@ -1175,13 +1205,18 @@ export default function ClientFormModal({
                         </Row>
                       )}
 
-                      <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
+                      <Form.Item
+                        label={t('pages.clients.attachedInbounds')}
+                        required={!isEdit}
+                        htmlFor={`${uid}-inbounds`}
+                      >
                         <SelectAllClearButtons
                           options={inboundOptions}
                           value={inboundIds}
                           onChange={handleInboundChange}
                         />
                         <Select
+                          id={`${uid}-inbounds`}
                           mode="multiple"
                           value={inboundIds}
                           onChange={handleInboundChange}
@@ -1215,77 +1250,96 @@ export default function ClientFormModal({
                   label: t('pages.clients.tabCredentials'),
                   children: (
                     <>
-                      <Form.Item label={t('pages.clients.uuid')}>
+                      <Form.Item label={t('pages.clients.uuid')} htmlFor={`${uid}-uuid`}>
                         <Space.Compact style={{ display: 'flex' }}>
                           <Input
+                            id={`${uid}-uuid`}
                             value={uuid}
                             style={{ flex: 1 }}
                             onChange={(e) => methods.setValue('uuid', e.target.value)}
                           />
                           <Button
                             aria-label={t('regenerate')}
-                            icon={<ReloadOutlined />}
+                            icon={<ReloadOutlined aria-hidden />}
                             onClick={() => methods.setValue('uuid', RandomUtil.randomUUID())}
                           />
                         </Space.Compact>
                       </Form.Item>
 
                       <Form.Item
+                        htmlFor={`${uid}-password`}
                         label={t('pages.clients.password')}
                         tooltip={t('pages.clients.passwordDesc')}
                       >
                         <Space.Compact style={{ display: 'flex' }}>
                           <Input
+                            id={`${uid}-password`}
+                            aria-describedby={`${uid}-password-hint`}
                             value={password}
                             style={{ flex: 1 }}
                             onChange={(e) => methods.setValue('password', e.target.value)}
                           />
                           <Button
                             aria-label={t('regenerate')}
-                            icon={<ReloadOutlined />}
+                            icon={<ReloadOutlined aria-hidden />}
                             onClick={regeneratePassword}
                           />
                         </Space.Compact>
+                        <span id={`${uid}-password-hint`} hidden>
+                          {t('pages.clients.passwordDesc')}
+                        </span>
                       </Form.Item>
 
                       <Form.Item
+                        htmlFor={`${uid}-sub-id`}
                         label={t('pages.clients.subId')}
                         tooltip={t('pages.clients.subIdDesc')}
                       >
                         <Space.Compact style={{ display: 'flex' }}>
                           <Input
+                            id={`${uid}-sub-id`}
+                            aria-describedby={`${uid}-sub-id-hint`}
                             value={subId}
                             style={{ flex: 1 }}
                             onChange={(e) => methods.setValue('subId', e.target.value)}
                           />
                           <Button
                             aria-label={t('regenerate')}
-                            icon={<ReloadOutlined />}
+                            icon={<ReloadOutlined aria-hidden />}
                             onClick={() =>
                               methods.setValue('subId', RandomUtil.randomLowerAndNum(16))
                             }
                           />
                         </Space.Compact>
+                        <span id={`${uid}-sub-id-hint`} hidden>
+                          {t('pages.clients.subIdDesc')}
+                        </span>
                       </Form.Item>
 
                       <Form.Item
+                        htmlFor={`${uid}-auth`}
                         label={t('pages.clients.hysteriaAuth')}
                         tooltip={t('pages.clients.hysteriaAuthDesc')}
                       >
                         <Space.Compact style={{ display: 'flex' }}>
                           <Input
+                            id={`${uid}-auth`}
+                            aria-describedby={`${uid}-auth-hint`}
                             value={auth}
                             style={{ flex: 1 }}
                             onChange={(e) => methods.setValue('auth', e.target.value)}
                           />
                           <Button
                             aria-label={t('regenerate')}
-                            icon={<ReloadOutlined />}
+                            icon={<ReloadOutlined aria-hidden />}
                             onClick={() =>
                               methods.setValue('auth', RandomUtil.randomLowerAndNum(16))
                             }
                           />
                         </Space.Compact>
+                        <span id={`${uid}-auth-hint`} hidden>
+                          {t('pages.clients.hysteriaAuthDesc')}
+                        </span>
                       </Form.Item>
 
                       {showFlow && (
@@ -1308,6 +1362,7 @@ export default function ClientFormModal({
                       {(showWireguard || showAmneziawg) && (
                         <>
                           <Form.Item
+                            htmlFor={`${uid}-wg-private-key`}
                             label={t(
                               showAmneziawg
                                 ? 'pages.clients.amneziaWgPrivateKey'
@@ -1316,6 +1371,7 @@ export default function ClientFormModal({
                           >
                             <Space.Compact style={{ display: 'flex' }}>
                               <Input
+                                id={`${uid}-wg-private-key`}
                                 value={wgPrivateKey}
                                 style={{ flex: 1 }}
                                 onChange={(e) => {
@@ -1329,7 +1385,7 @@ export default function ClientFormModal({
                               />
                               <Button
                                 aria-label={t('regenerate')}
-                                icon={<ReloadOutlined />}
+                                icon={<ReloadOutlined aria-hidden />}
                                 onClick={regenerateWireguardKeys}
                               />
                             </Space.Compact>
@@ -1345,6 +1401,7 @@ export default function ClientFormModal({
                             <Input disabled />
                           </FormField>
                           <Form.Item
+                            htmlFor={`${uid}-wg-psk`}
                             label={t(
                               showAmneziawg
                                 ? 'pages.clients.amneziaWgPreSharedKey'
@@ -1353,11 +1410,11 @@ export default function ClientFormModal({
                           >
                             <Space.Compact style={{ display: 'flex' }}>
                               <FormField name="wgPreSharedKey" noStyle>
-                                <Input style={{ flex: 1 }} />
+                                <Input id={`${uid}-wg-psk`} style={{ flex: 1 }} />
                               </FormField>
                               <Button
                                 aria-label={t('regenerate')}
-                                icon={<ReloadOutlined />}
+                                icon={<ReloadOutlined aria-hidden />}
                                 onClick={regenerateWireguardPresharedKey}
                               />
                             </Space.Compact>
@@ -1418,18 +1475,20 @@ export default function ClientFormModal({
                       {showMtproto && (
                         <>
                           <Form.Item
+                            htmlFor={`${uid}-mtproto-secret`}
                             label={t('pages.clients.mtprotoSecret')}
                             extra={t('pages.clients.mtprotoSecretHint')}
                           >
                             <Space.Compact style={{ display: 'flex' }}>
                               <Input
+                                id={`${uid}-mtproto-secret`}
                                 value={secret}
                                 style={{ flex: 1 }}
                                 onChange={(e) => methods.setValue('secret', e.target.value)}
                               />
                               <Button
                                 aria-label={t('regenerate')}
-                                icon={<ReloadOutlined />}
+                                icon={<ReloadOutlined aria-hidden />}
                                 onClick={regenerateMtprotoSecret}
                               />
                             </Space.Compact>
@@ -1457,7 +1516,7 @@ export default function ClientFormModal({
 
                       <Button
                         type="primary"
-                        icon={<PlusOutlined />}
+                        icon={<PlusOutlined aria-hidden />}
                         onClick={() => addExternalLinkRow('link')}
                       >
                         {t('pages.clients.addExternalLink')}
@@ -1477,7 +1536,7 @@ export default function ClientFormModal({
                                     valueProp="checked"
                                     noStyle
                                   >
-                                    <Switch size="small" />
+                                    <Switch size="small" aria-label={t('enable')} />
                                   </FormField>
                                   <span>{t('enable')}</span>
                                 </div>
@@ -1491,7 +1550,7 @@ export default function ClientFormModal({
                                   <Button
                                     aria-label={t('delete')}
                                     danger
-                                    icon={<DeleteOutlined />}
+                                    icon={<DeleteOutlined aria-hidden />}
                                     onClick={() => removeExternalLink(index)}
                                   />
                                 </Tooltip>
@@ -1511,6 +1570,7 @@ export default function ClientFormModal({
                                     const hasSpecificExpiry = Number(expiryField.value) > 0;
                                     return (
                                       <DateTimePicker
+                                        aria-label={t('pages.clients.expiryTime')}
                                         value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
                                         onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
                                         placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
@@ -1528,7 +1588,7 @@ export default function ClientFormModal({
 
                       <Button
                         type="primary"
-                        icon={<PlusOutlined />}
+                        icon={<PlusOutlined aria-hidden />}
                         onClick={() => addExternalLinkRow('subscription')}
                       >
                         {t('pages.clients.addExternalSubscription')}
@@ -1548,7 +1608,7 @@ export default function ClientFormModal({
                                     valueProp="checked"
                                     noStyle
                                   >
-                                    <Switch size="small" />
+                                    <Switch size="small" aria-label={t('enable')} />
                                   </FormField>
                                   <span>{t('enable')}</span>
                                 </div>
@@ -1562,7 +1622,7 @@ export default function ClientFormModal({
                                   <Button
                                     aria-label={t('delete')}
                                     danger
-                                    icon={<DeleteOutlined />}
+                                    icon={<DeleteOutlined aria-hidden />}
                                     onClick={() => removeExternalLink(index)}
                                   />
                                 </Tooltip>
@@ -1588,6 +1648,7 @@ export default function ClientFormModal({
                                     const hasSpecificExpiry = Number(expiryField.value) > 0;
                                     return (
                                       <DateTimePicker
+                                        aria-label={t('pages.clients.expiryTime')}
                                         value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
                                         onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
                                         placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
@@ -1628,7 +1689,12 @@ export default function ClientFormModal({
         zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
         onCancel={() => setIpsModalOpen(false)}
         footer={[
-          <Button key="refresh" icon={<ReloadOutlined />} loading={ipsLoading} onClick={loadIps}>
+          <Button
+            key="refresh"
+            icon={<ReloadOutlined aria-hidden />}
+            loading={ipsLoading}
+            onClick={loadIps}
+          >
             {t('refresh')}
           </Button>,
           <Button

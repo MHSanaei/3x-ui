@@ -291,7 +291,9 @@
       "accessBlocked": "ЗАБЛОКОВАНО",
       "accessProxy": "ЧЕРЕЗ ПРОКСІ",
       "importKeepHostSettings": "Зберегти налаштування цієї машини",
-      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі."
+      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі.",
+      "logLines": "Кількість рядків",
+      "timeRange": "Часовий діапазон"
     },
     "inbounds": {
       "totalDownUp": "Всього надісланих/отриманих",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "Системний DNS на шлюз",
         "autoSystemDnsToGatewayTooltip": "Лише Linux: спрямовує systemd-resolved на шлюз TUN, щоб системні запити йшли через Xray. Потрібен шлюз; у разі помилки TUN не запуститься.",
         "autoSystemWfpBlockLeak": "Блокування витоків (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Лише Windows, разом з авто-маршрутами системи: dns утримує DNS усередині TUN (потрібні DNS-сервери), misconfigtun блокує версію IP, яку жоден маршрут не веде в TUN."
+        "autoSystemWfpBlockLeakTooltip": "Лише Windows, разом з авто-маршрутами системи: dns утримує DNS усередині TUN (потрібні DNS-сервери), misconfigtun блокує версію IP, яку жоден маршрут не веде в TUN.",
+        "maxVersion": "Максимальна версія",
+        "headerName": "Назва заголовка",
+        "headerValue": "Значення заголовка"
       },
       "info": {
         "mode": "Режим",

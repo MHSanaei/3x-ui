@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Giữ cài đặt của máy này",
-      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên."
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên.",
+      "logLines": "Số dòng",
+      "timeRange": "Khoảng thời gian"
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
         "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
         "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN."
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN.",
+        "maxVersion": "Phiên bản tối đa",
+        "headerName": "Tên header",
+        "headerValue": "Giá trị header"
       },
       "info": {
         "mode": "Chế độ",

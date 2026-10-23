@@ -29,6 +29,24 @@ describe('FinalMaskForm item types', () => {
   });
 });
 
+describe('FinalMaskForm filter mask', () => {
+  // xray-core 26.10.21's filter screens a listener's source IPs and is a no-op on a dialer, so
+  // only the inbound editor offers it; an older client core refuses the unknown type.
+  it('offers filter on the server side only', () => {
+    const value = { tcp: [{ type: 'fragment' as const, settings: {} }], udp: [] };
+    const client = renderWithProviders(
+      <FinalMaskField network="tcp" protocol="vless" side="client" value={value} />,
+    );
+    expect(listSelectOptions('finalmask_tcp_0_type')).not.toContain('Filter (source IPs)');
+    client.unmount();
+
+    renderWithProviders(
+      <FinalMaskField network="tcp" protocol="vless" side="server" value={value} />,
+    );
+    expect(listSelectOptions('finalmask_tcp_0_type')).toContain('Filter (source IPs)');
+  });
+});
+
 describe('FinalMaskForm salamander password', () => {
   // xray-core loads a salamander password under 4 bytes and refuses it only when the socket
   // opens: on an inbound that stops Xray. It counts bytes, so "a€" (4 bytes) is long enough.

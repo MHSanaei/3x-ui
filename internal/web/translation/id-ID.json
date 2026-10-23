@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Pertahankan pengaturan mesin ini",
-      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah."
+      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah.",
+      "logLines": "Jumlah baris",
+      "timeRange": "Rentang waktu"
     },
     "inbounds": {
       "totalDownUp": "Total Terkirim/Diterima",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS sistem ke gateway",
         "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
         "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN."
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN.",
+        "maxVersion": "Versi maksimum",
+        "headerName": "Nama header",
+        "headerValue": "Nilai header"
       },
       "info": {
         "mode": "Mode",
