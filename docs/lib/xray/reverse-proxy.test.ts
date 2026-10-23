@@ -31,6 +31,15 @@ describe('buildProxyConfig — caddy', () => {
     const cfg = buildProxyConfig({ ...base, server: 'caddy', panelPath: '/' });
     expect(cfg).toContain('reverse_proxy 127.0.0.1:2053');
   });
+
+  // Caddy forwards a client-sent X-Real-IP unchanged, and the panel's login
+  // limiter would key on it; only an overwrite gives the address Caddy saw.
+  it('overwrites X-Real-IP with the address Caddy saw', () => {
+    for (const panelPath of ['/', '/panel']) {
+      const cfg = buildProxyConfig({ ...base, server: 'caddy', panelPath });
+      expect(cfg).toContain('header_up X-Real-IP {remote_host}');
+    }
+  });
 });
 
 describe('buildCertCommand', () => {
