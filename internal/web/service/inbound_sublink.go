@@ -1,6 +1,8 @@
 package service
 
 import (
+	"sync"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
@@ -11,35 +13,52 @@ type SubLinkProvider interface {
 	LinksForInbounds(host string, inbounds []*model.Inbound) []string
 }
 
-var registeredSubLinkProvider SubLinkProvider
+var (
+	subLinkProviderMu         sync.RWMutex
+	registeredSubLinkProvider SubLinkProvider
+)
 
 func RegisterSubLinkProvider(p SubLinkProvider) {
+	subLinkProviderMu.Lock()
+	defer subLinkProviderMu.Unlock()
 	registeredSubLinkProvider = p
 }
 
+// subLinkProvider returns the installed provider, or nil while the panel has
+// none: the registry is written during startup and read by every request that
+// renders share links.
+func subLinkProvider() SubLinkProvider {
+	subLinkProviderMu.RLock()
+	defer subLinkProviderMu.RUnlock()
+	return registeredSubLinkProvider
+}
+
 func (s *InboundService) GetSubLinks(host, subId string) ([]string, error) {
-	if registeredSubLinkProvider == nil {
+	provider := subLinkProvider()
+	if provider == nil {
 		return nil, common.NewError("sub link provider not registered")
 	}
-	return registeredSubLinkProvider.SubLinksForSubId(host, subId)
+	return provider.SubLinksForSubId(host, subId)
 }
 
 func (s *InboundService) GetAllInboundLinks(host string, userId int) ([]string, error) {
-	if registeredSubLinkProvider == nil {
+	provider := subLinkProvider()
+	if provider == nil {
 		return nil, common.NewError("sub link provider not registered")
 	}
 	inbounds, err := s.GetInbounds(userId)
 	if err != nil {
 		return nil, err
 	}
-	return registeredSubLinkProvider.LinksForInbounds(host, inbounds), nil
+	return provider.LinksForInbounds(host, inbounds), nil
 }
 
 func (s *InboundService) GetAllClientLinks(host string, email string) ([]string, error) {
 	if email == "" {
 		return nil, common.NewError("client email is required")
 	}
-	if registeredSubLinkProvider == nil {
+	provider := subLinkProvider()
+	if provider == nil {
 		return nil, common.NewError("sub link provider not registered")
 	}
 	rec, err := s.clientService.GetRecordByEmail(nil, email)
@@ -56,7 +75,7 @@ func (s *InboundService) GetAllClientLinks(host string, email string) ([]string,
 		if getErr != nil {
 			return nil, getErr
 		}
-		links = append(links, registeredSubLinkProvider.LinksForClient(host, inbound, email)...)
+		links = append(links, provider.LinksForClient(host, inbound, email)...)
 	}
 	return links, nil
 }
