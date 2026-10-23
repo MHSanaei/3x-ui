@@ -83,7 +83,7 @@
     "vitest": "^5.0.3"
   },
   "overrides": {
-    "dompurify": "^3.4.15",
+    "dompurify": "^3.4.17",
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",
     "seroval": "^1.6.8",
