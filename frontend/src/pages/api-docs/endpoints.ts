@@ -1158,6 +1158,7 @@ export const sections: readonly Section[] = [
         ],
         responseObjectSchema: {
           type: 'array',
+          nullable: true,
           items: {
             type: 'object',
             properties: {
