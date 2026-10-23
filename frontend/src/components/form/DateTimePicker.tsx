@@ -21,6 +21,7 @@ interface DateTimePickerProps {
   maxDate?: Dayjs;
   id?: string;
   'aria-label'?: string;
+  'aria-describedby'?: string;
 }
 
 const LIGHT_THEME = {
@@ -61,6 +62,7 @@ export default function DateTimePicker({
   maxDate,
   id,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
 }: DateTimePickerProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -105,6 +107,7 @@ export default function DateTimePicker({
     input.placeholder = placeholder;
     if (id) input.id = id;
     if (ariaLabel) input.setAttribute('aria-label', ariaLabel);
+    if (ariaDescribedBy) input.setAttribute('aria-describedby', ariaDescribedBy);
   });
 
   if (datepicker === 'jalalian') {
@@ -165,6 +168,7 @@ export default function DateTimePicker({
       maxDate={maxDate}
       id={id}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       style={{ width: '100%' }}
     />
   );

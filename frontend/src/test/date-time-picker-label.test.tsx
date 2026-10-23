@@ -31,4 +31,22 @@ describe.each(['gregorian', 'jalalian'] as const)('DateTimePicker (%s) labelling
 
     expect(screen.getByRole('textbox', { name: 'Expiry' }).tagName).toBe('INPUT');
   });
+
+  it('describes the picker input from aria-describedby', () => {
+    act(() => setDatepicker(calendar));
+    renderWithProviders(
+      <>
+        <span id="expiry-hint">Leave blank to never expire</span>
+        <DateTimePicker
+          aria-label="Expiry"
+          aria-describedby="expiry-hint"
+          value={null}
+          onChange={vi.fn()}
+        />
+      </>,
+    );
+
+    const input = screen.getByRole('textbox', { name: 'Expiry' });
+    expect(input.getAttribute('aria-describedby')).toBe('expiry-hint');
+  });
 });
