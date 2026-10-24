@@ -28,6 +28,7 @@ import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 import { tlsCertUsesFiles } from '@/schemas/protocols/security/tls';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { XHttpStreamSettingsSchema, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
 
 const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
@@ -183,6 +184,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     Object.keys(rawStream).length > 0 ? (rawStream as StreamSettings) : undefined;
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
+    liftLegacyXDriveService(streamSettings as unknown as Record<string, unknown>);
     synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
     const streamRecord = streamSettings as unknown as Record<string, unknown>;
     const xh = streamRecord.xhttpSettings;

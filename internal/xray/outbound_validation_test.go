@@ -1,6 +1,8 @@
 package xray
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -63,5 +65,24 @@ func TestValidateOutboundConfig_RejectsWireguardRemoteDNSThatIsNotAnIP(t *testin
 	}
 	if err := ValidateOutboundConfig(outbound(`["1.1.1.1", "2606:4700:4700::1111"]`)); err != nil {
 		t.Fatalf("IP remoteDNS entries must stay valid, got: %v", err)
+	}
+}
+
+// xray-core 26.10.17 compiles a noise mask's Lua script inside Build (#7124), where the panel would
+// look beside its own binary; the xray child finds a relative script in its bin folder.
+func TestValidateOutboundConfig_FindsANoiseScriptBesideTheXrayBinary(t *testing.T) {
+	bin := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", bin)
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(filepath.Join(bin, "noise.lua"), []byte("function HandleNoise(plan) end\n"), 0o600); err != nil {
+		t.Fatalf("write script: %v", err)
+	}
+	outbound := []byte(`{
+		"protocol": "vless",
+		"settings": {"address": "10.0.0.1", "port": 443, "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "encryption": "none"},
+		"streamSettings": {"network": "tcp", "finalmask": {"udp": [{"type": "noise", "settings": {"script": "noise.lua"}}]}}
+	}`)
+	if err := ValidateOutboundConfig(outbound); err != nil {
+		t.Fatalf("ValidateOutboundConfig = %v, want the script beside the xray binary found", err)
 	}
 }

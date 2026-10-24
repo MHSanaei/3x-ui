@@ -3,7 +3,7 @@
   "info": {
     "title": "3X-UI Panel API",
     "version": "3.x",
-    "description": "Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password."
+    "description": "Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with a scoped API token from Settings → Security → API Token (Bearer). Token access is limited by its admin, monitor, node-sync, or node-admin scope; treat admin tokens like the panel password."
   },
   "servers": [
     {
@@ -16,7 +16,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API token from Settings → Security → API Token. Send as `Authorization: Bearer <token>`."
+        "description": "Scoped API token from Settings → Security → API Token. Send as `Authorization: Bearer <token>`."
       },
       "cookieAuth": {
         "type": "apiKey",
@@ -152,6 +152,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -241,6 +246,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -636,6 +644,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -662,6 +671,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -928,6 +938,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -1017,6 +1032,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -1420,6 +1438,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -1446,6 +1465,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -4855,7 +4875,7 @@
     },
     {
       "name": "API Tokens",
-      "description": "Manage scoped Bearer tokens for programmatic auth. Tokens grant admin, monitor, or node-sync access, may expire, and are stored as SHA-256 hashes. The plaintext is returned only once at creation."
+      "description": "Manage scoped Bearer tokens for programmatic auth. admin grants the full panel API; monitor is read-only for status and metrics; node-sync manages node configuration without panel updates; node-admin adds panel self-update to node-sync. Tokens may expire and are stored as SHA-256 hashes. The plaintext is returned only once at creation."
     },
     {
       "name": "Xray Settings",
@@ -7184,7 +7204,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Self-update the panel to the latest version. The server restarts on success.",
+        "summary": "Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin or node-admin scope.",
         "operationId": "post_panel_api_server_updatePanel",
         "requestBody": {
           "required": false,
@@ -8473,6 +8493,81 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/get/subId/{subId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by subscription ID.",
+        "operationId": "get_panel_api_clients_get_subId_subId",
+        "description": "Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.",
+        "parameters": [
+          {
+            "name": "subId",
+            "in": "path",
+            "required": true,
+            "description": "Exact subscription ID (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "client": {
+                            "$ref": "#/components/schemas/ClientRecord"
+                          },
+                          "inboundIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer"
+                            }
+                          },
+                          "externalLinks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "usedTraffic": {
+                            "type": "integer",
+                            "format": "int64"
+                          },
+                          "tunnelAllowedIPs": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -13208,9 +13303,11 @@
                   "obj": [
                     {
                       "id": 1,
-                      "name": "default",
+                      "name": "central-panel-a",
                       "enabled": true,
-                      "createdAt": 1736000000
+                      "createdAt": 1736000000,
+                      "scope": "node-admin",
+                      "expiresAt": 0
                     }
                   ]
                 }
@@ -13240,7 +13337,13 @@
                   },
                   "scope": {
                     "type": "string",
-                    "description": "admin (default), monitor, or node-sync."
+                    "enum": [
+                      "admin",
+                      "monitor",
+                      "node-sync",
+                      "node-admin"
+                    ],
+                    "description": "admin (default), monitor, node-sync, or node-admin. node-admin inherits node-sync and may also start a panel update."
                   },
                   "expiresAt": {
                     "type": "integer",
@@ -13253,7 +13356,7 @@
               },
               "example": {
                 "name": "central-panel-a",
-                "scope": "node-sync",
+                "scope": "node-admin",
                 "expiresAt": 1798761600000
               }
             }

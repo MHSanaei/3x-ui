@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
@@ -59,6 +59,7 @@ export default function SubBalancerFormModal({
   onConfirm,
 }: SubBalancerFormModalProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const [messageApi, messageContextHolder] = message.useMessage();
   const methods = useForm<SubBalancerFormValues>({ defaultValues: initialState(balancer) });
   const isEdit = balancer != null;
@@ -199,6 +200,7 @@ export default function SubBalancerFormModal({
                   return (
                     <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span
+                        id={`${uid}-weight-${id}`}
                         title={option?.title}
                         style={{
                           minWidth: 0,
@@ -214,6 +216,8 @@ export default function SubBalancerFormModal({
                         name={`memberWeights.${id}`}
                         render={({ field }) => (
                           <InputNumber
+                            aria-labelledby={`${uid}-weight-${id}`}
+                            aria-describedby={`${uid}-weights-hint`}
                             min={0.1}
                             step={0.1}
                             precision={1}
@@ -227,6 +231,9 @@ export default function SubBalancerFormModal({
                   );
                 })}
               </div>
+              <span id={`${uid}-weights-hint`} hidden>
+                {t('pages.settings.subBalancers.weightsHelp')}
+              </span>
             </Form.Item>
           )}
 

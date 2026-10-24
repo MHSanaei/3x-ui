@@ -6,9 +6,13 @@ import { Tooltip } from 'antd';
    old top tab bar's icons-only behaviour. */
 export function catTabLabel(icon: ReactNode, text: ReactNode, iconsOnly: boolean): ReactNode {
   if (iconsOnly) {
+    // Callers hide the icon for the desktop label; here it is the tab's only name.
     const labelledIcon =
       typeof text === 'string' && isValidElement(icon)
-        ? cloneElement(icon as ReactElement<{ 'aria-label'?: string }>, { 'aria-label': text })
+        ? cloneElement(icon as ReactElement<{ 'aria-label'?: string; 'aria-hidden'?: boolean }>, {
+            'aria-label': text,
+            'aria-hidden': undefined,
+          })
         : icon;
     return <Tooltip title={text}>{labelledIcon}</Tooltip>;
   }

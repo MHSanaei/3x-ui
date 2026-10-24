@@ -47,6 +47,13 @@ export const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'xdrive', label: 'XDRIVE' },
 ];
 
+// xray-core 26.10.17 (#7182) carries only VLESS over XDRIVE.
+export function networkOptionsFor(protocol: string): { value: string; label: string }[] {
+  return protocol === 'vless'
+    ? NETWORK_OPTIONS
+    : NETWORK_OPTIONS.filter((option) => option.value !== 'xdrive');
+}
+
 // The hysteria protocol is locked to its own QUIC transport: the selector
 // shows only this option when the parent protocol is hysteria.
 export const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };

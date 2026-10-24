@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Radio, Select, Space, Tabs, message } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
@@ -22,7 +22,7 @@ import {
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
   MASQUE_NETWORK_OPTION,
-  NETWORK_OPTIONS,
+  networkOptionsFor,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
   TARGET_STRATEGY_OPTIONS,
@@ -85,6 +85,7 @@ export default function OutboundFormModal({
   onConfirm,
 }: OutboundFormModalProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const [messageApi, messageContextHolder] = message.useMessage();
   const methods = useForm<OutboundFormValues>({ defaultValues: buildAddModeValues() });
   const [activeKey, setActiveKey] = useState('1');
@@ -265,9 +266,11 @@ export default function OutboundFormModal({
    * wsSettings, etc.) so the DU branch matches. Preserve security if
    * the new network supports it, otherwise force back to 'none'.
    */
+  // xray-core 26.10.17 (#7182) dials XDRIVE only through Mux, so picking XDRIVE turns Mux on.
   function onNetworkChange(next: string) {
     const stream = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
     methods.setValue('streamSettings', applyNetworkChange(protocol, stream, next) as StreamValue);
+    if (next === 'xdrive') methods.setValue('mux.enabled', true);
   }
 
   function onXmuxToggle(checked: boolean) {
@@ -417,6 +420,7 @@ export default function OutboundFormModal({
                           return (
                             <Form.Item
                               label={t('pages.xray.outbound.tag')}
+                              htmlFor={`${uid}-tag`}
                               required
                               validateStatus={
                                 errorMessage ? 'error' : duplicateTag ? 'warning' : undefined
@@ -429,6 +433,7 @@ export default function OutboundFormModal({
                               }
                             >
                               <Input
+                                id={`${uid}-tag`}
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.target.value)}
                                 onBlur={field.onBlur}
@@ -490,8 +495,9 @@ export default function OutboundFormModal({
 
                       {streamAllowed && network && (
                         <>
-                          <Form.Item label={t('transmission')}>
+                          <Form.Item label={t('transmission')} htmlFor={`${uid}-network`}>
                             <Select
+                              id={`${uid}-network`}
                               value={network}
                               onChange={onNetworkChange}
                               options={
@@ -499,7 +505,7 @@ export default function OutboundFormModal({
                                   ? [HYSTERIA_NETWORK_OPTION]
                                   : protocol === 'masque'
                                     ? [MASQUE_NETWORK_OPTION]
-                                    : NETWORK_OPTIONS
+                                    : networkOptionsFor(protocol)
                               }
                             />
                           </Form.Item>
@@ -548,7 +554,11 @@ export default function OutboundFormModal({
                             <Space.Compact block>
                               {[0, 1, 2, 3].map((i) => (
                                 <FormField key={i} name={['settings', 'testseed', i]} noStyle>
-                                  <InputNumber min={1} style={{ width: '25%' }} />
+                                  <InputNumber
+                                    aria-label={`${t('pages.inbounds.form.visionTestseed')} ${i + 1}`}
+                                    min={1}
+                                    style={{ width: '25%' }}
+                                  />
                                 </FormField>
                               ))}
                             </Space.Compact>
@@ -613,6 +623,7 @@ export default function OutboundFormModal({
                       style={{ width: '100%', marginTop: 10 }}
                     >
                       <Input.Search
+                        aria-label={t('pages.clients.link')}
                         value={linkInput}
                         placeholder="vmess:// vless:// trojan:// ss:// hysteria2:// wireguard://"
                         enterButton="Import"

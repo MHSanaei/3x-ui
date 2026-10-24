@@ -38,7 +38,7 @@ export default function CustomSockoptList({
             <Button
               type="dashed"
               size="small"
-              icon={<PlusOutlined />}
+              icon={<PlusOutlined aria-hidden />}
               onClick={() => add({ type: 'int', level: '6', opt: '', value: '' })}
             >
               {t('pages.inbounds.form.addCustomOption')}
