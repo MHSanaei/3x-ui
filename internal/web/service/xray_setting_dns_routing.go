@@ -130,16 +130,8 @@ type dnsServerEndpoint struct {
 	port int
 }
 
-// privateDnsServerEndpoint extracts a literal, private/internal (ip, port)
-// endpoint from a dns.servers entry, or ok=false if the entry is a domain
-// name, a special Xray keyword (localhost, fakedns, ...), or resolves to a
-// public IP.
-//
-// A dns.servers entry is either a bare string or an object with an
-// "address" field (see frontend/src/schemas/dns.ts DnsServerEntrySchema);
-// the object form may also carry an explicit "port" (default 53 there,
-// per DnsServerObjectInnerSchema), which wins over a port in the address
-// except for remote DoH, which Xray dials from its URL alone.
+// privateDnsServerEndpoint returns the private (ip, port) of a dns.servers string or object entry; an
+// object's "port" wins over the address's own except for remote DoH, which Xray dials from its URL.
 func privateDnsServerEndpoint(entry any) (dnsServerEndpoint, bool) {
 	var address string
 	explicitPort := 0
@@ -181,11 +173,8 @@ func isRemoteDoh(address string) bool {
 	return ok && (strings.EqualFold(scheme, "https") || strings.EqualFold(scheme, "h2c"))
 }
 
-// splitAddressHostPort extracts the bare host and port (defaulting to 443
-// for https:// and h2c://, 53 otherwise) from an Xray-core DNS server
-// address string. Those may carry a URI scheme (tcp://, tcp+local://, https://, https+local://, quic://,
-// quic+local://) and, for DoH, a path and/or a bracketed IPv6 host — all
-// of that is stripped down to host[:port] before parsing.
+// splitAddressHostPort strips an Xray DNS address's scheme, DoH path and IPv6 brackets down to host
+// and port, defaulting to 443 for remote DoH (https://, h2c://) and 53 otherwise.
 func splitAddressHostPort(address string) (host string, port int) {
 	address = strings.TrimSpace(address)
 	if address == "" {
