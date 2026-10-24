@@ -102,13 +102,13 @@ jobs:
             exit 1
           fi
 
-      - name: PostgreSQL subscription Host ordering tests
+      - name: PostgreSQL subscription Host tests
         run: |
           set -o pipefail
-          go test ./internal/sub -run '^TestSubHostOrder_Postgres$' -count=1 -v | tee /tmp/postgres-host-order.log
-          passed=$(grep -c -- '^--- PASS' /tmp/postgres-host-order.log || true)
+          go test ./internal/sub -run '^TestSubHosts_Postgres$' -count=1 -v | tee /tmp/postgres-hosts.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-hosts.log || true)
           if [ "$passed" -ne 1 ]; then
-            echo "expected passing PostgreSQL Host ordering coverage, got $passed" >&2
+            echo "expected passing PostgreSQL Host coverage, got $passed" >&2
             exit 1
           fi
 

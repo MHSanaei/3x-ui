@@ -1665,7 +1665,7 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
+		if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
 			return err
 		}
 		// Drop the deleted inbound from any sub-balancer that selects it; a
