@@ -203,6 +203,8 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
+	"xrayPeriodicRestartEnable":   "false",
+	"xrayPeriodicRestartCron":     "@daily",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
 	"panelOutbound":               "",
 	"devChannelEnable":            "false",
@@ -1331,6 +1333,22 @@ func (s *SettingService) GetRestartXrayOnClientDisable() (bool, error) {
 
 func (s *SettingService) SetRestartXrayOnClientDisable(value bool) error {
 	return s.setBool("restartXrayOnClientDisable", value)
+}
+
+func (s *SettingService) GetXrayPeriodicRestartEnable() (bool, error) {
+	return s.getBool("xrayPeriodicRestartEnable")
+}
+
+func (s *SettingService) SetXrayPeriodicRestartEnable(value bool) error {
+	return s.setBool("xrayPeriodicRestartEnable", value)
+}
+
+func (s *SettingService) GetXrayPeriodicRestartCron() (string, error) {
+	return s.getString("xrayPeriodicRestartCron")
+}
+
+func (s *SettingService) SetXrayPeriodicRestartCron(value string) error {
+	return s.setString("xrayPeriodicRestartCron", value)
 }
 
 // GetDevChannelEnable reports whether the panel self-update tracks the rolling

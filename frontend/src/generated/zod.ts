@@ -205,6 +205,8 @@ export const AllSettingSchema = z.object({
   webKeyFile: z.string(),
   webListen: z.string(),
   webPort: z.number().int().min(1).max(65535),
+  xrayPeriodicRestartCron: z.string(),
+  xrayPeriodicRestartEnable: z.boolean(),
 });
 export type AllSetting = z.infer<typeof AllSettingSchema>;
 
@@ -397,6 +399,8 @@ export const AllSettingViewSchema = z.object({
   webKeyFile: z.string(),
   webListen: z.string(),
   webPort: z.number().int().min(1).max(65535),
+  xrayPeriodicRestartCron: z.string(),
+  xrayPeriodicRestartEnable: z.boolean(),
 });
 export type AllSettingView = z.infer<typeof AllSettingViewSchema>;
 

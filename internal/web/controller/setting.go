@@ -135,6 +135,8 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
 	oldTgAPIServer, _ := a.settingService.GetTgBotAPIServer()
+	oldXrayRestartEnable, _ := a.settingService.GetXrayPeriodicRestartEnable()
+	oldXrayRestartCron, _ := a.settingService.GetXrayPeriodicRestartCron()
 	oldDiscordEnable, _ := a.settingService.GetDiscordBotEnable()
 	oldDiscordToken, _ := a.settingService.GetDiscordBotToken()
 	oldDiscordChannelId, _ := a.settingService.GetDiscordChannelId()
@@ -187,6 +189,13 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 				oldDiscordChannelId != allSetting.DiscordChannelId))
 		if discordChanged {
 			reloadDiscordFunc()
+		}
+	}
+	if err == nil && reloadXrayPeriodicRestartFunc != nil {
+		xrayRestartChanged := oldXrayRestartEnable != allSetting.XrayPeriodicRestartEnable ||
+			oldXrayRestartCron != allSetting.XrayPeriodicRestartCron
+		if xrayRestartChanged {
+			reloadXrayPeriodicRestartFunc()
 		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
@@ -406,6 +415,11 @@ func SetEmailService(s *email.EmailService) { emailService = s }
 var reloadDiscordFunc func()
 
 func SetReloadDiscordFunc(fn func()) { reloadDiscordFunc = fn }
+
+// reloadXrayPeriodicRestartFunc is wired from the web layer to reschedule or cancel Xray periodic restart job.
+var reloadXrayPeriodicRestartFunc func()
+
+func SetReloadXrayPeriodicRestartFunc(fn func()) { reloadXrayPeriodicRestartFunc = fn }
 
 // discordService is set from web layer.
 var discordService *discord.DiscordService

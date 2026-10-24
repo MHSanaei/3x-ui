@@ -18,6 +18,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 import SecretInput from './SecretInput';
+import { NotifyTimeField } from './NotifyTimeField';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -339,6 +340,31 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })}
                 />
               </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.xrayPeriodicRestart')}
+                description={t('pages.settings.xrayPeriodicRestartDesc')}
+              >
+                <Switch
+                  checked={allSetting.xrayPeriodicRestartEnable}
+                  onChange={(v) => updateSetting({ xrayPeriodicRestartEnable: v })}
+                />
+              </SettingListItem>
+
+              {allSetting.xrayPeriodicRestartEnable && (
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.xrayPeriodicRestartSchedule')}
+                  description={t('pages.settings.xrayPeriodicRestartScheduleDesc')}
+                >
+                  <NotifyTimeField
+                    value={allSetting.xrayPeriodicRestartCron || '@daily'}
+                    onChange={(v) => updateSetting({ xrayPeriodicRestartCron: v })}
+                    ariaLabel={t('pages.settings.xrayPeriodicRestartSchedule')}
+                  />
+                </SettingListItem>
+              )}
 
               <SettingListItem paddings="small" title={t('pages.settings.language')}>
                 <Select

@@ -189,6 +189,8 @@ export interface AllSetting {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  xrayPeriodicRestartCron: string;
+  xrayPeriodicRestartEnable: boolean;
 }
 
 export interface AllSettingView {
@@ -380,6 +382,8 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  xrayPeriodicRestartCron: string;
+  xrayPeriodicRestartEnable: boolean;
 }
 
 export interface AmneziaWGLogs {

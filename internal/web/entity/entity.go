@@ -115,6 +115,8 @@ type AllSetting struct {
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
 	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
+	XrayPeriodicRestartEnable   bool   `json:"xrayPeriodicRestartEnable" form:"xrayPeriodicRestartEnable"`
+	XrayPeriodicRestartCron     string `json:"xrayPeriodicRestartCron" form:"xrayPeriodicRestartCron"`
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`
 	SubURI                      string `json:"subURI" form:"subURI"`
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`

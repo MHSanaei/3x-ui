@@ -180,7 +180,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "xrayPeriodicRestartCron": "",
+    "xrayPeriodicRestartEnable": false
   },
   "AllSettingView": {
     "datepicker": "",
@@ -370,7 +372,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "xrayPeriodicRestartCron": "",
+    "xrayPeriodicRestartEnable": false
   },
   "AmneziaWGLogs": {
     "events": [

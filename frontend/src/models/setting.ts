@@ -65,6 +65,8 @@ export class AllSetting {
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
   restartXrayOnClientDisable = true;
+  xrayPeriodicRestartEnable = false;
+  xrayPeriodicRestartCron = '@daily';
   subCertFile = '';
   subKeyFile = '';
   externalSubUserAgent = 'v2rayNG/1.8.5';

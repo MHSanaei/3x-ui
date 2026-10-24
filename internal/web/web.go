@@ -130,9 +130,10 @@ type Server struct {
 
 	wsHub *websocket.Hub
 
-	bus                  *eventbus.Bus
-	cron                 *cron.Cron
-	discordNotifyEntryID cron.EntryID
+	bus                        *eventbus.Bus
+	cron                       *cron.Cron
+	discordNotifyEntryID       cron.EntryID
+	xrayPeriodicRestartEntryID cron.EntryID
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -428,6 +429,15 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		_, _ = s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
 	}
 
+	// Periodic Xray restart job
+	if restartEnabled, _ := s.settingService.GetXrayPeriodicRestartEnable(); restartEnabled {
+		runtime, err := s.settingService.GetXrayPeriodicRestartCron()
+		if err != nil {
+			logger.Warningf("Xray periodic restart: failed to load runtime: %v", err)
+		}
+		s.xrayPeriodicRestartEntryID = scheduleSettingJob(s.cron, "Xray periodic restart", runtime, "@daily", job.NewXrayPeriodicRestartJob())
+	}
+
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
 		_, _ = s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
 		go func() {
@@ -705,6 +715,23 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		if s.discordGateway != nil && !s.discordGateway.IsRunning() {
 			_ = s.discordGateway.Start(s.ctx)
 		}
+	})
+
+	// Wire reload periodic Xray restart callback for settings updates
+	controller.SetReloadXrayPeriodicRestartFunc(func() {
+		if s.xrayPeriodicRestartEntryID != 0 {
+			s.cron.Remove(s.xrayPeriodicRestartEntryID)
+			s.xrayPeriodicRestartEntryID = 0
+		}
+		enabled, err := s.settingService.GetXrayPeriodicRestartEnable()
+		if err != nil || !enabled {
+			return
+		}
+		runtime, err := s.settingService.GetXrayPeriodicRestartCron()
+		if err != nil {
+			logger.Warningf("Xray periodic restart: failed to load runtime: %v", err)
+		}
+		s.xrayPeriodicRestartEntryID = scheduleSettingJob(s.cron, "Xray periodic restart", runtime, "@daily", job.NewXrayPeriodicRestartJob())
 	})
 
 	// Wire Telegram test function to controller

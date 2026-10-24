@@ -607,6 +607,12 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "xrayPeriodicRestartCron": {
+            "type": "string"
+          },
+          "xrayPeriodicRestartEnable": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -789,7 +795,9 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "xrayPeriodicRestartCron",
+          "xrayPeriodicRestartEnable"
         ],
         "type": "object"
       },
@@ -1398,6 +1406,12 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "xrayPeriodicRestartCron": {
+            "type": "string"
+          },
+          "xrayPeriodicRestartEnable": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1588,7 +1602,9 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "xrayPeriodicRestartCron",
+          "xrayPeriodicRestartEnable"
         ],
         "type": "object"
       },
