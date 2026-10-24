@@ -37,31 +37,34 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		if IsCIDR(h.Address) {
-			count := h.RandomCount
-			if count <= 0 {
-				count = 1
-			}
-			ips, err := RandomIPsFromCIDR(h.Address, count)
-			if err == nil && len(ips) > 0 {
-				for i, ip := range ips {
-					hCopy := *h
-					hCopy.Address = ip
-					if len(ips) > 1 {
-						if h.Remark != "" {
-							hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
-						} else {
-							hCopy.Remark = fmt.Sprintf("%d", i+1)
-						}
-					}
-					eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, inbound.Port))
-				}
-				continue
-			}
-		}
-		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
+		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps
+}
+
+// hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
+// random addresses from the range, any other address is a single entry.
+func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	if IsCIDR(h.Address) {
+		count := max(h.RandomCount, 1)
+		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
+			eps := make([]map[string]any, 0, len(ips))
+			for i, ip := range ips {
+				hCopy := *h
+				hCopy.Address = ip
+				if len(ips) > 1 {
+					if h.Remark != "" {
+						hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
+					} else {
+						hCopy.Remark = fmt.Sprintf("%d", i+1)
+					}
+				}
+				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
+			}
+			return eps
+		}
+	}
+	return []map[string]any{hostToExternalProxyMap(h, defaultDest, defaultPort)}
 }
 
 // hostToExternalProxyMap projects a Host onto the externalProxy entry shape the

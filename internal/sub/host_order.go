@@ -104,7 +104,7 @@ func (v subscriptionHostVariant) endpoint(s *SubService, inbound *model.Inbound)
 	if v.host == nil {
 		return nil
 	}
-	return []map[string]any{hostToExternalProxyMap(v.host, s.resolveInboundAddress(inbound), inbound.Port)}
+	return hostEndpointMaps(v.host, s.resolveInboundAddress(inbound), inbound.Port)
 }
 
 func (v subscriptionHostVariant) inbound(s *SubService, inbound *model.Inbound) *model.Inbound {

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -254,4 +255,25 @@ func TestSub_GlobalHostOrder(t *testing.T) {
 	assertAll([]string{"c.example.com", "b.example.com", "shared1.example.com", "shared2.example.com", "shared1.example.com", "a.example.com", "203.0.113.5"})
 	setHostSortMode(t, "inbound-first")
 	assertAll([]string{"203.0.113.5", "shared1.example.com", "shared2.example.com", "a.example.com", "c.example.com", "b.example.com", "shared1.example.com"})
+}
+
+// The hosts-first order renders each host on its own, and a CIDR host must still expand into its
+// random addresses there, as it does in inbound order, on every format.
+func TestSub_HostOrderExpandsCIDRHosts(t *testing.T) {
+	seedSubDB(t)
+	setHostSortMode(t, "hosts-first")
+	ib := seedSubInbound(t, "order-sub", "cidr", 46910, 0, wsTLSStream)
+	seedHost(t, &model.Host{GroupId: "cidr", InboundId: ib.Id, Remark: "R", Address: "198.51.100.0/24", RandomCount: 3})
+	_, cidr, _ := net.ParseCIDR("198.51.100.0/24")
+	for _, format := range []string{"raw", "clash", "json"} {
+		got := renderedHostAddresses(t, format, NewSubService(""))
+		if len(got) != 3 {
+			t.Fatalf("%s addresses = %v, want 3 random addresses from the range", format, got)
+		}
+		for _, addr := range got {
+			if ip := net.ParseIP(addr); ip == nil || !cidr.Contains(ip) {
+				t.Fatalf("%s address %q is not inside 198.51.100.0/24", format, addr)
+			}
+		}
+	}
 }
