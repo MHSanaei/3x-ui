@@ -232,6 +232,8 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 		Update("settings", ib.Settings).Error; err != nil {
 		return nil, nil, err
 	}
+	// A just-disabled client must leave subscriptions within this tick.
+	InvalidateSubData()
 	return &snapshot, &ib, nil
 }
 

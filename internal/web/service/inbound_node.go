@@ -1266,6 +1266,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				return false, err
 			}
 			structuralChange = true
+			// Adopted wire settings feed subscription bodies; drop snapshots
+			// so the adopted rows are served this tick, not after the TTL.
+			InvalidateSubData()
 		}
 		// The fingerprint stamps the un-lifted wire blob on purpose: a lift must
 		// leave reconcile a mismatch to re-push against.

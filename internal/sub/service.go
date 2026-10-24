@@ -77,10 +77,13 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
-	hostsByInbound    map[int][]*model.Host
-	hostGroupOrders   map[string]hostEntryOrder
-	hostsFirst        bool
-	sharedGroupSni    map[string]string
+	// settingsCache is shared by this service's requests (ForRequest copies the pointer); only
+	// subscription bodies read through it, never panel link rendering.
+	settingsCache   *inboundSettingsCache
+	hostsByInbound  map[int][]*model.Host
+	hostGroupOrders map[string]hostEntryOrder
+	hostsFirst      bool
+	sharedGroupSni  map[string]string
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -88,6 +91,13 @@ func NewSubService(remarkTemplate string) *SubService {
 	return &SubService{
 		remarkTemplate: remarkTemplate,
 	}
+}
+
+// enableSettingsCache gives the subscription server's service its inbound settings cache, purged
+// on every panel mutation; release unhooks it when the server stops.
+func (s *SubService) enableSettingsCache() (release func()) {
+	s.settingsCache = newInboundSettingsCache(settingsCacheTTL)
+	return service.RegisterSubDataInvalidator(s.settingsCache.purgeAll)
 }
 
 // ForRequest returns a shallow copy with request-scoped state populated.
@@ -725,10 +735,22 @@ func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
 	return 0
 }
 
+// getInboundsBySubId loads the subscriber's inbounds; hosts are read per request, never cached.
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
+	inbounds, err := s.loadInboundsBySubId(subId)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.loadSubscriptionHosts(inbounds); err != nil {
+		return nil, err
+	}
+	return inbounds, nil
+}
+
+func (s *SubService) loadInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where(`id in (
+	cached := s.settingsCache != nil && s.subscriptionBody
+	query := db.Model(model.Inbound{}).Where(`id in (
 		SELECT DISTINCT inbounds.id
 		FROM inbounds
 		JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id
@@ -736,15 +758,39 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		WHERE
 			inbounds.protocol in ('vmess','vless','trojan','shadowsocks','hysteria','wireguard','amneziawg','mtproto','tuic','masque')
 			AND clients.sub_id = ? AND inbounds.enable = ?
-	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC").Find(&inbounds).Error
-	if err != nil {
+	)`, subId, true).Order("sub_sort_index ASC").Order("id ASC")
+	if cached {
+		query = query.Omit("settings")
+	}
+	var inbounds []*model.Inbound
+	if err := query.Find(&inbounds).Error; err != nil {
 		return nil, err
+	}
+	if cached {
+		for _, inbound := range inbounds {
+			settings, err := s.subscriptionSettings(inbound)
+			if err != nil {
+				return nil, err
+			}
+			inbound.Settings = settings
+		}
 	}
 	s.indexStatsBySubId(subId)
-	if err := s.loadSubscriptionHosts(inbounds); err != nil {
-		return nil, err
-	}
 	return inbounds, nil
+}
+
+// subscriptionSettings is an inbound's settings for a subscription body: WireGuard and AmneziaWG
+// keep their peers, every other protocol gets the shared copy without the clients array.
+func (s *SubService) subscriptionSettings(inbound *model.Inbound) (string, error) {
+	load := func() (string, error) {
+		var settings string
+		err := database.GetDB().Model(&model.Inbound{}).Select("settings").Where("id = ?", inbound.Id).Row().Scan(&settings)
+		return settings, err
+	}
+	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+		return load()
+	}
+	return s.settingsCache.settingsFor(inbound.Id, load)
 }
 
 // indexStatsBySubId loads the traffic rows for just this subscriber's clients

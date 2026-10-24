@@ -12,6 +12,7 @@ import (
 // commitInboundClientSettings writes a client op's edit (base → ib.Settings) onto
 // the settings committed now: a traffic tick after the op's read must survive.
 func commitInboundClientSettings(tx *gorm.DB, ib *model.Inbound, base string) error {
+	defer InvalidateSubData()
 	var current []string
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", ib.Id).Pluck("settings", &current).Error; err != nil {
 		return err
