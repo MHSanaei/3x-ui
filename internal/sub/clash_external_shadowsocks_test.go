@@ -30,7 +30,7 @@ func TestClashExternalShadowsocksMatchesInboundPath(t *testing.T) {
 			name:        "tcp http header",
 			stream:      `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http","request":{"path":["/"],"headers":{"Host":["test"]}}}}}`,
 			link:        "ss://" + userinfo + "@203.0.113.1:8443?type=tcp&headerType=http&host=test#ss",
-			wantDropped: true,
+			wantDropped: false,
 		},
 		{
 			name:   "tls",

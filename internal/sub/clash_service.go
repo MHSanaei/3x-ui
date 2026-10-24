@@ -231,6 +231,10 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 		if (network != "" && network != "tcp") || tls || cipher == "" {
 			return nil
 		}
+		// Legacy endpoints directly block obfs nodes.
+		if plugin, _ := proxy["plugin"].(string); plugin == "obfs" {
+			return nil
+		}
 		fields = []string{"name", "type", "server", "port", "password", "cipher", "udp", "plugin", "plugin-opts"}
 	default:
 		return nil
@@ -434,9 +438,6 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		"port":   inbound.Port,
 		"udp":    true,
 	}
-	if !s.applyTransport(proxy, network, stream) {
-		return nil
-	}
 
 	switch inbound.Protocol {
 	case model.VMESS:
@@ -476,6 +477,10 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 			}
 		}
 	default:
+		return nil
+	}
+
+	if !s.applyTransport(proxy, network, stream) {
 		return nil
 	}
 
@@ -1074,6 +1079,19 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			if header != nil {
 				typeStr, _ := header["type"].(string)
 				if typeStr != "" && typeStr != "none" {
+					// Mihomo's simple-obfs always sends GET /, and xray-core rejects a request whose
+					// path is not one of the header's paths, so only a "/" header maps to obfs.
+					if proxy["type"] == "ss" && typeStr == "http" && tcpHeaderAcceptsRootPath(header) {
+						proxy["plugin"] = "obfs"
+						opts := map[string]any{
+							"mode": "http",
+						}
+						if host := extractTCPHeaderHost(header); host != "" {
+							opts["host"] = host
+						}
+						proxy["plugin-opts"] = opts
+						return true
+					}
 					return false
 				}
 			}
@@ -1147,6 +1165,50 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 	default:
 		return false
 	}
+}
+
+// tcpHeaderAcceptsRootPath reports whether the inbound's HTTP header accepts "/"; xray-core
+// defaults an absent request path to "/".
+func tcpHeaderAcceptsRootPath(header map[string]any) bool {
+	request, _ := header["request"].(map[string]any)
+	paths, _ := request["path"].([]any)
+	if len(paths) == 0 {
+		return true
+	}
+	for _, p := range paths {
+		if p == "/" {
+			return true
+		}
+	}
+	return false
+}
+
+func extractTCPHeaderHost(header map[string]any) string {
+	request, _ := header["request"].(map[string]any)
+	reqHeaders, _ := request["headers"].(map[string]any)
+	return findHostInHeaders(reqHeaders)
+}
+
+func findHostInHeaders(headers map[string]any) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, "host") {
+			switch val := v.(type) {
+			case string:
+				return strings.TrimSpace(val)
+			case []string:
+				if len(val) > 0 {
+					return strings.TrimSpace(val[0])
+				}
+			case []any:
+				if len(val) > 0 {
+					if h, ok := val[0].(string); ok {
+						return strings.TrimSpace(h)
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func (s *SubClashService) applySecurity(proxy map[string]any, security string, stream map[string]any) bool {

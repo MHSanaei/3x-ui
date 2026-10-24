@@ -226,6 +226,132 @@ func TestApplyTransport_TCPHeader(t *testing.T) {
 	if svc.applyTransport(map[string]any{}, "tcp", httpStream) {
 		t.Fatal("tcp + non-none (http) header is not representable in clash and must be rejected")
 	}
+
+	testCases := []struct {
+		name         string
+		proxyType    string
+		stream       map[string]any
+		wantAccepted bool
+		wantPlugin   string
+		wantHost     string
+	}{
+		{
+			name:      "Actual 3x-ui Panel Inbound Data Structure (Including Empty Response Headers)",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"version": "1.1",
+							"method":  "GET",
+							"path":    []any{"/"},
+							"headers": map[string]any{
+								"Host": []any{"gateway.icloud.com"},
+							},
+						},
+						"response": map[string]any{
+							"version": "1.1",
+							"status":  "200",
+							"reason":  "OK",
+							"headers": map[string]any{},
+						},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+			wantHost:     "gateway.icloud.com",
+		},
+		{
+			name:      "Host must be a lowercase plain string",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"headers": map[string]any{
+								"host": "single.example.com",
+							},
+						},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+			wantHost:     "single.example.com",
+		},
+		{
+			name:      "Non-Shadowsocks protocols must be rejected when paired with TCP HTTP obfuscation",
+			proxyType: "vmess",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"headers": map[string]any{
+								"Host": []any{"vmess.example.com"},
+							},
+						},
+					},
+				},
+			},
+			wantAccepted: false,
+		},
+		{
+			name:      "A header path other than / is dropped: obfs always requests /",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"path":    []any{"/download"},
+							"headers": map[string]any{"Host": []any{"cdn.example.com"}},
+						},
+					},
+				},
+			},
+			wantAccepted: false,
+		},
+		{
+			name:      "Host comes from the request headers only",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type":     "http",
+						"response": map[string]any{"headers": map[string]any{"Host": []any{"response.example.com"}}},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			proxy := map[string]any{"type": tc.proxyType}
+			got := svc.applyTransport(proxy, "tcp", tc.stream)
+			if got != tc.wantAccepted {
+				t.Fatalf("expected accepted=%v, got=%v", tc.wantAccepted, got)
+			}
+			if tc.wantAccepted {
+				if proxy["plugin"] != tc.wantPlugin {
+					t.Fatalf("expected plugin=%q, got=%v", tc.wantPlugin, proxy["plugin"])
+				}
+				opts, _ := proxy["plugin-opts"].(map[string]any)
+				if opts["mode"] != "http" {
+					t.Fatalf("expected mode=http, got=%v", opts["mode"])
+				}
+				if host, _ := opts["host"].(string); host != tc.wantHost {
+					t.Fatalf("expected host=%q, got=%v", tc.wantHost, opts["host"])
+				}
+			}
+		})
+	}
 }
 
 func TestApplyTransport_XHTTP(t *testing.T) {
