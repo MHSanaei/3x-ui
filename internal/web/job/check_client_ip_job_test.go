@@ -289,9 +289,8 @@ func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
 	}
 }
 
-// Tied timestamps must not leak map-iteration order into the blob: an
-// unchanged client would CAS-rewrite every 10s and the ban pick among the
-// tied IPs would be random per scan.
+// Map-iteration order must not reach the blob: an unchanged client would CAS-rewrite
+// every 10s, and the ban pick among tied IPs would be random per scan.
 func TestPartitionLiveIps_TiedTimestampsKeepStableIpOrder(t *testing.T) {
 	ipMap := map[string]int64{"203.0.113.3": 100, "203.0.113.1": 100, "203.0.113.2": 100}
 	observed := map[string]bool{"203.0.113.1": true, "203.0.113.2": true, "203.0.113.3": true}

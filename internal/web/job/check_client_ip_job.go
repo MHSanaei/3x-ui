@@ -74,11 +74,11 @@ func (j *CheckClientIpJob) Run() {
 	if hasLimit {
 		f2bInstalled = j.checkFail2BanInstalled()
 	}
-	// Read only when the limit is actually applied: this runs every 10s and
-	// most panels carry no IP limit at all.
 	// Windows enforces through disconnects and never needs the fail2ban binary.
 	needsBinary := runtime.GOOS != "windows"
 	enforce := j.resolveEnforce(isFail2BanEnabled(), hasLimit, f2bInstalled, needsBinary)
+	// Read only when the limit is actually applied: this runs every 10s and
+	// most panels carry no IP limit at all.
 	if enforce {
 		j.allowlist = j.loadAllowlist()
 	}
@@ -102,10 +102,6 @@ func (j *CheckClientIpJob) resolveEnforce(f2bEnabled, hasLimit, f2bInstalled, ne
 // API is unavailable — xray not running, an older core, or a transient gRPC
 // failure — and the caller skips the run (there is no access-log fallback).
 func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, bool) {
-	if j.onlineUsers == nil {
-		// zero-value job (tests build these directly): no source, nothing to collect
-		return nil, false
-	}
 	onlineUsers, ok, err := j.onlineUsers.GetOnlineUsers()
 	if err != nil {
 		logger.Debug("[LimitIP] online-stats API unavailable this run:", err)
