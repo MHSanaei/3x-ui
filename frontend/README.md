@@ -176,7 +176,7 @@ const form = useForm<InboundFormValues>({ defaultValues: initialValues });
 const onSubmit = (values: InboundFormValues) => createInbound.mutateAsync(values);
 
 <FormProvider {...form}>
-  <Form layout="vertical" onFinish={onSubmit}>
+  <Form layout="vertical" onFinish={form.handleSubmit(onSubmit)}>
     <FormField
       name="port"
       label={t('pages.inbounds.port')}
