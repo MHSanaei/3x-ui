@@ -245,6 +245,9 @@ func newProcess(config *Config) *process {
 func newTestProcess(config *Config, configPath string) *process {
 	p := newProcess(config)
 	p.configPath = configPath
+	if config != nil {
+		p.refreshAPIPort()
+	}
 	return p
 }
 

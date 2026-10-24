@@ -171,7 +171,7 @@ func saveDuringTest(t *testing.T, process *xray.Process, cfg *xray.Config) {
 	t.Helper()
 	lock.Lock()
 	defer lock.Unlock()
-	if !(&XrayService{}).tryHotApply(process, cfg) {
+	if applied, err := (&XrayService{}).tryHotApply(process, cfg); err != nil || !applied {
 		t.Fatal("tryHotApply = false, want the change applied live")
 	}
 }
@@ -186,7 +186,7 @@ func TestBalancerOverrideSurvivesRoutingHotApply(t *testing.T) {
 	}
 
 	newCfg := balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}.build(t, apiPort)
-	if !svc.tryHotApply(process, newCfg) {
+	if applied, err := svc.tryHotApply(process, newCfg); err != nil || !applied {
 		t.Fatal("tryHotApply = false, want the routing change applied live")
 	}
 
@@ -205,7 +205,7 @@ func TestBalancerOverrideClearedWhenTargetOutboundRemoved(t *testing.T) {
 	}
 
 	newCfg := balancerTestConfig{outbounds: []string{"direct", "blocked", "proxy-a"}}.build(t, apiPort)
-	if !svc.tryHotApply(process, newCfg) {
+	if applied, err := svc.tryHotApply(process, newCfg); err != nil || !applied {
 		t.Fatal("tryHotApply = false, want the outbound removal applied live")
 	}
 
@@ -444,7 +444,7 @@ func TestBalancerOverrideNotCarriedAcrossRestart(t *testing.T) {
 
 	restarted, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
 	newCfg := balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}.build(t, apiPort)
-	if !(&XrayService{}).tryHotApply(restarted, newCfg) {
+	if applied, err := (&XrayService{}).tryHotApply(restarted, newCfg); err != nil || !applied {
 		t.Fatal("tryHotApply = false, want the routing change applied live")
 	}
 

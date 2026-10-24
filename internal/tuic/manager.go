@@ -104,8 +104,10 @@ func (m *Manager) ensureLocked(inst Instance) error {
 
 func (m *Manager) startLocked(inst Instance) (*Server, error) {
 	relay := &SocksRelay{
-		Addr:     fmt.Sprintf("127.0.0.1:%d", SOCKSPortForInbound(inst.Id)),
-		Password: SocksPassword(),
+		Gate:      ManagedRelayGate(SOCKSPortForInbound(inst.Id)),
+		InboundID: inst.Id,
+		Addr:      fmt.Sprintf("127.0.0.1:%d", SOCKSPortForInbound(inst.Id)),
+		Password:  SocksPassword(),
 	}
 	server, err := NewServer(inst, relay)
 	if err != nil {

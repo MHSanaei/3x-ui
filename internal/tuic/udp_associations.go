@@ -18,6 +18,9 @@ type udpAssociation struct {
 	responseTransport uint8
 	relay             *udpRelaySession
 	lastActive        time.Time
+	opening           bool
+	openCancel        context.CancelFunc
+	pending           []pendingUdpPacket
 }
 
 type udpAssociationRegistry struct {
@@ -26,6 +29,8 @@ type udpAssociationRegistry struct {
 	datagramReassembler *packetReassembler
 	streamReassembler   *packetReassembler
 	maxPacketSize       int
+	pendingBytes        int
+	pendingBudget       *pendingUdpBudget
 }
 
 func newUdpAssociationRegistry(maxPacketSize int) *udpAssociationRegistry {
@@ -115,6 +120,9 @@ func (r *udpAssociationRegistry) ensureRelay(ctx context.Context, assocID uint16
 func (r *udpAssociationRegistry) dissociate(assocID uint16) bool {
 	r.mu.Lock()
 	association := r.associations[assocID]
+	if association != nil {
+		r.clearPendingLocked(association)
+	}
 	delete(r.associations, assocID)
 	r.datagramReassembler.clearAssociation(assocID)
 	r.streamReassembler.clearAssociation(assocID)
@@ -151,6 +159,7 @@ func (r *udpAssociationRegistry) expireLocked(now time.Time) {
 			continue
 		}
 		delete(r.associations, assocID)
+		r.clearPendingLocked(association)
 		r.datagramReassembler.clearAssociation(assocID)
 		r.streamReassembler.clearAssociation(assocID)
 		if association.relay != nil {
@@ -162,6 +171,7 @@ func (r *udpAssociationRegistry) expireLocked(now time.Time) {
 func (r *udpAssociationRegistry) closeAll() {
 	r.mu.Lock()
 	for _, association := range r.associations {
+		r.clearPendingLocked(association)
 		if association.relay != nil {
 			_ = association.relay.relay.Close()
 		}
@@ -175,6 +185,7 @@ func (r *udpAssociationRegistry) closeAll() {
 func (r *udpAssociationRegistry) release(id uint16, expected *udpAssociation) {
 	r.mu.Lock()
 	if r.associations[id] == expected {
+		r.clearPendingLocked(expected)
 		delete(r.associations, id)
 		r.datagramReassembler.clearAssociation(id)
 		r.streamReassembler.clearAssociation(id)
