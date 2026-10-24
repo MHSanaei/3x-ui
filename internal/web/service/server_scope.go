@@ -1,0 +1,52 @@
+package service
+
+import (
+	"slices"
+	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
+)
+
+const containerHistoryPrefix = "lxc-v1/"
+
+func scopedMetric(metric string) bool {
+	return metric == "cpu" || metric == "swap"
+}
+
+func (s *ServerService) systemMetricKey(metric string) string {
+	if !scopedMetric(metric) {
+		return metric
+	}
+	if status := s.LastStatus(); status != nil {
+		if status.ResourceScope != "" {
+			return containerHistoryPrefix + metric
+		}
+		return metric
+	}
+	if s.lxcMetrics.UseScopedHistory() {
+		return containerHistoryPrefix + metric
+	}
+	return metric
+}
+
+// Scope metadata applies only to CPU, swap and uptime.
+func applyLXCStats(status *Status, sample *sys.LXCStats) {
+	status.ResourceScope = sample.Scope
+	status.UnavailableMetrics = append([]string(nil), sample.Unavailable...)
+	status.Cpu = sample.CPU
+	status.CpuCores = sample.CPUs
+	status.LogicalPro = sample.CPUs
+	status.Swap.Current = sample.SwapUsed
+	status.Swap.Total = sample.SwapTotal
+	status.Uptime = sample.Uptime
+}
+
+func appendScopedMetric(status *Status, metric string, t time.Time, value float64) {
+	if slices.Contains(status.UnavailableMetrics, metric) {
+		return
+	}
+	if status.ResourceScope != "" {
+		metric = containerHistoryPrefix + metric
+	}
+	systemMetrics.append(metric, t, value)
+}
