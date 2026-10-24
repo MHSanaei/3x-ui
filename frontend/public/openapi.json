@@ -3719,6 +3719,13 @@
           "transitive": {
             "type": "boolean"
           },
+          "unavailableMetrics": {
+            "description": "Nil on legacy rows and responses: zero remains a valid measured value.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "updatedAt": {
             "example": 1700000000,
             "format": "int64",
@@ -4027,6 +4034,12 @@
             "example": false,
             "type": "boolean"
           },
+          "unavailableMetrics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "updatedAt": {
             "example": 1700003600,
             "format": "int64",
@@ -4238,6 +4251,12 @@
           "status": {
             "example": "online",
             "type": "string"
+          },
+          "unavailableMetrics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "uptimeSecs": {
             "example": 86400,
@@ -11113,6 +11132,9 @@
                       "status": "online",
                       "tlsVerifyMode": "verify",
                       "transitive": false,
+                      "unavailableMetrics": [
+                        ""
+                      ],
                       "updatedAt": 1700003600,
                       "uptimeSecs": 86400,
                       "xrayError": "",
@@ -11314,6 +11336,9 @@
                     "status": "online",
                     "tlsVerifyMode": "verify",
                     "transitive": false,
+                    "unavailableMetrics": [
+                      ""
+                    ],
                     "updatedAt": 1700003600,
                     "uptimeSecs": 86400,
                     "xrayError": "",
@@ -11464,6 +11489,9 @@
                     "status": "online",
                     "tlsVerifyMode": "verify",
                     "transitive": false,
+                    "unavailableMetrics": [
+                      ""
+                    ],
                     "updatedAt": 1700003600,
                     "uptimeSecs": 86400,
                     "xrayError": "",
@@ -11687,6 +11715,9 @@
                     "memPct": 45.2,
                     "panelVersion": "v3.x.x",
                     "status": "online",
+                    "unavailableMetrics": [
+                      ""
+                    ],
                     "uptimeSecs": 86400,
                     "xrayError": "",
                     "xrayState": "",
@@ -16531,6 +16562,9 @@
                   "status": "online",
                   "tlsVerifyMode": "verify",
                   "transitive": false,
+                  "unavailableMetrics": [
+                    ""
+                  ],
                   "updatedAt": 1700003600,
                   "uptimeSecs": 86400,
                   "xrayError": "",

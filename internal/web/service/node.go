@@ -32,15 +32,16 @@ import (
 )
 
 type HeartbeatPatch struct {
-	Status        string
-	LastHeartbeat int64
-	LatencyMs     int
-	XrayVersion   string
-	PanelVersion  string
-	Guid          string
-	CpuPct        float64
-	MemPct        float64
-	UptimeSecs    uint64
+	Status             string
+	LastHeartbeat      int64
+	LatencyMs          int
+	XrayVersion        string
+	PanelVersion       string
+	Guid               string
+	CpuPct             float64
+	MemPct             float64
+	UptimeSecs         uint64
+	UnavailableMetrics []string
 	// NetUp/NetDown are the node's current interface throughput (bytes/sec),
 	// summed over non-virtual interfaces, read from its status response.
 	NetUp     uint64
@@ -978,20 +979,27 @@ func (s *NodeService) UpdatePanels(ids []int, dev bool) ([]NodeUpdateResult, err
 
 func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 	db := database.GetDB()
+	// Map updates bypass GORM field serializers. Encode the availability list
+	// explicitly so it survives list requests and panel restarts.
+	unavailable, err := json.Marshal(p.UnavailableMetrics)
+	if err != nil {
+		return err
+	}
 	updates := map[string]any{
-		"status":         p.Status,
-		"last_heartbeat": p.LastHeartbeat,
-		"latency_ms":     p.LatencyMs,
-		"xray_version":   p.XrayVersion,
-		"panel_version":  p.PanelVersion,
-		"cpu_pct":        p.CpuPct,
-		"mem_pct":        p.MemPct,
-		"uptime_secs":    p.UptimeSecs,
-		"net_up":         p.NetUp,
-		"net_down":       p.NetDown,
-		"last_error":     p.LastError,
-		"xray_state":     p.XrayState,
-		"xray_error":     p.XrayError,
+		"unavailable_metrics": string(unavailable),
+		"status":              p.Status,
+		"last_heartbeat":      p.LastHeartbeat,
+		"latency_ms":          p.LatencyMs,
+		"xray_version":        p.XrayVersion,
+		"panel_version":       p.PanelVersion,
+		"cpu_pct":             p.CpuPct,
+		"mem_pct":             p.MemPct,
+		"uptime_secs":         p.UptimeSecs,
+		"net_up":              p.NetUp,
+		"net_down":            p.NetDown,
+		"last_error":          p.LastError,
+		"xray_state":          p.XrayState,
+		"xray_error":          p.XrayError,
 	}
 	// Only learn the GUID; never clear a known one if an old-build node (or a
 	// failed probe) reports none, so the stable identity survives blips.
@@ -1004,7 +1012,9 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 	}
 	if p.Status == "online" {
 		now := time.Unix(p.LastHeartbeat, 0)
-		nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
+		if !slices.Contains(p.UnavailableMetrics, "cpu") {
+			nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
+		}
 		nodeMetrics.append(nodeMetricKey(id, "mem"), now, p.MemPct)
 		nodeMetrics.append(nodeMetricKey(id, "netUp"), now, float64(p.NetUp))
 		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
@@ -1335,8 +1345,9 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 		Success bool   `json:"success"`
 		Msg     string `json:"msg"`
 		Obj     *struct {
-			CpuPct float64 `json:"cpu"`
-			Mem    struct {
+			CpuPct             float64  `json:"cpu"`
+			UnavailableMetrics []string `json:"unavailableMetrics"`
+			Mem                struct {
 				Current uint64 `json:"current"`
 				Total   uint64 `json:"total"`
 			} `json:"mem"`
@@ -1370,6 +1381,7 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 	}
 	o := envelope.Obj
 	patch.CpuPct = o.CpuPct
+	patch.UnavailableMetrics = o.UnavailableMetrics
 	if o.Mem.Total > 0 {
 		patch.MemPct = float64(o.Mem.Current) * 100.0 / float64(o.Mem.Total)
 	}
@@ -1385,14 +1397,15 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 }
 
 type ProbeResultUI struct {
-	Status       string  `json:"status" example:"online"`
-	LatencyMs    int     `json:"latencyMs" example:"42"`
-	XrayVersion  string  `json:"xrayVersion" example:"25.10.31"`
-	PanelVersion string  `json:"panelVersion" example:"v3.x.x"`
-	CpuPct       float64 `json:"cpuPct" example:"12.5"`
-	MemPct       float64 `json:"memPct" example:"45.2"`
-	UptimeSecs   uint64  `json:"uptimeSecs" example:"86400"`
-	Error        string  `json:"error"`
+	Status             string   `json:"status" example:"online"`
+	LatencyMs          int      `json:"latencyMs" example:"42"`
+	XrayVersion        string   `json:"xrayVersion" example:"25.10.31"`
+	PanelVersion       string   `json:"panelVersion" example:"v3.x.x"`
+	CpuPct             float64  `json:"cpuPct" example:"12.5"`
+	MemPct             float64  `json:"memPct" example:"45.2"`
+	UptimeSecs         uint64   `json:"uptimeSecs" example:"86400"`
+	UnavailableMetrics []string `json:"unavailableMetrics,omitempty"`
+	Error              string   `json:"error"`
 	// XrayState/XrayError are populated on successful probes even when the node's
 	// Xray core is not healthy. The UI uses them for a distinct "panel ok, xray failed" indicator.
 	XrayState string `json:"xrayState"`
@@ -1401,15 +1414,16 @@ type ProbeResultUI struct {
 
 func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 	r := ProbeResultUI{
-		LatencyMs:    p.LatencyMs,
-		XrayVersion:  p.XrayVersion,
-		PanelVersion: p.PanelVersion,
-		CpuPct:       p.CpuPct,
-		MemPct:       p.MemPct,
-		UptimeSecs:   p.UptimeSecs,
-		Error:        FriendlyProbeError(p.LastError),
-		XrayState:    p.XrayState,
-		XrayError:    p.XrayError,
+		LatencyMs:          p.LatencyMs,
+		XrayVersion:        p.XrayVersion,
+		PanelVersion:       p.PanelVersion,
+		CpuPct:             p.CpuPct,
+		MemPct:             p.MemPct,
+		UptimeSecs:         p.UptimeSecs,
+		UnavailableMetrics: p.UnavailableMetrics,
+		Error:              FriendlyProbeError(p.LastError),
+		XrayState:          p.XrayState,
+		XrayError:          p.XrayError,
 	}
 	if ok {
 		r.Status = "online"

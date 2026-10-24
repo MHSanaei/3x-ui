@@ -41,8 +41,14 @@ func applyLXCStats(status *Status, sample *sys.LXCStats) {
 	status.Uptime = sample.Uptime
 }
 
+// MetricAvailable distinguishes an unavailable metric from a measured zero.
+// Legacy status responses omit metadata and retain their previous semantics.
+func (s *Status) MetricAvailable(metric string) bool {
+	return s != nil && !slices.Contains(s.UnavailableMetrics, metric)
+}
+
 func appendScopedMetric(status *Status, metric string, t time.Time, value float64) {
-	if slices.Contains(status.UnavailableMetrics, metric) {
+	if !status.MetricAvailable(metric) {
 		return
 	}
 	if status.ResourceScope != "" {
