@@ -42,7 +42,7 @@ export default function DnsFields() {
         <Button
           size="small"
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<PlusOutlined aria-hidden />}
           aria-label={t('add')}
           onClick={() => append({ action: 'direct', qType: '', domain: '', rCode: 0 })}
         />

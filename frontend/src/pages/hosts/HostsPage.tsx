@@ -174,7 +174,7 @@ export default function HostsPage() {
                           <Statistic
                             title={t('pages.hosts.summary.total')}
                             value={String(summary.total)}
-                            prefix={<GlobalOutlined />}
+                            prefix={<GlobalOutlined aria-hidden />}
                           />
                         </Col>
                         <Col xs={8} sm={8} md={8}>
@@ -182,7 +182,10 @@ export default function HostsPage() {
                             title={t('pages.hosts.summary.enabled')}
                             value={String(summary.enabled)}
                             prefix={
-                              <CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />
+                              <CheckCircleOutlined
+                                aria-hidden
+                                style={{ color: 'var(--ant-color-success)' }}
+                              />
                             }
                           />
                         </Col>
@@ -191,7 +194,10 @@ export default function HostsPage() {
                             title={t('pages.hosts.summary.disabled')}
                             value={String(summary.disabled)}
                             prefix={
-                              <StopOutlined style={{ color: 'var(--ant-color-text-quaternary)' }} />
+                              <StopOutlined
+                                aria-hidden
+                                style={{ color: 'var(--ant-color-text-quaternary)' }}
+                              />
                             }
                           />
                         </Col>

@@ -33,6 +33,7 @@ func TestVlessFlowAllowed(t *testing.T) {
 		{"xhttp tls vlessenc", "xhttp", "tls", enc, true},
 		{"xhttp reality no vlessenc", "xhttp", "reality", noEnc, false},
 		{"ws tls", "ws", "tls", noEnc, false},
+		{"xdrive vlessenc (xray-core #7182)", "xdrive", "none", enc, false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

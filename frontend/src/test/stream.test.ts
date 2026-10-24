@@ -44,3 +44,29 @@ describe('NetworkSettingsSchema method alias', () => {
     expect((parsed as { network?: string }).network).toBe('grpc');
   });
 });
+
+// xray-core 26.10.17 (#7182) renamed the XDRIVE service, reading "Google Drive" only as an alias.
+// XDRIVE's and MASQUE's xmux are client keys a JSON subscription hands on from the inbound.
+describe('NetworkSettingsSchema xray-core 26.10.21 keys', () => {
+  it('folds the "Google Drive" service into google-drive', () => {
+    const parsed = NetworkSettingsSchema.parse({
+      network: 'xdrive',
+      xdriveSettings: { service: 'Google Drive', remoteFolder: 'f', secrets: ['a', 'b', 'c'] },
+    }) as { xdriveSettings: { service: string } };
+    expect(parsed.xdriveSettings.service).toBe('google-drive');
+  });
+
+  it('keeps the XDRIVE and MASQUE xmux', () => {
+    const xmux = { maxConnections: 2, hMaxReusableSecs: '1800-3000' };
+    const xdrive = NetworkSettingsSchema.parse({
+      network: 'xdrive',
+      xdriveSettings: { service: 'local', remoteFolder: '/srv/drive', xmux },
+    }) as { xdriveSettings: { xmux?: unknown } };
+    const masque = NetworkSettingsSchema.parse({
+      network: 'masque',
+      masqueSettings: { host: 'masque.example.com', xmux },
+    }) as { masqueSettings: { xmux?: unknown } };
+    expect(xdrive.xdriveSettings.xmux).toEqual(xmux);
+    expect(masque.masqueSettings.xmux).toEqual(xmux);
+  });
+});

@@ -69,11 +69,11 @@ export default function TextModal({
         footer={
           <>
             {fileName && (
-              <Button icon={<DownloadOutlined />} onClick={download}>
+              <Button icon={<DownloadOutlined aria-hidden />} onClick={download}>
                 {fileName}
               </Button>
             )}
-            <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
+            <Button type="primary" icon={<CopyOutlined aria-hidden />} onClick={copy}>
               {t('copy')}
             </Button>
           </>

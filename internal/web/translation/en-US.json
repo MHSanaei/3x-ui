@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file.",
+      "logLines": "Number of lines",
+      "timeRange": "Time range"
     },
     "inbounds": {
       "totalDownUp": "Total Sent/Received",
@@ -731,7 +733,10 @@
         "autoSystemDnsToGateway": "System DNS to gateway",
         "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
         "autoSystemWfpBlockLeak": "Block leaks (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS inside the TUN (needs DNS servers), misconfigtun blocks an IP version that no route sends into the TUN."
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS inside the TUN (needs DNS servers), misconfigtun blocks an IP version that no route sends into the TUN.",
+        "maxVersion": "Max version",
+        "headerName": "Header name",
+        "headerValue": "Header value"
       },
       "info": {
         "mode": "Mode",
@@ -1423,6 +1428,8 @@
       "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
       "subClashRoutingRules": "Global routing rules",
       "subClashRoutingRulesDesc": "Paste inline rules/YAML or one permanent HTTPS URL. The panel refreshes it in the background, imports only groups/providers/rules, preserves generated VPN nodes and keeps the last valid value.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Listen IP",
       "subListenDesc": "The IP address for the subscription service. (leave blank to listen on all IPs)",
       "subPort": "Listen Port",
@@ -1603,6 +1610,7 @@
       "eventGroupNode": "Nodes",
       "eventOutboundDown": "Down",
       "eventOutboundUp": "Up",
+      "eventDownThresholdHint": "failed checks in a row",
       "eventXrayCrash": "Crash",
       "eventNodeDown": "Down",
       "eventNodeUp": "Up",
