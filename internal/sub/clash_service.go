@@ -58,6 +58,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	var proxies []map[string]any
 	var ordered []orderedSubEntry[func() []map[string]any]
 	var hasInactiveExternal bool
+	var hasBoundClosed bool
 	var hasEnabledClient bool
 
 	seenEmails := make(map[string]struct{})
@@ -73,9 +74,11 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
+		var baseEps []map[string]any
+		baseStream := inbound.StreamSettings
 		if !subReq.hostsFirst {
-			if hostEps := subReq.hostEndpoints(inbound, "clash"); len(hostEps) > 0 {
-				injectExternalProxy(inbound, hostEps)
+			if baseEps = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
+				injectExternalProxy(inbound, baseEps)
 			}
 		}
 		for _, client := range clients {
@@ -84,13 +87,26 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			}
 			seenEmails[client.Email] = struct{}{}
 			if subReq.hostsFirst {
-				for _, variant := range subReq.subscriptionHostVariants(inbound, "clash") {
+				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
+				hasBoundClosed = hasBoundClosed || closed
+				for _, variant := range variants {
 					render := func() []map[string]any { return s.getProxies(subReq, variant.inbound(subReq, inbound), client, host) }
 					ordered = append(ordered, orderedSubEntry[func() []map[string]any]{variant.order, render})
 				}
-			} else {
-				proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
+				continue
 			}
+			effective := inbound
+			if effectiveEps, bound := subReq.clientHostEndpoints(inbound, client, "clash", baseEps); bound {
+				if len(effectiveEps) == 0 {
+					hasBoundClosed = true
+					continue
+				}
+				clone := *inbound
+				clone.StreamSettings = baseStream
+				injectExternalProxy(&clone, effectiveEps)
+				effective = &clone
+			}
+			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
 		}
 	}
 	if subReq.hostsFirst {
@@ -120,7 +136,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		}
 	}
 
-	if len(proxies) == 0 && !hasInactiveExternal {
+	if len(proxies) == 0 && !hasInactiveExternal && !hasBoundClosed {
 		return "", "", nil
 	}
 	if legacy {

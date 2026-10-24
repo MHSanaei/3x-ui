@@ -417,6 +417,10 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "allowedIPsByInbound": {},
     "auth": "",
+    "clientHostRuleIds": [
+      1,
+      2
+    ],
     "comment": "",
     "created_at": 0,
     "email": "",
@@ -506,6 +510,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "adTag": "",
     "allowedIPs": "",
     "auth": "",
+    "clientHostRuleIds": [
+      1,
+      2
+    ],
     "comment": "",
     "createdAt": 0,
     "email": "",
@@ -1159,6 +1167,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "sortOrder": 1,
     "strategy": "random",
     "updatedAt": 1710000000000
+  },
+  "TgBotCapabilities": {
+    "groupPrivacy": false,
+    "inlineEnabled": true,
+    "running": true,
+    "username": "xui_bot"
   },
   "Traffic": {
     "Down": 2097152,

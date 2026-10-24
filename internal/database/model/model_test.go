@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -268,5 +269,28 @@ func TestGenXrayInboundConfig_OmitsInboundXmuxButDbRowUnchanged(t *testing.T) {
 	}
 	if strings.Contains(in.StreamSettings, `"xmux"`) == false {
 		t.Fatal("inbound row streamSettings must still carry xmux for subscriptions")
+	}
+}
+
+// nil must survive (it means "leave the stored binding alone"), while an empty or
+// all-invalid list must come back empty so it clears.
+func TestNormalizeClientHostRuleIds(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		in   []int
+		want []int
+	}{
+		{"nil preserves", nil, nil},
+		{"empty clears", []int{}, []int{}},
+		{"dedupe keeps order", []int{3, 2, 3, 2}, []int{3, 2}},
+		{"non-positive dropped", []int{0, -1, 2, 0, 3}, []int{2, 3}},
+		{"all non-positive clears", []int{0, -2}, []int{}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NormalizeClientHostRuleIds(tt.in)
+			if (got == nil) != (tt.want == nil) || !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("NormalizeClientHostRuleIds(%v) = %#v, want %#v", tt.in, got, tt.want)
+			}
+		})
 	}
 }

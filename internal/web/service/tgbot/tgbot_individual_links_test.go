@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -23,17 +24,16 @@ func recordingBotServer(t *testing.T) func() []string {
 	var mu sync.Mutex
 	var texts []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/bot"+testBotToken+"/sendMessage" {
-			w.WriteHeader(http.StatusNotFound)
-			return
+		method := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+		switch method {
+		case "sendMessage", "sendPhoto":
+			// A screen is a photo message, so its caption travels as multipart
+			// form data; the raw body carries it either way.
+			raw, _ := io.ReadAll(r.Body)
+			mu.Lock()
+			texts = append(texts, string(raw))
+			mu.Unlock()
 		}
-		var body struct {
-			Text string `json:"text"`
-		}
-		_ = json.NewDecoder(r.Body).Decode(&body)
-		mu.Lock()
-		texts = append(texts, body.Text)
-		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
 			"message_id": 1, "date": 0, "chat": map[string]any{"id": ownerTgID, "type": "private"},

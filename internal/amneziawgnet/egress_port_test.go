@@ -1,7 +1,9 @@
 package amneziawgnet
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"strconv"
 	"testing"
@@ -77,5 +79,36 @@ func TestBridgesStaleUntilRegeneratedForTheBoundPort(t *testing.T) {
 	}
 	if got := bridgePort(t); got != srv.Port() || BridgesStale() {
 		t.Fatalf("regenerated bridge dials %d with BridgesStale() = %v, want %d and false", got, BridgesStale(), srv.Port())
+	}
+}
+
+// An OS-chosen port can land on the Xray API port or another panel relay range on hosts whose
+// ephemeral range reaches that high (Windows), so the fallback must pick below that range.
+func TestEgressFallbackStaysBelowThePanelRanges(t *testing.T) {
+	srv := GetEgressServer()
+	srv.Close()
+	t.Cleanup(srv.Close)
+	var asked []string
+	orig := listenTCP
+	listenTCP = func(ctx context.Context, addr string) (net.Listener, error) {
+		asked = append(asked, addr)
+		if addr == net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)) {
+			return nil, errors.New("base port taken")
+		}
+		return orig(ctx, addr)
+	}
+	t.Cleanup(func() { listenTCP = orig })
+
+	if err := srv.Listen(); err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	for _, addr := range asked[1:] {
+		_, p, _ := net.SplitHostPort(addr)
+		if port, _ := strconv.Atoi(p); port == 0 || port >= reservedLoopbackFloor {
+			t.Fatalf("fallback asked for %s, want a fixed port below %d", addr, reservedLoopbackFloor)
+		}
+	}
+	if port := srv.Port(); port >= reservedLoopbackFloor {
+		t.Fatalf("Port() = %d, inside the panel's reserved range", port)
 	}
 }
