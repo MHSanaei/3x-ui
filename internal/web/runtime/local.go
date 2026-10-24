@@ -45,6 +45,17 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 	if err != nil {
 		return err
 	}
+	err = fn(api)
+	if err == nil || !isUnavailable(err) {
+		return err
+	}
+	// The core was not reachable: drop the pooled client and dial again, the way a client per call
+	// did, because a pooled channel keeps grpc-go's backoff and would fail fast for seconds.
+	evictLocalAPIClient(api)
+	api, err = localAPIForPort(port)
+	if err != nil {
+		return err
+	}
 	return fn(api)
 }
 
