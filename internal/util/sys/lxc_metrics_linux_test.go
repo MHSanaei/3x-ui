@@ -36,10 +36,10 @@ func lxcFixture(t *testing.T) *LXCReader {
 
 func fixtureWrite(t *testing.T, path, content string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -133,9 +133,12 @@ func TestLXCInvalidMetricsNeverUseHostFallback(t *testing.T) {
 		{"meminfo", "SwapTotal: 1 MB\nSwapFree: 0 kB\n", "swap"},
 		{"meminfo", "SwapTotal: 1 kB\nSwapTotal: 1 kB\nSwapFree: 0 kB\n", "swap"},
 		{"meminfo", "SwapTotal: 1 kB\n", "swap"},
-		{"uptime", "NaN 0\n", "uptime"}, {"uptime", "+Inf 0\n", "uptime"},
-		{"uptime", "-1 0\n", "uptime"}, {"uptime", "18446744073709551616 0\n", "uptime"},
-		{"uptime", "", "uptime"}, {"cpuinfo", "cpu cores : 16\n", "cpu"},
+		{"uptime", "NaN 0\n", "uptime"},
+		{"uptime", "+Inf 0\n", "uptime"},
+		{"uptime", "-1 0\n", "uptime"},
+		{"uptime", "18446744073709551616 0\n", "uptime"},
+		{"uptime", "", "uptime"},
+		{"cpuinfo", "cpu cores : 16\n", "cpu"},
 		{"cpuinfo", "processor : 0\nprocessor : 0\n", "cpu"},
 	} {
 		t.Run(tc.metric+"/"+tc.content, func(t *testing.T) {
@@ -156,8 +159,12 @@ func TestLXCInvalidMetricsNeverUseHostFallback(t *testing.T) {
 
 func TestLXCCPURejectsMalformedCgroupData(t *testing.T) {
 	for _, tc := range []struct{ path, value string }{
-		{"cpu.max", "max 0"}, {"cpu.max", "0 100000"}, {"cpu.max", "NaN 100000"},
-		{"cpu.max", "max"}, {"cpu.stat", "user_usec 123"}, {"cpu.stat", "usage_usec -1"},
+		{"cpu.max", "max 0"},
+		{"cpu.max", "0 100000"},
+		{"cpu.max", "NaN 100000"},
+		{"cpu.max", "max"},
+		{"cpu.stat", "user_usec 123"},
+		{"cpu.stat", "usage_usec -1"},
 		{"cpu.stat", "usage_usec 1\nusage_usec 2"},
 	} {
 		t.Run(tc.path+"/"+tc.value, func(t *testing.T) {

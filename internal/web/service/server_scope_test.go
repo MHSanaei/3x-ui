@@ -36,10 +36,10 @@ func TestContainerStatusOnlyOverridesCPUSwapAndUptime(t *testing.T) {
 		filepath.Join(cg, "io.stat"):          "259:0 rbytes=999999999 wbytes=999999999\n",
 	}
 	for path, content := range fixtures {
-		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -70,7 +70,7 @@ func TestContainerStatusOnlyOverridesCPUSwapAndUptime(t *testing.T) {
 			t.Fatalf("API field lost: %s", key)
 		}
 	}
-	if err = os.WriteFile(filepath.Join(proc, "self/mountinfo"), []byte("1 0 0:1 / / rw - ext4 /dev/root rw\n"), 0600); err != nil {
+	if err = os.WriteFile(filepath.Join(proc, "self/mountinfo"), []byte("1 0 0:1 / / rw - ext4 /dev/root rw\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	native := svc.GetStatus(previous)
