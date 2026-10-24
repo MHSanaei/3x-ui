@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Manter as configurações desta máquina",
-      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado."
+      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado.",
+      "logLines": "Número de linhas",
+      "timeRange": "Intervalo de tempo"
     },
     "inbounds": {
       "totalDownUp": "Total Enviado/Recebido",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS do sistema para o gateway",
         "autoSystemDnsToGatewayTooltip": "Somente Linux: aponta o systemd-resolved para o gateway do TUN para que as consultas do sistema passem pelo Xray. Precisa de um gateway, e o TUN não inicia se isso falhar.",
         "autoSystemWfpBlockLeak": "Bloquear vazamentos (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS dentro do TUN (precisa de servidores DNS) e misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN."
+        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS dentro do TUN (precisa de servidores DNS) e misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN.",
+        "maxVersion": "Versão máxima",
+        "headerName": "Nome do cabeçalho",
+        "headerValue": "Valor do cabeçalho"
       },
       "info": {
         "mode": "Modo",
@@ -1301,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Incluir regras globais de roteamento Clash/Mihomo nas assinaturas YAML geradas.",
       "subClashRoutingRules": "Regras globais de roteamento",
       "subClashRoutingRulesDesc": "Cole regras/YAML ou uma URL HTTPS permanente. O painel a atualiza em segundo plano, importa apenas grupos, provedores de regras e regras, e preserva os nós VPN gerados e o último valor válido.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "IP de Escuta",
       "subListenDesc": "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)",
       "subPort": "Porta de Escuta",
@@ -1425,6 +1432,15 @@
         "apiTokenName": "Nome",
         "apiTokenNamePlaceholder": "ex.: central-panel-a",
         "apiTokenNameRequired": "O nome é obrigatório",
+        "apiTokenScope": "Escopo",
+        "apiTokenScopeAdmin": "Administrador",
+        "apiTokenScopeAdminDesc": "Acesso completo a todos os endpoints da API do painel. Use apenas para automações confiáveis.",
+        "apiTokenScopeMonitor": "Monitoramento",
+        "apiTokenScopeMonitorDesc": "Acesso somente leitura ao estado do sistema, versões e métricas.",
+        "apiTokenScopeNodeSync": "Sincronização de nó",
+        "apiTokenScopeNodeSyncDesc": "Sincroniza configuração do nó, entradas, clientes, tráfego e estado do Xray. Não pode atualizar o software do painel.",
+        "apiTokenScopeNodeAdmin": "Administrador de nó",
+        "apiTokenScopeNodeAdminDesc": "Inclui as permissões de sincronização do nó e também pode iniciar atualizações do software do painel.",
         "apiTokenEmpty": "Nenhum token ainda — crie um para autenticar bots ou painéis remotos.",
         "apiTokenDeleteWarning": "Qualquer cliente usando este token deixará de se autenticar imediatamente.",
         "apiTokenCreatedTitle": "Token criado",

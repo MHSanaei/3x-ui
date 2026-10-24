@@ -168,7 +168,7 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 }
 
 func TestClashRealityMLKEMAcrossSources(t *testing.T) {
-	svc := NewSubClashService(false, "", &SubService{})
+	svc := NewSubClashService(false, "", false, &SubService{})
 	for _, security := range []string{"reality", "tls", "none"} {
 		for _, fingerprint := range []string{"", "chrome", "firefox"} {
 			t.Run(security+"/"+fingerprint, func(t *testing.T) {
