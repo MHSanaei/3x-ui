@@ -1,7 +1,11 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { hostToExternalProxyEntry, withHostEndpoints } from '@/lib/hosts/host-link';
+import {
+  hostEndpointsFor,
+  hostToExternalProxyEntry,
+  withHostEndpoints,
+} from '@/lib/hosts/host-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 
 describe('hostToExternalProxyEntry', () => {
@@ -16,6 +20,7 @@ describe('hostToExternalProxyEntry', () => {
     pinnedPeerCertSha256: ['AAAA'],
     verifyPeerCertByName: 'verify.example.com',
     echConfigList: 'ECH',
+    cipherSuites: 'TLS_AES_128_GCM_SHA256',
     overrideSniFromAddress: false,
     keepSniBlank: false,
     vlessRoute: '',
@@ -34,6 +39,7 @@ describe('hostToExternalProxyEntry', () => {
     expect(ep.pinnedPeerCertSha256).toEqual(['AAAA']);
     expect(ep.verifyPeerCertByName).toBe('verify.example.com');
     expect(ep.echConfigList).toBe('ECH');
+    expect(ep.cipherSuites).toBe('TLS_AES_128_GCM_SHA256');
   });
 
   it('maps reality/same security to forceTls "same"', () => {
@@ -133,5 +139,95 @@ describe('withHostEndpoints', () => {
       'panel.example.com',
     );
     expect(got).toBe(inbound);
+  });
+});
+
+describe('hostEndpointsFor - multi SNI', () => {
+  it('applies the same random SNI to all endpoints when sniSharedRandom is true', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const makeGroup = () =>
+      hostEndpointsFor(
+        [
+          {
+            groupId: 'shared',
+            inboundIds: [1],
+            hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
+            port: 443,
+            snis,
+            sniSharedRandom: true,
+          },
+        ],
+        1,
+        443,
+        'default.com',
+      );
+
+    const eps = makeGroup();
+    expect(eps).toHaveLength(3);
+    const chosenSni = eps[0]!.sni;
+    expect(snis).toContain(chosenSni);
+    for (const ep of eps) {
+      expect(ep.sni).toBe(chosenSni);
+    }
+
+    // Verify that across repeated calls, selection is randomized across the pool
+    const picks = new Set(Array.from({ length: 30 }, () => makeGroup()[0]!.sni));
+    expect(picks.size).toBeGreaterThan(1);
+  });
+
+  it('randomizes SNI per endpoint for a multi-SNI pool', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const hosts = Array.from({ length: 30 }, (_, i) => `h${i}.example.com`);
+    const eps = hostEndpointsFor(
+      [
+        {
+          groupId: 'rand',
+          inboundIds: [1],
+          hosts,
+          port: 443,
+          snis,
+        },
+      ],
+      1,
+      443,
+      'default.com',
+    );
+    expect(eps).toHaveLength(30);
+    const seen = new Set<string>();
+    for (const ep of eps) {
+      expect(snis).toContain(ep.sni);
+      if (ep.sni) seen.add(ep.sni);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('gives precedence to overrideSniFromAddress and keepSniBlank over snis', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const eps = hostEndpointsFor(
+      [
+        {
+          groupId: 'override',
+          inboundIds: [1],
+          hosts: ['dest.example.com'],
+          port: 443,
+          snis,
+          overrideSniFromAddress: true,
+        },
+        {
+          groupId: 'blank',
+          inboundIds: [1],
+          hosts: ['blank.example.com'],
+          port: 443,
+          snis,
+          keepSniBlank: true,
+        },
+      ],
+      1,
+      443,
+      'default.com',
+    );
+    expect(eps).toHaveLength(2);
+    expect(eps[0]!.sni).toBe('dest.example.com');
+    expect(eps[1]!.sni).toBeUndefined();
   });
 });

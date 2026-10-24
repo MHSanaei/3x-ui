@@ -373,7 +373,12 @@ export default function WarpModal({
       <Modal open={open} title="Cloudflare WARP" footer={null} onCancel={onClose}>
         <FormProvider {...methods}>
           {!hasWarp ? (
-            <Button type="primary" loading={loading} icon={<ApiOutlined />} onClick={register}>
+            <Button
+              type="primary"
+              loading={loading}
+              icon={<ApiOutlined aria-hidden />}
+              onClick={register}
+            >
               {t('pages.xray.warp.createAccount')}
             </Button>
           ) : (
@@ -404,7 +409,7 @@ export default function WarpModal({
                 type="primary"
                 danger
                 className="mt-8"
-                icon={<DeleteOutlined />}
+                icon={<DeleteOutlined aria-hidden />}
                 onClick={delConfig}
               >
                 {t('pages.xray.warp.deleteAccount')}
@@ -491,7 +496,7 @@ export default function WarpModal({
                 <Button
                   loading={loading}
                   type="primary"
-                  icon={<SyncOutlined />}
+                  icon={<SyncOutlined aria-hidden />}
                   onClick={getConfig}
                 >
                   {t('refresh')}
@@ -500,7 +505,7 @@ export default function WarpModal({
                   loading={loading}
                   type="primary"
                   className="ml-8"
-                  icon={<SyncOutlined />}
+                  icon={<SyncOutlined aria-hidden />}
                   onClick={changeIp}
                 >
                   {t('pages.xray.warp.changeIp', 'Change IP')}
@@ -573,7 +578,7 @@ export default function WarpModal({
                         type="primary"
                         loading={loading}
                         className="ml-8"
-                        icon={<PlusOutlined />}
+                        icon={<PlusOutlined aria-hidden />}
                         onClick={addOutbound}
                       >
                         {t('pages.xray.warp.addOutbound')}
@@ -591,7 +596,7 @@ export default function WarpModal({
             type="primary"
             className="mt-8"
             loading={loading}
-            icon={<PlusOutlined />}
+            icon={<PlusOutlined aria-hidden />}
             onClick={addMasqueOutbound}
           >
             {t('pages.xray.warp.addMasqueOutbound')}

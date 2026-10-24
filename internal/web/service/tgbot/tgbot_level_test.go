@@ -24,7 +24,6 @@ func withAdmins(t *testing.T, ids ...int64) {
 func newLevelTgbot(t *testing.T) (*Tgbot, func(string) int) {
 	t.Helper()
 	tb, calls := newLinksCallbackTgbot(t, ownerMail)
-	seedClientRecord(t, ownerMail, "sub-owned", ownerTgID)
 	withAdmins(t, 1)
 	return tb, calls
 }

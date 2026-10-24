@@ -102,9 +102,7 @@ func (s *DiscordService) BuildReport(ctx context.Context, server ServerProvider,
 	}
 
 	tr := translator(s.settingService)
-	days := status.Uptime / 86400
-	hours := (status.Uptime % 86400) / 3600
-	uptimeStr := tr("discord.values.uptime", "Days=="+fmt.Sprint(days), "Hours=="+fmt.Sprint(hours))
+	uptimeStr := formatStatusUptime(status, tr)
 
 	ramStr := fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total)))
 	trafficStr := tr("discord.values.traffic",
@@ -238,4 +236,12 @@ func getInterfaceIPs() (ipv4, ipv6 string) {
 		}
 	}
 	return strings.Join(v4s, ", "), strings.Join(v6s, ", ")
+}
+
+// formatStatusUptime is shared by scheduled reports and the status command.
+func formatStatusUptime(status *service.Status, tr func(string, ...string) string) string {
+	if !status.MetricAvailable("uptime") {
+		return "—"
+	}
+	return tr("discord.values.uptime", "Days=="+fmt.Sprint(status.Uptime/86400), "Hours=="+fmt.Sprint((status.Uptime%86400)/3600))
 }

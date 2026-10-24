@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -42,6 +43,10 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	if incoming.Security != "" {
 		row.Security = incoming.Security
 	}
+	// nil preserves the stored binding, empty clears it via Update's write.
+	if ids := model.NormalizeClientHostRuleIds(incoming.ClientHostRuleIds); ids != nil {
+		row.ClientHostRuleIds = ids
+	}
 	if incoming.Reverse != "" {
 		row.Reverse = incoming.Reverse
 	}
@@ -55,7 +60,9 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 		row.AllowedIPs = incoming.AllowedIPs
 	}
 	row.PreSharedKey = incoming.PreSharedKey
-	row.KeepAlive = incoming.KeepAlive
+	if incoming.KeepAlive != "" {
+		row.KeepAlive = incoming.KeepAlive
+	}
 	row.SubID = incoming.SubID
 	row.LimitIP = incoming.LimitIP
 	row.TotalGB = incoming.TotalGB
@@ -167,6 +174,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		// ToRecord copies the raw email; store the trimmed key this function
 		// looks up by, or a padded email is inserted and never found again.
 		incoming.Email = email
+		incoming.ClientHostRuleIds = model.NormalizeClientHostRuleIds(incoming.ClientHostRuleIds)
 		row, ok := existing[email]
 		if !ok {
 			if _, dup := pending[email]; !dup {
@@ -185,7 +193,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 
 		idByEmail[email] = row.Id
 
-		if *row == before {
+		// DeepEqual: ClientRecord now carries a slice (ClientHostRuleIds)
+		// and is no longer ==-comparable.
+		if reflect.DeepEqual(*row, before) {
 			continue
 		}
 		if err := tx.Save(row).Error; err != nil {
@@ -208,6 +218,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		if err := tx.CreateInBatches(toCreate, 200).Error; err != nil {
 			return err
 		}
+		// Whichever API re-created the client, a delete tombstone left standing makes
+		// the next node merge prune it and ReapSyncOrphans delete it.
+		liftTombstonesOnCommit(tx, toCreate)
 		disabledIDs := make([]int, 0)
 		for i, rec := range toCreate {
 			idByEmail[rec.Email] = rec.Id

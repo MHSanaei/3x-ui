@@ -38,6 +38,7 @@ type AllSetting struct {
 	RemarkTemplate             string `json:"remarkTemplate" form:"remarkTemplate"`
 	SubShowIdentityOnAllLinks  bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
 	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
+	SubHostSortMode            string `json:"subHostSortMode" form:"subHostSortMode" example:"inbound-first"`
 	SubCalendarExpireInclusive bool   `json:"subCalendarExpireInclusive" form:"subCalendarExpireInclusive"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
 	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`
@@ -80,6 +81,7 @@ type AllSetting struct {
 	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
 
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
+	NodeDownThreshold     int `json:"nodeDownThreshold" form:"nodeDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
@@ -122,6 +124,7 @@ type AllSetting struct {
 	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`
 	SubClashEnableRouting       bool   `json:"subClashEnableRouting" form:"subClashEnableRouting"`
 	SubClashRules               string `json:"subClashRules" form:"subClashRules"`
+	SubClashRemoteDNS           bool   `json:"subClashRemoteDNS" form:"subClashRemoteDNS"`
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
 	SubJsonRoutingRules         string `json:"subJsonRoutingRules" form:"subJsonRoutingRules"`
@@ -425,6 +428,8 @@ type HostGroup struct {
 	Port                   int      `json:"port" validate:"gte=0,lte=65535"`
 	Security               string   `json:"security" validate:"omitempty,oneof=same tls none reality"`
 	Sni                    string   `json:"sni"`
+	Snis                   []string `json:"snis"`
+	SniSharedRandom        bool     `json:"sniSharedRandom"`
 	HostHeader             string   `json:"hostHeader"`
 	Path                   string   `json:"path"`
 	Alpn                   []string `json:"alpn"`
@@ -445,4 +450,5 @@ type HostGroup struct {
 	MihomoIpVersion        string   `json:"mihomoIpVersion" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
 	MihomoX25519           bool     `json:"mihomoX25519"`
 	ShuffleHost            bool     `json:"shuffleHost"`
+	RandomCount            int      `json:"randomCount" validate:"omitempty,min=1,max=100"`
 }

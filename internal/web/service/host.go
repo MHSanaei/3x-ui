@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type HostService struct{}
@@ -41,6 +42,8 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		Port:                   h.Port,
 		Security:               h.Security,
 		Sni:                    h.Sni,
+		Snis:                   h.Snis,
+		SniSharedRandom:        h.SniSharedRandom,
 		HostHeader:             h.HostHeader,
 		Path:                   h.Path,
 		Alpn:                   h.Alpn,
@@ -61,6 +64,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		MihomoIpVersion:        h.MihomoIpVersion,
 		MihomoX25519:           h.MihomoX25519,
 		ShuffleHost:            h.ShuffleHost,
+		RandomCount:            h.RandomCount,
 	}
 }
 
@@ -91,6 +95,15 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if h.SortOrder < g.SortOrder {
 			g.SortOrder = h.SortOrder
 		}
+		if h.RandomCount > g.RandomCount {
+			g.RandomCount = h.RandomCount
+		}
+		if len(h.Snis) > 0 && len(g.Snis) == 0 {
+			g.Snis = h.Snis
+		}
+		if h.SniSharedRandom {
+			g.SniSharedRandom = true
+		}
 	}
 
 	res := make([]*entity.HostGroup, 0, len(orderedGroupIds))
@@ -102,13 +115,23 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if res[i].SortOrder != res[j].SortOrder {
 			return res[i].SortOrder < res[j].SortOrder
 		}
-		return res[i].Remark < res[j].Remark
+		if res[i].Remark != res[j].Remark {
+			return res[i].Remark < res[j].Remark
+		}
+		return res[i].GroupId < res[j].GroupId
 	})
 
 	return res
 }
 
 func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
+	snis := hostSniPool(req.Sni, req.Snis)
+	primarySni := ""
+	if len(snis) > 0 {
+		primarySni = snis[0]
+	}
+	shared := req.SniSharedRandom && len(snis) > 1
+
 	hostsToProcess := req.Hosts
 	if len(hostsToProcess) == 0 {
 		hostsToProcess = []string{""}
@@ -129,7 +152,9 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				Address:                addr,
 				Port:                   port,
 				Security:               req.Security,
-				Sni:                    req.Sni,
+				Sni:                    primarySni,
+				Snis:                   snis,
+				SniSharedRandom:        shared,
 				HostHeader:             req.HostHeader,
 				Path:                   req.Path,
 				Alpn:                   req.Alpn,
@@ -150,6 +175,7 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				MihomoIpVersion:        req.MihomoIpVersion,
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
+				RandomCount:            clampRandomCount(req.RandomCount),
 			})
 		}
 	}
@@ -191,6 +217,17 @@ func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 		return nil, err
 	}
 	return groupHosts(hosts), nil
+}
+
+// GetRawHosts returns every host row with its numeric id, so callers that
+// bind by host id (per-client host rule overrides) can list candidates.
+func (s *HostService) GetRawHosts() ([]*model.Host, error) {
+	var hosts []*model.Host
+	err := database.GetDB().Order("sort_order asc, id asc").Find(&hosts).Error
+	if err != nil {
+		return nil, err
+	}
+	return hosts, nil
 }
 
 func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, error) {
@@ -253,35 +290,97 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
 		return nil, err
 	}
-	created := buildHostRows(groupId, req)
+	desired := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
-		var count int64
-		if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Count(&count).Error; err != nil {
+		var existing []*model.Host
+		if err := tx.Where("group_id = ?", groupId).Order("id asc").Find(&existing).Error; err != nil {
 			return err
 		}
-		if count == 0 {
+		if len(existing) == 0 {
 			return common.NewError("host not found")
 		}
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err
 		}
-		if err := tx.Where("group_id = ?", groupId).Delete(&model.Host{}).Error; err != nil {
-			return err
+		// Exact (inbound, address, port) matches reuse ids so edits keep bindings; a second pass pairs
+		// same-inbound leftovers with edits, and rows still unclaimed are deleted.
+		type hostKey struct {
+			inbound int
+			addr    string
+			port    int
 		}
-		if len(created) > 0 {
-			return tx.Create(&created).Error
+		byKey := make(map[hostKey][]*model.Host)
+		for _, h := range existing {
+			k := hostKey{h.InboundId, h.Address, h.Port}
+			byKey[k] = append(byKey[k], h)
+		}
+		var toInsert, toUpdate []*model.Host
+		var unmatched []*model.Host
+		matched := make(map[int]struct{}, len(desired))
+		for _, d := range desired {
+			k := hostKey{d.InboundId, d.Address, d.Port}
+			if q := byKey[k]; len(q) > 0 {
+				d.Id = q[0].Id
+				d.CreatedAt = q[0].CreatedAt
+				byKey[k] = q[1:]
+				toUpdate = append(toUpdate, d)
+				matched[d.Id] = struct{}{}
+			} else {
+				unmatched = append(unmatched, d)
+			}
+		}
+		leftovers := make(map[int][]*model.Host)
+		for _, h := range existing {
+			if _, ok := matched[h.Id]; !ok {
+				leftovers[h.InboundId] = append(leftovers[h.InboundId], h)
+			}
+		}
+		for _, d := range unmatched {
+			if q := leftovers[d.InboundId]; len(q) > 0 {
+				d.Id = q[0].Id
+				d.CreatedAt = q[0].CreatedAt
+				leftovers[d.InboundId] = q[1:]
+				toUpdate = append(toUpdate, d)
+				matched[d.Id] = struct{}{}
+			} else {
+				toInsert = append(toInsert, d)
+			}
+		}
+		var toDelete []int
+		for _, h := range existing {
+			if _, ok := matched[h.Id]; !ok {
+				toDelete = append(toDelete, h.Id)
+			}
+		}
+		if len(toDelete) > 0 {
+			if _, err := database.DeleteHosts(tx, "id IN ?", toDelete); err != nil {
+				return err
+			}
+		}
+		for _, u := range toUpdate {
+			if err := tx.Save(u).Error; err != nil {
+				return err
+			}
+		}
+		if len(toInsert) > 0 {
+			if err := tx.Create(&toInsert).Error; err != nil {
+				return err
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return created, nil
+	return desired, nil
 }
 
 func (s *HostService) DeleteHostGroup(groupId string) error {
-	return database.GetDB().Where("group_id = ?", groupId).Delete(&model.Host{}).Error
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)
+		return err
+	})
 }
 
 func (s *HostService) SetHostGroupEnable(groupId string, enable bool) error {
@@ -299,15 +398,43 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
-	return database.GetDB().Where("group_id IN ?", groupIds).Delete(&model.Host{}).Error
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		_, err := database.DeleteHosts(tx, "group_id IN ?", groupIds)
+		return err
+	})
 }
 
 func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
+	seen := make(map[string]bool, len(groupIds))
+	for _, id := range groupIds {
+		if id == "" || seen[id] {
+			return common.NewError("host group IDs must be nonempty and unique")
+		}
+		seen[id] = true
+	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
-		for i, groupId := range groupIds {
+		var rows []*model.Host
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id ASC").Find(&rows).Error; err != nil {
+			return err
+		}
+		groups := groupHosts(rows)
+		known := make(map[string]bool, len(groups))
+		ordered := append([]string(nil), groupIds...)
+		for _, group := range groups {
+			known[group.GroupId] = true
+			if !seen[group.GroupId] {
+				ordered = append(ordered, group.GroupId)
+			}
+		}
+		for _, id := range groupIds {
+			if !known[id] {
+				return common.NewError("host group not found")
+			}
+		}
+		for i, groupId := range ordered {
 			if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Update("sort_order", i).Error; err != nil {
 				return err
 			}
@@ -362,4 +489,43 @@ func parseHostAndPort(hostStr string, defaultPort int) (string, int) {
 		addr = addr[1 : len(addr)-1]
 	}
 	return addr, defaultPort
+}
+
+func clampRandomCount(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	if n > 100 {
+		return 100
+	}
+	return n
+}
+
+// hostSniPool is the group's SNI pool, primary first: an sni outside the pool (a caller that only
+// knows the single field) becomes the primary, replacing a one-entry pool.
+func hostSniPool(sni string, pool []string) []string {
+	snis := cleanSnis(pool)
+	sni = strings.TrimSpace(sni)
+	switch {
+	case sni == "" || (len(snis) > 0 && snis[0] == sni):
+		return snis
+	case len(snis) <= 1:
+		return []string{sni}
+	}
+	return append([]string{sni}, slices.DeleteFunc(snis, func(s string) bool { return s == sni })...)
+}
+
+func cleanSnis(snis []string) []string {
+	var out []string
+	seen := make(map[string]struct{})
+	for _, s := range snis {
+		trimmed := strings.TrimSpace(s)
+		if trimmed != "" {
+			if _, exists := seen[trimmed]; !exists {
+				seen[trimmed] = struct{}{}
+				out = append(out, trimmed)
+			}
+		}
+	}
+	return out
 }

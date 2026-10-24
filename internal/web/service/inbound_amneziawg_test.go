@@ -265,6 +265,30 @@ func TestNormalizeAmneziaWGSettings_RejectsInjectedClientAllowedIPs(t *testing.T
 	}
 }
 
+// A protocol switch keeps the stored clients, re-injected after the AmneziaWG
+// normalize ran, so a WireGuard row's bad allowedIPs skipped every check.
+func TestUpdateInbound_ProtocolSwitchRejectsStoredClientAllowedIPs(t *testing.T) {
+	setupConflictDB(t)
+	stored := mkInbound(t, 51830, model.WireGuard, `{"secretKey":"`+awgTestPrivateKey+`","clients":[{"email":"sw@x","enable":true,`+
+		`"privateKey":"`+awgTestPrivateKey+`","publicKey":"`+awgTestPublicKey+`","allowedIPs":["10.8.1.2/32\n[Interface]\nPostUp = touch /tmp/pwned"]}]}`)
+
+	update := *stored
+	update.Protocol = model.AmneziaWG
+	update.Settings = `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[]}`
+	_, _, err := (&InboundService{}).UpdateInbound(&update)
+	if err == nil || !strings.Contains(err.Error(), "invalid allowedIPs entry") {
+		t.Fatalf("UpdateInbound err = %v, want an invalid allowedIPs entry error", err)
+	}
+
+	var after model.Inbound
+	if err := database.GetDB().First(&after, stored.Id).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if after.Protocol != model.WireGuard {
+		t.Fatalf("rejected switch was persisted: protocol = %q", after.Protocol)
+	}
+}
+
 func TestNormalizeAmneziaWGSettings_CanonicalizesClientAllowedIPs(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}

@@ -15,6 +15,8 @@ const config: StorybookConfig = {
     if (viteConfig.build) {
       viteConfig.build.outDir = undefined;
       viteConfig.build.emptyOutDir = false;
+      // Storybook bundles the whole UI plus the axe engine; hold it to the app's chunk ceiling.
+      viteConfig.build.chunkSizeWarningLimit = 1500;
       if (viteConfig.build.rollupOptions) {
         viteConfig.build.rollupOptions.input = undefined;
       }

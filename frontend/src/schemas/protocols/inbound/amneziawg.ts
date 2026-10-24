@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { OptionalClientKeepAliveSchema } from '@/schemas/primitives/keepalive';
 
 // AntD InputNumber emits null (not undefined) when the user clears it, and
 // the form store hands that null straight to safeParse on submit — a bare
@@ -23,7 +24,7 @@ export const AmneziawgClientSchema = z.object({
   publicKey: z.string().optional(),
   preSharedKey: z.string().optional(),
   allowedIPs: z.array(z.string()).default([]),
-  keepAlive: optionalClearedInt(z.number().int().min(0)),
+  keepAlive: OptionalClientKeepAliveSchema,
   forwardedPorts: z.string().default(''),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),

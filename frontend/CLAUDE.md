@@ -33,11 +33,12 @@ The `@` import alias maps to `src/`.
 - Function components + hooks only; no class components.
 - Comments in committed TS/TSX: 2 lines MAX per comment block, spent on the
   *why* a name cannot hold (same rule as root CLAUDE.md). HTML comments are fine.
-- TS strict; oxlint's `typescript/no-explicit-any` is an error. Build forms with `useZodForm` +
-  `FormField` from `@/components/form/rhf` (wrap the tree in `FormProvider`);
-  validate through the `zodResolver` or per-field
+- TS strict; oxlint's `typescript/no-explicit-any` is an error. Build forms with React Hook
+  Form's `useForm` + `FormField` from `@/components/form/rhf` (wrap the tree in
+  `FormProvider`) and validate each field with
   `rules={{ validate: rhfZodValidate(Schema.shape.field) }}` — messages are Zod
-  issue keys resolved via `t()`, never inline `z.string()`. AntD `<Form>` stays
+  issue keys resolved via `t()`, never inline `z.string()`. A whole-form
+  `zodResolver` is only for a form that submits one schema. AntD `<Form>` stays
   only as a layout wrapper. Complex shared config editors (FinalMask / Sniffing /
   Sockopt) remain AntD-`Form` islands wrapped as value/onChange adapters in
   `src/lib/xray/forms/fields/`, bound via a `Controller`.
@@ -54,8 +55,10 @@ The `@` import alias maps to `src/`.
 
 ## Adding a panel route
 1. `src/pages/<page>/<Page>.tsx` (kebab folder, PascalCase component).
-2. Register in `src/routes.tsx` under `/panel` (lazy import).
-3. Add a sidebar link in `src/layouts/AppSidebar.tsx` if it needs nav.
+2. Add it to `src/routes/panelRoutes.tsx`. The router, the sidebar, the page
+   title and the command palette all read that one list;
+   `src/test/navigation-contract.test.tsx` holds it to the router and to the
+   translation bundle.
 Only standalone bundles (login/subpage) need a new `.html` + `src/entries/*` +
 `rollupOptions.input` (in `vite.config.js`) + a Go controller route.
 

@@ -71,24 +71,94 @@ jobs:
       - name: PostgreSQL durable-first tests
         run: |
           set -o pipefail
-          go test ./internal/web/service -run 'PostgresCommitFailure' -count=1 -v | tee /tmp/postgres-durable-first.log
+          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$' -count=1 -v | tee /tmp/postgres-durable-first.log
           # Count passes rather than assert no SKIP: a renamed or deleted test
           # prints "no tests to run" and exits 0, leaving the step green for nothing.
-          passed=$(grep -c -- '--- PASS' /tmp/postgres-durable-first.log || true)
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-durable-first.log || true)
+          if [ "$passed" -lt 4 ]; then
+            echo "expected at least 4 passing durable-first tests, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL deferred-commit test
+        run: |
+          set -o pipefail
+          go test ./internal/web/service/outbound -run '^TestAddTrafficReturnsDeferredCommitFailure$' -count=1 -v | tee /tmp/postgres-outbound.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-outbound.log || true)
           if [ "$passed" -lt 1 ]; then
-            echo "expected at least 1 passing durable-first test, got $passed" >&2
+            echo "expected at least 1 passing deferred-commit test, got $passed" >&2
             exit 1
           fi
 
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence)$' -count=1 -v | tee /tmp/postgres-schema.log
           # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
+          if [ "$passed" -lt 6 ]; then
+            echo "expected at least 6 passing PostgreSQL schema tests, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL subscription Host tests
+        run: |
+          set -o pipefail
+          go test ./internal/sub -run '^TestSubHosts_Postgres$' -count=1 -v | tee /tmp/postgres-hosts.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-hosts.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected passing PostgreSQL Host coverage, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL Telegram lookup and legacy migration tests
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^(TestGetClientTrafficTgBot_IndexedPostgres|TestGetClientTrafficTgBot_SettingsSerializationStyles)$' -count=1 -v | tee /tmp/postgres-tgbot.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-tgbot.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected 2 passing PostgreSQL Telegram lookup tests, got $passed" >&2
+            exit 1
+          fi
+
+  # The migration tests write and drop their own tables, so they need a
+  # scratch database instead of the durable one the panel tests use.
+  postgres-migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: xui_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d xui_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      XUI_TEST_PG_DSN: "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=xui_scratch sslmode=disable"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub internal/web/dist for go:embed
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: PostgreSQL migration tests
+        run: |
+          set -o pipefail
+          go test ./internal/database -run '^(TestMigrateData_CompositeKeyTableLargerThanBatch|TestMigrateData_PreservesFalseDefaultedColumns|TestMigrateData_FailedCopyLeavesDestinationUntouched|TestClientHwidSchemaPostgres)$' -count=1 -v | tee /tmp/postgres-migration.log
+          # Count passes rather than assert no SKIP: a renamed or deleted test
+          # prints "no tests to run" and exits 0, leaving the step green for nothing.
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-migration.log || true)
           if [ "$passed" -lt 4 ]; then
-            echo "expected at least 4 passing PostgreSQL schema tests, got $passed" >&2
+            echo "expected at least 4 passing PostgreSQL migration tests, got $passed" >&2
             exit 1
           fi
 
@@ -108,6 +178,8 @@ jobs:
         working-directory: frontend
       - name: Fail if generated files are stale (run 'npm run gen' and commit)
         run: git diff --exit-code -- frontend/src/generated frontend/public/openapi.json
+      - name: Fail if the docs spec is not the panel's
+        run: cmp frontend/public/openapi.json docs/public/openapi.json
 
   govulncheck:
     runs-on: ubuntu-latest
@@ -187,7 +259,33 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned: "latest" let the lint result drift between runs, so the same
+          # commit could pass today and fail tomorrow on a new upstream release.
+          version: v2.15.0
+
+  # Lint the shell scripts and the workflows themselves. The three legacy
+  # scripts carry a warning backlog (unquoted expansions, masked return codes)
+  # and are gated on errors only; the scripts that are clean today are gated on
+  # everything.
+  shell-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: actionlint
+        # The shellcheck integration is off: it reports the stylistic rules
+        # (SC2086, SC2046) that main's own workflows trip. The shell scripts
+        # the panel ships are linted by the shellcheck step below.
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color -shellcheck=
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck
+        run: |
+          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh
+          shellcheck --severity=error install.sh update.sh x-ui.sh
 
   frontend:
     runs-on: ubuntu-latest
@@ -223,5 +321,5 @@ jobs:
         run: npm run build-storybook
         working-directory: frontend
       - name: Audit
-        run: npm audit --omit=dev --audit-level=high
+        run: npm run audit
         working-directory: frontend

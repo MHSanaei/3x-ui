@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 )
 
 func emitTypes(w io.Writer, schemas []Schema, aliases []Alias) error {
@@ -60,6 +61,12 @@ func tsTypeExpr(t TypeRef) string {
 		return tsTypeExpr(*t.Element) + "[]"
 	case KindMap:
 		return "Record<" + tsTypeExpr(*t.Key) + ", " + tsTypeExpr(*t.Value) + ">"
+	case KindUnion:
+		parts := make([]string, 0, len(t.Variants))
+		for _, variant := range t.Variants {
+			parts = append(parts, tsTypeExpr(variant))
+		}
+		return strings.Join(parts, " | ")
 	case KindRef:
 		if t.Name == "nullable" {
 			return tsTypeExpr(*t.Inner) + " | null"

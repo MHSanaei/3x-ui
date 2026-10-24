@@ -119,9 +119,12 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服务端轮询该文件夹，而不是在端口上接受连接。
 双方必须使用**相同**的服务、文件夹和密钥，因此 JSON 订阅会把它们下发给每个客户端；XDRIVE 入站不生成分享链接或 Clash 条目。
 
+自 Xray 26.10.17 起，XDRIVE 只在 **VLESS 加密**内承载 **VLESS**，且不支持 flow：入站需要设置 `decryption`，
+出站需要 `encryption` 并启用 Mux。面板只为 VLESS 提供 XDRIVE，拒绝保存没有 `decryption` 的入站，并把升级前保存的此类入站排除在运行配置之外。
+
 | 字段           | 默认值         | 含义 |
 | -------------- | -------------- | ---- |
-| `service`      | `Google Drive` | `Google Drive`、`local`（磁盘上的文件夹）或 `template`（任意 HTTP 存储 API）。 |
+| `service`      | `google-drive` | `google-drive`、`local`（磁盘上的文件夹）或 `template`（任意 HTTP 存储 API）。旧写法 `Google Drive` 仍可读取。 |
 | `remoteFolder` | —              | 存放会话文件的文件夹。 |
 | `secrets`      | —              | Google Drive：恰好三项，依次为 ClientID、ClientSecret、RefreshToken。Template：以 `{secret0}`、`{secret1}`… 引用的值。 |
 | `template`     | —              | 仅用于 template 服务：存储 API 的 `auth`、`put`、`get`、`list` 和 `delete` 操作。 |
@@ -137,9 +140,9 @@ XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 
 传输（如 mKCP），也能在 TLS 之上再加一层外壳。掩码按方向分别配置：
 
 - **TCP 掩码** — `fragment`、`sudoku`、`header-custom`、`xmc`（把流量伪装成
-  Minecraft 协议；密码必填，主机名和玩家用户名可选）。
+  Minecraft 协议；密码必填，主机名和玩家用户名可选），以及仅限入站的 `filter`。
 - **UDP 掩码** — `salamander`、`mkcp-legacy`、`header-custom`、`xdns`、`xicmp`、
-  `noise`、`sudoku`、`realm`，以及仅限客户端的 `udphop`。（`mkcp-legacy` 重现旧版
+  `noise`、`sudoku`、`realm`，以及仅限客户端的 `udphop` 和仅限入站的 `filter`。（`mkcp-legacy` 重现旧版
   mKCP 的头部混淆；`udphop` 按时间间隔或按连接轮换远端端口——也可轮换远端 IP——以规避
   端口封锁。）
 - **QUIC 参数** — 拥塞控制（`reno`、`bbr`、`brutal`、`force-brutal`）、Brutal 上/下行
@@ -147,6 +150,10 @@ XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 
   `mport` 和 JSON 订阅中的 `udphop` 掩码）；服务器本身仍只监听自己的端口。自 Xray
   26.9.9 起客户端只通过 `udphop` 掩码跳端口，因此面板会把客户端旧的
   `quicParams.udpHop` 转换为该掩码。
+
+`filter`（Xray 26.10.21）按源 IP 丢弃入站连接：`allowedSourceIPs` 只放行所列来源，
+`blockedSourceIPs` 丢弃所列来源，命中封锁列表优先。两者都接受 CIDR 或 `geoip:` 条目。
+分享链接和 JSON 订阅会去掉它，因为它只作用于监听端。
 
 FinalMask 取代了旧版 Xray 构建中暴露的、按每种传输各自实现的 `header`/`seed` 混淆。
 

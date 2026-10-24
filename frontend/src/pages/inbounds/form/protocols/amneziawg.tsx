@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { Alert, Button, Form, Input, InputNumber, Space, Switch, Typography } from 'antd';
@@ -18,6 +19,7 @@ export default function AmneziawgFields({
   regenInboundAwgObfuscation,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const kernelModeOn = useWatch({ name: 'settings.server.kernelMode' });
   const nodeId = useWatch({ name: 'nodeId' }) as number | null | undefined;
   const remoteTarget = typeof nodeId === 'number';
@@ -32,20 +34,20 @@ export default function AmneziawgFields({
   const toggleDisabled = !hostReady && !savedKernelMode;
   return (
     <>
-      <Form.Item label={t('pages.xray.amneziawg.privateKey')}>
+      <Form.Item htmlFor={`${uid}-privateKey`} label={t('pages.xray.amneziawg.privateKey')}>
         <Space.Compact block>
           <FormField name={['settings', 'server', 'privateKey']} noStyle>
-            <Input style={{ width: 'calc(100% - 32px)' }} />
+            <Input id={`${uid}-privateKey`} style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
           <Button
             aria-label={t('regenerate')}
-            icon={<ReloadOutlined />}
+            icon={<ReloadOutlined aria-hidden />}
             onClick={regenInboundAwg}
           />
         </Space.Compact>
       </Form.Item>
-      <Form.Item label={t('pages.xray.amneziawg.publicKey')}>
-        <Input value={awgPubKey} disabled />
+      <Form.Item htmlFor={`${uid}-publicKey`} label={t('pages.xray.amneziawg.publicKey')}>
+        <Input id={`${uid}-publicKey`} value={awgPubKey} disabled />
       </Form.Item>
       <FormField
         name={['settings', 'server', 'subnetIp']}
@@ -103,7 +105,7 @@ export default function AmneziawgFields({
         <Input placeholder="eth0" />
       </FormField>
       <Form.Item label={t('pages.xray.amneziawg.obfuscation')}>
-        <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
+        <Button icon={<ReloadOutlined aria-hidden />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}
         </Button>
       </Form.Item>

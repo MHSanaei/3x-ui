@@ -1,14 +1,116 @@
 package sub
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"maps"
+	"math/big"
 	"slices"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
+
+// hostBinding is how a client's host binding applies to one inbound.
+type hostBinding int
+
+const (
+	hostBindingNone   hostBinding = iota // nothing bound here: the inbound's own hosts apply
+	hostBindingClosed                    // bound, but no bound host survives: render nothing
+	hostBindingBound                     // render only the returned bound hosts of this inbound
+)
+
+// clientHostBinding resolves the client's bound host rules against one inbound. A deleted bound host
+// closes only the inbound it served; ids that resolve to no inbound at all fail closed everywhere.
+func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
+	ids := model.EffectiveClientHostRuleIds(client)
+	db := database.GetDB()
+	if len(ids) == 0 || db == nil {
+		return hostBindingNone, nil
+	}
+	var rows []model.Host
+	if err := db.Where("id IN ?", ids).Find(&rows).Error; err != nil {
+		logger.Warning("SubService - clientHostBinding:", err)
+		return hostBindingClosed, nil
+	}
+	byId := make(map[int]*model.Host, len(rows))
+	for i := range rows {
+		byId[rows[i].Id] = &rows[i]
+	}
+	var here []*model.Host
+	var gone []int
+	for _, id := range ids {
+		h, ok := byId[id]
+		switch {
+		case !ok:
+			gone = append(gone, id)
+		case h.InboundId == inbound.Id:
+			here = append(here, h)
+		}
+	}
+	if len(here) > 0 {
+		return hostBindingBound, here
+	}
+	if len(gone) == 0 {
+		return hostBindingNone, nil
+	}
+	var tombstones []model.HostTombstone
+	if err := db.Where("host_id IN ?", gone).Find(&tombstones).Error; err != nil {
+		logger.Warning("SubService - clientHostBinding:", err)
+		return hostBindingClosed, nil
+	}
+	if len(rows) == 0 && len(tombstones) == 0 {
+		return hostBindingClosed, nil
+	}
+	for _, tomb := range tombstones {
+		if tomb.InboundId == inbound.Id {
+			return hostBindingClosed, nil
+		}
+	}
+	return hostBindingNone, nil
+}
+
+// clientHostEndpoints returns the endpoints of the client's usable bound hosts on this inbound, or
+// baseEps when nothing is bound here; (nil, true) fails closed, and the caller still accounts the client.
+func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Client, format string, baseEps []map[string]any) ([]map[string]any, bool) {
+	state, hosts := s.clientHostBinding(inbound, client)
+	switch state {
+	case hostBindingNone:
+		return baseEps, false
+	case hostBindingClosed:
+		return nil, true
+	}
+	defaultDest := s.resolveInboundAddress(inbound)
+	var eps []map[string]any
+	for _, h := range hosts {
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+			continue
+		}
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
+	}
+	return eps, true
+}
+
+// clientHostVariants narrows the hosts-first variants of an inbound to the client's bound hosts;
+// closed reports a binding that leaves this client nothing to render on the inbound.
+func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Client, format string) (variants []subscriptionHostVariant, closed bool) {
+	all := s.subscriptionHostVariants(inbound, format)
+	state, hosts := s.clientHostBinding(inbound, client)
+	switch state {
+	case hostBindingNone:
+		return all, false
+	case hostBindingClosed:
+		return nil, true
+	}
+	for _, v := range all {
+		if v.host != nil && slices.ContainsFunc(hosts, func(h *model.Host) bool { return h.Id == v.host.Id }) {
+			variants = append(variants, v)
+		}
+	}
+	return variants, len(variants) == 0
+}
 
 // hostEndpoints loads an inbound's enabled hosts for the given subscription
 // format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
@@ -18,7 +120,9 @@ import (
 // inbounds.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
 	var hosts []*model.Host
-	if err := database.GetDB().
+	if s.hostsByInbound != nil {
+		hosts = s.hostsByInbound[inbound.Id]
+	} else if err := database.GetDB().
 		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
 		Order("sort_order asc, id asc").
 		Find(&hosts).Error; err != nil {
@@ -31,12 +135,83 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 	defaultDest := s.resolveInboundAddress(inbound)
 	eps := make([]map[string]any, 0, len(hosts))
 	for _, h := range hosts {
-		if slices.Contains(h.ExcludeFromSubTypes, format) {
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps
+}
+
+// hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
+// random addresses from the range, any other address is a single entry.
+func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	shared := s.sharedHostSni(h)
+	if IsCIDR(h.Address) {
+		count := max(h.RandomCount, 1)
+		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
+			eps := make([]map[string]any, 0, len(ips))
+			for i, ip := range ips {
+				hCopy := *h
+				hCopy.Address = ip
+				if len(ips) > 1 {
+					if h.Remark != "" {
+						hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
+					} else {
+						hCopy.Remark = fmt.Sprintf("%d", i+1)
+					}
+				}
+				hCopy.Sni = endpointSni(h, shared)
+				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
+			}
+			return eps
+		}
+	}
+
+	hCopy := *h
+	hCopy.Sni = endpointSni(h, shared)
+	return []map[string]any{hostToExternalProxyMap(&hCopy, defaultDest, defaultPort)}
+}
+
+// endpointSni is the SNI one endpoint of h advertises: the request's shared pick, a fresh random
+// entry of a multi-SNI pool, or the single SNI; the address and blank overrides apply later.
+func endpointSni(h *model.Host, shared string) string {
+	switch {
+	case shared != "":
+		return shared
+	case len(h.Snis) > 1:
+		return randomSni(h.Snis)
+	}
+	return h.Sni
+}
+
+// sharedHostSni picks one SNI of a shared pool per host group and request, so every endpoint of
+// the group carries the same one; "" when h does not share.
+func (s *SubService) sharedHostSni(h *model.Host) string {
+	if !h.SniSharedRandom || len(h.Snis) < 2 {
+		return ""
+	}
+	key := h.GroupId
+	if key == "" {
+		key = fmt.Sprintf("host-%d", h.Id)
+	}
+	if sni, ok := s.sharedGroupSni[key]; ok {
+		return sni
+	}
+	if s.sharedGroupSni == nil {
+		s.sharedGroupSni = make(map[string]string)
+	}
+	sni := randomSni(h.Snis)
+	s.sharedGroupSni[key] = sni
+	return sni
+}
+
+func randomSni(snis []string) string {
+	idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(snis))))
+	if err != nil {
+		return snis[0]
+	}
+	return snis[idx.Int64()]
 }
 
 // hostToExternalProxyMap projects a Host onto the externalProxy entry shape the
@@ -97,6 +272,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	}
 	if h.MihomoIpVersion != "" {
 		ep["mihomoIpVersion"] = h.MihomoIpVersion
+	}
+	if h.MihomoX25519 {
+		ep["mihomoX25519"] = true
 	}
 	if h.SockoptParams != "" {
 		ep["sockoptParams"] = h.SockoptParams
@@ -169,6 +347,9 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			if rs, ok := stream["realitySettings"].(map[string]any); ok && rs != nil {
 				if sni, ok := externalProxySNI(ep); ok {
 					rs["serverName"] = sni
+				}
+				if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+					rs["fingerprint"] = fp
 				}
 			}
 		}
@@ -310,6 +491,16 @@ func applyEndpointRealityParams(e ShareEndpoint, params map[string]string, secur
 	if fp, ok := e.ep["fingerprint"].(string); ok && fp != "" {
 		params["fp"] = fp
 	}
+	if hostX25519Only(e.ep) {
+		delete(params, "support-x25519mlkem768")
+	}
+}
+
+// hostX25519Only reports whether a host asks Mihomo for a plain X25519 reality
+// hello instead of the ML-KEM one Xray-core 26.9.8+ requires.
+func hostX25519Only(ep map[string]any) bool {
+	v, _ := ep["mihomoX25519"].(bool)
+	return v
 }
 
 // applyEndpointAllowInsecure adds allowInsecure=1 to a TLS/Reality link when the

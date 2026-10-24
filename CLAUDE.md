@@ -63,7 +63,7 @@ file locations when it can answer in one hop.
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.
-  - `locale/` + `translation/` — i18n, 13 embedded locale JSON files.
+  - `locale/` + `translation/` — i18n, 14 embedded locale JSON files.
 - `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
   into `frontend/src/generated/` from Go structs. The OpenAPI doc itself
@@ -102,12 +102,13 @@ file locations when it can answer in one hop.
   never hand-write them. A new struct must be added to openapigen's `StructAllow`
   allowlist (`tools/openapigen/main.go`) or it is silently omitted from
   schemas/examples (and `build-openapi.mjs` then fails on the missing schema).
-- A new or renamed endpoint has a FOURTH step nothing checks: copy
+- A new or renamed endpoint has a FOURTH step: copy
   `frontend/public/openapi.json` → `docs/public/openapi.json`, then
   `cd docs && pnpm gen:api` to refresh the MDX under
-  `docs/content/docs/en/reference/api/`. `docs-ci.yml` fires only on `docs/**`.
+  `docs/content/docs/en/reference/api/`. The `codegen` job and `make verify`
+  fail on a stale copy, and `docs-ci.yml` fails on stale MDX.
 - A new English i18n key goes in EVERY locale JSON in `internal/web/translation/`
-  (13 files) AND must be referenced from `frontend/src` or Go in the SAME commit —
+  (14 files) AND must be referenced from `frontend/src` or Go in the SAME commit —
   `frontend/src/test/i18n-dead-keys.test.ts` fails both ways. It is a frontend
   test, so run `npm test`, not just `make test-go`. At runtime the frontend falls
   back to en-US; Go (`internal/web/locale/`) returns "" for an unknown key.
@@ -189,7 +190,7 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
 `make` Go target already depends on it, which is why `make test-go` beats
 `go test ./...`. Run `make help` for all targets. The local gate:
 
-    make verify   # gen-check + lint + typecheck + test + build + build-storybook
+    make verify   # gen-check + lint + typecheck + test + build + build-storybook + docs-openapi-check
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
 `make vulncheck`, a live-Postgres job (where a SKIP counts as a failure),

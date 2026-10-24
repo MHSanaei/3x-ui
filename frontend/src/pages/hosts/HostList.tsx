@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Popover, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -8,11 +8,13 @@ import {
   DeleteOutlined,
   EditOutlined,
   GlobalOutlined,
+  HolderOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 
 import type { HostRecord } from '@/api/queries/useHostsQuery';
 import type { InboundOption } from '@/schemas/client';
+import { usePointerRowReorder, type PointerRowDrop } from '@/hooks/usePointerRowReorder';
 import './HostList.css';
 
 interface HostListProps {
@@ -27,6 +29,8 @@ interface HostListProps {
   onDelete: (host: HostRecord) => void;
   onToggleEnable: (host: HostRecord, next: boolean) => void;
   onMove: (host: HostRecord, dir: 'up' | 'down') => void;
+  onReorder: (groupIds: string[]) => void;
+  reordering?: boolean;
   onBulkEnable: (enable: boolean) => void;
   onBulkDelete: () => void;
 }
@@ -52,8 +56,17 @@ export function sortHosts(hosts: HostRecord[]): HostRecord[] {
     const sa = a.sortOrder ?? 0;
     const sb = b.sortOrder ?? 0;
     if (sa !== sb) return sa - sb;
-    return (a.remark || '').localeCompare(b.remark || '');
+    const ar = a.remark || '';
+    const br = b.remark || '';
+    if (ar !== br) return ar < br ? -1 : 1;
+    return a.groupId < b.groupId ? -1 : a.groupId > b.groupId ? 1 : 0;
   });
+}
+
+function hostDropDestination(keys: string[], { from, to, after }: PointerRowDrop<string>) {
+  const source = keys.indexOf(from);
+  const slot = keys.indexOf(to) + (after ? 1 : 0);
+  return slot - (source < slot ? 1 : 0);
 }
 
 export default function HostList(props: HostListProps) {
@@ -70,6 +83,8 @@ export default function HostList(props: HostListProps) {
     onDelete,
     onToggleEnable,
     onMove,
+    onReorder,
+    reordering,
     onBulkEnable,
     onBulkDelete,
   } = props;
@@ -81,23 +96,47 @@ export default function HostList(props: HostListProps) {
   }, [inboundOptions]);
 
   const sorted = useMemo(() => sortHosts(hosts), [hosts]);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const keys = sorted.map((h) => h.groupId);
+  const { drag, onPointerDown: onHandlePointerDown } = usePointerRowReorder({
+    containerRef: tableRef,
+    getRowKey: (row) => keys.find((key) => key === row.dataset.rowKey) ?? null,
+    disabled: reordering || loading,
+    isNoop: (drop) => keys.indexOf(drop.from) === hostDropDestination(keys, drop),
+    onDrop: (drop) => {
+      const ids = [...keys];
+      const destination = hostDropDestination(keys, drop);
+      ids.splice(ids.indexOf(drop.from), 1);
+      ids.splice(destination, 0, drop.from);
+      onReorder(ids);
+    },
+  });
 
   const columns: ColumnsType<HostRecord> = [
     {
       title: t('pages.hosts.fields.actions'),
       key: 'actions',
-      width: 168,
+      width: 196,
       render: (_, h, idx) => {
         const count = sorted.length;
         return (
           <Space size={2}>
+            <Button
+              size="small"
+              type="text"
+              className="host-drag-handle"
+              icon={<HolderOutlined aria-hidden />}
+              aria-label={t('pages.hosts.dragToReorder', { name: h.remark || h.groupId })}
+              disabled={reordering || loading}
+              onPointerDown={(event) => onHandlePointerDown(h.groupId, event)}
+            />
             <Tooltip title={t('pages.hosts.moveUp')}>
               <Button
                 size="small"
                 type="text"
-                icon={<ArrowUpOutlined />}
+                icon={<ArrowUpOutlined aria-hidden />}
                 aria-label={t('pages.hosts.moveUp')}
-                disabled={idx === 0}
+                disabled={reordering || loading || idx === 0}
                 onClick={() => onMove(h, 'up')}
               />
             </Tooltip>
@@ -105,9 +144,9 @@ export default function HostList(props: HostListProps) {
               <Button
                 size="small"
                 type="text"
-                icon={<ArrowDownOutlined />}
+                icon={<ArrowDownOutlined aria-hidden />}
                 aria-label={t('pages.hosts.moveDown')}
-                disabled={idx >= count - 1}
+                disabled={reordering || loading || idx >= count - 1}
                 onClick={() => onMove(h, 'down')}
               />
             </Tooltip>
@@ -115,7 +154,7 @@ export default function HostList(props: HostListProps) {
               <Button
                 size="small"
                 type="text"
-                icon={<EditOutlined />}
+                icon={<EditOutlined aria-hidden />}
                 aria-label={t('edit')}
                 onClick={() => onEdit(h)}
               />
@@ -125,7 +164,7 @@ export default function HostList(props: HostListProps) {
                 size="small"
                 type="text"
                 danger
-                icon={<DeleteOutlined />}
+                icon={<DeleteOutlined aria-hidden />}
                 aria-label={t('delete')}
                 onClick={() => onDelete(h)}
               />
@@ -139,7 +178,12 @@ export default function HostList(props: HostListProps) {
       key: 'enable',
       width: 90,
       render: (_, h) => (
-        <Switch size="small" checked={!h.isDisabled} onChange={(next) => onToggleEnable(h, next)} />
+        <Switch
+          size="small"
+          checked={!h.isDisabled}
+          aria-label={t('pages.hosts.fields.enable')}
+          onChange={(next) => onToggleEnable(h, next)}
+        />
       ),
     },
     {
@@ -276,7 +320,7 @@ export default function HostList(props: HostListProps) {
   const toolbar = (
     <div className="card-toolbar">
       {selectedGroupIds.length === 0 ? (
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+        <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={onAdd}>
           {!isMobile && t('pages.hosts.addHost')}
         </Button>
       ) : (
@@ -291,7 +335,7 @@ export default function HostList(props: HostListProps) {
           </Tag>
           <Button onClick={() => onBulkEnable(true)}>{t('pages.hosts.bulkEnable')}</Button>
           <Button onClick={() => onBulkEnable(false)}>{t('pages.hosts.bulkDisable')}</Button>
-          <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
+          <Button danger icon={<DeleteOutlined aria-hidden />} onClick={onBulkDelete}>
             {t('pages.hosts.bulkDelete')}
           </Button>
         </>
@@ -300,7 +344,7 @@ export default function HostList(props: HostListProps) {
   );
 
   return (
-    <Card size="small" hoverable title={toolbar} className="hosts-card">
+    <Card size="small" hoverable title={toolbar} className="hosts-card" ref={tableRef}>
       <Table<HostRecord>
         rowKey="groupId"
         size="small"
@@ -308,6 +352,12 @@ export default function HostList(props: HostListProps) {
         columns={columns}
         dataSource={sorted}
         pagination={false}
+        rowClassName={(h) =>
+          [
+            drag?.from === h.groupId ? 'host-dragging' : '',
+            drag?.to === h.groupId ? (drag.after ? 'host-drop-after' : 'host-drop-before') : '',
+          ].join(' ')
+        }
         scroll={{ x: 'max-content' }}
         rowSelection={{
           selectedRowKeys: selectedGroupIds,
@@ -316,7 +366,7 @@ export default function HostList(props: HostListProps) {
         locale={{
           emptyText: (
             <div className="card-empty">
-              <GlobalOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+              <GlobalOutlined aria-hidden style={{ fontSize: 32, marginBottom: 8 }} />
               <div>{t('noData')}</div>
             </div>
           ),

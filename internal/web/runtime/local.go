@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
@@ -19,8 +22,9 @@ import (
 )
 
 type LocalDeps struct {
-	APIPort        func() int
-	SetNeedRestart func()
+	APIPort          func() int
+	SetNeedRestart   func()
+	RequestReconcile func()
 }
 
 type Local struct {
@@ -42,12 +46,22 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 	if port <= 0 {
 		return errors.New("local xray is not running")
 	}
-	var api xray.XrayAPI
-	if err := api.Init(port); err != nil {
+	api, err := localAPIForPort(port)
+	if err != nil {
 		return err
 	}
-	defer api.Close()
-	return fn(&api)
+	err = fn(api)
+	if status.Code(err) != codes.Unavailable {
+		return err
+	}
+	// A pooled channel keeps grpc-go's reconnect backoff after a core restart and fails fast for
+	// seconds; drop it and dial again, as a client per call did.
+	evictLocalAPIClient(api)
+	api, err = localAPIForPort(port)
+	if err != nil {
+		return err
+	}
+	return fn(api)
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
@@ -80,8 +94,8 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 			return nil
 		}
 		err := tuic.GetManager().Ensure(inst)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return err
 	}
@@ -111,8 +125,8 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.TUIC {
 		tuic.GetManager().Remove(ib.Id)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return nil
 	}
@@ -233,11 +247,12 @@ func removeAmneziaWG(id int) {
 }
 
 func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	// Account changes also need the generated Xray SOCKS relay refreshed after commit.
+	if l.deps.RequestReconcile != nil {
+		l.deps.RequestReconcile()
+	}
 	if oldIb.Protocol == model.TUIC && newIb.Protocol != model.TUIC {
 		tuic.GetManager().Remove(oldIb.Id)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
 		if !newIb.Enable {
 			return nil
 		}
@@ -245,24 +260,10 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 	}
 	if oldIb.Protocol != model.TUIC {
 		_ = l.DelInbound(ctx, oldIb)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
-	}
-	if oldIb.Protocol == model.TUIC && newIb.Protocol == model.TUIC && oldIb.Enable && newIb.Enable && oldIb.Tag != newIb.Tag && l.deps.SetNeedRestart != nil {
-		l.deps.SetNeedRestart()
 	}
 	if !newIb.Enable {
 		tuic.GetManager().Remove(newIb.Id)
-		if oldIb.Enable && l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
 		return nil
-	}
-	if !oldIb.Enable && newIb.Enable {
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
 	}
 	inst, ok := tuic.InstanceFromInbound(newIb)
 	if !ok {
@@ -273,7 +274,13 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
-	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.TUIC {
+	if ib.Protocol == model.TUIC {
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
+		}
+		return nil
+	}
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -282,7 +289,13 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
-	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG || ib.Protocol == model.TUIC {
+	if ib.Protocol == model.TUIC {
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
+		}
+		return nil
+	}
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

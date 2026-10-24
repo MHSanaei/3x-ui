@@ -227,18 +227,23 @@ export default function IndexPage() {
 
                   <div className="ov-vitals">
                     <VitalTile
-                      icon={<DashboardOutlined />}
+                      icon={<DashboardOutlined aria-hidden />}
                       label={t('pages.index.cpu')}
+                      available={status.metricAvailable('cpu')}
                       percent={status.cpu.percent}
                       statusColor={status.cpu.color}
-                      detail={`${CPUFormatter.cpuCoreFormat(status.cpuCores)} / ${status.logicalPro}T · ${CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}`}
+                      detail={
+                        status.resourceScope === 'container'
+                          ? `${status.logicalPro} vCPU`
+                          : `${CPUFormatter.cpuCoreFormat(status.cpuCores)} / ${status.logicalPro}T · ${CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}`
+                      }
                       footLeft={`${t('pages.index.avg')} ${mean(history.series.cpu).toFixed(0)}%`}
                       footRight={`${t('pages.index.peak')} ${peak(history.series.cpu).toFixed(0)}%`}
                       data={history.series.cpu}
                       isMobile={isMobile}
                     />
                     <VitalTile
-                      icon={<DatabaseOutlined />}
+                      icon={<DatabaseOutlined aria-hidden />}
                       label={t('pages.index.memory')}
                       percent={status.mem.percent}
                       statusColor={status.mem.color}
@@ -249,8 +254,9 @@ export default function IndexPage() {
                       isMobile={isMobile}
                     />
                     <VitalTile
-                      icon={<SwapOutlined />}
+                      icon={<SwapOutlined aria-hidden />}
                       label={t('pages.index.swap')}
+                      available={status.metricAvailable('swap')}
                       percent={status.swap.percent}
                       statusColor={status.swap.color}
                       detail={`${SizeFormatter.sizeFormat(status.swap.current)} / ${SizeFormatter.sizeFormat(status.swap.total)}`}
@@ -260,7 +266,7 @@ export default function IndexPage() {
                       isMobile={isMobile}
                     />
                     <VitalTile
-                      icon={<HddOutlined />}
+                      icon={<HddOutlined aria-hidden />}
                       label={t('pages.index.storage')}
                       percent={status.disk.percent}
                       statusColor={status.disk.color}
@@ -358,7 +364,7 @@ export default function IndexPage() {
                 key="download"
                 onClick={downloadConfig}
                 size={isMobile ? 'small' : 'middle'}
-                icon={<CloudDownloadOutlined />}
+                icon={<CloudDownloadOutlined aria-hidden />}
               >
                 {isMobile ? 'Download' : 'config.json'}
               </Button>,
@@ -367,7 +373,7 @@ export default function IndexPage() {
                 type="primary"
                 onClick={copyConfig}
                 size={isMobile ? 'small' : 'middle'}
-                icon={<CopyOutlined />}
+                icon={<CopyOutlined aria-hidden />}
               >
                 Copy
               </Button>,

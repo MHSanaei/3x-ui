@@ -47,7 +47,7 @@ func registeredContractRoutes(t *testing.T) map[string]bool {
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	previous := global.GetWebServer()
-	s := NewServer()
+	s := NewServer(nil)
 	s.cron = cron.New(cron.WithLocation(time.Local), cron.WithSeconds())
 	global.SetWebServer(s)
 	t.Cleanup(func() {
