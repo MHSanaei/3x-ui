@@ -381,7 +381,6 @@ func (s *AllSetting) CheckValid() error {
 		}
 	}
 
-
 	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {
 		return err
 	}

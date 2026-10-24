@@ -143,4 +143,3 @@ func TestCheckValidXrayPeriodicRestart(t *testing.T) {
 		}
 	}
 }
-

@@ -35,4 +35,3 @@ func (j *XrayPeriodicRestartJob) Run() {
 		logger.Info("Scheduled periodic Xray restart completed successfully")
 	}
 }
-
