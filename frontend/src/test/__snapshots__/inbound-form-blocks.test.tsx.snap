@@ -34,8 +34,9 @@ exports[`inbound security forms > TlsForm field structure is stable 1`] = `
   "Digital Certificate",
   "Master Key Log",
   "ECH Sockopt",
+  "ECH config list",
+  "Preset combination",
   "ECH key",
-  "ECH config",
   "Pinned Peer Cert SHA-256",
   "Verify Peer Cert By Name",
 ]

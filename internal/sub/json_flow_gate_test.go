@@ -51,7 +51,7 @@ func TestSub_JSONStripsFlowOnUnsupportedTransport(t *testing.T) {
 		t.Fatalf("raw link must not carry a flow on ws+tls: %s", joined)
 	}
 
-	clash := NewSubClashService(false, "", NewSubService(""))
+	clash := NewSubClashService(false, "", false, NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)

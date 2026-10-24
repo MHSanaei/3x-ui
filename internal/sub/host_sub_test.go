@@ -3,10 +3,13 @@ package sub
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
@@ -260,7 +263,7 @@ func TestSub_HostAllowInsecure(t *testing.T) {
 		t.Fatalf("raw link should carry allowInsecure=1: %s", strings.Join(links, "\n"))
 	}
 
-	clash := NewSubClashService(false, "", NewSubService(""))
+	clash := NewSubClashService(false, "", false, NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
@@ -281,7 +284,7 @@ func TestSub_HostHeaderReachesClashAndJson(t *testing.T) {
 		HostHeader: "cdn.example.com", Path: "/ws-path",
 	})
 
-	clash := NewSubClashService(false, "", NewSubService(""))
+	clash := NewSubClashService(false, "", false, NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
@@ -507,12 +510,234 @@ func TestSub_HostRealitySniJSONAndClash(t *testing.T) {
 		t.Fatalf("server-side serverNames %v leaked into the json reality client:\n%s", names, out)
 	}
 
-	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}
 	if !strings.Contains(yaml, "servername: host.reality.com") {
 		t.Fatalf("clash proxy should carry the host's SNI:\n%s", yaml)
+	}
+}
+
+// A reality host's fingerprint must reach JSON and Clash like it reaches the raw
+// link; otherwise one host gets fp=firefox in vless:// but chrome in Clash.
+func TestSub_HostRealityFingerprintJSONAndClash(t *testing.T) {
+	seedSubDB(t)
+	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+	ib := seedSubInbound(t, "s1", "rlf", 4492, 1, realityStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "RLF", Address: "rl.cdn.com", Port: 8443,
+		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
+	})
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("a single-config subscription should be one JSON object: %v\n%s", err, out)
+	}
+	if got := proxyRealitySettings(t, doc)["fingerprint"]; got != "firefox" {
+		t.Fatalf("json reality fingerprint = %v, want the host's firefox", got)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(yaml, "client-fingerprint: firefox") {
+		t.Fatalf("clash proxy should carry the host's fingerprint:\n%s", yaml)
+	}
+}
+
+// Hosts of one inbound render from per-host copies of the same stream; a host
+// that leaves an override blank must get the inbound's value, not the previous host's.
+func TestSub_HostBlankOverridesDoNotLeakBetweenHosts(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		stream    string
+		first     model.Host
+		clashWant map[string]string
+		jsonField func(stream map[string]any) any
+		jsonWant  any
+	}{
+		{
+			name:      "reality fingerprint and sni",
+			stream:    mihomoRealityStream,
+			first:     model.Host{Security: "reality", Sni: "a.reality.com", Fingerprint: "firefox"},
+			clashWant: map[string]string{"client-fingerprint": "chrome", "servername": "base.reality.com"},
+			jsonField: func(stream map[string]any) any {
+				rs, _ := stream["realitySettings"].(map[string]any)
+				return rs["fingerprint"]
+			},
+			jsonWant: "chrome",
+		},
+		{
+			name:      "ws host header and path",
+			stream:    wsTLSStream,
+			first:     model.Host{Security: "tls", HostHeader: "a.host", Path: "/a"},
+			clashWant: map[string]string{"ws-opts.path": "/base", "ws-opts.headers.Host": "base.host"},
+			jsonField: func(stream map[string]any) any {
+				ws, _ := stream["wsSettings"].(map[string]any)
+				return ws["path"]
+			},
+			jsonWant: "/base",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			ib := seedSubInbound(t, "s1", "lk", 4494, 1, tc.stream)
+			first := tc.first
+			first.InboundId, first.SortOrder, first.Remark, first.Address, first.Port = ib.Id, 0, "A", "a.cdn.com", 443
+			seedHost(t, &first)
+			seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "B", Address: "b.cdn.com", Port: 443, Security: tc.first.Security})
+
+			out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+			if err != nil {
+				t.Fatalf("GetClash: %v", err)
+			}
+			second := clashProxyByServer(t, out, "b.cdn.com")
+			for field, want := range tc.clashWant {
+				if got := lookupPath(second, field); got != want {
+					t.Errorf("host B clash %s = %v, want the inbound's %q", field, got, want)
+				}
+			}
+
+			out, _, err = NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+			if err != nil {
+				t.Fatalf("GetJson: %v", err)
+			}
+			var configs []map[string]any
+			if err := json.Unmarshal([]byte(out), &configs); err != nil || len(configs) != 2 {
+				t.Fatalf("want one JSON config per host, got err=%v:\n%s", err, out)
+			}
+			if got := tc.jsonField(proxyStreamSettings(t, configs[1])); got != tc.jsonWant {
+				t.Errorf("host B json value = %v, want the inbound's %v", got, tc.jsonWant)
+			}
+		})
+	}
+}
+
+func clashProxyByServer(t *testing.T, out, server string) map[string]any {
+	t.Helper()
+	var config struct {
+		Proxies []map[string]any `yaml:"proxies"`
+	}
+	if err := yaml.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("decode Clash YAML: %v\n%s", err, out)
+	}
+	for _, proxy := range config.Proxies {
+		if proxy["server"] == server {
+			return proxy
+		}
+	}
+	t.Fatalf("no clash proxy for %s in:\n%s", server, out)
+	return nil
+}
+
+func lookupPath(m map[string]any, path string) any {
+	var cur any = m
+	for _, key := range strings.Split(path, ".") {
+		next, _ := cur.(map[string]any)
+		cur = next[key]
+	}
+	return cur
+}
+
+func proxyStreamSettings(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	outbounds, _ := doc["outbounds"].([]any)
+	for _, ob := range outbounds {
+		outbound, _ := ob.(map[string]any)
+		if outbound["tag"] == "proxy" {
+			stream, _ := outbound["streamSettings"].(map[string]any)
+			return stream
+		}
+	}
+	t.Fatalf("no proxy outbound in %v", doc)
+	return nil
+}
+
+const mihomoRealityStream = `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+
+// seedMihomoX25519Hosts puts a default host and a "Mihomo X25519" host on one
+// reality inbound, so each test proves the toggle is per host, not per inbound.
+func seedMihomoX25519Hosts(t *testing.T) {
+	t.Helper()
+	ib := seedSubInbound(t, "s1", "mx", 4493, 1, mihomoRealityStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "PQ", Address: "pq.cdn.com", Port: 443})
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "CLASSIC", Address: "classic.cdn.com", Port: 443, MihomoX25519: true})
+}
+
+// Servers on Xray-core < 26.9.8 do not need ML-KEM, and a two-segment ML-KEM
+// ClientHello is what some DPI drops; the host toggle must turn it off in Clash.
+func TestSub_HostMihomoX25519Clash(t *testing.T) {
+	seedSubDB(t)
+	seedMihomoX25519Hosts(t)
+
+	out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	var config struct {
+		Proxies []struct {
+			Server      string `yaml:"server"`
+			RealityOpts struct {
+				MLKEM *bool `yaml:"support-x25519mlkem768"`
+			} `yaml:"reality-opts"`
+		} `yaml:"proxies"`
+	}
+	if err := yaml.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("decode Clash YAML: %v\n%s", err, out)
+	}
+	want := map[string]bool{"pq.cdn.com": true, "classic.cdn.com": false}
+	for _, proxy := range config.Proxies {
+		mlkem, ok := want[proxy.Server]
+		if !ok {
+			continue
+		}
+		if got := proxy.RealityOpts.MLKEM; got == nil || *got != mlkem {
+			t.Errorf("%s: support-x25519mlkem768 = %s, want %v\n%s", proxy.Server, fmtOptBool(got), mlkem, out)
+		}
+		delete(want, proxy.Server)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing host proxies %v in:\n%s", want, out)
+	}
+}
+
+func fmtOptBool(b *bool) string {
+	if b == nil {
+		return "absent"
+	}
+	return fmt.Sprint(*b)
+}
+
+// Mihomo also reads the ML-KEM hint from imported vless:// links (#6712), so a
+// "Mihomo X25519" host must not carry it there either.
+func TestSub_HostMihomoX25519RawLink(t *testing.T) {
+	seedSubDB(t)
+	seedMihomoX25519Hosts(t)
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	var pq, classic string
+	for _, link := range strings.Split(strings.Join(links, "\n"), "\n") {
+		switch {
+		case strings.Contains(link, "@pq.cdn.com:443"):
+			pq = link
+		case strings.Contains(link, "@classic.cdn.com:443"):
+			classic = link
+		}
+	}
+	if !strings.Contains(pq, "support-x25519mlkem768=true") {
+		t.Fatalf("default host must keep the ML-KEM hint: %q", pq)
+	}
+	if classic == "" || strings.Contains(classic, "support-x25519mlkem768") {
+		t.Fatalf("Mihomo X25519 host must drop the ML-KEM hint: %q", classic)
 	}
 }
 
@@ -551,7 +776,7 @@ func TestSub_ExcludeFromSubTypes(t *testing.T) {
 		t.Fatalf("host not excluded from raw should appear in GetSubs")
 	}
 
-	clash := NewSubClashService(false, "", NewSubService(""))
+	clash := NewSubClashService(false, "", false, NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
@@ -662,5 +887,115 @@ func TestSub_HostTLSVerificationJSONAtXrayLevel(t *testing.T) {
 		if _, ok := tls[key]; ok {
 			t.Errorf("tlsSettings.%s must not reach xray: %#v", key, tls)
 		}
+	}
+}
+
+func TestSub_HostCIDR_RawLinks(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-raw", 4462, 1,
+		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"sni.example.com"}}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "IPv6Node",
+		Address:     "2a01:4f8:1c1b:729::/64",
+		Port:        8443,
+		Security:    "tls",
+		RandomCount: 3,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 3 {
+		t.Fatalf("len(parts) = %d, want 3", len(parts))
+	}
+
+	_, ipNet, _ := net.ParseCIDR("2a01:4f8:1c1b:729::/64")
+	seenIPs := make(map[string]struct{}, len(parts))
+
+	for i, link := range parts {
+		wantRemark := fmt.Sprintf("IPv6Node%%20-%%20%d", i+1)
+		if !strings.Contains(link, wantRemark) {
+			t.Errorf("link[%d] does not contain expected remark %q: %s", i, wantRemark, link)
+		}
+
+		atIdx := strings.Index(link, "@")
+		colonIdx := strings.LastIndex(link, ":8443")
+		if atIdx == -1 || colonIdx == -1 || colonIdx <= atIdx {
+			t.Fatalf("malformed link host: %s", link)
+		}
+		rawAddr := strings.Trim(link[atIdx+1:colonIdx], "[]")
+		parsed := net.ParseIP(rawAddr)
+		if parsed == nil || !ipNet.Contains(parsed) {
+			t.Errorf("link[%d] IP %q not inside 2a01:4f8:1c1b:729::/64", i, rawAddr)
+		}
+		if _, dup := seenIPs[rawAddr]; dup {
+			t.Errorf("duplicate IP %q emitted across links", rawAddr)
+		}
+		seenIPs[rawAddr] = struct{}{}
+	}
+}
+
+func TestSub_HostCIDR_SingleCountKeepsBaseRemark(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-single", 4463, 1,
+		`{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "SingleCIDR",
+		Address:     "198.51.100.0/24",
+		Port:        8080,
+		Security:    "none",
+		RandomCount: 1,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 1 {
+		t.Fatalf("len(parts) = %d, want 1", len(parts))
+	}
+	if strings.Contains(parts[0], "SingleCIDR - 1") {
+		t.Errorf("count=1 must not append index suffix: %s", parts[0])
+	}
+	if !strings.Contains(parts[0], "SingleCIDR") {
+		t.Errorf("link does not contain base remark: %s", parts[0])
+	}
+}
+
+func TestSub_HostCIDR_ClashAndJson(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-clash", 4464, 1,
+		`{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "V4Node",
+		Address:     "203.0.113.0/24",
+		Port:        8080,
+		Security:    "none",
+		RandomCount: 2,
+	})
+
+	clashYaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(clashYaml, "V4Node - 1") || !strings.Contains(clashYaml, "V4Node - 2") {
+		t.Errorf("Clash YAML should contain numbered host proxies: %s", clashYaml)
+	}
+
+	jsonDoc, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(jsonDoc, "V4Node - 1") || !strings.Contains(jsonDoc, "V4Node - 2") {
+		t.Errorf("JSON config should contain numbered host outbounds: %s", jsonDoc)
 	}
 }

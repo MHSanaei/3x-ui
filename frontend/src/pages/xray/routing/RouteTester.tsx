@@ -124,7 +124,7 @@ export default function RouteTester({ inboundTags, isMobile }: RouteTesterProps)
         <Col xs={fieldSpan} sm={3}>
           <Button
             type="primary"
-            icon={<AimOutlined />}
+            icon={<AimOutlined aria-hidden />}
             loading={testing}
             disabled={!dest.trim()}
             onClick={run}

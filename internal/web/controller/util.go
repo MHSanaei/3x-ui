@@ -22,22 +22,41 @@ func getRemoteIp(c *gin.Context) string {
 	if !ok {
 		return "unknown"
 	}
-
-	if isTrustedProxy(remoteIP) {
-		if ip, ok := extractTrustedIP(c.GetHeader("X-Real-IP")); ok {
-			return ip
-		}
-
-		if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-			for part := range strings.SplitSeq(xff, ",") {
-				if ip, ok := extractTrustedIP(part); ok {
-					return ip
-				}
-			}
-		}
+	if !isTrustedProxy(remoteIP) {
+		return remoteIP
 	}
 
+	realIP, hasRealIP := extractTrustedIP(c.GetHeader("X-Real-IP"))
+	forwardedIP, hasForwarded := forwardedForClient(c.GetHeader("X-Forwarded-For"))
+	switch {
+	case hasRealIP && hasForwarded && realIP != forwardedIP:
+		// A proxy rewrites at most one of the two, so the other is the client's
+		// own claim; neither may pick the identity the login limiter keys on.
+		return remoteIP
+	case hasForwarded:
+		return forwardedIP
+	case hasRealIP:
+		return realIP
+	}
 	return remoteIP
+}
+
+// forwardedForClient walks X-Forwarded-For from the proxy end: entries a client sent
+// come first, so the first hop that is not a trusted proxy is the address one saw.
+func forwardedForClient(xff string) (string, bool) {
+	parts := strings.Split(xff, ",")
+	client := ""
+	for i := len(parts) - 1; i >= 0; i-- {
+		ip, ok := extractTrustedIP(parts[i])
+		if !ok {
+			break
+		}
+		client = ip
+		if !isTrustedProxy(ip) {
+			break
+		}
+	}
+	return client, client != ""
 }
 
 func isTrustedForwardedRequest(c *gin.Context) bool {

@@ -49,8 +49,13 @@ export function FormField<T extends FieldValues = FieldValues>({
   const { t } = useTranslation();
   const dottedName = toDotted(name) as Path<T>;
   const generatedId = useId();
-  const explicitId = (children as ReactElement<{ id?: string }>).props.id;
-  const fieldId = explicitId ?? generatedId;
+  const hintId = useId();
+  const childOwnProps = (children as ReactElement<{ id?: string; 'aria-describedby'?: string }>)
+    .props;
+  const fieldId = childOwnProps.id ?? generatedId;
+  const describedBy = tooltip
+    ? [childOwnProps['aria-describedby'], hintId].filter(Boolean).join(' ')
+    : undefined;
 
   return (
     <Controller
@@ -74,6 +79,7 @@ export function FormField<T extends FieldValues = FieldValues>({
           onBlur: field.onBlur,
           ref: field.ref,
         };
+        if (describedBy) childProps['aria-describedby'] = describedBy;
         return (
           <Form.Item
             label={label}
@@ -88,6 +94,12 @@ export function FormField<T extends FieldValues = FieldValues>({
             style={style}
           >
             {cloneElement(children as ReactElement<Record<string, unknown>>, childProps)}
+            {/* The tooltip only opens on hover, so screen readers get its text as a description. */}
+            {tooltip && (
+              <span id={hintId} hidden>
+                {tooltip}
+              </span>
+            )}
           </Form.Item>
         );
       }}

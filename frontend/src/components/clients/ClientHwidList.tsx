@@ -44,7 +44,12 @@ export default function ClientHwidListModal({
       zIndex={zIndex}
       onCancel={onClose}
       footer={[
-        <Button key="refresh" icon={<ReloadOutlined />} loading={loading} onClick={onRefresh}>
+        <Button
+          key="refresh"
+          icon={<ReloadOutlined aria-hidden />}
+          loading={loading}
+          onClick={onRefresh}
+        >
           {t('refresh')}
         </Button>,
         <Popconfirm
@@ -122,7 +127,7 @@ export default function ClientHwidListModal({
                   type="text"
                   size="small"
                   aria-label={t('pages.clients.deleteHwid')}
-                  icon={<DeleteOutlined />}
+                  icon={<DeleteOutlined aria-hidden />}
                   loading={deletingId === entry.id}
                 />
               </Popconfirm>
