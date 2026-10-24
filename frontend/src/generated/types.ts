@@ -1066,6 +1066,13 @@ export interface SubBalancer {
   updatedAt: number;
 }
 
+export interface TgBotCapabilities {
+  groupPrivacy: boolean;
+  inlineEnabled: boolean;
+  running: boolean;
+  username: string;
+}
+
 export interface Traffic {
   Down: number;
   IsInbound: boolean;
