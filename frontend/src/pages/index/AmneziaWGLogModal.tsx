@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Empty, Form, Input, Modal, Select, Tag } from 'antd';
 import { DownloadOutlined, SyncOutlined } from '@ant-design/icons';
@@ -30,6 +30,7 @@ function shortTime(value?: number): string {
 
 export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const { datepicker } = useDatepicker();
   const { isMobile } = useMediaQuery();
   const [rows, setRows] = useState('50');
@@ -120,6 +121,7 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
       <Form layout="inline" className="log-toolbar">
         <Form.Item>
           <Select
+            aria-label={t('pages.index.logLines')}
             value={rows}
             size="small"
             style={{ width: 100 }}
@@ -132,8 +134,9 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
             ]}
           />
         </Form.Item>
-        <Form.Item label={t('filter')} className="filter-item">
+        <Form.Item htmlFor={`${uid}-filter`} label={t('filter')} className="filter-item">
           <Input
+            id={`${uid}-filter`}
             value={filter}
             size="small"
             onChange={(e) => setFilter(e.target.value)}
@@ -151,7 +154,7 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
           <Button
             type="primary"
             onClick={download}
-            icon={<DownloadOutlined />}
+            icon={<DownloadOutlined aria-hidden />}
             aria-label={t('download')}
           />
         </Form.Item>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -74,6 +74,7 @@ const TFA_INITIAL: TfaState = {
 
 export default function SecurityTab({ allSetting, updateSetting, saveSetting }: SecurityTabProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -308,7 +309,11 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
         items={[
           {
             key: '1',
-            label: catTabLabel(<UserOutlined />, t('pages.settings.security.admin'), isMobile),
+            label: catTabLabel(
+              <UserOutlined aria-hidden />,
+              t('pages.settings.security.admin'),
+              isMobile,
+            ),
             children: (
               <>
                 <SettingListItem paddings="small" title={t('pages.settings.oldUsername')}>
@@ -351,7 +356,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
           {
             key: '2',
             label: catTabLabel(
-              <SafetyOutlined />,
+              <SafetyOutlined aria-hidden />,
               t('pages.settings.security.twoFactor'),
               isMobile,
             ),
@@ -367,7 +372,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
           },
           {
             key: '3',
-            label: catTabLabel(<ApiOutlined />, t('pages.nodes.apiToken'), isMobile),
+            label: catTabLabel(<ApiOutlined aria-hidden />, t('pages.nodes.apiToken'), isMobile),
             children: (
               <div className="api-token-section">
                 <div className="api-token-header">
@@ -387,7 +392,9 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
                       <div className="api-token-row-head">
                         <div className="api-token-name-wrap">
                           <div className="api-token-name-line">
-                            <span className="api-token-name">{row.name}</span>
+                            <span id={`${uid}-token-${row.id}`} className="api-token-name">
+                              {row.name}
+                            </span>
                             <Tag color={scopeMeta[row.scope].color}>
                               {scopeMeta[row.scope].label}
                             </Tag>
@@ -399,6 +406,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
                         <div className="api-token-actions">
                           <Switch
                             size="small"
+                            aria-labelledby={`${uid}-token-${row.id}`}
                             checked={row.enabled}
                             onChange={() => toggleTokenEnabled(row)}
                           />
@@ -431,8 +439,13 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
         onCancel={() => setCreateOpen(false)}
       >
         <Form layout="vertical">
-          <Form.Item label={t('pages.settings.security.apiTokenName') || 'Name'} required>
+          <Form.Item
+            label={t('pages.settings.security.apiTokenName') || 'Name'}
+            htmlFor={`${uid}-tokenName`}
+            required
+          >
             <Input
+              id={`${uid}-tokenName`}
               value={createName}
               maxLength={64}
               placeholder={

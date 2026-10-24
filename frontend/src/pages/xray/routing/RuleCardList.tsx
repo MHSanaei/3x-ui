@@ -81,7 +81,7 @@ export default function RuleCardList({
                       key: 'edit',
                       label: (
                         <>
-                          <EditOutlined /> {t('edit')}
+                          <EditOutlined aria-hidden /> {t('edit')}
                         </>
                       ),
                       onClick: () => openEdit(index),
@@ -90,7 +90,7 @@ export default function RuleCardList({
                       key: 'up',
                       label: (
                         <>
-                          <ArrowUpOutlined /> {t('pages.inbounds.form.moveUp')}
+                          <ArrowUpOutlined aria-hidden /> {t('pages.inbounds.form.moveUp')}
                         </>
                       ),
                       disabled: index === 0,
@@ -100,7 +100,7 @@ export default function RuleCardList({
                       key: 'down',
                       label: (
                         <>
-                          <ArrowDownOutlined /> {t('pages.inbounds.form.moveDown')}
+                          <ArrowDownOutlined aria-hidden /> {t('pages.inbounds.form.moveDown')}
                         </>
                       ),
                       disabled: index === rows.length - 1,
@@ -111,7 +111,7 @@ export default function RuleCardList({
                       danger: true,
                       label: (
                         <>
-                          <DeleteOutlined /> {t('delete')}
+                          <DeleteOutlined aria-hidden /> {t('delete')}
                         </>
                       ),
                       onClick: () => confirmDelete(index),
@@ -122,12 +122,13 @@ export default function RuleCardList({
                 <Button
                   shape="circle"
                   size="small"
-                  icon={<MoreOutlined />}
+                  icon={<MoreOutlined aria-hidden />}
                   aria-label={t('more')}
                 />
               </Dropdown>
               <Switch
                 size="small"
+                aria-label={t('enable')}
                 checked={rule.enabled !== false}
                 onChange={(checked) => toggleRule(index, checked)}
                 disabled={isApiRule(rule)}
