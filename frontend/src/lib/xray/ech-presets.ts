@@ -53,7 +53,6 @@ export const DOH_ENDPOINT_GROUPS: readonly DohGroup[] = [
       { value: 'udp://208.67.220.220:443', brand: 'OpenDNS' },
       { value: 'udp://149.112.112.112:9953', brand: 'Quad9' },
       { value: 'udp://45.90.28.0:5353', brand: 'NextDNS' },
-      { value: 'udp://188.166.206.224:5001', brand: 'Tiarap' },
     ],
   },
 ] as const;
