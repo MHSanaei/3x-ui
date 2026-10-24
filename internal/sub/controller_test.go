@@ -857,3 +857,31 @@ func TestIncyRoutingIsolatedFromHappHeaders(t *testing.T) {
 		})
 	}
 }
+
+// Each route group serves live per-subscriber data; a group registered without the no-store
+// middleware lets a cache in front of the sub server hand out stale traffic and routing.
+func TestSubscriptionRouteGroupsAreNotCacheable(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "cache", 4482, 1, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+	oldDistFS := distFS
+	distFS = testDistFS
+	t.Cleanup(func() { distFS = oldDistFS })
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
+
+	for _, path := range []string{"/sub/s1", "/json/s1", "/clash/s1", "/mihomo/s1", "/clash-legacy/s1"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com"+path, nil)
+			req.Header.Set("User-Agent", "curl/8.0")
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+
+			if resp.Code == http.StatusNotFound {
+				t.Fatalf("route %s is not registered", path)
+			}
+			if cc := resp.Header().Get("Cache-Control"); !strings.Contains(cc, "no-store") {
+				t.Fatalf("Cache-Control = %q (status %d), want a no-store directive", cc, resp.Code)
+			}
+		})
+	}
+}
