@@ -81,10 +81,10 @@ type SubService struct {
 	// service (ForRequest copies the pointer). Only subscription bodies use
 	// it; panel-side link rendering bypasses the cache so admin edits reflect
 	// immediately.
-	snapshots *subSnapshotStore
-	hostsByInbound    map[int][]*model.Host
-	hostGroupOrders   map[string]hostEntryOrder
-	hostsFirst        bool
+	snapshots       *subSnapshotStore
+	hostsByInbound  map[int][]*model.Host
+	hostGroupOrders map[string]hostEntryOrder
+	hostsFirst      bool
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -746,7 +746,9 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 			return nil, err
 		}
 	} else {
-		inbounds, stats, err := s.snapshots.inboundsFor(subId, func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
+		var stats map[string]xray.ClientTraffic
+		var err error
+		inbounds, stats, err = s.snapshots.inboundsFor(subId, func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
 			inbounds, err := s.loadInboundsBySubId(subId)
 			if err != nil {
 				return nil, nil, err
