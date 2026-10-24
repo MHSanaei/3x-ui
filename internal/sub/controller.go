@@ -89,7 +89,7 @@ type SUBController struct {
 	subTemplateMu    sync.RWMutex
 	subTemplateCache map[string]*cachedSubTemplate
 
-	releaseSnapshots func()
+	releaseSettingsCache func()
 }
 
 type subControllerConfig struct {
@@ -284,9 +284,9 @@ func defaultSUBControllerConfig() subControllerConfig {
 	}
 }
 
-// Close unhooks the controller's snapshot cache from panel mutations.
+// Close unhooks the controller's settings cache from panel mutations.
 func (a *SUBController) Close() {
-	a.releaseSnapshots()
+	a.releaseSettingsCache()
 }
 
 // NewSUBController creates a new subscription controller with the given configuration.
@@ -297,7 +297,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
-	releaseSnapshots := sub.enableSnapshotCache()
+	releaseSettingsCache := sub.enableSettingsCache()
 	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	subJsonSvc.SetDnsConfig(config.subJsonDns)
@@ -334,8 +334,8 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subJsonService:  subJsonSvc,
 		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, config.subClashRemoteDNS, sub),
 
-		subTemplateCache: map[string]*cachedSubTemplate{},
-		releaseSnapshots: releaseSnapshots,
+		subTemplateCache:     map[string]*cachedSubTemplate{},
+		releaseSettingsCache: releaseSettingsCache,
 	}
 	a.initRouter(g)
 	return a
