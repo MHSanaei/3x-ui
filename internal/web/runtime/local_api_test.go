@@ -6,9 +6,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// The local core is reached over one gRPC connection. Opening one per
-// operation made a bulk client delete pay a TCP + HTTP/2 handshake per client,
-// so the client has to be pooled and kept open between calls.
+// A client per operation made a bulk delete pay a TCP + HTTP/2 handshake per client, so the local
+// runtime's client must stay open and be reused between calls.
 func TestLocalWithAPIKeepsTheClientOpen(t *testing.T) {
 	port := 63211
 	local := NewLocal(LocalDeps{APIPort: func() int { return port }})
