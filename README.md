@@ -111,6 +111,25 @@ zero prompts, generating random credentials and writing them to
 
 **Architectures:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
+### LXC monitoring
+
+With LXCFS, the dashboard reads swap and uptime from the virtualized `/proc` files.
+CPU usage is sampled from the container's unified cgroup v2 root and normalized
+by the visible vCPU count, capped by a readable CPU quota. The root must be
+verified against the mount and the container init membership. A first or invalid
+sample appears as `—`; zero swap remains a valid zero.
+
+The optional status API fields `resourceScope` and `unavailableMetrics` apply
+only to CPU, swap and uptime. CPU/swap history is kept separate from earlier
+host samples. RAM, load, disk and network metrics keep their existing sources.
+Node probes retain unavailable metric flags in heartbeat storage and API responses,
+so unavailable CPU is excluded from node history. The node list and Telegram/Discord
+uptime reports display `—` for unavailable values; measured zero remains valid.
+The normal database migration adds an optional node availability column. Existing
+rows and older node responses without these flags keep their previous semantics.
+Other container layouts, including cgroup v1 and Docker without LXCFS, are not
+covered by this correction. Limits hidden outside the namespace remain unknown.
+
 ## Database Options
 
 3X-UI supports two backends, chosen during the install:

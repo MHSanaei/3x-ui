@@ -864,9 +864,11 @@ type Node struct {
 	CpuPct        float64 `json:"cpuPct" example:"23.5"`
 	MemPct        float64 `json:"memPct" example:"45.1"`
 	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
-	NetUp         uint64  `json:"netUp" gorm:"column:net_up" example:"1048576"`
-	NetDown       uint64  `json:"netDown" gorm:"column:net_down" example:"2097152"`
-	LastError     string  `json:"lastError"`
+	// Nil on legacy rows and responses: zero remains a valid measured value.
+	UnavailableMetrics []string `json:"unavailableMetrics,omitempty" gorm:"serializer:json;column:unavailable_metrics"`
+	NetUp              uint64   `json:"netUp" gorm:"column:net_up" example:"1048576"`
+	NetDown            uint64   `json:"netDown" gorm:"column:net_down" example:"2097152"`
+	LastError          string   `json:"lastError"`
 
 	// XrayState and XrayError are captured from the remote node's /panel/api/server/status
 	// during heartbeats. They let the central panel distinguish "panel API reachable"
