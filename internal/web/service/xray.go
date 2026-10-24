@@ -1552,14 +1552,8 @@ func (s *XrayService) restartToDropClients(diff *xray.HotDiff) bool {
 	return restart
 }
 
-// tryHotApply attempts to reconcile the running Xray instance with newCfg
-// through the core gRPC API (HandlerService for inbounds/outbounds,
-// RoutingService for rules/balancers). It returns true when the running
-// instance now matches newCfg. Unsupported changes and ordinary hot-apply
-// failures return false with no error so the caller can restart the process.
-// TUIC relay replacements are verified separately and rolled back on failure;
-// an error defers that update instead of restarting unrelated connections.
-// Callers must hold the package-level lock.
+// tryHotApply reconciles the running core with newCfg over gRPC; false means restart, while a TUIC
+// relay error defers that update instead of restarting unrelated connections. Hold the package lock.
 func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (applied bool, applyErr error) {
 	defer func() {
 		if applyErr != nil {
@@ -1797,13 +1791,8 @@ func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
 }
 
-// ApplyPendingRestart consumes pending restart and config-reconciliation requests.
-// TUIC requests reconciliation without forcing an unchanged core to restart.
-// If applying the config fails (for example GetXrayConfig hits a transient DB
-// error or TUIC relay verification fails), the original request flags are
-// re-armed so the next tick retries instead of silently losing the change.
-// A reconciliation retry must not become a restart request: an unchanged
-// config could otherwise restart the core and disconnect unrelated clients.
+// ApplyPendingRestart re-arms the original flags when applying fails, so the next tick retries; a
+// reconcile retry never becomes a restart, which would disconnect unrelated clients.
 func (s *XrayService) ApplyPendingRestart() {
 	reconcile := isNeedXrayReconcile.Swap(false)
 	restart := s.IsNeedRestartAndSetFalse()
