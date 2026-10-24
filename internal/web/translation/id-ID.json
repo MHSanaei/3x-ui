@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Server API Telegram",
       "telegramAPIServerDesc": "Server API Telegram yang akan digunakan. Biarkan kosong untuk menggunakan server default.",
       "telegramChatId": "ID Obrolan Admin",
-      "telegramChatIdDesc": "ID Obrolan Admin Telegram. (dipisahkan koma)(dapatkan di sini {'@'}userinfobot) atau (gunakan perintah '/id' di bot)",
+      "telegramChatIdDesc": "ID Obrolan Admin Telegram. (dipisahkan koma)(dapatkan di sini {'@'}userinfobot) atau (gunakan perintah '/id' di bot). Untuk mengirim ke topik forum, tambahkan ':topicId', mis. -1001234567890:42",
       "telegramNotifyTime": "Waktu Notifikasi",
       "telegramNotifyTimeDesc": "Seberapa sering bot Telegram mengirim laporan berkala. Pilih interval siap pakai, atau pilih Kustom untuk memasukkan ekspresi crontab.",
       "notifyTime": {

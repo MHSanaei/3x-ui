@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Telegram API サーバー",
       "telegramAPIServerDesc": "使用するTelegram APIサーバー。空白の場合はデフォルトサーバーを使用する",
       "telegramChatId": "管理者チャットID",
-      "telegramChatIdDesc": "Telegram管理者チャットID（複数の場合はカンマで区切る）{'@'}userinfobotで取得するか、ボットで'/id'コマンドを使用して取得する",
+      "telegramChatIdDesc": "Telegram管理者チャットID（複数の場合はカンマで区切る）{'@'}userinfobotで取得するか、ボットで'/id'コマンドを使用して取得する フォーラムのトピックに投稿するには ':topicId' を付けます（例: -1001234567890:42）",
       "telegramNotifyTime": "通知時間",
       "telegramNotifyTimeDesc": "Telegram ボットが定期レポートを送信する頻度です。プリセットの間隔を選ぶか、「カスタム」を選んで crontab 式を入力します。",
       "notifyTime": {

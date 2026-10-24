@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Servidor API de Telegram",
       "telegramAPIServerDesc": "El servidor API de Telegram a utilizar. Déjelo en blanco para utilizar el servidor predeterminado.",
       "telegramChatId": "IDs de Chat de Telegram para Administradores",
-      "telegramChatIdDesc": "IDs de Chat múltiples separados por comas. Use {'@'}userinfobot o use el comando '/id' en el bot para obtener sus IDs de Chat.",
+      "telegramChatIdDesc": "IDs de Chat múltiples separados por comas. Use {'@'}userinfobot o use el comando '/id' en el bot para obtener sus IDs de Chat. Para publicar en un tema de foro, añada ':topicId', p. ej. -1001234567890:42",
       "telegramNotifyTime": "Hora de Notificación del Bot de Telegram",
       "telegramNotifyTimeDesc": "Con qué frecuencia el bot de Telegram envía informes periódicos. Elige un intervalo predefinido o selecciona Personalizado para introducir una expresión crontab.",
       "notifyTime": {

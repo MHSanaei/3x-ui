@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Máy chủ API Telegram",
       "telegramAPIServerDesc": "Máy chủ API Telegram để sử dụng. Để trống để sử dụng máy chủ mặc định.",
       "telegramChatId": "Chat ID Telegram của quản trị viên",
-      "telegramChatIdDesc": "Nhiều Chat ID phân tách bằng dấu phẩy. Sử dụng {'@'}userinfobot hoặc sử dụng lệnh '/id' trong bot để lấy Chat ID của bạn.",
+      "telegramChatIdDesc": "Nhiều Chat ID phân tách bằng dấu phẩy. Sử dụng {'@'}userinfobot hoặc sử dụng lệnh '/id' trong bot để lấy Chat ID của bạn. Để gửi vào một chủ đề diễn đàn, thêm ':topicId', ví dụ -1001234567890:42",
       "telegramNotifyTime": "Thời gian thông báo của bot Telegram",
       "telegramNotifyTimeDesc": "Tần suất bot Telegram gửi báo cáo định kỳ. Chọn một khoảng thời gian có sẵn, hoặc chọn Tùy chỉnh để nhập biểu thức crontab.",
       "notifyTime": {
