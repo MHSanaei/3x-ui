@@ -5,21 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { Drawer, Layout, Menu, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  ApiOutlined,
   ApartmentOutlined,
   CloseOutlined,
   CloudServerOutlined,
   ClusterOutlined,
   CodeOutlined,
-  CrownOutlined,
-  DashboardOutlined,
   DatabaseOutlined,
   DiscordOutlined,
-  ExportOutlined,
   GithubOutlined,
-  GlobalOutlined,
   HeartOutlined,
-  ImportOutlined,
   LogoutOutlined,
   MailOutlined,
   MenuOutlined,
@@ -32,11 +26,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
-  SwapOutlined,
-  TagsOutlined,
-  TeamOutlined,
   TelegramFilled,
-  ToolOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -44,6 +34,7 @@ import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
+import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import './AppSidebar.css';
 
 const DONATE_URL = 'https://donate.sanaei.dev/';
@@ -58,37 +49,6 @@ const SIDER_WIDTH = 220;
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
 
 let hoveredAcrossRemounts = false;
-
-type IconName =
-  | 'dashboard'
-  | 'inbound'
-  | 'team'
-  | 'groups'
-  | 'setting'
-  | 'tool'
-  | 'cluster'
-  | 'hosts'
-  | 'logout'
-  | 'sponsors'
-  | 'apidocs'
-  | 'outbound'
-  | 'routing';
-
-const iconByName: Record<IconName, ComponentType> = {
-  dashboard: DashboardOutlined,
-  inbound: ImportOutlined,
-  team: TeamOutlined,
-  groups: TagsOutlined,
-  setting: SettingOutlined,
-  tool: ToolOutlined,
-  cluster: ClusterOutlined,
-  hosts: GlobalOutlined,
-  logout: LogoutOutlined,
-  sponsors: CrownOutlined,
-  apidocs: ApiOutlined,
-  outbound: ExportOutlined,
-  routing: SwapOutlined,
-};
 
 function DonateButton({ ariaLabel }: { ariaLabel: string }) {
   return (
@@ -228,27 +188,20 @@ export default function AppSidebar() {
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
-  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(
+  const tabs = useMemo<{ key: string; icon: ComponentType; title: string }[]>(
     () => [
-      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
-      { key: '/clients', icon: 'team', title: t('menu.clients') },
-      { key: '/groups', icon: 'groups', title: t('menu.groups') },
-      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
-      { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
-      { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
-      { key: '/routing', icon: 'routing', title: t('menu.routing') },
-      { key: '/settings', icon: 'setting', title: t('menu.settings') },
-      { key: '/xray', icon: 'tool', title: t('menu.xray') },
-      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
-      { key: '/sponsors', icon: 'sponsors', title: t('menu.sponsors') },
-      { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+      ...PANEL_ROUTES.map((route) => ({
+        key: route.path,
+        icon: route.icon,
+        title: t(route.titleKey),
+      })),
+      { key: LOGOUT_KEY, icon: LogoutOutlined, title: t('logout') },
     ],
     [t],
   );
 
-  const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
-  const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
+  const navItems = useMemo(() => tabs.filter((tab) => tab.key !== LOGOUT_KEY), [tabs]);
+  const utilItems = useMemo(() => tabs.filter((tab) => tab.key === LOGOUT_KEY), [tabs]);
 
   const settingsChildren = useMemo<NonNullable<MenuProps['items']>>(() => {
     const children: NonNullable<MenuProps['items']> = [
@@ -341,14 +294,24 @@ export default function AppSidebar() {
   const toMenuItems = useCallback(
     (items: typeof tabs): MenuProps['items'] =>
       items.map((tab) => {
-        const Icon = iconByName[tab.icon];
+        const Icon = tab.icon;
         if (tab.key === '/settings') {
-          return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
+          return {
+            key: tab.key,
+            icon: <Icon aria-hidden />,
+            label: tab.title,
+            children: settingsChildren,
+          };
         }
         if (tab.key === '/xray') {
-          return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
+          return {
+            key: tab.key,
+            icon: <Icon aria-hidden />,
+            label: tab.title,
+            children: xrayChildren,
+          };
         }
-        return { key: tab.key, icon: <Icon />, label: tab.title, title: '' };
+        return { key: tab.key, icon: <Icon aria-hidden />, label: tab.title, title: '' };
       }),
     [settingsChildren, xrayChildren],
   );
