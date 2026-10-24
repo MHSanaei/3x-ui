@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -53,6 +53,18 @@ interface HostFormModalProps {
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 function defaultsFor(host: HostRecord | null): FormShape {
+  const initialSnis =
+    host?.snis && host.snis.length > 0
+      ? host.snis.filter((s) => s && s.trim() !== '')
+      : host?.sni && host.sni.trim() !== ''
+        ? [host.sni.trim()]
+        : [];
+  const hasMultipleSnis = initialSnis.length > 1;
+  const initialShared = host?.sniSharedRandom ?? false;
+  const initialRandomize = hasMultipleSnis
+    ? (host?.sniRandomizePerConfig ?? !initialShared)
+    : false;
+
   return {
     inboundIds: host?.inboundIds ?? [],
     hosts: (host?.hosts || []).filter((h) => h && h.trim() !== ''),
@@ -65,6 +77,9 @@ function defaultsFor(host: HostRecord | null): FormShape {
     port: host?.port ?? 0,
     security: (host?.security as BulkAddHostValues['security']) ?? 'same',
     sni: host?.sni ?? '',
+    snis: initialSnis,
+    sniRandomizePerConfig: initialRandomize,
+    sniSharedRandom: hasMultipleSnis ? initialShared : false,
     hostHeader: host?.hostHeader ?? '',
     path: host?.path ?? '',
     alpn: (host?.alpn as BulkAddHostValues['alpn']) ?? [],
@@ -107,8 +122,26 @@ export default function HostFormModal({
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
   const fingerprint = (useWatch({ control: methods.control, name: 'fingerprint' }) ?? '') as string;
+  const watchedSnis = useWatch({ control: methods.control, name: 'snis' });
+  const hasMultipleSnis = Boolean(
+    watchedSnis && watchedSnis.filter((s) => typeof s === 'string' && s.trim() !== '').length > 1,
+  );
+  const watchedRandomize = useWatch({ control: methods.control, name: 'sniRandomizePerConfig' });
+  const watchedShared = useWatch({ control: methods.control, name: 'sniSharedRandom' });
+
+  useEffect(() => {
+    if (hasMultipleSnis) {
+      if (!watchedRandomize && !watchedShared) {
+        methods.setValue('sniRandomizePerConfig', true, { shouldDirty: true });
+      } else if (watchedRandomize && watchedShared) {
+        methods.setValue('sniSharedRandom', false, { shouldDirty: true });
+      }
+    }
+  }, [hasMultipleSnis, watchedRandomize, watchedShared, methods]);
+
+  const watchedSingleSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
+  const hostSni = (watchedSnis && watchedSnis.length > 0 ? watchedSnis[0] : '') || watchedSingleSni;
   const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
-  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
   const isCipherSuitesEnabled = showTlsExtras && (!fingerprint || fingerprint === 'unsafe');
@@ -173,13 +206,37 @@ export default function HostFormModal({
     return Array.from(addresses).map((addr) => ({ value: addr, label: addr }));
   }, [existingHosts]);
 
+  const sniOptions = useMemo(() => {
+    const snis = new Set<string>();
+    for (const h of existingHosts || []) {
+      if (h.snis) {
+        for (const s of h.snis) {
+          if (s && s.trim() !== '') snis.add(s.trim());
+        }
+      }
+      if (h.sni && h.sni.trim() !== '') {
+        snis.add(h.sni.trim());
+      }
+    }
+    return Array.from(snis).map((s) => ({ value: s, label: s }));
+  }, [existingHosts]);
+
   const onFinish = async (values: FormShape) => {
     if (loading) return;
     const { enable, ...rest } = values;
     const isDisabled = !enable;
+    const cleanedSnis = (rest.snis || []).map((s) => s.trim()).filter(Boolean);
+    const primarySni = cleanedSnis.length > 0 ? cleanedSnis[0] : rest.sni || '';
+    const isMultiple = cleanedSnis.length > 1;
     const payload: BulkAddHostValues = {
       ...rest,
       hosts: (rest.hosts || []).filter((h) => h && h.trim() !== ''),
+      sni: primarySni,
+      snis: cleanedSnis,
+      sniRandomizePerConfig: isMultiple
+        ? (rest.sniRandomizePerConfig ?? !rest.sniSharedRandom)
+        : false,
+      sniSharedRandom: isMultiple ? Boolean(rest.sniSharedRandom) : false,
       isDisabled,
     };
     setLoading(true);
@@ -335,9 +392,54 @@ export default function HostFormModal({
                     </FormField>
                     {showTls && (
                       <>
-                        <FormField name="sni" label={t('pages.hosts.fields.sni')}>
-                          <Input />
+                        <FormField
+                          name="snis"
+                          label={t('pages.hosts.fields.sni')}
+                          rules={{ validate: rhfZodValidate(BulkAddHostSchema.shape.snis) }}
+                        >
+                          <Select
+                            mode="tags"
+                            options={sniOptions}
+                            tokenSeparators={[',', ';', ' ']}
+                            placeholder="sni.example.com, sni2.example.com"
+                          />
                         </FormField>
+                        {hasMultipleSnis && (
+                          <>
+                            <FormField
+                              name="sniRandomizePerConfig"
+                              label={t('pages.hosts.fields.sniRandomizePerConfig')}
+                              valueProp="checked"
+                            >
+                              <Switch
+                                onChange={(checked) => {
+                                  methods.setValue('sniRandomizePerConfig', checked, {
+                                    shouldDirty: true,
+                                  });
+                                  methods.setValue('sniSharedRandom', !checked, {
+                                    shouldDirty: true,
+                                  });
+                                }}
+                              />
+                            </FormField>
+                            <FormField
+                              name="sniSharedRandom"
+                              label={t('pages.hosts.fields.sniSharedRandom')}
+                              valueProp="checked"
+                            >
+                              <Switch
+                                onChange={(checked) => {
+                                  methods.setValue('sniSharedRandom', checked, {
+                                    shouldDirty: true,
+                                  });
+                                  methods.setValue('sniRandomizePerConfig', !checked, {
+                                    shouldDirty: true,
+                                  });
+                                }}
+                              />
+                            </FormField>
+                          </>
+                        )}
                         <FormField
                           name="overrideSniFromAddress"
                           label={t('pages.hosts.fields.overrideSniFromAddress')}

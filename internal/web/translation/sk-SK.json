@@ -1122,6 +1122,8 @@
         "actions": "Akcie",
         "security": "Bezpečnosť",
         "sni": "SNI",
+        "sniRandomizePerConfig": "Náhodné SNI pre každú konfiguráciu",
+        "sniSharedRandom": "Rovnaké náhodné SNI pre všetky konfigurácie",
         "overrideSniFromAddress": "Použiť adresu ako SNI",
         "keepSniBlank": "Ponechať SNI prázdne",
         "hostHeader": "Hlavička Host",

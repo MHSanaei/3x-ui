@@ -1122,6 +1122,8 @@
         "actions": "Actions",
         "security": "Security",
         "sni": "SNI",
+        "sniRandomizePerConfig": "Random SNI per config",
+        "sniSharedRandom": "Same random SNI for all configs",
         "overrideSniFromAddress": "Use address as SNI",
         "keepSniBlank": "Keep SNI blank",
         "hostHeader": "Host header",

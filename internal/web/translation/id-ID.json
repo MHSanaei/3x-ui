@@ -2394,6 +2394,8 @@
         "actions": "Aksi",
         "security": "Keamanan",
         "sni": "SNI",
+        "sniRandomizePerConfig": "SNI acak per konfigurasi",
+        "sniSharedRandom": "SNI acak yang sama untuk semua konfigurasi",
         "overrideSniFromAddress": "Gunakan alamat sebagai SNI",
         "keepSniBlank": "Biarkan SNI kosong",
         "hostHeader": "Header Host",

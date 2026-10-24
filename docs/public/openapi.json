@@ -2832,6 +2832,18 @@
           "sni": {
             "type": "string"
           },
+          "sniRandomizePerConfig": {
+            "type": "boolean"
+          },
+          "sniSharedRandom": {
+            "type": "boolean"
+          },
+          "snis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sockoptParams": {},
           "sortOrder": {
             "type": "integer"
@@ -2885,6 +2897,8 @@
           "serverDescription",
           "shuffleHost",
           "sni",
+          "sniRandomizePerConfig",
+          "sniSharedRandom",
           "sockoptParams",
           "sortOrder",
           "tags",
@@ -3017,6 +3031,18 @@
           "sni": {
             "type": "string"
           },
+          "sniRandomizePerConfig": {
+            "type": "boolean"
+          },
+          "sniSharedRandom": {
+            "type": "boolean"
+          },
+          "snis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sockoptParams": {
             "type": "string"
           },
@@ -3065,6 +3091,9 @@
           "serverDescription",
           "shuffleHost",
           "sni",
+          "sniRandomizePerConfig",
+          "sniSharedRandom",
+          "snis",
           "sockoptParams",
           "sortOrder",
           "tags",
@@ -12095,6 +12124,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": "",
                       "sortOrder": 0,
                       "tags": [
@@ -12182,6 +12216,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12279,6 +12318,11 @@
                     "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
+                    "sniRandomizePerConfig": false,
+                    "sniSharedRandom": false,
+                    "snis": [
+                      ""
+                    ],
                     "sockoptParams": "",
                     "sortOrder": 0,
                     "tags": [
@@ -12378,6 +12422,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": "",
                       "sortOrder": 0,
                       "tags": [
@@ -12527,6 +12576,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12650,6 +12704,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12903,6 +12962,11 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniRandomizePerConfig": false,
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [

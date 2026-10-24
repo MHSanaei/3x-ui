@@ -2394,6 +2394,8 @@
         "actions": "Действия",
         "security": "Безопасность",
         "sni": "SNI",
+        "sniRandomizePerConfig": "Случайный SNI для каждой конфигурации",
+        "sniSharedRandom": "Один случайный SNI для всех конфигураций",
         "overrideSniFromAddress": "Использовать адрес как SNI",
         "keepSniBlank": "Оставить SNI пустым",
         "hostHeader": "Заголовок Host",

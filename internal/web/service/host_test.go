@@ -525,3 +525,60 @@ func TestHostGroup_CipherSuitesRoundTrip(t *testing.T) {
 		t.Fatalf("CipherSuites = %q, want %q", g.CipherSuites, suites)
 	}
 }
+
+func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+
+	snis := []string{"sni1.example.com", "sni2.example.com"}
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds:            []int{ib.Id},
+		Remark:                "multi-sni",
+		Hosts:                 []string{"h1.example.com", "h2.example.com"},
+		Security:              "tls",
+		Snis:                  snis,
+		SniRandomizePerConfig: true,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	if len(created) != 2 {
+		t.Fatalf("created %d rows, want 2", len(created))
+	}
+	for i, row := range created {
+		if !reflect.DeepEqual(row.Snis, snis) {
+			t.Fatalf("row[%d].Snis = %v, want %v", i, row.Snis, snis)
+		}
+		if row.Sni != snis[0] {
+			t.Fatalf("row[%d].Sni = %q, want primary %q", i, row.Sni, snis[0])
+		}
+		if !row.SniRandomizePerConfig || row.SniSharedRandom {
+			t.Fatalf("row[%d] mode mismatch: randomize=%v shared=%v", i, row.SniRandomizePerConfig, row.SniSharedRandom)
+		}
+	}
+
+	g, err := svc.GetHostGroup(created[0].GroupId)
+	if err != nil {
+		t.Fatalf("GetHostGroup: %v", err)
+	}
+	if !reflect.DeepEqual(g.Snis, snis) {
+		t.Fatalf("g.Snis = %v, want %v", g.Snis, snis)
+	}
+	if !g.SniRandomizePerConfig || g.SniSharedRandom {
+		t.Fatalf("g mode mismatch: randomize=%v shared=%v", g.SniRandomizePerConfig, g.SniSharedRandom)
+	}
+
+	// Now update to SniSharedRandom
+	g.SniRandomizePerConfig = false
+	g.SniSharedRandom = true
+	updated, err := svc.UpdateHostGroup(g.GroupId, g)
+	if err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+	for i, row := range updated {
+		if row.SniRandomizePerConfig || !row.SniSharedRandom {
+			t.Fatalf("updated row[%d] mode mismatch: randomize=%v shared=%v", i, row.SniRandomizePerConfig, row.SniSharedRandom)
+		}
+	}
+}

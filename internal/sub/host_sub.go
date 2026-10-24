@@ -1,9 +1,11 @@
 package sub
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"maps"
+	"math/big"
 	"slices"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -67,7 +69,7 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps, true
 }
@@ -117,7 +119,7 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps
 }
@@ -125,6 +127,19 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 // hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
 // random addresses from the range, any other address is a single entry.
 func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	return hostEndpointMapsWithSub(nil, h, defaultDest, defaultPort)
+}
+
+func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	return hostEndpointMapsWithSub(s, h, defaultDest, defaultPort)
+}
+
+func hostEndpointMapsWithSub(s *SubService, h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	var sharedSni string
+	if h.SniSharedRandom && len(h.Snis) > 1 {
+		sharedSni = s.resolveSharedSni(h)
+	}
+
 	if IsCIDR(h.Address) {
 		count := max(h.RandomCount, 1)
 		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
@@ -139,12 +154,85 @@ func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[
 						hCopy.Remark = fmt.Sprintf("%d", i+1)
 					}
 				}
+				hCopy.Sni = resolveHostSni(s, h, ip, sharedSni)
 				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
 			}
 			return eps
 		}
 	}
-	return []map[string]any{hostToExternalProxyMap(h, defaultDest, defaultPort)}
+
+	hCopy := *h
+	dest := h.Address
+	if dest == "" {
+		dest = defaultDest
+	}
+	hCopy.Sni = resolveHostSni(s, h, dest, sharedSni)
+	return []map[string]any{hostToExternalProxyMap(&hCopy, defaultDest, defaultPort)}
+}
+
+func resolveHostSni(s *SubService, h *model.Host, dest string, sharedSni string) string {
+	if h.KeepSniBlank {
+		return ""
+	}
+	if h.OverrideSniFromAddress {
+		return dest
+	}
+	if len(h.Snis) > 1 {
+		if h.SniSharedRandom {
+			if sharedSni != "" {
+				return sharedSni
+			}
+			return s.resolveSharedSni(h)
+		}
+		if h.SniRandomizePerConfig {
+			return RandomSNI(h.Snis)
+		}
+		return h.Snis[0]
+	}
+	if len(h.Snis) == 1 {
+		return h.Snis[0]
+	}
+	return h.Sni
+}
+
+func (s *SubService) resolveSharedSni(h *model.Host) string {
+	if len(h.Snis) == 0 {
+		return h.Sni
+	}
+	if len(h.Snis) == 1 {
+		return h.Snis[0]
+	}
+	key := h.GroupId
+	if key == "" {
+		key = fmt.Sprintf("fallback_%d", h.Id)
+	}
+	if s != nil {
+		if s.sharedGroupSni == nil {
+			s.sharedGroupSni = make(map[string]string)
+		}
+		if cached, ok := s.sharedGroupSni[key]; ok {
+			return cached
+		}
+		picked := RandomSNI(h.Snis)
+		s.sharedGroupSni[key] = picked
+		return picked
+	}
+	return RandomSNI(h.Snis)
+}
+
+// RandomSNI returns a random SNI from the given list of SNIs.
+func RandomSNI(snis []string) string {
+	if len(snis) == 0 {
+		return ""
+	}
+	if len(snis) == 1 {
+		return snis[0]
+	}
+	idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(snis))))
+	if err != nil {
+		return snis[0]
+	}
+	return snis[idx.Int64()]
 }
 
 // hostToExternalProxyMap projects a Host onto the externalProxy entry shape the

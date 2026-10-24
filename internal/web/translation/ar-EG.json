@@ -2394,6 +2394,8 @@
         "actions": "الإجراءات",
         "security": "الأمان",
         "sni": "SNI",
+        "sniRandomizePerConfig": "SNI عشوائي لكل تكوين",
+        "sniSharedRandom": "نفس الـ SNI العشوائي لجميع التكوينات",
         "overrideSniFromAddress": "استخدم العنوان كـ SNI",
         "keepSniBlank": "اترك SNI فارغاً",
         "hostHeader": "ترويسة Host",

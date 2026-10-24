@@ -1,7 +1,11 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { hostToExternalProxyEntry, withHostEndpoints } from '@/lib/hosts/host-link';
+import {
+  hostEndpointsFor,
+  hostToExternalProxyEntry,
+  withHostEndpoints,
+} from '@/lib/hosts/host-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 
 describe('hostToExternalProxyEntry', () => {
@@ -135,5 +139,85 @@ describe('withHostEndpoints', () => {
       'panel.example.com',
     );
     expect(got).toBe(inbound);
+  });
+});
+
+describe('hostEndpointsFor - multi SNI', () => {
+  it('applies the same random SNI to all endpoints when sniSharedRandom is true', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const eps = hostEndpointsFor(
+      [
+        {
+          groupId: 'shared',
+          inboundIds: [1],
+          hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
+          port: 443,
+          snis,
+          sniSharedRandom: true,
+        },
+      ],
+      1,
+      443,
+      'default.com',
+    );
+    expect(eps).toHaveLength(3);
+    const chosenSni = eps[0]!.sni;
+    expect(snis).toContain(chosenSni);
+    for (const ep of eps) {
+      expect(ep.sni).toBe(chosenSni);
+    }
+  });
+
+  it('randomizes SNI per endpoint when sniRandomizePerConfig is true', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const eps = hostEndpointsFor(
+      [
+        {
+          groupId: 'rand',
+          inboundIds: [1],
+          hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
+          port: 443,
+          snis,
+          sniRandomizePerConfig: true,
+        },
+      ],
+      1,
+      443,
+      'default.com',
+    );
+    expect(eps).toHaveLength(3);
+    for (const ep of eps) {
+      expect(snis).toContain(ep.sni);
+    }
+  });
+
+  it('gives precedence to overrideSniFromAddress and keepSniBlank over snis', () => {
+    const snis = ['sni1.example.com', 'sni2.example.com'];
+    const eps = hostEndpointsFor(
+      [
+        {
+          groupId: 'override',
+          inboundIds: [1],
+          hosts: ['dest.example.com'],
+          port: 443,
+          snis,
+          overrideSniFromAddress: true,
+        },
+        {
+          groupId: 'blank',
+          inboundIds: [1],
+          hosts: ['blank.example.com'],
+          port: 443,
+          snis,
+          keepSniBlank: true,
+        },
+      ],
+      1,
+      443,
+      'default.com',
+    );
+    expect(eps).toHaveLength(2);
+    expect(eps[0]!.sni).toBe('dest.example.com');
+    expect(eps[1]!.sni).toBeUndefined();
   });
 });
