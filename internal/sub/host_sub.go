@@ -11,13 +11,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// clientHostEndpoints resolves one client's effective host endpoints — one
-// per valid bound host, or baseEps when unbound. A bound client whose hosts
-// relevant to this inbound all fail to resolve (deleted, disabled,
-// format-excluded) fails closed with (nil, true); callers must emit nothing
-// but still account the client. Bindings that live only on other inbounds do
-// not apply here and fall back to baseEps, so a host bound on inbound A never
-// silences inbound B.
+// clientHostEndpoints returns one endpoint per usable bound host of this inbound, or baseEps when none
+// is bound here; bound hosts that all fail to resolve fail closed with (nil, true), still accounted.
 func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Client, format string, baseEps []map[string]any) ([]map[string]any, bool) {
 	ids := model.EffectiveClientHostRuleIds(client)
 	if len(ids) == 0 {

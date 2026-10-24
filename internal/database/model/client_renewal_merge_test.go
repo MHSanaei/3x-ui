@@ -32,8 +32,6 @@ func TestMergeClientRecordRenewalModes(t *testing.T) {
 	}
 }
 
-// Host bindings are one logical field behind two encodings (canonical list,
-// legacy alias); otherwise the alias and the list diverge and the reader
 // A node snapshot must not undo a newer binding, an omitted list must keep the stored one,
 // and an explicit empty list clears it.
 func TestMergeClientRecordHostBindings(t *testing.T) {

@@ -282,9 +282,8 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err
 		}
-		// Exact (inbound, address, port) matches reuse ids so edits keep
-		// bindings; a second pass pairs same-inbound leftovers with edits.
-		// Rows still unclaimed are deleted.
+		// Exact (inbound, address, port) matches reuse ids so edits keep bindings; a second pass pairs
+		// same-inbound leftovers with edits, and rows still unclaimed are deleted.
 		type hostKey struct {
 			inbound int
 			addr    string

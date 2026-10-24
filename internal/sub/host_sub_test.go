@@ -1020,9 +1020,8 @@ func seedSubClient(t *testing.T, ib *model.Inbound, subId, email string) {
 
 const tcpTLSStream = `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`
 
-// A bound host that leaves address and port blank must fall back to the
-// inbound's own, even when an earlier client already rewrote the shared
-// inbound's Listen/Port while rendering its own endpoints.
+// A bound host with blank address and port must use the inbound's own, even after an earlier
+// client rewrote the shared inbound's Listen/Port while rendering its endpoints.
 func TestSub_JsonBoundHostBlankAddressIgnoresEarlierClient(t *testing.T) {
 	seedSubDB(t)
 	ib := seedSubInbound(t, "s1", "mv", 4491, 1, tcpTLSStream)
@@ -1161,9 +1160,8 @@ func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
 	}
 }
 
-// Deleted bindings are skipped: with one deleted id plus a valid host only
-// the valid host renders; with nothing valid the client fails closed with
-// zero links (no fallback, no dummy link) but stays in traffic accounting.
+// A deleted binding is skipped; with no valid binding left the client fails closed with zero
+// links (no fallback, no dummy link) but stays in traffic accounting.
 func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	t.Run("deleted and valid binding renders only the valid host", func(t *testing.T) {
 		seedSubDB(t)
@@ -1230,9 +1228,8 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 		}
 	})
 
-	// A deleted host id must not silence an inbound the client is on but that
-	// has none of the client's other bound hosts. Relevance is decided only by
-	// rows that still exist; fail-closed is reserved for all-bound-ids-gone.
+	// A deleted host id must not silence an inbound without the client's other bound hosts:
+	// relevance comes from rows that still exist, fail-closed only when every bound id is gone.
 	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
 		seedSubDB(t)
 		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
@@ -1270,9 +1267,8 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	})
 }
 
-// A client bound to a disabled host fails closed on every format: zero
-// links, outbounds and proxies, no dummy link, but the client stays in
-// traffic accounting so quota and expiry headers stay correct.
+// A client bound to a disabled host fails closed on every format (no links, outbounds or proxies)
+// but stays in traffic accounting, so quota and expiry headers stay correct.
 func TestSub_ClientHostRule_DisabledFailsClosed(t *testing.T) {
 	seedSubDB(t)
 	ib := seedSubInbound(t, "s1", "dis", 447, 1, tcpTLSStream)
@@ -1354,9 +1350,8 @@ func TestSub_ClientHostRule_DisabledFailsClosed(t *testing.T) {
 	})
 }
 
-// A client bound to a host excluded from a format fails closed only on that
-// format: the excluded format emits nothing (but keeps accounting) while the
-// other formats still render the host.
+// A host excluded from one format fails closed only there: that format emits nothing but keeps
+// accounting, while the other formats still render the host.
 func TestSub_ClientHostRule_FormatExcludedFailsClosed(t *testing.T) {
 	formats := []string{"raw", "json", "clash"}
 	for _, format := range formats {
