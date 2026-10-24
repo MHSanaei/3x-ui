@@ -84,7 +84,7 @@ export function useOutboundColumns({
               <Button
                 shape="circle"
                 size="small"
-                icon={<EditOutlined />}
+                icon={<EditOutlined aria-hidden />}
                 aria-label={t('edit')}
                 onClick={() => openEdit(index)}
               />
@@ -98,7 +98,8 @@ export function useOutboundColumns({
                             key: 'top',
                             label: (
                               <>
-                                <VerticalAlignTopOutlined /> {t('pages.xray.outbound.moveToTop')}
+                                <VerticalAlignTopOutlined aria-hidden />{' '}
+                                {t('pages.xray.outbound.moveToTop')}
                               </>
                             ),
                             onClick: () => setFirst(index),
@@ -109,7 +110,7 @@ export function useOutboundColumns({
                       key: 'up',
                       label: (
                         <>
-                          <ArrowUpOutlined /> {t('pages.inbounds.form.moveUp')}
+                          <ArrowUpOutlined aria-hidden /> {t('pages.inbounds.form.moveUp')}
                         </>
                       ),
                       disabled: index === 0,
@@ -119,7 +120,7 @@ export function useOutboundColumns({
                       key: 'down',
                       label: (
                         <>
-                          <ArrowDownOutlined /> {t('pages.inbounds.form.moveDown')}
+                          <ArrowDownOutlined aria-hidden /> {t('pages.inbounds.form.moveDown')}
                         </>
                       ),
                       disabled: index === rows.length - 1,
@@ -129,7 +130,7 @@ export function useOutboundColumns({
                       key: 'reset',
                       label: (
                         <>
-                          <RetweetOutlined /> {t('pages.inbounds.resetTraffic')}
+                          <RetweetOutlined aria-hidden /> {t('pages.inbounds.resetTraffic')}
                         </>
                       ),
                       onClick: () => onResetTraffic(rows[index].tag || ''),
@@ -139,7 +140,7 @@ export function useOutboundColumns({
                       danger: true,
                       label: (
                         <>
-                          <DeleteOutlined /> {t('delete')}
+                          <DeleteOutlined aria-hidden /> {t('delete')}
                         </>
                       ),
                       onClick: () => confirmDelete(index),
@@ -150,7 +151,7 @@ export function useOutboundColumns({
                 <Button
                   shape="circle"
                   size="small"
-                  icon={<MoreOutlined />}
+                  icon={<MoreOutlined aria-hidden />}
                   aria-label={t('more')}
                 />
               </Dropdown>
@@ -317,7 +318,7 @@ export function useOutboundColumns({
           const r = testResult(outboundTestStates, record.key);
           if (!r)
             return isTesting(outboundTestStates, record.key) ? (
-              <LoadingOutlined />
+              <LoadingOutlined aria-label={t('loading')} />
             ) : (
               <span className="empty">—</span>
             );
@@ -338,7 +339,7 @@ export function useOutboundColumns({
               shape="circle"
               loading={isTesting(outboundTestStates, record.key)}
               disabled={isUntestable(record) || isTesting(outboundTestStates, record.key)}
-              icon={<ThunderboltOutlined />}
+              icon={<ThunderboltOutlined aria-hidden />}
               aria-label={t('check')}
               onClick={() => onTest(record.key, testMode)}
             />

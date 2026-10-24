@@ -1064,6 +1064,12 @@ func (s *NodeService) ClearNodeDirty(id int, dirtyAt int64) error {
 		Update("config_dirty", false).Error
 }
 
+func (s *NodeService) SetDownNotified(id int, notified bool) error {
+	return database.GetDB().Model(model.Node{}).
+		Where("id = ?", id).
+		Update("down_notified", notified).Error
+}
+
 func (s *NodeService) MarkNodeInboundsAdopted(id int) error {
 	if id <= 0 {
 		return nil

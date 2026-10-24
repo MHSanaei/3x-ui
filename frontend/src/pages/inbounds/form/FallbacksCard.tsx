@@ -32,7 +32,13 @@ export default function FallbacksCard({
 
   const addButtons = (
     <Space size={8} wrap>
-      <Button type="primary" ghost size="small" icon={<PlusOutlined />} onClick={addFallback}>
+      <Button
+        type="primary"
+        ghost
+        size="small"
+        icon={<PlusOutlined aria-hidden />}
+        onClick={addFallback}
+      >
         {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
       </Button>
       <Button
@@ -90,25 +96,26 @@ export default function FallbacksCard({
                 disabled={idx === 0}
                 onClick={() => moveFallback(idx, -1)}
                 title={t('pages.inbounds.form.moveUp')}
-                icon={<ArrowUpOutlined />}
+                icon={<ArrowUpOutlined aria-hidden />}
               />
               <Button
                 aria-label={t('pages.inbounds.form.moveDown')}
                 disabled={idx === fallbacks.length - 1}
                 onClick={() => moveFallback(idx, 1)}
                 title={t('pages.inbounds.form.moveDown')}
-                icon={<ArrowDownOutlined />}
+                icon={<ArrowDownOutlined aria-hidden />}
               />
               <Button
                 aria-label={t('delete')}
                 danger
                 onClick={() => removeFallback(idx)}
-                icon={<DeleteOutlined />}
+                icon={<DeleteOutlined aria-hidden />}
               />
             </Space.Compact>
             <Row gutter={[8, 8]}>
               <Col xs={24} sm={12}>
                 <Input
+                  aria-label="SNI"
                   prefix="SNI"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.name}
@@ -117,6 +124,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
+                  aria-label="ALPN"
                   prefix="ALPN"
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.alpn}
@@ -125,6 +133,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
+                  aria-label="Path"
                   prefix="Path"
                   placeholder="/"
                   value={record.path}
@@ -133,6 +142,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
+                  aria-label="Dest"
                   prefix="Dest"
                   placeholder={t('pages.inbounds.fallbacks.destPlaceholder') || 'auto'}
                   value={record.dest}
@@ -141,6 +151,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <InputNumber
+                  aria-label="xver"
                   prefix="xver"
                   min={0}
                   max={2}

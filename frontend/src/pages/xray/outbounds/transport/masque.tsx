@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -12,6 +13,7 @@ const BASE = ['streamSettings', 'masqueSettings'] as const;
 // refuses user/pass next to warp; host and path then default to Cloudflare's endpoint.
 export default function MasqueForm() {
   const { t } = useTranslation();
+  const uid = useId();
   const { control, setValue } = useFormContext();
   const warp = useWatch({ control, name: 'streamSettings.masqueSettings.warp' });
   const warpOn = warp != null;
@@ -24,8 +26,14 @@ export default function MasqueForm() {
       <FormField label={t('path')} name={[...BASE, 'path']}>
         <Input placeholder={warpOn ? '/' : MASQUE_DEFAULT_PATH} />
       </FormField>
-      <Form.Item label="WARP" tooltip={t('pages.xray.outboundForm.masqueWarpDesc')}>
+      <Form.Item
+        label="WARP"
+        htmlFor={`${uid}-warp`}
+        tooltip={t('pages.xray.outboundForm.masqueWarpDesc')}
+      >
         <Switch
+          id={`${uid}-warp`}
+          aria-describedby={`${uid}-warp-hint`}
           checked={warpOn}
           onChange={(on) => {
             setValue(
@@ -38,6 +46,9 @@ export default function MasqueForm() {
             }
           }}
         />
+        <span id={`${uid}-warp-hint`} hidden>
+          {t('pages.xray.outboundForm.masqueWarpDesc')}
+        </span>
       </Form.Item>
       {warpOn ? (
         <>

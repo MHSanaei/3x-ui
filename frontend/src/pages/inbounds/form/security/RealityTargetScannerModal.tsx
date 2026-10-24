@@ -199,6 +199,7 @@ export default function RealityTargetScannerModal({
           {t('pages.inbounds.form.scanModalDesc')}
         </Typography.Paragraph>
         <Input.Search
+          aria-label={t('pages.inbounds.form.scanDiscoverPlaceholder')}
           allowClear
           enterButton={t('pages.inbounds.form.scan')}
           loading={loading}

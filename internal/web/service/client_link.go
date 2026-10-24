@@ -208,6 +208,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		if err := tx.CreateInBatches(toCreate, 200).Error; err != nil {
 			return err
 		}
+		// Whichever API re-created the client, a delete tombstone left standing makes
+		// the next node merge prune it and ReapSyncOrphans delete it.
+		liftTombstonesOnCommit(tx, toCreate)
 		disabledIDs := make([]int, 0)
 		for i, rec := range toCreate {
 			idByEmail[rec.Email] = rec.Id
