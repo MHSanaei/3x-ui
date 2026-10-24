@@ -5,10 +5,14 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'frontend/public/openapi.json'
+      - 'frontend/src/pages/api-docs/endpoints.ts'
       - '.github/workflows/docs-ci.yml'
   pull_request:
     paths:
       - 'docs/**'
+      - 'frontend/public/openapi.json'
+      - 'frontend/src/pages/api-docs/endpoints.ts'
       - '.github/workflows/docs-ci.yml'
 
 permissions:
@@ -47,6 +51,19 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # The API reference is generated from the panel's own spec. The copy into
+      # docs/public and the generated pages both have to be in step with it.
+      - name: The docs spec must be the panel's
+        run: cmp frontend/public/openapi.json docs/public/openapi.json
+        working-directory: .
+
+      - name: Regenerate the API reference
+        run: pnpm gen:api
+
+      - name: Fail if the generated API reference is stale
+        run: git diff --exit-code -- docs/content/docs/en/reference/api
+        working-directory: .
 
       - name: Build
         run: pnpm build
