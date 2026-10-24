@@ -53,6 +53,8 @@ export const MtprotoInboundSettingsSchema = z.object({
   // Caps concurrent connections across all users with a fair-share algorithm;
   // 0 or unset disables throttling.
   throttleMaxConnections: z.number().int().min(0).optional(),
+  // mtg's [defense.pending-handshakes] max-per-ip; 0 or unset leaves it off.
+  pendingHandshakesMaxPerIp: z.number().int().min(0).optional(),
   // When set, the mtg sidecar dials Telegram through a loopback SOCKS bridge in
   // the Xray config so the egress obeys routing rules. `outboundTag` optionally
   // forces that traffic out a specific outbound/balancer. `routeXrayPort` is the

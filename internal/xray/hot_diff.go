@@ -3,6 +3,7 @@ package xray
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
@@ -234,7 +235,7 @@ func InboundUserOps(oldIb, newIb *InboundConfig) (*HotDiff, bool) {
 	return diff, true
 }
 
-var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}}
+var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}, "shadowsocks": {}}
 
 // diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
 // differ only in settings.clients, so the handler (and its listener) survives.
@@ -261,6 +262,10 @@ func diffInboundUsers(oldIb, newIb *InboundConfig, diff *HotDiff) bool {
 	if !bytes.Equal(oldRest, newRest) {
 		return false
 	}
+	cipher := ""
+	if newIb.Protocol == "shadowsocks" {
+		cipher = shadowsocksSettingsMethod(newRest)
+	}
 	for email, oldC := range oldClients {
 		newC, exists := newClients[email]
 		if exists && bytes.Equal(oldC.norm, newC.norm) {
@@ -268,15 +273,36 @@ func diffInboundUsers(oldIb, newIb *InboundConfig, diff *HotDiff) bool {
 		}
 		diff.RemovedUsers = append(diff.RemovedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email})
 		if exists {
-			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: newC.user})
+			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: userWithCipher(newC.user, cipher)})
 		}
 	}
 	for email, newC := range newClients {
 		if _, exists := oldClients[email]; !exists {
-			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: newC.user})
+			diff.AddedUsers = append(diff.AddedUsers, UserOp{Tag: oldIb.Tag, Protocol: oldIb.Protocol, Email: email, User: userWithCipher(newC.user, cipher)})
 		}
 	}
 	return true
+}
+
+// shadowsocksSettingsMethod reads the inbound-level method: 2022 clients carry
+// none, and AddUser needs it to pick the account type the running inbound expects.
+func shadowsocksSettingsMethod(rest []byte) string {
+	var settings struct {
+		Method string `json:"method"`
+	}
+	if json.Unmarshal(rest, &settings) != nil {
+		return ""
+	}
+	return settings.Method
+}
+
+func userWithCipher(user map[string]any, cipher string) map[string]any {
+	if cipher == "" {
+		return user
+	}
+	withCipher := maps.Clone(user)
+	withCipher["cipher"] = cipher
+	return withCipher
 }
 
 type clientEntry struct {

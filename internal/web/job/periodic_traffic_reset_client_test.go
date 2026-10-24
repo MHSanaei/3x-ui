@@ -26,6 +26,7 @@ type seededClient struct {
 	recordEnable bool
 	quotaEnable  bool
 	total        int64
+	inboundCycle string
 }
 
 // seedClientOnCycle creates an inbound that never resets on its own, a client
@@ -43,9 +44,13 @@ func seedClientOnCycle(t *testing.T, port int, c seededClient) {
 	if err != nil {
 		t.Fatalf("marshal settings: %v", err)
 	}
+	inboundCycle := c.inboundCycle
+	if inboundCycle == "" {
+		inboundCycle = "never"
+	}
 	ib := model.Inbound{
 		UserId: 1, Enable: true, Port: port, Protocol: model.VLESS,
-		Tag: "inbound-" + c.email, TrafficReset: "never", Settings: string(settings),
+		Tag: "inbound-" + c.email, TrafficReset: inboundCycle, Settings: string(settings),
 	}
 	if err := db.Create(&ib).Error; err != nil {
 		t.Fatalf("create inbound: %v", err)
@@ -181,6 +186,46 @@ func TestPeriodicTrafficResetClients(t *testing.T) {
 		}
 		if row := trafficFor(t, "banned@example.com"); row.Up != 500 || row.Down != 700 {
 			t.Fatalf("an operator-disabled client was reset anyway: up=%d down=%d", row.Up, row.Down)
+		}
+	})
+}
+
+func TestPeriodicTrafficResetInboundRestoresClients(t *testing.T) {
+	t.Run("restores a client the quota switched off", func(t *testing.T) {
+		initResetJobDB(t)
+		seedClientOnCycle(t, 41101, seededClient{
+			email: "depleted-ib@example.com", cycle: "never", day: 1,
+			recordEnable: false, quotaEnable: false, total: 1000, inboundCycle: "daily",
+		})
+
+		NewPeriodicTrafficResetJob("daily", time.UTC).Run()
+
+		row := trafficFor(t, "depleted-ib@example.com")
+		if row.Up != 0 || row.Down != 0 || !row.Enable {
+			t.Fatalf("traffic not reset: up=%d down=%d enable=%v", row.Up, row.Down, row.Enable)
+		}
+		if rec := recordFor(t, "depleted-ib@example.com"); !rec.Enable {
+			t.Fatal("clients.enable still false after the inbound's reset: the client stays out of the core")
+		}
+		if enabled := settingsEnableOf(t, 41101); !enabled {
+			t.Fatal("the inbound settings JSON still has the client disabled")
+		}
+	})
+
+	t.Run("leaves a client the operator switched off", func(t *testing.T) {
+		initResetJobDB(t)
+		seedClientOnCycle(t, 41102, seededClient{
+			email: "banned-ib@example.com", cycle: "never", day: 1,
+			recordEnable: false, quotaEnable: true, total: 100000, inboundCycle: "daily",
+		})
+
+		NewPeriodicTrafficResetJob("daily", time.UTC).Run()
+
+		if rec := recordFor(t, "banned-ib@example.com"); rec.Enable {
+			t.Fatal("an operator-disabled client was switched back on by the inbound's reset")
+		}
+		if enabled := settingsEnableOf(t, 41102); enabled {
+			t.Fatal("an operator-disabled client was enabled in the inbound settings JSON")
 		}
 	})
 }

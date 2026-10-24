@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
@@ -205,5 +206,78 @@ func TestNodeInboundUnchangedPushLeavesTheCoreAlone(t *testing.T) {
 	}
 	if got := probe.recorded(); len(got) != 0 {
 		t.Fatalf("core operations = %q, want none for an unchanged inbound", got)
+	}
+}
+
+func ssHotSettings(t *testing.T, method, serverKey string, clients []model.Client) string {
+	t.Helper()
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(clientsSettings(t, clients)), &settings); err != nil {
+		t.Fatalf("unmarshal settings: %v", err)
+	}
+	settings["method"] = method
+	settings["network"] = "tcp,udp"
+	if serverKey != "" {
+		settings["password"] = serverKey
+	} else {
+		for _, c := range settings["clients"].([]any) {
+			c.(map[string]any)["method"] = method
+		}
+	}
+	out, err := json.Marshal(settings)
+	if err != nil {
+		t.Fatalf("marshal settings: %v", err)
+	}
+	return string(out)
+}
+
+// Multi-user shadowsocks has the same per-user API as vless, so a pushed client
+// change must not rebuild the handler and drop every connection on the port.
+func TestNodeShadowsocksPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
+	ciphers := []struct{ name, method, serverKey, keyA, keyB string }{
+		{"legacy aead", "aes-256-gcm", "", "a-pass", "b-pass"},
+		{"2022", "2022-blake3-aes-128-gcm", "AAECAwQFBgcICQoLDA0ODw==", "EBESExQVFhcYGRobHB0eHw==", "ICEiIyQlJicoKSorLC0uLw=="},
+	}
+	for _, cipher := range ciphers {
+		a := model.Client{Email: "ss-a", Password: cipher.keyA, Enable: true, CreatedAt: 1, UpdatedAt: 1}
+		b := model.Client{Email: "ss-b", Password: cipher.keyB, Enable: true, CreatedAt: 1, UpdatedAt: 1}
+		bOff := b
+		bOff.Enable = false
+		cases := []struct {
+			name           string
+			stored, pushed []model.Client
+			wantOps        []string
+		}{
+			{"disabling one client removes only that user", []model.Client{a, b}, []model.Client{a, bOff}, []string{"remove-user ss-b"}},
+			{"renewing a disabled client adds only that user", []model.Client{a, bOff}, []model.Client{a, b}, []string{"add-user ss-b"}},
+		}
+		for _, tc := range cases {
+			t.Run(cipher.name+"/"+tc.name, func(t *testing.T) {
+				setupConflictDB(t)
+				setRestartOnClientDisable(t, true)
+				probe := &inboundOpsProbe{}
+				useTestRuntimeManager(t).SetLocalRuntimeOverride(probe)
+
+				seedInboundConflict(t, "hot-ss", "0.0.0.0", 50083, model.Shadowsocks, `{"network":"tcp"}`,
+					ssHotSettings(t, cipher.method, cipher.serverKey, tc.stored))
+				stored := loadInboundByTag(t, "hot-ss")
+				if err := (&ClientService{}).SyncInbound(nil, stored.Id, tc.stored); err != nil {
+					t.Fatalf("SyncInbound: %v", err)
+				}
+
+				pushed := *stored
+				pushed.Settings = ssHotSettings(t, cipher.method, cipher.serverKey, tc.pushed)
+				_, needRestart, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&pushed)
+				if err != nil {
+					t.Fatalf("UpdateInbound: %v", err)
+				}
+				if got := probe.recorded(); !slices.Equal(got, tc.wantOps) {
+					t.Fatalf("core operations = %q, want %q", got, tc.wantOps)
+				}
+				if needRestart {
+					t.Fatal("needRestart = true, want the push applied without restarting the core")
+				}
+			})
+		}
 	}
 }

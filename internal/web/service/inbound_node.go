@@ -224,6 +224,43 @@ func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email strin
 	}).Create(&model.NodeClientTraffic{NodeId: nodeID, Email: email, Up: up, Down: down}).Error
 }
 
+// mergeNodeClientTraffic folds one node-reported client into its central row.
+// While frozen (a push pending or just landed) only the counters may move.
+func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs xray.ClientTraffic, canon nodeTrafficCounter, frozen bool, deltaUp, deltaDown, now int64) error {
+	if frozen {
+		return tx.Exec(
+			fmt.Sprintf(
+				`UPDATE client_traffics
+				 SET up = %s, down = %s, last_online = %s
+				 WHERE email = ?`,
+				database.ClampedAddExpr("up"),
+				database.ClampedAddExpr("down"),
+				database.GreatestExpr("last_online", "?"),
+			),
+			deltaUp, deltaDown, cs.LastOnline, cs.Email,
+		).Error
+	}
+	return tx.Exec(
+		fmt.Sprintf(
+			`UPDATE client_traffics
+			 SET up = %s, down = %s, enable = %s, total = ?,
+			     expiry_time = %s,
+			     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s
+			 WHERE email = ?`,
+			database.ClampedAddExpr("up"),
+			database.ClampedAddExpr("down"),
+			database.ClientTrafficEnableMergeExpr(),
+			database.ClientTrafficExpiryMergeExpr(),
+			database.GreatestExpr("last_online", "?"),
+		),
+		deltaUp, deltaDown,
+		cs.Enable, now, deltaUp, deltaDown, canon.Up, canon.Down,
+		cs.Total,
+		cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
+		cs.LastOnline, cs.Email,
+	).Error
+}
+
 // mergeActivationExpiry: master absolute wins; node may only activate when
 // master is unset/duration. Node auto-renew goes through nodeClientRenewed.
 func mergeActivationExpiry(existing, node int64) int64 {
@@ -248,15 +285,14 @@ func masterLimitsAllowClient(master *xray.ClientTraffic, now, deltaUp, deltaDown
 	return true
 }
 
-// nodeDisableIsStale reports an enable=false the node decided against limits the
-// master has since changed, so it must not latch back (#6228 / #4917).
-func nodeDisableIsStale(master *xray.ClientTraffic, node xray.ClientTraffic, now, deltaUp, deltaDown int64) bool {
+// nodeDisableIsStale reports a node-reported enable=false the master's limits no
+// longer justify, so it must not latch back (#6228 / #4917 / #6870).
+func nodeDisableIsStale(master *xray.ClientTraffic, nodeUsed, now, deltaUp, deltaDown int64) bool {
 	if master == nil {
 		return false
 	}
-	// Matching limits mean the node judged the client on the master's own terms:
-	// that verdict is genuine and still latches, as #4917 requires.
-	if node.ExpiryTime == master.ExpiryTime && node.Total == master.Total {
+	// A master seeded at zero on adoption undercounts; the node's own usage still binds (#4917).
+	if master.Total > 0 && nodeUsed >= master.Total {
 		return false
 	}
 	return masterLimitsAllowClient(master, now, deltaUp, deltaDown)
@@ -634,22 +670,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	// Membership set for the rowExists checks below. Only the snapshot's emails
-	// are ever probed, so scope the lookup to those instead of plucking the whole
-	// client_traffics table (50k+ rows) on every node poll.
-	existingEmails := make(map[string]struct{}, len(snapEmailsAll))
+	// The stored row of every reported email, wherever it is homed, so the merge
+	// can skip a write that would leave it unchanged. Homed rows share centralCS's pointer.
+	statByEmail := make(map[string]*xray.ClientTraffic, len(snapEmailsAll))
 	if len(snapEmailsAll) > 0 {
 		snapEmailList := make([]string, 0, len(snapEmailsAll))
 		for email := range snapEmailsAll {
 			snapEmailList = append(snapEmailList, email)
 		}
 		for _, batch := range chunkStrings(snapEmailList, sqliteMaxVars) {
-			var found []string
-			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Pluck("email", &found).Error; err != nil {
+			var found []xray.ClientTraffic
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&found).Error; err != nil {
 				return false, err
 			}
-			for _, e := range found {
-				existingEmails[e] = struct{}{}
+			for i := range found {
+				if homed, ok := centralCSByEmail[found[i].Email]; ok {
+					statByEmail[found[i].Email] = homed
+					continue
+				}
+				statByEmail[found[i].Email] = &found[i]
 			}
 		}
 	}
@@ -1024,7 +1063,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 
-			if _, rowExists := existingEmails[cs.Email]; !rowExists {
+			if _, rowExists := statByEmail[cs.Email]; !rowExists {
 				if dirty {
 					continue
 				}
@@ -1062,7 +1101,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 				centralCS[csKey{c.Id, cs.Email}] = row
 				centralCSByEmail[cs.Email] = row
-				existingEmails[cs.Email] = struct{}{}
+				statByEmail[cs.Email] = row
 				structuralChange = true
 				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
 					return false, err
@@ -1077,7 +1116,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				// Only a real latch to disabled is structural; one-way merge never
 				// re-enables from the node.
 				enableChanged := !clientFrozen && existing.Enable && !cs.Enable &&
-					!nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown)
+					!nodeDisableIsStale(existing, canon.Up+canon.Down, now, deltaUp, deltaDown)
 				metaChanged := !clientFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset || existing.ResetWeekday != cs.ResetWeekday)
 				if enableChanged || metaChanged || expiryChanged {
 					structuralChange = true
@@ -1121,69 +1160,42 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.Total = cs.Total
 				existing.ExpiryTime = cs.ExpiryTime
 				existing.Reset = cs.Reset
+				existing.ResetDay = cs.ResetDay
 				existing.ResetWeekday = cs.ResetWeekday
 				existing.ResetCount = cs.ResetCount
+				existing.LastOnline = max(existing.LastOnline, cs.LastOnline)
 				structuralChange = true
-			} else if clientFrozen {
-				// Push pending or just landed: only counters may move, the master
-				// keeps expiry/enable/total/reset.
-				if err := tx.Exec(
-					fmt.Sprintf(
-						`UPDATE client_traffics
-						 SET up = %s, down = %s, last_online = %s
-						 WHERE email = ?`,
-						database.ClampedAddExpr("up"),
-						database.ClampedAddExpr("down"),
-						database.GreatestExpr("last_online", "?"),
-					),
-					deltaUp, deltaDown, cs.LastOnline, cs.Email,
-				).Error; err != nil {
-					return false, err
-				}
-				if existing != nil {
-					existing.Up = clampTrafficCounter(existing.Up + deltaUp)
-					existing.Down = clampTrafficCounter(existing.Down + deltaDown)
-				}
 			} else {
-				enableExpr := database.ClientTrafficEnableMergeExpr()
-				expiryExpr := database.ClientTrafficExpiryMergeExpr()
-				if err := tx.Exec(
-					fmt.Sprintf(
-						`UPDATE client_traffics
-						 SET up = %s, down = %s, enable = %s, total = ?,
-						     expiry_time = %s,
-						     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s
-						 WHERE email = ?`,
-						database.ClampedAddExpr("up"),
-						database.ClampedAddExpr("down"),
-						enableExpr,
-						expiryExpr,
-						database.GreatestExpr("last_online", "?"),
-					),
-					deltaUp, deltaDown,
-					cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
-					cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
-					cs.LastOnline, cs.Email,
-				).Error; err != nil {
-					return false, err
-				}
-				if existing != nil {
-					priorExpiry := existing.ExpiryTime
-					if !cs.Enable && !nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown) {
-						existing.Enable = false
+				// The row as the UPDATE below would leave it, computed from its
+				// pre-update values exactly as the SQL reads them.
+				row := statByEmail[cs.Email]
+				next := *row
+				next.Up = clampTrafficCounter(row.Up + deltaUp)
+				next.Down = clampTrafficCounter(row.Down + deltaDown)
+				next.LastOnline = max(row.LastOnline, cs.LastOnline)
+				if !clientFrozen {
+					if !cs.Enable && !nodeDisableIsStale(row, canon.Up+canon.Down, now, deltaUp, deltaDown) {
+						next.Enable = false
 					}
-					existing.ExpiryTime = mergeActivationExpiry(priorExpiry, cs.ExpiryTime)
-					existing.Up = clampTrafficCounter(existing.Up + deltaUp)
-					existing.Down = clampTrafficCounter(existing.Down + deltaDown)
-					existing.Total = cs.Total
-					existing.Reset = cs.Reset
-					existing.ResetWeekday = cs.ResetWeekday
+					next.ExpiryTime = mergeActivationExpiry(row.ExpiryTime, cs.ExpiryTime)
+					next.Total = cs.Total
+					next.Reset, next.ResetDay, next.ResetWeekday = cs.Reset, cs.ResetDay, cs.ResetWeekday
+				}
+				// A multi-attached client is reported once per inbound and an idle one
+				// every tick: rewriting an unchanged row only holds its lock longer.
+				if next != *row {
+					if err := s.mergeNodeClientTraffic(tx, cs, canon, clientFrozen, deltaUp, deltaDown, now); err != nil {
+						return false, err
+					}
+					*row = next
 				}
 			}
 			// A dip plus a lagging longer expiry mimics nodeClientRenewed and would
 			// undo a master shorten once the freeze lifts (#6228).
 			if clientFrozen && seen && (canon.Up < base.Up || canon.Down < base.Down) {
+				continue
+			}
+			if seen && base == canon {
 				continue
 			}
 			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {

@@ -114,6 +114,9 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	if settings.SubJsonUserAgentRegex != "" {
 		t.Fatalf("subJsonUserAgentRegex = %q, want empty inherited value", settings.SubJsonUserAgentRegex)
 	}
+	if settings.SubClashRemoteDNS {
+		t.Fatal("subClashRemoteDNS default = true, want false")
+	}
 	if settings.SubClashUserAgentRegex != "" {
 		t.Fatalf("subClashUserAgentRegex = %q, want empty inherited value", settings.SubClashUserAgentRegex)
 	}
@@ -130,6 +133,7 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	settings.SubClashURI = "https://subscriptions.example.com/clash-custom/"
 	settings.SubClashEnableRouting = true
 	settings.SubClashRules = "GEOIP,private,DIRECT"
+	settings.SubClashRemoteDNS = true
 
 	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
 		t.Fatal(err)
@@ -177,6 +181,9 @@ func TestUpdateAllSettingPersistsClashSubscriptionSettings(t *testing.T) {
 	}
 	if got.SubClashRules != "GEOIP,private,DIRECT" {
 		t.Fatalf("subClashRules = %q, want %q", got.SubClashRules, "GEOIP,private,DIRECT")
+	}
+	if !got.SubClashRemoteDNS {
+		t.Fatal("subClashRemoteDNS = false, want true")
 	}
 }
 

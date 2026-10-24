@@ -60,8 +60,10 @@ func NormalizeScope(scope string) (string, error) {
 		return model.ApiScopeMonitor, nil
 	case model.ApiScopeNodeSync:
 		return model.ApiScopeNodeSync, nil
+	case model.ApiScopeNodeAdmin:
+		return model.ApiScopeNodeAdmin, nil
 	default:
-		return "", common.NewError("scope must be 'admin', 'monitor', or 'node-sync'")
+		return "", common.NewError("scope must be 'admin', 'monitor', 'node-sync', or 'node-admin'")
 	}
 }
 

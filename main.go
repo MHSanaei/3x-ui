@@ -21,7 +21,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
 	"github.com/mhsanaei/3x-ui/v3/internal/tunnelmonitor"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
@@ -111,6 +110,15 @@ func runWebServer() {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
+	}
+	// Created here, not in InitDB: a CLI call's output is often piped away, and
+	// this log is the one place an operator reads the first login from.
+	username, password, err := database.EnsureFirstUser()
+	if err != nil {
+		log.Fatalf("Error creating the first panel user: %v", err)
+	}
+	if password != "" {
+		log.Printf("No panel user existed, so one was generated. Username: %s  Password: %s  (shown once; change it in Panel Settings)", username, password)
 	}
 
 	server := web.NewServer()
@@ -260,13 +268,9 @@ func showSetting(show bool) {
 		}
 
 		userService := panel.UserService{}
-		userModel, err := userService.GetFirstUser()
+		hasDefaultCredential, err := userService.HasDefaultCredential()
 		if err != nil {
 			fmt.Println("get current user info failed, error info:", err)
-		}
-
-		if userModel.Username == "" || userModel.Password == "" {
-			fmt.Println("current username or password is empty")
 		}
 
 		fmt.Println("current panel settings as follows:")
@@ -275,10 +279,6 @@ func showSetting(show bool) {
 		} else {
 			fmt.Println("Panel is secure with SSL")
 		}
-
-		hasDefaultCredential := func() bool {
-			return userModel.Username == "admin" && crypto.CheckPasswordHash(userModel.Password, "admin")
-		}()
 
 		fmt.Println("hasDefaultCredential:", hasDefaultCredential)
 		fmt.Println("port:", port)

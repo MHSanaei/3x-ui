@@ -39,7 +39,9 @@ Caddy получает и продлевает сертификаты за ва�
 
 ```text title="Caddyfile"
 panel.example.com {
-    reverse_proxy 127.0.0.1:2053
+    reverse_proxy 127.0.0.1:2053 {
+        header_up X-Real-IP {remote_host}
+    }
 }
 ```
 

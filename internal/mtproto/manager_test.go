@@ -18,7 +18,7 @@ func TestInstanceFromInbound(t *testing.T) {
 		Settings: `{"fakeTlsDomain":"example.com",` +
 			`"debug":true,"proxyProtocolListener":true,"preferIp":"prefer-ipv4",` +
 			`"domainFronting":{"ip":"127.0.0.1","port":9443,"proxyProtocol":true},` +
-			`"throttleMaxConnections":5000,` +
+			`"throttleMaxConnections":5000,"pendingHandshakesMaxPerIp":64,` +
 			`"routeThroughXray":true,"routeXrayPort":50000,` +
 			`"adTag":" 0123456789abcdef0123456789abcdef ",` +
 			`"clients":[` +
@@ -60,6 +60,9 @@ func TestInstanceFromInbound(t *testing.T) {
 	if inst.ThrottleMaxConnections != 5000 {
 		t.Fatalf("throttle not parsed: %+v", inst)
 	}
+	if inst.PendingHandshakesMaxPerIP != 64 {
+		t.Fatalf("pending-handshake limit not parsed: %+v", inst)
+	}
 	if !inst.RouteThroughXray || inst.XrayRoutePort != 50000 {
 		t.Fatalf("xray routing not parsed: %+v", inst)
 	}
@@ -90,7 +93,7 @@ func TestRenderConfig(t *testing.T) {
 		Secrets: []SecretEntry{{Name: "alice", Secret: "ee00"}},
 		Listen:  "0.0.0.0", Port: 8443,
 	}, 5000, "")
-	for _, unwanted := range []string{"debug", "proxy-protocol-listener", "prefer-ip", "[domain-fronting]", "[stats.prometheus]", "[throttle]", "[secret-ad-tags]", "api-token"} {
+	for _, unwanted := range []string{"debug", "proxy-protocol-listener", "prefer-ip", "[domain-fronting]", "[stats.prometheus]", "[throttle]", "[defense.pending-handshakes]", "[secret-ad-tags]", "api-token"} {
 		if strings.Contains(bare, unwanted) {
 			t.Fatalf("bare config should not contain %q:\n%s", unwanted, bare)
 		}
@@ -116,9 +119,10 @@ func TestRenderConfig(t *testing.T) {
 		Listen: "0.0.0.0", Port: 443,
 		Debug: true, ProxyProtocolListener: true, PreferIP: "only-ipv6",
 		FrontingIP: "127.0.0.1", FrontingPort: 9443, FrontingProxyProtocol: true,
-		ThrottleMaxConnections: 5000,
-		PublicIPv4:             "1.2.3.4",
-		PublicIPv6:             "2001:db8::1",
+		ThrottleMaxConnections:    5000,
+		PendingHandshakesMaxPerIP: 64,
+		PublicIPv4:                "1.2.3.4",
+		PublicIPv6:                "2001:db8::1",
 	}, 6000, "sesame")
 	for _, want := range []string{
 		"debug = true\n",
@@ -133,6 +137,7 @@ func TestRenderConfig(t *testing.T) {
 		"proxy-protocol = true\n",
 		"[throttle]",
 		"max-connections = 5000",
+		"[defense.pending-handshakes]\nmax-per-ip = 64\n",
 		"[secret-ad-tags]",
 		`"bob" = "fedcba9876543210fedcba9876543210"`,
 	} {
@@ -159,6 +164,9 @@ func TestRenderConfig(t *testing.T) {
 	}
 	if strings.LastIndex(full, "[secrets]") < strings.Index(full, "[throttle]") {
 		t.Fatalf("[throttle] must precede [secrets]:\n%s", full)
+	}
+	if strings.LastIndex(full, "[secrets]") < strings.Index(full, "[defense.pending-handshakes]") {
+		t.Fatalf("[defense.pending-handshakes] must precede [secrets]:\n%s", full)
 	}
 	if strings.LastIndex(full, "[secrets]") < strings.Index(full, "[secret-ad-tags]") {
 		t.Fatalf("[secret-ad-tags] must precede [secrets]:\n%s", full)
@@ -244,19 +252,20 @@ func TestFingerprintSplit(t *testing.T) {
 	base := Instance{Secrets: []SecretEntry{{Name: "a", Secret: "ee"}}, Listen: "0.0.0.0", Port: 443}
 
 	for name, mutate := range map[string]func(*Instance){
-		"debug":         func(i *Instance) { i.Debug = true },
-		"listener":      func(i *Instance) { i.ProxyProtocolListener = true },
-		"preferIp":      func(i *Instance) { i.PreferIP = "only-ipv4" },
-		"frontingIP":    func(i *Instance) { i.FrontingIP = "127.0.0.1" },
-		"frontingPort":  func(i *Instance) { i.FrontingPort = 9443 },
-		"frontingProxy": func(i *Instance) { i.FrontingProxyProtocol = true },
-		"throttle":      func(i *Instance) { i.ThrottleMaxConnections = 5000 },
-		"routeXray":     func(i *Instance) { i.RouteThroughXray = true },
-		"routeXrayPort": func(i *Instance) { i.XrayRoutePort = 50000 },
-		"port":          func(i *Instance) { i.Port = 8443 },
-		"listen":        func(i *Instance) { i.Listen = "127.0.0.1" },
-		"publicIpv4":    func(i *Instance) { i.PublicIPv4 = "1.2.3.4" },
-		"publicIpv6":    func(i *Instance) { i.PublicIPv6 = "2001:db8::1" },
+		"debug":             func(i *Instance) { i.Debug = true },
+		"listener":          func(i *Instance) { i.ProxyProtocolListener = true },
+		"preferIp":          func(i *Instance) { i.PreferIP = "only-ipv4" },
+		"frontingIP":        func(i *Instance) { i.FrontingIP = "127.0.0.1" },
+		"frontingPort":      func(i *Instance) { i.FrontingPort = 9443 },
+		"frontingProxy":     func(i *Instance) { i.FrontingProxyProtocol = true },
+		"throttle":          func(i *Instance) { i.ThrottleMaxConnections = 5000 },
+		"pendingHandshakes": func(i *Instance) { i.PendingHandshakesMaxPerIP = 64 },
+		"routeXray":         func(i *Instance) { i.RouteThroughXray = true },
+		"routeXrayPort":     func(i *Instance) { i.XrayRoutePort = 50000 },
+		"port":              func(i *Instance) { i.Port = 8443 },
+		"listen":            func(i *Instance) { i.Listen = "127.0.0.1" },
+		"publicIpv4":        func(i *Instance) { i.PublicIPv4 = "1.2.3.4" },
+		"publicIpv6":        func(i *Instance) { i.PublicIPv6 = "2001:db8::1" },
 	} {
 		t.Run("structural/"+name, func(t *testing.T) {
 			changed := base

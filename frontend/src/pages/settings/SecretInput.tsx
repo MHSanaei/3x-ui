@@ -8,6 +8,7 @@ interface SecretInputProps {
   placeholder: string;
   onChange: (value: string) => void;
   onClearArmedChange: (armed: boolean) => void;
+  'aria-labelledby'?: string;
 }
 
 export default function SecretInput({
@@ -17,11 +18,13 @@ export default function SecretInput({
   placeholder,
   onChange,
   onClearArmedChange,
+  'aria-labelledby': ariaLabelledBy,
 }: SecretInputProps) {
   const { t } = useTranslation();
   return (
     <Space.Compact style={{ width: '100%' }}>
       <Input.Password
+        aria-labelledby={ariaLabelledBy}
         value={value}
         placeholder={configured && !clearArmed ? placeholder : ''}
         onChange={(e) => {

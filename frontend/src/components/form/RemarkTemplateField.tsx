@@ -22,6 +22,9 @@ interface RemarkTemplateFieldProps {
   multiline?: boolean;
   rows?: number;
   metadataOnly?: boolean;
+  id?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
 }
 
 /**
@@ -37,6 +40,9 @@ export default function RemarkTemplateField({
   multiline = false,
   rows,
   metadataOnly = false,
+  id,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }: RemarkTemplateFieldProps) {
   const { t } = useTranslation();
   const inputRef = useRef<InputRef>(null);
@@ -76,7 +82,7 @@ export default function RemarkTemplateField({
         <Button
           type="text"
           size="small"
-          icon={<CodeOutlined />}
+          icon={<CodeOutlined aria-hidden />}
           aria-label={t('pages.hosts.remarkVars.title')}
           style={{ marginInlineEnd: -7 }}
         />
@@ -90,6 +96,9 @@ export default function RemarkTemplateField({
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <Input.TextArea
             ref={textAreaRef}
+            id={id}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
             value={value}
             maxLength={maxLength}
             placeholder={placeholder}
@@ -101,6 +110,9 @@ export default function RemarkTemplateField({
       ) : (
         <Input
           ref={inputRef}
+          id={id}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           value={value}
           maxLength={maxLength}
           placeholder={placeholder}

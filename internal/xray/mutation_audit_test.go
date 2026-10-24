@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -280,6 +281,33 @@ func TestWaitForCommand_CrashExitRecordsError(t *testing.T) {
 	}
 }
 
+// A real child panic reaches the LogWriter in several pipe chunks; the crash
+// report is only whole if waitForCommand flushes the writer after cmd.Wait.
+func TestWaitForCommand_PanicWritesWholeCrashReport(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XUI_LOG_FOLDER", dir)
+	cmd := exec.Command(os.Args[0], "-test.run=TestMutationAuditHelper", "--", "panic")
+	cmd.Env = append(os.Environ(), "XRAY_MUT_HELPER=1")
+
+	p := newProcess(nil)
+	cmd.Stdout = p.logWriter
+	cmd.Stderr = p.logWriter
+	if err := p.startCommand(cmd); err != nil {
+		t.Fatalf("startCommand: %v", err)
+	}
+	if err := p.waitForExit(5 * time.Second); err != nil {
+		t.Fatalf("child did not exit: %v", err)
+	}
+
+	reports := crashReportsIn(t, dir)
+	if len(reports) != 1 || !strings.HasPrefix(reports[0], "panic: xray helper panic\n\ngoroutine ") {
+		t.Fatalf("crash reports = %q, want one holding the whole panic traceback", reports)
+	}
+	if got := p.GetResult(); got != "panic: xray helper panic" {
+		t.Fatalf("GetResult = %q, want the panic header", got)
+	}
+}
+
 // TestStop_RemovesTempConfigFile pins process.go:579 — the
 // `if p.configPath != ""` guard that removes the per-run temp config file on
 // Stop (so test runs never disturb the main config.json). A mutated guard
@@ -336,6 +364,9 @@ func TestMutationAuditHelper(t *testing.T) {
 	case "crash-exit":
 		os.Exit(2)
 	case "block":
+		select {}
+	case "panic":
+		go func() { panic("xray helper panic") }()
 		select {}
 	}
 }
