@@ -76,3 +76,82 @@ func TestBuildRuntimeInboundForAPI_NoFallbacksOnWsInbound(t *testing.T) {
 		t.Fatalf("ws inbound must not receive fallbacks: %s", runtimeIb.Settings)
 	}
 }
+
+// #6835: a child that accepts PROXY protocol must get a header from its fallback, whichever
+// was saved first; an explicit dest or a chosen xver stays the operator's.
+func TestBuildFallbacksJSON_DerivesXverFromTheChild(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	master := mkInbound(t, 30301, model.VLESS, `{"clients":[]}`)
+
+	cases := []struct {
+		name   string
+		stream string
+		dest   string
+		xver   int
+		want   any
+	}{
+		{"raw transport flag", `{"network":"tcp","tcpSettings":{"acceptProxyProtocol":true}}`, "", 0, float64(1)},
+		{"sockopt flag", `{"network":"grpc","sockopt":{"acceptProxyProtocol":true}}`, "", 0, float64(1)},
+		{"websocket flag", `{"network":"ws","wsSettings":{"acceptProxyProtocol":true}}`, "", 0, float64(1)},
+		{"stale flag of another transport", `{"network":"grpc","tcpSettings":{"acceptProxyProtocol":true}}`, "", 0, nil},
+		{"child without PROXY protocol", `{"network":"tcp"}`, "", 0, nil},
+		{"explicit dest keeps the stored xver", `{"network":"tcp","tcpSettings":{"acceptProxyProtocol":true}}`, "127.0.0.1:9000", 0, nil},
+		{"chosen xver 2 stays", `{"network":"tcp","tcpSettings":{"acceptProxyProtocol":true}}`, "", 2, float64(2)},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := db.Where("master_id = ?", master.Id).Delete(&model.InboundFallback{}).Error; err != nil {
+				t.Fatal(err)
+			}
+			child := mkInboundStream(t, 30310+i, model.VLESS, `{"clients":[]}`, tc.stream)
+			fb := model.InboundFallback{MasterId: master.Id, ChildId: child.Id, Dest: tc.dest, Xver: tc.xver}
+			if err := db.Create(&fb).Error; err != nil {
+				t.Fatal(err)
+			}
+			got, err := (&FallbackService{}).BuildFallbacksJSON(db, master.Id)
+			if err != nil || len(got) != 1 {
+				t.Fatalf("BuildFallbacksJSON = %v, %v", got, err)
+			}
+			raw, _ := json.Marshal(got[0])
+			var entry map[string]any
+			_ = json.Unmarshal(raw, &entry)
+			if entry["xver"] != tc.want {
+				t.Fatalf("xver = %v, want %v (entry %s)", entry["xver"], tc.want, raw)
+			}
+		})
+	}
+}
+
+// The running master keeps the fallback it was built with, so turning PROXY protocol on in a
+// linked child must rebuild the master too; an inbound no fallback derives from needs nothing.
+func TestUpdateInbound_FallbackChildChangeRebuildsItsMaster(t *testing.T) {
+	setupBulkDB(t)
+	mgr := useTestRuntimeManager(t)
+	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	db := database.GetDB()
+	master := mkInboundStream(t, 30401, model.VLESS, `{"clients":[]}`, `{"network":"tcp","security":"tls"}`)
+	linked := mkInboundStream(t, 30402, model.VLESS, `{"clients":[]}`, `{"network":"tcp"}`)
+	unlinked := mkInboundStream(t, 30403, model.VLESS, `{"clients":[]}`, `{"network":"tcp"}`)
+	if err := db.Create(&model.InboundFallback{MasterId: master.Id, ChildId: linked.Id}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		ib   *model.Inbound
+		want bool
+	}{{"linked child", linked, true}, {"unlinked inbound", unlinked, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			update := *tc.ib
+			update.StreamSettings = `{"network":"tcp","tcpSettings":{"acceptProxyProtocol":true}}`
+			_, needRestart, err := (&InboundService{}).UpdateInbound(&update)
+			if err != nil {
+				t.Fatalf("UpdateInbound: %v", err)
+			}
+			if needRestart != tc.want {
+				t.Fatalf("needRestart = %v, want %v", needRestart, tc.want)
+			}
+		})
+	}
+}
