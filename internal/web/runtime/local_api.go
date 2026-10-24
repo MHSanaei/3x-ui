@@ -3,6 +3,9 @@ package runtime
 import (
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -35,4 +38,24 @@ func localAPIForPort(port int) (*xray.XrayAPI, error) {
 	localAPIClient = api
 	localAPIPort = port
 	return api, nil
+}
+
+// evictLocalAPIClient drops the pooled client so the next call dials a fresh connection: a pooled
+// channel keeps grpc-go's reconnect backoff after the core went away, so it failed fast with
+// Unavailable even once the core was back again.
+func evictLocalAPIClient(api *xray.XrayAPI) {
+	localAPIMu.Lock()
+	defer localAPIMu.Unlock()
+
+	if localAPIClient != api {
+		return
+	}
+	localAPIClient.Close()
+	localAPIClient = nil
+	localAPIPort = 0
+}
+
+// isUnavailable reports whether the call failed because the core was not reachable.
+func isUnavailable(err error) bool {
+	return status.Code(err) == codes.Unavailable
 }
