@@ -138,10 +138,8 @@ type Server struct {
 	cancel context.CancelFunc
 }
 
-// NewServer creates a new web server instance with a cancellable context.
-// The share-link provider is installed right away: the panel answers link
-// requests as soon as it serves, and one that arrived before the provider was
-// registered got "sub link provider not registered".
+// NewServer installs the share-link provider before anything serves, so an early link request
+// no longer gets "sub link provider not registered".
 func NewServer(subLinkProvider service.SubLinkProvider) *Server {
 	if subLinkProvider != nil {
 		service.RegisterSubLinkProvider(subLinkProvider)

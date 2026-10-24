@@ -121,9 +121,6 @@ func runWebServer() {
 		log.Printf("No panel user existed, so one was generated. Username: %s  Password: %s  (shown once; change it in Panel Settings)", username, password)
 	}
 
-	// The share-link provider is installed with the server: the panel answers
-	// link requests as soon as it serves, and one that arrived before the
-	// provider was registered got "sub link provider not registered".
 	server := web.NewServer(sub.NewLinkProvider())
 	global.SetWebServer(server)
 	err = server.Start()

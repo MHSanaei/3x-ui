@@ -24,9 +24,7 @@ func RegisterSubLinkProvider(p SubLinkProvider) {
 	registeredSubLinkProvider = p
 }
 
-// subLinkProvider returns the installed provider, or nil while the panel has
-// none: the registry is written during startup and read by every request that
-// renders share links.
+// subLinkProvider guards the registry: startup writes it while link requests read it.
 func subLinkProvider() SubLinkProvider {
 	subLinkProviderMu.RLock()
 	defer subLinkProviderMu.RUnlock()

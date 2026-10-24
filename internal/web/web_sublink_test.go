@@ -23,9 +23,7 @@ func (f fakeSubLinkProvider) LinksForInbounds(host string, inbounds []*model.Inb
 	return f.links
 }
 
-// The panel answers share-link requests as soon as it serves, so the provider
-// has to be installed before the server exists: a link request that arrived
-// earlier got "sub link provider not registered".
+// A link request can arrive as soon as the panel serves, so NewServer must install the provider.
 func TestNewServerInstallsTheShareLinkProviderBeforeServing(t *testing.T) {
 	service.RegisterSubLinkProvider(nil)
 	t.Cleanup(func() { service.RegisterSubLinkProvider(nil) })

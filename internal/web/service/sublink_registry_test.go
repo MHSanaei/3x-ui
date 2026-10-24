@@ -23,9 +23,8 @@ func (f fakeSubLinkProvider) LinksForInbounds(host string, inbounds []*model.Inb
 	return f.links
 }
 
-// The provider registry is written when the panel starts and read by every
-// request that renders share links. An unsynchronised write races with those
-// reads, so the registry must be guarded.
+// Startup writes the provider registry while link requests read it; under -race an
+// unguarded registry fails here.
 func TestSubLinkProviderRegistrationIsRaceFree(t *testing.T) {
 	t.Cleanup(func() { RegisterSubLinkProvider(nil) })
 
