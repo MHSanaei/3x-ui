@@ -132,7 +132,7 @@ the code already handles is not a finding at all.
 - Missing tests for getters, constants, renames or pure map lookups —
   `CLAUDE.md` rejects such tests outright.
 - A missing or unreferenced i18n key.
-  `frontend/src/test/i18n-dead-keys.test.ts` pins the 13 locale files in
+  `frontend/src/test/i18n-dead-keys.test.ts` pins the 14 locale files in
   `internal/web/translation/` in both directions, so the `frontend` job is
   already red. Report the failing check, not the key.
 

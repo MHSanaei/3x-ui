@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "DoH サーバー URL。通常は /dns-query で終わります。",
       "subIncyResolveDnsIp": "DoH サーバー IP",
       "subIncyResolveDnsIpDesc": "ブートストラップ用の DoH サーバー IP。",
-      "subIncyGroupRouting": "ルーティング"
+      "subIncyGroupRouting": "ルーティング",
+      "subHostSortMode": "サブスクリプションのノード順序",
+      "subHostSortInbound": "インバウンド順（既定）",
+      "subHostSortHosts": "ホスト順",
+      "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -2468,7 +2472,8 @@
         "delete": "ホストを削除",
         "badTag": "無効なタグ",
         "badVlessRoute": "0〜65535 の単一の数値を入力してください"
-      }
+      },
+      "dragToReorder": "ドラッグして {name} を並べ替え"
     },
     "sponsors": {
       "title": "スポンサー",

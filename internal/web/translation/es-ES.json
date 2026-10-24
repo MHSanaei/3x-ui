@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "URL del servidor DoH, normalmente acaba en /dns-query.",
       "subIncyResolveDnsIp": "IP del servidor DoH",
       "subIncyResolveDnsIpDesc": "IP del servidor DoH para el arranque.",
-      "subIncyGroupRouting": "Enrutado"
+      "subIncyGroupRouting": "Enrutado",
+      "subHostSortMode": "Orden de nodos de suscripción",
+      "subHostSortInbound": "Orden de entradas (predeterminado)",
+      "subHostSortHosts": "Orden de hosts",
+      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -2468,7 +2472,8 @@
         "delete": "Eliminar host",
         "badTag": "Etiqueta no válida",
         "badVlessRoute": "Introduce un único número entre 0 y 65535"
-      }
+      },
+      "dragToReorder": "Arrastra para reordenar {name}"
     },
     "sponsors": {
       "title": "Patrocinadores",

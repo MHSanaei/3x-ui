@@ -63,7 +63,7 @@ file locations when it can answer in one hop.
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.
-  - `locale/` + `translation/` — i18n, 13 embedded locale JSON files.
+  - `locale/` + `translation/` — i18n, 14 embedded locale JSON files.
 - `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
   into `frontend/src/generated/` from Go structs. The OpenAPI doc itself
@@ -107,7 +107,7 @@ file locations when it can answer in one hop.
   `cd docs && pnpm gen:api` to refresh the MDX under
   `docs/content/docs/en/reference/api/`. `docs-ci.yml` fires only on `docs/**`.
 - A new English i18n key goes in EVERY locale JSON in `internal/web/translation/`
-  (13 files) AND must be referenced from `frontend/src` or Go in the SAME commit —
+  (14 files) AND must be referenced from `frontend/src` or Go in the SAME commit —
   `frontend/src/test/i18n-dead-keys.test.ts` fails both ways. It is a frontend
   test, so run `npm test`, not just `make test-go`. At runtime the frontend falls
   back to en-US; Go (`internal/web/locale/`) returns "" for an unknown key.

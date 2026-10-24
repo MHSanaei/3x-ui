@@ -272,17 +272,28 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 	}
 }
 
+// listenTCPAndUDPOnOnePort retries because a free TCP port may be taken or reserved for UDP
+// (Windows excludes port ranges per protocol).
+func listenTCPAndUDPOnOnePort(t *testing.T) (net.Listener, net.PacketConn) {
+	t.Helper()
+	for range 20 {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if packet, err := net.ListenPacket("udp", listener.Addr().String()); err == nil {
+			return listener, packet
+		}
+		_ = listener.Close()
+	}
+	t.Fatal("no port free for both TCP and UDP")
+	return nil, nil
+}
+
 func startTuicRouteMarker(t *testing.T, marker string) string {
 	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	listener, packet := listenTCPAndUDPOnOnePort(t)
 	t.Cleanup(func() { _ = listener.Close() })
-	packet, err := net.ListenPacket("udp", listener.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
 	t.Cleanup(func() { _ = packet.Close() })
 	go func() {
 		for {

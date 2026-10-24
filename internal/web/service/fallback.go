@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -123,6 +124,7 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 	out := make([]map[string]any, 0, len(rows))
 	for _, r := range rows {
 		dest := strings.TrimSpace(r.Dest)
+		xver := r.Xver
 		if dest == "" {
 			child, ok := byId[r.ChildId]
 			if !ok {
@@ -133,6 +135,11 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 				listen = "127.0.0.1"
 			}
 			dest = fmt.Sprintf("%s:%d", listen, child.Port)
+			// A child that accepts PROXY protocol rejects a fallback without the header (#6835);
+			// deriving it here keeps the row right through either order of toggling.
+			if xver == 0 && acceptsProxyProtocol(child.StreamSettings) {
+				xver = 1
+			}
 		}
 		entry := map[string]any{
 			"dest": dest,
@@ -146,10 +153,51 @@ func (s *FallbackService) BuildFallbacksJSON(tx *gorm.DB, masterId int) ([]map[s
 		if r.Path != "" {
 			entry["path"] = r.Path
 		}
-		if r.Xver > 0 {
-			entry["xver"] = r.Xver
+		if xver > 0 {
+			entry["xver"] = xver
 		}
 		out = append(out, entry)
 	}
 	return out, nil
+}
+
+// HasDerivedFallbackTo reports whether a master's fallback takes its dest and xver from childId.
+func (s *FallbackService) HasDerivedFallbackTo(tx *gorm.DB, childId int) (bool, error) {
+	var n int64
+	err := tx.Model(&model.InboundFallback{}).Where("child_id = ? AND TRIM(dest) = ''", childId).Count(&n).Error
+	return n > 0, err
+}
+
+// fallbackTargetChanged reports whether an edit changed what a derived fallback is built from.
+func fallbackTargetChanged(before, after *model.Inbound) bool {
+	return before.Listen != after.Listen || before.Port != after.Port ||
+		acceptsProxyProtocol(before.StreamSettings) != acceptsProxyProtocol(after.StreamSettings)
+}
+
+// proxyProtocolTransportKey maps the transports whose settings carry acceptProxyProtocol;
+// RAW is stored as tcp, older rows say raw.
+var proxyProtocolTransportKey = map[string]string{
+	"tcp":         "tcpSettings",
+	"raw":         "tcpSettings",
+	"ws":          "wsSettings",
+	"httpupgrade": "httpupgradeSettings",
+}
+
+// acceptsProxyProtocol reports whether an inbound's listener expects a PROXY header, via
+// sockopt or its transport, the two places xray-core wraps the listener.
+func acceptsProxyProtocol(streamSettings string) bool {
+	var stream map[string]any
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil {
+		return false
+	}
+	if sockopt, _ := stream["sockopt"].(map[string]any); sockopt["acceptProxyProtocol"] == true {
+		return true
+	}
+	network, _ := stream["network"].(string)
+	key, ok := proxyProtocolTransportKey[strings.ToLower(network)]
+	if !ok {
+		return false
+	}
+	transport, _ := stream[key].(map[string]any)
+	return transport["acceptProxyProtocol"] == true
 }

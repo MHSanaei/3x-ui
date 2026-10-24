@@ -83,6 +83,7 @@ var defaultValueMap = map[string]string{
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
+	"subHostSortMode":             "inbound-first",
 	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
@@ -768,6 +769,10 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubHostSortMode() (string, error) {
+	return s.getString("subHostSortMode")
 }
 
 func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
@@ -1662,6 +1667,13 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	switch allSetting.SubHostSortMode {
+	case "":
+		allSetting.SubHostSortMode = "inbound-first"
+	case "inbound-first", "hosts-first":
+	default:
+		return errors.New("subscription host sort mode must be inbound-first or hosts-first")
+	}
 	switch allSetting.SubProfileMode {
 	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
 		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)

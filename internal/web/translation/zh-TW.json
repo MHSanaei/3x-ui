@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "DoH 伺服器 URL，通常以 /dns-query 結尾。",
       "subIncyResolveDnsIp": "DoH 伺服器 IP",
       "subIncyResolveDnsIpDesc": "用於引導的 DoH 伺服器 IP。",
-      "subIncyGroupRouting": "路由"
+      "subIncyGroupRouting": "路由",
+      "subHostSortMode": "訂閱節點排序",
+      "subHostSortInbound": "入站順序（預設）",
+      "subHostSortHosts": "主機順序",
+      "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。"
     },
     "xray": {
       "save": "儲存",
@@ -2468,7 +2472,8 @@
         "delete": "刪除 Host",
         "badTag": "無效的標籤",
         "badVlessRoute": "請輸入 0 到 65535 之間的單一數字"
-      }
+      },
+      "dragToReorder": "拖曳以重新排列 {name}"
     },
     "sponsors": {
       "title": "贊助商",

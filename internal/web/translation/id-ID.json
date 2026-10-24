@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "URL server DoH, biasanya berakhiran /dns-query.",
       "subIncyResolveDnsIp": "IP server DoH",
       "subIncyResolveDnsIpDesc": "IP server DoH untuk bootstrap.",
-      "subIncyGroupRouting": "Perutean"
+      "subIncyGroupRouting": "Perutean",
+      "subHostSortMode": "Urutan node langganan",
+      "subHostSortInbound": "Urutan inbound (bawaan)",
+      "subHostSortHosts": "Urutan host",
+      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
     },
     "xray": {
       "save": "Simpan",
@@ -2468,7 +2472,8 @@
         "delete": "Hapus host",
         "badTag": "Tag tidak valid",
         "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
-      }
+      },
+      "dragToReorder": "Seret untuk mengurutkan ulang {name}"
     },
     "sponsors": {
       "title": "Sponsor",

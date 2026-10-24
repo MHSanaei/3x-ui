@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "URL do servidor DoH, geralmente terminando em /dns-query.",
       "subIncyResolveDnsIp": "IP do servidor DoH",
       "subIncyResolveDnsIpDesc": "IP do servidor DoH para bootstrap.",
-      "subIncyGroupRouting": "Roteamento"
+      "subIncyGroupRouting": "Roteamento",
+      "subHostSortMode": "Ordem dos nós da assinatura",
+      "subHostSortInbound": "Ordem das entradas (padrão)",
+      "subHostSortHosts": "Ordem dos hosts",
+      "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação."
     },
     "xray": {
       "importRules": "Importar regras",
@@ -2468,7 +2472,8 @@
         "delete": "Excluir host",
         "badTag": "Tag inválida",
         "badVlessRoute": "Insira um único número entre 0 e 65535"
-      }
+      },
+      "dragToReorder": "Arraste para reordenar {name}"
     },
     "sponsors": {
       "title": "Patrocinadores",

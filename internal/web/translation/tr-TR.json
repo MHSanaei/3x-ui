@@ -1829,7 +1829,11 @@
       "subIncyResolveDnsDomainDesc": "DoH sunucu URL'si, genelde /dns-query ile biter.",
       "subIncyResolveDnsIp": "DoH sunucu IP'si",
       "subIncyResolveDnsIpDesc": "Bootstrap için DoH sunucu IP'si.",
-      "subIncyGroupRouting": "Yönlendirme"
+      "subIncyGroupRouting": "Yönlendirme",
+      "subHostSortMode": "Abonelik düğümü sıralaması",
+      "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
+      "subHostSortHosts": "Ana bilgisayar sırası",
+      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
     },
     "xray": {
       "save": "Kaydet",
@@ -2468,7 +2472,8 @@
         "delete": "Host'u sil",
         "badTag": "Geçersiz etiket",
         "badVlessRoute": "0 ile 65535 arasında tek bir sayı girin"
-      }
+      },
+      "dragToReorder": "{name} öğesini yeniden sıralamak için sürükleyin"
     },
     "sponsors": {
       "title": "Sponsorlar",

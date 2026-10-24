@@ -13,6 +13,30 @@ afterEach(() => {
 });
 
 describe('useAllSettings', () => {
+  it('persists the subscription host ordering mode and reloads it in a fresh session', async () => {
+    let storedMode = 'inbound-first';
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, body) => {
+      if (url === '/panel/api/setting/all')
+        return new Msg(true, '', { subHostSortMode: storedMode });
+      if (url === '/panel/api/setting/update')
+        storedMode = (body as { subHostSortMode: string }).subHostSortMode;
+      return new Msg(true, '', {});
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+    );
+    const first = renderHook(() => useAllSettings(), { wrapper });
+    await waitFor(() => expect(first.result.current.fetched).toBe(true));
+    expect(first.result.current.allSetting.subHostSortMode).toBe('inbound-first');
+    act(() => first.result.current.updateSetting({ subHostSortMode: 'hosts-first' }));
+    await act(async () => {
+      await first.result.current.saveAll();
+    });
+    first.unmount();
+    const second = renderHook(() => useAllSettings(), { wrapper });
+    await waitFor(() => expect(second.result.current.fetched).toBe(true));
+    expect(second.result.current.allSetting.subHostSortMode).toBe('hosts-first');
+  });
   it('refreshes cached default settings after a successful save', async () => {
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', {}));
     const queryClient = makeTestQueryClient();

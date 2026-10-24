@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -45,6 +45,35 @@ export default function HostsPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formHost, setFormHost] = useState<HostRecord | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
+  const savingOrder = useRef(false);
+  const visibleHosts = useMemo(
+    () =>
+      pendingOrder
+        ? hosts.map((h) => ({ ...h, sortOrder: pendingOrder.indexOf(h.groupId) }))
+        : hosts,
+    [hosts, pendingOrder],
+  );
+
+  const onReorder = useCallback(
+    async (groupIds: string[]) => {
+      const current = sortHosts(hosts).map((h) => h.groupId);
+      if (savingOrder.current || current.every((id, i) => id === groupIds[i])) return;
+      savingOrder.current = true;
+      setPendingOrder(groupIds);
+      try {
+        const msg = await reorder(groupIds);
+        if (msg?.success) messageApi.success(t('pages.hosts.toasts.update'));
+        else messageApi.error(msg?.msg || t('somethingWentWrong'));
+      } catch {
+        messageApi.error(t('somethingWentWrong'));
+      } finally {
+        savingOrder.current = false;
+        setPendingOrder(null);
+      }
+    },
+    [hosts, reorder, messageApi, t],
+  );
 
   const onAdd = useCallback(() => {
     setFormMode('add');
@@ -99,9 +128,9 @@ export default function HostsPage() {
       if (idx < 0 || swapWith < 0 || swapWith >= sorted.length) return;
       const groupIds = sorted.map((h) => h.groupId);
       [groupIds[idx], groupIds[swapWith]] = [groupIds[swapWith], groupIds[idx]];
-      await reorder(groupIds);
+      await onReorder(groupIds);
     },
-    [hosts, reorder],
+    [hosts, onReorder],
   );
 
   const onBulkEnable = useCallback(
@@ -207,7 +236,7 @@ export default function HostsPage() {
 
                   <Col span={24}>
                     <HostList
-                      hosts={hosts}
+                      hosts={visibleHosts}
                       inboundOptions={inboundOptions}
                       loading={loading}
                       isMobile={isMobile}
@@ -218,6 +247,8 @@ export default function HostsPage() {
                       onDelete={onDelete}
                       onToggleEnable={onToggleEnable}
                       onMove={onMove}
+                      onReorder={onReorder}
+                      reordering={pendingOrder !== null}
                       onBulkEnable={onBulkEnable}
                       onBulkDelete={onBulkDelete}
                     />

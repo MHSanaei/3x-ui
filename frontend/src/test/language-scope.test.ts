@@ -41,6 +41,24 @@ describe('subscription language scope', () => {
     expect(dateTimeFormat).toHaveBeenLastCalledWith('fa-IR', expect.any(Object));
   });
 
+  it('maps a Slovak browser to the Slovak panel locale instead of resetting to English', async () => {
+    vi.resetModules();
+    const utils = await import('@/utils');
+    const cookies = new Map<string, string>();
+    vi.spyOn(utils.CookieManager, 'getCookie').mockImplementation(
+      (name) => cookies.get(name) ?? '',
+    );
+    vi.spyOn(utils.CookieManager, 'setCookie').mockImplementation((name, value) => {
+      cookies.set(name, value);
+    });
+    const reload = vi.fn();
+    vi.stubGlobal('window', { navigator: { language: 'sk' }, location: { reload } });
+
+    expect(utils.LanguageManager.getLanguage()).toBe('sk-SK');
+    expect(cookies.get('lang')).toBe('sk-SK');
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('does not resolve the language for empty or invalid dates', async () => {
     const utils = await import('@/utils');
     const getLanguage = vi.spyOn(utils.LanguageManager, 'getLanguage').mockReturnValue('en-US');
