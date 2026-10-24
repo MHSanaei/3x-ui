@@ -20,10 +20,8 @@ const (
 	snapshotCacheCapacity = 256
 )
 
-// snapshotEntry holds one subscriber's inbound rows pre-marshaled to JSON, so
-// hits decode fresh structs: callers mutate inbounds in place (fallback-master
-// projection, external-proxy injection), and sharing live structs across
-// requests would race.
+// snapshotEntry keeps a subscriber's inbounds as JSON so every hit decodes its own structs: callers
+// mutate inbounds in place (fallback-master projection, external proxies), and sharing would race.
 type snapshotEntry struct {
 	inboundsJSON []byte
 	stats        map[string]xray.ClientTraffic
@@ -31,9 +29,8 @@ type snapshotEntry struct {
 	expiresAt    time.Time
 }
 
-// subSnapshotStore caches per-subId subscription reads with single-flight
-// builds. Client polls re-run identical queries; the store collapses that to
-// one read per subId per TTL window.
+// subSnapshotStore caches per-subId subscription reads, building each once per TTL window even
+// when concurrent polls ask for it together.
 type subSnapshotStore struct {
 	ttl      time.Duration
 	capacity int
@@ -55,9 +52,8 @@ func newSubSnapshotStore(ttl time.Duration, capacity int) *subSnapshotStore {
 	}
 }
 
-// inboundsFor returns freshly decoded inbound structs and a stats-map copy
-// for subId, calling build on a miss. Concurrent callers for one subId share
-// a single build; every caller receives its own structs and map.
+// inboundsFor returns subId's inbounds and a stats copy, building them on a miss; concurrent
+// callers share one build, and each gets its own structs and map.
 func (c *subSnapshotStore) inboundsFor(subId string, build func() ([]*model.Inbound, map[string]xray.ClientTraffic, error)) ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
 	entry, err := c.entryFor(subId, build)
 	if err != nil {
@@ -150,9 +146,8 @@ func (c *subSnapshotStore) evictLocked() {
 	}
 }
 
-// purgeAll drops every cached snapshot; the invalidator registry calls it
-// after panel mutations so edits surface on the next fetch, not after the
-// TTL. A build racing a purge may store a pre-mutation entry, bounded by TTL.
+// purgeAll drops every snapshot after a panel mutation, so edits surface on the next fetch; a build
+// racing the purge may still store a pre-mutation entry, bounded by the TTL.
 func (c *subSnapshotStore) purgeAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
