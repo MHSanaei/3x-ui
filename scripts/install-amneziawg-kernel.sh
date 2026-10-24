@@ -11,18 +11,20 @@ log() { printf '\n==> %s\n' "$*"; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "run as root"
+command -v apt-get >/dev/null || die "this installer supports Debian and Ubuntu; elsewhere install amneziawg-linux-kernel-module and amneziawg-tools 3.x by hand"
 
 KERNEL="$(uname -r)"
 SRC_DIR="${SRC_DIR:-/usr/local/src}"
 MODULE_REPO="https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.git"
 TOOLS_REPO="https://github.com/amnezia-vpn/amneziawg-tools.git"
 
-# The module and tools must come from the same 3.x series. In 3.x the H1-H4
-# magic headers are u64 ranges; 1.0 tools still send a u32 and `awg setconf`
-# fails with "Unable to modify interface: Invalid argument", leaving the
-# interface down with no useful diagnostic.
-MODULE_TAG_FILTER="${MODULE_TAG_FILTER:-^v3\.1}"
-TOOLS_TAG_FILTER="${TOOLS_TAG_FILTER:-^v3\.}"
+# Pinned to tested releases and verified by commit, since this runs as root.
+# Module and tools must share the 3.x series: 1.0 tools send u32 H1-H4 and
+# `awg setconf` then fails with "Invalid argument".
+MODULE_TAG="v3.1.20260906"
+MODULE_COMMIT="4569c4c67f3a57414969260cafbbd04694fbaae0"
+TOOLS_TAG="v3.1.20260812"
+TOOLS_COMMIT="ee0f0a9aa34ff0a0da4b3433b9512781cfe02843"
 
 log "Kernel: $KERNEL"
 [ -d "/lib/modules/$KERNEL/build" ] || die "kernel headers missing; install linux-headers-$KERNEL"
@@ -39,14 +41,6 @@ if grep -qi clang /proc/version; then
 	apt-get install -y -qq clang lld llvm
 fi
 
-latest_tag() {
-	git ls-remote --tags --refs "$1" | awk -F/ '{print $NF}' | grep -E "$2" | sort -V | tail -1
-}
-
-MODULE_TAG="$(latest_tag "$MODULE_REPO" "$MODULE_TAG_FILTER")"
-TOOLS_TAG="$(latest_tag "$TOOLS_REPO" "$TOOLS_TAG_FILTER")"
-[ -n "$MODULE_TAG" ] || die "no module tag matched $MODULE_TAG_FILTER"
-[ -n "$TOOLS_TAG" ] || die "no tools tag matched $TOOLS_TAG_FILTER"
 log "Module $MODULE_TAG, tools $TOOLS_TAG"
 
 mkdir -p "$SRC_DIR"
@@ -54,21 +48,10 @@ cd "$SRC_DIR"
 rm -rf amneziawg-linux-kernel-module amneziawg-tools
 git clone -q --depth 1 --branch "$MODULE_TAG" "$MODULE_REPO"
 git clone -q --depth 1 --branch "$TOOLS_TAG" "$TOOLS_REPO"
+[ "$(git -C amneziawg-linux-kernel-module rev-parse HEAD)" = "$MODULE_COMMIT" ] || die "module $MODULE_TAG is not commit $MODULE_COMMIT"
+[ "$(git -C amneziawg-tools rev-parse HEAD)" = "$TOOLS_COMMIT" ] || die "tools $TOOLS_TAG is not commit $TOOLS_COMMIT"
 
 MODULE_SRC="$SRC_DIR/amneziawg-linux-kernel-module/src"
-
-# Linux 7.1.5 changed setup_udp_tunnel_sock/udp_tunnel_sock_release to take a
-# struct sock* where they used to take a struct socket*. Until the module
-# carries the fix upstream, rewrite the four call sites.
-if grep -q 'udp_tunnel_sock_release(sock->sk_socket)' "$MODULE_SRC/socket.c"; then
-	log "Patching udp_tunnel call sites for kernel >= 7.1.5"
-	perl -0777 -i -pe '
-		s/setup_udp_tunnel_sock\(net, new([46]), /setup_udp_tunnel_sock(net, new$1->sk, /g;
-		s/udp_tunnel_sock_release\(new4\)/udp_tunnel_sock_release(new4->sk)/g;
-		s/udp_tunnel_sock_release\(sock->sk_socket\)/udp_tunnel_sock_release(sock)/g;
-	' "$MODULE_SRC/socket.c"
-	! grep -q 'udp_tunnel_sock_release(sock->sk_socket)' "$MODULE_SRC/socket.c" || die "udp_tunnel patch did not apply"
-fi
 
 log "Building the module via DKMS"
 cd "$MODULE_SRC"
