@@ -1517,6 +1517,7 @@
       "eventGroupNode": "Вузли",
       "eventOutboundDown": "Недоступне",
       "eventOutboundUp": "Доступне",
+      "eventDownThresholdHint": "невдалих перевірок поспіль",
       "eventXrayCrash": "Збій",
       "eventNodeDown": "Недоступний",
       "eventNodeUp": "Доступний",
