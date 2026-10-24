@@ -377,7 +377,9 @@ export default function ClientFormModal({
             : client.security,
         reverseTag: client.reverse?.tag || '',
         clientHostRuleIds: [
-          ...new Set((client.clientHostRuleIds || []).filter((id) => Number.isInteger(id) && id > 0)),
+          ...new Set(
+            (client.clientHostRuleIds || []).filter((id) => Number.isInteger(id) && id > 0),
+          ),
         ],
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
