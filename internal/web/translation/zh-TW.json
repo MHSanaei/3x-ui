@@ -2383,6 +2383,7 @@
         "serverDescription": "顯示於備註下方的選填註記。",
         "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "嵌入 UUID 的單一 VLESS 路由值（0-65535），例如 443。留空表示無。",
+        "mihomoX25519": "僅 Mihomo：REALITY 握手只使用一般 X25519，不帶 ML-KEM（support-x25519mlkem768: false）。適用於執行 Xray-core 26.9.8 以下、不要求 ML-KEM 的伺服器。",
         "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
       },
       "remarkVars": {

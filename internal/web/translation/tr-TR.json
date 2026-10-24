@@ -2383,6 +2383,7 @@
         "serverDescription": "Açıklamanın altında gösterilen isteğe bağlı not.",
         "allowInsecure": "TLS sertifika doğrulamasını atla (allowInsecure / skip-cert-verify).",
         "vlessRoute": "UUID'ye gömülen tek bir VLESS rota değeri (0-65535), örn. 443. Hiçbiri için boş bırakın.",
+        "mihomoX25519": "Yalnızca Mihomo: ML-KEM olmadan düz X25519 ile REALITY el sıkışması kullanır (support-x25519mlkem768: false). ML-KEM gerektirmeyen, 26.9.8'den eski Xray-core sunucuları için.",
         "remark": "Bu host için düz bir etiket. Yalnızca gelen bağlantının kendi açıklaması yoksa yapılandırma adı olarak gösterilir."
       },
       "remarkVars": {

@@ -521,6 +521,7 @@ export default function HostFormModal({
                     <FormField
                       name="mihomoX25519"
                       label={t('pages.hosts.fields.mihomoX25519')}
+                      tooltip={t('pages.hosts.hints.mihomoX25519')}
                       valueProp="checked"
                     >
                       <Switch />

@@ -2383,6 +2383,7 @@
         "serverDescription": "Nota opcional exibida abaixo da observação.",
         "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Um único valor de rota VLESS (0-65535) embutido no UUID, ex.: 443. Deixe em branco para nenhum.",
+        "mihomoX25519": "Somente Mihomo: usa um handshake REALITY com X25519 simples, sem ML-KEM (support-x25519mlkem768: false). Para servidores com Xray-core anterior à 26.9.8, que não exigem ML-KEM.",
         "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
       },
       "remarkVars": {
