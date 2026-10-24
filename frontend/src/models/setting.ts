@@ -175,6 +175,7 @@ export class AllSetting {
   smtpCpu = 80;
   smtpMemory = 80;
   outboundDownThreshold = 3;
+  nodeDownThreshold = 1;
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;
@@ -217,6 +218,10 @@ export class AllSetting {
     this.outboundDownThreshold = Number.isFinite(threshold)
       ? Math.min(100, Math.max(1, threshold))
       : 3;
+    const nodeThreshold = Math.round(Number(this.nodeDownThreshold));
+    this.nodeDownThreshold = Number.isFinite(nodeThreshold)
+      ? Math.min(100, Math.max(1, nodeThreshold))
+      : 1;
   }
 
   equals(other: AllSetting): boolean {
