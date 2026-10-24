@@ -22,6 +22,11 @@ const (
 	EncodingZstd = "zstd"
 	// CapZstd is the capability token advertised in CapsHeader.
 	CapZstd = "zstd"
+	// CapAmneziaWGKernel marks a node that honours an AmneziaWG inbound's
+	// kernelMode; an older node drops the flag and serves it embedded.
+	CapAmneziaWGKernel = "awg-kernel"
+	// NodeCaps is the full CapsHeader value this build advertises.
+	NodeCaps = CapZstd + "," + CapAmneziaWGKernel
 
 	// maxDecodeBytes bounds in-memory decompression to defuse a zstd bomb from
 	// an (authenticated) node-API caller.
