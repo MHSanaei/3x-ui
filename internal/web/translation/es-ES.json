@@ -2237,18 +2237,18 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters.",
-        "kernelUnavailable": "This host cannot run kernel mode yet",
+        "kernelUnavailable": "Este host aún no puede ejecutar el modo kernel",
         "kernelBlocker": {
-          "root": "The panel is not running as root, so it cannot create a network interface",
-          "tools": "amneziawg-tools is not installed",
-          "module": "The amneziawg kernel module is not loaded",
-          "nft": "nftables is not installed; it is needed for the tunnel's NAT rules",
-          "ipv6": "Per-peer IPv6 egress is not supported in kernel mode yet",
-          "portForwarding": "Per-client port forwarding is not supported in kernel mode yet",
-          "routeThroughXray": "routeThroughXray has no kernel-mode implementation; it would leave the tunnel with no egress path"
+          "root": "El panel no se ejecuta como root, así que no puede crear una interfaz de red",
+          "tools": "Falta un comando necesario; instala amneziawg-tools e iproute2",
+          "module": "El módulo del kernel amneziawg no está instalado",
+          "nft": "nftables no está instalado; es necesario para las reglas NAT del túnel",
+          "ipv6": "La salida IPv6 por peer aún no es compatible con el modo kernel",
+          "portForwarding": "El reenvío de puertos por cliente aún no es compatible con el modo kernel",
+          "routeThroughXray": "routeThroughXray no tiene implementación en modo kernel; dejaría el túnel sin ruta de salida"
         },
-        "kernelMode": "Kernel mode",
-        "kernelModeHint": "Run this inbound on the AmneziaWG kernel module instead of the built-in userspace stack. Faster and far cheaper on CPU, but Xray routing, sniffing, IPv6 and port forwarding do not apply to its peers. Requires the DKMS module and amneziawg-tools on the host."
+        "kernelMode": "Modo kernel",
+        "kernelModeHint": "Ejecuta este inbound en el módulo del kernel de AmneziaWG en lugar de la pila integrada en espacio de usuario. Suele ser más rápido, sobre todo en enlaces de alta latencia, pero el enrutamiento de Xray, el sniffing, IPv6 y el reenvío de puertos no se aplican a sus peers. Requiere el módulo del kernel de AmneziaWG y amneziawg-tools en el host."
       },
       "tuic": {
         "congestionControl": "Control de congestión",

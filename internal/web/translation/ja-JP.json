@@ -2237,18 +2237,18 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters.",
-        "kernelUnavailable": "This host cannot run kernel mode yet",
+        "kernelUnavailable": "このホストではまだカーネルモードを実行できません",
         "kernelBlocker": {
-          "root": "The panel is not running as root, so it cannot create a network interface",
-          "tools": "amneziawg-tools is not installed",
-          "module": "The amneziawg kernel module is not loaded",
-          "nft": "nftables is not installed; it is needed for the tunnel's NAT rules",
-          "ipv6": "Per-peer IPv6 egress is not supported in kernel mode yet",
-          "portForwarding": "Per-client port forwarding is not supported in kernel mode yet",
-          "routeThroughXray": "routeThroughXray has no kernel-mode implementation; it would leave the tunnel with no egress path"
+          "root": "パネルが root で実行されていないため、ネットワークインターフェースを作成できません",
+          "tools": "必要なコマンドがありません。amneziawg-tools と iproute2 をインストールしてください",
+          "module": "amneziawg カーネルモジュールがインストールされていません",
+          "nft": "nftables がインストールされていません。トンネルの NAT ルールに必要です",
+          "ipv6": "カーネルモードではピアごとの IPv6 送信はまだサポートされていません",
+          "portForwarding": "カーネルモードではクライアントごとのポート転送はまだサポートされていません",
+          "routeThroughXray": "routeThroughXray にはカーネルモードの実装がなく、トンネルの出口がなくなります"
         },
-        "kernelMode": "Kernel mode",
-        "kernelModeHint": "Run this inbound on the AmneziaWG kernel module instead of the built-in userspace stack. Faster and far cheaper on CPU, but Xray routing, sniffing, IPv6 and port forwarding do not apply to its peers. Requires the DKMS module and amneziawg-tools on the host."
+        "kernelMode": "カーネルモード",
+        "kernelModeHint": "このインバウンドを内蔵のユーザースペーススタックではなく AmneziaWG カーネルモジュールで実行します。特に遅延の大きい回線では通常高速ですが、Xray のルーティング、スニッフィング、IPv6、ポート転送はそのピアに適用されません。ホストに AmneziaWG カーネルモジュールと amneziawg-tools が必要です。"
       },
       "tuic": {
         "congestionControl": "輻輳制御",

@@ -2358,18 +2358,18 @@
         "listenPort": "Port na počúvanie (voliteľné)",
         "listenPortHint": "Pevný miestny zdrojový port UDP. Hodnota 0 vyberie port automaticky.",
         "outboundObfuscationHint": "Musia sa presne zhodovať s parametrami servera.",
-        "kernelUnavailable": "This host cannot run kernel mode yet",
+        "kernelUnavailable": "Tento server zatiaľ nemôže spustiť režim jadra",
         "kernelBlocker": {
-          "root": "The panel is not running as root, so it cannot create a network interface",
-          "tools": "amneziawg-tools is not installed",
-          "module": "The amneziawg kernel module is not loaded",
-          "nft": "nftables is not installed; it is needed for the tunnel's NAT rules",
-          "ipv6": "Per-peer IPv6 egress is not supported in kernel mode yet",
-          "portForwarding": "Per-client port forwarding is not supported in kernel mode yet",
-          "routeThroughXray": "routeThroughXray has no kernel-mode implementation; it would leave the tunnel with no egress path"
+          "root": "Panel nebeží ako root, preto nemôže vytvoriť sieťové rozhranie",
+          "tools": "Chýba potrebný príkaz; nainštalujte amneziawg-tools a iproute2",
+          "module": "Modul jadra amneziawg nie je nainštalovaný",
+          "nft": "nftables nie je nainštalovaný; je potrebný pre pravidlá NAT tunela",
+          "ipv6": "Výstup IPv6 pre jednotlivé peery režim jadra zatiaľ nepodporuje",
+          "portForwarding": "Presmerovanie portov pre jednotlivých klientov režim jadra zatiaľ nepodporuje",
+          "routeThroughXray": "routeThroughXray nemá implementáciu v režime jadra; tunel by zostal bez výstupnej cesty"
         },
-        "kernelMode": "Kernel mode",
-        "kernelModeHint": "Run this inbound on the AmneziaWG kernel module instead of the built-in userspace stack. Faster and far cheaper on CPU, but Xray routing, sniffing, IPv6 and port forwarding do not apply to its peers. Requires the DKMS module and amneziawg-tools on the host."
+        "kernelMode": "Režim jadra",
+        "kernelModeHint": "Spustí tento inbound na module jadra AmneziaWG namiesto vstavaného zásobníka v používateľskom priestore. Zvyčajne je rýchlejší, najmä na linkách s vysokou latenciou, ale smerovanie Xray, sniffing, IPv6 a presmerovanie portov sa na jeho peery neuplatňujú. Vyžaduje modul jadra AmneziaWG a amneziawg-tools na serveri."
       },
       "tuic": {
         "congestionControl": "Riadenie zahltenia",

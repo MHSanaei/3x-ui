@@ -2237,18 +2237,18 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters.",
-        "kernelUnavailable": "This host cannot run kernel mode yet",
+        "kernelUnavailable": "Máy chủ này chưa thể chạy chế độ kernel",
         "kernelBlocker": {
-          "root": "The panel is not running as root, so it cannot create a network interface",
-          "tools": "amneziawg-tools is not installed",
-          "module": "The amneziawg kernel module is not loaded",
-          "nft": "nftables is not installed; it is needed for the tunnel's NAT rules",
-          "ipv6": "Per-peer IPv6 egress is not supported in kernel mode yet",
-          "portForwarding": "Per-client port forwarding is not supported in kernel mode yet",
-          "routeThroughXray": "routeThroughXray has no kernel-mode implementation; it would leave the tunnel with no egress path"
+          "root": "Bảng điều khiển không chạy với quyền root nên không thể tạo giao diện mạng",
+          "tools": "Thiếu một lệnh cần thiết; hãy cài amneziawg-tools và iproute2",
+          "module": "Chưa cài mô-đun kernel amneziawg",
+          "nft": "Chưa cài nftables; cần cho các quy tắc NAT của đường hầm",
+          "ipv6": "Chế độ kernel chưa hỗ trợ đầu ra IPv6 theo từng peer",
+          "portForwarding": "Chế độ kernel chưa hỗ trợ chuyển tiếp cổng theo từng client",
+          "routeThroughXray": "routeThroughXray chưa có triển khai cho chế độ kernel; đường hầm sẽ không có đường ra"
         },
-        "kernelMode": "Kernel mode",
-        "kernelModeHint": "Run this inbound on the AmneziaWG kernel module instead of the built-in userspace stack. Faster and far cheaper on CPU, but Xray routing, sniffing, IPv6 and port forwarding do not apply to its peers. Requires the DKMS module and amneziawg-tools on the host."
+        "kernelMode": "Chế độ kernel",
+        "kernelModeHint": "Chạy inbound này trên mô-đun kernel AmneziaWG thay cho ngăn xếp userspace tích hợp. Thường nhanh hơn, nhất là trên đường truyền có độ trễ cao, nhưng định tuyến Xray, sniffing, IPv6 và chuyển tiếp cổng không áp dụng cho các peer của nó. Cần mô-đun kernel AmneziaWG và amneziawg-tools trên máy chủ."
       },
       "tuic": {
         "congestionControl": "Kiểm soát tắc nghẽn",

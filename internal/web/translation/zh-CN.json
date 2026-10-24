@@ -2237,18 +2237,18 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters.",
-        "kernelUnavailable": "This host cannot run kernel mode yet",
+        "kernelUnavailable": "此主机暂时无法运行内核模式",
         "kernelBlocker": {
-          "root": "The panel is not running as root, so it cannot create a network interface",
-          "tools": "amneziawg-tools is not installed",
-          "module": "The amneziawg kernel module is not loaded",
-          "nft": "nftables is not installed; it is needed for the tunnel's NAT rules",
-          "ipv6": "Per-peer IPv6 egress is not supported in kernel mode yet",
-          "portForwarding": "Per-client port forwarding is not supported in kernel mode yet",
-          "routeThroughXray": "routeThroughXray has no kernel-mode implementation; it would leave the tunnel with no egress path"
+          "root": "面板未以 root 身份运行，无法创建网络接口",
+          "tools": "缺少必需的命令；请安装 amneziawg-tools 和 iproute2",
+          "module": "未安装 amneziawg 内核模块",
+          "nft": "未安装 nftables；隧道的 NAT 规则需要它",
+          "ipv6": "内核模式暂不支持按对等端的 IPv6 出站",
+          "portForwarding": "内核模式暂不支持按客户端的端口转发",
+          "routeThroughXray": "routeThroughXray 没有内核模式实现，会使隧道没有出站路径"
         },
-        "kernelMode": "Kernel mode",
-        "kernelModeHint": "Run this inbound on the AmneziaWG kernel module instead of the built-in userspace stack. Faster and far cheaper on CPU, but Xray routing, sniffing, IPv6 and port forwarding do not apply to its peers. Requires the DKMS module and amneziawg-tools on the host."
+        "kernelMode": "内核模式",
+        "kernelModeHint": "使用 AmneziaWG 内核模块而非内置用户态协议栈运行此入站。通常更快，尤其在高延迟链路上，但 Xray 路由、嗅探、IPv6 和端口转发不适用于其对等端。需要主机上安装 AmneziaWG 内核模块和 amneziawg-tools。"
       },
       "tuic": {
         "congestionControl": "拥塞控制算法",
