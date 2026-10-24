@@ -37,9 +37,8 @@ func groupCallback(id int, data string) telego.Update {
 	}}
 }
 
-// A group has one screen and one keyboard for every member, so admins and
-// clients overwrite each other in it. The guard must answer a group and stop it
-// before any screen is drawn.
+// A group shares one screen and keyboard among all members, so admins and clients overwrite each other;
+// the guard must answer a group and stop it before any screen is drawn.
 func TestGroupUpdatesAreRefused(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
 	h, err := th.NewBotHandler(liveBot(), make(chan telego.Update, 1))

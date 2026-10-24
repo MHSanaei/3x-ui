@@ -12,9 +12,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
 
-// noticeServer records sendMessage/sendDocument/editMessageText calls, with the
-// body a user would see, so a test can assert on how many messages an event
-// burst produced.
+// noticeServer records sendMessage/sendDocument/editMessageText with the visible body, so a test can
+// assert how many messages an event burst produced.
 func noticeServer(t *testing.T) (*httptest.Server, func() []apiCall) {
 	t.Helper()
 	var mu sync.Mutex

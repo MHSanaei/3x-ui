@@ -103,9 +103,8 @@ func TestInlineQueryListsInboundsWithMarkers(t *testing.T) {
 	}
 }
 
-// /start is the only advertised command; it must draw the menu screen. It also
-// reaches the route the colon predicate guards, so this pins that a command is
-// never mistaken for an inline marker.
+// /start must draw the menu; it also reaches the route the colon predicate guards, pinning that a
+// command is never mistaken for an inline marker.
 func TestStartCommandDrawsTheMenu(t *testing.T) {
 	srv, calls := recordingServer(t, false)
 	swapTestBot(t, srv.URL)
@@ -168,9 +167,8 @@ func TestStartCommandForAStrangerRevealsOnlyItsID(t *testing.T) {
 	}
 }
 
-// A client list must be scoped to the inbound the screen it was opened from
-// names, and the scope has to survive the trip through the inline query: the
-// query carries the user's id, and in a group that is not the chat's id.
+// A client list stays scoped to the inbound its screen named, through the inline query, which carries
+// the user's id, not the group chat's.
 func TestInlineQueryListsClientsOfTheChosenInbound(t *testing.T) {
 	srv, queries := inlineCapturingServer(t, true)
 	swapTestBot(t, srv.URL)
@@ -292,9 +290,8 @@ func TestInlineQueryWithoutScopeListsInboundsNotClients(t *testing.T) {
 	}
 }
 
-// An unknown capability cache must not answer "inline is off": right after a
-// restart that showed the warning for a bot that has inline mode on, until the
-// background refresh happened to land.
+// An unknown capability cache must not answer "inline is off": after a restart it warned a bot whose
+// inline mode was on until the background refresh landed.
 func TestInlineSupportProbesWhenUnknown(t *testing.T) {
 	srv, _ := inlineCapturingServer(t, true)
 	swapTestBot(t, srv.URL)

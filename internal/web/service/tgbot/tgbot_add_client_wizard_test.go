@@ -73,9 +73,8 @@ func TestAttachPickerOffersWireGuardAndAmneziaWG(t *testing.T) {
 	}
 }
 
-// The wizard must start on a DRAFT, not on an inbound picker: the client is
-// created first and attached afterwards. This is the bug that made "Add client"
-// ask for an inbound and then offer existing clients.
+// The wizard starts on a draft, not an inbound picker: the client is created first and attached after,
+// the bug that made "Add client" ask for an inbound and then offer existing clients.
 func TestAddClientStartsOnADraftWithNoInboundChosen(t *testing.T) {
 	localizeWithRealBundle(t)
 	tb, _ := newScreenTgbot(t, false)
@@ -102,9 +101,8 @@ func TestAddClientStartsOnADraftWithNoInboundChosen(t *testing.T) {
 	}
 }
 
-// Attaching is optional while filling the card: the inbounds are chosen from the
-// draft's own button, and submitting without one is refused rather than creating
-// a client attached to nothing.
+// Inbounds are chosen from the draft's own button while filling the card, and submitting without one is
+// refused instead of creating a client attached to nothing.
 func TestDraftCanBeFilledBeforeAnyInboundIsAttached(t *testing.T) {
 	localizeWithRealBundle(t)
 	tb, _ := newScreenTgbot(t, false)

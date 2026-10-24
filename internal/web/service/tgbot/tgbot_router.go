@@ -1253,9 +1253,8 @@ func splitClientLinkCallback(data string) (action, email string, ok bool) {
 	return "", "", false
 }
 
-// refuseGroups installs the guard that keeps every update in a private chat: a
-// group has one screen and one keyboard shared by many members, so admins and
-// clients would overwrite each other in it.
+// refuseGroups keeps every update in a private chat: a group shares one screen and keyboard among its
+// members, so admins and clients would overwrite each other.
 func refuseGroups(h *th.BotHandler, t *Tgbot) {
 	h.Use(func(ctx *th.Context, update telego.Update) error {
 		if chatType := updateChatType(update); chatType != "" && chatType != telego.ChatTypePrivate {
@@ -1266,9 +1265,8 @@ func refuseGroups(h *th.BotHandler, t *Tgbot) {
 	})
 }
 
-// updateChatType reports the chat kind of a message or a callback, and "channel"
-// for an inline query from a channel where the sender is not a member. A query
-// carries ChatType "sender" in a private chat, which counts as private here.
+// updateChatType reports a message or callback chat kind, "channel" for an inline query from a channel the
+// sender is not in; an inline query's "sender" type counts as private.
 func updateChatType(update telego.Update) string {
 	switch {
 	case update.Message != nil:

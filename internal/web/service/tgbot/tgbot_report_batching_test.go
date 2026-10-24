@@ -88,9 +88,8 @@ func (m sentMessage) body() string {
 	return m.Caption
 }
 
-// captureReportServer records every message-shaped call (sendMessage and the
-// screen's sendPhoto) so a test can assert on what Telegram would have
-// received, not merely how many calls were made.
+// captureReportServer records every message-shaped call (sendMessage and the screen's sendPhoto), so a
+// test asserts on what Telegram would receive, not just how many calls were made.
 func captureReportServer(t *testing.T) (*httptest.Server, func() []sentMessage) {
 	t.Helper()
 	var mu sync.Mutex
@@ -156,9 +155,8 @@ func TestResetAllTrafficsAnswersWithNoClients(t *testing.T) {
 	}, true) // admin
 
 	got := sent()
-	// Two messages now: the report, and the menu the confirmation is replaced
-	// with. The confirmation used to stay on screen with only the button that
-	// had just been pressed, which was a trap.
+	// Two messages: the report and the menu that replaces the confirmation, which used to stay on screen
+	// with only the button just pressed.
 	if len(got) != 2 {
 		t.Fatalf("messages = %d, want 2: the report and the menu that replaces the confirmation", len(got))
 	}

@@ -109,9 +109,8 @@ func recordingServer(t *testing.T, failEdit bool) (*httptest.Server, func() []ap
 				"id": 42, "type": "private", "photo": map[string]any{"small_file_id": "s", "big_file_id": "big"},
 			}})
 		case "getUserProfilePhotos":
-			// The avatar has to arrive as a Photo file_id: a ChatPhoto id from
-			// getChat ist rejected by sendPhoto with "can't use file of type
-			// ChatPhoto as Photo".
+			// sendPhoto rejects a getChat ChatPhoto id ("can't use file of type ChatPhoto as Photo"), so the
+			// avatar must arrive as a Photo file_id.
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
 				"total_count": 1,
@@ -348,9 +347,8 @@ func hasHomeRow(sc *screen) bool {
 	return false
 }
 
-// A screen whose only buttons are its own actions is a trap once the action
-// runs — that is exactly what the reset confirmation did. Every screen must
-// offer a way out, even one that forgot to ask for it.
+// A screen whose only buttons are its own actions traps the user once one runs, as the reset
+// confirmation did; every screen must offer a way out.
 func TestEveryScreenOffersAWayOut(t *testing.T) {
 	tb := &Tgbot{}
 
@@ -417,9 +415,8 @@ func TestResetConfirmIsReplacedByTheMenu(t *testing.T) {
 	}
 }
 
-// A client's /start must never render the admin menu: it used to, which both
-// advertised panel operations a client cannot run and listed every client's
-// email through the All-clients browser.
+// A client's /start must never render the admin menu, which advertised operations a client cannot run
+// and listed every client's email.
 func TestClientStartNeverShowsTheAdminMenu(t *testing.T) {
 	tb, _ := newScreenTgbot(t, false)
 	setTestAdmins(t, 1)
@@ -470,9 +467,8 @@ func TestBroadcastButtonIsAdminOnly(t *testing.T) {
 	}
 }
 
-// A missing avatar is retried sooner than a present one: an operator who
-// uploads a picture checks right after, and tiles until the next restart would
-// read as the feature not working.
+// A missing avatar is retried sooner than a present one: an operator checks right after uploading, and
+// waiting for the next restart reads as the feature not working.
 func TestScreenArtReprobeWindow(t *testing.T) {
 	srv, calls := recordingServer(t, false)
 	swapTestBot(t, srv.URL)
@@ -529,9 +525,8 @@ func TestScreenKeepsArtFromTheBotAvatar(t *testing.T) {
 	}
 }
 
-// sentText is what a Telegram call would display, plus the chat it went to.
-// A screen travels as a photo (multipart, caption inside the media field), so a
-// test helper that only reads JSON `text` sees nothing at all.
+// sentText is what a Telegram call would display, plus its chat; a screen travels as a multipart photo,
+// so reading only the JSON text would see nothing.
 type sentText struct {
 	ChatID int64
 	Text   string
@@ -777,9 +772,8 @@ func TestStartClearsTheBroadcastPrompt(t *testing.T) {
 	}
 }
 
-// /start is a command like any other: once it has opened the menu the command
-// itself is removed, and a second /start edits the live screen instead of
-// leaving the chat with two of them.
+// Once /start has opened the menu the command itself is removed, and a second /start edits the live
+// screen instead of leaving two of them.
 func TestStartCommandIsRemovedAndEditsTheLiveScreen(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
 	initReportDB(t)
@@ -816,10 +810,8 @@ func TestStartCommandIsRemovedAndEditsTheLiveScreen(t *testing.T) {
 	}
 }
 
-// The screen tests compare callback data, so a button whose translation key does
-// not exist still passes them: the label is the empty string. /start broke that
-// way. This one loads the real en-US file and insists the client's menu has
-// visible labels.
+// Callback-data tests pass a button whose key is missing (its label is ""), which is how /start broke;
+// this one loads the real en-US file and insists the client's menu has visible labels.
 func TestClientMenuButtonsHaveRealLabels(t *testing.T) {
 	localizeWithRealBundle(t)
 	tb, _ := newScreenTgbot(t, false)
@@ -946,9 +938,8 @@ func TestQRSheetDrawsEveryCodeAndNumbersIt(t *testing.T) {
 		t.Fatal("the sheet could not be rendered")
 	}
 
-	// Decode what the encoder produced, so a broken picture is caught here and not
-	// in the chat. Four codes fill three columns, so the sheet is 3x2 tiles with
-	// padding between and around them.
+	// Decode the encoded picture so a broken one is caught here: four codes in three columns make a 3x2
+	// sheet with padding between and around the tiles.
 	img, err := png.Decode(bytes.NewReader(sheetBytesForTest(t, picture)))
 	if err != nil {
 		t.Fatalf("the sheet is not a valid PNG: %v", err)
@@ -1114,11 +1105,8 @@ func TestClientCanReachTheHideCallback(t *testing.T) {
 // 2. The individual-links screen offered "Links", which did what the back row
 // already does.
 func TestIndividualLinksScreenHasNoDuplicateLinksButton(t *testing.T) {
-	// The same harness the ownership tests use: it seeds a real client whose
-	// subscription actually resolves, which the individual links need.
-	// The screen's own keyboard, without going through the subscription service:
-	// drawing the full screen needs a subscription the panel can resolve, which
-	// the DB-only harness cannot produce.
+	// The ownership tests' harness seeds a client whose subscription resolves, which the links need; the
+	// keyboard is read directly because drawing the full screen needs a subscription the DB harness lacks.
 	rows := (&Tgbot{}).individualLinksRows()
 	if len(rows) != 1 || len(rows[0]) != 1 {
 		t.Fatalf("the individual-links screen has %d row(s), want exactly the back row", len(rows))

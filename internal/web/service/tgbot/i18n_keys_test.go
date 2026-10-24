@@ -11,10 +11,8 @@ import (
 	"testing"
 )
 
-// The bot resolves text through I18nBot, which returns an empty string for a key
-// that is missing from the translation file: a screen then renders with a blank
-// button or a blank body, and nothing fails loudly. That is how a live bot ended
-// up answering /start with no menu. Every key a Go source asks for must exist.
+// I18nBot returns "" for a missing key, so a screen renders blank buttons without failing; that is how
+// /start once answered with no menu. Every key a Go source asks for must exist.
 
 var (
 	i18nBotKeyPattern = regexp.MustCompile(`I18nBot\(\s*"([^"]+)"`)
@@ -43,10 +41,8 @@ func TestEveryBotKeyExistsInTheTranslations(t *testing.T) {
 		for _, pattern := range patterns {
 			for _, m := range pattern.FindAllStringSubmatch(string(data), -1) {
 				key := m[1]
-				// Keys are also assembled at run time ("tgbot.screens." + kind,
-				// "tgbot.messages.category_" + name). A literal that ends in a
-				// separator is such a prefix, and the full set it expands to is
-				// checked explicitly.
+				// Keys are also built at run time ("tgbot.screens." + kind); a literal ending in a separator is such
+				// a prefix, and the set it expands to is checked explicitly.
 				if strings.ContainsAny(key, "%$") || strings.HasSuffix(key, ".") || strings.HasSuffix(key, "_") {
 					continue
 				}

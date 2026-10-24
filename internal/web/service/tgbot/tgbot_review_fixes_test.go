@@ -228,9 +228,8 @@ func TestUsageWithoutAnArgumentDoesNotPanic(t *testing.T) {
 	}
 }
 
-// The usage card used to draw the admin keyboard for every caller, so a client
-// tapping /usage saw reset-traffic, IP-limit and enable/disable buttons. Those
-// act on an account and must never be offered to a client.
+// The usage card drew the admin keyboard for every caller, offering a client reset-traffic, IP-limit and
+// enable buttons that act on an account.
 func TestUsageGivesAClientNoAdminButtons(t *testing.T) {
 	initReportDB(t)
 	tb, _ := newScreenTgbot(t, false)

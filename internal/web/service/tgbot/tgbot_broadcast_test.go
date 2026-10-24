@@ -42,9 +42,8 @@ func newBroadcastMock(t *testing.T) (url string, calls func(string) int, bodies 
 			result = []any{message, message}
 		}
 		if method == "sendPhoto" {
-			// Screens are photo messages: their caption and keyboard travel as
-			// form fields, so the mock lifts them into the JSON shape the
-			// assertions read.
+			// Screens are photo messages whose caption and keyboard travel as form fields; the mock lifts them into
+			// the JSON shape the assertions read.
 			payload["text"] = payload["caption"]
 		}
 		mu.Lock()
@@ -962,9 +961,8 @@ func broadcastComposeToken(t *testing.T, actor chatUser) string {
 	return token
 }
 
-// The admin's own composing message is the SOURCE of the broadcast, not the
-// broadcast. Leaving it, its preview copy and the card in the chat put three
-// copies of the same text on screen.
+// The admin's composing message is the broadcast's source, not the broadcast: keeping it, its preview
+// and the card put three copies of the text on screen.
 func TestBroadcastCleansUpItsComposingMessages(t *testing.T) {
 	srv, calls := recordingServer(t, false)
 	swapTestBot(t, srv.URL)
