@@ -138,7 +138,7 @@ function formatPct(p?: number, available = true): string {
 
 function formatUptime(secs?: number, available = true): string {
   if (!available) return '—';
-  if (typeof secs !== 'number' || !Number.isFinite(secs) || secs < 0) return '-';
+  if (!secs) return '-';
   const days = Math.floor(secs / 86400);
   const hours = Math.floor((secs % 86400) / 3600);
   if (days > 0) return `${days}d ${hours}h`;

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import NodeList from '@/pages/nodes/NodeList';
 import { NodeRecordSchema } from '@/schemas/node';
@@ -40,7 +40,7 @@ describe('node metric availability', () => {
       expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2);
     },
   );
-  it('keeps a valid legacy zero available', () => {
+  it('keeps a measured zero CPU and an unprobed uptime apart', () => {
     const node = NodeRecordSchema.parse({
       id: 1,
       name: 'edge',
@@ -66,6 +66,8 @@ describe('node metric availability', () => {
       />,
     );
     expect(screen.getByText('0.0%')).not.toBeNull();
-    expect(screen.getByText('0m')).not.toBeNull();
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    const cells = within(screen.getAllByRole('row')[1]).getAllByRole('cell');
+    expect(cells[headers.indexOf('Uptime')].textContent).toBe('-');
   });
 });
