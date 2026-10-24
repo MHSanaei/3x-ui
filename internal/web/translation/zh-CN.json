@@ -1306,6 +1306,8 @@
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",
       "subClashRoutingRulesDesc": "粘贴规则/YAML 或一个固定 HTTPS URL。面板会在后台更新，仅导入代理组、规则提供者和规则，并保留面板生成的 VPN 节点及最后一个有效值。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "监听 IP",
       "subListenDesc": "订阅服务监听的 IP 地址（留空表示监听所有 IP）",
       "subPort": "监听端口",

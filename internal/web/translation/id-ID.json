@@ -1306,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Sertakan aturan routing global Clash/Mihomo dalam langganan YAML yang dibuat.",
       "subClashRoutingRules": "Aturan routing global",
       "subClashRoutingRulesDesc": "Tempel aturan/YAML atau satu URL HTTPS permanen. Panel memperbaruinya di latar belakang, hanya mengimpor grup, penyedia aturan, dan aturan, serta mempertahankan node VPN buatan panel dan nilai valid terakhir.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "IP Pendengar",
       "subListenDesc": "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)",
       "subPort": "Port Pendengar",

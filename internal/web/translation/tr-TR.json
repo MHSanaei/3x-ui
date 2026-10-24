@@ -1306,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Oluşturulan YAML aboneliklerine genel Clash/Mihomo yönlendirme kurallarını ekler.",
       "subClashRoutingRules": "Genel Yönlendirme Kuralları",
       "subClashRoutingRulesDesc": "Kurallar/YAML veya kalıcı bir HTTPS URL'si yapıştırın. Panel bunu arka planda yeniler, yalnızca grupları, kural sağlayıcılarını ve kuralları içe aktarır; oluşturulan VPN düğümlerini ve son geçerli değeri korur.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Dinleme IP",
       "subListenDesc": "Abonelik hizmeti için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "subPort": "Dinleme Portu",
