@@ -10,7 +10,7 @@ import (
 
 func TestServerStopWhenXrayNotRunningSucceeds(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	s := NewServer()
+	s := NewServer(nil)
 	if err := s.Stop(); err != nil {
 		t.Fatalf("expected nil error when stopping server with unstarted xray, got: %v", err)
 	}
@@ -18,7 +18,7 @@ func TestServerStopWhenXrayNotRunningSucceeds(t *testing.T) {
 
 func TestServerStopPanelOnlyWithPreclosedListenerSucceeds(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	s := NewServer()
+	s := NewServer(nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("net.Listen failed: %v", err)

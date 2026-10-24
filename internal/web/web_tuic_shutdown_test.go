@@ -74,7 +74,7 @@ func TestGracefulShutdownPersistsFinalTuicTraffic(t *testing.T) {
 		t.Fatal("TUIC listener did not start")
 	}
 
-	if err := NewServer().Stop(); err != nil {
+	if err := NewServer(nil).Stop(); err != nil {
 		t.Fatalf("graceful server shutdown: %v", err)
 	}
 
