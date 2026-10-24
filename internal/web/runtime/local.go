@@ -40,12 +40,11 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 	if port <= 0 {
 		return errors.New("local xray is not running")
 	}
-	var api xray.XrayAPI
-	if err := api.Init(port); err != nil {
+	api, err := localAPIForPort(port)
+	if err != nil {
 		return err
 	}
-	defer api.Close()
-	return fn(&api)
+	return fn(api)
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
