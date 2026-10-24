@@ -23,7 +23,6 @@ import {
   LogoutOutlined,
   MailOutlined,
   MenuOutlined,
-  MessageOutlined,
   MoonFilled,
   MoonOutlined,
   PushpinFilled,
@@ -36,6 +35,7 @@ import {
   SwapOutlined,
   TagsOutlined,
   TeamOutlined,
+  TelegramFilled,
   ToolOutlined,
 } from '@ant-design/icons';
 
@@ -264,7 +264,7 @@ export default function AppSidebar() {
       },
       {
         key: '/settings#telegram',
-        icon: <MessageOutlined aria-hidden />,
+        icon: <TelegramFilled aria-hidden />,
         label: t('pages.settings.TGBotSettings'),
       },
       {

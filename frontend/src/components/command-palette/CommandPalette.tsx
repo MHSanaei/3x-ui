@@ -23,7 +23,6 @@ import {
   ImportOutlined,
   LoadingOutlined,
   MailOutlined,
-  MessageOutlined,
   MoonOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -34,6 +33,7 @@ import {
   SwapOutlined,
   TagsOutlined,
   TeamOutlined,
+  TelegramFilled,
   ToolOutlined,
 } from '@ant-design/icons';
 
@@ -465,7 +465,7 @@ export default function CommandPalette() {
         title: `${t('menu.settings')} · ${t('pages.settings.TGBotSettings')}`,
         subtitle: t('pages.settings.TGBotSettings'),
         keywords: ['telegram', 'tgbot', 'bot token', 'chat id', 'notifications', 'alerts'],
-        icon: <MessageOutlined aria-hidden />,
+        icon: <TelegramFilled aria-hidden />,
       },
       {
         path: '/settings#email',
