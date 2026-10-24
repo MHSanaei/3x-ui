@@ -175,9 +175,9 @@ func privateDnsServerEndpoint(entry any) (dnsServerEndpoint, bool) {
 	return dnsServerEndpoint{ip: ip.String(), port: port}, true
 }
 
-// splitAddressHostPort extracts the bare host and port (defaulting to 53)
-// from an Xray-core DNS server address string. Those may carry a URI
-// scheme (tcp://, tcp+local://, https://, https+local://, quic://,
+// splitAddressHostPort extracts the bare host and port (defaulting to 443
+// for https:// and h2c://, 53 otherwise) from an Xray-core DNS server
+// address string. Those may carry a URI scheme (tcp://, tcp+local://, https://, https+local://, quic://,
 // quic+local://) and, for DoH, a path and/or a bracketed IPv6 host — all
 // of that is stripped down to host[:port] before parsing.
 func splitAddressHostPort(address string) (host string, port int) {
@@ -186,7 +186,14 @@ func splitAddressHostPort(address string) (host string, port int) {
 		return "", 0
 	}
 
+	port = 53
 	if idx := strings.Index(address, "://"); idx != -1 {
+		// Remote DoH goes out on the HTTPS port, h2c included; the
+		// +local forms skip routing.
+		switch strings.ToLower(address[:idx]) {
+		case "https", "h2c":
+			port = 443
+		}
 		address = address[idx+3:]
 	}
 	// Drop a DoH path, e.g. "1.1.1.1/dns-query".
@@ -194,7 +201,6 @@ func splitAddressHostPort(address string) (host string, port int) {
 		address = address[:idx]
 	}
 
-	port = 53
 	host = address
 	if strings.HasPrefix(host, "[") {
 		// Bracketed IPv6, with or without a port: "[::1]" / "[::1]:53".
