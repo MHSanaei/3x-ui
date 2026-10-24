@@ -2394,6 +2394,7 @@
         "actions": "操作",
         "security": "安全",
         "sni": "SNI",
+        "sniSharedRandom": "所有設定使用相同的隨機 SNI",
         "overrideSniFromAddress": "使用地址作為 SNI",
         "keepSniBlank": "保持 SNI 留空",
         "hostHeader": "Host 標頭",

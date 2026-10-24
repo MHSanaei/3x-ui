@@ -30,7 +30,7 @@ production-style links work without round-tripping through Go.
 | Command | What |
 |---|---|
 | `npm run dev` | Vite dev server with API + WS proxy to Go |
-| `npm run build` | Regenerates OpenAPI + Zod, then builds into `../internal/web/dist/` |
+| `npm run build` | Regenerates the OpenAPI spec, then builds into `../internal/web/dist/` |
 | `npm run preview` | Serve the built bundle locally |
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
 | `npm run lint` | oxlint over `src/` + `tools/` (`.oxlintrc.json`) |
@@ -42,7 +42,7 @@ production-style links work without round-tripping through Go.
 | `npm run storybook` | Storybook dev server on `:6006` (component workbench + autodocs) |
 | `npm run build-storybook` | Static Storybook build — CI compile-checks every story |
 | `npm run gen:api` | Build `public/openapi.json` from `pages/api-docs/endpoints.ts` |
-| `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
+| `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types,schemas,examples}.ts` |
 
 CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and
 `build-storybook` on every PR (see `../.github/workflows/ci.yml`).
@@ -156,9 +156,10 @@ Patterns:
   security.
 - **Three validation layers**, non-overlapping:
   - API boundary: `parseMsg(msg, schema, ctx)` inside TanStack
-    Query `queryFn` — warn-only in prod, throws in dev
-  - Form input: `antdRule(schema.shape.field)` on every `<Form.Item>` —
-    blocks submit + per-field inline error
+    Query `queryFn` — warns on a mismatch and returns the payload; pass
+    `{ strict: true }` to throw instead
+  - Form input: `rules={{ validate: rhfZodValidate(schema.shape.field) }}` on
+    every `FormField` — blocks submit + per-field inline error
   - Wire request: `Schema.parse(payload)` inside `mutationFn` — throws,
     because a malformed payload here is always a developer bug
 - **No `.loose()` or `[key: string]: any`** in production schemas.
@@ -166,27 +167,29 @@ Patterns:
 
 ## Form pattern (Pattern A)
 
-All non-trivial modals use this single pattern:
+All non-trivial modals use this single pattern — React Hook Form for the
+state, AntD's `<Form>` only as the layout:
 
 ```tsx
-const [form] = Form.useForm<InboundFormValues>();
+const form = useForm<InboundFormValues>({ defaultValues: initialValues });
 
-const onFinish = async () => {
-  const values = await form.validateFields();
-  await createInbound.mutateAsync(values);
-};
+const onSubmit = (values: InboundFormValues) => createInbound.mutateAsync(values);
 
-<Form form={form} onFinish={onFinish}>
-  <Form.Item
-    name="port"
-    label="Port"
-    rules={[antdRule(InboundFormSchema.shape.port, t)]}
-  >
-    <InputNumber min={1} max={65535} />
-  </Form.Item>
-</Form>
+<FormProvider {...form}>
+  <Form layout="vertical" onFinish={form.handleSubmit(onSubmit)}>
+    <FormField
+      name="port"
+      label={t('pages.inbounds.port')}
+      rules={{ validate: rhfZodValidate(InboundFormSchema.shape.port) }}
+    >
+      <InputNumber min={1} max={65535} />
+    </FormField>
+  </Form>
+</FormProvider>
 ```
 
+`FormField` (from `@/components/form/rhf`) bridges a React Hook Form
+`Controller` to an AntD input and renders the field's error as help text.
 No `safeParse`-on-submit handlers, no `useRef<any>` for form
 references, no inline `z.string().min(1)` in rules. Conditional
 fields use `<Form.Item dependencies={...} shouldUpdate>` with the

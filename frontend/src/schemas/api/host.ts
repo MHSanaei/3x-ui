@@ -28,6 +28,8 @@ export const HostFormSchema = z.object({
 
   security: HostSecuritySchema.default('same'),
   sni: z.string().default(''),
+  snis: z.array(z.string()).default([]),
+  sniSharedRandom: z.boolean().default(false),
   hostHeader: z.string().default(''),
   path: z.string().default(''),
   alpn: z.array(AlpnSchema).default([]),
@@ -85,6 +87,8 @@ export const HostRecordSchema = z
     port: z.number().optional(),
     security: z.string().optional(),
     sni: z.string().optional(),
+    snis: z.array(z.string()).nullish(),
+    sniSharedRandom: z.boolean().optional(),
     hostHeader: z.string().optional(),
     path: z.string().optional(),
     alpn: z.array(z.string()).nullish(),

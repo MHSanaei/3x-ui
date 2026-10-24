@@ -22,7 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-func TestSubHostOrder_Postgres(t *testing.T) {
+func TestSubHosts_Postgres(t *testing.T) {
 	if os.Getenv("XUI_DB_TYPE") != "postgres" || os.Getenv("XUI_DB_DSN") == "" {
 		t.Skip("requires a disposable PostgreSQL database")
 	}
@@ -34,6 +34,7 @@ func TestSubHostOrder_Postgres(t *testing.T) {
 		{"filters", TestSub_HostOrderFiltersAndFallbacks},
 		{"base64", TestSub_HostOrderBase64AndInfoNode},
 		{"balancer", TestSub_HostOrderBalancerSlots},
+		{"deleted binding", TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			cleanup, err := testpg.IsolatePackage("host_order")

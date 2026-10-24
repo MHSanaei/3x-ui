@@ -1160,8 +1160,8 @@ func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
 	}
 }
 
-// A deleted binding is skipped; with no valid binding left the client fails closed with zero
-// links (no fallback, no dummy link) but stays in traffic accounting.
+// A deleted binding is skipped; a binding that resolves to no inbound fails closed with zero links
+// (no fallback, no dummy link) but stays in traffic accounting.
 func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	t.Run("deleted and valid binding renders only the valid host", func(t *testing.T) {
 		seedSubDB(t)
@@ -1191,7 +1191,7 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 		}
 	})
 
-	t.Run("deleted-only binding fails closed with zero links", func(t *testing.T) {
+	t.Run("binding that resolves to no inbound fails closed with zero links", func(t *testing.T) {
 		seedSubDB(t)
 		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
 		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
@@ -1228,8 +1228,8 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 		}
 	})
 
-	// A deleted host id must not silence an inbound without the client's other bound hosts:
-	// relevance comes from rows that still exist, fail-closed only when every bound id is gone.
+	// An unknown host id must not silence an inbound without the client's other bound hosts: the
+	// live and deleted hosts the ids resolve to decide which inbounds the binding guards.
 	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
 		seedSubDB(t)
 		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
@@ -1265,6 +1265,65 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 			t.Fatalf("deleted id must not silence inbound B's fallback link: %s", joined)
 		}
 	})
+}
+
+// Deleting a client's only bound host blanked it on every inbound, since the gone rows no longer
+// said which inbound the binding guarded; only the inbound the host served may close.
+func TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		subId  string
+		portA  int
+		remove func(t *testing.T, ibA *model.Inbound, groupId string) error
+	}{
+		{"by its host group", "dg", 4481, func(_ *testing.T, _ *model.Inbound, groupId string) error {
+			return (&service.HostService{}).DeleteHostGroup(groupId)
+		}},
+		{"with its inbound", "di", 4483, func(t *testing.T, ibA *model.Inbound, _ string) error {
+			if err := database.GetDB().Model(ibA).Update("enable", false).Error; err != nil {
+				t.Fatalf("disable inbound A: %v", err)
+			}
+			_, err := (&service.InboundService{}).DelInbound(ibA.Id)
+			return err
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			ibA := seedSubInbound(t, tc.subId, tc.subId+"a", tc.portA, 1, tcpTLSStream)
+			ibB := seedSubInbound(t, tc.subId, tc.subId+"b", tc.portA+1, 2, tcpTLSStream)
+			email, groupId := tc.subId+"b@e", tc.subId+"-grp"
+
+			db := database.GetDB()
+			var client model.ClientRecord
+			if err := db.Where("email = ?", email).First(&client).Error; err != nil {
+				t.Fatalf("load client %s: %v", email, err)
+			}
+			if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ibA.Id}).Error; err != nil {
+				t.Fatalf("link client to inbound A: %v", err)
+			}
+			hostA := seedHost(t, &model.Host{GroupId: groupId, InboundId: ibA.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+			if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
+				Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id})).Error; err != nil {
+				t.Fatalf("bind host rule: %v", err)
+			}
+			if err := tc.remove(t, ibA, groupId); err != nil {
+				t.Fatalf("delete the bound host: %v", err)
+			}
+
+			links, _, _, _, err := NewSubService("").GetSubs(tc.subId, "req.example.com")
+			if err != nil {
+				t.Fatalf("GetSubs: %v", err)
+			}
+			joined := strings.Join(links, "\n")
+			uuid := "11111111-2222-4333-8444-" + fmt.Sprintf("%012d", ibB.Port)
+			if strings.Contains(joined, "a.cdn.com") || strings.Contains(joined, fmt.Sprintf("%s@203.0.113.5:%d", uuid, ibA.Port)) {
+				t.Fatalf("inbound A lost the client's bound host and must render nothing for it: %s", joined)
+			}
+			if !strings.Contains(joined, fmt.Sprintf("%s@203.0.113.5:%d", uuid, ibB.Port)) {
+				t.Fatalf("inbound B never had a binding and must keep the client's link: %s", joined)
+			}
+		})
+	}
 }
 
 // A client bound to a disabled host fails closed on every format (no links, outbounds or proxies)
@@ -1646,5 +1705,175 @@ func TestSub_ClientHostRule_SurvivesGroupEdit(t *testing.T) {
 	}
 	if strings.Contains(yaml, "a.cdn.com") || strings.Contains(yaml, "old.sni") {
 		t.Fatalf("clash must not contain the unbound host or old SNI:\n%s", yaml)
+	}
+}
+
+func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-rand", 4465, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sni1.example.com", "sni2.example.com"}
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "MultiSNI-CIDR",
+		Address:     "198.51.100.0/24",
+		Port:        8443,
+		Security:    "tls",
+		RandomCount: 30,
+		Snis:        snis,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 30 {
+		t.Fatalf("len(parts) = %d, want 30", len(parts))
+	}
+
+	seenSNIs := make(map[string]int)
+	for _, l := range parts {
+		if strings.Contains(l, "sni=sni1.example.com") {
+			seenSNIs["sni1.example.com"]++
+		} else if strings.Contains(l, "sni=sni2.example.com") {
+			seenSNIs["sni2.example.com"]++
+		} else {
+			t.Fatalf("link carries unexpected SNI: %s", l)
+		}
+	}
+	if len(seenSNIs) < 2 {
+		t.Fatalf("expected both SNIs to be picked across 30 randomized configs, got: %v", seenSNIs)
+	}
+}
+
+func TestSub_HostMultiSNI_SharedRandom(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-shared", 4466, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sniA.example.com", "sniB.example.com"}
+	groupId := "grp_multi_sni_shared"
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       1,
+		Remark:          "Host1",
+		Address:         "h1.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       2,
+		Remark:          "Host2",
+		Address:         "h2.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       3,
+		Remark:          "Host3",
+		Address:         "h3.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 3 {
+		t.Fatalf("len(parts) = %d, want 3", len(parts))
+	}
+
+	var firstSNI string
+	for i, l := range parts {
+		var sni string
+		if strings.Contains(l, "sni=sniA.example.com") {
+			sni = "sniA.example.com"
+		} else if strings.Contains(l, "sni=sniB.example.com") {
+			sni = "sniB.example.com"
+		} else {
+			t.Fatalf("link[%d] missing expected SNI: %s", i, l)
+		}
+		if firstSNI == "" {
+			firstSNI = sni
+		} else if sni != firstSNI {
+			t.Fatalf("shared random mode mismatch: link[%d] had %s, expected %s across all configs in same group", i, sni, firstSNI)
+		}
+	}
+
+	// Verify that across independent subscription fetches, both pool SNIs are selected
+	seenAcrossFetches := make(map[string]bool)
+	seenAcrossFetches[firstSNI] = true
+	for i := 0; i < 25; i++ {
+		l, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err == nil && len(l) > 0 {
+			if strings.Contains(l[0], "sni=sniA.example.com") {
+				seenAcrossFetches["sniA.example.com"] = true
+			} else if strings.Contains(l[0], "sni=sniB.example.com") {
+				seenAcrossFetches["sniB.example.com"] = true
+			}
+		}
+	}
+	if len(seenAcrossFetches) < 2 {
+		t.Fatalf("expected both SNIs to be selected across independent fetches, got: %v", seenAcrossFetches)
+	}
+}
+
+func TestSub_HostMultiSNI_Overrides(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-overrides", 4467, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sni1.example.com", "sni2.example.com"}
+
+	// When OverrideSniFromAddress is true, address is used as SNI.
+	seedHost(t, &model.Host{
+		InboundId:              ib.Id,
+		SortOrder:              1,
+		Remark:                 "AddrAsSni",
+		Address:                "addr.example.com",
+		Port:                   8443,
+		Security:               "tls",
+		Snis:                   snis,
+		OverrideSniFromAddress: true,
+	})
+
+	// When KeepSniBlank is true, SNI is omitted.
+	seedHost(t, &model.Host{
+		InboundId:    ib.Id,
+		SortOrder:    2,
+		Remark:       "BlankSni",
+		Address:      "blank.example.com",
+		Port:         8443,
+		Security:     "tls",
+		Snis:         snis,
+		KeepSniBlank: true,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 2 {
+		t.Fatalf("len(parts) = %d, want 2", len(parts))
+	}
+	if !strings.Contains(parts[0], "sni=addr.example.com") {
+		t.Errorf("expected address as sni: %s", parts[0])
+	}
+	if strings.Contains(parts[1], "sni=") {
+		t.Errorf("expected blank sni: %s", parts[1])
 	}
 }

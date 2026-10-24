@@ -2394,6 +2394,7 @@
         "actions": "Дії",
         "security": "Безпека",
         "sni": "SNI",
+        "sniSharedRandom": "Один випадковий SNI для всіх конфігурацій",
         "overrideSniFromAddress": "Використовувати адресу як SNI",
         "keepSniBlank": "Залишити SNI порожнім",
         "hostHeader": "Заголовок Host",

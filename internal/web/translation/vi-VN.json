@@ -2394,6 +2394,7 @@
         "actions": "Hành động",
         "security": "Bảo mật",
         "sni": "SNI",
+        "sniSharedRandom": "Cùng một SNI ngẫu nhiên cho tất cả cấu hình",
         "overrideSniFromAddress": "Dùng địa chỉ làm SNI",
         "keepSniBlank": "Để trống SNI",
         "hostHeader": "Host header",

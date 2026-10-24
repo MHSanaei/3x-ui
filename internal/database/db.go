@@ -32,6 +32,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -78,6 +79,7 @@ func allModels() []any {
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
+		&model.HostTombstone{},
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
@@ -873,7 +875,7 @@ func SyncHostsFromExternalProxy(tx *gorm.DB, inboundId int, oldStreamSettings, n
 			continue
 		}
 		if i >= len(added) {
-			if err := tx.Delete(host).Error; err != nil {
+			if _, err := DeleteHosts(tx, "id = ?", host.Id); err != nil {
 				return err
 			}
 			continue
@@ -1016,6 +1018,7 @@ func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Ho
 		Port:                 port,
 		Security:             security,
 		Sni:                  sni,
+		Snis:                 anyToNonEmptyStrings([]any{sni}),
 		Fingerprint:          fingerprint,
 		Alpn:                 anyToNonEmptyStrings(ep["alpn"]),
 		PinnedPeerCertSha256: anyToNonEmptyStrings(ep["pinnedPeerCertSha256"]),
@@ -1048,15 +1051,41 @@ func anyToNonEmptyStrings(v any) []string {
 }
 
 func pruneOrphanedHosts() error {
-	res := db.Exec("DELETE FROM hosts WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
-	if res.Error != nil {
-		log.Printf("Error pruning orphaned hosts rows: %v", res.Error)
-		return res.Error
+	var pruned int64
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		pruned, err = DeleteHosts(tx, "inbound_id NOT IN (SELECT id FROM inbounds)")
+		return err
+	})
+	if err != nil {
+		log.Printf("Error pruning orphaned hosts rows: %v", err)
+		return err
 	}
-	if res.RowsAffected > 0 {
-		log.Printf("Pruned %d orphaned hosts row(s)", res.RowsAffected)
+	if pruned > 0 {
+		log.Printf("Pruned %d orphaned hosts row(s)", pruned)
 	}
 	return nil
+}
+
+// DeleteHosts deletes the hosts matching query and keeps each one's inbound in host_tombstones, in
+// the caller's transaction, so a client still bound to one fails closed on that inbound alone.
+func DeleteHosts(tx *gorm.DB, query any, args ...any) (int64, error) {
+	var tombstones []model.HostTombstone
+	if err := tx.Model(&model.Host{}).Select("id AS host_id, inbound_id").Where(query, args...).Scan(&tombstones).Error; err != nil {
+		return 0, err
+	}
+	if len(tombstones) == 0 {
+		return 0, nil
+	}
+	// migrate-db resyncs the hosts sequence to MAX(id), so a deleted id can return; keep its latest inbound.
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "host_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"inbound_id"}),
+	}).CreateInBatches(&tombstones, 500).Error; err != nil {
+		return 0, err
+	}
+	res := tx.Where(query, args...).Delete(&model.Host{})
+	return res.RowsAffected, res.Error
 }
 
 func pruneOrphanedClientInbounds() error {

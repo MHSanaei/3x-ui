@@ -1,19 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { Spin } from 'antd';
 
 import PanelLayout from '@/layouts/PanelLayout';
-
-const IndexPage = lazy(() => import('@/pages/index/IndexPage'));
-const InboundsPage = lazy(() => import('@/pages/inbounds/InboundsPage'));
-const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
-const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
-const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
-const HostsPage = lazy(() => import('@/pages/hosts/HostsPage'));
-const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
-const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
-const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
-const SponsorsPage = lazy(() => import('@/pages/sponsors/SponsorsPage'));
+import { PANEL_ROUTES } from '@/routes/panelRoutes';
 
 function withSuspense(node: React.ReactNode) {
   return (
@@ -36,24 +26,14 @@ function withSuspense(node: React.ReactNode) {
   );
 }
 
-const routes: RouteObject[] = [
+export const routes: RouteObject[] = [
   {
     path: '/',
     element: <PanelLayout />,
-    children: [
-      { index: true, element: withSuspense(<IndexPage />) },
-      { path: 'inbounds', element: withSuspense(<InboundsPage />) },
-      { path: 'clients', element: withSuspense(<ClientsPage />) },
-      { path: 'groups', element: withSuspense(<GroupsPage />) },
-      { path: 'nodes', element: withSuspense(<NodesPage />) },
-      { path: 'hosts', element: withSuspense(<HostsPage />) },
-      { path: 'settings', element: withSuspense(<SettingsPage />) },
-      { path: 'xray', element: withSuspense(<XrayPage />) },
-      { path: 'outbound', element: withSuspense(<XrayPage />) },
-      { path: 'routing', element: withSuspense(<XrayPage />) },
-      { path: 'api-docs', element: withSuspense(<ApiDocsPage />) },
-      { path: 'sponsors', element: withSuspense(<SponsorsPage />) },
-    ],
+    children: PANEL_ROUTES.map((route) => {
+      const element = withSuspense(<route.component />);
+      return route.path === '/' ? { index: true, element } : { path: route.path.slice(1), element };
+    }),
   },
 ];
 

@@ -2394,6 +2394,7 @@
         "actions": "Acciones",
         "security": "Seguridad",
         "sni": "SNI",
+        "sniSharedRandom": "Mismo SNI aleatorio para todas las configuraciones",
         "overrideSniFromAddress": "Usar la dirección como SNI",
         "keepSniBlank": "Dejar el SNI en blanco",
         "hostHeader": "Cabecera Host",

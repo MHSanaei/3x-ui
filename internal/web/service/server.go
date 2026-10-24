@@ -66,6 +66,9 @@ const (
 // Status represents comprehensive system and application status information.
 // It includes CPU, memory, disk, network statistics, and Xray process status.
 type Status struct {
+	ResourceScope      string   `json:"resourceScope,omitempty"`
+	UnavailableMetrics []string `json:"unavailableMetrics,omitempty"`
+
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
 	CpuCores    int       `json:"cpuCores"`
@@ -143,6 +146,8 @@ type Release struct {
 // ServerService provides business logic for server monitoring and management.
 // It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
+	lxcMetrics sys.LXCReader
+
 	xrayService        XrayService
 	inboundService     InboundService
 	settingService     SettingService
@@ -355,7 +360,7 @@ func (s *ServerService) GetDefaultLogOutboundTags() (freedoms, blackholes []stri
 // Kept for back-compat with the original /panel/api/server/cpuHistory/:bucket route;
 // the response key is "cpu" (not "v") so legacy consumers parse unchanged.
 func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []map[string]any {
-	out := systemMetrics.aggregate("cpu", bucketSeconds, maxPoints)
+	out := systemMetrics.aggregate(s.systemMetricKey("cpu"), bucketSeconds, maxPoints)
 	for _, p := range out {
 		p["cpu"] = p["v"]
 		delete(p, "v")
@@ -367,7 +372,7 @@ func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []
 // known system metric (see SystemMetricKeys). Output points have keys
 // {"t": unixSec, "v": value}; the caller decides how to format the value.
 func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, maxPoints int) []map[string]any {
-	return systemMetrics.aggregate(metric, bucketSeconds, maxPoints)
+	return systemMetrics.aggregate(s.systemMetricKey(metric), bucketSeconds, maxPoints)
 }
 
 type LogEntry struct {
@@ -526,53 +531,61 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		T: now,
 	}
 
-	// CPU stats
-	util, err := s.sampleCPUUtilization()
-	if err != nil {
-		logger.Warning("get cpu percent failed:", err)
+	scoped, scopeErr := s.lxcMetrics.Read(now)
+	if scopeErr != nil {
+		logger.Warning("get scoped metrics failed:", scopeErr)
+	}
+	if scoped != nil {
+		applyLXCStats(status, scoped)
 	} else {
-		status.Cpu = util
-	}
-
-	status.CpuCores, err = cpu.Counts(false)
-	if err != nil {
-		logger.Warning("get cpu cores count failed:", err)
-	}
-
-	status.LogicalPro = runtime.NumCPU()
-
-	if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
-		s.lastCpuInfoAttempt = time.Now()
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			cpuInfos, err := cpu.Info()
-			if err != nil {
-				logger.Warning("get cpu info failed:", err)
-				return
-			}
-			if len(cpuInfos) > 0 {
-				s.cachedCpuSpeedMhz = cpuInfos[0].Mhz
-				status.CpuSpeedMhz = s.cachedCpuSpeedMhz
-			} else {
-				logger.Warning("could not find cpu info")
-			}
-		}()
-		select {
-		case <-done:
-		case <-time.After(1500 * time.Millisecond):
-			logger.Warning("cpu info query timed out; will retry later")
+		// CPU stats
+		util, err := s.sampleCPUUtilization()
+		if err != nil {
+			logger.Warning("get cpu percent failed:", err)
+		} else {
+			status.Cpu = util
 		}
-	} else if s.cachedCpuSpeedMhz != 0 {
-		status.CpuSpeedMhz = s.cachedCpuSpeedMhz
-	}
 
-	// Uptime
-	upTime, err := host.Uptime()
-	if err != nil {
-		logger.Warning("get uptime failed:", err)
-	} else {
-		status.Uptime = upTime
+		status.CpuCores, err = cpu.Counts(false)
+		if err != nil {
+			logger.Warning("get cpu cores count failed:", err)
+		}
+
+		status.LogicalPro = runtime.NumCPU()
+
+		if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
+			s.lastCpuInfoAttempt = time.Now()
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				cpuInfos, err := cpu.Info()
+				if err != nil {
+					logger.Warning("get cpu info failed:", err)
+					return
+				}
+				if len(cpuInfos) > 0 {
+					s.cachedCpuSpeedMhz = cpuInfos[0].Mhz
+					status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+				} else {
+					logger.Warning("could not find cpu info")
+				}
+			}()
+			select {
+			case <-done:
+			case <-time.After(1500 * time.Millisecond):
+				logger.Warning("cpu info query timed out; will retry later")
+			}
+		} else if s.cachedCpuSpeedMhz != 0 {
+			status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+		}
+
+		// Uptime
+		upTime, err := host.Uptime()
+		if err != nil {
+			logger.Warning("get uptime failed:", err)
+		} else {
+			status.Uptime = upTime
+		}
 	}
 
 	// Memory stats
@@ -584,12 +597,14 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Mem.Total = memInfo.Total
 	}
 
-	swapInfo, err := mem.SwapMemory()
-	if err != nil {
-		logger.Warning("get swap memory failed:", err)
-	} else {
-		status.Swap.Current = swapInfo.Used
-		status.Swap.Total = swapInfo.Total
+	if scoped == nil {
+		swapInfo, err := mem.SwapMemory()
+		if err != nil {
+			logger.Warning("get swap memory failed:", err)
+		} else {
+			status.Swap.Current = swapInfo.Used
+			status.Swap.Total = swapInfo.Total
+		}
 	}
 
 	// Disk stats
@@ -736,7 +751,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 // AppendCpuSample is preserved for callers that only have the CPU number.
 // New callers should prefer AppendStatusSample which writes the full set.
 func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
-	systemMetrics.append("cpu", t, v)
+	systemMetrics.append(s.systemMetricKey("cpu"), t, v)
 }
 
 // AppendStatusSample writes one tick of every metric we keep — CPU, memory
@@ -747,14 +762,14 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	if status == nil {
 		return
 	}
-	systemMetrics.append("cpu", t, status.Cpu)
+	appendScopedMetric(status, "cpu", t, status.Cpu)
 	if status.Mem.Total > 0 {
 		systemMetrics.append("mem", t, float64(status.Mem.Current)*100.0/float64(status.Mem.Total))
 	}
 	if status.Swap.Total > 0 {
-		systemMetrics.append("swap", t, float64(status.Swap.Current)*100.0/float64(status.Swap.Total))
+		appendScopedMetric(status, "swap", t, float64(status.Swap.Current)*100.0/float64(status.Swap.Total))
 	} else {
-		systemMetrics.append("swap", t, 0)
+		appendScopedMetric(status, "swap", t, 0)
 	}
 	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
 	systemMetrics.append("netDown", t, float64(status.NetIO.Down))

@@ -864,9 +864,11 @@ type Node struct {
 	CpuPct        float64 `json:"cpuPct" example:"23.5"`
 	MemPct        float64 `json:"memPct" example:"45.1"`
 	UptimeSecs    uint64  `json:"uptimeSecs" example:"86400"`
-	NetUp         uint64  `json:"netUp" gorm:"column:net_up" example:"1048576"`
-	NetDown       uint64  `json:"netDown" gorm:"column:net_down" example:"2097152"`
-	LastError     string  `json:"lastError"`
+	// Nil on legacy rows and responses: zero remains a valid measured value.
+	UnavailableMetrics []string `json:"unavailableMetrics,omitempty" gorm:"serializer:json;column:unavailable_metrics"`
+	NetUp              uint64   `json:"netUp" gorm:"column:net_up" example:"1048576"`
+	NetDown            uint64   `json:"netDown" gorm:"column:net_down" example:"2097152"`
+	LastError          string   `json:"lastError"`
 
 	// XrayState and XrayError are captured from the remote node's /panel/api/server/status
 	// during heartbeats. They let the central panel distinguish "panel API reachable"
@@ -1184,6 +1186,8 @@ type Host struct {
 
 	Security               string   `json:"security" form:"security" gorm:"default:same" validate:"omitempty,oneof=same tls none reality" example:"same"`
 	Sni                    string   `json:"sni" form:"sni"`
+	Snis                   []string `json:"snis,omitempty" form:"snis" gorm:"serializer:json;column:snis"`
+	SniSharedRandom        bool     `json:"sniSharedRandom" form:"sniSharedRandom" gorm:"column:sni_shared_random"`
 	HostHeader             string   `json:"hostHeader" form:"hostHeader" gorm:"column:host_header"`
 	Path                   string   `json:"path" form:"path"`
 	Alpn                   []string `json:"alpn" form:"alpn" gorm:"serializer:json"`
@@ -1220,6 +1224,15 @@ type Host struct {
 }
 
 func (Host) TableName() string { return "hosts" }
+
+// HostTombstone keeps the inbound a deleted host served, so a client still bound to that host
+// fails closed on that inbound alone.
+type HostTombstone struct {
+	HostId    int `json:"hostId" gorm:"primaryKey;autoIncrement:false;column:host_id"`
+	InboundId int `json:"inboundId" gorm:"not null;column:inbound_id"`
+}
+
+func (HostTombstone) TableName() string { return "host_tombstones" }
 
 // KeepAliveSeconds returns a scalar value; ranges are emitted by native AWG config.
 func (c Client) KeepAliveSeconds() int {

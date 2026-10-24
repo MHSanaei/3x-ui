@@ -1,9 +1,11 @@
 package sub
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"maps"
+	"math/big"
 	"slices"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -20,19 +22,17 @@ const (
 	hostBindingBound                     // render only the returned bound hosts of this inbound
 )
 
-// clientHostBinding resolves the client's bound host rules against one inbound. A binding whose
-// every id is gone fails closed; a missing id beside a live one never silences other inbounds.
+// clientHostBinding resolves the client's bound host rules against one inbound. A deleted bound host
+// closes only the inbound it served; ids that resolve to no inbound at all fail closed everywhere.
 func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
 	ids := model.EffectiveClientHostRuleIds(client)
-	if len(ids) == 0 || database.GetDB() == nil {
+	db := database.GetDB()
+	if len(ids) == 0 || db == nil {
 		return hostBindingNone, nil
 	}
 	var rows []model.Host
-	if err := database.GetDB().Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := db.Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		logger.Warning("SubService - clientHostBinding:", err)
-		return hostBindingClosed, nil
-	}
-	if len(rows) == 0 {
 		return hostBindingClosed, nil
 	}
 	byId := make(map[int]*model.Host, len(rows))
@@ -40,15 +40,36 @@ func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Clie
 		byId[rows[i].Id] = &rows[i]
 	}
 	var here []*model.Host
+	var gone []int
 	for _, id := range ids {
-		if h, ok := byId[id]; ok && h.InboundId == inbound.Id {
+		h, ok := byId[id]
+		switch {
+		case !ok:
+			gone = append(gone, id)
+		case h.InboundId == inbound.Id:
 			here = append(here, h)
 		}
 	}
-	if len(here) == 0 {
+	if len(here) > 0 {
+		return hostBindingBound, here
+	}
+	if len(gone) == 0 {
 		return hostBindingNone, nil
 	}
-	return hostBindingBound, here
+	var tombstones []model.HostTombstone
+	if err := db.Where("host_id IN ?", gone).Find(&tombstones).Error; err != nil {
+		logger.Warning("SubService - clientHostBinding:", err)
+		return hostBindingClosed, nil
+	}
+	if len(rows) == 0 && len(tombstones) == 0 {
+		return hostBindingClosed, nil
+	}
+	for _, tomb := range tombstones {
+		if tomb.InboundId == inbound.Id {
+			return hostBindingClosed, nil
+		}
+	}
+	return hostBindingNone, nil
 }
 
 // clientHostEndpoints returns the endpoints of the client's usable bound hosts on this inbound, or
@@ -67,7 +88,7 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps, true
 }
@@ -117,14 +138,15 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
+		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps
 }
 
 // hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
 // random addresses from the range, any other address is a single entry.
-func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	shared := s.sharedHostSni(h)
 	if IsCIDR(h.Address) {
 		count := max(h.RandomCount, 1)
 		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
@@ -139,12 +161,57 @@ func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[
 						hCopy.Remark = fmt.Sprintf("%d", i+1)
 					}
 				}
+				hCopy.Sni = endpointSni(h, shared)
 				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
 			}
 			return eps
 		}
 	}
-	return []map[string]any{hostToExternalProxyMap(h, defaultDest, defaultPort)}
+
+	hCopy := *h
+	hCopy.Sni = endpointSni(h, shared)
+	return []map[string]any{hostToExternalProxyMap(&hCopy, defaultDest, defaultPort)}
+}
+
+// endpointSni is the SNI one endpoint of h advertises: the request's shared pick, a fresh random
+// entry of a multi-SNI pool, or the single SNI; the address and blank overrides apply later.
+func endpointSni(h *model.Host, shared string) string {
+	switch {
+	case shared != "":
+		return shared
+	case len(h.Snis) > 1:
+		return randomSni(h.Snis)
+	}
+	return h.Sni
+}
+
+// sharedHostSni picks one SNI of a shared pool per host group and request, so every endpoint of
+// the group carries the same one; "" when h does not share.
+func (s *SubService) sharedHostSni(h *model.Host) string {
+	if !h.SniSharedRandom || len(h.Snis) < 2 {
+		return ""
+	}
+	key := h.GroupId
+	if key == "" {
+		key = fmt.Sprintf("host-%d", h.Id)
+	}
+	if sni, ok := s.sharedGroupSni[key]; ok {
+		return sni
+	}
+	if s.sharedGroupSni == nil {
+		s.sharedGroupSni = make(map[string]string)
+	}
+	sni := randomSni(h.Snis)
+	s.sharedGroupSni[key] = sni
+	return sni
+}
+
+func randomSni(snis []string) string {
+	idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(snis))))
+	if err != nil {
+		return snis[0]
+	}
+	return snis[idx.Int64()]
 }
 
 // hostToExternalProxyMap projects a Host onto the externalProxy entry shape the

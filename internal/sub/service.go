@@ -77,14 +77,13 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
-	// snapshots shares cached subscription reads across all requests of this
-	// service (ForRequest copies the pointer). Only subscription bodies use
-	// it; panel-side link rendering bypasses the cache so admin edits reflect
-	// immediately.
+	// snapshots shares cached subscription reads across this service's requests (ForRequest copies
+	// the pointer); only subscription bodies read through it, never panel link rendering.
 	snapshots       *subSnapshotStore
 	hostsByInbound  map[int][]*model.Host
 	hostGroupOrders map[string]hostEntryOrder
 	hostsFirst      bool
+	sharedGroupSni  map[string]string
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -127,6 +126,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.settingsByInbound = map[int]map[string]any{}
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
+	s.sharedGroupSni = nil
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()

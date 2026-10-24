@@ -2806,6 +2806,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "sni": {
         "type": "string"
       },
+      "sniSharedRandom": {
+        "type": "boolean"
+      },
+      "snis": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "sockoptParams": {},
       "sortOrder": {
         "type": "integer"
@@ -2859,6 +2868,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "serverDescription",
       "shuffleHost",
       "sni",
+      "sniSharedRandom",
       "sockoptParams",
       "sortOrder",
       "tags",
@@ -2991,6 +3001,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "sni": {
         "type": "string"
       },
+      "sniSharedRandom": {
+        "type": "boolean"
+      },
+      "snis": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "sockoptParams": {
         "type": "string"
       },
@@ -3039,6 +3058,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "serverDescription",
       "shuffleHost",
       "sni",
+      "sniSharedRandom",
+      "snis",
       "sockoptParams",
       "sortOrder",
       "tags",
@@ -3714,6 +3735,13 @@ export const SCHEMAS: Record<string, unknown> = {
       "transitive": {
         "type": "boolean"
       },
+      "unavailableMetrics": {
+        "description": "Nil on legacy rows and responses: zero remains a valid measured value.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "updatedAt": {
         "example": 1700000000,
         "format": "int64",
@@ -4022,6 +4050,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": false,
         "type": "boolean"
       },
+      "unavailableMetrics": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "updatedAt": {
         "example": 1700003600,
         "format": "int64",
@@ -4233,6 +4267,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "status": {
         "example": "online",
         "type": "string"
+      },
+      "unavailableMetrics": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
       },
       "uptimeSecs": {
         "example": 86400,
