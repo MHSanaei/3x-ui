@@ -12,6 +12,7 @@ const antdLocaleLoaders: Record<string, () => Promise<{ default: Locale }>> = {
   'ja-JP': () => import('antd/es/locale/ja_JP'),
   'pt-BR': () => import('antd/es/locale/pt_BR'),
   'ru-RU': () => import('antd/es/locale/ru_RU'),
+  'sk-SK': () => import('antd/es/locale/sk_SK'),
   'tr-TR': () => import('antd/es/locale/tr_TR'),
   'uk-UA': () => import('antd/es/locale/uk_UA'),
   'vi-VN': () => import('antd/es/locale/vi_VN'),
