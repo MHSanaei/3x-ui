@@ -111,6 +111,7 @@ export default function BulkDetachInboundsModal({
               onChange={setTargetIds}
               options={targetOptions}
               placeholder={t('pages.clients.detachFromInboundsTargets')}
+              aria-label={t('pages.clients.detachFromInboundsTargets')}
               showSearch={{ optionFilterProp: 'label' }}
               autoFocus
             />

@@ -30,6 +30,7 @@ export interface GeoTokenInputProps {
   kind: GeoTokenKind;
   placeholder?: string;
   id?: string;
+  'aria-describedby'?: string;
   ref?: Ref<InputRef>;
 }
 
@@ -40,6 +41,7 @@ export default function GeoTokenInput({
   kind,
   placeholder,
   id,
+  'aria-describedby': ariaDescribedBy,
   ref,
 }: GeoTokenInputProps) {
   const { t } = useTranslation();
@@ -92,6 +94,7 @@ export default function GeoTokenInput({
         <Input
           ref={ref}
           id={id}
+          aria-describedby={ariaDescribedBy}
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange?.(event.target.value)}
@@ -99,7 +102,7 @@ export default function GeoTokenInput({
         />
         <Tooltip title={t('pages.xray.geoBrowser.openTooltip')}>
           <Button
-            icon={<DatabaseOutlined />}
+            icon={<DatabaseOutlined aria-hidden />}
             aria-label={t('pages.xray.geoBrowser.openTooltip')}
             onClick={() => setBrowsing(true)}
           />

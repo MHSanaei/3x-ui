@@ -206,7 +206,7 @@ func TestGetSubs_PreservesPerInboundWireGuardIdentity(t *testing.T) {
 			rec := &model.ClientRecord{
 				Email: email, SubID: subID, Enable: true,
 				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
-				PreSharedKey: "sharedpsk", KeepAlive: 25,
+				PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
 			}
 			if err := db.Create(rec).Error; err != nil {
 				t.Fatalf("create client: %v", err)
@@ -298,7 +298,7 @@ func TestGetSubs_WireGuardUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
 	rec := &model.ClientRecord{
 		Email: email, SubID: subID, Enable: true,
 		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
-		PreSharedKey: "sharedpsk", KeepAlive: 25,
+		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
 	}
 	if err := db.Create(rec).Error; err != nil {
 		t.Fatalf("create client: %v", err)
@@ -358,7 +358,7 @@ func TestGetSubs_WireGuardEmptyOptionalTunnelFieldsDoNotInheritShared(t *testing
 	rec := &model.ClientRecord{
 		Email: email, SubID: subID, Enable: true,
 		PrivateKey: mergedPriv, AllowedIPs: "10.9.9.9/32,fd00:9::9/128",
-		PreSharedKey: "sharedpsk", KeepAlive: 25,
+		PreSharedKey: "sharedpsk", KeepAlive: model.KeepAliveValue("25"),
 	}
 	if err := db.Create(rec).Error; err != nil {
 		t.Fatalf("create client: %v", err)

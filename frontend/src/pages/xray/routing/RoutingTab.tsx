@@ -25,6 +25,7 @@ import { arrJoin, originalRuleIndex } from './helpers';
 import type { RuleRow } from './types';
 import type { XraySettingsValue, SetTemplate } from '@/hooks/useXraySetting';
 import type { RuleObject } from '@/schemas/routing';
+import { usePointerRowReorder } from '@/hooks/usePointerRowReorder';
 import './RoutingTab.css';
 
 interface RoutingTabProps {
@@ -50,19 +51,7 @@ export default function RoutingTab({
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RoutingRule | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  const dragRef = useRef<{
-    from: number | null;
-    to: number | null;
-    startY: number;
-    moved: boolean;
-  }>({
-    from: null,
-    to: null,
-    startY: 0,
-    moved: false,
-  });
+  const rulesContainerRef = useRef<HTMLDivElement>(null);
 
   const routingScript = templateSettings?.routing?.script ?? '';
   const rules = useMemo(
@@ -273,43 +262,15 @@ export default function RoutingTab({
     });
   }
 
-  function onHandlePointerDown(idx: number, ev: React.PointerEvent) {
-    if (ev.button != null && ev.button !== 0) return;
-    ev.preventDefault();
-    try {
-      (ev.currentTarget as Element).setPointerCapture(ev.pointerId);
-    } catch {
-      /* ignore */
-    }
-    dragRef.current = { from: idx, to: idx, startY: ev.clientY, moved: false };
-    setDraggedIndex(idx);
-    setDropTargetIndex(idx);
-
-    const onMove = (e: PointerEvent) => {
-      const state = dragRef.current;
-      if (state.from == null) return;
-      if (!state.moved && Math.abs(e.clientY - state.startY) < 5) return;
-      state.moved = true;
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (!el) return;
-      const target = el.closest('[data-row-key]');
-      if (!target) return;
-      const newIdx = Number(target.getAttribute('data-row-key'));
-      if (Number.isFinite(newIdx) && newIdx !== state.to) {
-        state.to = newIdx;
-        setDropTargetIndex(newIdx);
-      }
-    };
-
-    const onUp = () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
-      const { from, to, moved } = dragRef.current;
-      dragRef.current = { from: null, to: null, startY: 0, moved: false };
-      setDraggedIndex(null);
-      setDropTargetIndex(null);
-      if (!moved || from == null || to == null || from === to) return;
+  const { drag, onPointerDown: onHandlePointerDown } = usePointerRowReorder({
+    containerRef: rulesContainerRef,
+    getRowKey: (row) => {
+      const key = Number(row.dataset.rowKey);
+      // Desktop table keys are original rule indices; mobile cards use visible positions.
+      const index = isMobile ? key : rows.findIndex((rule) => rule.key === key);
+      return Number.isInteger(index) && index >= 0 && index < rows.length ? index : null;
+    },
+    onDrop: ({ from, to }) => {
       const fromOrig = originalRuleIndex(rowsRef.current, from);
       const toOrig = originalRuleIndex(rowsRef.current, to);
       mutate((tt) => {
@@ -318,12 +279,10 @@ export default function RoutingTab({
         const [movedItem] = list.splice(fromOrig, 1);
         list.splice(toOrig, 0, movedItem);
       });
-    };
-
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
-  }
+    },
+  });
+  const draggedIndex = drag?.from ?? null;
+  const dropTargetIndex = drag?.to ?? null;
 
   const hasSource = rows.some((r) => r.sourceIP || r.sourcePort || r.vlessRoute);
   const hasBalancer = rows.some((r) => r.balancerTag);
@@ -363,7 +322,11 @@ export default function RoutingTab({
         items={[
           {
             key: 'basic',
-            label: catTabLabel(<ControlOutlined />, t('pages.xray.basicRouting'), isMobile),
+            label: catTabLabel(
+              <ControlOutlined aria-hidden />,
+              t('pages.xray.basicRouting'),
+              isMobile,
+            ),
             children: (
               <RoutingBasic
                 templateSettings={templateSettings}
@@ -373,11 +336,15 @@ export default function RoutingTab({
           },
           {
             key: 'rules',
-            label: catTabLabel(<UnorderedListOutlined />, t('pages.xray.Routings'), isMobile),
+            label: catTabLabel(
+              <UnorderedListOutlined aria-hidden />,
+              t('pages.xray.Routings'),
+              isMobile,
+            ),
             children: (
               <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Space wrap>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+                  <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={openAdd}>
                     {t('pages.xray.Routings')}
                   </Button>
                   <Dropdown
@@ -386,13 +353,13 @@ export default function RoutingTab({
                       items: [
                         {
                           key: 'import',
-                          icon: <ImportOutlined />,
+                          icon: <ImportOutlined aria-hidden />,
                           label: t('pages.xray.importRules'),
                           onClick: () => setImportOpen(true),
                         },
                         {
                           key: 'export',
-                          icon: <ExportOutlined />,
+                          icon: <ExportOutlined aria-hidden />,
                           label: t('pages.xray.exportRules'),
                           disabled: rules.length === 0,
                           onClick: exportRules,
@@ -400,51 +367,52 @@ export default function RoutingTab({
                       ],
                     }}
                   >
-                    <Button icon={<MoreOutlined />}>{t('more')}</Button>
+                    <Button icon={<MoreOutlined aria-hidden />}>{t('more')}</Button>
                   </Dropdown>
                 </Space>
 
-                {isMobile ? (
-                  <RuleCardList
-                    rows={rows}
-                    draggedIndex={draggedIndex}
-                    dropTargetIndex={dropTargetIndex}
-                    onHandlePointerDown={onHandlePointerDown}
-                    openEdit={openEdit}
-                    moveUp={moveUp}
-                    moveDown={moveDown}
-                    confirmDelete={confirmDelete}
-                    toggleRule={toggleRule}
-                  />
-                ) : (
-                  <Table
-                    columns={desktopColumns}
-                    dataSource={rows}
-                    rowKey={(r) => r.key}
-                    pagination={false}
-                    scroll={{ x: tableScrollX }}
-                    size="small"
-                    className="routing-table"
-                    onRow={(_record, index) => {
-                      const classes: string[] = [];
-                      const i = index ?? -1;
-                      if (draggedIndex === i) classes.push('row-dragging');
-                      if (dropTargetIndex === i && draggedIndex !== i && draggedIndex != null) {
-                        classes.push(i > draggedIndex ? 'drop-after' : 'drop-before');
-                      }
-                      return {
-                        className: classes.join(' '),
-                        'data-row-key': i,
-                      } as React.HTMLAttributes<HTMLElement>;
-                    }}
-                  />
-                )}
+                <div ref={rulesContainerRef}>
+                  {isMobile ? (
+                    <RuleCardList
+                      rows={rows}
+                      draggedIndex={draggedIndex}
+                      dropTargetIndex={dropTargetIndex}
+                      onHandlePointerDown={onHandlePointerDown}
+                      openEdit={openEdit}
+                      moveUp={moveUp}
+                      moveDown={moveDown}
+                      confirmDelete={confirmDelete}
+                      toggleRule={toggleRule}
+                    />
+                  ) : (
+                    <Table
+                      columns={desktopColumns}
+                      dataSource={rows}
+                      rowKey={(r) => r.key}
+                      pagination={false}
+                      scroll={{ x: tableScrollX }}
+                      size="small"
+                      className="routing-table"
+                      onRow={(_record, index) => {
+                        const classes: string[] = [];
+                        const i = index ?? -1;
+                        if (draggedIndex === i) classes.push('row-dragging');
+                        if (dropTargetIndex === i && draggedIndex !== i && draggedIndex != null) {
+                          classes.push(i > draggedIndex ? 'drop-after' : 'drop-before');
+                        }
+                        return {
+                          className: classes.join(' '),
+                        };
+                      }}
+                    />
+                  )}
+                </div>
               </Space>
             ),
           },
           {
             key: 'tester',
-            label: catTabLabel(<AimOutlined />, t('pages.xray.routeTester'), isMobile),
+            label: catTabLabel(<AimOutlined aria-hidden />, t('pages.xray.routeTester'), isMobile),
             children: <RouteTester inboundTags={inboundTagOptions} isMobile={isMobile} />,
           },
         ]}

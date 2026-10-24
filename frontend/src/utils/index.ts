@@ -901,6 +901,7 @@ export class LanguageManager {
     { name: 'Український', value: 'uk-UA', icon: '🇺🇦' },
     { name: 'Türkçe', value: 'tr-TR', icon: '🇹🇷' },
     { name: 'Português', value: 'pt-BR', icon: '🇧🇷' },
+    { name: 'Slovenčina', value: 'sk-SK', icon: '🇸🇰' },
   ];
 
   static getLanguage(scope: LanguageScope = 'panel'): string {
@@ -931,6 +932,7 @@ export class LanguageManager {
         ['uk', LanguageManager.supportedLanguages[10].value],
         ['tr', LanguageManager.supportedLanguages[11].value],
         ['pt', LanguageManager.supportedLanguages[12].value],
+        ['sk', LanguageManager.supportedLanguages[13].value],
       ];
 
       simularLangs.forEach((pair) => {

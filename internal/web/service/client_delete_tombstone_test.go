@@ -1,8 +1,11 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -102,5 +105,95 @@ func TestRecreatedClientSurvivesNodeMerge(t *testing.T) {
 	}
 	if links != 1 {
 		t.Fatalf("re-created client has %d inbound links after the node merge, want 1: the delete tombstone outlived the email and the merge pruned it", links)
+	}
+}
+
+// Re-adding a node inbound with a just-deleted email creates that client again
+// through AddInbound, so the next merge must not prune it as the deleted one.
+func TestReaddedNodeInboundKeepsRecreatedClient(t *testing.T) {
+	db := initTrafficTestDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+
+	const email = "tunnel-81@x"
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, InboundSyncMode: "all"})
+	recreated := fmt.Sprintf(`{"id": "55555555-5555-4555-8555-555555555555", "email": %q, "enable": true}`, email)
+	nodeInbound := func(clients string) *model.Inbound {
+		nodeID := 1
+		return &model.Inbound{
+			UserId: 1, NodeID: &nodeID, Enable: true, Listen: "127.0.0.1", Port: 18453, Protocol: model.VLESS,
+			Settings:       `{"clients": [` + clients + `], "decryption": "none"}`,
+			StreamSettings: `{"network": "tcp", "security": "none"}`,
+		}
+	}
+
+	first, _, err := inboundSvc.AddInbound(nodeInbound(recreated))
+	if err != nil {
+		t.Fatalf("add node inbound: %v", err)
+	}
+	if _, err := inboundSvc.DelInbound(first.Id); err != nil {
+		t.Fatalf("delete node inbound: %v", err)
+	}
+	t.Cleanup(func() { withdrawClientTombstones(email) })
+	// inbounds/del only detaches; the record must go too or the re-add is a duplicate.
+	if _, err := clientSvc.DeleteByEmail(inboundSvc, email, false); err != nil {
+		t.Fatalf("delete detached client: %v", err)
+	}
+	// A second client keeps the tombstone-filtered snapshot non-empty, past the #6734 guard.
+	readded, _, err := inboundSvc.AddInbound(nodeInbound(recreated + `, {"id": "66666666-6666-4666-8666-666666666666", "email": "neighbour@x", "enable": true}`))
+	if err != nil {
+		t.Fatalf("re-add node inbound: %v", err)
+	}
+
+	// The next tick reconciles the push, clears dirty and merges a snapshot that has it.
+	if err := db.Model(&model.Node{}).Where("id = ?", 1).Update("config_dirty", false).Error; err != nil {
+		t.Fatalf("clear config_dirty: %v", err)
+	}
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{{
+		Tag: readded.Tag, Enable: true, Listen: readded.Listen, Port: readded.Port, Protocol: model.VLESS,
+		Settings: readded.Settings, StreamSettings: readded.StreamSettings,
+		ClientStats: []xray.ClientTraffic{{Email: email, Enable: true}, {Email: "neighbour@x", Enable: true}},
+	}}}
+	if _, err := inboundSvc.setRemoteTrafficLocked(1, snap, false, true); err != nil {
+		t.Fatalf("node merge: %v", err)
+	}
+
+	var rec model.ClientRecord
+	if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+		t.Fatalf("load re-created client: %v", err)
+	}
+	var links int64
+	if err := db.Model(&model.ClientInbound{}).
+		Where("client_id = ? AND inbound_id = ?", rec.Id, readded.Id).
+		Count(&links).Error; err != nil {
+		t.Fatalf("count client links: %v", err)
+	}
+	if links != 1 || rec.SyncOrphanedAt != 0 {
+		t.Fatalf("after the merge the re-added client has %d links to its inbound and sync_orphaned_at=%d, want 1 and 0: the delete tombstone outlived the re-add and the merge pruned the client for ReapSyncOrphans", links, rec.SyncOrphanedAt)
+	}
+}
+
+// The lift waits for the commit: a create that rolls back must leave the tombstone
+// standing, or a snapshot taken before the delete resurrects the client.
+func TestRolledBackCreateKeepsTombstone(t *testing.T) {
+	setupBulkDB(t)
+	const email = "rolled-back@x"
+	ib := mkInbound(t, 30451, model.VLESS, `{"clients": []}`)
+	tombstoneClientEmail(email)
+	t.Cleanup(func() { withdrawClientTombstones(email) })
+
+	errAbort := errors.New("abort after the client was created")
+	err := runSerializedTx(func(tx *gorm.DB) error {
+		created := []model.Client{{Email: email, ID: "77777777-7777-4777-8777-777777777777", Enable: true}}
+		if err := (&ClientService{}).SyncInbound(tx, ib.Id, created); err != nil {
+			return err
+		}
+		return errAbort
+	})
+	if !errors.Is(err, errAbort) {
+		t.Fatalf("runSerializedTx error = %v, want the injected abort", err)
+	}
+	if !isClientEmailTombstoned(email) {
+		t.Fatal("a create that rolled back withdrew the delete tombstone, so a stale node snapshot can resurrect the deleted client")
 	}
 }

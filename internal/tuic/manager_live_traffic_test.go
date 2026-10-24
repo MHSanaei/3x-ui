@@ -220,6 +220,11 @@ func audit3StartSocksForManager(t *testing.T, expectedUser, expectedPass string,
 		t.Fatalf("failed to listen: %v", err)
 	}
 
+	update, err := ManagedRelayGate(SOCKSPortForInbound(inboundID)).BeginUpdate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	update.Finish(inboundID, []string{expectedUser}, true)
 	stop := make(chan struct{})
 
 	go func() {

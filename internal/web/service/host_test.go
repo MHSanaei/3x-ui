@@ -1,12 +1,50 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
+
+func TestReorderHostsRejectsInvalidGroupsAtomically(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 46890, model.VLESS, `{"clients":[]}`)
+	a := mkHost(t, svc, ib.Id, "a", 0)
+	b := mkHost(t, svc, ib.Id, "b", 1)
+	for _, invalid := range []struct {
+		ids []string
+		err string
+	}{
+		{[]string{b.GroupId, a.GroupId, b.GroupId}, "host group IDs must be nonempty and unique"},
+		{[]string{b.GroupId, ""}, "host group IDs must be nonempty and unique"},
+		{[]string{b.GroupId, "unknown"}, "host group not found"},
+	} {
+		if err := svc.ReorderHostGroups(invalid.ids); err == nil || err.Error() != invalid.err+"\n" {
+			t.Fatalf("invalid group IDs %v: error = %v, want %q", invalid.ids, err, invalid.err)
+		}
+		groups, err := svc.GetHosts()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if groups[0].GroupId != a.GroupId || groups[0].SortOrder != 0 || groups[1].GroupId != b.GroupId || groups[1].SortOrder != 1 {
+			t.Fatalf("invalid request changed ordering: %+v", groups)
+		}
+	}
+	if err := svc.ReorderHostGroups([]string{b.GroupId}); err != nil {
+		t.Fatal(err)
+	}
+	groups, err := svc.GetHosts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := []string{groups[0].GroupId, groups[1].GroupId}; !reflect.DeepEqual(got, []string{b.GroupId, a.GroupId}) || groups[1].SortOrder != 1 {
+		t.Fatalf("partial reorder lost omitted groups: %+v", groups)
+	}
+}
 
 func mkHost(t *testing.T, svc *HostService, inboundId int, remark string, order int) *entity.HostGroup {
 	t.Helper()
@@ -363,6 +401,104 @@ func TestUpdateHostGroup_ValidateBeforeDelete(t *testing.T) {
 	got2, _ := svc.GetHostGroup(h1.GroupId)
 	if got2.Remark != "h1-updated" {
 		t.Fatalf("remark not updated: %s", got2.Remark)
+	}
+}
+
+// An address/port edit must keep the row id: per-client host rule bindings
+// reference ids, so a deleted row orphans every bound client.
+func TestUpdateHostGroup_AddressEditKeepsHostId(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Remark:     "cdn",
+		Hosts:      []string{"a.cdn.com"},
+		Port:       8443,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	wantId := created[0].Id
+
+	if _, err := svc.UpdateHostGroup(created[0].GroupId, &entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Remark:     "cdn",
+		Hosts:      []string{"a2.cdn.com"},
+		Port:       8443,
+	}); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	raws, err := svc.GetRawHosts()
+	if err != nil {
+		t.Fatalf("GetRawHosts: %v", err)
+	}
+	var row *model.Host
+	for _, h := range raws {
+		if h.GroupId == created[0].GroupId {
+			if row != nil {
+				t.Fatalf("expected 1 row after edit, got extra %v:%d", h.Address, h.Port)
+			}
+			row = h
+		}
+	}
+	if row == nil {
+		t.Fatalf("host row vanished after edit")
+	}
+	if row.Id != wantId {
+		t.Fatalf("address edit replaced row id %d with %d; bound clients lose all links", wantId, row.Id)
+	}
+	if row.Address != "a2.cdn.com" || row.Port != 8443 {
+		t.Fatalf("row = %s:%d, want a2.cdn.com:8443", row.Address, row.Port)
+	}
+}
+
+// A host moved to another inbound has no leftover row to pair with on the
+// target: the old row must be deleted and the new one inserted.
+func TestUpdateHostGroup_MovedRowsDeletedAndInserted(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib1 := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	ib2 := mkInbound(t, 8443, model.VLESS, `{"clients":[]}`)
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib1.Id},
+		Remark:     "move",
+		Hosts:      []string{"old.example.com"},
+		Port:       8080,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+
+	if _, err := svc.UpdateHostGroup(created[0].GroupId, &entity.HostGroup{
+		InboundIds: []int{ib2.Id},
+		Remark:     "move",
+		Hosts:      []string{"new.example.com"},
+		Port:       9090,
+	}); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	raws, err := svc.GetRawHosts()
+	if err != nil {
+		t.Fatalf("GetRawHosts: %v", err)
+	}
+	rowsOn := func(inboundId int) []*model.Host {
+		var out []*model.Host
+		for _, h := range raws {
+			if h.GroupId == created[0].GroupId && h.InboundId == inboundId {
+				out = append(out, h)
+			}
+		}
+		return out
+	}
+	if rows := rowsOn(ib1.Id); len(rows) != 0 {
+		t.Fatalf("old inbound kept %d rows, want 0", len(rows))
+	}
+	rows := rowsOn(ib2.Id)
+	if len(rows) != 1 || rows[0].Address != "new.example.com" || rows[0].Port != 9090 {
+		t.Fatalf("moved row = %+v, want 1x new.example.com:9090", rows)
 	}
 }
 

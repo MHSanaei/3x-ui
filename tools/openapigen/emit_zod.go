@@ -70,6 +70,12 @@ func zodTypeExpr(t TypeRef) string {
 		return "z.array(" + zodTypeExpr(*t.Element) + ")"
 	case KindMap:
 		return "z.record(" + zodTypeExpr(*t.Key) + ", " + zodTypeExpr(*t.Value) + ")"
+	case KindUnion:
+		parts := make([]string, 0, len(t.Variants))
+		for _, variant := range t.Variants {
+			parts = append(parts, zodTypeExpr(variant))
+		}
+		return "z.union([" + strings.Join(parts, ", ") + "])"
 	case KindRef:
 		if t.Name == "nullable" {
 			return zodTypeExpr(*t.Inner) + ".nullable()"

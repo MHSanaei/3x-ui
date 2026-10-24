@@ -75,6 +75,7 @@ describe('parseVmessLink', () => {
       ech: 'AEX+DQBB',
       vcn: 'vcn.example.com',
       pcs: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      cs: 'TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256',
     };
     const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
     const out = parseVmessLink(link);
@@ -82,6 +83,7 @@ describe('parseVmessLink', () => {
     const stream = out?.streamSettings as Record<string, unknown>;
     const tls = stream.tlsSettings as Record<string, unknown>;
     expect(tls.echConfigList).toBe('AEX+DQBB');
+    expect(tls.cipherSuites).toBe('TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256');
     expect(tls.verifyPeerCertByName).toBe('vcn.example.com');
     expect(tls.pinnedPeerCertSha256).toBe('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
   });
@@ -427,6 +429,15 @@ describe('parseTrojanLink', () => {
     const stream = out?.streamSettings as Record<string, unknown>;
     expect(stream.network).toBe('ws');
     expect((stream.wsSettings as Record<string, unknown>).path).toBe('/tj');
+  });
+
+  it('reads the cs cipher suites into tlsSettings, as the Go link parser does', () => {
+    const out = parseTrojanLink(
+      'trojan://pw@srv.example:443?type=tcp&security=tls&sni=srv.example&fp=unsafe&cs=TLS_AES_256_GCM_SHA384#cs',
+    );
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    expect(tls.cipherSuites).toBe('TLS_AES_256_GCM_SHA384');
   });
 });
 

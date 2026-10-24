@@ -152,6 +152,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -241,6 +246,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -341,6 +349,10 @@
           },
           "subHideSettings": {
             "type": "boolean"
+          },
+          "subHostSortMode": {
+            "example": "inbound-first",
+            "type": "string"
           },
           "subIncyAnnounceUrl": {
             "type": "string"
@@ -636,6 +648,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -662,6 +675,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -695,6 +709,7 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subHostSortMode",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -928,6 +943,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -1017,6 +1037,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -1117,6 +1140,10 @@
           },
           "subHideSettings": {
             "type": "boolean"
+          },
+          "subHostSortMode": {
+            "example": "inbound-first",
+            "type": "string"
           },
           "subIncyAnnounceUrl": {
             "type": "string"
@@ -1420,6 +1447,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -1446,6 +1474,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -1479,6 +1508,7 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subHostSortMode",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -1700,6 +1730,17 @@
             "description": "Auth password (Hysteria)",
             "type": "string"
           },
+          "clientHostRuleIds": {
+            "description": "ClientHostRuleIds binds the client to these host rules, one link each; nil preserves, empty\nclears, and bindings with no usable host leave that inbound out of the subscription.",
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "comment": {
             "description": "Client comment",
             "type": "string"
@@ -1739,9 +1780,15 @@
             "type": "string"
           },
           "keepAlive": {
-            "description": "Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
-            "nullable": true,
-            "type": "integer"
+            "description": "Numeric values or AmneziaWG ranges; 0 disables, omission preserves.",
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "limitIp": {
             "description": "IP limit for this client",
@@ -1931,6 +1978,16 @@
           "auth": {
             "type": "string"
           },
+          "clientHostRuleIds": {
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "comment": {
             "type": "string"
           },
@@ -1961,7 +2018,15 @@
             "type": "integer"
           },
           "keepAlive": {
-            "type": "integer"
+            "description": "Numeric values or AmneziaWG ranges.",
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "limitHwid": {
             "type": "integer"
@@ -2738,6 +2803,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "example": 1,
+            "type": "integer"
+          },
           "remark": {
             "example": "cdn-front",
             "maxLength": 256,
@@ -2810,6 +2879,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -2919,6 +2989,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "remark": {
             "maxLength": 256,
             "type": "string"
@@ -2984,6 +3059,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -4648,6 +4724,35 @@
           "sortOrder",
           "strategy",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "TgBotCapabilities": {
+        "description": "TgBotCapabilities is the browser-safe shape of the bot's own capabilities.",
+        "properties": {
+          "groupPrivacy": {
+            "description": "GroupPrivacy off means the bot reads every group message; when it is on,\na bare /start in a group is invisible to the bot.",
+            "example": false,
+            "type": "boolean"
+          },
+          "inlineEnabled": {
+            "example": true,
+            "type": "boolean"
+          },
+          "running": {
+            "example": true,
+            "type": "boolean"
+          },
+          "username": {
+            "example": "xui_bot",
+            "type": "string"
+          }
+        },
+        "required": [
+          "groupPrivacy",
+          "inlineEnabled",
+          "running",
+          "username"
         ],
         "type": "object"
       },
@@ -8481,6 +8586,81 @@
         }
       }
     },
+    "/panel/api/clients/get/subId/{subId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by subscription ID.",
+        "operationId": "get_panel_api_clients_get_subId_subId",
+        "description": "Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.",
+        "parameters": [
+          {
+            "name": "subId",
+            "in": "path",
+            "required": true,
+            "description": "Exact subscription ID (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "client": {
+                            "$ref": "#/components/schemas/ClientRecord"
+                          },
+                          "inboundIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer"
+                            }
+                          },
+                          "externalLinks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "usedTraffic": {
+                            "type": "integer",
+                            "format": "int64"
+                          },
+                          "tunnelAllowedIPs": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/get/tgId/{tgId}": {
       "get": {
         "tags": [
@@ -11909,6 +12089,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -11921,6 +12102,94 @@
                       ],
                       "verifyPeerCertByName": "",
                       "vlessRoute": ""
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/raw": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "List every host row with its numeric id, for id-based pickers such as the per-client host rule override.",
+        "operationId": "get_panel_api_hosts_raw",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Host"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "address": "cdn.example.com",
+                      "allowInsecure": false,
+                      "alpn": [
+                        ""
+                      ],
+                      "cipherSuites": "",
+                      "createdAt": 0,
+                      "echConfigList": "",
+                      "excludeFromSubTypes": [
+                        ""
+                      ],
+                      "finalMask": "",
+                      "fingerprint": "",
+                      "groupId": "",
+                      "hostHeader": "",
+                      "id": 1,
+                      "inboundId": 1,
+                      "isDisabled": false,
+                      "isHidden": false,
+                      "keepSniBlank": false,
+                      "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
+                      "muxParams": null,
+                      "nodeGuids": [
+                        ""
+                      ],
+                      "overrideSniFromAddress": false,
+                      "path": "",
+                      "pinnedPeerCertSha256": [
+                        ""
+                      ],
+                      "port": 8443,
+                      "randomCount": 1,
+                      "remark": "cdn-front",
+                      "security": "same",
+                      "serverDescription": "",
+                      "shuffleHost": false,
+                      "sni": "",
+                      "sockoptParams": null,
+                      "sortOrder": 0,
+                      "tags": [
+                        ""
+                      ],
+                      "updatedAt": 0,
+                      "verifyPeerCertByName": "",
+                      "vlessRoute": "443"
                     }
                   ]
                 }
@@ -12004,6 +12273,7 @@
                       ""
                     ],
                     "port": 0,
+                    "randomCount": 1,
                     "remark": "",
                     "security": "same",
                     "serverDescription": "",
@@ -12102,6 +12372,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12250,6 +12521,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12372,6 +12644,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12494,7 +12767,7 @@
         "tags": [
           "Hosts"
         ],
-        "summary": "Set host group sort order by the position of each groupId in the array.",
+        "summary": "Set host group sort order by the position of each groupId in the array. IDs must be unique and refer to existing groups; omitted groups follow in their previous order.",
         "operationId": "post_panel_api_hosts_reorder",
         "requestBody": {
           "required": true,
@@ -12624,6 +12897,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -13108,6 +13382,47 @@
                 "example": {
                   "success": true,
                   "msg": "Test message sent to Telegram"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/tgBotCapabilities": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.",
+        "operationId": "post_panel_api_setting_tgBotCapabilities",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TgBotCapabilities"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "groupPrivacy": false,
+                    "inlineEnabled": true,
+                    "running": true,
+                    "username": "xui_bot"
+                  }
                 }
               }
             }

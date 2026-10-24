@@ -49,14 +49,12 @@ function buildNginx(o: ReverseProxyOptions): string {
 
 function buildCaddy(o: ReverseProxyOptions): string {
   const path = normalizePath(o.panelPath);
-  if (path === '/') {
-    return `${o.domain} {
-    reverse_proxy 127.0.0.1:${o.panelPort}
-}`;
-  }
-  const matcher = `${path.replace(/\/$/, '')}/*`;
+  const matcher = path === '/' ? '' : `${path.replace(/\/$/, '')}/* `;
+  // Caddy forwards a client-sent X-Real-IP as is; the panel's login limiter reads it.
   return `${o.domain} {
-    reverse_proxy ${matcher} 127.0.0.1:${o.panelPort}
+    reverse_proxy ${matcher}127.0.0.1:${o.panelPort} {
+        header_up X-Real-IP {remote_host}
+    }
 }`;
 }
 

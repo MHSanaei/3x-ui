@@ -70,8 +70,8 @@ func TestUpdateCanClearKeepAliveOnAnExistingClient(t *testing.T) {
 	if got := inboundKeepAlive(t, inboundSvc, ib.Id, "ka@x"); got != 0 {
 		t.Fatalf("inbound keepAlive after an explicit 0 = %d, want 0", got)
 	}
-	if got := lookupClientRecord(t, "ka@x").KeepAlive; got != 0 {
-		t.Fatalf("stored wg_keep_alive after an explicit 0 = %d, want 0", got)
+	if got := lookupClientRecord(t, "ka@x").KeepAlive.String(); got != "0" {
+		t.Fatalf("stored wg_keep_alive after an explicit 0 = %s, want 0", got)
 	}
 }
 
@@ -96,7 +96,7 @@ func TestUpdateWithoutKeepAlivePreservesTheStoredValue(t *testing.T) {
 	if got := inboundKeepAlive(t, inboundSvc, ib.Id, "ka@x"); got != 25 {
 		t.Fatalf("inbound keepAlive after an edit that omitted it = %d, want 25", got)
 	}
-	if got := lookupClientRecord(t, "ka@x").KeepAlive; got != 25 {
-		t.Fatalf("stored wg_keep_alive after an edit that omitted it = %d, want 25", got)
+	if got := lookupClientRecord(t, "ka@x").KeepAlive.String(); got != "25" {
+		t.Fatalf("stored wg_keep_alive after an edit that omitted it = %s, want 25", got)
 	}
 }

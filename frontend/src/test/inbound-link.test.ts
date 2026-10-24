@@ -288,6 +288,22 @@ describe('genVlessLink TCP fragment finalmask compatibility', () => {
     expect(exported).toEqual(finalmask);
   });
 
+  // xray-core 26.10.21's filter screens the listener's own source IPs; a client core older than
+  // it refuses the unknown type, and the lists would hand clients the server's IP policy.
+  it('leaves the inbound-only filter mask out of the link', () => {
+    const exported = finalmaskFrom(
+      linkFor({
+        tcp: [{ type: 'filter', settings: { allowedSourceIPs: ['10.0.0.0/8'] } }],
+        udp: [
+          { type: 'filter', settings: { blockedSourceIPs: ['geoip:cn'] } },
+          { type: 'salamander', settings: { password: 'p' } },
+        ],
+      }),
+    );
+
+    expect(exported).toEqual({ udp: [{ type: 'salamander', settings: { password: 'p' } }] });
+  });
+
   it('exports a stored UDP-only finalmask whose empty tcp list was dropped on save', () => {
     const udpOnly = { udp: [{ type: 'salamander', settings: { password: 'p' } }] };
     const inbound = inboundFromDb({
@@ -1479,5 +1495,32 @@ describe('isPostQuantumLink', () => {
       ib.streamSettings.realitySettings.settings.mldsa65Verify = 'B'.repeat(2603);
     });
     expect(isPostQuantumLink(link)).toBe(true);
+  });
+
+  it('exports cipherSuites as cs query parameter on VLESS TLS links', () => {
+    const [, rawFixture] = fixturesForProtocol('vless')[0];
+    const stream = rawFixture.streamSettings as Record<string, unknown> | undefined;
+    const tls = stream?.tlsSettings as Record<string, unknown> | undefined;
+    const typed = InboundSchema.parse({
+      ...rawFixture,
+      streamSettings: {
+        ...stream,
+        security: 'tls',
+        tlsSettings: {
+          ...tls,
+          cipherSuites: 'TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256',
+        },
+      },
+    });
+
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      port: 443,
+      clientId: '11111111-2222-3333-4444-555555555555',
+    });
+    expect(new URL(link).searchParams.get('cs')).toBe(
+      'TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256',
+    );
   });
 });

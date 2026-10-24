@@ -54,7 +54,7 @@ func TestExcludedInboundHidesLinksButKeepsUsage(t *testing.T) {
 	})
 
 	t.Run("clash", func(t *testing.T) {
-		out, header, err := NewSubClashService(false, "", NewSubService("")).GetClash("sub-excl", "req.example.com")
+		out, header, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("sub-excl", "req.example.com")
 		if err != nil {
 			t.Fatalf("GetClash: %v", err)
 		}

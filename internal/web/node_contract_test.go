@@ -43,7 +43,7 @@ func startContractNode(t *testing.T) *nodeUnderContract {
 	t.Cleanup(func() { runtime.SetManager(prevMgr) })
 
 	previous := global.GetWebServer()
-	s := NewServer()
+	s := NewServer(nil)
 	s.cron = cron.New(cron.WithLocation(time.Local), cron.WithSeconds())
 	global.SetWebServer(s)
 	t.Cleanup(func() {

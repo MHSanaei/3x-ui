@@ -1144,6 +1144,35 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/get/subId/:subId',
+        summary: 'Fetch clients by subscription ID.',
+        description:
+          'Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.',
+        params: [
+          {
+            name: 'subId',
+            in: 'path',
+            type: 'string',
+            desc: 'Exact subscription ID (URL-encoded).',
+          },
+        ],
+        responseObjectSchema: {
+          type: 'array',
+          nullable: true,
+          items: {
+            type: 'object',
+            properties: {
+              client: { $ref: '#/components/schemas/ClientRecord' },
+              inboundIds: { type: 'array', items: { type: 'integer' } },
+              externalLinks: { type: 'array', items: { type: 'object' } },
+              usedTraffic: { type: 'integer', format: 'int64' },
+              tunnelAllowedIPs: { type: 'object', additionalProperties: { type: 'string' } },
+            },
+          },
+        },
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/get/tgId/:tgId',
         summary:
           'Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.',
@@ -1812,6 +1841,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/hosts/raw',
+        summary:
+          'List every host row with its numeric id, for id-based pickers such as the per-client host rule override.',
+        responseSchema: 'Host',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
         path: '/panel/api/hosts/get/:groupId',
         summary: 'Fetch a single host group by Group ID.',
         params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
@@ -1864,7 +1901,8 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/hosts/reorder',
-        summary: 'Set host group sort order by the position of each groupId in the array.',
+        summary:
+          'Set host group sort order by the position of each groupId in the array. IDs must be unique and refer to existing groups; omitted groups follow in their previous order.',
         body: '{\n  "ids": ["abc-123", "def-456"]\n}',
       },
       {
@@ -1977,6 +2015,13 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/testTgBot',
         summary: 'Test Telegram bot connection by sending a test message to the configured chat.',
         response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/tgBotCapabilities',
+        summary:
+          'Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.',
+        responseSchema: 'TgBotCapabilities',
       },
       {
         method: 'POST',
