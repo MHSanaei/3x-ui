@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -46,11 +49,11 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 		return err
 	}
 	err = fn(api)
-	if err == nil || !isUnavailable(err) {
+	if status.Code(err) != codes.Unavailable {
 		return err
 	}
-	// The core was not reachable: drop the pooled client and dial again, the way a client per call
-	// did, because a pooled channel keeps grpc-go's backoff and would fail fast for seconds.
+	// A pooled channel keeps grpc-go's reconnect backoff after a core restart and fails fast for
+	// seconds; drop it and dial again, as a client per call did.
 	evictLocalAPIClient(api)
 	api, err = localAPIForPort(port)
 	if err != nil {
