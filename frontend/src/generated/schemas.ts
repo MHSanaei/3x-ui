@@ -2732,6 +2732,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "randomCount": {
+        "example": 1,
+        "type": "integer"
+      },
       "remark": {
         "example": "cdn-front",
         "maxLength": 256,
@@ -2804,6 +2808,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "path",
       "pinnedPeerCertSha256",
       "port",
+      "randomCount",
       "remark",
       "security",
       "serverDescription",
@@ -2913,6 +2918,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "randomCount": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "remark": {
         "maxLength": 256,
         "type": "string"
@@ -2978,6 +2988,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "path",
       "pinnedPeerCertSha256",
       "port",
+      "randomCount",
       "remark",
       "security",
       "serverDescription",
