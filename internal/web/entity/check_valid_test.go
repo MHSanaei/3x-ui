@@ -103,3 +103,44 @@ func TestCheckValidSchedules(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckValidXrayPeriodicRestart(t *testing.T) {
+	for _, v := range []string{"", "@daily", "@hourly", "0 4 * * *", "@every 15m", "0 0/10 * * *"} {
+		s := &AllSetting{
+			WebPort:                   2053,
+			SubPort:                   2096,
+			XrayPeriodicRestartEnable: true,
+			XrayPeriodicRestartCron:   v,
+		}
+		if err := s.CheckValid(); err != nil {
+			t.Errorf("xrayPeriodicRestartCron=%q: unexpected error %v", v, err)
+		}
+	}
+
+	for _, v := range []string{"every morning", "0 0 * *", "not a cron"} {
+		s := &AllSetting{
+			WebPort:                   2053,
+			SubPort:                   2096,
+			XrayPeriodicRestartEnable: true,
+			XrayPeriodicRestartCron:   v,
+		}
+		err := s.CheckValid()
+		if err == nil || !strings.Contains(err.Error(), "xrayPeriodicRestartCron") {
+			t.Errorf("xrayPeriodicRestartCron=%q: want error naming xrayPeriodicRestartCron, got %v", v, err)
+		}
+	}
+
+	for _, v := range []string{"@every 30s", "@every 1m", "* * * * * *", "*/2 * * * *"} {
+		s := &AllSetting{
+			WebPort:                   2053,
+			SubPort:                   2096,
+			XrayPeriodicRestartEnable: true,
+			XrayPeriodicRestartCron:   v,
+		}
+		err := s.CheckValid()
+		if err == nil || !strings.Contains(err.Error(), "at least 5 minutes") {
+			t.Errorf("xrayPeriodicRestartCron=%q: want interval >= 5 minutes error, got %v", v, err)
+		}
+	}
+}
+

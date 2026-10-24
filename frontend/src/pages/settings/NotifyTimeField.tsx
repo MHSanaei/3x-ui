@@ -68,13 +68,26 @@ export function NotifyTimeField({
   value,
   onChange,
   ariaLabel,
+  units,
+  minInterval = 1,
 }: {
   value: string;
   onChange: (v: string) => void;
   ariaLabel?: string;
+  units?: Unit[];
+  minInterval?: number;
 }) {
   const { t } = useTranslation();
-  const [state, setState] = useState<RunTime>(() => parseRunTime(value));
+  const [state, setState] = useState<RunTime>(() => {
+    const parsed = parseRunTime(value);
+    if (units && !units.includes(parsed.unit)) {
+      parsed.unit = units[0];
+    }
+    if (minInterval > 1 && parsed.unit === 'm' && parsed.num < minInterval) {
+      parsed.num = minInterval;
+    }
+    return parsed;
+  });
 
   function update(patch: Partial<RunTime>) {
     const next = { ...state, ...patch };
@@ -98,11 +111,14 @@ export function NotifyTimeField({
     { value: '@monthly', label: t('pages.settings.notifyTime.monthly') },
     { value: 'custom', label: t('pages.settings.notifyTime.custom') },
   ];
-  const unitOptions = [
+  const allUnitOptions: { value: Unit; label: string }[] = [
     { value: 's', label: t('pages.settings.notifyTime.seconds') },
     { value: 'm', label: t('pages.settings.notifyTime.minutes') },
     { value: 'h', label: t('pages.settings.notifyTime.hours') },
   ];
+  const unitOptions = units
+    ? allUnitOptions.filter((u) => units.includes(u.value))
+    : allUnitOptions;
 
   return (
     <Space orientation="vertical" size="small" style={{ width: '100%' }}>
@@ -116,11 +132,13 @@ export function NotifyTimeField({
       {state.mode === 'every' && (
         <Space.Compact style={{ width: '100%' }}>
           <InputNumber
-            min={1}
+            min={state.unit === 'm' ? minInterval : 1}
             precision={0}
             style={{ width: '50%' }}
             value={state.num}
-            onChange={onNumber((v) => update({ num: Math.max(1, v) }))}
+            onChange={onNumber((v) =>
+              update({ num: Math.max(state.unit === 'm' ? minInterval : 1, v) }),
+            )}
             aria-label={t('pages.settings.notifyTime.interval')}
           />
           <Select<Unit>

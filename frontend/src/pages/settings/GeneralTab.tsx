@@ -361,6 +361,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   <NotifyTimeField
                     value={allSetting.xrayPeriodicRestartCron || '@daily'}
                     onChange={(v) => updateSetting({ xrayPeriodicRestartCron: v })}
+                    units={['m', 'h']}
+                    minInterval={5}
                     ariaLabel={t('pages.settings.xrayPeriodicRestartSchedule')}
                   />
                 </SettingListItem>

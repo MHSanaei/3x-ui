@@ -362,14 +362,25 @@ func (s *AllSetting) CheckValid() error {
 		{"tgRunTime", s.TgRunTime},
 		{"discordRunTime", s.DiscordRunTime},
 		{"ldapSyncCron", s.LdapSyncCron},
+		{"xrayPeriodicRestartCron", s.XrayPeriodicRestartCron},
 	} {
 		if strings.TrimSpace(sched.spec) == "" {
 			continue
 		}
-		if _, err := cronspec.Parse(sched.spec); err != nil {
+		schedule, err := cronspec.Parse(sched.spec)
+		if err != nil {
 			return common.NewError(sched.name+":", err)
 		}
+		if sched.name == "xrayPeriodicRestartCron" && s.XrayPeriodicRestartEnable {
+			now := time.Now()
+			next1 := schedule.Next(now)
+			next2 := schedule.Next(next1)
+			if !next1.IsZero() && !next2.IsZero() && next2.Sub(next1) < 5*time.Minute {
+				return common.NewErrorf("xrayPeriodicRestartCron: restart interval must be at least 5 minutes, got %v", next2.Sub(next1))
+			}
+		}
 	}
+
 
 	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {
 		return err
