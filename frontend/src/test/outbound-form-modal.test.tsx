@@ -354,7 +354,7 @@ describe('OutboundFormModal', () => {
     expect(formItemByLabel('Mux')).toBeDefined();
     ws.unmount();
 
-    await openModal(
+    const xhttp = await openModal(
       vless('mlkem768x25519plus.native.0rtt.key', {
         network: 'xhttp',
         security: 'none',
@@ -362,6 +362,68 @@ describe('OutboundFormModal', () => {
       }),
     );
     expect(formItemByLabel('Flow')).toBeDefined();
+    xhttp.unmount();
+
+    // xray-core 26.10.17 (#7182) refuses a flow on XDRIVE even inside VLESS encryption.
+    await openModal(
+      vless('mlkem768x25519plus.native.0rtt.key', {
+        network: 'xdrive',
+        security: 'none',
+        xdriveSettings: { service: 'local', remoteFolder: '/srv/drive' },
+      }),
+    );
+    expect(formItemByLabel('Transmission')?.textContent).toContain('XDRIVE');
+    expect(formItemByLabel('Flow')).toBeUndefined();
+  });
+
+  // xray-core 26.10.17 (#7182) carries only VLESS over XDRIVE.
+  it('offers XDRIVE only to a VLESS outbound', async () => {
+    const transmissionOptions = async (protocol: string) => {
+      const queryClient = makeTestQueryClient();
+      const outbound = {
+        protocol,
+        tag: 'out',
+        settings: {
+          vnext: [
+            {
+              address: 'example.com',
+              port: 443,
+              users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+            },
+          ],
+        },
+        streamSettings: { network: 'tcp', security: 'none' },
+      };
+      const tree = (open: boolean) => (
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <OutboundFormModal
+              open={open}
+              outbound={outbound}
+              existingTags={[]}
+              onClose={() => {}}
+              onConfirm={() => {}}
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+      const view = render(tree(false));
+      view.rerender(tree(true));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+      const select = formItemByLabel('Transmission')?.querySelector('.ant-select');
+      if (!select) throw new Error('Transmission select not found');
+      fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
+      const options = Array.from(document.querySelectorAll('.ant-select-item-option')).map((o) =>
+        (o.getAttribute('title') ?? o.textContent ?? '').trim(),
+      );
+      view.unmount();
+      return options;
+    };
+
+    expect(await transmissionOptions('vmess')).not.toContain('XDRIVE');
+    expect(await transmissionOptions('vless')).toContain('XDRIVE');
   });
 
   it('saves an XDRIVE stream picked in the transmission selector', async () => {
@@ -421,14 +483,82 @@ describe('OutboundFormModal', () => {
     });
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    const payload = onConfirm.mock.calls[0][0] as { streamSettings: Record<string, unknown> };
+    const payload = onConfirm.mock.calls[0][0] as {
+      streamSettings: Record<string, unknown>;
+      mux?: Record<string, unknown>;
+    };
     expect(payload.streamSettings).toMatchObject({
       network: 'xdrive',
       xdriveSettings: {
-        service: 'Google Drive',
+        service: 'google-drive',
         remoteFolder: 'xray-tunnel',
         secrets: ['id.apps.googleusercontent.com', 'client-secret', 'refresh-token'],
       },
+    });
+    // xray-core 26.10.17 (#7182) refuses an XDRIVE client without Mux.
+    expect(payload.mux).toMatchObject({ enabled: true });
+  });
+});
+
+// xray-core 26.10.17 (#7182) renamed the service "google-drive"; an outbound saved before still
+// says "Google Drive", which the editor lifts so its secrets stay editable.
+describe('OutboundFormModal XDRIVE service name', () => {
+  it('opens a stored "Google Drive" outbound under the new service name', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'vless',
+      tag: 'drive-out',
+      settings: {
+        address: 'example.com',
+        port: 443,
+        id: 'c9f0c2d0-0000-4000-8000-000000000000',
+        encryption: 'mlkem768x25519plus.native.0rtt.key',
+      },
+      mux: { enabled: true, concurrency: 8 },
+      streamSettings: {
+        network: 'xdrive',
+        security: 'none',
+        xdriveSettings: {
+          service: 'Google Drive',
+          remoteFolder: 'xray-tunnel',
+          secrets: ['id', 'secret', 'token'],
+        },
+      },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect((screen.getByLabelText('Client ID') as HTMLInputElement).value).toBe('id');
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as { streamSettings: Record<string, unknown> };
+    expect(payload.streamSettings.xdriveSettings).toMatchObject({
+      service: 'google-drive',
+      secrets: ['id', 'secret', 'token'],
     });
   });
 });
@@ -765,6 +895,33 @@ describe('OutboundFormModal finalmask variables', () => {
     );
 
     expect(finalmask.udp).toEqual([{ type: 'header-custom', settings: { client, server: [] } }]);
+  });
+
+  // xray-core 26.10.17 gives noise a Lua `script` and xdns a DoH resolver with its own
+  // worker count, TLS and QUIC settings; the mask editor only keeps keys it registers.
+  it('keeps a noise script and the DoH settings of an xdns resolver on save', async () => {
+    const fixture = {
+      tcp: [],
+      udp: [
+        { type: 'noise', settings: { reset: 0, script: 'noise.lua' } },
+        {
+          type: 'xdns',
+          settings: {
+            domains: [{ names: ['t.example.com'] }],
+            resolvers: [
+              {
+                addrs: ['https://dns.example.com/dns-query'],
+                worker: 8,
+                tlsConfig: { serverName: 'dns.example.com', fingerprint: 'chrome' },
+                quicConfig: { congestion: 'bbr', maxIdleTimeout: 30 },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(await saveFinalmask(structuredClone(fixture))).toEqual(fixture);
   });
 
   it('saves a noise reset typed as a range', async () => {

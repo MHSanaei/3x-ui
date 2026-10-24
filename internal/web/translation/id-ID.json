@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Pertahankan pengaturan mesin ini",
-      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah."
+      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah.",
+      "logLines": "Jumlah baris",
+      "timeRange": "Rentang waktu"
     },
     "inbounds": {
       "totalDownUp": "Total Terkirim/Diterima",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS sistem ke gateway",
         "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
         "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN."
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN.",
+        "maxVersion": "Versi maksimum",
+        "headerName": "Nama header",
+        "headerValue": "Nilai header"
       },
       "info": {
         "mode": "Mode",
@@ -1301,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Sertakan aturan routing global Clash/Mihomo dalam langganan YAML yang dibuat.",
       "subClashRoutingRules": "Aturan routing global",
       "subClashRoutingRulesDesc": "Tempel aturan/YAML atau satu URL HTTPS permanen. Panel memperbaruinya di latar belakang, hanya mengimpor grup, penyedia aturan, dan aturan, serta mempertahankan node VPN buatan panel dan nilai valid terakhir.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "IP Pendengar",
       "subListenDesc": "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)",
       "subPort": "Port Pendengar",
@@ -1425,6 +1432,15 @@
         "apiTokenName": "Nama",
         "apiTokenNamePlaceholder": "misalnya central-panel-a",
         "apiTokenNameRequired": "Nama wajib diisi",
+        "apiTokenScope": "Cakupan",
+        "apiTokenScopeAdmin": "Administrator",
+        "apiTokenScopeAdminDesc": "Akses penuh ke semua endpoint API panel. Gunakan hanya untuk otomatisasi tepercaya.",
+        "apiTokenScopeMonitor": "Pemantauan",
+        "apiTokenScopeMonitorDesc": "Akses baca-saja ke status sistem, versi, dan metrik.",
+        "apiTokenScopeNodeSync": "Sinkronisasi node",
+        "apiTokenScopeNodeSyncDesc": "Menyinkronkan konfigurasi node, inbound, klien, trafik, dan status Xray. Tidak dapat memperbarui perangkat lunak panel.",
+        "apiTokenScopeNodeAdmin": "Administrator node",
+        "apiTokenScopeNodeAdminDesc": "Mencakup izin sinkronisasi node dan juga dapat memulai pembaruan perangkat lunak panel.",
         "apiTokenEmpty": "Belum ada token — buat satu untuk mengautentikasi bot atau panel jarak jauh.",
         "apiTokenDeleteWarning": "Setiap pemanggil yang menggunakan token ini akan berhenti terautentikasi segera.",
         "apiTokenCreatedTitle": "Token dibuat",

@@ -180,6 +180,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubClashRules = ""
 	}
 
+	SubClashRemoteDNS, err := s.settingService.GetSubClashRemoteDNS()
+	if err != nil {
+		SubClashRemoteDNS = false
+	}
+
 	SubTitle, err := s.settingService.GetSubTitle()
 	if err != nil {
 		SubTitle = ""
@@ -361,6 +366,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBJsonObservatory(SubJsonObservatory),
 		WithSUBClashEnableRouting(SubClashEnableRouting),
 		WithSUBClashRules(SubClashRules),
+		WithSUBClashRemoteDNS(SubClashRemoteDNS),
 		WithSUBTitle(SubTitle),
 		WithSUBSupportURL(SubSupportUrl),
 		WithSUBProfileURL(SubProfileUrl),

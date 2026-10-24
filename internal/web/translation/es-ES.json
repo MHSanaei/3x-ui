@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Mantener la configuración de esta máquina",
-      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido."
+      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido.",
+      "logLines": "Número de líneas",
+      "timeRange": "Rango de tiempo"
     },
     "inbounds": {
       "totalDownUp": "Subidas/Descargas Totales",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
         "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
         "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN."
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN.",
+        "maxVersion": "Versión máxima",
+        "headerName": "Nombre de cabecera",
+        "headerValue": "Valor de cabecera"
       },
       "info": {
         "mode": "Modo",
@@ -1301,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Incluir reglas globales de enrutamiento Clash/Mihomo en las suscripciones YAML generadas.",
       "subClashRoutingRules": "Reglas globales de enrutamiento",
       "subClashRoutingRulesDesc": "Pegue reglas/YAML o una URL HTTPS permanente. El panel la actualiza en segundo plano, importa solo grupos, proveedores de reglas y reglas, y conserva los nodos VPN generados y el último valor válido.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Listening IP",
       "subListenDesc": "Dejar en blanco por defecto para monitorear todas las IPs.",
       "subPort": "Puerto de Suscripción",
@@ -1425,6 +1432,15 @@
         "apiTokenName": "Nombre",
         "apiTokenNamePlaceholder": "por ejemplo central-panel-a",
         "apiTokenNameRequired": "El nombre es obligatorio",
+        "apiTokenScope": "Alcance",
+        "apiTokenScopeAdmin": "Administrador",
+        "apiTokenScopeAdminDesc": "Acceso completo a todos los endpoints de la API del panel. Úselo solo para automatizaciones de confianza.",
+        "apiTokenScopeMonitor": "Monitorización",
+        "apiTokenScopeMonitorDesc": "Acceso de solo lectura al estado del sistema, versiones y métricas.",
+        "apiTokenScopeNodeSync": "Sincronización de nodo",
+        "apiTokenScopeNodeSyncDesc": "Sincroniza la configuración del nodo, entradas, clientes, tráfico y estado de Xray. No puede actualizar el software del panel.",
+        "apiTokenScopeNodeAdmin": "Administrador de nodo",
+        "apiTokenScopeNodeAdminDesc": "Incluye los permisos de sincronización de nodo y también puede iniciar actualizaciones del software del panel.",
         "apiTokenEmpty": "Aún no hay tokens — crea uno para autenticar bots o paneles remotos.",
         "apiTokenDeleteWarning": "Cualquier cliente que use este token dejará de autenticarse inmediatamente.",
         "apiTokenCreatedTitle": "Token creado",
