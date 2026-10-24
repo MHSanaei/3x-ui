@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 )
 
 func TestInitDB_GeneratesPerPanelSubscriptionPaths(t *testing.T) {
@@ -54,6 +55,55 @@ func TestInitDB_GeneratesPerPanelSubscriptionPaths(t *testing.T) {
 		if firstPath == second[key] {
 			t.Fatalf("%s reused across panels: %q", key, firstPath)
 		}
+	}
+}
+
+// Every launcher but install.sh serves the panel on the database as InitDB left
+// it, so a credential seeded here is one anyone on the network can log in with.
+func TestInitDBLeavesNoGuessableCredential(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	var users []model.User
+	if err := db.Find(&users).Error; err != nil {
+		t.Fatalf("read users: %v", err)
+	}
+	for _, u := range users {
+		if crypto.CheckPasswordHash(u.Password, "admin") {
+			t.Fatalf("fresh database holds user %q with the password admin", u.Username)
+		}
+	}
+}
+
+// The server prints what EnsureFirstUser returns as the only copy of the first
+// login, so it must be the stored credential, and a restart must not mint another.
+func TestEnsureFirstUserCreatesOneWorkingCredential(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	username, password, err := EnsureFirstUser()
+	if err != nil {
+		t.Fatalf("EnsureFirstUser: %v", err)
+	}
+	var stored model.User
+	if err := db.First(&stored).Error; err != nil {
+		t.Fatalf("read user: %v", err)
+	}
+	if stored.Username != username || password == "" || !crypto.CheckPasswordHash(stored.Password, password) {
+		t.Fatalf("returned %q/%q, stored user %q does not log in with it", username, password, stored.Username)
+	}
+
+	againUser, againPass, err := EnsureFirstUser()
+	if err != nil || againUser != "" || againPass != "" {
+		t.Fatalf("second EnsureFirstUser = %q, %q, %v; want nothing created", againUser, againPass, err)
+	}
+	var count int64
+	if err := db.Model(&model.User{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("users = %d (%v), want 1", count, err)
 	}
 }
 

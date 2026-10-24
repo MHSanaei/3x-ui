@@ -33,7 +33,9 @@ Caddy 会为你获取并续期证书——只需让 Caddyfile 指向面板，它
 
 ```text title="Caddyfile"
 panel.example.com {
-    reverse_proxy 127.0.0.1:2053
+    reverse_proxy 127.0.0.1:2053 {
+        header_up X-Real-IP {remote_host}
+    }
 }
 ```
 

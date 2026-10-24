@@ -36,6 +36,19 @@ func (s *UserService) GetFirstUser() (*model.User, error) {
 	return user, nil
 }
 
+// HasDefaultCredential reports that nobody has chosen the login yet: a database
+// holds no user before the first start, and an older one may still hold admin/admin.
+func (s *UserService) HasDefaultCredential() (bool, error) {
+	user, err := s.GetFirstUser()
+	if database.IsNotFound(err) {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return user.Username == "admin" && crypto.CheckPasswordHash(user.Password, "admin"), nil
+}
+
 func (s *UserService) CheckUser(username string, password string, twoFactorCode string) (*model.User, error) {
 	db := database.GetDB()
 
