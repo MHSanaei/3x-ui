@@ -60,7 +60,7 @@ func TestTuicQuotaResetDoesNotChangeRelayAdmission(t *testing.T) {
 			if reset == "telegram" {
 				err = svc.ResetClientTrafficByEmail(client.Email)
 			} else {
-				err = (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
+				_, err = (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
 			}
 			if err != nil {
 				t.Fatal(err)

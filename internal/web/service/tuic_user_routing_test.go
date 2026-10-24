@@ -226,7 +226,7 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 			if reset == "telegram" {
 				resetErr = (&InboundService{}).ResetClientTrafficByEmail(clients[0].Email)
 			} else {
-				resetErr = (&ClientService{}).ResetAllClientTraffics(&InboundService{}, ib.Id)
+				_, resetErr = (&ClientService{}).ResetAllClientTraffics(&InboundService{}, ib.Id)
 			}
 			if resetErr != nil {
 				t.Fatal(resetErr)
