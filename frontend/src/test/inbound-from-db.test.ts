@@ -226,8 +226,9 @@ describe('protocol-capability helpers with raw coerced shapes', () => {
         streamSettings: { network: 'xhttp', security: 'none' },
       }),
     ).toBe(false);
-    // xray-core runs Vision inside VLESS encryption on any transport, RAW and WS included.
-    for (const network of ['tcp', 'ws', 'grpc', 'xdrive']) {
+    // xray-core runs Vision inside VLESS encryption on any transport, RAW and WS included,
+    // but XDRIVE, which refuses a flow since 26.10.17 (#7182).
+    for (const network of ['tcp', 'ws', 'grpc']) {
       expect(
         canEnableTlsFlow({
           protocol: 'vless',
@@ -236,6 +237,13 @@ describe('protocol-capability helpers with raw coerced shapes', () => {
         }),
       ).toBe(true);
     }
+    expect(
+      canEnableTlsFlow({
+        protocol: 'vless',
+        settings: { decryption: dec, encryption: enc },
+        streamSettings: { network: 'xdrive', security: 'none' },
+      }),
+    ).toBe(false);
     expect(
       canEnableTlsFlow({
         protocol: 'vless',

@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import { LanguageManager } from '@/utils';
 import type { LanguageScope } from '@/utils';
+import { loadAntdLocale } from './AntdRootConfig';
 import enUS from '../../../internal/web/translation/en-US.json';
 
 const FALLBACK = 'en-US';
@@ -43,6 +44,9 @@ export async function readyI18n(scope: LanguageScope = 'panel') {
       await i18next.changeLanguage(active);
     }
   }
+  // The html files ship lang="en"; screen readers pick their voice from it (s-ui#1293).
+  document.documentElement.lang = i18next.language;
+  await loadAntdLocale(i18next.language);
   return i18next;
 }
 

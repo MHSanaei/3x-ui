@@ -65,7 +65,11 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
       items={[
         {
           key: '1',
-          label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
+          label: catTabLabel(
+            <SettingOutlined aria-hidden />,
+            t('pages.settings.panelSettings'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -133,7 +137,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
               <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
                 <Button
                   type="primary"
-                  icon={<SendOutlined />}
+                  icon={<SendOutlined aria-hidden />}
                   loading={testLoading}
                   onClick={handleTestTgBot}
                 >
@@ -153,7 +157,11 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
         },
         {
           key: '2',
-          label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
+          label: catTabLabel(
+            <BellOutlined aria-hidden />,
+            t('pages.settings.notifications'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
