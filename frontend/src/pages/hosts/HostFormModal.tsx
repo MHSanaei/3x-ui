@@ -222,7 +222,11 @@ export default function HostFormModal({
               {
                 key: 'basic',
                 forceRender: true,
-                label: catTabLabel(<ProfileOutlined />, t('pages.hosts.sections.basic'), isMobile),
+                label: catTabLabel(
+                  <ProfileOutlined aria-hidden />,
+                  t('pages.hosts.sections.basic'),
+                  isMobile,
+                ),
                 children: (
                   <>
                     <FormField
@@ -305,7 +309,7 @@ export default function HostFormModal({
                 key: 'security',
                 forceRender: true,
                 label: catTabLabel(
-                  <SafetyCertificateOutlined />,
+                  <SafetyCertificateOutlined aria-hidden />,
                   t('pages.hosts.sections.security'),
                   isMobile,
                 ),
@@ -411,7 +415,7 @@ export default function HostFormModal({
                 key: 'advanced',
                 forceRender: true,
                 label: catTabLabel(
-                  <ControlOutlined />,
+                  <ControlOutlined aria-hidden />,
                   t('pages.hosts.sections.advanced'),
                   isMobile,
                 ),
@@ -424,7 +428,7 @@ export default function HostFormModal({
                         key: 'adv-general',
                         forceRender: true,
                         label: catTabLabel(
-                          <SettingOutlined />,
+                          <SettingOutlined aria-hidden />,
                           t('pages.hosts.sections.general'),
                           isMobile,
                         ),
@@ -463,7 +467,7 @@ export default function HostFormModal({
                         key: 'adv-mux',
                         forceRender: true,
                         label: catTabLabel(
-                          <PartitionOutlined />,
+                          <PartitionOutlined aria-hidden />,
                           t('pages.hosts.fields.muxParams'),
                           isMobile,
                         ),
@@ -483,7 +487,7 @@ export default function HostFormModal({
                         key: 'adv-sockopt',
                         forceRender: true,
                         label: catTabLabel(
-                          <DeploymentUnitOutlined />,
+                          <DeploymentUnitOutlined aria-hidden />,
                           t('pages.hosts.fields.sockoptParams'),
                           isMobile,
                         ),
@@ -503,7 +507,7 @@ export default function HostFormModal({
                         key: 'adv-finalmask',
                         forceRender: true,
                         label: catTabLabel(
-                          <RocketOutlined />,
+                          <RocketOutlined aria-hidden />,
                           t('pages.hosts.fields.finalMask'),
                           isMobile,
                         ),
@@ -527,7 +531,7 @@ export default function HostFormModal({
                 key: 'clash',
                 forceRender: true,
                 label: catTabLabel(
-                  <NodeIndexOutlined />,
+                  <NodeIndexOutlined aria-hidden />,
                   t('pages.hosts.sections.clash'),
                   isMobile,
                 ),

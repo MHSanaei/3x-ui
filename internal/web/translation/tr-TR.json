@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Bu makinenin ayarlarını koru",
-      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur."
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur.",
+      "logLines": "Satır sayısı",
+      "timeRange": "Zaman aralığı"
     },
     "inbounds": {
       "totalDownUp": "Toplam Gönderilen/Alınan",
@@ -759,7 +761,10 @@
         "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
         "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
         "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller."
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
+        "maxVersion": "Maksimum sürüm",
+        "headerName": "Başlık adı",
+        "headerValue": "Başlık değeri"
       },
       "info": {
         "mode": "Mod",
@@ -1330,6 +1335,8 @@
       "subClashEnableRoutingDesc": "Oluşturulan YAML aboneliklerine genel Clash/Mihomo yönlendirme kurallarını ekler.",
       "subClashRoutingRules": "Genel Yönlendirme Kuralları",
       "subClashRoutingRulesDesc": "Kurallar/YAML veya kalıcı bir HTTPS URL'si yapıştırın. Panel bunu arka planda yeniler, yalnızca grupları, kural sağlayıcılarını ve kuralları içe aktarır; oluşturulan VPN düğümlerini ve son geçerli değeri korur.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Dinleme IP",
       "subListenDesc": "Abonelik hizmeti için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "subPort": "Dinleme Portu",

@@ -30,7 +30,7 @@ func TestInitDBGivesEachTestItsOwnDatabase(t *testing.T) {
 			t.Fatalf("count users: %v", err)
 		}
 		if admins != 1 {
-			t.Fatalf("users = %d, want the 1 seeded admin a fresh install has", admins)
+			t.Fatalf("users = %d, want the 1 admin a started panel has", admins)
 		}
 	})
 }

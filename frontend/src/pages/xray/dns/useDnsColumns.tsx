@@ -38,7 +38,7 @@ export function useDnsServerColumns({
                     key: 'edit',
                     label: (
                       <>
-                        <EditOutlined /> {t('edit')}
+                        <EditOutlined aria-hidden /> {t('edit')}
                       </>
                     ),
                     onClick: () => openEditServer(index),
@@ -48,7 +48,7 @@ export function useDnsServerColumns({
                     danger: true,
                     label: (
                       <>
-                        <DeleteOutlined /> {t('delete')}
+                        <DeleteOutlined aria-hidden /> {t('delete')}
                       </>
                     ),
                     onClick: () => deleteServer(index),
@@ -56,7 +56,12 @@ export function useDnsServerColumns({
                 ],
               }}
             >
-              <Button aria-label={t('more')} shape="circle" size="small" icon={<MoreOutlined />} />
+              <Button
+                aria-label={t('more')}
+                shape="circle"
+                size="small"
+                icon={<MoreOutlined aria-hidden />}
+              />
             </Dropdown>
           </Space>
         ),
@@ -107,7 +112,7 @@ export function useFakednsColumns({
               shape="circle"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<DeleteOutlined aria-hidden />}
               onClick={() => deleteFakedns(index)}
             />
           </Space>

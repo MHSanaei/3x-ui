@@ -53,7 +53,7 @@ const METRICS: MetricDef[] = [
     tab: 'Heap',
     tabKey: 'pages.index.xrayTabHeap',
     title: 'pages.index.xrayTitleHeap',
-    icon: <DatabaseOutlined />,
+    icon: <DatabaseOutlined aria-hidden />,
     unit: 'B',
     stroke: '#7c4dff',
   },
@@ -62,7 +62,7 @@ const METRICS: MetricDef[] = [
     tab: 'Sys',
     tabKey: 'pages.index.xrayTabSys',
     title: 'pages.index.xrayTitleSys',
-    icon: <CloudServerOutlined />,
+    icon: <CloudServerOutlined aria-hidden />,
     unit: 'B',
     stroke: '#1890ff',
   },
@@ -71,7 +71,7 @@ const METRICS: MetricDef[] = [
     tab: 'Objects',
     tabKey: 'pages.index.xrayTabObjects',
     title: 'pages.index.xrayTitleObjects',
-    icon: <BlockOutlined />,
+    icon: <BlockOutlined aria-hidden />,
     unit: '',
     stroke: '#13c2c2',
   },
@@ -80,7 +80,7 @@ const METRICS: MetricDef[] = [
     tab: 'GC Count',
     tabKey: 'pages.index.xrayTabGcCount',
     title: 'pages.index.xrayTitleGcCount',
-    icon: <DeleteOutlined />,
+    icon: <DeleteOutlined aria-hidden />,
     unit: '',
     stroke: '#fa8c16',
   },
@@ -89,7 +89,7 @@ const METRICS: MetricDef[] = [
     tab: 'GC Pause',
     tabKey: 'pages.index.xrayTabGcPause',
     title: 'pages.index.xrayTitleGcPause',
-    icon: <PauseCircleOutlined />,
+    icon: <PauseCircleOutlined aria-hidden />,
     unit: 'ns',
     stroke: '#f5222d',
   },
@@ -98,7 +98,7 @@ const METRICS: MetricDef[] = [
     tab: 'Observatory',
     tabKey: 'pages.index.xrayTabObservatory',
     title: 'pages.index.xrayTitleObservatory',
-    icon: <EyeOutlined />,
+    icon: <EyeOutlined aria-hidden />,
     unit: 'ms',
     stroke: '#52c41a',
   },
@@ -304,6 +304,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
         <div className="metric-modal-title">
           <span>{t('pages.index.xrayMetricsTitle')}</span>
           <Select
+            aria-label={t('pages.index.timeRange')}
             value={bucket}
             size="small"
             className="bucket-select"
@@ -362,6 +363,7 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
           ) : (
             <div className="obs-controls">
               <Select
+                aria-label={t('pages.index.xrayObservatoryTagPlaceholder')}
                 value={obsActiveTag}
                 size="small"
                 className="obs-select"
