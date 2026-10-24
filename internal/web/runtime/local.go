@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -41,12 +44,22 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 	if port <= 0 {
 		return errors.New("local xray is not running")
 	}
-	var api xray.XrayAPI
-	if err := api.Init(port); err != nil {
+	api, err := localAPIForPort(port)
+	if err != nil {
 		return err
 	}
-	defer api.Close()
-	return fn(&api)
+	err = fn(api)
+	if status.Code(err) != codes.Unavailable {
+		return err
+	}
+	// A pooled channel keeps grpc-go's reconnect backoff after a core restart and fails fast for
+	// seconds; drop it and dial again, as a client per call did.
+	evictLocalAPIClient(api)
+	api, err = localAPIForPort(port)
+	if err != nil {
+		return err
+	}
+	return fn(api)
 }
 
 func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
