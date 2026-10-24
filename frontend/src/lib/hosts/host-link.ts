@@ -23,11 +23,7 @@ export type HostLinkInput = Pick<
   | 'keepSniBlank'
   | 'vlessRoute'
   | 'allowInsecure'
-> & {
-  snis?: string[];
-  sniRandomizePerConfig?: boolean;
-  sniSharedRandom?: boolean;
-};
+>;
 
 // hostToExternalProxyEntry projects a host onto the ExternalProxyEntry shape the
 // share-link preview generators already understand — the frontend mirror of the
@@ -42,8 +38,6 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
     sni = undefined;
   } else if (host.overrideSniFromAddress) {
     sni = host.address || undefined;
-  } else if (host.snis && host.snis.length > 0) {
-    sni = host.snis[0] || undefined;
   } else {
     sni = host.sni || undefined;
   }
@@ -94,34 +88,16 @@ function splitAdvertisedHost(value: string, inboundPort: number): [string, numbe
   return [addr, inboundPort];
 }
 
-export function randomSNI(snis: string[]): string {
-  if (!snis || snis.length === 0) return '';
-  if (snis.length === 1) return snis[0] ?? '';
-  const idx = Math.floor(Math.random() * snis.length);
-  return snis[idx] ?? '';
+function randomSni(snis: string[]): string {
+  return snis[Math.floor(Math.random() * snis.length)] ?? '';
 }
 
-function resolveEndpointSni(
-  record: HostRecord,
-  dest: string,
-  sharedSni?: string,
-): string | undefined {
-  if (record.keepSniBlank) return undefined;
-  if (record.overrideSniFromAddress) return dest;
-  const snis = (record.snis ?? []).filter((s) => s && s.trim() !== '');
-  if (snis.length > 1) {
-    if (record.sniSharedRandom) {
-      return sharedSni || snis[0];
-    }
-    if (record.sniRandomizePerConfig) {
-      return randomSNI(snis);
-    }
-    return snis[0];
-  }
-  if (snis.length === 1) {
-    return snis[0];
-  }
-  return record.sni || undefined;
+// The SNI one endpoint advertises before the address and blank overrides: the group's shared
+// pick, a fresh random entry of a multi-SNI pool, or the single SNI.
+function poolSni(record: HostRecord, shared: string | undefined): string | undefined {
+  if (shared) return shared;
+  const snis = (record.snis ?? []).filter((s) => s.trim() !== '');
+  return snis.length > 1 ? randomSni(snis) : record.sni || undefined;
 }
 
 export interface HostEndpoint {
@@ -151,8 +127,8 @@ export function hostEndpointsFor(
     ) {
       continue;
     }
-    const snis = (record.snis ?? []).filter((s) => s && s.trim() !== '');
-    const sharedSni = record.sniSharedRandom && snis.length > 1 ? randomSNI(snis) : undefined;
+    const snis = (record.snis ?? []).filter((s) => s.trim() !== '');
+    const shared = record.sniSharedRandom && snis.length > 1 ? randomSni(snis) : undefined;
 
     for (const value of record.hosts) {
       const [address, port] = splitAdvertisedHost(value, inboundPort);
@@ -168,8 +144,8 @@ export function hostEndpointsFor(
               remark = record.remark ? `${record.remark} - ${i + 1}` : `${i + 1}`;
             }
             const endpoint: HostEndpoint = { dest: ip, port, remark };
-            const sni = resolveEndpointSni(record, ip, sharedSni);
-            if (sni) endpoint.sni = sni;
+            const sni = record.overrideSniFromAddress ? ip : poolSni(record, shared);
+            if (!record.keepSniBlank && sni) endpoint.sni = sni;
             if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
             if (record.allowInsecure) endpoint.allowInsecure = true;
             endpoints.push(endpoint);
@@ -178,8 +154,8 @@ export function hostEndpointsFor(
         }
       }
       const endpoint: HostEndpoint = { dest, port, remark: record.remark || '' };
-      const sni = resolveEndpointSni(record, dest, sharedSni);
-      if (sni) endpoint.sni = sni;
+      const sni = record.overrideSniFromAddress ? dest : poolSni(record, shared);
+      if (!record.keepSniBlank && sni) endpoint.sni = sni;
       if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
       if (record.allowInsecure) endpoint.allowInsecure = true;
       endpoints.push(endpoint);

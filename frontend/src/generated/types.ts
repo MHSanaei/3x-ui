@@ -658,7 +658,6 @@ export interface Host {
   serverDescription: string;
   shuffleHost: boolean;
   sni: string;
-  sniRandomizePerConfig: boolean;
   sniSharedRandom: boolean;
   snis?: string[];
   sockoptParams: unknown;
@@ -698,7 +697,6 @@ export interface HostGroup {
   serverDescription: string;
   shuffleHost: boolean;
   sni: string;
-  sniRandomizePerConfig: boolean;
   sniSharedRandom: boolean;
   snis: string[];
   sockoptParams: string;

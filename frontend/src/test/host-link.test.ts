@@ -175,7 +175,7 @@ describe('hostEndpointsFor - multi SNI', () => {
     expect(picks.size).toBeGreaterThan(1);
   });
 
-  it('randomizes SNI per endpoint when sniRandomizePerConfig is true', () => {
+  it('randomizes SNI per endpoint for a multi-SNI pool', () => {
     const snis = ['sni1.example.com', 'sni2.example.com'];
     const hosts = Array.from({ length: 30 }, (_, i) => `h${i}.example.com`);
     const eps = hostEndpointsFor(
@@ -186,7 +186,6 @@ describe('hostEndpointsFor - multi SNI', () => {
           hosts,
           port: 443,
           snis,
-          sniRandomizePerConfig: true,
         },
       ],
       1,

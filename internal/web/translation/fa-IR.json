@@ -2394,7 +2394,6 @@
         "actions": "عملیات",
         "security": "امنیت",
         "sni": "SNI",
-        "sniRandomizePerConfig": "انتخاب تصادفی SNI برای هر کانفیگ",
         "sniSharedRandom": "یک SNI تصادفی یکسان برای تمام کانفیگ‌ها",
         "overrideSniFromAddress": "استفاده از آدرس به‌عنوان SNI",
         "keepSniBlank": "SNI خالی بماند",

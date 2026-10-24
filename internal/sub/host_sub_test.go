@@ -1714,15 +1714,14 @@ func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 		`{"network":"tcp","security":"tls"}`)
 	snis := []string{"sni1.example.com", "sni2.example.com"}
 	seedHost(t, &model.Host{
-		InboundId:             ib.Id,
-		SortOrder:             0,
-		Remark:                "MultiSNI-CIDR",
-		Address:               "198.51.100.0/24",
-		Port:                  8443,
-		Security:              "tls",
-		RandomCount:           30,
-		Snis:                  snis,
-		SniRandomizePerConfig: true,
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "MultiSNI-CIDR",
+		Address:     "198.51.100.0/24",
+		Port:        8443,
+		Security:    "tls",
+		RandomCount: 30,
+		Snis:        snis,
 	})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
@@ -1849,20 +1848,18 @@ func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 		Security:               "tls",
 		Snis:                   snis,
 		OverrideSniFromAddress: true,
-		SniRandomizePerConfig:  true,
 	})
 
 	// When KeepSniBlank is true, SNI is omitted.
 	seedHost(t, &model.Host{
-		InboundId:             ib.Id,
-		SortOrder:             2,
-		Remark:                "BlankSni",
-		Address:               "blank.example.com",
-		Port:                  8443,
-		Security:              "tls",
-		Snis:                  snis,
-		KeepSniBlank:          true,
-		SniRandomizePerConfig: true,
+		InboundId:    ib.Id,
+		SortOrder:    2,
+		Remark:       "BlankSni",
+		Address:      "blank.example.com",
+		Port:         8443,
+		Security:     "tls",
+		Snis:         snis,
+		KeepSniBlank: true,
 	})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")

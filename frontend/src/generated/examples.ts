@@ -722,7 +722,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "serverDescription": "",
     "shuffleHost": false,
     "sni": "",
-    "sniRandomizePerConfig": false,
     "sniSharedRandom": false,
     "snis": [
       ""
@@ -777,7 +776,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "serverDescription": "",
     "shuffleHost": false,
     "sni": "",
-    "sniRandomizePerConfig": false,
     "sniSharedRandom": false,
     "snis": [
       ""

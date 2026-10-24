@@ -2806,9 +2806,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "sni": {
         "type": "string"
       },
-      "sniRandomizePerConfig": {
-        "type": "boolean"
-      },
       "sniSharedRandom": {
         "type": "boolean"
       },
@@ -2871,7 +2868,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "serverDescription",
       "shuffleHost",
       "sni",
-      "sniRandomizePerConfig",
       "sniSharedRandom",
       "sockoptParams",
       "sortOrder",
@@ -3005,9 +3001,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "sni": {
         "type": "string"
       },
-      "sniRandomizePerConfig": {
-        "type": "boolean"
-      },
       "sniSharedRandom": {
         "type": "boolean"
       },
@@ -3065,7 +3058,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "serverDescription",
       "shuffleHost",
       "sni",
-      "sniRandomizePerConfig",
       "sniSharedRandom",
       "snis",
       "sockoptParams",

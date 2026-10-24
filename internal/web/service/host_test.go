@@ -533,12 +533,11 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 
 	snis := []string{"sni1.example.com", "sni2.example.com"}
 	created, err := svc.AddHostGroup(&entity.HostGroup{
-		InboundIds:            []int{ib.Id},
-		Remark:                "multi-sni",
-		Hosts:                 []string{"h1.example.com", "h2.example.com"},
-		Security:              "tls",
-		Snis:                  snis,
-		SniRandomizePerConfig: true,
+		InboundIds: []int{ib.Id},
+		Remark:     "multi-sni",
+		Hosts:      []string{"h1.example.com", "h2.example.com"},
+		Security:   "tls",
+		Snis:       snis,
 	})
 	if err != nil {
 		t.Fatalf("AddHostGroup: %v", err)
@@ -553,8 +552,8 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 		if row.Sni != snis[0] {
 			t.Fatalf("row[%d].Sni = %q, want primary %q", i, row.Sni, snis[0])
 		}
-		if !row.SniRandomizePerConfig || row.SniSharedRandom {
-			t.Fatalf("row[%d] mode mismatch: randomize=%v shared=%v", i, row.SniRandomizePerConfig, row.SniSharedRandom)
+		if row.SniSharedRandom {
+			t.Fatalf("row[%d] shares its SNI by default", i)
 		}
 	}
 
@@ -568,12 +567,11 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 	if !reflect.DeepEqual(g.Snis, snis) {
 		t.Fatalf("g.Snis = %v, want %v", g.Snis, snis)
 	}
-	if !g.SniRandomizePerConfig || g.SniSharedRandom {
-		t.Fatalf("g mode mismatch: randomize=%v shared=%v", g.SniRandomizePerConfig, g.SniSharedRandom)
+	if g.SniSharedRandom {
+		t.Fatalf("g shares its SNI by default")
 	}
 
 	// Now update to SniSharedRandom and verify Security and mode preservation
-	g.SniRandomizePerConfig = false
 	g.SniSharedRandom = true
 	updated, err := svc.UpdateHostGroup(g.GroupId, g)
 	if err != nil {
@@ -583,8 +581,8 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 		if row.Security != "tls" {
 			t.Fatalf("updated row[%d].Security = %q, want %q", i, row.Security, "tls")
 		}
-		if row.SniRandomizePerConfig || !row.SniSharedRandom {
-			t.Fatalf("updated row[%d] mode mismatch: randomize=%v shared=%v", i, row.SniRandomizePerConfig, row.SniSharedRandom)
+		if !row.SniSharedRandom {
+			t.Fatalf("updated row[%d] lost SniSharedRandom", i)
 		}
 	}
 

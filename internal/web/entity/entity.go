@@ -429,7 +429,6 @@ type HostGroup struct {
 	Security               string   `json:"security" validate:"omitempty,oneof=same tls none reality"`
 	Sni                    string   `json:"sni"`
 	Snis                   []string `json:"snis"`
-	SniRandomizePerConfig  bool     `json:"sniRandomizePerConfig"`
 	SniSharedRandom        bool     `json:"sniSharedRandom"`
 	HostHeader             string   `json:"hostHeader"`
 	Path                   string   `json:"path"`

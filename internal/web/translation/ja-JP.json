@@ -2394,7 +2394,6 @@
         "actions": "操作",
         "security": "セキュリティ",
         "sni": "SNI",
-        "sniRandomizePerConfig": "設定ごとにランダムな SNI",
         "sniSharedRandom": "すべての設定で同じランダムな SNI",
         "overrideSniFromAddress": "アドレスを SNI として使用",
         "keepSniBlank": "SNI を空のままにする",

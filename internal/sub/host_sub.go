@@ -146,11 +146,7 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 // hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
 // random addresses from the range, any other address is a single entry.
 func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
-	var sharedSni string
-	if h.SniSharedRandom && len(h.Snis) > 1 {
-		sharedSni = s.resolveSharedSni(h)
-	}
-
+	shared := s.sharedHostSni(h)
 	if IsCIDR(h.Address) {
 		count := max(h.RandomCount, 1)
 		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
@@ -165,7 +161,7 @@ func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, default
 						hCopy.Remark = fmt.Sprintf("%d", i+1)
 					}
 				}
-				hCopy.Sni = resolveHostSni(s, h, ip, sharedSni)
+				hCopy.Sni = endpointSni(h, shared)
 				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
 			}
 			return eps
@@ -173,72 +169,44 @@ func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, default
 	}
 
 	hCopy := *h
-	dest := h.Address
-	if dest == "" {
-		dest = defaultDest
-	}
-	hCopy.Sni = resolveHostSni(s, h, dest, sharedSni)
+	hCopy.Sni = endpointSni(h, shared)
 	return []map[string]any{hostToExternalProxyMap(&hCopy, defaultDest, defaultPort)}
 }
 
-func resolveHostSni(s *SubService, h *model.Host, dest string, sharedSni string) string {
-	if h.KeepSniBlank {
-		return ""
-	}
-	if h.OverrideSniFromAddress {
-		return dest
-	}
-	if len(h.Snis) > 1 {
-		if h.SniSharedRandom {
-			if sharedSni != "" {
-				return sharedSni
-			}
-			return s.resolveSharedSni(h)
-		}
-		if h.SniRandomizePerConfig {
-			return RandomSNI(h.Snis)
-		}
-		return h.Snis[0]
-	}
-	if len(h.Snis) == 1 {
-		return h.Snis[0]
+// endpointSni is the SNI one endpoint of h advertises: the request's shared pick, a fresh random
+// entry of a multi-SNI pool, or the single SNI; the address and blank overrides apply later.
+func endpointSni(h *model.Host, shared string) string {
+	switch {
+	case shared != "":
+		return shared
+	case len(h.Snis) > 1:
+		return randomSni(h.Snis)
 	}
 	return h.Sni
 }
 
-func (s *SubService) resolveSharedSni(h *model.Host) string {
-	if len(h.Snis) == 0 {
-		return h.Sni
-	}
-	if len(h.Snis) == 1 {
-		return h.Snis[0]
+// sharedHostSni picks one SNI of a shared pool per host group and request, so every endpoint of
+// the group carries the same one; "" when h does not share.
+func (s *SubService) sharedHostSni(h *model.Host) string {
+	if !h.SniSharedRandom || len(h.Snis) < 2 {
+		return ""
 	}
 	key := h.GroupId
 	if key == "" {
-		key = fmt.Sprintf("fallback_%d", h.Id)
+		key = fmt.Sprintf("host-%d", h.Id)
 	}
-	if s != nil {
-		if s.sharedGroupSni == nil {
-			s.sharedGroupSni = make(map[string]string)
-		}
-		if cached, ok := s.sharedGroupSni[key]; ok {
-			return cached
-		}
-		picked := RandomSNI(h.Snis)
-		s.sharedGroupSni[key] = picked
-		return picked
+	if sni, ok := s.sharedGroupSni[key]; ok {
+		return sni
 	}
-	return RandomSNI(h.Snis)
+	if s.sharedGroupSni == nil {
+		s.sharedGroupSni = make(map[string]string)
+	}
+	sni := randomSni(h.Snis)
+	s.sharedGroupSni[key] = sni
+	return sni
 }
 
-// RandomSNI returns a random SNI from the given list of SNIs.
-func RandomSNI(snis []string) string {
-	if len(snis) == 0 {
-		return ""
-	}
-	if len(snis) == 1 {
-		return snis[0]
-	}
+func randomSni(snis []string) string {
 	idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(snis))))
 	if err != nil {
 		return snis[0]

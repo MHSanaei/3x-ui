@@ -43,7 +43,6 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		Security:               h.Security,
 		Sni:                    h.Sni,
 		Snis:                   h.Snis,
-		SniRandomizePerConfig:  h.SniRandomizePerConfig,
 		SniSharedRandom:        h.SniSharedRandom,
 		HostHeader:             h.HostHeader,
 		Path:                   h.Path,
@@ -102,9 +101,6 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if len(h.Snis) > 0 && len(g.Snis) == 0 {
 			g.Snis = h.Snis
 		}
-		if h.SniRandomizePerConfig {
-			g.SniRandomizePerConfig = true
-		}
 		if h.SniSharedRandom {
 			g.SniSharedRandom = true
 		}
@@ -129,48 +125,12 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 }
 
 func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
-	trimmedSni := strings.TrimSpace(req.Sni)
-	snis := cleanSnis(req.Snis)
-
-	if trimmedSni != "" {
-		if len(snis) == 0 {
-			snis = []string{trimmedSni}
-		} else if snis[0] != trimmedSni {
-			if len(snis) == 1 {
-				snis = []string{trimmedSni}
-			} else {
-				var remaining []string
-				for _, s := range snis {
-					if s != trimmedSni {
-						remaining = append(remaining, s)
-					}
-				}
-				snis = append([]string{trimmedSni}, remaining...)
-			}
-		}
-	} else if len(req.Snis) == 0 {
-		snis = []string{}
-	}
-
-	var primarySni string
+	snis := hostSniPool(req.Sni, req.Snis)
+	primarySni := ""
 	if len(snis) > 0 {
 		primarySni = snis[0]
-	} else if trimmedSni != "" {
-		primarySni = trimmedSni
 	}
-
-	randomize := req.SniRandomizePerConfig
-	shared := req.SniSharedRandom
-	if len(snis) > 1 {
-		if !randomize && !shared {
-			randomize = true
-		} else if randomize && shared {
-			shared = false
-		}
-	} else {
-		randomize = false
-		shared = false
-	}
+	shared := req.SniSharedRandom && len(snis) > 1
 
 	hostsToProcess := req.Hosts
 	if len(hostsToProcess) == 0 {
@@ -194,7 +154,6 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				Security:               req.Security,
 				Sni:                    primarySni,
 				Snis:                   snis,
-				SniRandomizePerConfig:  randomize,
 				SniSharedRandom:        shared,
 				HostHeader:             req.HostHeader,
 				Path:                   req.Path,
@@ -540,6 +499,20 @@ func clampRandomCount(n int) int {
 		return 100
 	}
 	return n
+}
+
+// hostSniPool is the group's SNI pool, primary first: an sni outside the pool (a caller that only
+// knows the single field) becomes the primary, replacing a one-entry pool.
+func hostSniPool(sni string, pool []string) []string {
+	snis := cleanSnis(pool)
+	sni = strings.TrimSpace(sni)
+	switch {
+	case sni == "" || (len(snis) > 0 && snis[0] == sni):
+		return snis
+	case len(snis) <= 1:
+		return []string{sni}
+	}
+	return append([]string{sni}, slices.DeleteFunc(snis, func(s string) bool { return s == sni })...)
 }
 
 func cleanSnis(snis []string) []string {

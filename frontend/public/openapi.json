@@ -2832,9 +2832,6 @@
           "sni": {
             "type": "string"
           },
-          "sniRandomizePerConfig": {
-            "type": "boolean"
-          },
           "sniSharedRandom": {
             "type": "boolean"
           },
@@ -2897,7 +2894,6 @@
           "serverDescription",
           "shuffleHost",
           "sni",
-          "sniRandomizePerConfig",
           "sniSharedRandom",
           "sockoptParams",
           "sortOrder",
@@ -3031,9 +3027,6 @@
           "sni": {
             "type": "string"
           },
-          "sniRandomizePerConfig": {
-            "type": "boolean"
-          },
           "sniSharedRandom": {
             "type": "boolean"
           },
@@ -3091,7 +3084,6 @@
           "serverDescription",
           "shuffleHost",
           "sni",
-          "sniRandomizePerConfig",
           "sniSharedRandom",
           "snis",
           "sockoptParams",
@@ -12155,7 +12147,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
@@ -12247,7 +12238,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
@@ -12349,7 +12339,6 @@
                     "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
-                    "sniRandomizePerConfig": false,
                     "sniSharedRandom": false,
                     "snis": [
                       ""
@@ -12453,7 +12442,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
@@ -12607,7 +12595,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
@@ -12735,7 +12722,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
@@ -12993,7 +12979,6 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
-                      "sniRandomizePerConfig": false,
                       "sniSharedRandom": false,
                       "snis": [
                         ""
