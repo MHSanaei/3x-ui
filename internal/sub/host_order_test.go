@@ -182,7 +182,7 @@ func renderedHostAddresses(t *testing.T, format string, base *SubService) []stri
 			addresses = append(addresses, u.Hostname())
 		}
 	case "clash":
-		body, _, err := NewSubClashService(false, "", base).GetClash("order-sub", "sub.example.com")
+		body, _, err := NewSubClashService(false, "", false, base).GetClash("order-sub", "sub.example.com")
 		if err != nil {
 			t.Fatal(err)
 		}
