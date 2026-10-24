@@ -759,7 +759,7 @@ func TestSub_HostCIDR_ClashAndJson(t *testing.T) {
 		RandomCount: 2,
 	})
 
-	clashYaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	clashYaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}
