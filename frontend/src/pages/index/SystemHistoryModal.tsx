@@ -50,7 +50,7 @@ const METRICS: MetricDef[] = [
     tab: 'CPU',
     tabKey: 'pages.index.cpu',
     title: 'pages.index.historyTitleCpu',
-    icon: <DashboardOutlined />,
+    icon: <DashboardOutlined aria-hidden />,
     valueMax: 100,
     unit: '%',
     stroke: '',
@@ -60,7 +60,7 @@ const METRICS: MetricDef[] = [
     tab: 'RAM',
     tabKey: 'pages.index.memory',
     title: 'pages.index.historyTitleMem',
-    icon: <DatabaseOutlined />,
+    icon: <DatabaseOutlined aria-hidden />,
     valueMax: 100,
     unit: '%',
     stroke: '#7c4dff',
@@ -74,7 +74,7 @@ const METRICS: MetricDef[] = [
     tab: 'Bandwidth',
     tabKey: 'pages.index.historyTabBandwidth',
     title: 'pages.index.historyTitleNetwork',
-    icon: <GlobalOutlined />,
+    icon: <GlobalOutlined aria-hidden />,
     valueMax: null,
     unit: 'B/s',
     stroke: '#1890ff',
@@ -88,7 +88,7 @@ const METRICS: MetricDef[] = [
     tab: 'Packets',
     tabKey: 'pages.index.historyTabPackets',
     title: 'pages.index.historyTitlePackets',
-    icon: <DeploymentUnitOutlined />,
+    icon: <DeploymentUnitOutlined aria-hidden />,
     valueMax: null,
     unit: 'pkt/s',
     stroke: '#2f54eb',
@@ -102,7 +102,7 @@ const METRICS: MetricDef[] = [
     tab: 'Connections',
     tabKey: 'pages.index.historyTabConnections',
     title: 'pages.index.historyTitleConnections',
-    icon: <ApiOutlined />,
+    icon: <ApiOutlined aria-hidden />,
     valueMax: null,
     unit: '',
     stroke: '#597ef7',
@@ -116,7 +116,7 @@ const METRICS: MetricDef[] = [
     tab: 'Disk I/O',
     tabKey: 'pages.index.historyTabDisk',
     title: 'pages.index.historyTitleDisk',
-    icon: <HddOutlined />,
+    icon: <HddOutlined aria-hidden />,
     valueMax: null,
     unit: 'B/s',
     stroke: '#eb2f96',
@@ -130,7 +130,7 @@ const METRICS: MetricDef[] = [
     tab: 'Disk Usage',
     tabKey: 'pages.index.historyTabDiskUsage',
     title: 'pages.index.historyTitleDiskUsage',
-    icon: <PieChartOutlined />,
+    icon: <PieChartOutlined aria-hidden />,
     valueMax: 100,
     unit: '%',
     stroke: '#13c2c2',
@@ -140,7 +140,7 @@ const METRICS: MetricDef[] = [
     tab: 'Online',
     tabKey: 'pages.index.historyTabOnline',
     title: 'pages.index.historyTitleOnline',
-    icon: <TeamOutlined />,
+    icon: <TeamOutlined aria-hidden />,
     valueMax: null,
     unit: '',
     stroke: '#52c41a',
@@ -150,7 +150,7 @@ const METRICS: MetricDef[] = [
     tab: 'Load',
     tabKey: 'pages.index.historyTabLoad',
     title: 'pages.index.historyTitleLoad',
-    icon: <LineChartOutlined />,
+    icon: <LineChartOutlined aria-hidden />,
     valueMax: null,
     unit: '',
     stroke: '#fa8c16',
@@ -334,6 +334,7 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
         <div className="metric-modal-title">
           <span>{t('pages.index.systemHistoryTitle')}</span>
           <Select
+            aria-label={t('pages.index.timeRange')}
             value={bucket}
             size="small"
             className="bucket-select"

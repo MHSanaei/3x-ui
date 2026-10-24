@@ -39,7 +39,7 @@ func TestClashExternalShadowsocksMatchesInboundPath(t *testing.T) {
 		},
 	}
 
-	svc := NewSubClashService(false, "", &SubService{})
+	svc := NewSubClashService(false, "", false, &SubService{})
 	client := model.Client{Password: "clientpw", Email: "user"}
 
 	for _, tc := range tests {

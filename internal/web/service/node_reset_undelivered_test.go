@@ -56,7 +56,8 @@ func TestNodeResetNotDeliveredDoesNotRedisableClient(t *testing.T) {
 			return err
 		}},
 		{"inbound", func(svc *InboundService, ib *model.Inbound) error {
-			return (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
+			_, err := (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
+			return err
 		}},
 		{"all", func(*InboundService, *model.Inbound) error {
 			_, err := (&ClientService{}).ResetAllTraffics()
@@ -145,7 +146,8 @@ func TestNodeResetDeliveredRightAway(t *testing.T) {
 			return err
 		}},
 		{"inbound", func(svc *InboundService, ib *model.Inbound) error {
-			return (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
+			_, err := (&ClientService{}).ResetAllClientTraffics(svc, ib.Id)
+			return err
 		}},
 		{"all", func(*InboundService, *model.Inbound) error {
 			_, err := (&ClientService{}).ResetAllTraffics()

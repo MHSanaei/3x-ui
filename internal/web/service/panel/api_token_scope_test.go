@@ -83,6 +83,23 @@ func TestAPITokenScopeExpiryAndExpectedRevoke(t *testing.T) {
 	}
 }
 
+func TestAPITokenNodeAdminScopeRoundTrips(t *testing.T) {
+	setupAPITokenTestDB(t)
+	svc := &ApiTokenService{}
+
+	created, err := svc.Create("node-updater", model.ApiScopeNodeAdmin, 0)
+	if err != nil {
+		t.Fatalf("create node-admin token: %v", err)
+	}
+	row, ok := svc.MatchToken(created.Token)
+	if !ok {
+		t.Fatal("fresh node-admin token did not authenticate")
+	}
+	if created.Scope != model.ApiScopeNodeAdmin || row.Scope != model.ApiScopeNodeAdmin {
+		t.Fatalf("created/matched scopes = %q/%q, want node-admin/node-admin", created.Scope, row.Scope)
+	}
+}
+
 func TestAPITokenDeleteAndEnableRequireExpectedScope(t *testing.T) {
 	setupAPITokenTestDB(t)
 	svc := &ApiTokenService{}

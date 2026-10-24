@@ -127,19 +127,34 @@ func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done
 // timeout. Apply runtime changes after this returns.
 func runSerializedTx(fn func(tx *gorm.DB) error) error {
 	return submitTrafficWrite(func() error {
-		return database.GetDB().Transaction(func(tx *gorm.DB) error {
-			ctx := context.WithValue(tx.Statement.Context, serializedTxContextKey{}, true)
+		state := &serializedTx{}
+		err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+			ctx := context.WithValue(tx.Statement.Context, serializedTxContextKey{}, state)
 			return fn(tx.WithContext(ctx))
 		})
+		if err == nil {
+			// Still on the writer, so no node merge runs between the commit and the lift.
+			withdrawClientTombstones(state.createdClientEmails...)
+		}
+		return err
 	})
 }
 
-func isSerializedTx(tx *gorm.DB) bool {
+// serializedTx carries what may only take effect once its transaction commits.
+type serializedTx struct {
+	createdClientEmails []string
+}
+
+func serializedTxOf(tx *gorm.DB) *serializedTx {
 	if tx == nil || tx.Statement == nil || tx.Statement.Context == nil {
-		return false
+		return nil
 	}
-	active, _ := tx.Statement.Context.Value(serializedTxContextKey{}).(bool)
-	return active
+	state, _ := tx.Statement.Context.Value(serializedTxContextKey{}).(*serializedTx)
+	return state
+}
+
+func isSerializedTx(tx *gorm.DB) bool {
+	return serializedTxOf(tx) != nil
 }
 
 func safeApply(fn func() error) (err error) {

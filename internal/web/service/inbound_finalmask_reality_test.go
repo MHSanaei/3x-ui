@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -146,6 +147,29 @@ func TestAddInbound_AcceptsWireguardClientWithKey(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("WireGuard inbound with a keyed client was not created, row count = %d", count)
+	}
+}
+
+// The client endpoints already refuse a non-prefix allowedIPs entry; the inbound
+// form stored it verbatim, and a line break in it reaches every rendered .conf.
+func TestAddInbound_RejectsWireguardClientAllowedIPsThatIsNotAPrefix(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+
+	settings := `{"secretKey":"` + wgTestSecretKey() + `","mtu":1420,"clients":[{"email":"wgbad@x","enable":true,"privateKey":"keep-priv","publicKey":"keep-pub",` +
+		`"allowedIPs":["10.0.0.51/32\n[Interface]\nPostUp = touch /tmp/pwned"]}]}`
+	in := &model.Inbound{Tag: "in-45201-wg", Enable: true, Listen: "0.0.0.0", Port: 45201, Protocol: model.WireGuard, Settings: settings}
+	_, _, err := svc.AddInbound(in)
+	if err == nil || !strings.Contains(err.Error(), "invalid allowedIPs entry") {
+		t.Fatalf("AddInbound err = %v, want an invalid allowedIPs entry error", err)
+	}
+
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "in-45201-wg").Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("rejected WireGuard inbound was persisted anyway, row count = %d", count)
 	}
 }
 

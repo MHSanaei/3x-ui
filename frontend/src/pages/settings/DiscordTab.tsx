@@ -67,7 +67,11 @@ export default function DiscordTab({ allSetting, updateSetting }: DiscordTabProp
       items={[
         {
           key: '1',
-          label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
+          label: catTabLabel(
+            <SettingOutlined aria-hidden />,
+            t('pages.settings.panelSettings'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -138,7 +142,7 @@ export default function DiscordTab({ allSetting, updateSetting }: DiscordTabProp
               <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
                 <Button
                   type="primary"
-                  icon={<SendOutlined />}
+                  icon={<SendOutlined aria-hidden />}
                   loading={testLoading}
                   disabled={!allSetting.discordBotEnable}
                   onClick={handleTestDiscord}
@@ -159,7 +163,11 @@ export default function DiscordTab({ allSetting, updateSetting }: DiscordTabProp
         },
         {
           key: '2',
-          label: catTabLabel(<BellOutlined />, t('pages.settings.notifications'), isMobile),
+          label: catTabLabel(
+            <BellOutlined aria-hidden />,
+            t('pages.settings.notifications'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
