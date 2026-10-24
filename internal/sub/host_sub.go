@@ -151,16 +151,9 @@ func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, default
 		count := max(h.RandomCount, 1)
 		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
 			eps := make([]map[string]any, 0, len(ips))
-			for i, ip := range ips {
+			for _, ip := range ips {
 				hCopy := *h
 				hCopy.Address = ip
-				if len(ips) > 1 {
-					if h.Remark != "" {
-						hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
-					} else {
-						hCopy.Remark = fmt.Sprintf("%d", i+1)
-					}
-				}
 				hCopy.Sni = endpointSni(h, shared)
 				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
 			}

@@ -920,9 +920,11 @@ func TestSub_HostCIDR_RawLinks(t *testing.T) {
 	seenIPs := make(map[string]struct{}, len(parts))
 
 	for i, link := range parts {
-		wantRemark := fmt.Sprintf("IPv6Node%%20-%%20%d", i+1)
-		if !strings.Contains(link, wantRemark) {
-			t.Errorf("link[%d] does not contain expected remark %q: %s", i, wantRemark, link)
+		if !strings.Contains(link, "IPv6Node") {
+			t.Errorf("link[%d] does not contain expected remark %q: %s", i, "IPv6Node", link)
+		}
+		if strings.Contains(link, "IPv6Node - ") || strings.Contains(link, "IPv6Node%20-%20") {
+			t.Errorf("link[%d] should not append index suffix: %s", i, link)
 		}
 
 		atIdx := strings.Index(link, "@")
@@ -990,16 +992,22 @@ func TestSub_HostCIDR_ClashAndJson(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}
-	if !strings.Contains(clashYaml, "V4Node - 1") || !strings.Contains(clashYaml, "V4Node - 2") {
-		t.Errorf("Clash YAML should contain numbered host proxies: %s", clashYaml)
+	if strings.Contains(clashYaml, "V4Node - 1") || strings.Contains(clashYaml, "V4Node - 2") {
+		t.Errorf("Clash YAML should not contain spaced index suffixes from host expansion: %s", clashYaml)
+	}
+	if !strings.Contains(clashYaml, "cidr-clash-V4Node-cidr-clash@e\n") || !strings.Contains(clashYaml, "cidr-clash-V4Node-cidr-clash@e-2\n") {
+		t.Errorf("Clash YAML should contain unique host proxies deduplicated by ensureUniqueProxyNames: %s", clashYaml)
 	}
 
 	jsonDoc, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
 	}
-	if !strings.Contains(jsonDoc, "V4Node - 1") || !strings.Contains(jsonDoc, "V4Node - 2") {
-		t.Errorf("JSON config should contain numbered host outbounds: %s", jsonDoc)
+	if strings.Contains(jsonDoc, "V4Node - 1") || strings.Contains(jsonDoc, "V4Node - 2") {
+		t.Errorf("JSON config should not contain numbered host outbounds: %s", jsonDoc)
+	}
+	if !strings.Contains(jsonDoc, "V4Node") {
+		t.Errorf("JSON config should contain base remark: %s", jsonDoc)
 	}
 }
 

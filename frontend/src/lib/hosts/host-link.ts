@@ -137,13 +137,8 @@ export function hostEndpointsFor(
         const count = Math.min(Math.max(record.randomCount ?? 1, 1), MAX_RANDOM_CIDR_COUNT);
         const ips = randomIPsFromCIDR(dest, count);
         if (ips.length > 0) {
-          for (let i = 0; i < ips.length; i++) {
-            const ip = ips[i]!;
-            let remark = record.remark ?? '';
-            if (ips.length > 1) {
-              remark = record.remark ? `${record.remark} - ${i + 1}` : `${i + 1}`;
-            }
-            const endpoint: HostEndpoint = { dest: ip, port, remark };
+          for (const ip of ips) {
+            const endpoint: HostEndpoint = { dest: ip, port, remark: record.remark || '' };
             const sni = record.overrideSniFromAddress ? ip : poolSni(record, shared);
             if (!record.keepSniBlank && sni) endpoint.sni = sni;
             if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
