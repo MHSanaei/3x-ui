@@ -1,3 +1,4 @@
+import { isCIDR, MAX_RANDOM_CIDR_COUNT, randomIPsFromCIDR } from '@/lib/hosts/host-cidr';
 import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-proxy';
 import type { HostFormValues, HostRecord } from '@/schemas/api/host';
 import type { Inbound } from '@/schemas/api/inbound';
@@ -61,15 +62,28 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
 
 function splitAdvertisedHost(value: string, inboundPort: number): [string, number] {
   const host = value.trim();
-  if (host.startsWith('[')) {
-    const close = host.indexOf(']');
-    if (close > 0) {
-      const port = host.slice(close + 1).match(/^:(\d+)$/)?.[1];
-      return [host.slice(1, close), port ? Number(port) : inboundPort];
+  if (host.split(':').length > 2 && !host.includes('[')) {
+    return [host, inboundPort];
+  }
+  const lastColon = host.lastIndexOf(':');
+  if (lastColon !== -1 && lastColon < host.length - 1) {
+    const portStr = host.slice(lastColon + 1);
+    if (/^\d+$/.test(portStr)) {
+      const port = Number(portStr);
+      if (port >= 0 && port <= 65535) {
+        let addr = host.slice(0, lastColon);
+        if (addr.startsWith('[') && addr.endsWith(']')) {
+          addr = addr.slice(1, -1);
+        }
+        return [addr, port];
+      }
     }
   }
-  const match = host.match(/^([^:]*):(\d+)$/);
-  return match ? [match[1], Number(match[2])] : [host, inboundPort];
+  let addr = host;
+  if (addr.startsWith('[') && addr.endsWith(']')) {
+    addr = addr.slice(1, -1);
+  }
+  return [addr, inboundPort];
 }
 
 export interface HostEndpoint {
@@ -102,6 +116,26 @@ export function hostEndpointsFor(
     for (const value of record.hosts) {
       const [address, port] = splitAdvertisedHost(value, inboundPort);
       const dest = address || defaultDest;
+      if (isCIDR(dest)) {
+        const count = Math.min(Math.max(record.randomCount ?? 1, 1), MAX_RANDOM_CIDR_COUNT);
+        const ips = randomIPsFromCIDR(dest, count);
+        if (ips.length > 0) {
+          for (let i = 0; i < ips.length; i++) {
+            const ip = ips[i]!;
+            let remark = record.remark ?? '';
+            if (ips.length > 1) {
+              remark = record.remark ? `${record.remark} - ${i + 1}` : `${i + 1}`;
+            }
+            const endpoint: HostEndpoint = { dest: ip, port, remark };
+            const sni = record.overrideSniFromAddress ? ip : record.sni;
+            if (!record.keepSniBlank && sni) endpoint.sni = sni;
+            if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
+            if (record.allowInsecure) endpoint.allowInsecure = true;
+            endpoints.push(endpoint);
+          }
+          continue;
+        }
+      }
       const endpoint: HostEndpoint = { dest, port, remark: record.remark || '' };
       const sni = record.overrideSniFromAddress ? dest : record.sni;
       if (!record.keepSniBlank && sni) endpoint.sni = sni;

@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -78,6 +77,9 @@ func currentXrayProcess() *xray.Process {
 	process, _ := xrayState.snapshot()
 	return process
 }
+
+// ErrXrayNotRunning reports an operation that requires a running core when xray is stopped.
+var ErrXrayNotRunning = xray.ErrXrayNotRunning
 
 // XrayService provides business logic for Xray process management.
 // It handles starting, stopping, restarting Xray, and managing its configuration.
@@ -1332,7 +1334,7 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		err := errors.New("xray is not running")
+		err := ErrXrayNotRunning
 		logger.Debug("Attempted to fetch Xray traffic, but Xray is not running:", err)
 		return nil, nil, err
 	}
@@ -1442,7 +1444,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return errors.New("xray is not running")
+		return ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return err
@@ -1456,7 +1458,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResult, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return nil, errors.New("xray is not running")
+		return nil, ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return nil, err
@@ -1763,7 +1765,7 @@ func (s *XrayService) StopXray() error {
 	if process != nil && process.IsRunning() {
 		return process.Stop()
 	}
-	return errors.New("xray is not running")
+	return ErrXrayNotRunning
 }
 
 // SetToNeedRestart marks that Xray needs to be restarted.

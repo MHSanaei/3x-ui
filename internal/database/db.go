@@ -998,6 +998,7 @@ func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Ho
 		Alpn:                 anyToNonEmptyStrings(ep["alpn"]),
 		PinnedPeerCertSha256: anyToNonEmptyStrings(ep["pinnedPeerCertSha256"]),
 		EchConfigList:        ech,
+		RandomCount:          1,
 	}
 }
 
