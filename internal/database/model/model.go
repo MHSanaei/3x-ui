@@ -938,11 +938,8 @@ type Client struct {
 	PrivateKey string         `json:"privateKey,omitempty"`
 	PublicKey  string         `json:"publicKey,omitempty"`
 	AllowedIPs []string       `json:"allowedIPs,omitempty"`
-	// ClientHostRuleId is a deprecated read-only alias of ClientHostRuleIds[0].
-	// Nil or non-positive means no override (inbound rule applies).
-	ClientHostRuleId *int `json:"clientHostRuleId,omitempty" example:"1"`
-	// ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.
-	// Nil preserves, empty clears; no usable host yields empty subscription for that inbound.
+	// ClientHostRuleIds binds the client to these host rules, one link each; nil preserves, empty
+	// clears, and bindings with no usable host leave that inbound out of the subscription.
 	ClientHostRuleIds []int `json:"clientHostRuleIds,omitempty" example:"[1,2]"`
 	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
 	// basis, keyed by inbound id. Lets one identity attached to both
@@ -1268,7 +1265,6 @@ func (c *Client) ToRecord() *ClientRecord {
 		Auth:              c.Auth,
 		Flow:              c.Flow,
 		Security:          c.Security,
-		ClientHostRuleId:  c.ClientHostRuleId,
 		ClientHostRuleIds: CloneClientHostRuleIds(c.ClientHostRuleIds),
 		LimitIP:           c.LimitIP,
 		TotalGB:           c.TotalGB,
@@ -1329,7 +1325,6 @@ func (r *ClientRecord) ToClient() *Client {
 		Auth:              r.Auth,
 		Flow:              r.Flow,
 		Security:          r.Security,
-		ClientHostRuleId:  r.ClientHostRuleId,
 		ClientHostRuleIds: CloneClientHostRuleIds(r.ClientHostRuleIds),
 		LimitIP:           r.LimitIP,
 		TotalGB:           r.TotalGB,
@@ -1372,20 +1367,6 @@ type ClientMergeConflict struct {
 	Kept  any
 }
 
-// equalClientHostRuleId compares nullable host bindings, treating
-// non-positive ids as unset so 0 and nil behave the same.
-func equalClientHostRuleId(a, b *int) bool {
-	return normalizeClientHostRuleId(a) == normalizeClientHostRuleId(b)
-}
-
-// normalizeClientHostRuleId maps nil and non-positive ids to 0.
-func normalizeClientHostRuleId(v *int) int {
-	if v == nil || *v <= 0 {
-		return 0
-	}
-	return *v
-}
-
 // CloneClientHostRuleIds copies a host binding list, preserving the
 // nil vs empty distinction so an explicit clear is not confused with unset.
 func CloneClientHostRuleIds(in []int) []int {
@@ -1397,23 +1378,27 @@ func CloneClientHostRuleIds(in []int) []int {
 	return out
 }
 
-// normalizeClientHostRuleIds drops non-positive ids, preserving nil.
-func normalizeClientHostRuleIds(in []int) []int {
+// NormalizeClientHostRuleIds drops non-positive and repeated ids, keeping order; nil stays nil,
+// since nil means "leave the stored binding alone" and empty clears it.
+func NormalizeClientHostRuleIds(in []int) []int {
 	if in == nil {
 		return nil
 	}
 	out := make([]int, 0, len(in))
+	seen := make(map[int]struct{}, len(in))
 	for _, id := range in {
-		if id > 0 {
-			out = append(out, id)
+		if _, dup := seen[id]; id <= 0 || dup {
+			continue
 		}
+		seen[id] = struct{}{}
+		out = append(out, id)
 	}
 	return out
 }
 
 // equalClientHostRuleIds compares binding lists as sets of positive ids.
 func equalClientHostRuleIds(a, b []int) bool {
-	na, nb := normalizeClientHostRuleIds(a), normalizeClientHostRuleIds(b)
+	na, nb := NormalizeClientHostRuleIds(a), NormalizeClientHostRuleIds(b)
 	if len(na) != len(nb) {
 		return false
 	}
@@ -1440,66 +1425,9 @@ func EncodeClientHostRuleIds(ids []int) string {
 	return string(b)
 }
 
-// EffectiveClientHostRuleIds returns the deduplicated union of a client's
-// single and multi host bindings, keeping first-seen order.
+// EffectiveClientHostRuleIds returns the client's bound host rule ids, deduplicated, in order.
 func EffectiveClientHostRuleIds(c Client) []int {
-	var out []int
-	seen := make(map[int]struct{})
-	add := func(id int) {
-		if id <= 0 {
-			return
-		}
-		if _, dup := seen[id]; dup {
-			return
-		}
-		seen[id] = struct{}{}
-		out = append(out, id)
-	}
-	if c.ClientHostRuleId != nil {
-		add(*c.ClientHostRuleId)
-	}
-	for _, id := range c.ClientHostRuleIds {
-		add(id)
-	}
-	return out
-}
-
-// NormalizeClientHostBindings makes the list canonical; the single id is a read-only alias.
-// Nil list preserves (migrating a lone single); non-nil list wins and mirrors its first id.
-func NormalizeClientHostBindings(single **int, list *[]int) {
-	if single == nil || list == nil {
-		return
-	}
-	if *list != nil {
-		seen := make(map[int]struct{}, len(*list))
-		canonical := make([]int, 0, len(*list))
-		for _, id := range *list {
-			if id <= 0 {
-				continue
-			}
-			if _, dup := seen[id]; dup {
-				continue
-			}
-			seen[id] = struct{}{}
-			canonical = append(canonical, id)
-		}
-		*list = canonical
-		if len(canonical) > 0 {
-			v := canonical[0]
-			*single = &v
-		} else {
-			*single = nil
-		}
-		return
-	}
-	if *single != nil && **single > 0 {
-		v := **single
-		*list = []int{v}
-		return
-	}
-	if *single != nil && **single <= 0 {
-		*single = nil
-	}
+	return NormalizeClientHostRuleIds(c.ClientHostRuleIds)
 }
 
 type OutboundSubscription struct {
@@ -1749,24 +1677,13 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.Group = incoming.Group
 		}
 	}
-	if !equalClientHostRuleId(existing.ClientHostRuleId, incoming.ClientHostRuleId) && incoming.ClientHostRuleId != nil {
-		if incomingNewer || existing.ClientHostRuleId == nil {
-			keep("clientHostRuleId", existing.ClientHostRuleId, incoming.ClientHostRuleId, incoming.ClientHostRuleId)
-			existing.ClientHostRuleId = incoming.ClientHostRuleId
-			// A legacy snapshot binds only through this alias; migrate the
-			// whole set so the alias cannot diverge from the canonical list.
-			if incoming.ClientHostRuleIds == nil && incomingNewer {
-				existing.ClientHostRuleIds = []int{*incoming.ClientHostRuleId}
-			}
-		}
-	}
 	if !equalClientHostRuleIds(existing.ClientHostRuleIds, incoming.ClientHostRuleIds) && incoming.ClientHostRuleIds != nil {
 		if incomingNewer || existing.ClientHostRuleIds == nil {
 			keep("clientHostRuleIds", existing.ClientHostRuleIds, incoming.ClientHostRuleIds, incoming.ClientHostRuleIds)
 			existing.ClientHostRuleIds = CloneClientHostRuleIds(incoming.ClientHostRuleIds)
 		}
 	}
-	NormalizeClientHostBindings(&existing.ClientHostRuleId, &existing.ClientHostRuleIds)
+	existing.ClientHostRuleIds = NormalizeClientHostRuleIds(existing.ClientHostRuleIds)
 	if existing.Enable != incoming.Enable {
 		if incoming.Enable {
 			if !existing.Enable {

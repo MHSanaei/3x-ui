@@ -32,9 +32,7 @@ export const ClientRecordSchema = z
     auth: z.string().optional(),
     flow: z.string().optional(),
     security: z.string().optional(),
-    // Deprecated alias of clientHostRuleIds[0]; list is canonical.
-    clientHostRuleId: z.number().int().nullable().optional(),
-    // Canonical binding; nil preserves, empty clears.
+    // Host rules the client is bound to; null/omitted preserves, empty clears.
     clientHostRuleIds: z.array(z.number().int()).nullable().optional(),
     totalGB: z.number().optional(),
     expiryTime: z.number().optional(),
@@ -328,9 +326,7 @@ export const ClientFormSchema = z.object({
   auth: z.string(),
   flow: z.string(),
   security: z.string(),
-  // Deprecated alias of clientHostRuleIds[0]; list is canonical.
-  clientHostRuleId: z.number().int().nullable().optional(),
-  // Canonical binding; nil preserves, empty clears.
+  // Host rules the client is bound to; null/omitted preserves, empty clears.
   clientHostRuleIds: z.array(z.number().int()).nullable().optional(),
   reverseTag: z.string(),
   totalGB: z.number().min(0),

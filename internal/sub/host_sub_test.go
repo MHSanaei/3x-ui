@@ -1035,7 +1035,7 @@ func TestSub_JsonBoundHostBlankAddressIgnoresEarlierClient(t *testing.T) {
 	seedSubClient(t, ib, "s1", "bound@e")
 
 	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", "bound@e").
-		Update("client_host_rule_id", hostB.Id).Error; err != nil {
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostB.Id})).Error; err != nil {
 		t.Fatalf("bind host rule: %v", err)
 	}
 
@@ -1091,7 +1091,7 @@ func TestSub_ClientHostRule_SingleBinding(t *testing.T) {
 
 	db := database.GetDB()
 	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "cb@e").
-		Update("client_host_rule_id", hostB.Id).Error; err != nil {
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostB.Id})).Error; err != nil {
 		t.Fatalf("bind host rule: %v", err)
 	}
 
@@ -1201,7 +1201,7 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 
 		db := database.GetDB()
 		if err := db.Model(&model.ClientRecord{}).Where("email = ?", "fb@e").
-			Update("client_host_rule_id", 9999).Error; err != nil {
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{9999})).Error; err != nil {
 			t.Fatalf("bind host rule: %v", err)
 		}
 		if err := db.Create(&xray.ClientTraffic{InboundId: ib.Id, Email: "fb@e", Up: 100, Down: 200, Enable: true}).Error; err != nil {
@@ -1327,7 +1327,7 @@ func TestSub_ClientHostRule_DisabledFailsClosed(t *testing.T) {
 	})
 
 	t.Run("clash", func(t *testing.T) {
-		out, header, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+		out, header, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 		if err != nil {
 			t.Fatalf("GetClash: %v", err)
 		}
@@ -1396,7 +1396,7 @@ func TestSub_ClientHostRule_FormatExcludedFailsClosed(t *testing.T) {
 				if !strings.Contains(out, "exc.cdn.com") {
 					t.Fatalf("json (not excluded) must still render the host:\n%s", out)
 				}
-				yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+				yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 				if err != nil {
 					t.Fatalf("GetClash: %v", err)
 				}
@@ -1425,7 +1425,7 @@ func TestSub_ClientHostRule_FormatExcludedFailsClosed(t *testing.T) {
 					t.Fatalf("usage = up %d/down %d, want 300/400", traffic.Up, traffic.Down)
 				}
 			case "clash":
-				yaml, header, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+				yaml, header, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 				if err != nil {
 					t.Fatalf("GetClash: %v", err)
 				}
@@ -1552,7 +1552,7 @@ func TestSub_ClientHostRule_ScopedToInbound(t *testing.T) {
 		t.Fatalf("json must keep inbound B on its own address:\n%s", jsOut)
 	}
 
-	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}
@@ -1639,7 +1639,7 @@ func TestSub_ClientHostRule_SurvivesGroupEdit(t *testing.T) {
 		t.Fatalf("json must not contain the unbound host or old SNI:\n%s", jsOut)
 	}
 
-	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}

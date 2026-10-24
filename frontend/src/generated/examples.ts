@@ -415,7 +415,6 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "allowedIPsByInbound": {},
     "auth": "",
-    "clientHostRuleId": 1,
     "clientHostRuleIds": [
       1,
       2
@@ -509,7 +508,6 @@ export const EXAMPLES: Record<string, unknown> = {
     "adTag": "",
     "allowedIPs": "",
     "auth": "",
-    "clientHostRuleId": 1,
     "clientHostRuleIds": [
       1,
       2

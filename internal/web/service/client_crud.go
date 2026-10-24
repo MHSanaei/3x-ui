@@ -198,8 +198,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	normalizeClientTrafficReset(&client)
-	// List is canonical; single is a deprecated alias migrated on write.
-	model.NormalizeClientHostBindings(&client.ClientHostRuleId, &client.ClientHostRuleIds)
+	client.ClientHostRuleIds = model.NormalizeClientHostRuleIds(client.ClientHostRuleIds)
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
 	}
@@ -287,13 +286,8 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		// already existed, and a create the panel reported as failed must not.
 		return needRestart, fanoutErr
 	}
-	// Canonical list plus its mirror; nil means omitted and preserves.
+	// nil means omitted and preserves the stored binding.
 	if client.ClientHostRuleIds != nil {
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("email = ?", client.Email).
-			UpdateColumn("client_host_rule_id", client.ClientHostRuleId).Error; err != nil {
-			return needRestart, err
-		}
 		if err := database.GetDB().Model(&model.ClientRecord{}).
 			Where("email = ?", client.Email).
 			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(client.ClientHostRuleIds)).Error; err != nil {
@@ -728,8 +722,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 	normalizeClientTrafficReset(&updated)
-	// List is canonical; single is a deprecated alias migrated on write.
-	model.NormalizeClientHostBindings(&updated.ClientHostRuleId, &updated.ClientHostRuleIds)
+	updated.ClientHostRuleIds = model.NormalizeClientHostRuleIds(updated.ClientHostRuleIds)
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}
@@ -933,13 +926,8 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
-	// List is canonical with its single mirror; nil preserves, empty clears.
+	// nil preserves the stored binding, empty clears it.
 	if updated.ClientHostRuleIds != nil {
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("id = ?", id).
-			UpdateColumn("client_host_rule_id", updated.ClientHostRuleId).Error; err != nil {
-			return needRestart, err
-		}
 		if err := database.GetDB().Model(&model.ClientRecord{}).
 			Where("id = ?", id).
 			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(updated.ClientHostRuleIds)).Error; err != nil {

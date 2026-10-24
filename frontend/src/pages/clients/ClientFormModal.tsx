@@ -137,7 +137,6 @@ type Values = ClientFormValues & {
   expiryDate: number;
   limitHwid: number;
   externalLinks: ExternalLinkRow[];
-  clientHostRuleId: number | null;
   clientHostRuleIds: number[];
   wgPrivateKey: string;
   wgPublicKey: string;
@@ -158,7 +157,6 @@ const EMPTY: Values = {
   auth: '',
   flow: '',
   security: 'auto',
-  clientHostRuleId: null,
   clientHostRuleIds: [],
   reverseTag: '',
   totalGB: 0,
@@ -378,20 +376,9 @@ export default function ClientFormModal({
             ? 'auto'
             : client.security,
         reverseTag: client.reverse?.tag || '',
-        clientHostRuleId:
-          typeof client.clientHostRuleId === 'number' && client.clientHostRuleId > 0
-            ? client.clientHostRuleId
-            : null,
-        clientHostRuleIds: (() => {
-          const ids = new Set<number>();
-          for (const id of client.clientHostRuleIds || []) {
-            if (typeof id === 'number' && id > 0) ids.add(id);
-          }
-          if (typeof client.clientHostRuleId === 'number' && client.clientHostRuleId > 0) {
-            ids.add(client.clientHostRuleId);
-          }
-          return [...ids];
-        })(),
+        clientHostRuleIds: [
+          ...new Set((client.clientHostRuleIds || []).filter((id) => Number.isInteger(id) && id > 0)),
+        ],
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         resetDay: Number(client.resetDay) || 0,
@@ -753,7 +740,6 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: values.flow,
       security: values.security,
-      clientHostRuleId: values.clientHostRuleId,
       clientHostRuleIds: values.clientHostRuleIds,
       reverseTag: values.reverseTag,
       totalGB: values.totalGB,
@@ -791,16 +777,10 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: showFlow ? values.flow || '' : '',
       security: showSecurity ? values.security || 'auto' : 'auto',
-      // The list is the source of truth; the legacy single id mirrors its
-      // first entry. An empty list clears the override.
+      // An empty list clears the override.
       clientHostRuleIds: Array.isArray(values.clientHostRuleIds)
         ? values.clientHostRuleIds.filter((id) => typeof id === 'number' && id > 0)
         : [],
-      clientHostRuleId:
-        Array.isArray(values.clientHostRuleIds) &&
-        values.clientHostRuleIds.some((id) => typeof id === 'number' && id > 0)
-          ? values.clientHostRuleIds.find((id) => typeof id === 'number' && id > 0)
-          : null,
       totalGB: totalBytes,
       expiryTime,
       reset: Number(values.reset) || 0,

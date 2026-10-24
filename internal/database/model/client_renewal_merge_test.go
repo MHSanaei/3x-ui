@@ -34,110 +34,25 @@ func TestMergeClientRecordRenewalModes(t *testing.T) {
 
 // Host bindings are one logical field behind two encodings (canonical list,
 // legacy alias); otherwise the alias and the list diverge and the reader
-// unions both into phantom bindings.
+// A node snapshot must not undo a newer binding, an omitted list must keep the stored one,
+// and an explicit empty list clears it.
 func TestMergeClientRecordHostBindings(t *testing.T) {
 	for _, tt := range []struct {
 		name               string
 		existing, incoming ClientRecord
-		wantSingle         *int
-		wantList           []int
-		wantListNil        bool
+		want               []int
 	}{
-		{
-			"newer alias-only rebinding replaces the set",
-			ClientRecord{ClientHostRuleId: intPtr(2), ClientHostRuleIds: []int{2}, UpdatedAt: 1},
-			ClientRecord{ClientHostRuleId: intPtr(9), UpdatedAt: 2},
-			intPtr(9),
-			[]int{9},
-			false,
-		},
-		{
-			"newer alias-only rebinding on list-bound client",
-			ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1},
-			ClientRecord{ClientHostRuleId: intPtr(9), UpdatedAt: 2},
-			intPtr(9),
-			[]int{9},
-			false,
-		},
-		{
-			"older alias cannot divert a bound list",
-			ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 2},
-			ClientRecord{ClientHostRuleId: intPtr(9), UpdatedAt: 1},
-			intPtr(2),
-			[]int{2},
-			false,
-		},
-		{
-			"older alias-only migrates unset bindings",
-			ClientRecord{UpdatedAt: 2},
-			ClientRecord{ClientHostRuleId: intPtr(9), UpdatedAt: 1},
-			intPtr(9),
-			[]int{9},
-			false,
-		},
-		{
-			"newer explicit list replaces",
-			ClientRecord{ClientHostRuleId: intPtr(2), ClientHostRuleIds: []int{2}, UpdatedAt: 1},
-			ClientRecord{ClientHostRuleId: intPtr(5), ClientHostRuleIds: []int{5, 7}, UpdatedAt: 2},
-			intPtr(5),
-			[]int{5, 7},
-			false,
-		},
-		{
-			"empty snapshot preserves bindings",
-			ClientRecord{ClientHostRuleId: intPtr(2), ClientHostRuleIds: []int{2, 3}, UpdatedAt: 1},
-			ClientRecord{UpdatedAt: 2},
-			intPtr(2),
-			[]int{2, 3},
-			false,
-		},
-		{
-			"explicit empty list clears",
-			ClientRecord{ClientHostRuleId: intPtr(2), ClientHostRuleIds: []int{2}, UpdatedAt: 1},
-			ClientRecord{ClientHostRuleIds: []int{}, UpdatedAt: 2},
-			nil,
-			[]int{},
-			false,
-		},
+		{"newer list replaces", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{5, 7}, UpdatedAt: 2}, []int{5, 7}},
+		{"older list cannot divert a bound list", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 2}, ClientRecord{ClientHostRuleIds: []int{9}, UpdatedAt: 1}, []int{2}},
+		{"older list fills unset bindings", ClientRecord{UpdatedAt: 2}, ClientRecord{ClientHostRuleIds: []int{9}, UpdatedAt: 1}, []int{9}},
+		{"omitted list preserves", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{UpdatedAt: 2}, []int{2}},
+		{"newer empty list clears", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{}, UpdatedAt: 2}, []int{}},
+		{"merged list is normalized", ClientRecord{UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{3, 0, 3}, UpdatedAt: 2}, []int{3}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.existing.ClientHostRuleIds != nil {
-				tt.existing.ClientHostRuleIds = CloneClientHostRuleIds(tt.existing.ClientHostRuleIds)
-				if len(tt.existing.ClientHostRuleIds) == 0 {
-					tt.existing.ClientHostRuleIds = []int{}
-				}
-			}
-			if tt.incoming.ClientHostRuleIds != nil {
-				tt.incoming.ClientHostRuleIds = CloneClientHostRuleIds(tt.incoming.ClientHostRuleIds)
-				if len(tt.incoming.ClientHostRuleIds) == 0 {
-					tt.incoming.ClientHostRuleIds = []int{}
-				}
-			}
 			MergeClientRecord(&tt.existing, &tt.incoming)
-			got := tt.existing
-			if tt.wantListNil {
-				if got.ClientHostRuleIds != nil {
-					t.Fatalf("list = %v, want nil", got.ClientHostRuleIds)
-				}
-			} else {
-				if got.ClientHostRuleIds == nil {
-					t.Fatalf("list = nil, want %v", tt.wantList)
-				}
-				if !reflect.DeepEqual(got.ClientHostRuleIds, tt.wantList) {
-					t.Fatalf("list = %v, want %v", got.ClientHostRuleIds, tt.wantList)
-				}
-			}
-			if tt.wantSingle == nil {
-				if got.ClientHostRuleId != nil {
-					t.Fatalf("single = %v, want nil", *got.ClientHostRuleId)
-				}
-			} else {
-				if got.ClientHostRuleId == nil {
-					t.Fatalf("single = nil, want %d", *tt.wantSingle)
-				}
-				if *got.ClientHostRuleId != *tt.wantSingle {
-					t.Fatalf("single = %d, want %d", *got.ClientHostRuleId, *tt.wantSingle)
-				}
+			if got := tt.existing.ClientHostRuleIds; got == nil || !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("ClientHostRuleIds = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

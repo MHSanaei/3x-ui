@@ -36,7 +36,6 @@ const CLIENT = {
   subId: 'subid123',
   enable: true,
   clientHostRuleIds: [99],
-  clientHostRuleId: 99,
 } as unknown as ClientRecord;
 
 function renderEdit(save: ComponentProps<typeof ClientFormModal>['save']) {
