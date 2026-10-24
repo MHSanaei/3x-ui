@@ -63,13 +63,13 @@ export default function SponsorCard({ sponsor, variant = 'banner', onClose }: Sp
           <span className="sponsor-aside">
             <span className="sponsor-tag">{tag}</span>
             <span className="sponsor-visit">
-              {t('pages.sponsors.visit')} <ExportOutlined />
+              {t('pages.sponsors.visit')} <ExportOutlined aria-hidden />
             </span>
           </span>
         )}
         {variant === 'card' && (
           <span className="sponsor-visit">
-            {t('pages.sponsors.visit')} <ExportOutlined />
+            {t('pages.sponsors.visit')} <ExportOutlined aria-hidden />
           </span>
         )}
       </a>
@@ -81,7 +81,7 @@ export default function SponsorCard({ sponsor, variant = 'banner', onClose }: Sp
           title={t('close')}
           onClick={onClose}
         >
-          <CloseOutlined />
+          <CloseOutlined aria-hidden />
         </button>
       )}
     </div>

@@ -92,7 +92,7 @@ export default function SubPage() {
     if (subUrl || subJsonUrl || subClashUrl) {
       items.push({
         key: 'subscription',
-        icon: <LinkOutlined />,
+        icon: <LinkOutlined aria-hidden />,
         label: t('subscription.tabLinks'),
         children: (
           <SubLinksTab
@@ -107,7 +107,7 @@ export default function SubPage() {
     if (subUrl) {
       items.push({
         key: 'apps',
-        icon: <AppstoreOutlined />,
+        icon: <AppstoreOutlined aria-hidden />,
         label: t('subscription.tabApps'),
         children: <SubAppsTab apps={apps} initialPlatform={initialPlatform} onOpen={open} />,
       });
@@ -115,7 +115,7 @@ export default function SubPage() {
     if (links.length > 0) {
       items.push({
         key: 'configs',
-        icon: <UnorderedListOutlined />,
+        icon: <UnorderedListOutlined aria-hidden />,
         label: (
           <>
             {t('subscription.tabConfigs')}
@@ -153,13 +153,13 @@ export default function SubPage() {
               <footer className="sub-footer">
                 {updateHours > 0 && (
                   <span>
-                    <ClockCircleOutlined />
+                    <ClockCircleOutlined aria-hidden />
                     {t('subscription.updateInterval', { hours: updateHours })}
                   </span>
                 )}
                 {subSupportUrl && (
                   <a href={subSupportUrl} target="_blank" rel="noopener noreferrer">
-                    <CustomerServiceOutlined />
+                    <CustomerServiceOutlined aria-hidden />
                     {t('subscription.support')}
                   </a>
                 )}

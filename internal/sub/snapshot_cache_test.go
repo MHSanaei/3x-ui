@@ -198,6 +198,31 @@ func TestGetInboundsBySubIdCacheGate(t *testing.T) {
 	}
 }
 
+// Host rows carry no invalidation hooks by design, so a snapshot hit must
+// still read them fresh per request — a host added between two reads has to
+// show up on the second one.
+func TestGetInboundsBySubIdLoadsHostsOnCacheHit(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "hh", 4603, 1, `{"network":"tcp","security":"none"}`)
+
+	cached := NewSubService("")
+	cached.subscriptionBody = true
+
+	// Prime the snapshot while the inbound has no hosts.
+	if _, err := cached.getInboundsBySubId("s1"); err != nil {
+		t.Fatalf("priming read: %v", err)
+	}
+
+	seedHost(t, &model.Host{InboundId: ib.Id, Remark: "edge", Address: "edge.example.com", SortOrder: 1})
+
+	if _, err := cached.getInboundsBySubId("s1"); err != nil {
+		t.Fatalf("hit read: %v", err)
+	}
+	if len(cached.hostsByInbound[ib.Id]) != 1 {
+		t.Fatalf("cache hit did not load fresh host rows: %+v", cached.hostsByInbound)
+	}
+}
+
 func TestSnapshotStorePurgeAll(t *testing.T) {
 	store := newSubSnapshotStore(time.Minute, 8)
 	var builds atomic.Int32

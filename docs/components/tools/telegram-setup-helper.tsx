@@ -77,7 +77,7 @@ export function TelegramSetupHelper() {
           />
           {adminIds ? (
             idsV.invalid.length > 0 ? (
-              <Status ok={false}>Not numeric: {idsV.invalid.join(', ')}</Status>
+              <Status ok={false}>Invalid: {idsV.invalid.join(', ')}</Status>
             ) : (
               <Status ok>
                 {idsV.ids.length} admin id{idsV.ids.length === 1 ? '' : 's'}

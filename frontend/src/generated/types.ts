@@ -47,6 +47,7 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -73,6 +74,7 @@ export interface AllSetting {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;
@@ -106,6 +108,7 @@ export interface AllSetting {
   subHappTunMode: string;
   subHappTunType: string;
   subHideSettings: boolean;
+  subHostSortMode: string;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -235,6 +238,7 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -261,6 +265,7 @@ export interface AllSettingView {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;
@@ -294,6 +299,7 @@ export interface AllSettingView {
   subHappTunMode: string;
   subHappTunType: string;
   subHideSettings: boolean;
+  subHostSortMode: string;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -407,6 +413,7 @@ export interface Client {
   allowedIPs?: string[];
   allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
+  clientHostRuleIds?: number[];
   comment: string;
   created_at?: number;
   email: string;
@@ -416,7 +423,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number | null;
+  keepAlive?: number | string;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
@@ -458,6 +465,7 @@ export interface ClientRecord {
   adTag: string;
   allowedIPs: string;
   auth: string;
+  clientHostRuleIds?: number[];
   comment: string;
   createdAt: number;
   email: string;
@@ -467,7 +475,7 @@ export interface ClientRecord {
   forwardedPorts: string;
   group: string;
   id: number;
-  keepAlive: number;
+  keepAlive: number | string;
   limitHwid: number;
   limitIp: number;
   password: string;
@@ -644,6 +652,7 @@ export interface Host {
   path: string;
   pinnedPeerCertSha256: string[];
   port: number;
+  randomCount: number;
   remark: string;
   security: string;
   serverDescription: string;
@@ -680,6 +689,7 @@ export interface HostGroup {
   path: string;
   pinnedPeerCertSha256: string[];
   port: number;
+  randomCount: number;
   remark: string;
   security: string;
   serverDescription: string;
@@ -1054,6 +1064,13 @@ export interface SubBalancer {
   sortOrder: number;
   strategy: string;
   updatedAt: number;
+}
+
+export interface TgBotCapabilities {
+  groupPrivacy: boolean;
+  inlineEnabled: boolean;
+  running: boolean;
+  username: string;
 }
 
 export interface Traffic {

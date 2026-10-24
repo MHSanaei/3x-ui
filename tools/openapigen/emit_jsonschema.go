@@ -110,6 +110,12 @@ func (g *schemaGen) typeSchema(t TypeRef) map[string]any {
 		return map[string]any{"type": "array", "items": g.typeSchema(*t.Element)}
 	case KindMap:
 		return map[string]any{"type": "object", "additionalProperties": g.typeSchema(*t.Value)}
+	case KindUnion:
+		variants := make([]any, 0, len(t.Variants))
+		for _, variant := range t.Variants {
+			variants = append(variants, g.typeSchema(variant))
+		}
+		return map[string]any{"oneOf": variants}
 	case KindAny, KindUnknown, KindRaw:
 		return map[string]any{}
 	case KindRef:

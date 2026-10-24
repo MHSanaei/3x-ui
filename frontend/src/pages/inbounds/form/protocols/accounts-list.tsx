@@ -23,7 +23,7 @@ export default function AccountsList() {
             })
           }
         >
-          <PlusOutlined /> {t('add')}
+          <PlusOutlined aria-hidden /> {t('add')}
         </Button>
       </Form.Item>
       {fields.length > 0 && (
@@ -32,13 +32,13 @@ export default function AccountsList() {
             <Space.Compact key={field.id} className="mb-8" block>
               <InputAddon>{String(idx + 1)}</InputAddon>
               <FormField name={['settings', 'accounts', idx, 'user']} noStyle>
-                <Input placeholder={t('username')} />
+                <Input aria-label={`${t('username')} ${idx + 1}`} placeholder={t('username')} />
               </FormField>
               <FormField name={['settings', 'accounts', idx, 'pass']} noStyle>
-                <Input placeholder={t('password')} />
+                <Input aria-label={`${t('password')} ${idx + 1}`} placeholder={t('password')} />
               </FormField>
               <Button aria-label={t('remove')} onClick={() => remove(idx)}>
-                <MinusOutlined />
+                <MinusOutlined aria-hidden />
               </Button>
             </Space.Compact>
           ))}

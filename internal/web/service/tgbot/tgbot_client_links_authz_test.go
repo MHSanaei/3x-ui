@@ -9,6 +9,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
@@ -19,8 +20,8 @@ const (
 	ownerMail = "owner@x"
 )
 
-// newLinksCallbackTgbot seeds one inbound whose settings bind email to
-// ownerTgID, the traffic row the ownership lookup joins on, and a mocked API.
+// newLinksCallbackTgbot seeds synchronized client records, inbound settings,
+// traffic and a mocked Telegram API for the owner's link callbacks.
 func newLinksCallbackTgbot(t *testing.T, email string) (*Tgbot, func(string) int) {
 	t.Helper()
 	mock, calls := staleButtonServer(t, map[string]any{
@@ -30,6 +31,14 @@ func newLinksCallbackTgbot(t *testing.T, email string) (*Tgbot, func(string) int
 			"date":       0,
 			"chat":       map[string]any{"id": ownerTgID, "type": "private"},
 		}},
+		// The owner's links draw on the tracked screen, which is a photo.
+		"sendPhoto": map[string]any{"ok": true, "result": map[string]any{
+			"message_id": 1,
+			"date":       0,
+			"chat":       map[string]any{"id": ownerTgID, "type": "private"},
+		}},
+		"deleteMessage":     map[string]any{"ok": true, "result": true},
+		"answerInlineQuery": map[string]any{"ok": true, "result": true},
 	})
 	swapTestBot(t, mock.URL)
 	t.Cleanup(mock.Close)
@@ -46,6 +55,13 @@ func newLinksCallbackTgbot(t *testing.T, email string) (*Tgbot, func(string) int
 	}
 	if err := database.GetDB().Create(inbound).Error; err != nil {
 		t.Fatalf("seed inbound: %v", err)
+	}
+	clients, err := (&service.InboundService{}).GetClients(inbound)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := (&service.ClientService{}).SyncInbound(nil, inbound.Id, clients); err != nil {
+		t.Fatal(err)
 	}
 	if err := database.GetDB().Create(&xray.ClientTraffic{
 		InboundId: inbound.Id,
@@ -79,8 +95,8 @@ func TestClientLinkCallbackRefusesForeignClient(t *testing.T) {
 
 	tapClientLinks(t, tb, ownerTgID, "client_sub_links someone-else@x")
 
-	if n := calls("sendMessage"); n != 0 {
-		t.Errorf("sendMessage calls = %d, want 0: a non-admin received a foreign client's links", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 0 {
+		t.Errorf("message calls = %d, want 0: a non-admin received a foreign client's links", n)
 	}
 	if n := calls("answerCallbackQuery"); n != 1 {
 		t.Errorf("answerCallbackQuery calls = %d, want 1: the refused tap must be answered", n)
@@ -93,11 +109,30 @@ func TestClientLinkCallbackServesOwnClient(t *testing.T) {
 
 	tapClientLinks(t, tb, ownerTgID, "client_sub_links "+ownerMail)
 
-	if n := calls("sendMessage"); n != 1 {
-		t.Errorf("sendMessage calls = %d, want 1: the owner must still get its links", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 1 {
+		t.Errorf("message calls = %d, want 1: the owner must still get its links", n)
 	}
 	if n := calls("answerCallbackQuery"); n != 0 {
 		t.Errorf("answerCallbackQuery calls = %d, want 0: an allowed tap is not refused", n)
+	}
+}
+
+func TestClientOwnershipUsesNormalizedTelegramID(t *testing.T) {
+	tb, _ := newLinksCallbackTgbot(t, ownerMail)
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", ownerMail).Update("tg_id", ownerTgID+1).Error; err != nil {
+		t.Fatal(err)
+	}
+	if tb.clientOwnedByTgUser(ownerTgID, ownerMail) {
+		t.Fatal("stale settings JSON granted ownership to the previous Telegram user")
+	}
+	if !tb.clientOwnedByTgUser(ownerTgID+1, ownerMail) {
+		t.Fatal("the normalized Telegram owner was denied access")
+	}
+	for _, id := range []int64{0, -1, ownerTgID + 2} {
+		if tb.clientOwnedByTgUser(id, ownerMail) {
+			t.Fatalf("unbound Telegram ID %d received ownership", id)
+		}
 	}
 }
 
@@ -117,7 +152,7 @@ func TestHashedLinkCallbackServesOwnClient(t *testing.T) {
 	}
 	tapClientLinks(t, tb, ownerTgID, data)
 
-	if n := calls("sendMessage"); n != 1 {
-		t.Errorf("sendMessage calls = %d, want 1: the owner's hashed button must still be served", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 1 {
+		t.Errorf("message calls = %d, want 1: the owner's hashed button must still be served", n)
 	}
 }

@@ -41,7 +41,7 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 - **API RESTful** con tokens de alcance limitado y caducidad opcional, y una referencia de la API dentro del panel.
 - **Panel instalable (PWA)** — ancla 3X-UI al escritorio o a la pantalla de inicio del móvil.
 - **Almacenamiento flexible** — SQLite (predeterminado) o PostgreSQL.
-- **13 idiomas de interfaz** con temas oscuro y claro.
+- **14 idiomas de interfaz** con temas oscuro y claro.
 - **Integración con Fail2ban** para aplicar límites de IP por cliente.
 
 ## Capturas de pantalla
@@ -177,9 +177,9 @@ La lista completa está en la [referencia de variables de entorno](https://docs.
 
 ## Idiomas Compatibles
 
-La interfaz del panel está disponible en 13 idiomas:
+La interfaz del panel está disponible en 14 idiomas:
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · Slovenčina
 
 ## Contribuir
 

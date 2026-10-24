@@ -2,6 +2,8 @@ import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
+import { joinConfLines } from '@/lib/xray/conf-lines';
+import { AmneziaWGKeepAliveRangeSchema } from '@/schemas/primitives/keepalive';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 // AmneziaWG clients are wire-identical to WireGuard clients (same
@@ -16,7 +18,7 @@ export function isAmneziaWGClient(client: ClientRecord | null | undefined): bool
     client.publicKey ||
     client.allowedIPs ||
     client.preSharedKey ||
-    client.keepAlive
+    client.keepAlive !== undefined
   );
 }
 
@@ -58,13 +60,7 @@ export function buildAmneziaWGClientConfig(
     .filter(Boolean)
     .join(' - ');
 
-  // These land unescaped in [Interface]; a newline here would inject a
-  // config line (e.g. a rogue PostUp) into the downloaded .conf.
   const privateKey = client.privateKey || client.password || '';
-  for (const v of [privateKey, server?.primaryDns ?? '', server?.secondaryDns ?? '', remark]) {
-    if (/[\r\n]/.test(v)) return '';
-  }
-
   const dnsParts = [server?.primaryDns, server?.secondaryDns].filter((v) => !!v && v.trim() !== '');
   const lines = ['[Interface]', `PrivateKey = ${privateKey}`, `Address = ${address}`];
   if (dnsParts.length > 0) lines.push(`DNS = ${dnsParts.join(', ')}`);
@@ -107,7 +103,11 @@ export function buildAmneziaWGClientConfig(
   lines.push('[Peer]', `PublicKey = ${server?.publicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0)
+  if (typeof client.keepAlive === 'string') {
+    if (!AmneziaWGKeepAliveRangeSchema.safeParse(client.keepAlive).success) return '';
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
-  return lines.join('\n');
+  } else if (client.keepAlive && client.keepAlive > 0) {
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  }
+  return joinConfLines(lines);
 }

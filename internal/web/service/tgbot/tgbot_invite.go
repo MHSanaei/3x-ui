@@ -159,24 +159,6 @@ func decodeInvitePayload(payload string) (string, bool) {
 	return string(raw), true
 }
 
-func (t *Tgbot) sendInviteLink(chatId int64, email string) {
-	record, err := t.clientService.GetRecordByEmail(nil, email)
-	username := botUsername()
-	if err != nil || record.SubID == "" || username == "" {
-		logger.Warning("tgbot: invite link unavailable for", email, err)
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"))
-		return
-	}
-	payload, ok := encodeInvitePayload(record.SubID)
-	if !ok {
-		logger.Warning("tgbot: subId of", email, "is too long for a Telegram invite link")
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"))
-		return
-	}
-	link := "https://t.me/" + username + "?start=" + payload
-	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.inviteLink", "Email=="+email, "Link=="+link))
-}
-
 // A subId can be short or human-readable, so claim attempts are capped per
 // Telegram account: guessing stays slow, and admins hear about whoever tries.
 const (

@@ -95,6 +95,16 @@ func (inst Instance) FullFingerprint() string {
 }
 
 func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
+	return instanceFromInbound(ib, false)
+}
+
+// ConfiguredInstanceFromInbound includes disabled clients for stable relay identity.
+// Only the native server decides whether a client may authenticate.
+func ConfiguredInstanceFromInbound(ib *model.Inbound) (Instance, bool) {
+	return instanceFromInbound(ib, true)
+}
+
+func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, bool) {
 	if ib == nil || ib.Protocol != model.TUIC {
 		return Instance{}, false
 	}
@@ -221,7 +231,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 
 	clients := make([]TuicClientSettings, 0, len(parsed.Clients))
 	for _, c := range parsed.Clients {
-		if c.Enable != nil && !*c.Enable {
+		if !includeDisabled && c.Enable != nil && !*c.Enable {
 			continue
 		}
 		uuidVal := strings.ToLower(strings.TrimSpace(c.UUID))

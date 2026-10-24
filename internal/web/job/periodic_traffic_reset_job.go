@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -40,6 +41,13 @@ func monthlyResetDue(resetDay int, now time.Time) bool {
 	}
 	lastDay := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
 	return now.Day() == min(resetDay, lastDay)
+}
+
+// inboundQuotaDisabled mirrors disableInvalidInbounds: a local inbound its own
+// traffic cap switched off, not one that expired or was switched off by hand.
+func inboundQuotaDisabled(ib *model.Inbound, nowMs int64) bool {
+	return !ib.Enable && ib.NodeID == nil && ib.Total > 0 && ib.Up+ib.Down >= ib.Total &&
+		(ib.ExpiryTime <= 0 || ib.ExpiryTime > nowMs)
 }
 
 func forEachResetBounded(n int, reset func(i int)) {
@@ -87,22 +95,40 @@ func (j *PeriodicTrafficResetJob) resetInboundsOnSchedule() {
 	logger.Infof("Running periodic traffic reset job for period: %s (%d matching inbounds)", j.period, len(inbounds))
 
 	var resetCount atomic.Int32
+	var needRestart atomic.Bool
+	nowMs := time.Now().UnixMilli()
 	forEachResetBounded(len(inbounds), func(i int) {
 		inbound := inbounds[i]
+		quotaOff := inboundQuotaDisabled(inbound, nowMs)
 		resetInboundErr := j.inboundService.ResetInboundTraffic(inbound.Id)
 		if resetInboundErr != nil {
 			logger.Warning("Failed to reset traffic for inbound", inbound.Id, ":", resetInboundErr)
+		} else if quotaOff {
+			nr, err := j.inboundService.SetInboundEnable(inbound.Id, true)
+			if err != nil {
+				logger.Warning("Failed to re-enable inbound", inbound.Id, "after traffic reset:", err)
+			}
+			if nr {
+				needRestart.Store(true)
+			}
 		}
 
-		resetClientErr := j.clientService.ResetAllClientTraffics(&j.inboundService, inbound.Id)
+		nr, resetClientErr := j.clientService.ResetAllClientTraffics(&j.inboundService, inbound.Id)
 		if resetClientErr != nil {
 			logger.Warning("Failed to reset traffic for all users of inbound", inbound.Id, ":", resetClientErr)
+		}
+		if nr {
+			needRestart.Store(true)
 		}
 
 		if resetInboundErr == nil && resetClientErr == nil {
 			resetCount.Add(1)
 		}
 	})
+
+	if needRestart.Load() {
+		j.xrayService.SetToNeedRestart()
+	}
 
 	if count := resetCount.Load(); count > 0 {
 		logger.Infof("Periodic traffic reset completed: %d inbounds reset", count)

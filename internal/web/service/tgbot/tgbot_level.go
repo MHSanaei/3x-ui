@@ -6,7 +6,7 @@ import (
 )
 
 // userLevel decides what the bot admits to existing at all: a Telegram account
-// that no admin has bound to a client must not be able to explore the bot.
+// that no admin has bound to a client must not be able to explore the liveBot().
 type userLevel int
 
 const (

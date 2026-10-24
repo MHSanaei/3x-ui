@@ -38,12 +38,17 @@ export default function ConfigBlock({
     /* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
     <div className="config-block-actions" onClick={(e: MouseEvent) => e.stopPropagation()}>
       <Tooltip title={t('copy')}>
-        <Button size="small" icon={<CopyOutlined />} aria-label={t('copy')} onClick={copy} />
+        <Button
+          size="small"
+          icon={<CopyOutlined aria-hidden />}
+          aria-label={t('copy')}
+          onClick={copy}
+        />
       </Tooltip>
       <Tooltip title={t('download')}>
         <Button
           size="small"
-          icon={<DownloadOutlined />}
+          icon={<DownloadOutlined aria-hidden />}
           aria-label={t('download')}
           onClick={() => FileManager.downloadTextFile(text, fileName)}
         />
@@ -56,7 +61,11 @@ export default function ConfigBlock({
           content={<QrPanel value={text} remark={qrRemark || label} size={220} />}
         >
           <Tooltip title={t('pages.clients.qrCode')}>
-            <Button size="small" icon={<QrcodeOutlined />} aria-label={t('pages.clients.qrCode')} />
+            <Button
+              size="small"
+              icon={<QrcodeOutlined aria-hidden />}
+              aria-label={t('pages.clients.qrCode')}
+            />
           </Tooltip>
         </Popover>
       )}

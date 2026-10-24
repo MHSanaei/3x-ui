@@ -4,6 +4,34 @@ import (
 	"testing"
 )
 
+func TestSubHostSortModePersistsAndRejectsInvalidValues(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	settings, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.SubHostSortMode != "inbound-first" {
+		t.Fatalf("default = %q", settings.SubHostSortMode)
+	}
+	settings.SubHostSortMode = "hosts-first"
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := s.GetAllSetting()
+	if err != nil || reloaded.SubHostSortMode != "hosts-first" {
+		t.Fatalf("reloaded mode = %+v, err=%v", reloaded, err)
+	}
+	settings.SubHostSortMode = "invalid"
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err == nil || err.Error() != "subscription host sort mode must be inbound-first or hosts-first" {
+		t.Fatalf("invalid mode error = %v", err)
+	}
+	mode, err := s.GetSubHostSortMode()
+	if err != nil || mode != "hosts-first" {
+		t.Fatalf("invalid save changed mode: %q, %v", mode, err)
+	}
+}
+
 func TestSubInfoNodeSettingsDefaultsAndPersists(t *testing.T) {
 	setupSettingTestDB(t)
 	s := &SettingService{}

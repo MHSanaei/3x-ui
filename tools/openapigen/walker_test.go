@@ -43,3 +43,28 @@ type HappLinkResult struct {
 		t.Fatalf("generated types expose DI interface:\n%s", apiSurface)
 	}
 }
+
+func TestKeepAliveOverrideEmitsNumberOrString(t *testing.T) {
+	dir := t.TempDir()
+	source := "package model\ntype Client struct { KeepAlive *int `json:\"keepAlive,omitempty\"` }\n"
+	if err := os.WriteFile(filepath.Join(dir, "client.go"), []byte(source), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	union := TypeRef{Kind: KindUnion, Variants: []TypeRef{{Kind: KindInt}, {Kind: KindString}}}
+	schemas, _, err := walkPackages([]packageRequest{{Path: dir, StructAllow: setOf("Client"), Overrides: map[string][]walkOverride{"Client": {{Field: "KeepAlive", Type: union}}}}})
+	if err != nil {
+		t.Fatalf("walk fixture: %v", err)
+	}
+	var types bytes.Buffer
+	if err := emitTypes(&types, schemas, nil); err != nil || !strings.Contains(types.String(), "keepAlive?: number | string;") {
+		t.Fatalf("generated TypeScript keepAlive = %s, err = %v", types.String(), err)
+	}
+	var zod bytes.Buffer
+	if err := emitZod(&zod, schemas, nil); err != nil || !strings.Contains(zod.String(), "z.union([z.number().int(), z.string()]).optional()") {
+		t.Fatalf("generated Zod keepAlive = %s, err = %v", zod.String(), err)
+	}
+	var schema bytes.Buffer
+	if err := emitJSONSchema(&schema, schemas, nil); err != nil || !strings.Contains(schema.String(), `"oneOf"`) {
+		t.Fatalf("generated JSON schema keepAlive = %s, err = %v", schema.String(), err)
+	}
+}
