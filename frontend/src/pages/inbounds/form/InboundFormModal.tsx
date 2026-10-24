@@ -239,7 +239,6 @@ export default function InboundFormModal({
     removeFallback,
     moveFallback,
     addAllFallbacks,
-    syncChildProxyProtocol,
   } = useInboundFallbacks(dbInbound, dbInbounds);
 
   const selectableNodes = (availableNodes || []).filter((n) => n.enable);
@@ -587,9 +586,6 @@ export default function InboundFormModal({
           const obj = msg.obj as { id?: number; Id?: number } | null;
           const masterId = mode === 'edit' ? dbInbound!.id : (obj?.id ?? obj?.Id ?? 0);
           if (masterId) await saveFallbacks(masterId);
-        }
-        if (mode === 'edit' && dbInbound) {
-          await syncChildProxyProtocol(dbInbound.id, payload.streamSettings);
         }
         onSaved();
         onClose();

@@ -312,8 +312,7 @@
         "pickInbound": "Pilih inbound",
         "matchAny": "apa pun",
         "destPlaceholder": "otomatis (listen:port child)",
-        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW).",
-        "proxyProtocolXver": "Inbound ini menerima protokol PROXY. Pilih xver 1 atau 2, atau koneksi fallback akan gagal."
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
       },
       "protocol": "Protokol",
       "port": "Port",

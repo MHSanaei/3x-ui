@@ -312,8 +312,7 @@
         "pickInbound": "Escolha um inbound",
         "matchAny": "qualquer",
         "destPlaceholder": "automático (listen:porta do filho)",
-        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW).",
-        "proxyProtocolXver": "Este inbound aceita o protocolo PROXY. Selecione xver 1 ou 2, ou a conexão de fallback falhará."
+        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW)."
       },
       "protocol": "Protocolo",
       "port": "Porta",

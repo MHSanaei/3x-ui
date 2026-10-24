@@ -312,8 +312,7 @@
         "pickInbound": "یک اینباند انتخاب کنید",
         "matchAny": "همه",
         "destPlaceholder": "خودکار (listen:port فرزند)",
-        "needsTls": "فال‌بک‌ها پس از انتخاب TLS یا Reality در برگه‌ی امنیت در دسترس می‌شوند (فقط VLESS/Trojan روی RAW).",
-        "proxyProtocolXver": "این ورودی پروتکل PROXY را می‌پذیرد. xver 1 یا 2 را انتخاب کنید، در غیر این صورت اتصال فال‌بک ناموفق خواهد بود."
+        "needsTls": "فال‌بک‌ها پس از انتخاب TLS یا Reality در برگه‌ی امنیت در دسترس می‌شوند (فقط VLESS/Trojan روی RAW)."
       },
       "protocol": "پروتکل",
       "port": "پورت",

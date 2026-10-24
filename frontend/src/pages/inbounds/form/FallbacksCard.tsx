@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, Col, Empty, Input, InputNumber, Row, Select, Space } from 'antd';
+import { Button, Card, Col, Empty, Input, InputNumber, Row, Select, Space } from 'antd';
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -11,22 +11,12 @@ import type { FallbackRow } from '@/schemas/forms/inbound-form';
 
 interface FallbacksCardProps {
   fallbacks: FallbackRow[];
-  fallbackChildOptions: { label: string; value: number; acceptsProxyProtocol: boolean }[];
+  fallbackChildOptions: { label: string; value: number }[];
   addFallback: () => void;
   updateFallback: (rowKey: string, patch: Partial<FallbackRow>) => void;
   removeFallback: (idx: number) => void;
   moveFallback: (idx: number, direction: -1 | 1) => void;
   addAllFallbacks: () => void;
-}
-
-// An explicit dest may point somewhere else, so only a linked child still
-// stored at xver 0 is a mismatch the operator has to correct by hand.
-function needsProxyProtocolXver(
-  record: FallbackRow,
-  options: FallbacksCardProps['fallbackChildOptions'],
-): boolean {
-  if (record.xver !== 0 || (record.dest ?? '').trim() !== '') return false;
-  return options.some((opt) => opt.value === record.childId && opt.acceptsProxyProtocol);
 }
 
 export default function FallbacksCard({
@@ -170,15 +160,6 @@ export default function FallbacksCard({
                   onChange={(v) => updateFallback(record.rowKey, { xver: Number(v) || 0 })}
                 />
               </Col>
-              {needsProxyProtocolXver(record, fallbackChildOptions) && (
-                <Col span={24}>
-                  <Alert
-                    type="warning"
-                    showIcon
-                    title={t('pages.inbounds.fallbacks.proxyProtocolXver')}
-                  />
-                </Col>
-              )}
             </Row>
           </Card>
         ))

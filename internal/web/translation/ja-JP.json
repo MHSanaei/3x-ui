@@ -312,8 +312,7 @@
         "pickInbound": "インバウンドを選択",
         "matchAny": "任意",
         "destPlaceholder": "自動（子の listen:port）",
-        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。",
-        "proxyProtocolXver": "このインバウンドは PROXY プロトコルを受け付けます。xver 1 または 2 を選択しないと、フォールバック接続は失敗します。"
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
       },
       "protocol": "プロトコル",
       "port": "ポート",

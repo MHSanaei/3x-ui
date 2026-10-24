@@ -4,40 +4,6 @@ import { HttpUtil } from '@/utils';
 import type { FallbackRow } from '@/schemas/forms/inbound-form';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 
-// RAW is stored as tcp; older rows may say raw. A flag on any other transport
-// is stale and must not opt the child into PROXY protocol.
-const PROXY_PROTOCOL_FIELD: Record<string, string> = {
-  tcp: 'tcpSettings',
-  raw: 'tcpSettings',
-  ws: 'wsSettings',
-  httpupgrade: 'httpupgradeSettings',
-};
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function acceptsProxyProtocol(stream: Record<string, unknown>): boolean {
-  const sockopt = stream.sockopt;
-  if (isPlainRecord(sockopt) && sockopt.acceptProxyProtocol === true) return true;
-  const network = typeof stream.network === 'string' ? stream.network.toLowerCase() : '';
-  const field = PROXY_PROTOCOL_FIELD[network];
-  if (!field) return false;
-  const block = stream[field];
-  return isPlainRecord(block) && block.acceptProxyProtocol === true;
-}
-
-// A fallback row as GET/POST /panel/api/inbounds/:id/fallbacks carries it.
-type StoredFallback = {
-  childId: number;
-  name?: string;
-  alpn?: string;
-  path?: string;
-  dest?: string;
-  xver?: number;
-  sortOrder?: number;
-};
-
 // Fallback rows for VLESS/Trojan TLS inbounds: state + the load/save/derive
 // and add/update/remove/move handlers, plus the eligible-child option list.
 // Lifted out of InboundFormModal so the modal body stays focused on layout.
@@ -50,7 +16,6 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     .map((ib) => ({
       label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
       value: ib.id,
-      acceptsProxyProtocol: acceptsProxyProtocol(coerceInboundJsonField(ib.streamSettings)),
     }));
 
   const loadFallbacks = async (masterId: number | null) => {
@@ -64,7 +29,16 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       return;
     }
     setFallbacks(
-      (msg.obj as StoredFallback[]).map((r) => ({
+      (
+        msg.obj as {
+          childId: number;
+          name?: string;
+          alpn?: string;
+          path?: string;
+          dest?: string;
+          xver?: number;
+        }[]
+      ).map((r) => ({
         rowKey: `fb-${++fallbackKeyRef.current}`,
         childId: r.childId && r.childId > 0 ? r.childId : null,
         name: r.name || '',
@@ -102,7 +76,8 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
   // operator wired a fallback target. SNI/ALPN come straight off the
   // child's TLS block; path depends on the child's transport (ws/grpc
   // /httpupgrade carry an explicit path; tcp/kcp/xhttp have no path of
-  // their own). xver is 1 only when the child accepts PROXY protocol.
+  // their own). xver stays 0 unless the child explicitly opts in via
+  // PROXY-protocol sockopt.
   const deriveFallbackDefaults = (childId: number): Partial<FallbackRow> => {
     const child = (dbInbounds || []).find((ib) => ib.id === childId);
     if (!child) return {};
@@ -126,18 +101,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       const xh = (stream.xhttpSettings as Record<string, unknown> | undefined) ?? {};
       if (typeof xh.path === 'string') path = xh.path;
     }
-    return { name: sni, alpn, path, xver: acceptsProxyProtocol(stream) ? 1 : 0 };
-  };
-
-  const isAutoFilled = (r: FallbackRow): boolean => {
-    if (r.childId == null || r.dest) return false;
-    const derived = deriveFallbackDefaults(r.childId);
-    return (
-      r.name === (derived.name ?? '') &&
-      r.alpn === (derived.alpn ?? '') &&
-      r.path === (derived.path ?? '') &&
-      r.xver === (derived.xver ?? 0)
-    );
+    return { name: sni, alpn, path, xver: 0 };
   };
 
   const addFallback = () => {
@@ -160,15 +124,12 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       prev.map((r) => {
         if (r.rowKey !== rowKey) return r;
         // When the picker selects a new child inbound and the row hasn't
-        // been hand-edited yet (all blank with xver 0, or still exactly the
-        // previous child's auto-filled defaults), pull the SNI/ALPN/Path/xver
-        // defaults off that child. Operators who intentionally typed values
-        // keep them — we only replace what we filled in ourselves.
+        // been hand-edited yet (sni/alpn/path/dest all blank, xver = 0),
+        // pull the SNI/ALPN/Path defaults off that child. Operators who
+        // intentionally typed values keep them — we only fill the empties.
         if (typeof patch.childId === 'number' && patch.childId !== r.childId) {
-          const blank = !r.name && !r.alpn && !r.path && !r.dest && r.xver === 0;
-          if (blank || isAutoFilled(r)) {
-            return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
-          }
+          const isPristine = !r.name && !r.alpn && !r.path && !r.dest && r.xver === 0;
+          if (isPristine) return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
         }
         return { ...r, ...patch };
       }),
@@ -218,43 +179,6 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     });
   };
 
-  // Saved fallback rows keep the xver they were stored with, so enabling
-  // PROXY protocol on a child later would leave its masters sending no
-  // header. After the child itself is saved, bump every linked xver 0 row
-  // (no explicit dest) on other VLESS/Trojan inbounds to xver 1.
-  const syncChildProxyProtocol = async (childId: number, streamSettings: unknown) => {
-    if (!childId || !acceptsProxyProtocol(coerceInboundJsonField(streamSettings))) return true;
-    const masters = (dbInbounds || []).filter(
-      (ib) => ib.id !== childId && (ib.protocol === 'vless' || ib.protocol === 'trojan'),
-    );
-    let ok = true;
-    for (const master of masters) {
-      const msg = await HttpUtil.get(`/panel/api/inbounds/${master.id}/fallbacks`);
-      if (!msg?.success || !Array.isArray(msg.obj)) continue;
-      const rows = msg.obj as StoredFallback[];
-      const stale = (r: StoredFallback) =>
-        r.childId === childId && !(r.dest ?? '').trim() && !(Number(r.xver) > 0);
-      if (!rows.some(stale)) continue;
-      const payload = {
-        fallbacks: rows.map((r, i) => ({
-          childId: r.childId,
-          name: r.name ?? '',
-          alpn: r.alpn ?? '',
-          path: r.path ?? '',
-          dest: r.dest ?? '',
-          xver: stale(r) ? 1 : Number(r.xver) || 0,
-          sortOrder: r.sortOrder ?? i,
-        })),
-      };
-      const saved = await HttpUtil.post(`/panel/api/inbounds/${master.id}/fallbacks`, payload, {
-        headers: { 'Content-Type': 'application/json' },
-        silentSuccess: true,
-      });
-      if (!saved?.success) ok = false;
-    }
-    return ok;
-  };
-
   return {
     fallbacks,
     fallbackChildOptions,
@@ -265,6 +189,5 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     removeFallback,
     moveFallback,
     addAllFallbacks,
-    syncChildProxyProtocol,
   };
 }
