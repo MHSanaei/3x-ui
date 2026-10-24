@@ -25,6 +25,7 @@ export const ExternalProxyEntrySchema = z.object({
   pinnedPeerCertSha256: z.array(z.string()).optional(),
   verifyPeerCertByName: z.string().optional(),
   echConfigList: z.string().optional(),
+  cipherSuites: z.string().optional(),
   vlessRoute: z.string().optional(),
   allowInsecure: z.boolean().optional(),
 });

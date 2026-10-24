@@ -106,10 +106,12 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
+  const fingerprint = (useWatch({ control: methods.control, name: 'fingerprint' }) ?? '') as string;
   const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
   const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
+  const isCipherSuitesEnabled = showTlsExtras && (!fingerprint || fingerprint === 'unsafe');
   const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
   const hasCidr = Boolean(watchedHosts?.some((h) => typeof h === 'string' && h.includes('/')));
 
@@ -364,7 +366,10 @@ export default function HostFormModal({
                           name="cipherSuites"
                           label={t('pages.inbounds.form.cipherSuites')}
                         >
-                          <CipherSuitesSelect />
+                          <CipherSuitesSelect
+                            disabled={!isCipherSuitesEnabled}
+                            placeholder={t('pages.inbounds.form.autoOption')}
+                          />
                         </FormField>
                         <FormField name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
                           <Select mode="tags" allowClear tokenSeparators={[',']} />

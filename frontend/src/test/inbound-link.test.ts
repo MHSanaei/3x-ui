@@ -1496,4 +1496,31 @@ describe('isPostQuantumLink', () => {
     });
     expect(isPostQuantumLink(link)).toBe(true);
   });
+
+  it('exports cipherSuites as cs query parameter on VLESS TLS links', () => {
+    const [, rawFixture] = fixturesForProtocol('vless')[0];
+    const stream = rawFixture.streamSettings as Record<string, unknown> | undefined;
+    const tls = stream?.tlsSettings as Record<string, unknown> | undefined;
+    const typed = InboundSchema.parse({
+      ...rawFixture,
+      streamSettings: {
+        ...stream,
+        security: 'tls',
+        tlsSettings: {
+          ...tls,
+          cipherSuites: 'TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256',
+        },
+      },
+    });
+
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      port: 443,
+      clientId: '11111111-2222-3333-4444-555555555555',
+    });
+    expect(new URL(link).searchParams.get('cs')).toBe(
+      'TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256',
+    );
+  });
 });
