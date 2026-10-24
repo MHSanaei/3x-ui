@@ -25,10 +25,11 @@ import (
 )
 
 var (
-	lock              sync.Mutex
-	isNeedXrayRestart atomic.Bool // Indicates that restart was requested for Xray
-	isManuallyStopped atomic.Bool // Indicates that Xray was stopped manually from the panel
-	xrayState         xrayLifecycle
+	lock                sync.Mutex
+	isNeedXrayReconcile atomic.Bool
+	isNeedXrayRestart   atomic.Bool // Indicates that restart was requested for Xray
+	isManuallyStopped   atomic.Bool // Indicates that Xray was stopped manually from the panel
+	xrayState           xrayLifecycle
 )
 
 type xrayLifecycle struct {
@@ -77,6 +78,9 @@ func currentXrayProcess() *xray.Process {
 	process, _ := xrayState.snapshot()
 	return process
 }
+
+// ErrXrayNotRunning reports an operation that requires a running core when xray is stopped.
+var ErrXrayNotRunning = xray.ErrXrayNotRunning
 
 // XrayService provides business logic for Xray process management.
 // It handles starting, stopping, restarting Xray, and managing its configuration.
@@ -446,7 +450,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// whatever rules the admin adds through the stock Routing page, exactly
 	// like routing any other protocol.
 	injectAmneziawgnetSocks(xrayConfig, inbounds)
-	injectTuicSocks(xrayConfig, inbounds)
+	tuicInstances := configuredTuicInstances(inbounds)
+	if err := injectTuicRelay(xrayConfig, tuicInstances); err != nil {
+		return nil, err
+	}
 
 	// Restores each opted-in peer's own distinct public IPv6 source identity
 	// for its outbound connections — a peer that has an IPv6 address in its
@@ -816,38 +823,121 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 	}
 }
 
-const (
-	tuicEgressSocksSettings = `{"auth":"noauth","udp":true}`
-	// TUIC clients can connect to an IP while TLS carries a different or unresolvable SNI.
-	// Keep sniffed domains available for routing without replacing the requested destination.
-	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
-)
+// Keep sniffed domains available for routing without replacing the requested destination.
+const tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 
-func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
-	existingTags := make(map[string]struct{}, len(cfg.InboundConfigs))
+func injectTuicRelay(cfg *xray.Config, instances []tuic.Instance) error {
+	existingTags := map[string]struct{}{"api": {}}
+	var api struct {
+		Tag string `json:"tag"`
+	}
+	if len(cfg.API) > 0 {
+		if err := json.Unmarshal(cfg.API, &api); err != nil {
+			return err
+		}
+		if api.Tag != "" {
+			existingTags[api.Tag] = struct{}{}
+		}
+	}
 	for i := range cfg.InboundConfigs {
 		existingTags[cfg.InboundConfigs[i].Tag] = struct{}{}
 	}
-
-	for _, inbound := range inbounds {
-		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
+	var userLevel uint32
+	policyReady := false
+	for _, inst := range instances {
+		if _, taken := existingTags[inst.Tag]; taken {
+			logger.Warningf("tuic: skipping inbound %d: relay tag conflicts with another inbound", inst.Id)
 			continue
 		}
-		if _, taken := existingTags[inbound.Tag]; taken {
-			logger.Warning("tuic socks: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
-			continue
+		emails := make([]string, 0, len(inst.Clients))
+		for _, client := range inst.Clients {
+			if client.Email != "" {
+				emails = append(emails, client.Email)
+			}
 		}
-
-		existingTags[inbound.Tag] = struct{}{}
+		if !policyReady {
+			var err error
+			userLevel, err = tuicRelayPolicyLevel(cfg)
+			if err != nil {
+				return fmt.Errorf("tuic relay: policy: %w", err)
+			}
+			policyReady = true
+		}
+		slices.Sort(emails)
+		emails = slices.Compact(emails)
+		settings, err := tuic.SocksInboundSettings(emails, tuic.SocksPassword(), userLevel)
+		if err != nil {
+			return fmt.Errorf("tuic relay: inbound %d: %w", inst.Id, err)
+		}
+		existingTags[inst.Tag] = struct{}{}
 		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
-			Listen:   json_util.RawMessage(`"127.0.0.1"`),
-			Port:     tuic.SOCKSPortForInbound(inbound.Id),
-			Protocol: "socks",
-			Settings: json_util.RawMessage(tuicEgressSocksSettings),
-			Sniffing: json_util.RawMessage(tuicEgressSniffingSettings),
-			Tag:      inbound.Tag,
+			Listen:        json_util.RawMessage(`"127.0.0.1"`),
+			Port:          tuic.SOCKSPortForInbound(inst.Id),
+			Protocol:      "socks",
+			TuicRelay:     true,
+			TuicInboundID: inst.Id,
+			Settings:      json_util.RawMessage(settings),
+			Sniffing:      json_util.RawMessage(tuicEgressSniffingSettings),
+			Tag:           inst.Tag,
 		})
 	}
+	return nil
+}
+
+// Relay authentication carries routing identity; native TUIC owns client accounting and source IPs.
+// Copy session limits from level 0, but disable Xray's duplicate traffic and loopback online stats.
+func tuicRelayPolicyLevel(cfg *xray.Config) (uint32, error) {
+	var policy map[string]json.RawMessage
+	if len(cfg.Policy) > 0 {
+		if err := json.Unmarshal(cfg.Policy, &policy); err != nil {
+			return 0, err
+		}
+	}
+	if policy == nil {
+		policy = make(map[string]json.RawMessage)
+	}
+	var levels map[uint32]json.RawMessage
+	if raw, ok := policy["levels"]; ok {
+		if err := json.Unmarshal(raw, &levels); err != nil {
+			return 0, err
+		}
+	}
+	if levels == nil {
+		levels = make(map[uint32]json.RawMessage)
+	}
+	var relayPolicy map[string]json.RawMessage
+	if raw, ok := levels[0]; ok {
+		if err := json.Unmarshal(raw, &relayPolicy); err != nil {
+			return 0, err
+		}
+	}
+	if relayPolicy == nil {
+		relayPolicy = make(map[string]json.RawMessage)
+	}
+	for _, key := range []string{"statsUserUplink", "statsUserDownlink", "statsUserOnline"} {
+		relayPolicy[key] = json.RawMessage("false")
+	}
+	level := ^uint32(0)
+	for {
+		if _, exists := levels[level]; !exists {
+			break
+		}
+		if level == 0 {
+			return 0, errors.New("no free user policy level")
+		}
+		level--
+	}
+	raw, err := json.Marshal(relayPolicy)
+	if err != nil {
+		return 0, err
+	}
+	levels[level] = raw
+	policy["levels"], err = json.Marshal(levels)
+	if err != nil {
+		return 0, err
+	}
+	cfg.Policy, err = json.Marshal(policy)
+	return level, err
 }
 
 // amneziawgV6EgressTag returns the stable, globally-unique freedom outbound
@@ -1245,7 +1335,7 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		err := errors.New("xray is not running")
+		err := ErrXrayNotRunning
 		logger.Debug("Attempted to fetch Xray traffic, but Xray is not running:", err)
 		return nil, nil, err
 	}
@@ -1355,7 +1445,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return errors.New("xray is not running")
+		return ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return err
@@ -1369,7 +1459,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResult, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return nil, errors.New("xray is not running")
+		return nil, ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return nil, err
@@ -1402,7 +1492,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		configUnchanged := process.GetConfig().Equals(xrayConfig)
 		if !isForce && configUnchanged && !isNeedXrayRestart.Load() {
 			logger.Debug("It does not need to restart Xray")
-			return nil
+			return repairUnavailableTuicRelays(xrayConfig, process.GetAPIPort())
 		}
 		// A config the core cannot bind never replaces one that works: its failed
 		// start exits the core, and the watchdog would then loop on it forever.
@@ -1416,10 +1506,18 @@ func (s *XrayService) RestartXray(isForce bool) error {
 			xrayState.holdBack(refused)
 			return fmt.Errorf("xray %s", refused)
 		}
-		if !isForce && !configUnchanged && s.tryHotApply(process, xrayConfig) {
-			logger.Info("Xray config changes applied through the core API, no restart needed")
-			return nil
+		if !isForce && !configUnchanged {
+			applied, err := s.tryHotApply(process, xrayConfig)
+			if err != nil {
+				return err
+			}
+			if applied {
+				logger.Info("Xray config changes applied through the core API, no restart needed")
+				return nil
+			}
 		}
+		invalidateTuicRelayReadiness(process.GetConfig())
+		invalidateTuicRelayReadiness(xrayConfig)
 		_ = process.Stop()
 	} else if conflicts := bindConflicts(xrayConfig, nil); len(conflicts) > 0 {
 		// Nothing is running to protect and the core is the authority on what it
@@ -1427,11 +1525,16 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		logger.Warning("xray config may not start:", conflicts[0].String())
 	}
 
+	invalidateTuicRelayReadiness(xrayConfig)
 	process = xray.NewProcess(xrayConfig)
 	xrayState.replace(process)
 	s.xrayAPI.StatsLastValues = nil
 	err = process.Start()
 	if err != nil {
+		return err
+	}
+
+	if err := publishTuicRelayReadiness(xrayConfig); err != nil {
 		return err
 	}
 
@@ -1452,44 +1555,101 @@ func (s *XrayService) restartToDropClients(diff *xray.HotDiff) bool {
 	return restart
 }
 
-// tryHotApply attempts to reconcile the running Xray instance with newCfg
-// through the core gRPC API (HandlerService for inbounds/outbounds,
-// RoutingService for rules/balancers). It returns true when the running
-// instance now matches newCfg; on any failure it returns false and the
-// caller falls back to a full process restart, which cleans up whatever was
-// partially applied. Callers must hold the package-level lock.
-func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bool {
+// tryHotApply reconciles the running core with newCfg over gRPC; false means restart, while a TUIC
+// relay error defers that update instead of restarting unrelated connections. Hold the package lock.
+func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (applied bool, applyErr error) {
+	defer func() {
+		if applyErr != nil {
+			s.SetToNeedReconcile()
+		}
+	}()
 	oldCfg := process.GetConfig()
 	diff, ok := xray.ComputeHotDiff(oldCfg, newCfg)
 	if !ok {
 		logger.Debug("hot apply: config change is not API-applicable, falling back to restart")
-		return false
+		return false, nil
 	}
 	if diff.Empty() {
+		if err := repairUnavailableTuicRelays(newCfg, process.GetAPIPort()); err != nil {
+			return false, err
+		}
 		process.SetConfig(newCfg)
 		persistHotConfig(process)
-		return true
+		return true, nil
 	}
 	// The core's RemoveUser drops the credential only, so a disabled or deleted
 	// client needs the restart this setting asks for.
 	if s.restartToDropClients(diff) {
 		logger.Info("hot apply: clients left the config, restarting to drop their live sessions")
-		return false
+		return false, nil
 	}
 
+	if tuicRequiresOrdinaryRemoval(oldCfg, diff.TuicRelayChanges) {
+		return false, nil
+	}
 	apiPort := process.GetAPIPort()
 	if apiPort <= 0 {
-		return false
+		if len(diff.TuicRelayChanges) > 0 {
+			return false, errors.New("TUIC relay update requires the Xray HandlerService API")
+		}
+		return false, nil
 	}
 	// A dedicated client: s.xrayAPI may be in use by traffic polling on other
 	// service instances and is reset around restarts.
 	hotAPI := xray.XrayAPI{}
 	if err := hotAPI.Init(apiPort); err != nil {
 		logger.Debug("hot apply: failed to init xray api:", err)
-		return false
+		if len(diff.TuicRelayChanges) > 0 {
+			return false, err
+		}
+		return false, nil
 	}
 	defer hotAPI.Close()
 
+	staged, relayErr := reconcileTuicHotConfig(&hotAPI, oldCfg, newCfg, diff.TuicRelayChanges)
+	defer staged.finish()
+	effective := staged.effective
+	intermediate := *oldCfg
+	intermediate.InboundConfigs = nil
+	for _, inbound := range oldCfg.InboundConfigs {
+		if !inbound.TuicRelay {
+			intermediate.InboundConfigs = append(intermediate.InboundConfigs, inbound)
+		}
+	}
+	for _, inbound := range effective.InboundConfigs {
+		if inbound.TuicRelay {
+			intermediate.InboundConfigs = append(intermediate.InboundConfigs, inbound)
+		}
+	}
+	ordinary, hot := xray.ComputeHotDiff(&intermediate, effective)
+	if !hot || len(ordinary.TuicRelayChanges) > 0 {
+		relayErr = errors.Join(relayErr, staged.rollback(&hotAPI))
+		intermediate.InboundConfigs = oldCfg.InboundConfigs
+		process.SetConfig(&intermediate)
+		persistHotConfig(process)
+
+		return false, errors.Join(relayErr, errors.New("independent Xray changes could not be planned after TUIC reconciliation"))
+	}
+	if !applyXrayHotDiff(&hotAPI, ordinary) {
+		relayErr = errors.Join(relayErr, staged.rollback(&hotAPI))
+		intermediate.InboundConfigs = oldCfg.InboundConfigs
+		process.SetConfig(&intermediate)
+		persistHotConfig(process)
+		if relayErr != nil {
+			return false, relayErr
+		}
+		return false, nil
+	}
+	balancerOverrides.reapply(process, &hotAPI, effective)
+	process.SetConfig(effective)
+	persistHotConfig(process)
+	if relayErr != nil {
+		return false, relayErr
+	}
+	return true, nil
+}
+
+func applyXrayHotDiff(hotAPI *xray.XrayAPI, diff *xray.HotDiff) bool {
 	// Removals first so changed handlers and port swaps never collide with
 	// the additions that follow.
 	for _, u := range diff.RemovedUsers {
@@ -1511,19 +1671,19 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 		}
 	}
 	for _, ob := range diff.AddedOutbounds {
-		if err := addOutboundReconciling(&hotAPI, ob); err != nil {
+		if err := addOutboundReconciling(hotAPI, ob); err != nil {
 			logger.Info("hot apply: add outbound failed:", err)
 			return false
 		}
 	}
 	for _, ib := range diff.AddedInbounds {
-		if err := addInboundReconciling(&hotAPI, ib); err != nil {
+		if err := addInboundReconciling(hotAPI, ib); err != nil {
 			logger.Info("hot apply: add inbound failed:", err)
 			return false
 		}
 	}
 	for _, u := range diff.AddedUsers {
-		if err := addUserReconciling(&hotAPI, u); err != nil {
+		if err := addUserReconciling(hotAPI, u); err != nil {
 			logger.Info("hot apply: add user [", u.Email, "] to [", u.Tag, "] failed:", err)
 			return false
 		}
@@ -1534,11 +1694,6 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 			return false
 		}
 	}
-	// A routing reload rebuilds every balancer, and a removed outbound strands an override.
-	balancerOverrides.reapply(process, &hotAPI, newCfg)
-
-	process.SetConfig(newCfg)
-	persistHotConfig(process)
 	return true
 }
 
@@ -1611,13 +1766,16 @@ func (s *XrayService) StopXray() error {
 	if process != nil && process.IsRunning() {
 		return process.Stop()
 	}
-	return errors.New("xray is not running")
+	return ErrXrayNotRunning
 }
 
 // SetToNeedRestart marks that Xray needs to be restarted.
 func (s *XrayService) SetToNeedRestart() {
 	isNeedXrayRestart.Store(true)
 }
+
+// SetToNeedReconcile schedules config reconciliation without forcing an unchanged core to restart.
+func (s *XrayService) SetToNeedReconcile() { isNeedXrayReconcile.Store(true) }
 
 // GetXrayAPIPort returns the port the local xray process is listening on
 // for its gRPC HandlerService, or 0 when xray isn't currently running.
@@ -1636,17 +1794,22 @@ func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
 }
 
-// ApplyPendingRestart consumes the need-restart flag and restarts Xray. If the
-// restart fails (for example GetXrayConfig hits a transient DB error and leaves
-// the old process running), it re-arms the flag so the next tick retries instead
-// of silently dropping the pending config change.
+// ApplyPendingRestart re-arms the original flags when applying fails, so the next tick retries; a
+// reconcile retry never becomes a restart, which would disconnect unrelated clients.
 func (s *XrayService) ApplyPendingRestart() {
-	if !s.IsNeedRestartAndSetFalse() {
+	reconcile := isNeedXrayReconcile.Swap(false)
+	restart := s.IsNeedRestartAndSetFalse()
+	if !restart && !reconcile {
 		return
 	}
 	if err := s.RestartXray(false); err != nil {
-		logger.Error("restart xray failed:", err)
-		s.SetToNeedRestart()
+		logger.Error("reconcile xray failed:", err)
+		if restart {
+			s.SetToNeedRestart()
+		}
+		if reconcile {
+			s.SetToNeedReconcile()
+		}
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -128,19 +129,47 @@ func (c ClientResetCycle) Depleted() bool {
 	return c.Total > 0 && c.Used >= c.Total
 }
 
+func clientResetCycles(tx *gorm.DB) *gorm.DB {
+	return tx.Table("clients c").
+		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email")
+}
+
 // GetClientsByTrafficReset returns the clients whose own reset cycle matches the
 // period, independent of the cycle configured on the inbounds they belong to.
 func (s *ClientService) GetClientsByTrafficReset(period string) ([]ClientResetCycle, error) {
 	var cycles []ClientResetCycle
-	err := database.GetDB().Table("clients c").
-		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
-		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+	err := clientResetCycles(database.GetDB()).
 		Where("c.traffic_reset = ?", period).
 		Scan(&cycles).Error
 	if err != nil {
 		return nil, err
 	}
 	return cycles, nil
+}
+
+// quotaDisabledEmails lists the disabled clients whose usage reached their quota,
+// only those in within unless it is nil. Read it before zeroing the counters,
+// which hides why a client is off.
+func quotaDisabledEmails(tx *gorm.DB, within []string) ([]string, error) {
+	var cycles []ClientResetCycle
+	if err := clientResetCycles(tx).Where("c.enable = ?", false).Scan(&cycles).Error; err != nil {
+		return nil, err
+	}
+	var in map[string]bool
+	if within != nil {
+		in = make(map[string]bool, len(within))
+		for _, e := range within {
+			in[e] = true
+		}
+	}
+	var emails []string
+	for _, c := range cycles {
+		if c.Depleted() && (in == nil || in[c.Email]) {
+			emails = append(emails, c.Email)
+		}
+	}
+	return emails, nil
 }
 
 // Create applies the client to every requested inbound: one failing inbound no
@@ -418,6 +447,13 @@ func markInboundNodesDirty(inboundIds []int) error {
 }
 
 func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
+	return s.fillProtocolDefaultsAgainstExisting(c, ib, nil)
+}
+
+func (s *ClientService) fillProtocolDefaultsAgainstExisting(c *model.Client, ib *model.Inbound, existing []model.Client, identityEmail ...string) error {
+	if err := validateClientKeepAliveAgainstExisting(ib.Protocol, *c, existing, identityEmail...); err != nil {
+		return err
+	}
 	switch ib.Protocol {
 	case model.VMESS, model.VLESS:
 		if c.ID == "" {
@@ -441,6 +477,9 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
 		}
 	case model.TUIC:
+		if err := tuic.ValidateRelayEmail(c.Email); err != nil {
+			return err
+		}
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
@@ -648,6 +687,17 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientEmail(updated.Email); err != nil {
 		return false, err
 	}
+	if emailErr := tuic.ValidateRelayEmail(updated.Email); emailErr != nil {
+		var attached int64
+		if err := database.GetDB().Model(&model.Inbound{}).
+			Joins("JOIN client_inbounds ci ON ci.inbound_id = inbounds.id").
+			Where("ci.client_id = ? AND inbounds.protocol = ?", id, model.TUIC).Count(&attached).Error; err != nil {
+			return false, err
+		}
+		if attached > 0 {
+			return false, emailErr
+		}
+	}
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
@@ -659,6 +709,23 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	if err := validateClientTrafficReset(updated.TrafficReset, updated.TrafficResetDay); err != nil {
 		return false, err
+	}
+	existingClientsByInbound := make(map[int][]model.Client, len(attachedIds))
+	if updated.KeepAlive != nil {
+		for _, inboundID := range attachedIds {
+			inbound, getErr := inboundSvc.GetInbound(inboundID)
+			if getErr != nil {
+				return false, fmt.Errorf("inbound %d: %w", inboundID, getErr)
+			}
+			clients, getErr := inboundSvc.GetClients(inbound)
+			if getErr != nil {
+				return false, fmt.Errorf("inbound %d: %w", inboundID, getErr)
+			}
+			existingClientsByInbound[inboundID] = clients
+			if err := validateClientKeepAliveAgainstExisting(inbound.Protocol, updated, clients, existing.Email); err != nil {
+				return false, fmt.Errorf("inbound %d: %w", inboundID, err)
+			}
+		}
 	}
 	normalizeClientTrafficReset(&updated)
 	// List is canonical; single is a deprecated alias migrated on write.
@@ -739,7 +806,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if existing.Email == "" {
 			continue
 		}
-		if err := s.fillProtocolDefaults(&updated, inbound); err != nil {
+		if err := s.fillProtocolDefaultsAgainstExisting(&updated, inbound, existingClientsByInbound[ibId], existing.Email); err != nil {
 			return false, err
 		}
 		clientForInbound := updated
@@ -796,6 +863,10 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if len(inboundIds) == 0 {
 		merged := *existing
 		applyClientRecordMerge(&merged, updated.ToRecord())
+		keepAliveLegacy, keepAliveRange, keepAliveErr := model.KeepAliveStorage(merged.KeepAlive)
+		if keepAliveErr != nil {
+			return needRestart, keepAliveErr
+		}
 		if err := database.GetDB().Model(&model.ClientRecord{}).
 			Where("id = ?", id).
 			Updates(map[string]any{
@@ -806,13 +877,13 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"secret":               merged.Secret,
 				"flow":                 merged.Flow,
 				"security":             merged.Security,
-				"client_host_rule_id":  merged.ClientHostRuleId,
 				"client_host_rule_ids": model.EncodeClientHostRuleIds(merged.ClientHostRuleIds),
 				"wg_private_key":       merged.PrivateKey,
 				"wg_public_key":        merged.PublicKey,
 				"wg_allowed_ips":       merged.AllowedIPs,
 				"wg_pre_shared_key":    merged.PreSharedKey,
-				"wg_keep_alive":        merged.KeepAlive,
+				"wg_keep_alive":        keepAliveLegacy,
+				"wg_keep_alive_range":  keepAliveRange,
 				"limit_ip":             merged.LimitIP,
 				"total_gb":             merged.TotalGB,
 				"expiry_time":          merged.ExpiryTime,

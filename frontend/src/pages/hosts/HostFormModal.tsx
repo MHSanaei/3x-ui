@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
+import {
+  Alert,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Switch,
+  Tabs,
+  Typography,
+  message,
+} from 'antd';
 import {
   ProfileOutlined,
   SafetyCertificateOutlined,
@@ -18,6 +29,7 @@ import { BulkAddHostSchema, type BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { CipherSuitesSelect } from '@/components/form';
+import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -74,6 +86,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
+    randomCount: host?.randomCount ?? 1,
   };
 }
 
@@ -93,8 +106,14 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
+  const fingerprint = (useWatch({ control: methods.control, name: 'fingerprint' }) ?? '') as string;
+  const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
+  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
+  const isCipherSuitesEnabled = showTlsExtras && (!fingerprint || fingerprint === 'unsafe');
+  const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
+  const hasCidr = Boolean(watchedHosts?.some((h) => typeof h === 'string' && h.includes('/')));
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
@@ -255,6 +274,11 @@ export default function HostFormModal({
                         placeholder="cdn.example.com, cdn2.example.com:443"
                       />
                     </FormField>
+                    {hasCidr && (
+                      <FormField name="randomCount" label={t('pages.hosts.fields.randomCount')}>
+                        <InputNumber min={1} max={100} style={{ width: '100%' }} />
+                      </FormField>
+                    )}
                     <FormField
                       name="port"
                       label={t('pages.hosts.fields.port')}
@@ -342,7 +366,10 @@ export default function HostFormModal({
                           name="cipherSuites"
                           label={t('pages.inbounds.form.cipherSuites')}
                         >
-                          <CipherSuitesSelect />
+                          <CipherSuitesSelect
+                            disabled={!isCipherSuitesEnabled}
+                            placeholder={t('pages.inbounds.form.autoOption')}
+                          />
                         </FormField>
                         <FormField name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
                           <Select mode="tags" allowClear tokenSeparators={[',']} />
@@ -364,10 +391,34 @@ export default function HostFormModal({
                         </FormField>
                         <FormField
                           name="echConfigList"
-                          label={t('pages.hosts.fields.echConfigList')}
+                          label={t('pages.inbounds.form.echConfigList')}
+                          extra={
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {t('pages.inbounds.form.echConfigListHint')}
+                            </Typography.Text>
+                          }
                         >
-                          <Input.TextArea rows={2} />
+                          <Input.TextArea
+                            rows={2}
+                            placeholder={t('pages.inbounds.form.echDynamicPlaceholder')}
+                          />
                         </FormField>
+                        <Form.Item label=" " style={{ marginBottom: 8 }}>
+                          <DynamicEchHelper
+                            value={hostEchConfig}
+                            sni={hostSni}
+                            onApply={(next) =>
+                              methods.setValue('echConfigList', next, { shouldDirty: true })
+                            }
+                          />
+                        </Form.Item>
+                        <Alert
+                          type="info"
+                          showIcon
+                          data-testid="ech-cdn-warning"
+                          title={t('pages.inbounds.form.echCdnWarningTitle')}
+                          description={t('pages.inbounds.form.echCdnWarningBody')}
+                        />
                       </>
                     )}
                   </>
@@ -513,6 +564,7 @@ export default function HostFormModal({
                     <FormField
                       name="mihomoX25519"
                       label={t('pages.hosts.fields.mihomoX25519')}
+                      tooltip={t('pages.hosts.hints.mihomoX25519')}
                       valueProp="checked"
                     >
                       <Switch />

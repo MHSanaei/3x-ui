@@ -167,6 +167,29 @@ describe('SubscriptionGeneralTab', () => {
     },
   );
 
+  it.each([false, true])(
+    'updates the Clash remote DNS opt-in, not the routing switch, when stored as %s',
+    (enabled) => {
+      const updateSetting = vi.fn();
+
+      renderWithProviders(
+        <MemoryRouter initialEntries={['/settings#subscription']}>
+          <SubscriptionGeneralTab
+            allSetting={new AllSetting({ subClashEnableRouting: true, subClashRemoteDNS: enabled })}
+            updateSetting={updateSetting}
+          />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /Clash/ }));
+      const remoteDNSSwitch = screen.getByRole('switch', { name: 'Use DNS from remote rules' });
+      expect(remoteDNSSwitch.getAttribute('aria-checked')).toBe(String(enabled));
+      fireEvent.click(remoteDNSSwitch);
+
+      expect(updateSetting).toHaveBeenCalledExactlyOnceWith({ subClashRemoteDNS: !enabled });
+    },
+  );
+
   it('shows the Happ link gate from the QR settings deep link without enabling generation', () => {
     const updateSetting = vi.fn();
 

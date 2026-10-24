@@ -397,7 +397,7 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 5s`         | `xray_traffic_job`                                                                               | Pull traffic stats from Xray (5s start delay)                                         |
 | `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                                    |
 | `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                        |
-| `@every 10s`        | `check_client_ip_job`                                                                            | Enforce per-client IP limits                                                          |
+| `@every 10s`        | `check_client_ip_job`                                                                            | Record client IPs (30-min window) and enforce per-client IP limits                    |
 | `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                             |
 | `@every 10s`        | `amneziawg_job`                                                                                  | Reconcile embedded AmneziaWG interfaces against enabled local inbounds                |
 | `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                                     |

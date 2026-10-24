@@ -21,7 +21,7 @@ func TestAutoMigrateCreatesHotPathIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&model.ClientRecord{}, &xray.ClientTraffic{}, &model.ClientGlobalTraffic{}); err != nil {
+	if err := db.AutoMigrate(&model.ClientRecord{}, &xray.ClientTraffic{}, &model.ClientGlobalTraffic{}, &model.ApiToken{}); err != nil {
 		t.Fatalf("automigrate: %v", err)
 	}
 
@@ -33,6 +33,7 @@ func TestAutoMigrateCreatesHotPathIndexes(t *testing.T) {
 		{&xray.ClientTraffic{}, "idx_client_traffics_inbound"},
 		{&xray.ClientTraffic{}, "idx_client_traffics_renew"},
 		{&model.ClientGlobalTraffic{}, "idx_client_global_email"},
+		{&model.ApiToken{}, "idx_api_tokens_token"},
 	}
 	for _, c := range cases {
 		if !db.Migrator().HasIndex(c.model, c.index) {

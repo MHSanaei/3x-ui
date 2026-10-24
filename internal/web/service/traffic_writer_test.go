@@ -4,6 +4,12 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func TestTrafficWriterStartStopStartAcceptsWrites(t *testing.T) {
@@ -186,5 +192,122 @@ func waitTrafficWriterErr(t *testing.T, ch <-chan error) error {
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for traffic writer result")
 		return nil
+	}
+}
+
+// parkSerializedWriter holds the single writer inside an open transaction, so a write handed to it stays queued.
+func parkSerializedWriter(t *testing.T) (release func()) {
+	t.Helper()
+	entered := make(chan struct{})
+	releaseCh := make(chan struct{})
+	go func() {
+		_ = submitTrafficWrite(func() error {
+			return database.GetDB().Transaction(func(tx *gorm.DB) error {
+				close(entered)
+				<-releaseCh
+				return nil
+			})
+		})
+	}()
+	waitTrafficWriterSignal(t, entered, "serial writer did not enter its transaction")
+	return func() { close(releaseCh) }
+}
+
+// waitForQueuedWrite reports whether a write reached the writer queue instead of opening its own transaction.
+func waitForQueuedWrite() bool {
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		twMu.Lock()
+		queued := len(twQueue) > 0
+		twMu.Unlock()
+		if queued {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
+
+func waitWriterResult(t *testing.T, done <-chan error) error {
+	t.Helper()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for the queued write to finish")
+		return nil
+	}
+}
+
+// The poll and an admin mutation lock inbounds and client_traffics in opposite order, so a delete in its
+// own transaction can deadlock the poll on Postgres (40P01) and resurrect an inbound an edit just saved.
+func TestDelInboundRunsOnTheSerialWriter(t *testing.T) {
+	startSerializedWriter(t)
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	ib := mkInbound(t, 54101, model.VLESS, `{"clients": []}`)
+
+	release := parkSerializedWriter(t)
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := svc.delInbound(ib.Id)
+		done <- err
+	}()
+
+	queued := waitForQueuedWrite()
+	release()
+	if err := waitWriterResult(t, done); err != nil {
+		t.Fatalf("delInbound: %v", err)
+	}
+	if !queued {
+		t.Fatal("the inbound delete bypassed the serial traffic writer and opened its own transaction")
+	}
+	var remaining int64
+	if err := db.Model(&model.Inbound{}).Where("id = ?", ib.Id).Count(&remaining).Error; err != nil {
+		t.Fatalf("count inbounds: %v", err)
+	}
+	if remaining != 0 {
+		t.Fatalf("inbound %d still present after the delete", ib.Id)
+	}
+}
+
+// The purge writes inbounds and client_traffics in the opposite order to the poll, so off the writer it
+// can deadlock the poll on Postgres (40P01).
+func TestDelDepletedClientsRunsOnTheSerialWriter(t *testing.T) {
+	startSerializedWriter(t)
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	clients := []model.Client{{Email: "depleted@x", ID: "aaaaaaaa-0000-0000-0000-000000000301", Enable: true}}
+	ib := mkInbound(t, 54102, model.VLESS, clientsSettings(t, clients))
+	if err := (&ClientService{}).SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	mkTraffic(t, ib.Id, "depleted@x", 60, 60, 100, 0, true)
+
+	release := parkSerializedWriter(t)
+	done := make(chan error, 1)
+	go func() { done <- svc.DelDepletedClients(-1) }()
+
+	queued := waitForQueuedWrite()
+	release()
+	if err := waitWriterResult(t, done); err != nil {
+		t.Fatalf("DelDepletedClients: %v", err)
+	}
+	if !queued {
+		t.Fatal("the depleted-client purge bypassed the serial traffic writer and opened its own transaction")
+	}
+	var inbounds int64
+	if err := db.Model(&model.Inbound{}).Where("id = ?", ib.Id).Count(&inbounds).Error; err != nil {
+		t.Fatalf("count inbounds: %v", err)
+	}
+	if inbounds != 0 {
+		t.Fatalf("depleted inbound %d still present after the purge", ib.Id)
+	}
+	var traffics int64
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", "depleted@x").Count(&traffics).Error; err != nil {
+		t.Fatalf("count traffic rows: %v", err)
+	}
+	if traffics != 0 {
+		t.Fatalf("traffic rows for the depleted client = %d, want 0", traffics)
 	}
 }

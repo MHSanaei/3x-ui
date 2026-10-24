@@ -998,19 +998,11 @@ func amneziaWGHeaderOrDefault(value, fallback string) string {
 // frontend's genAmneziaWGConfig produces (same field order, same optional-field
 // conditionals) -- this is the payload wrapped into vpn:// links below.
 func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client, host string, port int, remark string) string {
-	// These land unescaped in [Interface]; a newline here would inject a
-	// config line (e.g. a rogue PostUp) into the subscriber's .conf.
-	for _, v := range []string{client.PrivateKey, server.PrimaryDNS, server.SecondaryDNS, remark} {
-		if strings.ContainsAny(v, "\r\n") {
-			return ""
-		}
+	lines := []string{
+		"[Interface]",
+		"PrivateKey = " + client.PrivateKey,
+		"Address = " + strings.Join(client.AllowedIPs, ", "),
 	}
-
-	var b strings.Builder
-
-	b.WriteString("[Interface]\n")
-	fmt.Fprintf(&b, "PrivateKey = %s\n", client.PrivateKey)
-	fmt.Fprintf(&b, "Address = %s\n", strings.Join(client.AllowedIPs, ", "))
 
 	var dns []string
 	if server.PrimaryDNS != "" {
@@ -1020,30 +1012,34 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 		dns = append(dns, server.SecondaryDNS)
 	}
 	if len(dns) > 0 {
-		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
+		lines = append(lines, "DNS = "+strings.Join(dns, ", "))
 	}
 	// Always emitted: a missing MTU line leaves the client on its own 1420
 	// default and fragments the client-to-server direction once S4 passes 20.
-	fmt.Fprintf(&b, "MTU = %d\n", amneziawg.EffectiveMTU(server.MTU, server.S4))
+	lines = append(lines, fmt.Sprintf("MTU = %d", amneziawg.EffectiveMTU(server.MTU, server.S4)))
 
-	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
-	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)
-	fmt.Fprintf(&b, "Jmax = %d\n", server.Jmax)
-	fmt.Fprintf(&b, "S1 = %d\n", server.S1)
-	fmt.Fprintf(&b, "S2 = %d\n", server.S2)
+	lines = append(lines,
+		fmt.Sprintf("Jc = %d", server.Jc),
+		fmt.Sprintf("Jmin = %d", server.Jmin),
+		fmt.Sprintf("Jmax = %d", server.Jmax),
+		fmt.Sprintf("S1 = %d", server.S1),
+		fmt.Sprintf("S2 = %d", server.S2),
+	)
 	if server.S3 > 0 {
-		fmt.Fprintf(&b, "S3 = %d\n", server.S3)
+		lines = append(lines, fmt.Sprintf("S3 = %d", server.S3))
 	}
 	if server.S4 > 0 {
-		fmt.Fprintf(&b, "S4 = %d\n", server.S4)
+		lines = append(lines, fmt.Sprintf("S4 = %d", server.S4))
 	}
-	fmt.Fprintf(&b, "H1 = %s\n", amneziaWGHeaderOrDefault(server.H1, "1"))
-	fmt.Fprintf(&b, "H2 = %s\n", amneziaWGHeaderOrDefault(server.H2, "2"))
-	fmt.Fprintf(&b, "H3 = %s\n", amneziaWGHeaderOrDefault(server.H3, "3"))
-	fmt.Fprintf(&b, "H4 = %s\n", amneziaWGHeaderOrDefault(server.H4, "4"))
+	lines = append(lines,
+		"H1 = "+amneziaWGHeaderOrDefault(server.H1, "1"),
+		"H2 = "+amneziaWGHeaderOrDefault(server.H2, "2"),
+		"H3 = "+amneziaWGHeaderOrDefault(server.H3, "3"),
+		"H4 = "+amneziaWGHeaderOrDefault(server.H4, "4"),
+	)
 	for i, v := range []string{server.I1, server.I2, server.I3, server.I4, server.I5} {
 		if v != "" {
-			fmt.Fprintf(&b, "I%d = %s\n", i+1, v)
+			lines = append(lines, fmt.Sprintf("I%d = %s", i+1, v))
 		}
 	}
 	optional := []struct{ key, v string }{
@@ -1057,33 +1053,40 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	}
 	for _, p := range optional {
 		if p.v != "" {
-			fmt.Fprintf(&b, "%s = %s\n", p.key, p.v)
+			lines = append(lines, p.key+" = "+p.v)
 		}
 	}
 	if server.RandomTrailers {
-		b.WriteString("RandomTrailers = on\n")
+		lines = append(lines, "RandomTrailers = on")
 	}
 	if server.DisableCookies {
-		b.WriteString("DisableCookies = on\n")
+		lines = append(lines, "DisableCookies = on")
 	}
 
 	// Peer field order follows wg-quick(8) and the panel's other two AmneziaWG
 	// emitters (genAmneziaWGConfig, buildAmneziaWGClientConfig); all three are
 	// independent implementations, so any drift here is invisible until a user
 	// compares a subscription link against a downloaded .conf.
-	fmt.Fprintf(&b, "\n# %s\n", remark)
-	b.WriteString("[Peer]\n")
-	fmt.Fprintf(&b, "PublicKey = %s\n", server.PublicKey)
+	lines = append(lines, "", "# "+remark, "[Peer]", "PublicKey = "+server.PublicKey)
 	if client.PreSharedKey != "" {
-		fmt.Fprintf(&b, "PresharedKey = %s\n", client.PreSharedKey)
+		lines = append(lines, "PresharedKey = "+client.PreSharedKey)
 	}
-	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
-	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
-	if ka := client.KeepAliveSeconds(); ka > 0 {
-		fmt.Fprintf(&b, "\nPersistentKeepalive = %d", ka)
+	lines = append(lines, "AllowedIPs = 0.0.0.0/0, ::/0", fmt.Sprintf("Endpoint = %s:%d", host, port))
+	if client.KeepAlive != nil {
+		keepAlive := client.KeepAliveText()
+		if (strings.Contains(keepAlive, "-") && client.KeepAlive.Validate(true) == nil) || client.KeepAlive.Seconds() > 0 {
+			lines = append(lines, "PersistentKeepalive = "+keepAlive)
+		}
 	}
 
-	return b.String()
+	// A control character would split its line, and the split can re-open
+	// [Interface], whose PostUp runs as root wherever awg-quick applies this.
+	for _, line := range lines {
+		if amneziawg.ValidateConfigValue("config line", line) != nil {
+			return ""
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // genAmneziaWGLink builds a per-client vpn://<base64url .conf text> share
@@ -1879,6 +1882,11 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
+		if csValue, ok := searchKey(tlsSetting, "cipherSuites"); ok {
+			if cs, _ := csValue.(string); cs != "" {
+				params["cs"] = cs
+			}
+		}
 	}
 }
 
@@ -1913,6 +1921,11 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
+		}
+		if csValue, ok := searchKey(tlsSetting, "cipherSuites"); ok {
+			if cs, _ := csValue.(string); cs != "" {
+				obj["cs"] = cs
+			}
 		}
 	}
 }
@@ -2060,7 +2073,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs") {
+		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs" && key != "cs") {
 			newObj[key] = value
 		}
 	}
@@ -2089,6 +2102,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		obj["ech"] = ech
 	}
+	if cs, ok := externalProxyCipherSuites(ep); ok {
+		obj["cs"] = cs
+	}
 }
 
 func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
@@ -2113,6 +2129,9 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		params["ech"] = ech
 	}
+	if cs, ok := externalProxyCipherSuites(ep); ok {
+		params["cs"] = cs
+	}
 }
 
 // applyExternalProxyHysteriaParams overrides the cert pin for a single
@@ -2136,22 +2155,36 @@ func applyExternalProxyHysteriaParams(ep map[string]any, params map[string]strin
 	}
 }
 
-// cloneStreamForExternalProxy returns a shallow clone of stream with
-// tlsSettings (and its nested settings map) deep-copied. The external
-// proxy loop mutates tlsSettings per iteration, so without isolating
-// those maps each proxy's SNI/fingerprint/ALPN would leak into the next.
+// cloneStreamForExternalProxy deep-copies stream: every endpoint overrides nested
+// maps in place, so a shared map leaks one host's SNI/fp/host/path into the next.
 func cloneStreamForExternalProxy(stream map[string]any) map[string]any {
-	out := cloneMap(stream)
-	ts, ok := out["tlsSettings"].(map[string]any)
-	if !ok || ts == nil {
-		return out
-	}
-	clonedTs := cloneMap(ts)
-	if inner, ok := clonedTs["settings"].(map[string]any); ok && inner != nil {
-		clonedTs["settings"] = cloneMap(inner)
-	}
-	out["tlsSettings"] = clonedTs
+	out, _ := deepCopyJSONValue(stream).(map[string]any)
 	return out
+}
+
+func deepCopyJSONValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		if val == nil {
+			return val
+		}
+		out := make(map[string]any, len(val))
+		for k, item := range val {
+			out[k] = deepCopyJSONValue(item)
+		}
+		return out
+	case []any:
+		if val == nil {
+			return val
+		}
+		out := make([]any, len(val))
+		for i, item := range val {
+			out[i] = deepCopyJSONValue(item)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, security string) {
@@ -2207,6 +2240,13 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 		}
 		settings["allowInsecure"] = true
 	}
+}
+
+func externalProxyCipherSuites(ep map[string]any) (string, bool) {
+	if cs, ok := ep["cipherSuites"].(string); ok && cs != "" {
+		return cs, true
+	}
+	return "", false
 }
 
 func externalProxySNI(ep map[string]any) (string, bool) {
@@ -2355,7 +2395,7 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 			if securityOverride != "" && k == "security" {
 				v = securityOverride
 			}
-			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs") {
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs" || k == "cs") {
 				continue
 			}
 			q.Set(k, v)

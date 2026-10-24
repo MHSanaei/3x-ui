@@ -14,6 +14,7 @@ ExecStart=/usr/local/x-ui/x-ui
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s
+KillMode=mixed
 
 # The panel intentionally stays root: it supervises the Xray child processes,
 # edits netfilter state and reads TLS private keys. These settings only bound

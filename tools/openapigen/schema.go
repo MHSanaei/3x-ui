@@ -31,12 +31,13 @@ type Field struct {
 }
 
 type TypeRef struct {
-	Kind    TypeKind
-	Name    string
-	Element *TypeRef
-	Key     *TypeRef
-	Value   *TypeRef
-	Inner   *TypeRef
+	Kind     TypeKind
+	Name     string
+	Element  *TypeRef
+	Key      *TypeRef
+	Value    *TypeRef
+	Inner    *TypeRef
+	Variants []TypeRef
 }
 
 type TypeKind string
@@ -48,6 +49,7 @@ const (
 	KindBool    TypeKind = "boolean"
 	KindArray   TypeKind = "array"
 	KindMap     TypeKind = "map"
+	KindUnion   TypeKind = "union"
 	KindObject  TypeKind = "object"
 	KindRef     TypeKind = "ref"
 	KindUnknown TypeKind = "unknown"

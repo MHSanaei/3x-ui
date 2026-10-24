@@ -1,5 +1,6 @@
 import { Base64, Wireguard } from '@/utils';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
+import { AmneziaWGKeepAliveRangeSchema } from '@/schemas/primitives/keepalive';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
@@ -14,6 +15,7 @@ import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalma
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
 import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
+import { hasWgQuickHook, joinConfLines } from './conf-lines';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
@@ -233,6 +235,8 @@ function applyExternalProxyTLSObj(
   }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0)
     obj.ech = externalProxy.echConfigList;
+  if (externalProxy.cipherSuites && externalProxy.cipherSuites.length > 0)
+    obj.cs = externalProxy.cipherSuites;
 }
 
 export interface GenVmessLinkInput {
@@ -335,6 +339,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
       obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
     }
+    if (tlsSettings.cipherSuites && tlsSettings.cipherSuites.length > 0) {
+      obj.cs = tlsSettings.cipherSuites;
+    }
   }
 
   applyExternalProxyTLSObj(externalProxy, obj, tls);
@@ -392,6 +399,8 @@ function applyExternalProxyTLSParams(
   }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0)
     params.set('ech', externalProxy.echConfigList);
+  if (externalProxy.cipherSuites && externalProxy.cipherSuites.length > 0)
+    params.set('cs', externalProxy.cipherSuites);
 }
 
 export interface GenVlessLinkInput {
@@ -494,6 +503,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       }
       if (tls.settings.pinnedPeerCertSha256.length > 0) {
         params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+      }
+      if (tls.cipherSuites && tls.cipherSuites.length > 0) {
+        params.set('cs', tls.cipherSuites);
       }
     }
     applyExternalProxyTLSParams(externalProxy, params, security);
@@ -599,6 +611,9 @@ function writeTlsParams(
   }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+  }
+  if (tls.cipherSuites && tls.cipherSuites.length > 0) {
+    params.set('cs', tls.cipherSuites);
   }
 }
 
@@ -1016,25 +1031,24 @@ export function genWireguardConfig(input: GenWireguardLinkInput): string {
   const pubKey =
     settings.secretKey.length > 0 ? Wireguard.generateKeypair(settings.secretKey).publicKey : '';
 
-  let txt = `[Interface]\n`;
-  txt += `PrivateKey = ${peer.privateKey ?? ''}\n`;
-  txt += `Address = ${peer.allowedIPs.join(', ')}\n`;
-  txt += `DNS = ${settings.dns || '1.1.1.1, 1.0.0.1'}\n`;
+  const lines = [
+    '[Interface]',
+    `PrivateKey = ${peer.privateKey ?? ''}`,
+    `Address = ${peer.allowedIPs.join(', ')}`,
+    `DNS = ${settings.dns || '1.1.1.1, 1.0.0.1'}`,
+  ];
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
-    txt += `MTU = ${settings.mtu}\n`;
+    lines.push(`MTU = ${settings.mtu}`);
   }
-  txt += `\n# ${remark}\n`;
-  txt += `[Peer]\n`;
-  txt += `PublicKey = ${pubKey}\n`;
-  txt += `AllowedIPs = 0.0.0.0/0, ::/0\n`;
-  txt += `Endpoint = ${address}:${port}`;
+  lines.push('', `# ${remark}`, '[Peer]', `PublicKey = ${pubKey}`, 'AllowedIPs = 0.0.0.0/0, ::/0');
+  lines.push(`Endpoint = ${address}:${port}`);
   if (peer.preSharedKey && peer.preSharedKey.length > 0) {
-    txt += `\nPresharedKey = ${peer.preSharedKey}`;
+    lines.push(`PresharedKey = ${peer.preSharedKey}`);
   }
   if (typeof peer.keepAlive === 'number' && peer.keepAlive > 0) {
-    txt += `\nPersistentKeepalive = ${peer.keepAlive}\n`;
+    lines.push(`PersistentKeepalive = ${peer.keepAlive}`, '');
   }
-  return txt;
+  return joinConfLines(lines);
 }
 
 // Shared input shape for both the per-client vpn:// link and .conf
@@ -1086,39 +1100,25 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   if (!client) return '';
   const server = settings.server;
 
-  // These land unescaped in the .conf; a newline would inject a config line
-  // (e.g. a rogue PostUp) — same guard as the panel's other two emitters.
-  for (const v of [
-    client.privateKey ?? '',
-    server.primaryDns ?? '',
-    server.secondaryDns ?? '',
-    remark,
-  ]) {
-    if (/[\r\n]/.test(v)) return '';
-  }
-
-  let txt = `[Interface]\n`;
-  txt += `PrivateKey = ${client.privateKey ?? ''}\n`;
-  txt += `Address = ${(client.allowedIPs ?? []).join(', ')}\n`;
+  const lines = [
+    '[Interface]',
+    `PrivateKey = ${client.privateKey ?? ''}`,
+    `Address = ${(client.allowedIPs ?? []).join(', ')}`,
+  ];
   const dns = [server.primaryDns, server.secondaryDns].filter((v) => !!v && v.trim() !== '');
-  if (dns.length > 0) txt += `DNS = ${dns.join(', ')}\n`;
-  txt += `MTU = ${effectiveMtu(server.mtu, server.s4)}\n`;
-  txt += `Jc = ${server.jc}\n`;
-  txt += `Jmin = ${server.jmin}\n`;
-  txt += `Jmax = ${server.jmax}\n`;
-  txt += `S1 = ${server.s1}\n`;
-  txt += `S2 = ${server.s2}\n`;
-  if (server.s3) txt += `S3 = ${server.s3}\n`;
-  if (server.s4) txt += `S4 = ${server.s4}\n`;
-  txt += `${amneziaWGHLine('H1', server.h1, '1')}\n`;
-  txt += `${amneziaWGHLine('H2', server.h2, '2')}\n`;
-  txt += `${amneziaWGHLine('H3', server.h3, '3')}\n`;
-  txt += `${amneziaWGHLine('H4', server.h4, '4')}\n`;
-  if (server.i1) txt += `I1 = ${server.i1}\n`;
-  if (server.i2) txt += `I2 = ${server.i2}\n`;
-  if (server.i3) txt += `I3 = ${server.i3}\n`;
-  if (server.i4) txt += `I4 = ${server.i4}\n`;
-  if (server.i5) txt += `I5 = ${server.i5}\n`;
+  if (dns.length > 0) lines.push(`DNS = ${dns.join(', ')}`);
+  lines.push(`MTU = ${effectiveMtu(server.mtu, server.s4)}`);
+  lines.push(`Jc = ${server.jc}`, `Jmin = ${server.jmin}`, `Jmax = ${server.jmax}`);
+  lines.push(`S1 = ${server.s1}`, `S2 = ${server.s2}`);
+  if (server.s3) lines.push(`S3 = ${server.s3}`);
+  if (server.s4) lines.push(`S4 = ${server.s4}`);
+  lines.push(amneziaWGHLine('H1', server.h1, '1'), amneziaWGHLine('H2', server.h2, '2'));
+  lines.push(amneziaWGHLine('H3', server.h3, '3'), amneziaWGHLine('H4', server.h4, '4'));
+  if (server.i1) lines.push(`I1 = ${server.i1}`);
+  if (server.i2) lines.push(`I2 = ${server.i2}`);
+  if (server.i3) lines.push(`I3 = ${server.i3}`);
+  if (server.i4) lines.push(`I4 = ${server.i4}`);
+  if (server.i5) lines.push(`I5 = ${server.i5}`);
   const optional31: Array<[string, string | undefined]> = [
     ['HeaderProtectionKey', server.headerProtectionKey],
     ['ContentPaddingAddition', server.contentPaddingAddition],
@@ -1129,25 +1129,25 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
     ['MaxHandshakeAttempts', server.maxHandshakeAttempts],
   ];
   for (const [key, value] of optional31) {
-    if (value && value.trim() !== '') txt += `${key} = ${value}\n`;
+    if (value && value.trim() !== '') lines.push(`${key} = ${value}`);
   }
-  if (server.randomTrailers) txt += `RandomTrailers = on\n`;
-  if (server.disableCookies) txt += `DisableCookies = on\n`;
+  if (server.randomTrailers) lines.push('RandomTrailers = on');
+  if (server.disableCookies) lines.push('DisableCookies = on');
   // Peer field order follows wg-quick(8) and the panel's other two AmneziaWG
   // emitters (amneziaWGConfigText in Go, buildAmneziaWGClientConfig); all three
   // are independent implementations and must not drift apart.
-  txt += `\n# ${remark}\n`;
-  txt += `[Peer]\n`;
-  txt += `PublicKey = ${server.publicKey ?? ''}\n`;
+  lines.push('', `# ${remark}`, '[Peer]', `PublicKey = ${server.publicKey ?? ''}`);
   if (client.preSharedKey && client.preSharedKey.length > 0) {
-    txt += `PresharedKey = ${client.preSharedKey}\n`;
+    lines.push(`PresharedKey = ${client.preSharedKey}`);
   }
-  txt += `AllowedIPs = 0.0.0.0/0, ::/0\n`;
-  txt += `Endpoint = ${address}:${port}`;
-  if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
-    txt += `\nPersistentKeepalive = ${client.keepAlive}`;
+  lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${address}:${port}`);
+  if (typeof client.keepAlive === 'string') {
+    if (!AmneziaWGKeepAliveRangeSchema.safeParse(client.keepAlive).success) return '';
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  } else if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   }
-  return txt;
+  return joinConfLines(lines);
 }
 
 export interface GenAmneziaWGFanoutInput {
@@ -1253,7 +1253,7 @@ export function wireguardConfigFromLink(link: string, fallbackRemark = ''): stri
   if (psk) lines.push(`PresharedKey = ${psk}`);
   lines.push(`AllowedIPs = ${allowedIPs}`, `Endpoint = ${endpoint}`);
   if (keepAlive && Number(keepAlive) > 0) lines.push(`PersistentKeepalive = ${keepAlive}`);
-  return lines.join('\n');
+  return joinConfLines(lines);
 }
 
 // Reverse of toBase64Url above -- recovers a vpn:// link's plain .conf
@@ -1278,7 +1278,8 @@ export function amneziawgConfigFromLink(link: string): string {
   const trimmed = link.trim();
   if (!trimmed.startsWith('vpn://')) return '';
   try {
-    return fromBase64Url(trimmed.slice('vpn://'.length));
+    const conf = fromBase64Url(trimmed.slice('vpn://'.length));
+    return hasWgQuickHook(conf) ? '' : conf;
   } catch {
     return '';
   }

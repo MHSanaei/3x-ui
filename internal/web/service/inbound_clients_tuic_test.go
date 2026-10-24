@@ -66,9 +66,10 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 	}
 }
 
-func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
+func TestTuicClientMutationsRequestRelayReconciliation(t *testing.T) {
 	setupConflictDB(t)
-	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}})
+	resyncs := 0
+	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, RequestReconcile: func() { resyncs++ }})
 	runtime.SetManager(mgr)
 	t.Cleanup(func() { runtime.SetManager(nil) })
 
@@ -91,6 +92,7 @@ func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
 		t.Fatalf("AddInbound failed: %v", err)
 	}
 
+	resyncs = 0
 	addPayload := &model.Inbound{
 		Id:       created.Id,
 		Settings: `{"clients":[{"id":"a0000000-0000-0000-0000-000000000002","password":"p2","email":"user2@tuic.com","enable":true}]}`,
@@ -102,6 +104,10 @@ func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
 	if needRestart {
 		t.Fatal("expected needRestart = false when adding TUIC client")
 	}
+	if resyncs == 0 {
+		t.Fatal("adding a TUIC client did not request an Xray relay account refresh")
+	}
+	resyncs = 0
 
 	updatePayload := &model.Inbound{
 		Id:       created.Id,
@@ -114,6 +120,10 @@ func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
 	if needRestart {
 		t.Fatal("expected needRestart = false when updating TUIC client")
 	}
+	if resyncs == 0 {
+		t.Fatal("updating a TUIC client did not request an Xray relay account refresh")
+	}
+	resyncs = 0
 
 	needRestart, err = clientSvc.DelInboundClientByEmail(inboundSvc, created.Id, "user2@tuic.com", false, true)
 	if err != nil {
@@ -121,5 +131,8 @@ func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
 	}
 	if needRestart {
 		t.Fatal("expected needRestart = false when deleting TUIC client")
+	}
+	if resyncs == 0 {
+		t.Fatal("deleting a TUIC client did not request an Xray relay account refresh")
 	}
 }

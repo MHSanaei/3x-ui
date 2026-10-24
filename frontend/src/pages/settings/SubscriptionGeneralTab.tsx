@@ -459,6 +459,16 @@ export default function SubscriptionGeneralTab({
                   onChange={(e) => updateSetting({ subClashRules: e.target.value })}
                 />
               </SettingListItem>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subClashRemoteDNS')}
+                description={t('pages.settings.subClashRemoteDNSDesc')}
+              >
+                <Switch
+                  checked={allSetting.subClashRemoteDNS}
+                  onChange={(v) => updateSetting({ subClashRemoteDNS: v })}
+                />
+              </SettingListItem>
             </>
           ),
         },

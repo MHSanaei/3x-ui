@@ -83,12 +83,22 @@ jobs:
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars)$' -count=1 -v | tee /tmp/postgres-schema.log
           # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
-          if [ "$passed" -lt 4 ]; then
-            echo "expected at least 4 passing PostgreSQL schema tests, got $passed" >&2
+          if [ "$passed" -lt 5 ]; then
+            echo "expected at least 5 passing PostgreSQL schema tests, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL Telegram lookup and legacy migration tests
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^(TestGetClientTrafficTgBot_IndexedPostgres|TestGetClientTrafficTgBot_SettingsSerializationStyles)$' -count=1 -v | tee /tmp/postgres-tgbot.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-tgbot.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected 2 passing PostgreSQL Telegram lookup tests, got $passed" >&2
             exit 1
           fi
 
