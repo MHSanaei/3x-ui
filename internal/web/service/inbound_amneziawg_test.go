@@ -10,6 +10,7 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -144,7 +145,7 @@ func TestNormalizeAmneziaWGSettings_GeneratesFull31Set(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
 	inbound := &model.Inbound{Protocol: model.AmneziaWG, Port: 51820, Settings: ""}
-	if err := svc.normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := svc.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("normalize empty settings: %v", err)
 	}
 
@@ -199,7 +200,7 @@ func TestNormalizeAmneziaWGSettings_RejectsBad31Values(t *testing.T) {
 			Port:     51820,
 			Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24,` + c.snippet + `},"clients":[]}`,
 		}
-		if err := svc.normalizeAmneziaWGSettings(inbound, ""); err == nil {
+		if err := svc.normalizeAmneziaWGSettings(inbound, nil); err == nil {
 			t.Errorf("%s must be rejected", c.name)
 		}
 	}
@@ -214,7 +215,7 @@ func TestNormalizeAmneziaWGSettings_CanonicalizesRangeValues(t *testing.T) {
 		Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24,` +
 			`"rekeyAfterTime":"110 - 140","rejectAfterTime":"190-250","keepaliveTimeout":"   "},"clients":[]}`,
 	}
-	if err := svc.normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := svc.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	var parsed amneziawg.InboundSettings
@@ -256,7 +257,7 @@ func TestNormalizeAmneziaWGSettings_RejectsInjectedClientAllowedIPs(t *testing.T
 			`"clients":[{"email":"a@x","enable":true,"publicKey":"pk",` +
 			`"allowedIPs":["10.8.1.2/32\n[Interface]\nPostUp = touch /tmp/pwned"]}]}`,
 	}
-	err := svc.normalizeAmneziaWGSettings(inbound, "")
+	err := svc.normalizeAmneziaWGSettings(inbound, nil)
 	if err == nil {
 		t.Fatalf("an allowedIPs entry carrying a config-injection payload must be rejected; settings became:\n%s", inbound.Settings)
 	}
@@ -298,7 +299,7 @@ func TestNormalizeAmneziaWGSettings_CanonicalizesClientAllowedIPs(t *testing.T) 
 		Settings: `{"server":{"privateKey":"x","publicKey":"y","subnetIp":"10.8.1.0","subnetCidr":24},` +
 			`"clients":[{"email":"a@x","enable":true,"publicKey":"pk","allowedIPs":[" 10.8.1.2 "]}]}`,
 	}
-	if err := svc.normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := svc.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	var parsed amneziawg.InboundSettings
@@ -433,7 +434,7 @@ func TestNormalizeAmneziaWGSettingsKeepsClearedDNS(t *testing.T) {
 		t.Fatalf("marshal settings: %v", err)
 	}
 	inbound := &model.Inbound{Protocol: model.AmneziaWG, Settings: string(bs)}
-	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("normalizeAmneziaWGSettings: %v", err)
 	}
 	for _, key := range []string{`"primaryDns"`, `"secondaryDns"`} {
@@ -452,7 +453,7 @@ func TestNormalizeAmneziaWGSettings_RejectsEmptyClientAllowedIPs(t *testing.T) {
 		"server": {"privateKey":"` + awgTestPrivateKey + `","publicKey":"` + awgTestPublicKey + `","subnetIp":"10.8.1.0","subnetCidr":24},
 		"clients": [{"email":"ghost","enable":true,"publicKey":"` + awgTestPublicKey + `","allowedIPs":[]}]
 	}`}
-	err := svc.normalizeAmneziaWGSettings(inbound, "")
+	err := svc.normalizeAmneziaWGSettings(inbound, nil)
 	if err == nil || !strings.Contains(err.Error(), "allowedIPs is required") {
 		t.Fatalf("err = %v, want an allowedIPs refusal naming the client", err)
 	}
@@ -469,7 +470,7 @@ func TestNormalizeAmneziaWGSettings_KeepsStoredServerKeysWhenOmitted(t *testing.
 	stored := `{"server":{"privateKey":"` + awgTestPrivateKey + `","publicKey":"` + awgTestPublicKey + `","subnetIp":"10.8.1.0","subnetCidr":24}}`
 
 	inbound := &model.Inbound{Protocol: model.AmneziaWG, Port: 51824, Settings: `{"server":{"subnetIp":"10.8.1.0","subnetCidr":24,"randomTrailers":true}}`}
-	if err := svc.normalizeAmneziaWGSettings(inbound, stored); err != nil {
+	if err := svc.normalizeAmneziaWGSettings(inbound, &model.Inbound{Settings: stored}); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	var parsed amneziawg.InboundSettings
@@ -487,7 +488,7 @@ func TestNormalizeAmneziaWGSettings_DerivesServerPublicKeyFromPrivate(t *testing
 	setupConflictDB(t)
 	svc := &InboundService{}
 	inbound := &model.Inbound{Protocol: model.AmneziaWG, Port: 51825, Settings: `{"server":{"privateKey":"` + awgTestPrivateKey + `","subnetIp":"10.8.1.0","subnetCidr":24}}`}
-	if err := svc.normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := svc.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
 	var parsed amneziawg.InboundSettings
@@ -520,7 +521,7 @@ func TestNormalizeAmneziaWGSettingsDefersNodeKernelPreflightToRemoteHost(t *test
 		Port:     51820,
 		Settings: string(settings),
 	}
-	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		t.Fatalf("master must defer kernel readiness to the target node: %v", err)
 	}
 	var normalized amneziawg.InboundSettings
@@ -529,5 +530,53 @@ func TestNormalizeAmneziaWGSettingsDefersNodeKernelPreflightToRemoteHost(t *test
 	}
 	if normalized.Server == nil || !normalized.Server.KernelMode {
 		t.Fatalf("normalized node settings lost kernel mode: %+v", normalized.Server)
+	}
+}
+
+// TestNormalizeAmneziaWGSettingsGatesHostReadinessOnlyWhenEnablingKernelMode:
+// a host that loses its module after enabling must not lock the inbound's edits.
+func TestNormalizeAmneziaWGSettingsGatesHostReadinessOnlyWhenEnablingKernelMode(t *testing.T) {
+	setupConflictDB(t)
+	if amneziawgkern.HostReadiness().Ready {
+		t.Skip("this host can run kernel mode, so host readiness cannot refuse anything here")
+	}
+	server, err := defaultAmneziaWGServer()
+	if err != nil {
+		t.Fatalf("defaultAmneziaWGServer: %v", err)
+	}
+	embeddedServer := *server
+	server.KernelMode = true
+	kernelSettings, err := json.Marshal(amneziawg.InboundSettings{Server: server, Clients: []model.Client{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	embeddedSettings, err := json.Marshal(amneziawg.InboundSettings{Server: &embeddedServer, Clients: []model.Client{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernelRow := func(enable bool) *model.Inbound {
+		return &model.Inbound{Protocol: model.AmneziaWG, Enable: enable, Settings: string(kernelSettings)}
+	}
+	cases := []struct {
+		name        string
+		enable      bool
+		old         *model.Inbound
+		wantRefused bool
+	}{
+		{"new inbound turns kernel mode on", true, nil, true},
+		{"embedded inbound switches to kernel mode", true, &model.Inbound{Protocol: model.AmneziaWG, Enable: true, Settings: string(embeddedSettings)}, true},
+		{"disabled kernel inbound is enabled", true, kernelRow(false), true},
+		{"running kernel inbound is edited", true, kernelRow(true), false},
+		{"running kernel inbound is disabled", false, kernelRow(true), false},
+		{"disabled inbound saved with kernel mode", false, nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			inbound := &model.Inbound{Protocol: model.AmneziaWG, Port: 51820, Enable: tc.enable, Settings: string(kernelSettings)}
+			err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, tc.old)
+			if refused := err != nil && strings.Contains(err.Error(), "kernel mode unavailable"); refused != tc.wantRefused {
+				t.Fatalf("refused = %v (err %v), want %v", refused, err, tc.wantRefused)
+			}
+		})
 	}
 }

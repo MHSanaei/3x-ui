@@ -133,8 +133,12 @@ func amneziawgKernelMode(ib *model.Inbound) bool {
 	if ib == nil || ib.Protocol != model.AmneziaWG {
 		return false
 	}
+	return amneziawgKernelModeSettings(ib.Settings)
+}
+
+func amneziawgKernelModeSettings(raw string) bool {
 	var settings amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil || settings.Server == nil {
+	if err := json.Unmarshal([]byte(raw), &settings); err != nil || settings.Server == nil {
 		return false
 	}
 	return settings.Server.KernelMode

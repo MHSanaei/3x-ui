@@ -189,9 +189,13 @@ func storedAmneziaWGServerKeys(oldSettings string) (priv, pub string) {
 // valid server block, generating one (fresh obfuscation params + keypair) on
 // first save and validating a manually-edited one so a bad entry can't bring
 // the interface down on the next apply. A no-op for every other protocol.
-func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldSettings string) error {
+func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old *model.Inbound) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
+	}
+	oldSettings := ""
+	if old != nil {
+		oldSettings = old.Settings
 	}
 
 	trimmed := strings.TrimSpace(inbound.Settings)
@@ -303,8 +307,8 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 	}
 	inbound.Settings = string(bs)
 
-	// Refuse a kernel-mode save this host cannot honour while the admin is still
-	// in front of the form; the reconcile job could only log and retry.
+	// Host readiness gates only a save that starts the kernel datapath: a host that
+	// later loses its module must still let the admin edit, disable or switch it.
 	if parsed.Server.KernelMode && inbound.NodeID == nil {
 		inst, ok := amneziawg.InstanceFromInbound(inbound)
 		if !ok {
@@ -322,7 +326,12 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 				}
 			}
 		}
-		if err := amneziawgkern.Preflight(inst, inst.RouteThroughXray); err != nil {
+		check := amneziawgkern.ValidateInstanceFeatures
+		wasRunningKernel := old != nil && old.Enable && amneziawgKernelModeSettings(old.Settings)
+		if inbound.Enable && !wasRunningKernel {
+			check = amneziawgkern.Preflight
+		}
+		if err := check(inst, inst.RouteThroughXray); err != nil {
 			return err
 		}
 	}
