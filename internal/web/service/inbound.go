@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -665,6 +666,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	}
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
+	inbound.StreamSettings = canonicalizeXDriveService(inbound.StreamSettings)
 }
 
 // canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
@@ -1005,6 +1007,11 @@ func validateFinalMaskSalamander(streamSettings string) error {
 	return maskcompat.CheckSalamanderPasswords(stream["finalmask"])
 }
 
+const (
+	xdriveServiceGoogleDrive       = "google-drive"
+	xdriveServiceGoogleDriveLegacy = "Google Drive"
+)
+
 // validateXDriveStorage refuses at save the XDRIVE storage xray-core refuses when an inbound starts
 // listening (stopping every inbound) or an outbound dials.
 func validateXDriveStorage(streamSettings string) error {
@@ -1027,7 +1034,7 @@ func validateXDriveStorage(streamSettings string) error {
 		if !hasFolder {
 			return common.NewError(`XDRIVE needs a "remoteFolder": the local folder both ends share.`)
 		}
-	case "Google Drive":
+	case xdriveServiceGoogleDrive, xdriveServiceGoogleDriveLegacy:
 		if !hasFolder {
 			return common.NewError(`XDRIVE needs a "remoteFolder": the id of the shared Google Drive folder.`)
 		}
@@ -1040,9 +1047,50 @@ func validateXDriveStorage(streamSettings string) error {
 		}
 		return validateXDriveTemplate(xd.Template)
 	default:
-		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, Google Drive or template.", xd.Service))
+		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, google-drive or template.", xd.Service))
 	}
 	return nil
+}
+
+// validateXDriveInbound refuses what xray-core 26.10.17 refuses on an XDRIVE inbound (#7182): any
+// protocol but VLESS, and VLESS without "decryption". Flow is never emitted there and the port is single.
+func validateXDriveInbound(protocol, settings, streamSettings string) error {
+	var stream struct {
+		Network string `json:"network"`
+	}
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil || stream.Network != "xdrive" {
+		return nil
+	}
+	if protocol != string(model.VLESS) {
+		return common.NewError(fmt.Sprintf("XDRIVE carries only VLESS, not %s.", protocol))
+	}
+	var vless struct {
+		Decryption string `json:"decryption"`
+	}
+	_ = json.Unmarshal([]byte(settings), &vless)
+	if !vlessEncValueSet(vless.Decryption) {
+		return common.NewError(`XDRIVE needs VLESS encryption: set the inbound's Decryption.`)
+	}
+	return nil
+}
+
+// canonicalizeXDriveService stores the "google-drive" service xray-core 26.10.17 names
+// (#7182) in place of "Google Drive", which it still reads with a deprecation warning.
+func canonicalizeXDriveService(streamSettings string) string {
+	var stream map[string]any
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil {
+		return streamSettings
+	}
+	xd, _ := stream["xdriveSettings"].(map[string]any)
+	if xd == nil || xd["service"] != xdriveServiceGoogleDriveLegacy {
+		return streamSettings
+	}
+	xd["service"] = xdriveServiceGoogleDrive
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
 
 // validateXDriveTemplate applies the checks of xray-core's newTemplateStorage
@@ -1253,6 +1301,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
+	if err := validateXDriveInbound(string(inbound.Protocol), inbound.Settings, inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
 		return inbound, false, err
 	}
@@ -1357,6 +1408,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		case "wireguard", "amneziawg":
 			if client.PublicKey == "" {
 				return inbound, false, common.NewError("wireguard client requires a key")
+			}
+			if _, err := normalizeWireguardAllowedIPs(client.AllowedIPs); err != nil {
+				return inbound, false, err
 			}
 		case "mtproto":
 			if client.Secret == "" {
@@ -1872,6 +1926,10 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 			if client.Password == "" {
 				return common.NewError("empty client ID")
 			}
+		case model.WireGuard, model.AmneziaWG:
+			if _, err := normalizeWireguardAllowedIPs(client.AllowedIPs); err != nil {
+				return err
+			}
 		case model.TUIC:
 			if client.ID == "" {
 				return common.NewError("empty client ID")
@@ -1902,6 +1960,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateXDriveInbound(string(inbound.Protocol), inbound.Settings, inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
@@ -1964,6 +2025,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.First(stored, inbound.Id).Error; err != nil {
 			return err
 		}
+		running := *stored
 		oldInbound = stored
 		// The form posts back the clients and enable it loaded; both have their
 		// own endpoints, so only a master's push may change them here.
@@ -1983,6 +2045,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			return common.NewError(conflict.String())
 		}
 		if err := s.updateClientTraffics(tx, oldInbound, inbound); err != nil {
+			return err
+		}
+		if err := database.SyncHostsFromExternalProxy(tx, inbound.Id, running.StreamSettings, inbound.StreamSettings); err != nil {
 			return err
 		}
 
@@ -2113,7 +2178,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 			if !push {
 				needRestart = true
-			} else if oldProtocol == model.MTProto || oldInbound.Protocol == model.MTProto || oldProtocol == model.TUIC || oldInbound.Protocol == model.TUIC {
+			} else if servedOutsideXray(oldProtocol) || servedOutsideXray(oldInbound.Protocol) {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag
 				oldSnapshot.Protocol = oldProtocol
@@ -2127,7 +2192,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						pushable = false
 					}
 				}
-				newProtocolIsSidecar := oldInbound.Protocol == model.MTProto || oldInbound.Protocol == model.TUIC
+				newProtocolIsSidecar := servedOutsideXray(oldInbound.Protocol)
 				if pushable {
 					postCommitApply = func() {
 						if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
@@ -2143,7 +2208,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			} else {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag
-				var runtimeInbound *model.Inbound
+				var runtimeInbound, runningInbound *model.Inbound
 				if inbound.Enable {
 					var err2 error
 					runtimeInbound, err2 = s.buildInboundForLocalRuntime(tx, oldInbound)
@@ -2152,7 +2217,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						needRestart = true
 					}
 				}
+				if runtimeInbound != nil && running.Enable {
+					// Unbuildable means unknown running state: the rebuild below covers it.
+					runningInbound, _ = s.buildInboundForLocalRuntime(tx, &running)
+				}
 				postCommitApply = func() {
+					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
+						logger.Debug("Inbound clients updated in place on", rt.Name(), ":", oldInbound.Tag)
+						return
+					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 						logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
 					}
@@ -2215,6 +2288,41 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 	}
 	return inbound, needRestart, nil
+}
+
+// servedOutsideXray: these protocols run under their own manager, whose update
+// reconfigures in place where a Del+Add would drop every live session.
+func servedOutsideXray(protocol model.Protocol) bool {
+	return protocol == model.MTProto || protocol == model.TUIC || protocol == model.AmneziaWG
+}
+
+// applyInboundUserOps reports whether per-user core ops moved running to next, so
+// its listener and live connections survive; false means rebuild the handler.
+func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool {
+	diff, ok := xray.InboundUserOps(running.GenXrayInboundConfig(), next.GenXrayInboundConfig())
+	if !ok {
+		return false
+	}
+	ctx := context.Background()
+	for _, u := range diff.RemovedUsers {
+		if err := rt.RemoveUser(ctx, next, u.Email); err != nil && !xray.IsMissingUserErr(err) {
+			logger.Debug("Unable to remove client", u.Email, "in place on", rt.Name(), ":", err)
+			return false
+		}
+	}
+	for _, u := range diff.AddedUsers {
+		err := rt.AddUser(ctx, next, u.User)
+		if xray.IsUserExistsErr(err) {
+			if err = rt.RemoveUser(ctx, next, u.Email); err == nil {
+				err = rt.AddUser(ctx, next, u.User)
+			}
+		}
+		if err != nil {
+			logger.Debug("Unable to add client", u.Email, "in place on", rt.Name(), ":", err)
+			return false
+		}
+	}
+	return true
 }
 
 // A node mirrors this payload into its own DB, so every client must survive:

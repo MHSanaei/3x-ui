@@ -58,6 +58,10 @@ type Instance struct {
 	// fair-share algorithm; zero disables throttling.
 	ThrottleMaxConnections int
 
+	// PendingHandshakesMaxPerIP caps unauthenticated handshakes held open by one
+	// client IP (mtg-multi >= 1.16.0); zero leaves the limit off.
+	PendingHandshakesMaxPerIP int
+
 	// PublicIPv4/PublicIPv6 pin the proxy's reachable address the Telegram
 	// middle proxy needs when clients carry advertising tags; they are omitted
 	// when empty so mtg auto-detects, and a change forces a restart.
@@ -93,6 +97,7 @@ func (inst Instance) structuralFingerprint() string {
 		strconv.Itoa(inst.FrontingPort),
 		strconv.FormatBool(inst.FrontingProxyProtocol),
 		strconv.Itoa(inst.ThrottleMaxConnections),
+		strconv.Itoa(inst.PendingHandshakesMaxPerIP),
 		strconv.FormatBool(inst.RouteThroughXray),
 		strconv.Itoa(inst.XrayRoutePort),
 		inst.PublicIPv4,
@@ -179,13 +184,14 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 			Port          int    `json:"port"`
 			ProxyProtocol bool   `json:"proxyProtocol"`
 		} `json:"domainFronting"`
-		PreferIP               string `json:"preferIp"`
-		ThrottleMaxConnections int    `json:"throttleMaxConnections"`
-		RouteThroughXray       bool   `json:"routeThroughXray"`
-		RouteXrayPort          int    `json:"routeXrayPort"`
-		PublicIPv4             string `json:"publicIpv4"`
-		PublicIPv6             string `json:"publicIpv6"`
-		Clients                []struct {
+		PreferIP                  string `json:"preferIp"`
+		ThrottleMaxConnections    int    `json:"throttleMaxConnections"`
+		PendingHandshakesMaxPerIP int    `json:"pendingHandshakesMaxPerIp"`
+		RouteThroughXray          bool   `json:"routeThroughXray"`
+		RouteXrayPort             int    `json:"routeXrayPort"`
+		PublicIPv4                string `json:"publicIpv4"`
+		PublicIPv6                string `json:"publicIpv6"`
+		Clients                   []struct {
 			Email      string `json:"email"`
 			Secret     string `json:"secret"`
 			AdTag      string `json:"adTag"`
@@ -215,22 +221,23 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		return Instance{}, false
 	}
 	return Instance{
-		Id:                     ib.Id,
-		Tag:                    ib.Tag,
-		Listen:                 ib.Listen,
-		Port:                   ib.Port,
-		Secrets:                secrets,
-		Debug:                  parsed.Debug,
-		ProxyProtocolListener:  parsed.ProxyProtocolListener,
-		PreferIP:               parsed.PreferIP,
-		FrontingIP:             parsed.DomainFronting.IP,
-		FrontingPort:           parsed.DomainFronting.Port,
-		FrontingProxyProtocol:  parsed.DomainFronting.ProxyProtocol,
-		ThrottleMaxConnections: parsed.ThrottleMaxConnections,
-		RouteThroughXray:       parsed.RouteThroughXray,
-		XrayRoutePort:          parsed.RouteXrayPort,
-		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
-		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
+		Id:                        ib.Id,
+		Tag:                       ib.Tag,
+		Listen:                    ib.Listen,
+		Port:                      ib.Port,
+		Secrets:                   secrets,
+		Debug:                     parsed.Debug,
+		ProxyProtocolListener:     parsed.ProxyProtocolListener,
+		PreferIP:                  parsed.PreferIP,
+		FrontingIP:                parsed.DomainFronting.IP,
+		FrontingPort:              parsed.DomainFronting.Port,
+		FrontingProxyProtocol:     parsed.DomainFronting.ProxyProtocol,
+		ThrottleMaxConnections:    parsed.ThrottleMaxConnections,
+		PendingHandshakesMaxPerIP: parsed.PendingHandshakesMaxPerIP,
+		RouteThroughXray:          parsed.RouteThroughXray,
+		XrayRoutePort:             parsed.RouteXrayPort,
+		PublicIPv4:                strings.TrimSpace(parsed.PublicIPv4),
+		PublicIPv6:                strings.TrimSpace(parsed.PublicIPv6),
 	}, true
 }
 
@@ -523,7 +530,7 @@ func FreeLocalPort() (int, error) {
 // precede any [section] header in TOML, and [secrets] must be the final section
 // so trailing keys are not swallowed by another table. The layout is therefore:
 // top-level scalars (incl. api-bind-to and api-token), then [domain-fronting],
-// [network] and [throttle], then [secret-ad-tags] for clients overriding the
+// [network], [throttle] and [defense.pending-handshakes], then [secret-ad-tags] for clients overriding the
 // global advertising tag, and finally [secrets] with one named secret per
 // active client.
 func renderConfig(inst Instance, apiPort int, apiToken string) string {
@@ -568,6 +575,9 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	}
 	if inst.ThrottleMaxConnections > 0 {
 		fmt.Fprintf(&b, "\n[throttle]\nmax-connections = %d\n", inst.ThrottleMaxConnections)
+	}
+	if inst.PendingHandshakesMaxPerIP > 0 {
+		fmt.Fprintf(&b, "\n[defense.pending-handshakes]\nmax-per-ip = %d\n", inst.PendingHandshakesMaxPerIP)
 	}
 	// Only clients present in [secrets] may appear here: mtg rejects a config
 	// whose [secret-ad-tags] names an unknown secret, so a disabled client's

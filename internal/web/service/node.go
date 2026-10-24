@@ -1145,27 +1145,46 @@ func (s *NodeService) ProbeWithOutbound(ctx context.Context, n *model.Node, outb
 // Xray isn't running or the bridge can't be built, fn runs with an empty
 // proxyURL so callers fall back to a direct connection.
 func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func(proxyURL string)) {
-	proc := XrayProcess()
-	if proc == nil || !proc.IsRunning() {
+	bridge := openOutboundBridge(nodeID, outboundTag)
+	if bridge == nil {
 		fn("")
 		return
 	}
+	defer bridge.close()
+	fn(bridge.proxyURL)
+}
+
+// outboundBridge is one withOutboundBridge call's temporary inbound and leading
+// routing rule, tied to the core process it was built in.
+type outboundBridge struct {
+	proc       *xray.Process
+	api        xray.XrayAPI
+	inboundTag string
+	proxyURL   string
+}
+
+// openOutboundBridge holds the package lock, like every change to the running
+// core, but not while the probe runs; nil means Xray is down or the build failed.
+func openOutboundBridge(nodeID int, outboundTag string) *outboundBridge {
+	lock.Lock()
+	defer lock.Unlock()
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		return nil
+	}
 	apiPort := proc.GetAPIPort()
 	if apiPort <= 0 {
-		fn("")
-		return
+		return nil
 	}
 
 	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
-		fn("")
-		return
+		return nil
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
 
 	tag := fmt.Sprintf("node-test-%d-%d", nodeID, time.Now().UnixNano())
-	proxyURL := fmt.Sprintf("socks5://127.0.0.1:%d", port)
 
 	inboundJSON, err := json.Marshal(xray.InboundConfig{
 		Listen:   json_util.RawMessage(`"127.0.0.1"`),
@@ -1175,8 +1194,7 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 		Tag:      tag,
 	})
 	if err != nil {
-		fn("")
-		return
+		return nil
 	}
 
 	cfg := proc.GetConfig()
@@ -1197,43 +1215,51 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 	routing["rules"] = append([]any{rule}, rules...)
 	routingJSON, err := json.Marshal(routing)
 	if err != nil {
-		fn("")
+		return nil
+	}
+
+	bridge := &outboundBridge{proc: proc, inboundTag: tag, proxyURL: fmt.Sprintf("socks5://127.0.0.1:%d", port)}
+	if err := bridge.api.Init(apiPort); err != nil {
+		return nil
+	}
+	if err := bridge.api.AddInbound(inboundJSON); err != nil {
+		bridge.api.Close()
+		return nil
+	}
+	if err := bridge.api.ApplyRoutingConfig(routingJSON); err != nil {
+		bridge.removeInbound()
+		bridge.api.Close()
+		return nil
+	}
+	balancerOverrides.reapply(proc, &bridge.api, cfg)
+	return bridge
+}
+
+// close restores the routing the core's config holds now, which a save during the
+// probe may have changed. A core restarted meanwhile never had the bridge.
+func (b *outboundBridge) close() {
+	defer b.api.Close()
+	lock.Lock()
+	defer lock.Unlock()
+	if XrayProcess() != b.proc {
 		return
 	}
-	originalRoutingJSON := cfg.RouterConfig
-
-	api := xray.XrayAPI{}
-	if err := api.Init(apiPort); err != nil {
-		fn("")
-		return
+	cfg := b.proc.GetConfig()
+	restore := cfg.RouterConfig
+	if len(restore) == 0 {
+		restore = []byte("{}")
 	}
-	defer api.Close()
-
-	if err := api.AddInbound(inboundJSON); err != nil {
-		fn("")
-		return
+	if err := b.api.ApplyRoutingConfig(restore); err != nil {
+		logger.Warning("restore routing after node bridge failed:", err)
 	}
-	defer func() {
-		if err := api.DelInbound(tag); err != nil {
-			logger.Warning("remove temp node bridge inbound failed:", err)
-		}
-	}()
+	balancerOverrides.reapply(b.proc, &b.api, cfg)
+	b.removeInbound()
+}
 
-	if err := api.ApplyRoutingConfig(routingJSON); err != nil {
-		fn("")
-		return
+func (b *outboundBridge) removeInbound() {
+	if err := b.api.DelInbound(b.inboundTag); err != nil {
+		logger.Warning("remove temp node bridge inbound failed:", err)
 	}
-	defer func() {
-		restore := originalRoutingJSON
-		if len(restore) == 0 {
-			restore = []byte("{}")
-		}
-		if err := api.ApplyRoutingConfig(restore); err != nil {
-			logger.Warning("restore routing after node bridge failed:", err)
-		}
-	}()
-
-	fn(proxyURL)
 }
 
 // A status envelope holds a handful of scalars; the cap keeps a hostile or

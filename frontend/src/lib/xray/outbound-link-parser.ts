@@ -543,7 +543,20 @@ export function parseVmessLink(link: string): Raw | null {
       xhttp.path = json.path ?? '/';
       if (json.mode) xhttp.mode = json.mode;
       applyXhttpStringFromJson(xhttp, json);
+    } else if (network === 'kcp') {
+      applyTransportParams(
+        stream,
+        new URLSearchParams({ mtu: String(json.mtu ?? ''), tti: String(json.tti ?? '') }),
+      );
     }
+    // The vmess object carries fm as-is and the mKCP header and seed as type and path.
+    const maskParams = new URLSearchParams();
+    if (typeof json.fm === 'string') maskParams.set('fm', json.fm);
+    if (network === 'kcp') {
+      if (typeof json.type === 'string') maskParams.set('headerType', json.type);
+      if (typeof json.path === 'string') maskParams.set('seed', json.path);
+    }
+    applyFinalMaskParam(stream, maskParams);
     if (security === 'tls') {
       const tls = stream.tlsSettings as Raw;
       tls.serverName = json.sni ?? '';

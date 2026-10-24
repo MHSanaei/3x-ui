@@ -122,7 +122,7 @@ export default function SubLinksModal({
           size="small"
           type="text"
           aria-label={t('copy')}
-          icon={<CopyOutlined />}
+          icon={<CopyOutlined aria-hidden />}
           onClick={() => copy(row.link, t('copied'))}
         />
       ),
@@ -157,7 +157,7 @@ export default function SubLinksModal({
             <Button onClick={() => onOpenChange(false)}>{t('close')}</Button>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button
-                icon={<CopyOutlined />}
+                icon={<CopyOutlined aria-hidden />}
                 disabled={rows.length === 0}
                 onClick={() =>
                   copy(allText, t('pages.clients.subLinksCopiedAll', { count: rows.length }))
@@ -167,7 +167,7 @@ export default function SubLinksModal({
               </Button>
               <Button
                 type="primary"
-                icon={<DownloadOutlined />}
+                icon={<DownloadOutlined aria-hidden />}
                 disabled={rows.length === 0}
                 onClick={download}
               >

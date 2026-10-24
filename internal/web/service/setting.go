@@ -186,6 +186,7 @@ var defaultValueMap = map[string]string{
 	"subClashURI":                 "",
 	"subClashEnableRouting":       "false",
 	"subClashRules":               "",
+	"subClashRemoteDNS":           "false",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonRoutingRules":         "",
@@ -1239,6 +1240,10 @@ func (s *SettingService) GetSubClashEnableRouting() (bool, error) {
 
 func (s *SettingService) GetSubClashRules() (string, error) {
 	return s.getString("subClashRules")
+}
+
+func (s *SettingService) GetSubClashRemoteDNS() (bool, error) {
+	return s.getBool("subClashRemoteDNS")
 }
 
 func (s *SettingService) GetSubJsonMux() (string, error) {

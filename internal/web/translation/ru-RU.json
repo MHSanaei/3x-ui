@@ -210,7 +210,7 @@
       "toggleIpVisibility": "Скрыть или показать IP-адреса сервера",
       "overallSpeed": "Общая скорость передачи трафика",
       "upload": "Загрузка",
-      "download": "Скачать",
+      "download": "Скачивание",
       "sent": "Отправлено",
       "received": "Получено",
       "xraySwitchVersionDialog": "Переключить версию Xray",
@@ -291,7 +291,9 @@
       "accessBlocked": "ЗАБЛОКИРОВАНО",
       "accessProxy": "ЧЕРЕЗ ПРОКСИ",
       "importKeepHostSettings": "Сохранить настройки этой машины",
-      "importKeepHostSettingsDesc": "Оставляет адреса и порты этой панели, базовый путь, сертификаты и удостоверение для узлов вместо тех, что в загруженном файле."
+      "importKeepHostSettingsDesc": "Оставляет адреса и порты этой панели, базовый путь, сертификаты и удостоверение для узлов вместо тех, что в загруженном файле.",
+      "logLines": "Количество строк",
+      "timeRange": "Временной диапазон"
     },
     "inbounds": {
       "totalDownUp": "Отправлено/получено",
@@ -528,6 +530,8 @@
         "mtprotoFakeTlsDomainHint": "Домен FakeTLS по умолчанию для генерации секрета нового клиента. Каждый клиент может использовать свой домен.",
         "mtgThrottleMaxConnections": "Макс. подключений",
         "mtgThrottleMaxConnectionsHint": "Ограничение одновременных подключений всех пользователей по справедливому распределению. 0 — отключено.",
+        "mtgPendingHandshakesMaxPerIp": "Макс. незавершённых рукопожатий на IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Новые подключения с IP, у которого уже столько незавершённых рукопожатий, закрываются. Клиенты за общим IP (NAT оператора) делят этот лимит. 0 — отключено.",
         "mtgAdTagInvalid": "Рекламный тег должен содержать ровно 32 шестнадцатеричных символа.",
         "mtgPublicIpv4": "Публичный IPv4",
         "mtgPublicIpv6": "Публичный IPv6",
@@ -729,7 +733,10 @@
         "autoSystemDnsToGateway": "Системный DNS на шлюз",
         "autoSystemDnsToGatewayTooltip": "Только Linux: направляет systemd-resolved на шлюз TUN, чтобы системные запросы шли через Xray. Нужен шлюз; при ошибке TUN не запустится.",
         "autoSystemWfpBlockLeak": "Блокировка утечек (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Только Windows, вместе с авто-маршрутами системы: dns удерживает DNS внутри TUN (нужны DNS-серверы), misconfigtun блокирует версию IP, которую ни один маршрут не ведёт в TUN."
+        "autoSystemWfpBlockLeakTooltip": "Только Windows, вместе с авто-маршрутами системы: dns удерживает DNS внутри TUN (нужны DNS-серверы), misconfigtun блокирует версию IP, которую ни один маршрут не ведёт в TUN.",
+        "maxVersion": "Максимальная версия",
+        "headerName": "Имя заголовка",
+        "headerValue": "Значение заголовка"
       },
       "info": {
         "mode": "Режим",
@@ -1299,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Добавлять глобальные правила маршрутизации Clash/Mihomo в сгенерированные YAML-подписки.",
       "subClashRoutingRules": "Глобальные правила маршрутизации",
       "subClashRoutingRulesDesc": "Вставьте правила/YAML либо одну постоянную HTTPS-ссылку. Панель обновляет её в фоне, импортирует только группы, провайдеры правил и правила, сохраняет созданные VPN-узлы и последнее рабочее значение.",
+      "subClashRemoteDNS": "DNS из удалённых правил",
+      "subClashRemoteDNSDesc": "Если в глобальных правилах маршрутизации указана ссылка, брать из неё также разделы dns и sniffer. Включайте только для шаблона, которому доверяете.",
       "subListen": "Прослушивание IP",
       "subListenDesc": "Оставьте пустым по умолчанию, чтобы отслеживать все IP-адреса",
       "subPort": "Порт подписки",
@@ -1423,6 +1432,15 @@
         "apiTokenName": "Имя",
         "apiTokenNamePlaceholder": "например, central-panel-a",
         "apiTokenNameRequired": "Имя обязательно",
+        "apiTokenScope": "Область доступа",
+        "apiTokenScopeAdmin": "Администратор",
+        "apiTokenScopeAdminDesc": "Полный доступ ко всем API-методам панели. Используйте только для доверенной автоматизации.",
+        "apiTokenScopeMonitor": "Мониторинг",
+        "apiTokenScopeMonitorDesc": "Доступ только для чтения состояния системы, версий и метрик.",
+        "apiTokenScopeNodeSync": "Синхронизация узла",
+        "apiTokenScopeNodeSyncDesc": "Синхронизирует конфигурацию узла, входящие, клиентов, трафик и состояние Xray. Не может обновлять ПО панели.",
+        "apiTokenScopeNodeAdmin": "Администратор узла",
+        "apiTokenScopeNodeAdminDesc": "Включает права синхронизации узла и также может запускать обновление ПО панели.",
         "apiTokenEmpty": "Токенов пока нет — создайте один для аутентификации ботов или удалённых панелей.",
         "apiTokenDeleteWarning": "Любой клиент, использующий этот токен, немедленно потеряет аутентификацию.",
         "apiTokenCreatedTitle": "Токен создан",
@@ -2424,19 +2442,7 @@
       "tag": "Спонсор",
       "visit": "Перейти",
       "yourBrand": "Здесь может быть ваш бренд",
-      "yourBrandText": "Покажите свою компанию тысячам администраторов серверов, которые каждый день открывают 3X-UI.",
-      "placements": "Доступные места",
-      "placementDashboard": "Баннер на главной",
-      "placementDashboardDesc": "Премиум-место вверху панели, один спонсор за раз.",
-      "placementSidebar": "Карточка в боковой панели",
-      "placementSidebarDesc": "Показывается на всех страницах панели, спонсоры чередуются.",
-      "placementLogin": "Страница входа",
-      "placementLoginDesc": "Администратор видит её при каждом входе.",
-      "placementPage": "Страница спонсоров",
-      "placementPageDesc": "Размещение здесь с логотипом, описанием и ссылкой.",
-      "available": "Свободно",
-      "takenUntil": "Занято до {date}",
-      "activeCount": "Активных: {count}"
+      "yourBrandText": "Покажите свою компанию тысячам администраторов серверов, которые каждый день открывают 3X-UI."
     }
   },
   "tgbot": {

@@ -184,10 +184,14 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// pre-26.9.9 quicParams.udpHop, which the core ignores, or a udphop not last, which it cannot dial.
 	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
 		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop, normalizeStreamUDPHop)
+	xrayConfig.OutboundConfigs = dropXDriveOutboundsRefusedByCore(xrayConfig.OutboundConfigs)
 	// Bridge amneziawg outbounds before anything else reads OutboundConfigs;
 	// the core has no amneziawg proxy and would reject the raw entry.
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
 		return nil, err
+	}
+	if xray.KernelTunBlocked() {
+		xrayConfig.OutboundConfigs = forceUserspaceWireGuardTun(xrayConfig.OutboundConfigs)
 	}
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
@@ -407,6 +411,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+	xrayConfig.InboundConfigs = dropInboundsRefusedByXDrive(xrayConfig.InboundConfigs)
 
 	// Merge subscription-derived outbounds (if any) into the final outbounds array.
 	// These are additive: each subscription is placed before or after the template
@@ -468,6 +473,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectNodeEgresses(xrayConfig, nodes)
 	}
 
+	xrayConfig.RouterConfig = dropRefusedScript(xrayConfig.RouterConfig, "routing", routingScriptRefused)
+	xrayConfig.DNSConfig = dropRefusedScript(xrayConfig.DNSConfig, "dns", dnsScriptRefused)
 	return xrayConfig, nil
 }
 
@@ -1340,65 +1347,21 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 	return statuses, nil
 }
 
-// OverrideBalancer forces a balancer in the running core to use the given
-// outbound tag; an empty target clears the override. When target names
-// another balancer, the override resolves to the loopback outbound that
-// routes traffic through the target balancer via the routing rules.
+// OverrideBalancer forces balancer tag onto target in the running core; an empty
+// target clears it. The panel keeps it across routing reloads until Xray restarts.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
+	// Serialized with config applies, so the target is checked against the config the core runs.
+	lock.Lock()
+	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
 		return errors.New("xray is not running")
-	}
-	if target != "" {
-		resolved, err := s.resolveOverrideTarget(target)
-		if err != nil {
-			return err
-		}
-		if resolved != "" {
-			target = resolved
-		}
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return err
 	}
 	defer s.xrayAPI.Close()
-	return s.xrayAPI.SetBalancerTarget(tag, target)
-}
-
-// resolveOverrideTarget checks if target names a balancer and, if so,
-// returns the loopback outbound tag that routes to it through the
-// routing rules. Returns empty if target is already a concrete outbound.
-func (s *XrayService) resolveOverrideTarget(target string) (string, error) {
-	template, err := s.settingService.GetXrayConfigTemplate()
-	if err != nil {
-		return "", err
-	}
-	var cfg map[string]any
-	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
-		return "", err
-	}
-	routing, _ := cfg["routing"].(map[string]any)
-	if routing == nil {
-		return "", nil
-	}
-	rules, _ := routing["rules"].([]any)
-	for _, r := range rules {
-		rule, ok := r.(map[string]any)
-		if !ok {
-			continue
-		}
-		if rule["balancerTag"] != target {
-			continue
-		}
-		inboundTags, ok := rule["inboundTag"].([]any)
-		if !ok || len(inboundTags) == 0 {
-			continue
-		}
-		if lbTag, ok := inboundTags[0].(string); ok && strings.HasPrefix(lbTag, "_bl_") {
-			return lbTag, nil
-		}
-	}
-	return "", nil
+	return balancerOverrides.set(process, &s.xrayAPI, tag, target)
 }
 
 // TestRoute asks the running core which outbound its router picks for the
@@ -1571,6 +1534,8 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 			return false
 		}
 	}
+	// A routing reload rebuilds every balancer, and a removed outbound strands an override.
+	balancerOverrides.reapply(process, &hotAPI, newCfg)
 
 	process.SetConfig(newCfg)
 	persistHotConfig(process)
@@ -1747,6 +1712,103 @@ func healOutboundStreams(raw json_util.RawMessage, heals ...func(stream map[stri
 	return raw
 }
 
+// dropInboundsRefusedByXDrive keeps out an XDRIVE inbound stored before xray-core 26.10.17 made it
+// VLESS-encryption only (#7182); the core would refuse the whole config and stop every inbound.
+func dropInboundsRefusedByXDrive(inbounds []xray.InboundConfig) []xray.InboundConfig {
+	return slices.DeleteFunc(inbounds, func(ib xray.InboundConfig) bool {
+		err := validateXDriveInbound(ib.Protocol, string(ib.Settings), string(ib.StreamSettings))
+		if err != nil {
+			logger.Warningf("Inbound %q: not started, %v", ib.Tag, err)
+		}
+		return err != nil
+	})
+}
+
+// dropXDriveOutboundsRefusedByCore keeps out an XDRIVE outbound stored before xray-core 26.10.17
+// required VLESS encryption and mux on it (#7182), which would stop the whole core at startup.
+func dropXDriveOutboundsRefusedByCore(raw json_util.RawMessage) json_util.RawMessage {
+	var outbounds []json.RawMessage
+	if len(raw) == 0 || json.Unmarshal(raw, &outbounds) != nil {
+		return raw
+	}
+	kept := make([]json.RawMessage, 0, len(outbounds))
+	for _, ob := range outbounds {
+		var probe struct {
+			Tag            string `json:"tag"`
+			StreamSettings struct {
+				Network string `json:"network"`
+			} `json:"streamSettings"`
+		}
+		if json.Unmarshal(ob, &probe) == nil && probe.StreamSettings.Network == "xdrive" {
+			if err := xray.ValidateOutboundConfig(ob); err != nil {
+				logger.Warningf("Outbound %q: not started, xray-core refuses it: %v", probe.Tag, err)
+				continue
+			}
+		}
+		kept = append(kept, ob)
+	}
+	if len(kept) == len(outbounds) {
+		return raw
+	}
+	if rewritten, err := json.Marshal(kept); err == nil {
+		return rewritten
+	}
+	return raw
+}
+
+// routingScriptRefused mirrors xray-core 26.10.17's RouterConfig.Build (#7136): a routing
+// "script" replaces rules and domainStrategy, so the core refuses a config holding both.
+func routingScriptRefused(routing map[string]any) bool {
+	script, _ := routing["script"].(string)
+	rules, _ := routing["rules"].([]any)
+	return script != "" && (routing["domainStrategy"] != nil || len(rules) > 0)
+}
+
+// dnsScriptRefused mirrors xray-core 26.10.17's DNSConfig.Build (#7136): a dns "script" refuses the
+// fallback and parallel switches, and any server scoped by domains, skipFallback or finalQuery.
+func dnsScriptRefused(dns map[string]any) bool {
+	if script, _ := dns["script"].(string); script == "" {
+		return false
+	}
+	for _, key := range []string{"disableFallback", "disableFallbackIfMatch", "enableParallelQuery"} {
+		if on, _ := dns[key].(bool); on {
+			return true
+		}
+	}
+	servers, _ := dns["servers"].([]any)
+	return slices.ContainsFunc(servers, func(entry any) bool {
+		server, _ := entry.(map[string]any)
+		skipFallback, _ := server["skipFallback"].(bool)
+		finalQuery, _ := server["finalQuery"].(bool)
+		return hasDNSDomains(server["domains"]) || skipFallback || finalQuery
+	})
+}
+
+func hasDNSDomains(domains any) bool {
+	switch v := domains.(type) {
+	case []any:
+		return len(v) > 0
+	case string:
+		return v != ""
+	}
+	return false
+}
+
+// dropRefusedScript drops a section's Lua "script" the core would refuse, logging why: the
+// panel's own rules and DNS settings stay, since its stats path depends on the api rule.
+func dropRefusedScript(raw json_util.RawMessage, section string, refused func(map[string]any) bool) json_util.RawMessage {
+	var parsed map[string]any
+	if len(raw) == 0 || json.Unmarshal(raw, &parsed) != nil || !refused(parsed) {
+		return raw
+	}
+	logger.Warningf("%s: ignoring \"script\" %v, xray-core refuses it beside this %s section's other settings", section, parsed["script"], section)
+	delete(parsed, "script")
+	if rewritten, err := json.Marshal(parsed); err == nil {
+		return rewritten
+	}
+	return raw
+}
+
 func upgradeStreamLegacyXdns(stream map[string]any) bool {
 	return maskcompat.UpgradeLegacyXdns(stream["finalmask"])
 }
@@ -1757,4 +1819,39 @@ func upgradeStreamLegacyUDPHop(stream map[string]any) bool {
 
 func normalizeStreamUDPHop(stream map[string]any) bool {
 	return maskcompat.NormalizeUDPHop(stream["finalmask"])
+}
+
+// forceUserspaceWireGuardTun moves every WireGuard outbound to the gVisor TUN (#6796). Values
+// stay raw so the template's other keys reach the core byte for byte.
+func forceUserspaceWireGuardTun(raw json_util.RawMessage) json_util.RawMessage {
+	var outbounds []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &outbounds); err != nil {
+		return raw
+	}
+	for _, ob := range outbounds {
+		var protocol, tag string
+		if json.Unmarshal(ob["protocol"], &protocol) != nil || !strings.EqualFold(protocol, "wireguard") {
+			continue
+		}
+		var settings map[string]json.RawMessage
+		if json.Unmarshal(ob["settings"], &settings) != nil || settings == nil {
+			continue
+		}
+		wasUserspace := string(settings["noKernelTun"]) == "true"
+		settings["noKernelTun"] = json.RawMessage("true")
+		rewritten, err := json.Marshal(settings)
+		if err != nil {
+			continue
+		}
+		ob["settings"] = rewritten
+		if !wasUserspace {
+			_ = json.Unmarshal(ob["tag"], &tag)
+			logger.Warningf("Outbound %q: kernel TUN cannot be set up here, running WireGuard on the userspace TUN instead (#6796)", tag)
+		}
+	}
+	rewritten, err := json.Marshal(outbounds)
+	if err != nil {
+		return raw
+	}
+	return rewritten
 }

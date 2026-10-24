@@ -26,6 +26,7 @@ import (
 	routerService "github.com/xtls/xray-core/app/router/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
 	xnet "github.com/xtls/xray-core/common/net"
+	"github.com/xtls/xray-core/common/platform"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
@@ -146,6 +147,7 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 		logger.Debug("Failed to unmarshal inbound:", err)
 		return err
 	}
+	localizeNoiseScripts(conf.StreamSetting)
 	config, err := conf.Build()
 	if err != nil {
 		logger.Debug("Failed to build inbound Detur:", err)
@@ -185,6 +187,7 @@ func ValidateOutboundConfig(outbound []byte) error {
 	if err := json.Unmarshal(outbound, detour); err != nil {
 		return err
 	}
+	localizeNoiseScripts(detour.StreamSetting)
 	built, err := detour.Build()
 	if err != nil {
 		return err
@@ -228,6 +231,7 @@ func (x *XrayAPI) AddOutbound(outbound []byte) error {
 		logger.Debug("Failed to unmarshal outbound:", err)
 		return err
 	}
+	localizeNoiseScripts(conf.StreamSetting)
 	config, err := conf.Build()
 	if err != nil {
 		logger.Debug("Failed to build outbound detour:", err)
@@ -443,6 +447,16 @@ func IsMissingHandlerErr(err error) bool {
 		strings.Contains(msg, "not enough information")
 }
 
+// IsMissingUserErr reports whether err is xray removing a user the inbound does
+// not hold; a missing handler fails the same call and is not one.
+func IsMissingUserErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not found") && !strings.Contains(msg, "failed to get handler")
+}
+
 // IsExistingTagErr reports whether err is xray's response to adding a handler
 // whose tag is already taken by a running handler.
 func IsExistingTagErr(err error) bool {
@@ -465,6 +479,54 @@ func IsUserExistsErr(err error) bool {
 // config builders run inside the panel process. The xray binary resolves assets
 // relative to its own executable, but the panel binary lives one level above
 // the bin folder, so an explicit location is required.
+// localizeNoiseScripts points each noise mask's relative "script" at the file the xray child loads:
+// xray-core 26.10.17 (#7124) compiles it inside Build, where the panel would look beside its own binary.
+func localizeNoiseScripts(stream *conf.StreamConfig) {
+	if stream == nil || stream.FinalMask == nil {
+		return
+	}
+	for i := range stream.FinalMask.Udp {
+		mask := &stream.FinalMask.Udp[i]
+		if !strings.EqualFold(mask.Type, "noise") || mask.Settings == nil {
+			continue
+		}
+		var settings map[string]any
+		if json.Unmarshal(*mask.Settings, &settings) != nil {
+			continue
+		}
+		script, _ := settings["script"].(string)
+		resolved := childLuaScriptPath(script)
+		if resolved == script {
+			continue
+		}
+		settings["script"] = resolved
+		if raw, err := json.Marshal(settings); err == nil {
+			localized := json.RawMessage(raw)
+			mask.Settings = &localized
+		}
+	}
+}
+
+// childLuaScriptPath resolves a relative Lua script the way the xray child does: it shares the
+// panel's working directory, then looks in its own bin folder instead of the panel's.
+func childLuaScriptPath(script string) string {
+	if script == "" || filepath.IsAbs(script) {
+		return script
+	}
+	if _, err := platform.ResolveLuaFile(script); err == nil {
+		return script
+	}
+	binDir, err := filepath.Abs(config.GetBinFolderPath())
+	if err != nil {
+		return script
+	}
+	inBin := filepath.Join(binDir, script)
+	if _, err := os.Stat(inBin); err != nil {
+		return script
+	}
+	return inBin
+}
+
 func ensureXrayAssetLocation() {
 	if os.Getenv("XRAY_LOCATION_ASSET") != "" || os.Getenv("xray.location.asset") != "" {
 		return
