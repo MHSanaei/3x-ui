@@ -351,7 +351,8 @@ type InboundOption struct {
 	TuicServer *tuic.TuicServerSettings  `json:"tuicServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
-	NodeId *int `json:"nodeId,omitempty"`
+	NodeId         *int   `json:"nodeId,omitempty"`
+	OriginNodeGuid string `json:"originNodeGuid,omitempty"`
 	// Share-host resolution inputs, mirroring the subscription's
 	// resolveInboundAddress so the clients page renders a node-managed WireGuard
 	// Endpoint that points at the node, not the master panel. NodeAddress is the
@@ -380,10 +381,11 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		ShareAddrStrategy string `gorm:"column:share_addr_strategy"`
 		NodeId            *int   `gorm:"column:node_id"`
 		NodeAddress       string `gorm:"column:node_address"`
+		OriginNodeGuid    string `gorm:"column:origin_node_guid"`
 		DisableFlow       bool   `gorm:"column:disable_flow"`
 	}
 	err := db.Table("inbounds").
-		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address, inbounds.disable_flow").
+		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, inbounds.origin_node_guid, COALESCE(nodes.address, '') AS node_address, inbounds.disable_flow").
 		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
 		Where("inbounds.user_id = ?", userId).
 		Order("inbounds.id ASC").
@@ -392,7 +394,11 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		return nil, err
 	}
 	out := make([]InboundOption, 0, len(rows))
+	localGuid := s.panelGuid()
 	for _, r := range rows {
+		if r.NodeId == nil {
+			r.OriginNodeGuid = localGuid
+		}
 		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
 		netHint, secHint := inboundStreamHints(r.Protocol, r.StreamSettings, r.Settings)
 		shareAddrStrategy := r.ShareAddrStrategy
@@ -417,6 +423,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
 			TuicServer:        inboundTuicServer(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
+			OriginNodeGuid:    r.OriginNodeGuid,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
 			ShareAddr:         r.ShareAddr,

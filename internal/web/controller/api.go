@@ -118,6 +118,7 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/clients/onlines":             {http.MethodPost: {}},
 	"/clients/lastOnline":          {http.MethodPost: {}},
 	"/clients/activeInbounds":      {http.MethodPost: {}},
+	"/clients/activeProfiles":      {http.MethodPost: {}},
 	"/inbounds/pushClientTraffics": {http.MethodPost: {}},
 	"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
 	"/clients/clientIpsByGuid":     {http.MethodPost: {}},

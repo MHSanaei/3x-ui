@@ -33,6 +33,7 @@ import {
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { ActiveProfileTreeSchema } from '@/lib/clients/active-profiles';
 
 // One row sent to POST /clients/:email/externalLinks.
 export type ExternalLinkInput = {
@@ -248,6 +249,22 @@ export function useClients(options: UseClientsOptions = {}) {
   });
 
   const clients = listQuery.data?.items ?? [];
+  const activeProfilesQuery = useQuery({
+    queryKey: keys.clients.activeProfiles(),
+    queryFn: async () => {
+      const msg = await HttpUtil.post('/panel/api/clients/activeProfiles', undefined, {
+        silent: true,
+      });
+      if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch active profiles');
+      return ActiveProfileTreeSchema.parse(msg.obj);
+    },
+    enabled: withList,
+    staleTime: Infinity,
+    refetchInterval: 5000,
+    retry: false,
+    refetchOnWindowFocus: 'always',
+  });
+  const activeProfiles = activeProfilesQuery.isError ? undefined : activeProfilesQuery.data;
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
   const allGroups = listQuery.data?.groups ?? [];
@@ -750,12 +767,17 @@ export function useClients(options: UseClientsOptions = {}) {
       if (!payload || typeof payload !== 'object') return;
       const p = payload as {
         onlineClients?: string[];
+        activeProfiles?: unknown;
         clientTraffics?: { email: string; up: number; down: number }[];
         clientTrafficSource?: 'xray' | 'tuic';
         clientTrafficIntervalMs?: number;
       };
       if (Array.isArray(p.onlineClients)) {
         queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
+      }
+      if (p.activeProfiles !== undefined) {
+        const parsed = ActiveProfileTreeSchema.safeParse(p.activeProfiles);
+        if (parsed.success) queryClient.setQueryData(keys.clients.activeProfiles(), parsed.data);
       }
       if (Array.isArray(p.clientTraffics)) {
         // Xray reports a row per client whether or not it moved a byte, so most of
@@ -859,6 +881,7 @@ export function useClients(options: UseClientsOptions = {}) {
     setQuery,
     inbounds,
     onlines,
+    activeProfiles,
     transitioning,
     fetched,
     fetchError,

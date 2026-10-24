@@ -181,6 +181,8 @@ type process struct {
 	// traffic within its own grace window. The inbounds page combines this with
 	// nodeOnlineTrees so a multi-inbound client is not shown on an idle inbound.
 	nodeActiveInboundTrees map[int]map[string][]string
+	localProfiles          capturedProfiles
+	nodeProfiles           map[int]capturedProfiles
 	onlineMu               sync.RWMutex
 
 	// onlineAPISupport caches whether the running core implements the
@@ -557,6 +559,7 @@ func (p *Process) ClearNodeOnlineClients(nodeID int) {
 	defer p.onlineMu.Unlock()
 	delete(p.nodeOnlineTrees, nodeID)
 	delete(p.nodeActiveInboundTrees, nodeID)
+	delete(p.nodeProfiles, nodeID)
 }
 
 // RetainNodeOnlineClients drops the subtree of every direct node keep rejects: nodes
@@ -572,6 +575,11 @@ func (p *Process) RetainNodeOnlineClients(keep func(nodeID int) bool) {
 	for nodeID := range p.nodeActiveInboundTrees {
 		if !keep(nodeID) {
 			delete(p.nodeActiveInboundTrees, nodeID)
+		}
+	}
+	for nodeID := range p.nodeProfiles {
+		if !keep(nodeID) {
+			delete(p.nodeProfiles, nodeID)
 		}
 	}
 }

@@ -1629,6 +1629,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/activeProfiles',
+        summary:
+          'Exact live authenticated connections per client and inbound, grouped by the hosting panel GUID. Includes idle open links and multiple simultaneous profiles. Requires an inbound-tracking-enabled Xray core. supported=false or a missing node means unknown; an empty supported clients map means no live connections. Stale node snapshots expire after 20 seconds. Does not change traffic counters or store connection history.',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "node-guid": {\n      "supported": true,\n      "observedAt": 1792180000000,\n      "clients": { "alice": ["in-443-tcp", "in-3000-udp"] }\n    }\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/lastOnline',
         summary: 'Map of client email → last-seen unix timestamp.',
         response:
