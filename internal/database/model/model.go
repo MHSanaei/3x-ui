@@ -1223,6 +1223,15 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
+// HostTombstone keeps the inbound a deleted host served, so a client still bound to that host
+// fails closed on that inbound alone.
+type HostTombstone struct {
+	HostId    int `json:"hostId" gorm:"primaryKey;autoIncrement:false;column:host_id"`
+	InboundId int `json:"inboundId" gorm:"not null;column:inbound_id"`
+}
+
+func (HostTombstone) TableName() string { return "host_tombstones" }
+
 // KeepAliveSeconds returns a scalar value; ranges are emitted by native AWG config.
 func (c Client) KeepAliveSeconds() int {
 	if c.KeepAlive == nil {

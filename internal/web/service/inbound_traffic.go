@@ -964,7 +964,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 				if err := s.clientService.DetachInbound(tx, inbound.Id); err != nil {
 					return err
 				}
-				if err := tx.Where("inbound_id = ?", inbound.Id).Delete(&model.Host{}).Error; err != nil {
+				if _, err := database.DeleteHosts(tx, "inbound_id = ?", inbound.Id); err != nil {
 					return err
 				}
 				if err := tx.Delete(model.Inbound{}, inbound.Id).Error; err != nil {
