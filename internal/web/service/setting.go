@@ -186,6 +186,7 @@ var defaultValueMap = map[string]string{
 	"subClashURI":                 "",
 	"subClashEnableRouting":       "false",
 	"subClashRules":               "",
+	"subClashRemoteDNS":           "false",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonRoutingRules":         "",
@@ -236,6 +237,8 @@ var defaultValueMap = map[string]string{
 
 	// Consecutive failed observatory probes before an outbound.down event fires
 	"outboundDownThreshold": "3",
+
+	"nodeDownThreshold": "1",
 
 	// Email (SMTP) notifications
 	"smtpEnable":         "false",
@@ -1241,6 +1244,10 @@ func (s *SettingService) GetSubClashRules() (string, error) {
 	return s.getString("subClashRules")
 }
 
+func (s *SettingService) GetSubClashRemoteDNS() (bool, error) {
+	return s.getBool("subClashRemoteDNS")
+}
+
 func (s *SettingService) GetSubJsonMux() (string, error) {
 	return s.getString("subJsonMux")
 }
@@ -1634,6 +1641,14 @@ func (s *SettingService) GetOutboundDownThreshold() (int, error) {
 
 func (s *SettingService) SetOutboundDownThreshold(value int) error {
 	return s.setInt("outboundDownThreshold", value)
+}
+
+func (s *SettingService) GetNodeDownThreshold() (int, error) {
+	return s.getInt("nodeDownThreshold")
+}
+
+func (s *SettingService) SetNodeDownThreshold(value int) error {
+	return s.setInt("nodeDownThreshold", value)
 }
 
 // SecretClears marks redacted secrets the user explicitly emptied. Without a

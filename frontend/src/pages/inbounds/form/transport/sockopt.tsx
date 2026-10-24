@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, InputNumber, Segmented, Select, Switch } from 'antd';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -28,6 +29,7 @@ export default function SockoptForm({
   network: string;
 }) {
   const { t } = useTranslation();
+  const uid = useId();
   const { control, getValues, setValue } = useFormContext();
   const sock = useWatch({ control, name: 'streamSettings.sockopt' });
   const on = !!sock && typeof sock === 'object' && Object.keys(sock).length > 0;
@@ -101,6 +103,8 @@ export default function SockoptForm({
             tooltip={t('pages.inbounds.form.realClientIpHint')}
           >
             <Segmented
+              aria-label={t('pages.inbounds.form.realClientIp')}
+              aria-describedby={`${uid}-real-client-ip-hint`}
               value={presetValue}
               onChange={(v) => applyRealClientIpPreset(v as RealClientIpPreset)}
               options={[
@@ -112,6 +116,9 @@ export default function SockoptForm({
                 { value: 'proxy', label: t('pages.inbounds.form.realClientIpPresetProxyProtocol') },
               ]}
             />
+            <span id={`${uid}-real-client-ip-hint`} hidden>
+              {t('pages.inbounds.form.realClientIpHint')}
+            </span>
           </Form.Item>
           {trustedMismatch && (
             <Alert

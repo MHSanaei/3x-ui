@@ -20,15 +20,16 @@ import (
 )
 
 type SubClashService struct {
-	enableRouting bool
-	clashRules    string
-	SubService    *SubService
+	enableRouting  bool
+	clashRules     string
+	clashRemoteDNS bool
+	SubService     *SubService
 }
 
 var errNoLegacyClashProxies = errors.New("no Clash for Windows-compatible proxies found; use the Mihomo subscription for modern proxy types")
 
-func NewSubClashService(enableRouting bool, clashRules string, subService *SubService) *SubClashService {
-	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, SubService: subService}
+func NewSubClashService(enableRouting bool, clashRules string, clashRemoteDNS bool, subService *SubService) *SubClashService {
+	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, clashRemoteDNS: clashRemoteDNS, SubService: subService}
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
@@ -170,7 +171,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		resolved, remoteDocument, remote, resolveErr := resolveClashRoutingSource(s.clashRules)
 		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
 			if remote {
-				if err := mergeRemoteClashRules(config, remoteDocument); err != nil {
+				if err := mergeRemoteClashRules(config, remoteDocument, s.clashRemoteDNS); err != nil {
 					return "", "", err
 				}
 			} else if err := mergeClashRulesYAML(config, resolved); err != nil {
@@ -1017,8 +1018,15 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 			{"hMaxRequestTimes", "h-max-request-times"},
 			{"hMaxReusableSecs", "h-max-reusable-secs"},
 		} {
-			if v, ok := xmux[f.src].(string); ok && v != "" {
-				reuse[f.dst] = v
+			v, ok := nonZeroShareValue(xmux[f.src])
+			if !ok {
+				continue
+			}
+			if n, isFloat := v.(float64); isFloat {
+				// JSON numbers decode as float64, and %v would render 1000000 as "1e+06".
+				reuse[f.dst] = strconv.FormatFloat(n, 'f', -1, 64)
+			} else {
+				reuse[f.dst] = fmt.Sprint(v)
 			}
 		}
 		if v, ok := nonZeroShareValue(xmux["hKeepAlivePeriod"]); ok {
@@ -1296,16 +1304,50 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	return nil
 }
 
-// mergeRemoteClashRules lets remote update only the route graph (see
-// remoteClashAllowedKey) and never mutates remote: cached documents are shared.
-func mergeRemoteClashRules(base map[string]any, remote map[string]any) error {
+type remoteClashKeyClass int
+
+const (
+	remoteClashRouteGraph remoteClashKeyClass = iota + 1
+	remoteClashClientConfig
+)
+
+// Client config keys steer the client's own resolver, so a remote URL may set
+// them only when the admin opts in (subClashRemoteDNS).
+var remoteClashKeyClasses = map[string]remoteClashKeyClass{
+	"proxy-groups":   remoteClashRouteGraph,
+	"rule-providers": remoteClashRouteGraph,
+	"rules":          remoteClashRouteGraph,
+	"dns":            remoteClashClientConfig,
+	"sniffer":        remoteClashClientConfig,
+}
+
+func remoteClashKeyAllowed(key string, allowClientConfig bool) bool {
+	switch remoteClashKeyClasses[key] {
+	case remoteClashRouteGraph:
+		return true
+	case remoteClashClientConfig:
+		return allowClientConfig
+	default:
+		return false
+	}
+}
+
+// mergeRemoteClashRules copies only keys listed in remoteClashKeyClasses and
+// never mutates remote: cached documents are shared.
+func mergeRemoteClashRules(base map[string]any, remote map[string]any, allowClientConfig bool) error {
 	if len(remote) == 0 {
 		return fmt.Errorf("remote Clash routing source must be a YAML map")
 	}
 
 	for key, value := range remote {
-		if !remoteClashAllowedKey(key) {
+		if !remoteClashKeyAllowed(key, allowClientConfig) {
 			continue
+		}
+		if remoteClashKeyClasses[key] == remoteClashClientConfig {
+			// A malformed dns or sniffer must not cost the client its routing.
+			if _, ok := value.(map[string]any); !ok {
+				continue
+			}
 		}
 		if err := validateRemoteClashValue(key, value); err != nil {
 			return err
@@ -1380,15 +1422,6 @@ func validateRemoteClashValue(key string, value any) error {
 		}
 	}
 	return nil
-}
-
-func remoteClashAllowedKey(key string) bool {
-	switch key {
-	case "proxy-groups", "rule-providers", "rules":
-		return true
-	default:
-		return false
-	}
 }
 
 func validateClashRouteGraph(config map[string]any) error {

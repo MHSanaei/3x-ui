@@ -152,7 +152,7 @@ It is paths-filtered, so a docs-only or workflow-only change produces no run.
 | `golangci` | `golangci-lint` |
 | `fuzz-smoke` | 30s each on `FuzzParseLink` and `FuzzDecodeCertPin` |
 | `codegen` | `npm run gen` then `git diff --exit-code` on the generated files |
-| `frontend` | MSW worker drift, lint, format:check, typecheck, `npm test` (Vitest + headless-Chromium Storybook), build, build-storybook, `npm audit` |
+| `frontend` | lint, format:check, typecheck, `npm test` (Vitest + headless-Chromium Storybook), build, build-storybook, `npm audit` |
 
 **What CI does NOT prove.** These test families `t.Skip` unless an environment
 variable is set, and CI sets only the PostgreSQL ones above:

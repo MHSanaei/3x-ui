@@ -169,4 +169,25 @@ describe('clients page tunnel configs follow Hosts', () => {
       'wg - edge2.example.com:51820',
     ]);
   });
+
+  it('expands a CIDR Host into distinct endpoint configs', () => {
+    const inbound = { id: 7, remark: 'wg', protocol: 'wireguard', port: 51820 } as InboundOption;
+    const cidrHosts: HostRecord[] = [
+      {
+        groupId: 'cidr-group',
+        inboundIds: [7],
+        hosts: ['198.51.100.0/30'],
+        randomCount: 2,
+        remark: 'CIDR-WG',
+      },
+    ];
+    const eps = tunnelConfigEndpoints(inbound, cidrHosts, PANEL, '');
+    expect(eps).toHaveLength(2);
+    expect(eps[0]?.remark).toBe('CIDR-WG - 1');
+    expect(eps[1]?.remark).toBe('CIDR-WG - 2');
+    expect(eps.map((e) => e?.port)).toEqual([51820, 51820]);
+    for (const ep of eps) {
+      expect(ep?.dest).toMatch(/^198\.51\.100\.[12]$/);
+    }
+  });
 });

@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -167,7 +168,7 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 }
 
 func TestClashRealityMLKEMAcrossSources(t *testing.T) {
-	svc := NewSubClashService(false, "", &SubService{})
+	svc := NewSubClashService(false, "", false, &SubService{})
 	for _, security := range []string{"reality", "tls", "none"} {
 		for _, fingerprint := range []string{"", "chrome", "firefox"} {
 			t.Run(security+"/"+fingerprint, func(t *testing.T) {
@@ -796,6 +797,37 @@ func TestBuildXhttpClashOpts_XmuxMapsToReuseSettings(t *testing.T) {
 		}
 		if _, has := opts["reuse-settings"]; has {
 			t.Error("reuse-settings should not appear when only hKeepAlivePeriod=0")
+		}
+	})
+
+	// Sub-test 5: numeric counts as json.Unmarshal yields them (#6841)
+	t.Run("NumericXmux", func(t *testing.T) {
+		cases := []struct {
+			name, xmux string
+			want       map[string]any
+		}{
+			{
+				name: "PanelDefaults",
+				xmux: `{"maxConcurrency":"","maxConnections":3,"cMaxReuseTimes":0,"hMaxRequestTimes":"600-900","hMaxReusableSecs":"1800-3000","hKeepAlivePeriod":0}`,
+				want: map[string]any{"max-connections": "3", "h-max-request-times": "600-900", "h-max-reusable-secs": "1800-3000"},
+			},
+			{
+				name: "LargeCountNotExponent",
+				xmux: `{"cMaxReuseTimes":1000000}`,
+				want: map[string]any{"c-max-reuse-times": "1000000"},
+			},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				var xmux map[string]any
+				if err := json.Unmarshal([]byte(tc.xmux), &xmux); err != nil {
+					t.Fatal(err)
+				}
+				opts := buildXhttpClashOpts(map[string]any{"path": "/", "xmux": xmux})
+				if got := opts["reuse-settings"]; !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("reuse-settings = %#v, want %#v", got, tc.want)
+				}
+			})
 		}
 	})
 }

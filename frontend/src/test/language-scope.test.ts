@@ -19,6 +19,7 @@ describe('subscription language scope', () => {
     const getLanguage = vi.spyOn(utils.LanguageManager, 'getLanguage');
     const reload = vi.fn();
     vi.stubGlobal('window', { navigator: { language: 'en-US' }, location: { reload } });
+    vi.stubGlobal('document', { documentElement: {} });
 
     const { readyI18n } = await import('@/i18n/react');
     expect(getLanguage).not.toHaveBeenCalled();

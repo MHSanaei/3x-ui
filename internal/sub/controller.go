@@ -115,6 +115,7 @@ type subControllerConfig struct {
 	subJsonObservatory    string
 	subClashEnableRouting bool
 	subClashRules         string
+	subClashRemoteDNS     bool
 
 	subTitle         string
 	subSupportURL    string
@@ -215,6 +216,10 @@ func WithSUBClashEnableRouting(value bool) SUBControllerOption {
 
 func WithSUBClashRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subClashRules = value }
+}
+
+func WithSUBClashRemoteDNS(value bool) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subClashRemoteDNS = value }
 }
 
 func WithSUBTitle(value string) SUBControllerOption {
@@ -319,7 +324,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 
 		subService:      sub,
 		subJsonService:  subJsonSvc,
-		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, sub),
+		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, config.subClashRemoteDNS, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},
 	}

@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本機設定",
-      "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。"
+      "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。",
+      "logLines": "行數",
+      "timeRange": "時間範圍"
     },
     "inbounds": {
       "totalDownUp": "總上傳 / 下載",
@@ -730,7 +732,10 @@
         "autoSystemDnsToGateway": "系統 DNS 指向閘道",
         "autoSystemDnsToGatewayTooltip": "僅限 Linux：將 systemd-resolved 指向 TUN 閘道，使系統解析經過 Xray。需要設定閘道，失敗時 TUN 不會啟動。",
         "autoSystemWfpBlockLeak": "阻止洩漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS 只走 TUN（需設定 DNS 伺服器），misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。"
+        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS 只走 TUN（需設定 DNS 伺服器），misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。",
+        "maxVersion": "最高版本",
+        "headerName": "標頭名稱",
+        "headerValue": "標頭值"
       },
       "info": {
         "mode": "模式",
@@ -1301,6 +1306,8 @@
       "subClashEnableRoutingDesc": "在產生的 YAML 訂閱中包含 Clash/Mihomo 全域路由規則。",
       "subClashRoutingRules": "全域路由規則",
       "subClashRoutingRulesDesc": "貼上規則/YAML 或一個固定 HTTPS URL。面板會在背景更新，只匯入代理群組、規則提供者與規則，並保留面板產生的 VPN 節點及最後一個有效值。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "監聽 IP",
       "subListenDesc": "訂閱服務監聽的 IP 地址（留空表示監聽所有 IP）",
       "subPort": "監聽埠",
@@ -1425,6 +1432,15 @@
         "apiTokenName": "名稱",
         "apiTokenNamePlaceholder": "例如 central-panel-a",
         "apiTokenNameRequired": "名稱必填",
+        "apiTokenScope": "權限範圍",
+        "apiTokenScopeAdmin": "管理員",
+        "apiTokenScopeAdminDesc": "可存取面板的所有 API 端點。僅用於可信的自動化。",
+        "apiTokenScopeMonitor": "監控",
+        "apiTokenScopeMonitorDesc": "唯讀存取系統狀態、版本和指標。",
+        "apiTokenScopeNodeSync": "節點同步",
+        "apiTokenScopeNodeSyncDesc": "同步節點設定、入站、用戶端、流量和 Xray 狀態。無法更新面板軟體。",
+        "apiTokenScopeNodeAdmin": "節點管理員",
+        "apiTokenScopeNodeAdminDesc": "包含節點同步權限，也可以啟動面板軟體更新。",
         "apiTokenEmpty": "尚無令牌 — 建立一個以認證機器人或遠端面板。",
         "apiTokenDeleteWarning": "使用此令牌的任何呼叫方將立即無法認證。",
         "apiTokenCreatedTitle": "權杖已建立",
@@ -1472,6 +1488,7 @@
       "eventGroupNode": "節點",
       "eventOutboundDown": "中斷",
       "eventOutboundUp": "恢復",
+      "eventDownThresholdHint": "次連續檢查失敗",
       "eventXrayCrash": "當機",
       "eventNodeDown": "離線",
       "eventNodeUp": "上線",
@@ -2352,6 +2369,7 @@
         "mihomoIpVersion": "IP 版本",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "隨機排序 Host",
+        "randomCount": "隨機 IP 數量",
         "tags": "標籤",
         "nodeGuids": "節點",
         "excludeFromSubTypes": "從格式中排除",

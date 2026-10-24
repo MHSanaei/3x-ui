@@ -17,7 +17,7 @@ func hostColumns() []string {
 		"override_sni_from_address", "keep_sni_blank", "pinned_peer_cert_sha256",
 		"verify_peer_cert_by_name", "allow_insecure", "ech_config_list",
 		"mux_params", "sockopt_params", "final_mask", "vless_route",
-		"exclude_from_sub_types", "mihomo_ip_version", "mihomo_x25519", "shuffle_host", "node_guids",
+		"exclude_from_sub_types", "mihomo_ip_version", "mihomo_x25519", "shuffle_host", "random_count", "node_guids",
 		"created_at", "updated_at",
 	}
 }
