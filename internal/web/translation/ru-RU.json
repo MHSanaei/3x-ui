@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Telegram API Server",
       "telegramAPIServerDesc": "Используемый API-сервер Telegram. Оставьте пустым, чтобы использовать сервер по умолчанию.",
       "telegramChatId": "User ID администратора бота",
-      "telegramChatIdDesc": "Один или несколько User ID администратора(-ов) Telegram-бота. Для получения User ID используйте {'@'}userinfobot или команду '/id' в боте.",
+      "telegramChatIdDesc": "Один или несколько User ID администратора(-ов) Telegram-бота. Для получения User ID используйте {'@'}userinfobot или команду '/id' в боте. Чтобы отправлять в тему форума, добавьте ':topicId', например -1001234567890:42",
       "telegramNotifyTime": "Частота уведомлений для администраторов от бота",
       "telegramNotifyTimeDesc": "Как часто бот Telegram отправляет периодические отчёты. Выберите готовый интервал или «Произвольный», чтобы ввести выражение crontab.",
       "notifyTime": {

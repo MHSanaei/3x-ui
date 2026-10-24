@@ -32,18 +32,47 @@ describe('validateBotToken', () => {
 
 describe('parseAdminIds', () => {
   it('splits a comma list into integer ids', () => {
-    expect(parseAdminIds('111, 222')).toEqual({ ids: [111, 222], invalid: [] });
+    expect(parseAdminIds('111, 222')).toEqual({
+      ids: [111, 222],
+      entries: ['111', '222'],
+      invalid: [],
+    });
   });
 
   it('accepts negative group ids and captures invalid entries', () => {
     expect(parseAdminIds('-1001234567, abc, 42')).toEqual({
       ids: [-1001234567, 42],
+      entries: ['-1001234567', '42'],
       invalid: ['abc'],
     });
   });
 
+  it('drops the General topic suffix, since the Bot API rejects thread id 1', () => {
+    expect(parseAdminIds('-1001234567:1')).toEqual({
+      ids: [-1001234567],
+      entries: ['-1001234567'],
+      invalid: [],
+    });
+  });
+
+  it('rejects a second topic for the same chat, as the panel does', () => {
+    expect(parseAdminIds('-1001:7, -1001:1, -1001:8')).toEqual({
+      ids: [-1001],
+      entries: ['-1001:7'],
+      invalid: ['-1001:8'],
+    });
+  });
+
+  it('keeps a forum topic suffix and rejects a malformed one', () => {
+    expect(parseAdminIds('-1001234567:42, 111:0, 222:x')).toEqual({
+      ids: [-1001234567],
+      entries: ['-1001234567:42'],
+      invalid: ['111:0', '222:x'],
+    });
+  });
+
   it('returns empty for blank input', () => {
-    expect(parseAdminIds('  ')).toEqual({ ids: [], invalid: [] });
+    expect(parseAdminIds('  ')).toEqual({ ids: [], entries: [], invalid: [] });
   });
 });
 
@@ -102,5 +131,14 @@ describe('buildBotConfigSummary', () => {
     expect(s.tgBotToken).toBe(VALID_TOKEN);
     expect(s.tgBotChatId).toBe('111,222');
     expect(s.tgRunTime).toBe('@daily');
+  });
+
+  it('keeps forum topic suffixes in the chat id setting', () => {
+    const s = buildBotConfigSummary({
+      token: VALID_TOKEN,
+      adminIds: '111, -1001234567 : 42',
+      runTime: '@daily',
+    });
+    expect(s.tgBotChatId).toBe('111,-1001234567:42');
   });
 });

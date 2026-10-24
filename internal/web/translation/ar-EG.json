@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "خادم API لتيليجرام",
       "telegramAPIServerDesc": "سيرفر Telegram API المستخدم. سيبه فاضي لاستخدام الافتراضي.",
       "telegramChatId": "ID شات الأدمن",
-      "telegramChatIdDesc": "ID شات الأدمن في Telegram. (مفصول بفواصل)(تقدر تجيبه من {'@'}userinfobot) أو (استخدم '/id' في البوت)",
+      "telegramChatIdDesc": "ID شات الأدمن في Telegram. (مفصول بفواصل)(تقدر تجيبه من {'@'}userinfobot) أو (استخدم '/id' في البوت) للنشر في موضوع منتدى، أضف ':topicId'، مثل -1001234567890:42",
       "telegramNotifyTime": "وقت الإشعار",
       "telegramNotifyTimeDesc": "عدد مرات إرسال البوت للتقارير الدورية. اختر فترة جاهزة، أو اختر «مخصص» لإدخال تعبير crontab.",
       "notifyTime": {

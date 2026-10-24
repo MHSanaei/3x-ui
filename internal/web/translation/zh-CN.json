@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Telegram API 服务器",
       "telegramAPIServerDesc": "要使用的 Telegram API 服务器。留空以使用默认服务器。",
       "telegramChatId": "管理员聊天 ID",
-      "telegramChatIdDesc": "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 {'@'}userinfobot 获取，或在机器人中使用 '/id' 命令获取）",
+      "telegramChatIdDesc": "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 {'@'}userinfobot 获取，或在机器人中使用 '/id' 命令获取） 如需发送到论坛话题，请追加 ':topicId'，例如 -1001234567890:42",
       "telegramNotifyTime": "通知时间",
       "telegramNotifyTimeDesc": "Telegram 机器人发送周期性报告的频率。选择预设间隔，或选择“自定义”以输入 crontab 表达式。",
       "notifyTime": {

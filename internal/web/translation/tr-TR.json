@@ -1220,7 +1220,7 @@
       "telegramAPIServer": "Telegram API Sunucusu",
       "telegramAPIServerDesc": "Kullanılacak Telegram API sunucusu. Varsayılan sunucuyu kullanmak için boş bırakın.",
       "telegramChatId": "Yönetici Sohbet Kimliği",
-      "telegramChatIdDesc": "Telegram Yönetici Sohbet Kimliği (Chat ID). Birden fazla ise virgülle ayırın. ({'@'}userinfobot'tan alabilirsiniz veya botta '/id' komutunu kullanabilirsiniz.)",
+      "telegramChatIdDesc": "Telegram Yönetici Sohbet Kimliği (Chat ID). Birden fazla ise virgülle ayırın. ({'@'}userinfobot'tan alabilirsiniz veya botta '/id' komutunu kullanabilirsiniz.) Bir forum konusuna göndermek için ':topicId' ekleyin, ör. -1001234567890:42",
       "telegramNotifyTime": "Bildirim Zamanı",
       "telegramNotifyTimeDesc": "Telegram botunun periyodik raporları gönderme sıklığı. Hazır bir aralık seçin veya bir crontab ifadesi girmek için Özel'i seçin.",
       "notifyTime": {

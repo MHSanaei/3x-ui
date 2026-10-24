@@ -432,7 +432,7 @@ func (t *Tgbot) sendBackupData(chatId int64, dbData []byte, dbFilename string) {
 			tu.ID(chatId),
 			tu.FileFromBytes(dbData, dbFilename),
 		)
-		_, err := bot.SendDocument(ctx, document)
+		_, err := bot.SendDocument(ctx, inAdminTopic(document))
 		cancel()
 		if err != nil {
 			logger.Error("Error in uploading backup: ", err)
@@ -452,7 +452,7 @@ func (t *Tgbot) sendBackupData(chatId int64, dbData []byte, dbFilename string) {
 			tu.ID(chatId),
 			tu.File(file),
 		)
-		_, err = bot.SendDocument(ctx, document)
+		_, err = bot.SendDocument(ctx, inAdminTopic(document))
 		if err != nil {
 			logger.Error("Error in uploading config.json: ", err)
 		}
@@ -478,7 +478,7 @@ func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
 				tu.ID(chatId),
 				tu.File(file),
 			)
-			_, err = bot.SendDocument(context.Background(), document)
+			_, err = bot.SendDocument(context.Background(), inAdminTopic(document))
 			if err != nil {
 				logger.Error("Error in uploading IPLimitBannedPrevLog: ", err)
 			}
@@ -499,7 +499,7 @@ func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
 				tu.ID(chatId),
 				tu.File(file),
 			)
-			_, err = bot.SendDocument(context.Background(), document)
+			_, err = bot.SendDocument(context.Background(), inAdminTopic(document))
 			if err != nil {
 				logger.Error("Error in uploading IPLimitBannedLog: ", err)
 			}

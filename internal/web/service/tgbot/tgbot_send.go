@@ -133,9 +133,10 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	allMessages := pageMessage(msg, telegramPageLimit)
 	for n, message := range allMessages {
 		params := telego.SendMessageParams{
-			ChatID:    tu.ID(chatId),
-			Text:      message,
-			ParseMode: "HTML",
+			ChatID:          tu.ID(chatId),
+			MessageThreadID: adminTopic(chatId),
+			Text:            message,
+			ParseMode:       "HTML",
 		}
 		// only add replyMarkup to last message
 		if len(replyMarkup) > 0 && n == (len(allMessages)-1) {
@@ -260,9 +261,10 @@ func (t *Tgbot) SendMsgToTgbotDeleteAfter(chatId int64, msg string, delayInSecon
 
 	// Send the message
 	sentMsg, err := bot.SendMessage(context.Background(), &telego.SendMessageParams{
-		ChatID:      tu.ID(chatId),
-		Text:        msg,
-		ReplyMarkup: replyMarkupParam, // Use the correct replyMarkup value
+		ChatID:          tu.ID(chatId),
+		MessageThreadID: adminTopic(chatId),
+		Text:            msg,
+		ReplyMarkup:     replyMarkupParam, // Use the correct replyMarkup value
 	})
 	if err != nil {
 		logger.Warning("Failed to send message:", err)
