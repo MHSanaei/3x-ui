@@ -81,8 +81,18 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
   const [trend, setTrend] = useState<HistoryWindow>(emptyWindow);
 
   const seededUnscoped = useRef(false);
+  const seedState = useRef<{ scope: string; complete: boolean } | null>(null);
 
   useEffect(() => {
+    // The placeholder has no resource scope. Wait for the first real status,
+    // then seed each scope once even if polling temporarily loses data.
+    if (
+      !hasData ||
+      (seedState.current?.scope === status.resourceScope && seedState.current.complete)
+    ) {
+      return;
+    }
+    seedState.current = { scope: status.resourceScope, complete: false };
     let cancelled = false;
     const seedUnscoped = !seededUnscoped.current;
     const keys = seedUnscoped ? SERIES_KEYS : (['cpu', 'swap'] as const);
@@ -100,6 +110,8 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
         }),
       );
       if (cancelled || responses.size === 0) return;
+      seedState.current = { scope: status.resourceScope, complete: true };
+      seededUnscoped.current = true;
 
       let axis: HistoryPoint[] = [];
       for (const points of responses.values()) {
@@ -119,7 +131,6 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
             : seedTimes.map((ts) => byTs.get(ts) ?? 0);
       }
 
-      seededUnscoped.current = true;
       setTrend((prev) => {
         const merged = emptyWindow();
         merged.times = seedUnscoped ? tailWindow(seedTimes.concat(prev.times)) : prev.times;
@@ -137,7 +148,7 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
     return () => {
       cancelled = true;
     };
-  }, [status.resourceScope]);
+  }, [hasData, status.resourceScope]);
 
   // Each polled status is appended during render; an effect would show the
   // chart one sample behind the numbers beside it.

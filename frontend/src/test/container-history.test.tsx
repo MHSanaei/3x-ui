@@ -91,18 +91,96 @@ it('retains legacy padding for unrelated seed gaps while skipping missing contai
         ]
       : [{ t: 1, v: 5 }],
   }));
-  const { result } = renderHook(() =>
-    useOverviewHistory(
-      new Status({
-        resourceScope: 'container',
-        unavailableMetrics: ['cpu', 'swap'],
-        netIO: { up: 9, down: 0 },
-      }),
-      false,
-    ),
-  );
-  await waitFor(() => expect(result.current.series.netUp).toEqual([7, 8]));
-  expect(result.current.series.mem).toEqual([5, 0]);
+  const status = new Status({
+    resourceScope: 'container',
+    unavailableMetrics: ['cpu', 'swap'],
+    netIO: { up: 9, down: 0 },
+  });
+  const { result } = renderHook(() => useOverviewHistory(status, true));
+  await waitFor(() => expect(result.current.series.netUp).toEqual([7, 8, 9]));
+  expect(result.current.series.mem).toEqual([5, 0, 0]);
   expect(result.current.series.cpu).toEqual([5]);
   expect(result.current.series.swap).toEqual([5]);
+});
+
+it('waits for the first real status before seeding and never doubles that window', async () => {
+  get.mockImplementation(async (path: string) => ({
+    success: true,
+    obj: path.includes('/cpu/')
+      ? [{ t: 1, v: 10 }]
+      : path.includes('/swap/')
+        ? [{ t: 2, v: 6 }]
+        : [
+            { t: 1, v: 5 },
+            { t: 2, v: 6 },
+          ],
+  }));
+  const { result, rerender } = renderHook(
+    ({ status, hasData }) => useOverviewHistory(status, hasData),
+    {
+      initialProps: { status: new Status(), hasData: false },
+    },
+  );
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(get).not.toHaveBeenCalled();
+  rerender({
+    status: new Status({ resourceScope: 'container', cpu: 20, swap: { current: 0, total: 0 } }),
+    hasData: true,
+  });
+  await waitFor(() => expect(result.current.series.cpu).toEqual([10, 20]));
+  expect(result.current.series.swap).toEqual([6, 0]);
+  expect(get).toHaveBeenCalledTimes(8);
+  rerender({ status: new Status({ resourceScope: 'container', cpu: 30 }), hasData: true });
+  expect(result.current.series.cpu).toEqual([10, 20, 30]);
+  expect(get).toHaveBeenCalledTimes(8);
+});
+
+it('does not prepend the same seed after a temporary status error', async () => {
+  get.mockResolvedValue({ success: true, obj: [{ t: 1, v: 10 }] });
+  const status = new Status({ resourceScope: 'container', cpu: 20 });
+  const { result, rerender } = renderHook(({ hasData }) => useOverviewHistory(status, hasData), {
+    initialProps: { hasData: true },
+  });
+  await waitFor(() => expect(result.current.series.cpu).toEqual([10, 20]));
+  rerender({ hasData: false });
+  rerender({ hasData: true });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(get).toHaveBeenCalledTimes(8);
+  expect(result.current.series.cpu).toEqual([10, 20]);
+});
+
+it('does not reseed unrelated metrics after an empty initial history', async () => {
+  get.mockResolvedValue({ success: true, obj: [] });
+  const { rerender } = renderHook(({ status }) => useOverviewHistory(status, true), {
+    initialProps: { status: new Status({ cpu: 50 }) },
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  get.mockClear();
+  rerender({ status: new Status({ resourceScope: 'container', cpu: 20 }) });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+});
+
+it('can return to a previously seeded scope while a different seed is in flight', async () => {
+  get.mockResolvedValue({ success: true, obj: [{ t: 1, v: 10 }] });
+  const { result, rerender } = renderHook(({ status }) => useOverviewHistory(status, true), {
+    initialProps: { status: new Status({ cpu: 50 }) },
+  });
+  await waitFor(() => expect(result.current.series.cpu).toEqual([10, 50]));
+  let release!: (value: { success: boolean; obj: { t: number; v: number }[] }) => void;
+  const pending = new Promise<{ success: boolean; obj: { t: number; v: number }[] }>((resolve) => {
+    release = resolve;
+  });
+  get.mockReturnValue(pending);
+  rerender({ status: new Status({ resourceScope: 'container', cpu: 20 }) });
+  get.mockResolvedValue({ success: true, obj: [{ t: 1, v: 10 }] });
+  rerender({ status: new Status({ cpu: 60 }) });
+  await waitFor(() => expect(result.current.series.cpu).toEqual([10, 60]));
+  await act(async () => release({ success: true, obj: [{ t: 1, v: 99 }] }));
+  expect(result.current.series.cpu).toEqual([10, 60]);
 });
