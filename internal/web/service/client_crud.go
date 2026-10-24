@@ -129,19 +129,47 @@ func (c ClientResetCycle) Depleted() bool {
 	return c.Total > 0 && c.Used >= c.Total
 }
 
+func clientResetCycles(tx *gorm.DB) *gorm.DB {
+	return tx.Table("clients c").
+		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email")
+}
+
 // GetClientsByTrafficReset returns the clients whose own reset cycle matches the
 // period, independent of the cycle configured on the inbounds they belong to.
 func (s *ClientService) GetClientsByTrafficReset(period string) ([]ClientResetCycle, error) {
 	var cycles []ClientResetCycle
-	err := database.GetDB().Table("clients c").
-		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
-		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+	err := clientResetCycles(database.GetDB()).
 		Where("c.traffic_reset = ?", period).
 		Scan(&cycles).Error
 	if err != nil {
 		return nil, err
 	}
 	return cycles, nil
+}
+
+// quotaDisabledEmails lists the disabled clients whose usage reached their quota,
+// only those in within unless it is nil. Read it before zeroing the counters,
+// which hides why a client is off.
+func quotaDisabledEmails(tx *gorm.DB, within []string) ([]string, error) {
+	var cycles []ClientResetCycle
+	if err := clientResetCycles(tx).Where("c.enable = ?", false).Scan(&cycles).Error; err != nil {
+		return nil, err
+	}
+	var in map[string]bool
+	if within != nil {
+		in = make(map[string]bool, len(within))
+		for _, e := range within {
+			in[e] = true
+		}
+	}
+	var emails []string
+	for _, c := range cycles {
+		if c.Depleted() && (in == nil || in[c.Email]) {
+			emails = append(emails, c.Email)
+		}
+	}
+	return emails, nil
 }
 
 // Create applies the client to every requested inbound: one failing inbound no
