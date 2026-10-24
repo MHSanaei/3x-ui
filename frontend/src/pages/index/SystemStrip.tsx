@@ -38,8 +38,12 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
             </div>
             <span className="ov-strip-split-sep" />
             <div>
-              <div className="ov-strip-sub">OS</div>
-              <div className="ov-strip-value">{TimeFormatter.formatSecond(status.uptime)}</div>
+              <div className="ov-strip-sub">
+                {status.resourceScope === 'container' ? 'CT' : 'OS'}
+              </div>
+              <div className="ov-strip-value">
+                {status.metricAvailable('uptime') ? TimeFormatter.formatSecond(status.uptime) : '—'}
+              </div>
             </div>
           </div>
         </div>

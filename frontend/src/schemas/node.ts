@@ -19,6 +19,7 @@ export const NodeRecordSchema = z
     xrayVersion: z.string().optional(),
     panelVersion: z.string().optional(),
     uptimeSecs: z.number().optional(),
+    unavailableMetrics: z.array(z.string()).optional(),
     inboundCount: z.number().optional(),
     clientCount: z.number().optional(),
     onlineCount: z.number().optional(),
@@ -52,6 +53,7 @@ export const NodeListSchema = z.array(NodeRecordSchema);
 export const ProbeResultSchema = z
   .object({
     status: z.string(),
+    unavailableMetrics: z.array(z.string()).optional(),
     latencyMs: z.number().optional(),
     xrayVersion: z.string().optional(),
     error: z.string().optional(),

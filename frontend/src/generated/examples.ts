@@ -944,6 +944,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "status": "online",
     "tlsVerifyMode": "verify",
     "transitive": false,
+    "unavailableMetrics": [
+      ""
+    ],
     "updatedAt": 1700000000,
     "uptimeSecs": 86400,
     "xrayError": "",
@@ -1009,6 +1012,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "status": "online",
     "tlsVerifyMode": "verify",
     "transitive": false,
+    "unavailableMetrics": [
+      ""
+    ],
     "updatedAt": 1700003600,
     "uptimeSecs": 86400,
     "xrayError": "",
@@ -1047,6 +1053,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "memPct": 45.2,
     "panelVersion": "v3.x.x",
     "status": "online",
+    "unavailableMetrics": [
+      ""
+    ],
     "uptimeSecs": 86400,
     "xrayError": "",
     "xrayState": "",

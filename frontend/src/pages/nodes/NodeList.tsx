@@ -130,12 +130,14 @@ function StatusLabel({ status, xrayState }: HealthProps) {
   return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
 }
 
-function formatPct(p?: number): string {
+function formatPct(p?: number, available = true): string {
+  if (!available) return '—';
   if (typeof p !== 'number' || Number.isNaN(p)) return '-';
   return `${p.toFixed(1)}%`;
 }
 
-function formatUptime(secs?: number): string {
+function formatUptime(secs?: number, available = true): string {
+  if (!available) return '—';
   if (!secs) return '-';
   const days = Math.floor(secs / 86400);
   const hours = Math.floor((secs % 86400) / 3600);
@@ -404,7 +406,8 @@ export default function NodeList({
         dataIndex: 'cpuPct',
         align: 'center',
         width: 90,
-        render: (_value, record) => formatPct(record.cpuPct),
+        render: (_value, record) =>
+          formatPct(record.cpuPct, !record.unavailableMetrics?.includes('cpu')),
       },
       {
         title: t('pages.nodes.mem'),
@@ -452,7 +455,8 @@ export default function NodeList({
         title: t('pages.nodes.uptime'),
         dataIndex: 'uptimeSecs',
         align: 'center',
-        render: (_value, record) => formatUptime(record.uptimeSecs),
+        render: (_value, record) =>
+          formatUptime(record.uptimeSecs, !record.unavailableMetrics?.includes('uptime')),
       },
       {
         title: t('clients'),
@@ -792,7 +796,9 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.cpu')}</span>
-                  <Tag>{formatPct(statsNode.cpuPct)}</Tag>
+                  <Tag>
+                    {formatPct(statsNode.cpuPct, !statsNode.unavailableMetrics?.includes('cpu'))}
+                  </Tag>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.mem')}</span>
@@ -810,7 +816,12 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.uptime')}</span>
-                  <Tag>{formatUptime(statsNode.uptimeSecs)}</Tag>
+                  <Tag>
+                    {formatUptime(
+                      statsNode.uptimeSecs,
+                      !statsNode.unavailableMetrics?.includes('uptime'),
+                    )}
+                  </Tag>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.latency')}</span>
