@@ -47,6 +47,7 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -73,6 +74,7 @@ export interface AllSetting {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;
@@ -235,6 +237,7 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -261,6 +264,7 @@ export interface AllSettingView {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;

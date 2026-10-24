@@ -39,7 +39,7 @@ export default function AmneziawgFields() {
           />
         </FormField>
         <Button
-          icon={<ReloadOutlined />}
+          icon={<ReloadOutlined aria-hidden />}
           aria-label={t('regenerate')}
           onClick={() => {
             const pair = Wireguard.generateKeypair();
@@ -93,7 +93,7 @@ export default function AmneziawgFields() {
         <Button
           size="small"
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<PlusOutlined aria-hidden />}
           aria-label={t('add')}
           onClick={() =>
             appendPeer({
@@ -182,14 +182,14 @@ function PeerAllowedIPs({ peerIndex }: { peerIndex: number }) {
           </FormField>
           {fields.length > 1 && (
             <InputAddon ariaLabel={t('remove')} onClick={() => remove(ipIdx)}>
-              <MinusOutlined />
+              <MinusOutlined aria-hidden />
             </InputAddon>
           )}
         </Space.Compact>
       ))}
       <Button
         size="small"
-        icon={<PlusOutlined />}
+        icon={<PlusOutlined aria-hidden />}
         aria-label={t('add')}
         onClick={() => append('')}
       />
