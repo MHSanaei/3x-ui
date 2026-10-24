@@ -382,7 +382,7 @@ export default function NordModal({
                         type="primary"
                         className="nord-login-action"
                         loading={loading}
-                        icon={<LoginOutlined />}
+                        icon={<LoginOutlined aria-hidden />}
                         onClick={login}
                       >
                         {t('login')}
@@ -402,7 +402,7 @@ export default function NordModal({
                         type="primary"
                         className="nord-login-action"
                         loading={loading}
-                        icon={<SaveOutlined />}
+                        icon={<SaveOutlined aria-hidden />}
                         onClick={saveKey}
                       >
                         {t('save')}

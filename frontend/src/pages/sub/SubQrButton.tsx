@@ -25,7 +25,12 @@ export default function SubQrButton({ value, label, onCopy }: SubQrButtonProps) 
 
   return (
     <>
-      <Button icon={<QrcodeOutlined />} aria-label="QR" title="QR" onClick={() => setOpen(true)} />
+      <Button
+        icon={<QrcodeOutlined aria-hidden />}
+        aria-label="QR"
+        title="QR"
+        onClick={() => setOpen(true)}
+      />
       <Modal
         open={open}
         onCancel={() => setOpen(false)}
@@ -49,6 +54,7 @@ export default function SubQrButton({ value, label, onCopy }: SubQrButtonProps) 
           />
         </div>
         <Input.TextArea
+          aria-label={t('subscription.tabLinks')}
           className="sub-qr-modal-link"
           value={value}
           readOnly
@@ -56,10 +62,15 @@ export default function SubQrButton({ value, label, onCopy }: SubQrButtonProps) 
           autoSize={{ minRows: 2, maxRows: 5 }}
         />
         <div className="sub-qr-modal-actions">
-          <Button type="primary" size="large" icon={<CopyOutlined />} onClick={() => onCopy(value)}>
+          <Button
+            type="primary"
+            size="large"
+            icon={<CopyOutlined aria-hidden />}
+            onClick={() => onCopy(value)}
+          >
             {t('copy')}
           </Button>
-          <Button size="large" icon={<DownloadOutlined />} onClick={saveQr}>
+          <Button size="large" icon={<DownloadOutlined aria-hidden />} onClick={saveQr}>
             {t('subscription.saveQr')}
           </Button>
         </div>

@@ -124,26 +124,34 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 	return affected, nil
 }
 
-func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
+func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) (bool, error) {
 	var resetNodes []int
-	var resetEmails []string
+	var resetEmails, restore []string
 	err := submitTrafficWrite(func() error {
 		var inner error
-		resetEmails, resetNodes, inner = s.resetAllClientTrafficsLocked(id)
+		resetEmails, restore, resetNodes, inner = s.resetAllClientTrafficsLocked(id)
 		return inner
 	})
-	if err == nil {
-		inboundSvc.resetMtprotoClientQuotas(resetEmails)
-		inboundSvc.deliverNodeResetsNow(resetNodes)
+	if err != nil {
+		return false, err
 	}
-	return err
+	inboundSvc.resetMtprotoClientQuotas(resetEmails)
+	inboundSvc.deliverNodeResetsNow(resetNodes)
+	needRestart := false
+	if len(restore) > 0 {
+		var enableErr error
+		if _, needRestart, enableErr = s.BulkSetEnable(inboundSvc, restore, true); enableErr != nil {
+			logger.Warning("Failed to re-enable depleted clients after resetting inbound traffic:", enableErr)
+		}
+	}
+	return needRestart, nil
 }
 
-func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, error) {
+func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string, []int, error) {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
 	var resetNodes []int
-	var reset []string
+	var reset, restore []string
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		// client_traffics.inbound_id is stale: it reflects the inbound the row was
@@ -168,6 +176,11 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, e
 		}
 		reset = resetEmails
 
+		var qErr error
+		if restore, qErr = quotaDisabledEmails(tx, resetEmails); qErr != nil {
+			return qErr
+		}
+
 		if err := adjustGroupBaselinesForRemovedTraffic(tx, resetEmails); err != nil {
 			return err
 		}
@@ -189,7 +202,6 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, e
 				return err
 			}
 		}
-		var qErr error
 		if resetNodes, qErr = queueNodeResets(tx, resetEmails); qErr != nil {
 			return qErr
 		}
@@ -207,16 +219,21 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, e
 
 		return result.Error
 	}); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return reset, resetNodes, nil
+	return reset, restore, resetNodes, nil
 }
 
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	var affected int64
 	var resetNodes []int
+	var restore []string
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
+			var qErr error
+			if restore, qErr = quotaDisabledEmails(tx, nil); qErr != nil {
+				return qErr
+			}
 			res := tx.Model(&xray.ClientTraffic{}).
 				Where("1 = 1").
 				Updates(map[string]any{"enable": true, "up": 0, "down": 0})
@@ -230,7 +247,6 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			if err := tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return err
 			}
-			var qErr error
 			resetNodes, qErr = queueNodeResets(tx, nil)
 			return qErr
 		})
@@ -241,5 +257,12 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 	inbounds := &InboundService{}
 	inbounds.resetAllMtprotoQuotas()
 	inbounds.deliverNodeResetsNow(resetNodes)
-	return affected > 0, nil
+	needRestart := false
+	if len(restore) > 0 {
+		var enableErr error
+		if _, needRestart, enableErr = s.BulkSetEnable(inbounds, restore, true); enableErr != nil {
+			logger.Warning("Failed to re-enable depleted clients after resetting all traffic:", enableErr)
+		}
+	}
+	return affected > 0 || needRestart, nil
 }

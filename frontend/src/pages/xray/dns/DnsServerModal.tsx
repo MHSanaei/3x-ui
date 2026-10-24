@@ -221,14 +221,14 @@ export default function DnsServerModal({
             <Button
               size="small"
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<PlusOutlined aria-hidden />}
               aria-label={t('add')}
               onClick={() => methods.setValue('domains', [...domains, ''])}
             />
             {domains.map((_, i) => (
               <Space.Compact key={i} block style={{ marginTop: 4 }}>
                 <FormField name={`domains.${i}`} noStyle>
-                  <Input />
+                  <Input aria-label={t('pages.xray.dns.domains')} />
                 </FormField>
                 <InputAddon
                   ariaLabel={t('remove')}
@@ -239,7 +239,7 @@ export default function DnsServerModal({
                     )
                   }
                 >
-                  <MinusOutlined />
+                  <MinusOutlined aria-hidden />
                 </InputAddon>
               </Space.Compact>
             ))}
@@ -249,14 +249,14 @@ export default function DnsServerModal({
             <Button
               size="small"
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<PlusOutlined aria-hidden />}
               aria-label={t('add')}
               onClick={() => methods.setValue('expectedIPs', [...expectedIPs, ''])}
             />
             {expectedIPs.map((_, i) => (
               <Space.Compact key={i} block style={{ marginTop: 4 }}>
                 <FormField name={`expectedIPs.${i}`} noStyle>
-                  <Input />
+                  <Input aria-label={t('pages.xray.dns.expectIPs')} />
                 </FormField>
                 <InputAddon
                   ariaLabel={t('remove')}
@@ -267,7 +267,7 @@ export default function DnsServerModal({
                     )
                   }
                 >
-                  <MinusOutlined />
+                  <MinusOutlined aria-hidden />
                 </InputAddon>
               </Space.Compact>
             ))}
@@ -277,14 +277,14 @@ export default function DnsServerModal({
             <Button
               size="small"
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<PlusOutlined aria-hidden />}
               aria-label={t('add')}
               onClick={() => methods.setValue('unexpectedIPs', [...unexpectedIPs, ''])}
             />
             {unexpectedIPs.map((_, i) => (
               <Space.Compact key={i} block style={{ marginTop: 4 }}>
                 <FormField name={`unexpectedIPs.${i}`} noStyle>
-                  <Input />
+                  <Input aria-label={t('pages.xray.dns.unexpectIPs')} />
                 </FormField>
                 <InputAddon
                   ariaLabel={t('remove')}
@@ -295,7 +295,7 @@ export default function DnsServerModal({
                     )
                   }
                 >
-                  <MinusOutlined />
+                  <MinusOutlined aria-hidden />
                 </InputAddon>
               </Space.Compact>
             ))}

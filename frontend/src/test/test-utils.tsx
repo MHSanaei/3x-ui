@@ -3,6 +3,7 @@ import { render, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider } from '@/hooks/useTheme';
+import { AntdRootConfig } from '@/i18n/AntdRootConfig';
 
 export function makeTestQueryClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -12,7 +13,9 @@ export function renderWithProviders(ui: ReactElement, options?: { queryClient?: 
   const queryClient = options?.queryClient ?? makeTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{ui}</ThemeProvider>
+      <AntdRootConfig>
+        <ThemeProvider>{ui}</ThemeProvider>
+      </AntdRootConfig>
     </QueryClientProvider>,
   );
 }

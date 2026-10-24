@@ -24,7 +24,7 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
     <div className="sub-rows">
       <div className="sub-configs-bar">
         <Button
-          icon={<CopyOutlined />}
+          icon={<CopyOutlined aria-hidden />}
           onClick={() => onCopy(links.join('\n'), t('subscription.copyAllConfigsCopied'))}
         >
           {t('subscription.copyAllConfigs')}
@@ -34,7 +34,8 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
         const parts = parseLinkParts(link);
         const rowTitle = parts?.remark || `Link ${idx + 1}`;
         const isWireguardLink = link.startsWith('wireguard://') || link.startsWith('wg://');
-        const isAmneziawgLink = link.startsWith('vpn://');
+        const wireguardConfig = isWireguardLink ? wireguardConfigFromLink(link, rowTitle) : '';
+        const amneziawgConfig = link.startsWith('vpn://') ? amneziawgConfigFromLink(link) : '';
         return (
           <Fragment key={link}>
             <div className="sub-row">
@@ -44,7 +45,7 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
               </span>
               <div className="sub-row-actions">
                 <Button
-                  icon={<CopyOutlined />}
+                  icon={<CopyOutlined aria-hidden />}
                   onClick={() => onCopy(link)}
                   aria-label={t('copy')}
                   title={t('copy')}
@@ -54,19 +55,19 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
                 )}
               </div>
             </div>
-            {isWireguardLink && (
+            {wireguardConfig && (
               <ConfigBlock
                 label={t('pages.clients.wireguardConfig')}
-                text={wireguardConfigFromLink(link, rowTitle)}
+                text={wireguardConfig}
                 fileName={`${rowTitle || 'peer'}.conf`}
                 qrRemark={rowTitle}
                 tagColor="cyan"
               />
             )}
-            {isAmneziawgLink && (
+            {amneziawgConfig && (
               <ConfigBlock
                 label={t('pages.clients.amneziaWgConfig')}
-                text={amneziawgConfigFromLink(link)}
+                text={amneziawgConfig}
                 fileName={`${rowTitle || 'peer'}.conf`}
                 qrRemark={rowTitle}
                 tagColor="purple"
