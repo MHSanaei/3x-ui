@@ -9,12 +9,11 @@ import (
 
 func testInstance() amneziawg.Instance {
 	return amneziawg.Instance{
-		Id:            1,
-		InterfaceName: "awg1",
-		ListenPort:    31884,
-		PrivateKey:    "cPrivateKeyBase64ValueForTestingOnlyPadding0=",
-		Address:       []string{"10.8.1.1/24"},
-		MTU:           1380,
+		Id:         1,
+		ListenPort: 31884,
+		PrivateKey: "cPrivateKeyBase64ValueForTestingOnlyPadding0=",
+		Address:    []string{"10.8.1.1/24"},
+		MTU:        1380,
 		Obfuscation: amneziawg.Obfuscation31{
 			Jc: 3, Jmin: 62, Jmax: 284,
 			S1: 15, S2: 89, S3: 40, S4: 12,
@@ -31,207 +30,198 @@ func testInstance() amneziawg.Instance {
 	}
 }
 
-// TestRenderEmitsInterfaceAndPeers locks the field set awg-quick has to see: a missing ListenPort or
-// MTU silently changes which port clients reach and whether full-size packets fragment.
-func TestRenderEmitsInterfaceAndPeers(t *testing.T) {
-	t.Parallel()
-
-	got, err := Render(testInstance(), "eth0", false)
+// TestRenderEmitsOnlySetconfKeys: `awg setconf` rejects wg-quick keys (Address,
+// MTU, hooks) outright, and a hook line would reintroduce a root-shell sink.
+func TestRenderEmitsOnlySetconfKeys(t *testing.T) {
+	conf, err := Render(testInstance())
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"[Interface]",
-		"PrivateKey = cPrivateKeyBase64ValueForTestingOnlyPadding0=",
-		"Address = 10.8.1.1/24",
-		"ListenPort = 31884",
-		"MTU = 1380",
-		"Jc = 3", "Jmin = 62", "Jmax = 284",
-		"S1 = 15", "S2 = 89", "S3 = 40", "S4 = 12",
-		"HeaderProtectionKey = hpkBase64ValueForTestingOnlyPaddingXXXXXXXX=",
-		"ContentPaddingAddition = 14-47",
-		"RekeyAfterTime = 107-133",
-		"RandomTrailers = on",
-		"DisableCookies = on",
-		"PublicKey = peerAPublicKeyBase64ValueForTestsPadding000=",
-		"AllowedIPs = 10.8.1.2/32",
-		"PresharedKey = pskBase64ValueForTestingOnlyPaddingXXXXXXX=",
+		"PrivateKey = cPrivateKeyBase64ValueForTestingOnlyPadding0=\n",
+		"ListenPort = 31884\n",
+		"Jc = 3\n", "S3 = 40\n", "S4 = 12\n",
+		"HeaderProtectionKey = hpkBase64ValueForTestingOnlyPaddingXXXXXXXX=\n",
+		"ContentPaddingAddition = 14-47\n",
+		"RandomTrailers = on\n", "DisableCookies = on\n",
+		"# alice\nPublicKey = peerAPublicKeyBase64ValueForTestsPadding000=\nAllowedIPs = 10.8.1.2/32\n",
+		"PresharedKey = pskBase64ValueForTestingOnlyPaddingXXXXXXX=\n",
 	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("rendered config missing %q\n--- got ---\n%s", want, got)
+		if !strings.Contains(conf, want) {
+			t.Errorf("rendered config lacks %q:\n%s", want, conf)
 		}
 	}
-	if n := strings.Count(got, "[Peer]"); n != 2 {
-		t.Errorf("got %d [Peer] sections, want 2", n)
+	for _, line := range strings.Split(conf, "\n") {
+		key, _, _ := strings.Cut(line, " = ")
+		switch key {
+		case "Address", "MTU", "DNS", "Table", "PreUp", "PostUp", "PreDown", "PostDown", "SaveConfig":
+			t.Errorf("rendered config carries wg-quick key %q", line)
+		}
+	}
+	if !validOwnedConfig(conf, ownedInterfaceName(1)) {
+		t.Errorf("ownership grammar rejects the panel's own rendered config:\n%s", conf)
 	}
 }
 
-// TestRenderFillsHeaderDefaults is the interop guard: the panel's own client emitter writes H1..H4 =
-// 1..4 when the stored values are blank, so a server config that omits them or writes an empty value
+// TestRenderFillsHeaderDefaults: the 3.x module and tools reject a missing H1-H4,
+// so a blank one must fall back to the vanilla message type it replaces.
 func TestRenderFillsHeaderDefaults(t *testing.T) {
-	t.Parallel()
-
-	got, err := Render(testInstance(), "eth0", false)
+	inst := testInstance()
+	inst.Obfuscation.H2 = "1000-2000"
+	conf, err := Render(inst)
 	if err != nil {
-		t.Fatalf("Render: %v", err)
+		t.Fatal(err)
 	}
-	for i, want := range []string{"H1 = 1", "H2 = 2", "H3 = 3", "H4 = 4"} {
-		if !strings.Contains(got, want) {
-			t.Errorf("blank H%d must fall back to %q\n--- got ---\n%s", i+1, want, got)
+	for _, want := range []string{"H1 = 1\n", "H2 = 1000-2000\n", "H3 = 3\n", "H4 = 4\n"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("rendered config lacks %q", want)
 		}
 	}
 }
 
-// TestRenderMasqueradesSubnetNotHostAddress catches the easy mistake of masquerading 10.8.1.1/24
-// verbatim: nftables would then match only the server's own tunnel address and no peer traffic would
-func TestRenderMasqueradesSubnetNotHostAddress(t *testing.T) {
-	t.Parallel()
-
-	got, err := Render(testInstance(), "eth0", false)
-	if err != nil {
-		t.Fatalf("Render: %v", err)
-	}
-	if !strings.Contains(got, "ip saddr 10.8.1.0/24 oifname \"eth0\" masquerade") {
-		t.Errorf("expected masquerade on the tunnel subnet\n--- got ---\n%s", got)
-	}
-	if strings.Contains(got, "ip saddr 10.8.1.1/24") {
-		t.Errorf("masquerade must not match the server's own address only\n--- got ---\n%s", got)
-	}
-	if !strings.Contains(got, "net.ipv4.ip_forward=1") {
-		t.Errorf("NAT mode must enable forwarding\n--- got ---\n%s", got)
-	}
-}
-
-// TestRenderSkipsNATWhenRoutingThroughXray preserves the renderer's no-NAT result.
-// Preflight rejects this setting before a kernel interface can start.
-func TestRenderSkipsNATWhenRoutingThroughXray(t *testing.T) {
-	t.Parallel()
-
-	got, err := Render(testInstance(), "eth0", true)
-	if err != nil {
-		t.Fatalf("Render: %v", err)
-	}
-	if strings.Contains(got, "masquerade") || strings.Contains(got, "PostUp") {
-		t.Errorf("routeThroughXray must not emit NAT rules\n--- got ---\n%s", got)
-	}
-}
-
-// TestNATTableIsPerInbound: a shared table name would make one inbound's
-// PostDown delete every other inbound's NAT.
-func TestNATTableIsPerInbound(t *testing.T) {
-	t.Parallel()
-
-	a := testInstance()
-	b := testInstance()
-	b.Id = 7
-
-	ra, err := Render(a, "eth0", false)
-	if err != nil {
-		t.Fatalf("Render(a): %v", err)
-	}
-	rb, err := Render(b, "eth0", false)
-	if err != nil {
-		t.Fatalf("Render(b): %v", err)
-	}
-	if !strings.Contains(ra, "nft delete table ip awgnat1") {
-		t.Errorf("inbound 1 should tear down its own table\n%s", ra)
-	}
-	if !strings.Contains(rb, "nft delete table ip awgnat7") {
-		t.Errorf("inbound 7 should tear down its own table\n%s", rb)
-	}
-}
-
-func TestRenderRejectsIncompleteInstance(t *testing.T) {
-	t.Parallel()
-
-	noKey := testInstance()
-	noKey.PrivateKey = ""
-	if _, err := Render(noKey, "eth0", false); err == nil {
-		t.Error("Render must reject an instance with no private key")
-	}
-
-	noAddr := testInstance()
-	noAddr.Address = nil
-	if _, err := Render(noAddr, "eth0", false); err == nil {
-		t.Error("Render must reject an instance with no address")
-	}
-
-	v6Only := testInstance()
-	v6Only.Address = []string{"fd00::1/64"}
-	if _, err := Render(v6Only, "eth0", false); err == nil {
-		t.Error("Render must reject NAT mode with no IPv4 subnet to translate")
-	}
-}
-
-func TestRenderRejectsPinnedListenAddress(t *testing.T) {
-	inst := testInstance()
-	inst.Listen = "203.0.113.10"
-	if _, err := Render(inst, "eth0", false); err == nil || !strings.Contains(err.Error(), "cannot bind to listen address") {
-		t.Fatalf("Render must refuse to widen a pinned listen address to a wildcard kernel bind, got %v", err)
-	}
-}
-
-func TestRenderRejectsValuesThatCouldInjectAwgQuickHooks(t *testing.T) {
-	t.Parallel()
-
+// TestRenderRejectsControlCharacters: a newline in a client value would add a
+// directive of the caller's choosing to the file the kernel is configured from.
+func TestRenderRejectsControlCharacters(t *testing.T) {
 	cases := map[string]func(*amneziawg.Instance){
-		"private key": func(i *amneziawg.Instance) { i.PrivateKey += "\nPostDown = touch /tmp/pwned" },
-		"peer email":  func(i *amneziawg.Instance) { i.Peers[0].Email += "\n[Interface]" },
-		"public key":  func(i *amneziawg.Instance) { i.Peers[0].PublicKey += "\n[Interface]\nPostDown = touch /tmp/pwned" },
-		"psk":         func(i *amneziawg.Instance) { i.Peers[0].PresharedKey += "\n[Interface]" },
-		"allowed IP":  func(i *amneziawg.Instance) { i.Peers[0].AllowedIPs[0] += "\n[Interface]" },
-		"signature":   func(i *amneziawg.Instance) { i.Obfuscation.I1 = "\nPostDown = touch /tmp/pwned" },
+		"peer key":    func(i *amneziawg.Instance) { i.Peers[0].PublicKey = "x\n[Interface]\nListenPort = 1" },
+		"psk":         func(i *amneziawg.Instance) { i.Peers[1].PresharedKey = "x\rPublicKey = y" },
+		"email":       func(i *amneziawg.Instance) { i.Peers[0].Email = "a\nAllowedIPs = 0.0.0.0/0" },
+		"allowed ips": func(i *amneziawg.Instance) { i.Peers[0].AllowedIPs = []string{"10.8.1.2/32\nEndpoint = 1.2.3.4:1"} },
+		"i1":          func(i *amneziawg.Instance) { i.Obfuscation.I1 = "<b 0x01>\nJc = 1" },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
 			inst := testInstance()
 			mutate(&inst)
-			if _, err := Render(inst, "eth0", false); err == nil || !strings.Contains(err.Error(), "control characters") {
-				t.Fatalf("Render error = %v, want rejection of control characters", err)
+			if _, err := Render(inst); err == nil || !strings.Contains(err.Error(), "control characters") {
+				t.Fatalf("Render accepted a control character, err = %v", err)
 			}
 		})
 	}
 }
 
-// TestRenderFallsBackToS4AwareMTU: an inbound with no explicit MTU must not be left on the netdev
-// default, which knows nothing about the S4 junk prepended to every transport packet.
-func TestRenderRejectsUnsafeEgressInterface(t *testing.T) {
-	if _, err := Render(testInstance(), "eth0\"\nPostDown = touch /tmp/pwned", false); err == nil || !strings.Contains(err.Error(), "invalid interface name") {
-		t.Fatalf("Render error = %v, want invalid egress interface rejection", err)
+// TestBuildSpecMasqueradesSubnetNotHostAddress: matching the server's own
+// 10.8.1.1 would NAT nothing the clients send.
+func TestBuildSpecMasqueradesSubnetNotHostAddress(t *testing.T) {
+	s, err := buildSpec(Desired{Instance: testInstance(), EgressInterface: "ens3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(s.nat, "ip saddr 10.8.1.0/24 oifname \"ens3\" masquerade") {
+		t.Fatalf("NAT transaction does not masquerade the tunnel subnet:\n%s", s.nat)
+	}
+	if !strings.HasPrefix(s.nat, "add table ip xui_awg1\ndelete table ip xui_awg1\n") {
+		t.Fatalf("NAT transaction does not replace its own table atomically:\n%s", s.nat)
+	}
+	if s.forward != (forwardRules{tunnel: "xui-awg1", egress: "ens3"}) {
+		t.Fatalf("forward rules = %+v, want tunnel xui-awg1 -> ens3", s.forward)
 	}
 }
 
-// TestRenderFallsBackToS4AwareMTU: an inbound with no explicit MTU must not be left on the netdev
-// default, which knows nothing about the S4 junk prepended to every transport packet.
-func TestRenderFallsBackToS4AwareMTU(t *testing.T) {
-	t.Parallel()
+// TestBuildSpecRouteThroughXrayOnlyDeletesNAT: a legacy routeThroughXray row
+// must not leave a masquerade rule behind from an earlier save.
+func TestBuildSpecRouteThroughXrayOnlyDeletesNAT(t *testing.T) {
+	s, err := buildSpec(Desired{Instance: testInstance(), EgressInterface: "eth0", RouteThroughXray: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.nat != "add table ip xui_awg1\ndelete table ip xui_awg1\n" {
+		t.Fatalf("NAT transaction = %q, want only the table delete", s.nat)
+	}
+	if s.forward != (forwardRules{}) {
+		t.Fatalf("forward rules = %+v, want none without NAT egress", s.forward)
+	}
+}
 
+// TestBuildSpecRejectsUnsafeInputs: each lands in an argv or an nft
+// transaction, and the kernel interface name has a hard 15-byte limit.
+func TestBuildSpecRejectsUnsafeInputs(t *testing.T) {
+	cases := map[string]Desired{
+		"egress with quote":   {Instance: testInstance(), EgressInterface: `eth0" accept; #`},
+		"pinned listen":       {Instance: func() amneziawg.Instance { i := testInstance(); i.Listen = "203.0.113.10"; return i }()},
+		"ipv6 address":        {Instance: func() amneziawg.Instance { i := testInstance(); i.Address = []string{"fd00::1/64"}; return i }(), EgressInterface: "eth0"},
+		"no address":          {Instance: func() amneziawg.Instance { i := testInstance(); i.Address = nil; return i }(), EgressInterface: "eth0"},
+		"no private key":      {Instance: func() amneziawg.Instance { i := testInstance(); i.PrivateKey = ""; return i }(), EgressInterface: "eth0"},
+		"name over 15 bytes":  {Instance: func() amneziawg.Instance { i := testInstance(); i.Id = 123456789; return i }(), EgressInterface: "eth0"},
+		"non-positive id":     {Instance: func() amneziawg.Instance { i := testInstance(); i.Id = 0; return i }(), EgressInterface: "eth0"},
+		"unparsable address":  {Instance: func() amneziawg.Instance { i := testInstance(); i.Address = []string{"10.8.1.1"}; return i }(), EgressInterface: "eth0"},
+		"egress with newline": {Instance: testInstance(), EgressInterface: "eth0\n"},
+	}
+	for name, d := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := buildSpec(d); err == nil {
+				t.Fatal("buildSpec accepted it")
+			}
+		})
+	}
+}
+
+// TestBuildSpecMTU: an unset MTU must still be S4-aware, or every full-size
+// packet fragments; an explicit one must win.
+func TestBuildSpecMTU(t *testing.T) {
 	inst := testInstance()
 	inst.MTU = 0
-	inst.Obfuscation.S4 = 27
-
-	got, err := Render(inst, "eth0", false)
+	s, err := buildSpec(Desired{Instance: inst, EgressInterface: "eth0"})
 	if err != nil {
-		t.Fatalf("Render: %v", err)
+		t.Fatal(err)
 	}
-	want := "MTU = 1393" // 1420 - 27
-	if !strings.Contains(got, want) {
-		t.Errorf("expected %q for S4=27 with no explicit MTU\n--- got ---\n%s", want, got)
+	if s.mtu != 1408 {
+		t.Fatalf("default MTU = %d, want 1408 (1420 minus S4 = 12)", s.mtu)
 	}
-	if strings.Contains(got, "MTU = 1420") {
-		t.Error("the plain 1420 default ignores S4 and fragments full-size packets")
+	inst.MTU = 1280
+	if s, _ = buildSpec(Desired{Instance: inst, EgressInterface: "eth0"}); s.mtu != 1280 {
+		t.Fatalf("explicit MTU = %d, want 1280", s.mtu)
 	}
 }
 
-// TestRenderKeepsExplicitMTU: the admin's value wins over the default.
-func TestRenderKeepsExplicitMTU(t *testing.T) {
-	t.Parallel()
-
-	got, err := Render(testInstance(), "eth0", false)
+// TestStructuralFingerprintIgnoresPeersOnly: a peer edit must sync in place,
+// while key, port, address or MTU changes need a rebuild.
+func TestStructuralFingerprintIgnoresPeersOnly(t *testing.T) {
+	base, err := buildSpec(Desired{Instance: testInstance(), EgressInterface: "eth0"})
 	if err != nil {
-		t.Fatalf("Render: %v", err)
+		t.Fatal(err)
 	}
-	if !strings.Contains(got, "MTU = 1380") {
-		t.Errorf("explicit MTU must be preserved\n--- got ---\n%s", got)
+	peerEdit := testInstance()
+	peerEdit.Peers = peerEdit.Peers[:1]
+	if s, _ := buildSpec(Desired{Instance: peerEdit, EgressInterface: "eth0"}); s.structFP != base.structFP {
+		t.Error("a peer edit changed the structural fingerprint")
+	}
+	for name, mutate := range map[string]func(*amneziawg.Instance){
+		"private key": func(i *amneziawg.Instance) { i.PrivateKey = "dPrivateKeyBase64ValueForTestingOnlyPadding0=" },
+		"listen port": func(i *amneziawg.Instance) { i.ListenPort++ },
+		"address":     func(i *amneziawg.Instance) { i.Address = []string{"10.9.1.1/24"} },
+		"mtu":         func(i *amneziawg.Instance) { i.MTU = 1300 },
+		"obfuscation": func(i *amneziawg.Instance) { i.Obfuscation.Jc = 7 },
+	} {
+		inst := testInstance()
+		mutate(&inst)
+		if s, _ := buildSpec(Desired{Instance: inst, EgressInterface: "eth0"}); s.structFP == base.structFP {
+			t.Errorf("%s change kept the structural fingerprint", name)
+		}
+	}
+}
+
+// TestOwnershipGrammarRefusesForeignConfigs: only a file Render wrote may be
+// adopted, synced or torn down.
+func TestOwnershipGrammarRefusesForeignConfigs(t *testing.T) {
+	name := ownedInterfaceName(1)
+	conf, err := Render(testInstance())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]string{
+		"unmarked":          strings.TrimPrefix(conf, ownershipMarker(name)+"\n"),
+		"other marker":      strings.Replace(conf, ownershipMarker(name), ownershipMarker(ownedInterfaceName(2)), 1),
+		"hook line":         strings.Replace(conf, "ListenPort", "PostUp = id\nListenPort", 1),
+		"wg-quick address":  strings.Replace(conf, "ListenPort", "Address = 10.8.1.1/24\nListenPort", 1),
+		"peer endpoint":     conf + "Endpoint = 1.2.3.4:1\n",
+		"interface comment": strings.Replace(conf, "[Interface]\n", "[Interface]\n# note\n", 1),
+		"second interface":  conf + "[Interface]\n",
+		"crlf":              strings.ReplaceAll(conf, "\n", "\r\n"),
+	}
+	for label, body := range cases {
+		if validOwnedConfig(body, name) {
+			t.Errorf("%s: ownership grammar accepted a config Render never writes", label)
+		}
 	}
 }

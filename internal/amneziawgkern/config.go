@@ -1,37 +1,106 @@
-// Package amneziawgkern drives an AmneziaWG inbound through the DKMS kernel module and awg-quick
-// instead of internal/amneziawgnet's embedded amneziawg-go + gVisor stack.
+// Package amneziawgkern runs an AmneziaWG inbound on the Linux kernel module instead of
+// internal/amneziawgnet's embedded amneziawg-go + gVisor stack; nothing it writes is executed.
 package amneziawgkern
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/netip"
+	"path/filepath"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 )
 
-// ConfDir is where awg-quick looks up an interface's config by name, so
-// InterfaceName + ".conf" here is what `awg-quick up <name>` resolves to.
-const ConfDir = "/etc/amnezia/amneziawg"
+// interfacePrefix keeps panel interfaces out of the awg0/awg1 names operators
+// give their own awg-quick tunnels.
+const interfacePrefix = "xui-awg"
 
 // fallbackInterface is the last resort when no usable host NIC is detected;
 // the overwhelmingly common name on the VPS images this runs on.
 const fallbackInterface = "eth0"
 
-// skippedInterfacePrefixes are never NAT egress candidates: our own tunnels,
-// and the virtual bridges container runtimes leave lying around.
-var skippedInterfacePrefixes = []string{"awg", "wg", "docker", "br-", "veth"}
+// skippedInterfacePrefixes are never NAT egress candidates: tunnels, and the
+// virtual bridges container runtimes leave lying around.
+var skippedInterfacePrefixes = []string{interfacePrefix, "awg", "wg", "docker", "br-", "veth"}
 
-// ConfPath returns the awg-quick config path for one inbound's interface.
-func ConfPath(interfaceName string) string {
-	return ConfPathIn(ConfDir, interfaceName)
+// defaultConfDir is panel-private, so no operator config can ever sit at a
+// path the panel writes.
+func defaultConfDir() string {
+	return filepath.Join(config.GetDBFolderPath(), "amneziawg")
 }
 
-// ConfPathIn is ConfPath against an explicit directory, so the write path can
-// be exercised without touching /etc.
+// ConfPathIn returns where one interface's setconf input is kept.
 func ConfPathIn(dir, interfaceName string) string {
-	return dir + "/" + interfaceName + ".conf"
+	return filepath.Join(dir, interfaceName+".conf")
+}
+
+func ownedInterfaceName(id int) string {
+	return fmt.Sprintf("%s%d", interfacePrefix, id)
+}
+
+func natTableName(id int) string {
+	return fmt.Sprintf("xui_awg%d", id)
+}
+
+// spec is everything one inbound's kernel interface is built from.
+type spec struct {
+	name string
+	// conf is the `awg setconf` input: keys, port, obfuscation and peers.
+	conf      string
+	addresses []string
+	mtu       int
+	// structFP covers what syncconf cannot change on a live link.
+	structFP string
+	// nat is the nft transaction that replaces this inbound's NAT table.
+	nat     string
+	forward forwardRules
+}
+
+// forwardRules lets tunnel traffic through a FORWARD chain whose policy is
+// DROP (Docker and ufw both set one); zero value means no NAT egress.
+type forwardRules struct {
+	tunnel, egress string
+}
+
+func buildSpec(d Desired) (spec, error) {
+	inst := d.Instance
+	if inst.Id <= 0 {
+		return spec{}, fmt.Errorf("amneziawgkern: invalid inbound id %d", inst.Id)
+	}
+	name := ownedInterfaceName(inst.Id)
+	if err := amneziawg.ValidateInterfaceName(name); err != nil {
+		return spec{}, fmt.Errorf("amneziawgkern: inbound %d: %w", inst.Id, err)
+	}
+	if listenNeedsPinnedBind(inst.Listen) {
+		return spec{}, fmt.Errorf("amneziawgkern: kernel mode cannot bind to listen address %q; clear it or use a wildcard", inst.Listen)
+	}
+	conf, err := Render(inst)
+	if err != nil {
+		return spec{}, err
+	}
+	addresses, err := interfaceAddresses(inst)
+	if err != nil {
+		return spec{}, err
+	}
+	s := spec{name: name, conf: conf, addresses: addresses, mtu: effectiveMTU(inst)}
+	s.structFP = structuralFingerprint(conf, addresses, s.mtu)
+	s.nat = natTransaction(inst.Id, "")
+	if !d.RouteThroughXray {
+		egress := d.EgressInterface
+		if egress == "" {
+			egress = DetectDefaultInterface()
+		}
+		if err := amneziawg.ValidateInterfaceName(egress); err != nil {
+			return spec{}, fmt.Errorf("amneziawgkern: %w", err)
+		}
+		s.nat = natTransaction(inst.Id, natChain(addresses, egress))
+		s.forward = forwardRules{tunnel: name, egress: egress}
+	}
+	return s, nil
 }
 
 // effectiveMTU is the tunnel MTU this instance runs at: the admin's value when
@@ -40,44 +109,20 @@ func effectiveMTU(inst amneziawg.Instance) int {
 	return amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4)
 }
 
-// natTableName keeps each interface's masquerade rule in its own nftables
-// table, so bringing one inbound down cannot delete another one's NAT.
-func natTableName(inst amneziawg.Instance) string {
-	return fmt.Sprintf("awgnat%d", inst.Id)
-}
-
-// Render builds the awg-quick config for inst.
-func Render(inst amneziawg.Instance, egressInterface string, routeThroughXray bool) (string, error) {
-	if listenNeedsPinnedBind(inst.Listen) {
-		return "", fmt.Errorf("amneziawgkern: kernel mode cannot bind to listen address %q; clear it or use a wildcard", inst.Listen)
-	}
+// Render builds the `awg setconf` input for inst.
+func Render(inst amneziawg.Instance) (string, error) {
 	if inst.PrivateKey == "" {
 		return "", fmt.Errorf("amneziawgkern: inbound %d has no private key", inst.Id)
 	}
 	if err := validateConfigValues(inst); err != nil {
 		return "", err
 	}
-	if len(inst.Address) == 0 {
-		return "", fmt.Errorf("amneziawgkern: inbound %d has no interface address", inst.Id)
-	}
 
 	var b strings.Builder
 	b.WriteString(ownershipMarker(ownedInterfaceName(inst.Id)) + "\n[Interface]\n")
 	fmt.Fprintf(&b, "PrivateKey = %s\n", inst.PrivateKey)
-	fmt.Fprintf(&b, "Address = %s\n", strings.Join(inst.Address, ", "))
 	fmt.Fprintf(&b, "ListenPort = %d\n", inst.ListenPort)
-	// Always emit an MTU. Leaving it out lets the netdev keep its own default,
-	// which knows nothing about S4 and so fragments every full-size packet.
-	fmt.Fprintf(&b, "MTU = %d\n", effectiveMTU(inst))
 	writeObfuscation(&b, inst.Obfuscation)
-
-	if !routeThroughXray {
-		rules, err := natRules(inst, egressInterface)
-		if err != nil {
-			return "", err
-		}
-		b.WriteString(rules)
-	}
 
 	for _, p := range inst.Peers {
 		if p.PublicKey == "" || len(p.AllowedIPs) == 0 {
@@ -99,8 +144,6 @@ func Render(inst amneziawg.Instance, egressInterface string, routeThroughXray bo
 func validateConfigValues(inst amneziawg.Instance) error {
 	values := []struct{ field, value string }{
 		{"privateKey", inst.PrivateKey},
-		{"listen", inst.Listen},
-		{"externalInterface", inst.ExternalInterface},
 		{"headerProtectionKey", inst.Obfuscation.HeaderProtectionKey},
 		{"contentPaddingAddition", inst.Obfuscation.ContentPaddingAddition},
 		{"rekeyAfterTime", inst.Obfuscation.RekeyAfterTime},
@@ -114,9 +157,6 @@ func validateConfigValues(inst amneziawg.Instance) error {
 	}
 	for i, value := range []string{inst.Obfuscation.I1, inst.Obfuscation.I2, inst.Obfuscation.I3, inst.Obfuscation.I4, inst.Obfuscation.I5} {
 		values = append(values, struct{ field, value string }{fmt.Sprintf("I%d", i+1), value})
-	}
-	for i, value := range inst.Address {
-		values = append(values, struct{ field, value string }{fmt.Sprintf("address[%d]", i), value})
 	}
 	for _, peer := range inst.Peers {
 		values = append(values,
@@ -194,40 +234,10 @@ func headerOrDefault(v string, n int) string {
 	return fmt.Sprint(n)
 }
 
-// natRules builds the PostUp/PostDown block.
-func natRules(inst amneziawg.Instance, egressInterface string) (string, error) {
-	subnets, err := v4Subnets(inst.Address)
-	if err != nil {
-		return "", err
-	}
-	if len(subnets) == 0 {
-		return "", fmt.Errorf("amneziawgkern: inbound %d has no IPv4 address to NAT", inst.Id)
-	}
-	if egressInterface == "" {
-		egressInterface = DetectDefaultInterface()
-	}
-	if err := amneziawg.ValidateInterfaceName(egressInterface); err != nil {
-		return "", fmt.Errorf("amneziawgkern: %w", err)
-	}
-
-	table := natTableName(inst)
-	var b strings.Builder
-	fmt.Fprintf(&b, "PostUp = sysctl -q -w net.ipv4.ip_forward=1\n")
-	fmt.Fprintf(&b, "PostUp = nft add table ip %s\n", table)
-	fmt.Fprintf(&b, "PostUp = nft add chain ip %s post '{ type nat hook postrouting priority 100 ; }'\n", table)
-	for _, s := range subnets {
-		fmt.Fprintf(&b, "PostUp = nft add rule ip %s post ip saddr %s oifname \"%s\" masquerade\n",
-			table, s, egressInterface)
-	}
-	fmt.Fprintf(&b, "PostDown = nft delete table ip %s\n", table)
-	return b.String(), nil
-}
-
-// v4Subnets turns the interface's own addresses ("10.8.1.1/24") into the network each one covers
-// ("10.8.1.0/24"), which is what masquerade matches on.
-func v4Subnets(addresses []string) ([]string, error) {
+// interfaceAddresses parses the tunnel's own addresses into canonical prefixes.
+func interfaceAddresses(inst amneziawg.Instance) ([]string, error) {
 	var out []string
-	for _, a := range addresses {
+	for _, a := range inst.Address {
 		a = strings.TrimSpace(a)
 		if a == "" {
 			continue
@@ -237,11 +247,47 @@ func v4Subnets(addresses []string) ([]string, error) {
 			return nil, fmt.Errorf("amneziawgkern: parse interface address %q: %w", a, err)
 		}
 		if !p.Addr().Is4() {
-			continue
+			return nil, fmt.Errorf("amneziawgkern: inbound %d: kernel mode is IPv4-only, got %q", inst.Id, a)
 		}
-		out = append(out, p.Masked().String())
+		out = append(out, p.String())
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("amneziawgkern: inbound %d has no interface address", inst.Id)
 	}
 	return out, nil
+}
+
+// natChain masquerades each tunnel subnet (not the host address) out of egress.
+func natChain(addresses []string, egress string) string {
+	var b strings.Builder
+	b.WriteString("\tchain postrouting {\n\t\ttype nat hook postrouting priority 100; policy accept;\n")
+	for _, a := range addresses {
+		fmt.Fprintf(&b, "\t\tip saddr %s oifname %q masquerade\n", netip.MustParsePrefix(a).Masked(), egress)
+	}
+	b.WriteString("\t}\n")
+	return b.String()
+}
+
+// natTransaction replaces the inbound's table atomically; an empty chain only
+// deletes it, and "add" first makes the delete safe when the table is absent.
+func natTransaction(id int, chain string) string {
+	table := natTableName(id)
+	tx := fmt.Sprintf("add table ip %s\ndelete table ip %s\n", table, table)
+	if chain != "" {
+		tx += fmt.Sprintf("table ip %s {\n%s}\n", table, chain)
+	}
+	return tx
+}
+
+// structuralFingerprint hashes everything above the first [Peer] section plus
+// the link's addresses and MTU -- what a live syncconf cannot change.
+func structuralFingerprint(conf string, addresses []string, mtu int) string {
+	head := conf
+	if i := strings.Index(conf, "\n[Peer]"); i >= 0 {
+		head = conf[:i]
+	}
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s\naddress=%s\nmtu=%d", head, strings.Join(addresses, ","), mtu)))
+	return hex.EncodeToString(sum[:])
 }
 
 // DetectDefaultInterface picks the host NIC to masquerade out of when the admin left ExternalInterface

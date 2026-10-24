@@ -804,6 +804,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		}
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
+		job.NewAmneziaWGJob().FlushKernelTraffic()
 		amneziawgkern.GetManager().StopAll()
 		amneziawgnet.GetOutboundManager().StopAll()
 	}

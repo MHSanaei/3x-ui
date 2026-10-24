@@ -1,399 +1,639 @@
 package amneziawgkern
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
-// TestStructuralFingerprintIgnoresPeers is what keeps live sessions alive: if adding a client changed
-// the fingerprint, every admin edit would take the interface down and back up and reset every peer's
-func TestStructuralFingerprintIgnoresPeers(t *testing.T) {
-	t.Parallel()
+const (
+	testPrivateKey  = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	otherPrivateKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+)
 
-	base := testInstance()
-	withPeer := testInstance()
-	withPeer.Peers = append(withPeer.Peers, amneziawg.Peer{
-		PublicKey:  "peerCPublicKeyBase64ValueForTestsPadding000=",
-		AllowedIPs: []string{"10.8.1.4/32"},
-	})
+var errInjected = errors.New("injected failure")
 
-	a, err := Render(base, "eth0", false)
-	if err != nil {
-		t.Fatalf("Render(base): %v", err)
+type fakeLink struct {
+	publicKey string
+	addresses []string
+	mtu       int
+	up        bool
+	conf      string
+}
+
+// fakeHost models the kernel state the manager drives, so tests assert what
+// the host ends up with rather than which commands ran.
+type fakeHost struct {
+	links      map[string]*fakeLink
+	nat        map[string]string
+	forward    []string
+	iptables   bool
+	module     bool
+	forwarding bool
+	commands   []string
+	failing    map[string]error
+}
+
+func newFakeHost() *fakeHost {
+	return &fakeHost{links: map[string]*fakeLink{}, nat: map[string]string{}, iptables: true, failing: map[string]error{}}
+}
+
+func (h *fakeHost) linkExists(name string) bool {
+	_, ok := h.links[name]
+	return ok
+}
+
+func (h *fakeHost) linkMatches(name string, addresses []string, mtu int) bool {
+	l, ok := h.links[name]
+	return ok && l.mtu == mtu && addressesSatisfied(addresses, l.addresses)
+}
+
+func (h *fakeHost) hasCommand(name string) bool { return name != "iptables" || h.iptables }
+func (h *fakeHost) moduleLoaded() bool          { return h.module }
+
+func (h *fakeHost) enableIPv4Forwarding() error {
+	h.forwarding = true
+	return nil
+}
+
+func (h *fakeHost) run(stdin, name string, args ...string) (string, error) {
+	cmd := strings.Join(append([]string{name}, args...), " ")
+	h.commands = append(h.commands, cmd)
+	for prefix, err := range h.failing {
+		if strings.HasPrefix(cmd, prefix) {
+			return "injected", err
+		}
 	}
-	b, err := Render(withPeer, "eth0", false)
-	if err != nil {
-		t.Fatalf("Render(withPeer): %v", err)
+	switch name {
+	case "modprobe":
+		h.module = true
+		return "", nil
+	case "ip":
+		return "", h.ip(args)
+	case "awg":
+		return h.awg(args)
+	case "nft":
+		h.nftApply(stdin)
+		return "", nil
+	case "iptables":
+		return h.iptablesCmd(args)
 	}
-	if a == b {
-		t.Fatal("adding a peer must change the rendered config")
+	return "", fmt.Errorf("fake host: unexpected command %q", cmd)
+}
+
+func (h *fakeHost) ip(args []string) error {
+	switch {
+	case len(args) == 6 && args[0] == "link" && args[1] == "add" && args[5] == "amneziawg":
+		if h.linkExists(args[3]) {
+			return errors.New("RTNETLINK answers: File exists")
+		}
+		h.links[args[3]] = &fakeLink{}
+	case len(args) == 4 && args[0] == "link" && args[1] == "del":
+		if !h.linkExists(args[3]) {
+			return errors.New("Cannot find device")
+		}
+		delete(h.links, args[3])
+	case len(args) == 6 && args[0] == "-4" && args[2] == "add":
+		l, ok := h.links[args[5]]
+		if !ok {
+			return errors.New("Cannot find device")
+		}
+		l.addresses = append(l.addresses, args[3])
+	case len(args) == 7 && args[0] == "link" && args[1] == "set" && args[4] == "mtu":
+		l, ok := h.links[args[3]]
+		if !ok {
+			return errors.New("Cannot find device")
+		}
+		l.mtu, _ = strconv.Atoi(args[5])
+		l.up = args[6] == "up"
+	default:
+		return fmt.Errorf("fake host: unexpected ip %v", args)
 	}
-	if structuralFingerprint(a) != structuralFingerprint(b) {
-		t.Error("adding a peer must not change the structural fingerprint, or syncconf is never used")
+	return nil
+}
+
+func (h *fakeHost) awg(args []string) (string, error) {
+	if len(args) != 3 {
+		return "", fmt.Errorf("fake host: unexpected awg %v", args)
+	}
+	l, ok := h.links[args[1]]
+	if !ok {
+		return "", errors.New("Unable to access interface: No such device")
+	}
+	switch args[0] {
+	case "show":
+		if l.publicKey == "" {
+			return "(none)", nil
+		}
+		return l.publicKey, nil
+	case "setconf", "syncconf":
+		data, err := os.ReadFile(args[2])
+		if err != nil {
+			return "", err
+		}
+		pub, err := configInterfacePublicKey(string(data))
+		if err != nil {
+			return "", err
+		}
+		l.publicKey, l.conf = pub, string(data)
+		return "", nil
+	}
+	return "", fmt.Errorf("fake host: unexpected awg %v", args)
+}
+
+func (h *fakeHost) nftApply(tx string) {
+	for _, line := range strings.Split(tx, "\n") {
+		f := strings.Fields(line)
+		switch {
+		case len(f) == 4 && f[0] == "delete" && f[1] == "table":
+			delete(h.nat, f[3])
+		case len(f) == 4 && f[0] == "table" && f[3] == "{":
+			h.nat[f[2]] = tx
+		}
 	}
 }
 
-func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
-	commands := make([][]string, 0, 2)
-	dir := t.TempDir()
-	inst := testInstance()
-	inst.InterfaceName = ownedInterfaceName(inst.Id)
-	inst.PrivateKey = managerTestPrivateKey
-	conf, err := Render(inst, "eth0", false)
+func (h *fakeHost) iptablesCmd(args []string) (string, error) {
+	if len(args) < 4 || args[0] != "-w" || args[3] != "FORWARD" {
+		return "", fmt.Errorf("fake host: unexpected iptables %v", args)
+	}
+	rest := args[4:]
+	switch args[2] {
+	case "-S":
+		// Like iptables-nft, print the comment quoted.
+		listing := []string{"-P FORWARD DROP"}
+		for _, r := range h.forward {
+			f := strings.Fields(r)
+			for i := 0; i+1 < len(f); i++ {
+				if f[i] == "--comment" {
+					f[i+1] = strconv.Quote(f[i+1])
+				}
+			}
+			listing = append(listing, strings.Join(f, " "))
+		}
+		return strings.Join(listing, "\n"), nil
+	case "-I":
+		h.forward = append([]string{"-A FORWARD " + strings.Join(rest[1:], " ")}, h.forward...)
+		return "", nil
+	case "-D":
+		rule := "-A FORWARD " + strings.Join(rest, " ")
+		for i, r := range h.forward {
+			if r == rule {
+				h.forward = append(h.forward[:i], h.forward[i+1:]...)
+				return "", nil
+			}
+		}
+		return "", errors.New("Bad rule (does a matching rule exist in that chain?)")
+	}
+	return "", fmt.Errorf("fake host: unexpected iptables %v", args)
+}
+
+func (h *fakeHost) ran(prefix string) bool {
+	for _, c := range h.commands {
+		if strings.HasPrefix(c, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func publicKeyOf(t *testing.T, privateKey string) string {
+	t.Helper()
+	pub, err := wgutil.PublicKeyFromPrivate(privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
+	return pub
+}
+
+func managerDesired(id int) Desired {
+	inst := testInstance()
+	inst.Id = id
+	inst.PrivateKey = testPrivateKey
+	return Desired{Instance: inst, EgressInterface: "eth0"}
+}
+
+func newTestManager(t *testing.T) (*Manager, *fakeHost, string) {
+	t.Helper()
+	dir := t.TempDir()
+	h := newFakeHost()
+	return newManager(h, dir), h, dir
+}
+
+func diskKey(t *testing.T, dir string, id int) string {
+	t.Helper()
+	conf, found, err := readOwnedConfig(dir, id)
+	if err != nil || !found {
+		t.Fatalf("owned config for %d: found=%v err=%v", id, found, err)
+	}
+	pub, err := configInterfacePublicKey(conf)
+	if err != nil {
 		t.Fatal(err)
 	}
-	linkUp := true
-	m := &Manager{
-		ifaces:  map[int]*managed{},
-		confDir: dir,
-		ops: managerOps{
-			linkExists:           func(string) bool { return linkUp },
-			liveInterfaceMatches: func(string, amneziawg.Instance) bool { return true },
-			syncPeers:            func(string) error { return nil },
-			run: func(name string, args ...string) (string, error) {
-				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
-					return managerTestPublicKey(t), nil
-				}
-				commands = append(commands, append([]string{name}, args...))
-				if name == "awg-quick" && len(args) == 2 && args[0] == "down" {
-					linkUp = false
-				}
-				if name == "awg-quick" && len(args) == 2 && args[0] == "up" {
-					linkUp = true
-				}
-				return "", nil
-			},
+	return pub
+}
+
+func forwardRulesFor(h *fakeHost, name string) []string {
+	var out []string
+	for _, r := range h.forward {
+		if strings.Contains(r, "--comment "+forwardComment(name)) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// TestEnsureBuildsInterfaceWithoutShell: every step is a direct exec, so no
+// client-controlled value ever reaches a shell running as root.
+func TestEnsureBuildsInterfaceWithoutShell(t *testing.T) {
+	m, h, dir := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatalf("Ensure: %v", err)
+	}
+	link := h.links["xui-awg1"]
+	if link == nil || !link.up || link.mtu != 1380 || strings.Join(link.addresses, ",") != "10.8.1.1/24" {
+		t.Fatalf("link = %+v, want xui-awg1 up at MTU 1380 with 10.8.1.1/24", link)
+	}
+	if link.publicKey != publicKeyOf(t, testPrivateKey) || !strings.Contains(link.conf, "PublicKey = peerBPublicKeyBase64ValueForTestsPadding000=") {
+		t.Fatalf("link was not configured from the rendered config: %+v", link)
+	}
+	if !h.module || !h.forwarding {
+		t.Fatalf("module loaded=%v ip_forward=%v, want both", h.module, h.forwarding)
+	}
+	if !strings.Contains(h.nat["xui_awg1"], `ip saddr 10.8.1.0/24 oifname "eth0" masquerade`) {
+		t.Fatalf("NAT table = %q", h.nat["xui_awg1"])
+	}
+	if got := forwardRulesFor(h, "xui-awg1"); len(got) != 2 {
+		t.Fatalf("FORWARD accepts = %v, want the outbound and the established-return rule", got)
+	}
+	for _, c := range h.commands {
+		switch strings.Fields(c)[0] {
+		case "ip", "awg", "nft", "iptables", "modprobe":
+		default:
+			t.Errorf("unexpected command %q", c)
+		}
+	}
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(ConfPathIn(dir, "xui-awg1"))
+		if err != nil || info.Mode().Perm() != 0o600 {
+			t.Fatalf("config holding the private key: mode %v err %v, want 0600", info.Mode().Perm(), err)
+		}
+	}
+}
+
+// TestEnsureUnchangedTickRunsNothing: the job re-ensures every inbound every
+// 10s; an unchanged one must not fork a single process.
+func TestEnsureUnchangedTickRunsNothing(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	h.commands = nil
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.commands) != 0 {
+		t.Fatalf("unchanged ensure ran %v", h.commands)
+	}
+}
+
+// TestEnsurePeerEditSyncsInPlace: rebuilding the link on a peer edit would
+// drop every other client's session.
+func TestEnsurePeerEditSyncsInPlace(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	h.commands = nil
+	d := managerDesired(1)
+	d.Instance.Peers = d.Instance.Peers[:1]
+	if err := m.Ensure(d); err != nil {
+		t.Fatal(err)
+	}
+	if h.ran("ip link del") || h.ran("ip link add") || !h.ran("awg syncconf xui-awg1") {
+		t.Fatalf("peer edit ran %v, want only a syncconf", h.commands)
+	}
+	if strings.Contains(h.links["xui-awg1"].conf, "peerB") {
+		t.Fatal("removed peer is still on the live interface")
+	}
+}
+
+// TestEnsureEgressChangeMovesNATAndForwardRules: a stale masquerade or
+// FORWARD accept would keep pointing at the NIC the admin moved away from.
+func TestEnsureEgressChangeMovesNATAndForwardRules(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	d := managerDesired(1)
+	d.EgressInterface = "ens3"
+	if err := m.Ensure(d); err != nil {
+		t.Fatal(err)
+	}
+	if h.ran("ip link del") {
+		t.Fatal("an egress change rebuilt the link")
+	}
+	if nat := h.nat["xui_awg1"]; strings.Contains(nat, `"eth0"`) || !strings.Contains(nat, `oifname "ens3"`) {
+		t.Fatalf("NAT table after egress change = %q", nat)
+	}
+	rules := forwardRulesFor(h, "xui-awg1")
+	if len(rules) != 2 || strings.Contains(strings.Join(rules, "\n"), "eth0") {
+		t.Fatalf("FORWARD accepts after egress change = %v, want two for ens3 only", rules)
+	}
+}
+
+// TestKeyRotationKeepsOldConfigUntilOldLinkIsGone: the old key on disk is
+// what proves a leftover link is the panel's after a failed teardown.
+func TestKeyRotationKeepsOldConfigUntilOldLinkIsGone(t *testing.T) {
+	m, h, dir := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	rotated := managerDesired(1)
+	rotated.Instance.PrivateKey = otherPrivateKey
+
+	h.failing["ip link del"] = errInjected
+	if err := m.Ensure(rotated); err == nil {
+		t.Fatal("rotation succeeded although the old link could not be removed")
+	}
+	if got := diskKey(t, dir, 1); got != publicKeyOf(t, testPrivateKey) {
+		t.Fatal("failed rotation replaced the config the live link still runs")
+	}
+
+	delete(h.failing, "ip link del")
+	if err := m.Ensure(rotated); err != nil {
+		t.Fatalf("retry: %v", err)
+	}
+	want := publicKeyOf(t, otherPrivateKey)
+	if h.links["xui-awg1"].publicKey != want || diskKey(t, dir, 1) != want {
+		t.Fatal("retried rotation did not converge link and disk on the new key")
+	}
+}
+
+// TestCreateFailureLeavesNoHalfBuiltLink: a keyless leftover would hold the
+// name and port with nothing listening.
+func TestCreateFailureLeavesNoHalfBuiltLink(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	h.failing["ip -4 address add"] = errInjected
+	if err := m.Ensure(managerDesired(1)); err == nil {
+		t.Fatal("Ensure succeeded although address setup failed")
+	}
+	if h.linkExists("xui-awg1") || m.HasRunning() {
+		t.Fatal("failed create left a link or a managed entry behind")
+	}
+	delete(h.failing, "ip -4 address add")
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatalf("retry: %v", err)
+	}
+}
+
+// TestFreshManagerAdoptsSurvivingInterface: after a crash the next process
+// must take the link over without dropping its sessions.
+func TestFreshManagerAdoptsSurvivingInterface(t *testing.T) {
+	first, h, dir := newTestManager(t)
+	if err := first.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
+	}
+	h.commands = nil
+	second := newManager(h, dir)
+	if err := second.Ensure(managerDesired(1)); err != nil {
+		t.Fatalf("adopt: %v", err)
+	}
+	if h.ran("ip link del") || h.ran("ip link add") {
+		t.Fatalf("adoption rebuilt the link: %v", h.commands)
+	}
+	state, ok := second.TrafficStateFor(1)
+	if !ok || !state.Adopted {
+		t.Fatalf("traffic state = %+v ok=%v, want an adopted baseline pending", state, ok)
+	}
+	if !h.ran("nft -f -") {
+		t.Fatal("adoption did not re-assert the NAT table it cannot see")
+	}
+}
+
+// TestFreshManagerRebuildsKeylessLeftover: a crash between link add and
+// setconf leaves a keyless link that must not block the inbound forever.
+func TestFreshManagerRebuildsKeylessLeftover(t *testing.T) {
+	m, h, dir := newTestManager(t)
+	s, err := buildSpec(managerDesired(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConf(dir, s.name, s.conf); err != nil {
+		t.Fatal(err)
+	}
+	h.links["xui-awg1"] = &fakeLink{}
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatalf("Ensure: %v", err)
+	}
+	if h.links["xui-awg1"].publicKey != publicKeyOf(t, testPrivateKey) {
+		t.Fatal("keyless leftover was not rebuilt")
+	}
+}
+
+// TestEnsureRefusesInterfacesItCannotProveAreItsOwn: a same-named link
+// without the panel's config, or with another key, belongs to someone else.
+func TestEnsureRefusesInterfacesItCannotProveAreItsOwn(t *testing.T) {
+	foreignKey := publicKeyOf(t, otherPrivateKey)
+	cases := map[string]func(t *testing.T, dir string){
+		"no owned config": func(*testing.T, string) {},
+		"other key": func(t *testing.T, dir string) {
+			s, err := buildSpec(managerDesired(1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := writeConf(dir, s.name, s.conf); err != nil {
+				t.Fatal(err)
+			}
 		},
 	}
-	collector := NewCollector()
-	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
-		t.Fatalf("Ensure adopted interface: %v", err)
-	}
-	state, ok := m.TrafficStateFor(inst.Id)
-	if !ok || !state.Adopted {
-		t.Fatalf("adopted traffic state = %+v, %v; want pending baseline", state, ok)
-	}
-
-	inst.Peers = append(inst.Peers, amneziawg.Peer{PublicKey: "newPeerPublicKeyBase64ValueForTests000000="})
-	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
-		t.Fatalf("Ensure peer sync: %v", err)
-	}
-	afterSync, _ := m.TrafficStateFor(inst.Id)
-	if afterSync != state {
-		t.Fatalf("peer sync changed traffic state: before %+v, after %+v", state, afterSync)
-	}
-
-	if !m.PrimeAdoptedTrafficBaseline(inst.Id, state.Generation, []PeerStat{{PublicKey: "p", RxBytes: 125, TxBytes: 250}}, collector) {
-		t.Fatal("first successful adopted dump did not prime the collector")
-	}
-	if got := collector.Delta(inst.InterfaceName, []PeerStat{{PublicKey: "p", RxBytes: 125, TxBytes: 250}}); len(got) != 0 {
-		t.Fatalf("same counters after prime = %+v, want no delta", got)
-	}
-	got := collector.Delta(inst.InterfaceName, []PeerStat{{PublicKey: "p", RxBytes: 150, TxBytes: 300}})
-	if len(got) != 1 || got[0].Up != 25 || got[0].Down != 50 {
-		t.Fatalf("delta after prime = %+v, want 25/50", got)
-	}
-	afterPrime, _ := m.TrafficStateFor(inst.Id)
-	if afterPrime.Adopted || afterPrime.Generation != state.Generation {
-		t.Fatalf("traffic state after prime = %+v, want same generation without pending baseline", afterPrime)
-	}
-
-	inst.MTU++
-	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
-		t.Fatalf("Ensure rebuilt interface: %v", err)
-	}
-	afterRebuild, _ := m.TrafficStateFor(inst.Id)
-	if afterRebuild.Adopted || afterRebuild.Generation == state.Generation {
-		t.Fatalf("rebuilt traffic state = %+v, want a fresh generation without adoption baseline", afterRebuild)
-	}
-	if m.PrimeAdoptedTrafficBaseline(inst.Id, state.Generation, []PeerStat{{PublicKey: "p", RxBytes: 1, TxBytes: 2}}, collector) {
-		t.Fatal("stale adoption generation primed a rebuilt interface")
-	}
-	if got = collector.Delta(inst.InterfaceName, []PeerStat{{PublicKey: "p", RxBytes: 150, TxBytes: 300}}); len(got) != 0 {
-		t.Fatalf("stale prime changed collector baseline after rebuild: %+v", got)
-	}
-	got = collector.Delta(inst.InterfaceName, []PeerStat{{PublicKey: "p", RxBytes: 175, TxBytes: 350}})
-	if len(got) != 1 || got[0].Up != 25 || got[0].Down != 50 {
-		t.Fatalf("delta after rejected stale prime = %+v, want 25/50", got)
-	}
-	if !reflect.DeepEqual(commands, [][]string{{"awg-quick", "down", interfaceName(inst)}, {"awg-quick", "up", interfaceName(inst)}}) {
-		t.Fatalf("rebuild commands = %v, want awg-quick down/up", commands)
-	}
-}
-
-// TestStructuralFingerprintCatchesInterfaceChanges: these are the properties the kernel fixes when the
-// interface is created, so missing one here would leave the live interface permanently out of sync
-func TestStructuralFingerprintCatchesInterfaceChanges(t *testing.T) {
-	t.Parallel()
-
-	base, err := Render(testInstance(), "eth0", false)
-	if err != nil {
-		t.Fatalf("Render: %v", err)
-	}
-	baseFP := structuralFingerprint(base)
-
-	cases := map[string]func(*amneziawg.Instance){
-		"listen port": func(i *amneziawg.Instance) { i.ListenPort = 40000 },
-		"mtu":         func(i *amneziawg.Instance) { i.MTU = 1280 },
-		"address":     func(i *amneziawg.Instance) { i.Address = []string{"10.9.9.1/24"} },
-		"private key": func(i *amneziawg.Instance) { i.PrivateKey = "otherPrivateKeyBase64ValueForTestsPadding00=" },
-		"obfuscation": func(i *amneziawg.Instance) { i.Obfuscation.S4 = 21 },
-	}
-	for name, mutate := range cases {
+	for name, seed := range cases {
 		t.Run(name, func(t *testing.T) {
-			inst := testInstance()
-			mutate(&inst)
-			got, err := Render(inst, "eth0", false)
-			if err != nil {
-				t.Fatalf("Render: %v", err)
+			m, h, dir := newTestManager(t)
+			seed(t, dir)
+			before, _ := os.ReadFile(ConfPathIn(dir, "xui-awg1"))
+			h.links["xui-awg1"] = &fakeLink{publicKey: foreignKey, mtu: 1380, addresses: []string{"10.8.1.1/24"}}
+
+			if err := m.Ensure(managerDesired(1)); err == nil || !strings.Contains(err.Error(), "refusing") {
+				t.Fatalf("Ensure err = %v, want a refusal", err)
 			}
-			if structuralFingerprint(got) == baseFP {
-				t.Errorf("changing the %s must change the structural fingerprint", name)
+			if err := m.Remove(1); err == nil {
+				t.Fatal("Remove tore down an interface the panel cannot prove is its own")
+			}
+			after, _ := os.ReadFile(ConfPathIn(dir, "xui-awg1"))
+			if h.links["xui-awg1"] == nil || h.links["xui-awg1"].publicKey != foreignKey || string(before) != string(after) {
+				t.Fatal("a refused interface or its config was changed")
 			}
 		})
 	}
 }
 
-// TestStructuralFingerprintCatchesEgressInterface: the NAT block lives in the interface section, and a
-// masquerade pointing at the wrong NIC black-holes every peer.
-func TestStructuralFingerprintCatchesEgressInterface(t *testing.T) {
-	t.Parallel()
-
-	a, err := Render(testInstance(), "eth0", false)
-	if err != nil {
-		t.Fatalf("Render(eth0): %v", err)
+// TestEnsureRefusesNonRegularOrForeignConfig: following a symlink or a
+// directory at the config path would write the private key somewhere else.
+func TestEnsureRefusesNonRegularOrForeignConfig(t *testing.T) {
+	cases := map[string]func(t *testing.T, path string){
+		"directory": func(t *testing.T, path string) {
+			if err := os.Mkdir(path, 0o700); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"unmarked file": func(t *testing.T, path string) {
+			if err := os.WriteFile(path, []byte("[Interface]\nPrivateKey = x\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"symlink": func(t *testing.T, path string) {
+			target := filepath.Join(filepath.Dir(path), "elsewhere")
+			if err := os.WriteFile(target, nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(target, path); err != nil {
+				t.Skipf("symlinks unavailable: %v", err)
+			}
+		},
 	}
-	b, err := Render(testInstance(), "ens3", false)
-	if err != nil {
-		t.Fatalf("Render(ens3): %v", err)
-	}
-	if structuralFingerprint(a) == structuralFingerprint(b) {
-		t.Error("changing the egress interface must force a rebuild, not a peer sync")
+	for name, seed := range cases {
+		t.Run(name, func(t *testing.T) {
+			m, h, dir := newTestManager(t)
+			path := ConfPathIn(dir, "xui-awg1")
+			seed(t, path)
+			before, _ := os.Lstat(path)
+			if err := m.Ensure(managerDesired(1)); err == nil {
+				t.Fatal("Ensure accepted a config path the panel did not write")
+			}
+			after, err := os.Lstat(path)
+			if err != nil || after.Mode() != before.Mode() || after.ModTime() != before.ModTime() || h.linkExists("xui-awg1") {
+				t.Fatal("a refused config path was replaced or a link was created")
+			}
+		})
 	}
 }
 
-func TestInterfaceNameFallsBackToInboundID(t *testing.T) {
-	t.Parallel()
-
-	inst := testInstance()
-	inst.InterfaceName = ""
-	inst.Id = 42
-	if got, want := interfaceName(inst), "awg42"; got != want {
-		t.Errorf("interfaceName = %q, want %q", got, want)
+// TestReconcileTearsDownRecoveredUndesiredInterface: an inbound disabled
+// while the panel was down must not keep forwarding with no quota enforced.
+func TestReconcileTearsDownRecoveredUndesiredInterface(t *testing.T) {
+	first, h, dir := newTestManager(t)
+	if err := first.Ensure(managerDesired(1)); err != nil {
+		t.Fatal(err)
 	}
-
-	inst.InterfaceName = "awgcustom"
-	if got, want := interfaceName(inst), "awgcustom"; got != want {
-		t.Errorf("interfaceName = %q, want %q", got, want)
+	newManager(h, dir).Reconcile(nil)
+	if h.linkExists("xui-awg1") || h.nat["xui_awg1"] != "" || len(forwardRulesFor(h, "xui-awg1")) != 0 {
+		t.Fatalf("recovered interface survived: links=%v nat=%v forward=%v", h.links, h.nat, h.forward)
+	}
+	if _, err := os.Stat(ConfPathIn(dir, "xui-awg1")); !os.IsNotExist(err) {
+		t.Fatalf("private config survived teardown: %v", err)
 	}
 }
 
-// TestWriteConfIsPrivateAndComplete: awg-quick refuses a world-readable
-// config, and the file holds the interface private key.
-func TestWriteConfIsPrivateAndComplete(t *testing.T) {
-	dir := t.TempDir()
-
-	conf, err := Render(testInstance(), "eth0", false)
-	if err != nil {
-		t.Fatalf("Render: %v", err)
+// TestReconcileLeavesForeignStateAlone: only state the panel can prove it
+// wrote may be removed.
+func TestReconcileLeavesForeignStateAlone(t *testing.T) {
+	m, h, dir := newTestManager(t)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
 	}
-	if err := writeConf(dir, "awgtest", conf); err != nil {
-		t.Fatalf("writeConf: %v", err)
+	foreign := map[string]string{
+		"xui-awg2.conf": "[Interface]\nPrivateKey = x\n",
+		"awg0.conf":     ownershipMarker("awg0") + "\n[Interface]\nPrivateKey = " + testPrivateKey + "\n",
 	}
-
-	path := filepath.Join(dir, "awgtest.conf")
-	got, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading written config: %v", err)
-	}
-	if string(got) != conf {
-		t.Error("written config does not match what was rendered")
-	}
-	if runtime.GOOS != "windows" {
-		fi, err := os.Stat(path)
-		if err != nil {
-			t.Fatalf("stat: %v", err)
+	for name, body := range foreign {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
 		}
-		if perm := fi.Mode().Perm(); perm != 0o600 {
-			t.Errorf("config mode = %o, want 600", perm)
+	}
+	h.links["xui-awg4"] = &fakeLink{publicKey: publicKeyOf(t, otherPrivateKey)}
+	h.forward = []string{"-A FORWARD -i eth0 -j DROP"}
+
+	m.Reconcile(nil)
+	for name := range foreign {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("foreign %s was removed: %v", name, err)
 		}
 	}
+	if !h.linkExists("xui-awg4") || len(h.forward) != 1 {
+		t.Fatal("a link or FORWARD rule the panel did not create was removed")
+	}
+}
 
-	// Rewriting must replace, not append or leave a temp file behind.
-	if err := writeConf(dir, "awgtest", conf); err != nil {
-		t.Fatalf("second writeConf: %v", err)
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatalf("readdir: %v", err)
-	}
-	if len(entries) != 1 {
-		names := make([]string, 0, len(entries))
-		for _, e := range entries {
-			names = append(names, e.Name())
+// TestStopAllTearsInterfacesDown: a stopped panel enforces no quota or
+// expiry, so its peers must stop forwarding, as on the embedded datapath.
+func TestStopAllTearsInterfacesDown(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	for _, id := range []int{1, 2} {
+		d := managerDesired(id)
+		d.Instance.ListenPort += id
+		if err := m.Ensure(d); err != nil {
+			t.Fatal(err)
 		}
-		t.Errorf("expected only the config to remain, got %v", names)
 	}
-}
-
-// TestAddressesSatisfiedIsASubsetCheck: the kernel adds an IPv6 link-local address nobody configured,
-// so requiring an exact match would make every interface look wrong and force a needless rebuild on
-func TestAddressesSatisfiedIsASubsetCheck(t *testing.T) {
-	t.Parallel()
-
-	live := []string{"10.8.1.1/24", "fe80::be24:11ff:fe3f:5f75/64"}
-	if !addressesSatisfied([]string{"10.8.1.1/24"}, live) {
-		t.Error("an extra kernel-added address must not disqualify the interface")
-	}
-	if addressesSatisfied([]string{"10.9.9.1/24"}, live) {
-		t.Error("a different address must disqualify the interface")
-	}
-	if addressesSatisfied([]string{"10.8.1.1/24", "fd00::1/64"}, live) {
-		t.Error("a missing wanted address must disqualify the interface")
-	}
-	if addressesSatisfied(nil, live) {
-		t.Error("an instance with no address must never be adopted")
-	}
-}
-
-// TestLiveInterfaceMatchesRejectsMissingLink is the guard that keeps adoption
-// from claiming an interface that is not there.
-func TestLiveInterfaceMatchesRejectsMissingLink(t *testing.T) {
-	t.Parallel()
-
-	if liveInterfaceMatches("awg-does-not-exist-9999", testInstance()) {
-		t.Error("a nonexistent interface must never be adopted")
-	}
-}
-
-// TestStopAllLeavesInterfacesRunning: the kernel datapath keeps forwarding while the panel is down, so
-// shutdown must only drop bookkeeping.
-func TestStopAllLeavesInterfacesRunning(t *testing.T) {
-	m := &Manager{ifaces: map[int]*managed{
-		1: {name: "awg-test-never-created", conf: "x", structFP: "y"},
-	}, confDir: t.TempDir()}
-
 	m.StopAll()
-
-	if m.HasRunning() {
-		t.Error("StopAll must clear the manager's bookkeeping")
-	}
-	// Clearing bookkeeping must not issue commands during process shutdown.
-}
-
-func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
-	calls := 0
-	dir := t.TempDir()
-	inst := testInstance()
-	inst.Id, inst.InterfaceName = 7, "awg7"
-	inst.PrivateKey = managerTestPrivateKey
-	conf, err := Render(inst, "", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
-		t.Fatal(err)
-	}
-	linkUp := true
-	m := &Manager{
-		ifaces:  map[int]*managed{7: {name: "awg7"}},
-		confDir: dir,
-		ops: managerOps{
-			linkExists: func(string) bool { return linkUp },
-			run: func(name string, args ...string) (string, error) {
-				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
-					return managerTestPublicKey(t), nil
-				}
-				calls++
-				if calls == 1 {
-					return "temporary failure", os.ErrProcessDone
-				}
-				if name == "awg-quick" && args[0] == "down" {
-					linkUp = false
-					return "", nil
-				}
-				return "", os.ErrInvalid
-			},
-		},
-	}
-
-	if err := m.Remove(7); err == nil {
-		t.Fatal("Remove must report a failed awg-quick down")
-	}
-	if !m.Running(7) {
-		t.Fatal("failed teardown must remain managed so the next reconcile can retry")
-	}
-	if _, err := os.Stat(ConfPathIn(dir, "awg7")); err != nil {
-		t.Fatalf("failed teardown removed its config: %v", err)
-	}
-	if err := m.Remove(7); err != nil {
-		t.Fatalf("Remove retry: %v", err)
-	}
-	if m.Running(7) {
-		t.Fatal("successful retry must forget the interface")
-	}
-	if _, err := os.Stat(ConfPathIn(dir, "awg7")); !os.IsNotExist(err) {
-		t.Fatalf("successful teardown left its config (err=%v)", err)
-	}
-	if calls != 2 {
-		t.Fatalf("teardown attempts = %d, want 2", calls)
+	if len(h.links) != 0 || len(h.nat) != 0 || len(h.forward) != 0 || m.HasRunning() {
+		t.Fatalf("after StopAll: links=%v nat=%v forward=%v running=%v", h.links, h.nat, h.forward, m.HasRunning())
 	}
 }
 
-func TestReconcileRetriesRemovedInterfaceAfterTeardownFailure(t *testing.T) {
-	calls := 0
-	dir := t.TempDir()
-	inst := testInstance()
-	inst.Id, inst.InterfaceName = 8, "awg8"
-	inst.PrivateKey = managerTestPrivateKey
-	conf, err := Render(inst, "", true)
-	if err != nil {
+// TestTeardownFailureKeepsInterfaceManagedForRetry: forgetting a link that
+// is still up would leak its UDP port and block embedded mode from binding it.
+func TestTeardownFailureKeepsInterfaceManagedForRetry(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	if err := m.Ensure(managerDesired(1)); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
-		t.Fatal(err)
+	h.failing["ip link del"] = errInjected
+	if err := m.Remove(1); err == nil {
+		t.Fatal("Remove reported success although the link is still up")
 	}
-	linkUp := true
-	m := &Manager{
-		ifaces:  map[int]*managed{8: {name: "awg8"}},
-		confDir: dir,
-		ops: managerOps{
-			linkExists: func(string) bool { return linkUp },
-			run: func(name string, args ...string) (string, error) {
-				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
-					return managerTestPublicKey(t), nil
-				}
-				calls++
-				if calls == 1 {
-					return "temporary failure", os.ErrProcessDone
-				}
-				if name == "awg-quick" && args[0] == "down" {
-					linkUp = false
-					return "", nil
-				}
-				return "", os.ErrInvalid
-			},
-		},
+	m.Reconcile(nil)
+	if !m.Running(1) || !m.HasRunning() {
+		t.Fatal("a link that failed to come down is no longer reported running")
 	}
+	delete(h.failing, "ip link del")
+	m.Reconcile(nil)
+	if m.Running(1) || h.linkExists("xui-awg1") {
+		t.Fatal("retry did not complete the teardown")
+	}
+}
 
-	m.Reconcile(nil)
-	if !m.Running(8) {
-		t.Fatal("failed reconcile teardown must remain managed for retry")
+// TestTeardownRemovesOnlyItsOwnForwardRules: another inbound's accepts and
+// the operator's own rules must survive one inbound's removal.
+func TestTeardownRemovesOnlyItsOwnForwardRules(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	h.forward = []string{"-A FORWARD -i eth0 -j DROP"}
+	for _, id := range []int{1, 2} {
+		d := managerDesired(id)
+		d.Instance.ListenPort += id
+		if err := m.Ensure(d); err != nil {
+			t.Fatal(err)
+		}
 	}
-	m.Reconcile(nil)
-	if m.Running(8) {
-		t.Fatal("successful reconcile retry must forget the interface")
+	if err := m.Remove(1); err != nil {
+		t.Fatal(err)
 	}
-	if calls != 2 {
-		t.Fatalf("teardown attempts = %d, want 2", calls)
+	if len(forwardRulesFor(h, "xui-awg1")) != 0 || len(forwardRulesFor(h, "xui-awg2")) != 2 ||
+		!strings.Contains(strings.Join(h.forward, "\n"), "-A FORWARD -i eth0 -j DROP") {
+		t.Fatalf("FORWARD after removing inbound 1 = %v", h.forward)
+	}
+}
+
+// TestEnsureWithoutIptablesStillForwards: on a pure nftables host the
+// FORWARD accepts are an optimisation, not a requirement.
+func TestEnsureWithoutIptablesStillForwards(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	h.iptables = false
+	if err := m.Ensure(managerDesired(1)); err != nil {
+		t.Fatalf("Ensure without iptables: %v", err)
+	}
+	if h.ran("iptables") || h.nat["xui_awg1"] == "" {
+		t.Fatalf("commands = %v nat = %v", h.commands, h.nat)
+	}
+	if err := m.Remove(1); err != nil {
+		t.Fatalf("Remove without iptables: %v", err)
 	}
 }

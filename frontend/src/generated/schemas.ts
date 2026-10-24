@@ -4536,7 +4536,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "kernelMode": {
-        "description": "KernelMode runs this inbound on the DKMS kernel module and awg-quick\n(internal/amneziawgkern) instead of the embedded amneziawg-go + gVisor stack.",
+        "description": "KernelMode runs this inbound on the AmneziaWG kernel module (internal/amneziawgkern)\ninstead of the embedded amneziawg-go + gVisor stack.",
         "type": "boolean"
       },
       "maxHandshakeAttempts": {

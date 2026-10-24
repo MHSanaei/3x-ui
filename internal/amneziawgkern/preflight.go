@@ -86,7 +86,7 @@ func probeHost() Readiness {
 	if os.Geteuid() != 0 {
 		r.Blockers = append(r.Blockers, Blocker{Code: BlockerNotRoot})
 	}
-	for _, bin := range []string{"awg", "awg-quick"} {
+	for _, bin := range []string{"awg", "ip"} {
 		if _, err := exec.LookPath(bin); err != nil {
 			r.Blockers = append(r.Blockers, Blocker{Code: BlockerToolsMissing, Detail: bin})
 		}
@@ -149,9 +149,9 @@ func describe(blockers []Blocker) []string {
 		case BlockerNotRoot:
 			out = append(out, "the panel is not running as root, so it cannot create a network interface")
 		case BlockerToolsMissing:
-			out = append(out, fmt.Sprintf("%s not found in PATH (install amneziawg-tools)", b.Detail))
+			out = append(out, fmt.Sprintf("%s not found in PATH (install amneziawg-tools and iproute2)", b.Detail))
 		case BlockerModuleMissing:
-			out = append(out, "the amneziawg kernel module is not loaded (run "+installCommand()+")")
+			out = append(out, "the amneziawg kernel module is not installed (run "+installCommand()+")")
 		case BlockerNftMissing:
 			out = append(out, "nft not found in PATH (install nftables); it is needed for the tunnel's NAT rules")
 		case BlockerIPv6:
@@ -169,7 +169,8 @@ func describe(blockers []Blocker) []string {
 	return out
 }
 
-// moduleAvailable checks for a loaded amneziawg module, then tries to load it.
+// moduleAvailable reports a loaded or installed module; the dry run keeps a
+// readiness GET from loading kernel code, Ensure loads it when it is needed.
 func moduleAvailable() bool {
 	if _, err := os.Stat("/sys/module/amneziawg"); err == nil {
 		return true
@@ -177,10 +178,7 @@ func moduleAvailable() bool {
 	if _, err := exec.LookPath("modprobe"); err != nil {
 		return false
 	}
-	if _, err := run("modprobe", "amneziawg"); err != nil {
-		return false
-	}
-	_, err := os.Stat("/sys/module/amneziawg")
+	_, err := run("", "modprobe", "--dry-run", "--quiet", "amneziawg")
 	return err == nil
 }
 

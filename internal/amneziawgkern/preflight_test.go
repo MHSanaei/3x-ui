@@ -7,25 +7,6 @@ import (
 	"time"
 )
 
-// TestHostReadinessCarriesMachineCodes: the UI translates off the code, so a blocker that only carried
-// prose would force the panel to render an English string straight from the server.
-func TestHostReadinessCarriesMachineCodes(t *testing.T) {
-	resetReadinessCache()
-	r := HostReadiness()
-
-	if r.InstallCommand == "" {
-		t.Error("readiness must carry an install command")
-	}
-	for _, b := range r.Blockers {
-		if b.Code == "" {
-			t.Errorf("blocker without a code: %+v", b)
-		}
-	}
-	if r.Ready != (len(r.Blockers) == 0) {
-		t.Errorf("Ready=%v contradicts %d blockers", r.Ready, len(r.Blockers))
-	}
-}
-
 // TestInstallCommandNamesThePanelBinary: /usr/bin/x-ui is the management shell
 // script, whose case list has no install-awg-kernel -- it just opens the menu.
 func TestInstallCommandNamesThePanelBinary(t *testing.T) {

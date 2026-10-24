@@ -2,6 +2,7 @@ package job
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -14,8 +15,11 @@ import (
 )
 
 type kernelTrafficTestManager struct {
+	id    int
 	state amneziawgkern.TrafficInterfaceState
 }
+
+func (m *kernelTrafficTestManager) ManagedIDs() []int { return []int{m.id} }
 
 func (m *kernelTrafficTestManager) TrafficStateFor(int) (amneziawgkern.TrafficInterfaceState, bool) {
 	return m.state, true
@@ -53,7 +57,7 @@ func TestKernelTrafficJobDoesNotRechargeAfterAdoptingInterface(t *testing.T) {
 		Id: inbound.Id, Peers: []amneziawg.Peer{{Email: email, PublicKey: publicKey}},
 	}}}
 	firstCollector := amneziawgkern.NewCollector()
-	firstManager := &kernelTrafficTestManager{state: amneziawgkern.TrafficInterfaceState{Name: iface, Generation: 1}}
+	firstManager := &kernelTrafficTestManager{id: inbound.Id, state: amneziawgkern.TrafficInterfaceState{Name: iface, Generation: 1}}
 	current := []amneziawgkern.PeerStat{{PublicKey: publicKey, RxBytes: 100, TxBytes: 200}}
 	collect := func(manager *kernelTrafficTestManager, collector *amneziawgkern.Collector, dump kernelTrafficDumper) {
 		t.Helper()
@@ -63,7 +67,7 @@ func TestKernelTrafficJobDoesNotRechargeAfterAdoptingInterface(t *testing.T) {
 
 	// The panel restarts while the kernel interface keeps its cumulative counters.
 	restartedCollector := amneziawgkern.NewCollector()
-	restartedManager := &kernelTrafficTestManager{state: amneziawgkern.TrafficInterfaceState{
+	restartedManager := &kernelTrafficTestManager{id: inbound.Id, state: amneziawgkern.TrafficInterfaceState{
 		Name: iface, Generation: 2, Adopted: true,
 	}}
 	collect(restartedManager, restartedCollector, func(string) ([]amneziawgkern.PeerStat, error) {
@@ -113,6 +117,57 @@ func TestKernelTrafficJobDoesNotRechargeAfterAdoptingInterface(t *testing.T) {
 	}
 	if newPeerTraffic.Up != 7 || newPeerTraffic.Down != 9 {
 		t.Fatalf("new peer first counters = up %d down %d, want 7/9", newPeerTraffic.Up, newPeerTraffic.Down)
+	}
+}
+
+// TestKernelTrafficChargesPeersLeavingTheDesiredSet: reconcile removes a
+// disabled peer or inbound from the kernel, so its last counters are read first.
+func TestKernelTrafficChargesPeersLeavingTheDesiredSet(t *testing.T) {
+	cases := map[string]func(id int) []amneziawgkern.Desired{
+		"peer disabled": func(id int) []amneziawgkern.Desired {
+			return []amneziawgkern.Desired{{Instance: amneziawg.Instance{Id: id}}}
+		},
+		"inbound removed": func(int) []amneziawgkern.Desired { return nil },
+	}
+	port := 45210
+	for name, nextDesired := range cases {
+		t.Run(name, func(t *testing.T) {
+			setupIntegrationDB(t)
+			db := database.GetDB()
+			port++
+			inbound := &model.Inbound{
+				UserId: 1, Tag: "kernel-leaving-" + strconv.Itoa(port), Enable: true, Port: port,
+				Protocol: model.AmneziaWG, Settings: `{"clients":[]}`,
+			}
+			if err := db.Create(inbound).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			const email = "kernel-leaving@example.test"
+			if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: email, Enable: true}).Error; err != nil {
+				t.Fatalf("create client traffic: %v", err)
+			}
+			const publicKey = "leaving-peer-key"
+			manager := &kernelTrafficTestManager{id: inbound.Id, state: amneziawgkern.TrafficInterfaceState{Name: "xui-awg-leaving", Generation: 1}}
+			collector := amneziawgkern.NewCollector()
+			dump := func(rx, tx int64) kernelTrafficDumper {
+				return func(string) ([]amneziawgkern.PeerStat, error) {
+					return []amneziawgkern.PeerStat{{PublicKey: publicKey, RxBytes: rx, TxBytes: tx}}, nil
+				}
+			}
+			first := []amneziawgkern.Desired{{Instance: amneziawg.Instance{
+				Id: inbound.Id, Peers: []amneziawg.Peer{{Email: email, PublicKey: publicKey}},
+			}}}
+			collectKernelTrafficWith(&service.InboundService{}, first, manager, collector, dump(100, 200))
+			collectKernelTrafficWith(&service.InboundService{}, nextDesired(inbound.Id), manager, collector, dump(150, 260))
+
+			var got xray.ClientTraffic
+			if err := db.Where("email = ?", email).First(&got).Error; err != nil {
+				t.Fatalf("reload traffic: %v", err)
+			}
+			if got.Up != 150 || got.Down != 260 {
+				t.Fatalf("traffic = up %d down %d, want 150/260 including the final 50/60", got.Up, got.Down)
+			}
+		})
 	}
 }
 

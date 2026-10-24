@@ -31,7 +31,7 @@ type Delta struct {
 
 // Dump reads the live per-peer counters for one interface.
 func Dump(iface string) ([]PeerStat, error) {
-	out, err := run("awg", "show", iface, "dump")
+	out, err := run("", "awg", "show", iface, "dump")
 	if err != nil {
 		return nil, fmt.Errorf("amneziawgkern: awg show %s dump: %w (%s)", iface, err, out)
 	}
@@ -286,6 +286,14 @@ var (
 func GetCollector() *Collector {
 	collectorOnce.Do(func() { collector = NewCollector() })
 	return collector
+}
+
+// EmailFor returns the client a peer key was last recorded against, so a peer
+// that just left the desired set is still charged for its final counters.
+func (c *Collector) EmailFor(iface, publicKey string) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.emails[key(iface, publicKey)]
 }
 
 // SetEmails records which client each peer key belongs to, so observations can

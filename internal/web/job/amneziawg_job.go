@@ -37,6 +37,36 @@ func (j *AmneziaWGJob) Run() {
 		return
 	}
 
+	embedded, kernel := splitAmneziaWGDatapaths(desired)
+	// Counters first: reconcile drops disabled peers and removed interfaces,
+	// and their counters with them.
+	j.collectKernelTraffic(kernel)
+	reconcileAmneziaWGDatapaths(embedded, kernel, amneziawgnet.GetManager(), amneziawgkern.GetManager())
+
+	outboundDesired, err := j.desiredOutboundInstances()
+	if err != nil {
+		logger.Warning("amneziawg job: get desired outbound instances failed:", err)
+		return
+	}
+	amneziawgnet.GetOutboundManager().Reconcile(outboundDesired)
+	// Xray's bridges are generated apart from the listener; one that moved needs them regenerated.
+	if amneziawgnet.BridgesStale() {
+		j.xrayService.SetToNeedRestart()
+	}
+}
+
+// FlushKernelTraffic charges what kernel interfaces counted since the last
+// tick; shutdown runs it before tearing the interfaces and counters down.
+func (j *AmneziaWGJob) FlushKernelTraffic() {
+	desired, err := j.inboundService.DesiredAmneziaWGInstances()
+	if err != nil {
+		logger.Warning("amneziawg job: get desired instances for the final traffic flush failed:", err)
+	}
+	_, kernel := splitAmneziaWGDatapaths(desired)
+	j.collectKernelTraffic(kernel)
+}
+
+func splitAmneziaWGDatapaths(desired []amneziawg.Instance) ([]amneziawgnet.Desired, []amneziawgkern.Desired) {
 	embedded := make([]amneziawgnet.Desired, 0, len(desired))
 	kernel := make([]amneziawgkern.Desired, 0, len(desired))
 	for _, inst := range desired {
@@ -63,19 +93,7 @@ func (j *AmneziaWGJob) Run() {
 			},
 		})
 	}
-	reconcileAmneziaWGDatapaths(embedded, kernel, amneziawgnet.GetManager(), amneziawgkern.GetManager())
-	j.collectKernelTraffic(kernel)
-
-	outboundDesired, err := j.desiredOutboundInstances()
-	if err != nil {
-		logger.Warning("amneziawg job: get desired outbound instances failed:", err)
-		return
-	}
-	amneziawgnet.GetOutboundManager().Reconcile(outboundDesired)
-	// Xray's bridges are generated apart from the listener; one that moved needs them regenerated.
-	if amneziawgnet.BridgesStale() {
-		j.xrayService.SetToNeedRestart()
-	}
+	return embedded, kernel
 }
 
 type embeddedInboundManager interface {
@@ -166,22 +184,29 @@ func (j *AmneziaWGJob) collectKernelTraffic(kernel []amneziawgkern.Desired) {
 }
 
 type kernelTrafficManager interface {
+	ManagedIDs() []int
 	TrafficStateFor(id int) (amneziawgkern.TrafficInterfaceState, bool)
 	PrimeAdoptedTrafficBaseline(id int, generation uint64, stats []amneziawgkern.PeerStat, collector *amneziawgkern.Collector) bool
 }
 
 type kernelTrafficDumper func(string) ([]amneziawgkern.PeerStat, error)
 
+// collectKernelTrafficWith reads every managed interface, not only desired
+// ones, so a peer or inbound that is about to be dropped is still charged.
 func collectKernelTrafficWith(inboundService *service.InboundService, kernel []amneziawgkern.Desired, manager kernelTrafficManager, collector *amneziawgkern.Collector, dump kernelTrafficDumper) {
-	if len(kernel) == 0 {
-		return
+	emailsByID := make(map[int]map[string]string, len(kernel))
+	for _, d := range kernel {
+		emails := make(map[string]string, len(d.Instance.Peers))
+		for _, p := range d.Instance.Peers {
+			emails[p.PublicKey] = p.Email
+		}
+		emailsByID[d.Instance.Id] = emails
 	}
 
 	now := time.Now()
-
 	var traffics []*xray.ClientTraffic
-	for _, d := range kernel {
-		state, ok := manager.TrafficStateFor(d.Instance.Id)
+	for _, id := range manager.ManagedIDs() {
+		state, ok := manager.TrafficStateFor(id)
 		if !ok {
 			continue
 		}
@@ -193,40 +218,39 @@ func collectKernelTrafficWith(inboundService *service.InboundService, kernel []a
 		if len(stats) == 0 {
 			continue
 		}
-		current, ok := manager.TrafficStateFor(d.Instance.Id)
+		current, ok := manager.TrafficStateFor(id)
 		if !ok || current.Name != state.Name || current.Generation != state.Generation {
 			continue
 		}
-		if state.Adopted && !manager.PrimeAdoptedTrafficBaseline(d.Instance.Id, state.Generation, stats, collector) {
+		if state.Adopted && !manager.PrimeAdoptedTrafficBaseline(id, state.Generation, stats, collector) {
 			continue
 		}
 
-		emails := make(map[string]string, len(d.Instance.Peers))
-		for _, p := range d.Instance.Peers {
-			emails[p.PublicKey] = p.Email
+		emails, desired := emailsByID[id]
+		// Adopted: downtime traffic is unknowable without durable accounting state.
+		// Otherwise deltas, never totals: counters restart at zero on every rebuild.
+		if !state.Adopted {
+			for _, delta := range collector.Delta(state.Name, stats) {
+				email := emails[delta.PublicKey]
+				if email == "" {
+					email = collector.EmailFor(state.Name, delta.PublicKey)
+				}
+				if email == "" {
+					continue
+				}
+				traffics = append(traffics, &xray.ClientTraffic{
+					InboundId: id,
+					Email:     email,
+					Up:        delta.Up,
+					Down:      delta.Down,
+				})
+			}
 		}
-		collector.SetEmails(state.Name, emails)
+		if desired {
+			collector.SetEmails(state.Name, emails)
+		}
 		collector.ObserveEndpoints(state.Name, stats, now, endpointWindow)
 		collector.ObserveHandshakes(state.Name, stats)
-		if state.Adopted {
-			// Downtime traffic is unknowable without durable accounting state.
-			continue
-		}
-
-		// Deltas, never totals: kernel counters restart at zero on every
-		// interface rebuild, and AddTraffic adds whatever it is given.
-		for _, delta := range collector.Delta(state.Name, stats) {
-			email := emails[delta.PublicKey]
-			if email == "" {
-				continue
-			}
-			traffics = append(traffics, &xray.ClientTraffic{
-				InboundId: d.Instance.Id,
-				Email:     email,
-				Up:        delta.Up,
-				Down:      delta.Down,
-			})
-		}
 	}
 
 	if len(traffics) == 0 {

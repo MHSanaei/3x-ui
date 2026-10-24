@@ -1,13 +1,5 @@
-// Package amneziawg holds the AmneziaWG protocol's shared, DB-backed shapes
-// (Instance, Peer, Obfuscation31, ServerSettings/InboundSettings) and the
-// pure functions that derive an Instance from a stored inbound row. It has
-// no OS dependency of its own: internal/amneziawgnet embeds amneziawg-go
-// over a gVisor netstack and owns the actual running interfaces, one
-// Manager-managed Device per desired Instance -- see that package's Manager
-// for the reconcile-on-tick lifecycle (modeled on internal/mtproto's own
-// Manager), and instance.go's own doc comment for how this package's role
-// narrowed to protocol-shape-only after the kernel-module (DKMS) + awg-quick
-// architecture this fork originally shipped was retired.
+// Package amneziawg holds AmneziaWG's DB-backed shapes and derives an Instance from an inbound row, with no OS
+// dependency; internal/amneziawgnet (embedded, default) and internal/amneziawgkern (opt-in kernel module) run it.
 package amneziawg
 
 import "github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -164,8 +156,8 @@ type ServerSettings struct {
 
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
 
-	// KernelMode runs this inbound on the DKMS kernel module and awg-quick
-	// (internal/amneziawgkern) instead of the embedded amneziawg-go + gVisor stack.
+	// KernelMode runs this inbound on the AmneziaWG kernel module (internal/amneziawgkern)
+	// instead of the embedded amneziawg-go + gVisor stack.
 	KernelMode bool `json:"kernelMode,omitempty"`
 
 	// Obfuscation31's fields, repeated flat (not embedded) rather than
