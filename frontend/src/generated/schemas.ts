@@ -126,6 +126,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "nodeDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "outboundDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -215,6 +220,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashPath": {
         "type": "string"
+      },
+      "subClashRemoteDNS": {
+        "type": "boolean"
       },
       "subClashRules": {
         "type": "string"
@@ -610,6 +618,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -636,6 +645,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
+      "subClashRemoteDNS",
       "subClashRules",
       "subClashURI",
       "subClashUserAgentRegex",
@@ -902,6 +912,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "nodeDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "outboundDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -991,6 +1006,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashPath": {
         "type": "string"
+      },
+      "subClashRemoteDNS": {
+        "type": "boolean"
       },
       "subClashRules": {
         "type": "string"
@@ -1394,6 +1412,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -1420,6 +1439,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
+      "subClashRemoteDNS",
       "subClashRules",
       "subClashURI",
       "subClashUserAgentRegex",

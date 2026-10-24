@@ -69,7 +69,7 @@ func TestSub_HostVlessRoute_Clash(t *testing.T) {
 	ib := seedSubInbound(t, "s1", "vrc", 4502, 1, wsTLSStream)
 	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "C", Address: "c.cdn.com", Port: 8443, Security: "tls", VlessRoute: "443"})
 
-	clash := NewSubClashService(false, "", NewSubService(""))
+	clash := NewSubClashService(false, "", false, NewSubService(""))
 	yaml, _, err := clash.GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
