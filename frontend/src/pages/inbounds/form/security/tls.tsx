@@ -1,5 +1,17 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Select,
+  Space,
+  Switch,
+  Typography,
+} from 'antd';
 import {
   CloudDownloadOutlined,
   FileProtectOutlined,
@@ -9,6 +21,7 @@ import {
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
 import { CipherSuitesSelect } from '@/components/form';
+import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField } from '@/components/form/rhf';
 import {
   ALPN_OPTION,
@@ -77,7 +90,7 @@ function CertRow({
       {total > 1 && (
         <Form.Item label=" ">
           <Button size="small" danger onClick={onRemove}>
-            <MinusOutlined /> {t('remove')}
+            <MinusOutlined aria-hidden /> {t('remove')}
           </Button>
         </Form.Item>
       )}
@@ -161,16 +174,20 @@ function CertRow({
 
 function EchSockoptSection() {
   const { t } = useTranslation();
+  const uid = useId();
   const { control, setValue } = useFormContext();
   const echSockopt = useWatch({ control, name: 'streamSettings.tlsSettings.echSockopt' });
   const on = !!echSockopt;
   return (
     <>
       <Form.Item
+        htmlFor={`${uid}-echSockopt`}
         label={t('pages.inbounds.form.echSockopt')}
         tooltip={t('pages.inbounds.form.echSockoptTip')}
       >
         <Switch
+          id={`${uid}-echSockopt`}
+          aria-describedby={`${uid}-echSockopt-hint`}
           checked={on}
           onChange={(v) =>
             setValue(
@@ -179,6 +196,9 @@ function EchSockoptSection() {
             )
           }
         />
+        <span id={`${uid}-echSockopt-hint`} hidden>
+          {t('pages.inbounds.form.echSockoptTip')}
+        </span>
       </Form.Item>
       {on && (
         <>
@@ -216,6 +236,79 @@ function EchSockoptSection() {
   );
 }
 
+interface EchKeySectionProps {
+  saving: boolean;
+  getNewEchCert: () => void;
+  clearEchCert: () => void;
+}
+
+function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionProps) {
+  const { t } = useTranslation();
+  const { control, setValue } = useFormContext();
+  const localKeys = useWatch({ control, name: 'streamSettings.tlsSettings.echServerKeys' });
+  const echConfig = useWatch({
+    control,
+    name: 'streamSettings.tlsSettings.settings.echConfigList',
+  });
+  const serverName: string =
+    useWatch({ control, name: 'streamSettings.tlsSettings.serverName' }) ?? '';
+  const helper = (
+    <DynamicEchHelper
+      value={echConfig ?? ''}
+      sni={serverName}
+      hasLocalKeys={!!localKeys}
+      onApply={(next) =>
+        setValue('streamSettings.tlsSettings.settings.echConfigList', next, {
+          shouldDirty: true,
+        })
+      }
+      onClearLocalKeys={() => setValue('streamSettings.tlsSettings.echServerKeys', '')}
+    />
+  );
+  return (
+    <>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
+        label={t('pages.inbounds.form.echConfigList')}
+        extra={
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {t('pages.inbounds.form.echConfigListHint')}
+          </Typography.Text>
+        }
+      >
+        <Input placeholder={t('pages.inbounds.form.echDynamicPlaceholder')} />
+      </FormField>
+      <Form.Item label=" " style={{ marginBottom: 8 }}>
+        {helper}
+      </Form.Item>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'echServerKeys']}
+        label={t('pages.inbounds.form.echKey')}
+      >
+        <Input placeholder={t('pages.inbounds.form.echKeyHint')} />
+      </FormField>
+      <Alert
+        type="info"
+        showIcon
+        data-testid="ech-cdn-warning"
+        style={{ marginBottom: 12 }}
+        title={t('pages.inbounds.form.echCdnWarningTitle')}
+        description={t('pages.inbounds.form.echCdnWarningBody')}
+      />
+      <Form.Item label=" ">
+        <Space wrap>
+          <Button type="primary" loading={saving} onClick={getNewEchCert}>
+            {t('pages.inbounds.form.getNewEchCert')}
+          </Button>
+          <Button danger onClick={clearEchCert}>
+            {t('clear')}
+          </Button>
+        </Space>
+      </Form.Item>
+    </>
+  );
+}
+
 export default function TlsForm({
   saving,
   setCertFromPanel,
@@ -226,6 +319,7 @@ export default function TlsForm({
   clearEchCert,
 }: TlsFormProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -242,16 +336,18 @@ export default function TlsForm({
       >
         <CipherSuitesSelect placeholder={t('pages.inbounds.form.autoOption')} />
       </FormField>
-      <Form.Item label={t('pages.inbounds.form.minMaxVersion')}>
+      <Form.Item htmlFor={`${uid}-minVersion`} label={t('pages.inbounds.form.minMaxVersion')}>
         <Space.Compact block>
           <FormField name={['streamSettings', 'tlsSettings', 'minVersion']} noStyle>
             <Select
+              id={`${uid}-minVersion`}
               style={{ width: '50%' }}
               options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
             />
           </FormField>
           <FormField name={['streamSettings', 'tlsSettings', 'maxVersion']} noStyle>
             <Select
+              aria-label={t('pages.inbounds.form.maxVersion')}
               style={{ width: '50%' }}
               options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
             />
@@ -330,7 +426,7 @@ export default function TlsForm({
             })
           }
         >
-          <PlusOutlined />
+          <PlusOutlined aria-hidden />
         </Button>
       </Form.Item>
       {fields.map((field, idx) => (
@@ -352,29 +448,9 @@ export default function TlsForm({
         <Input placeholder="/path/to/sslkeylog.txt" />
       </FormField>
       <EchSockoptSection />
-      <FormField
-        name={['streamSettings', 'tlsSettings', 'echServerKeys']}
-        label={t('pages.inbounds.form.echKey')}
-      >
-        <Input />
-      </FormField>
-      <FormField
-        name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
-        label={t('pages.inbounds.form.echConfig')}
-      >
-        <Input />
-      </FormField>
-      <Form.Item label=" ">
-        <Space>
-          <Button type="primary" loading={saving} onClick={getNewEchCert}>
-            {t('pages.inbounds.form.getNewEchCert')}
-          </Button>
-          <Button danger onClick={clearEchCert}>
-            {t('clear')}
-          </Button>
-        </Space>
-      </Form.Item>
+      <EchKeySection saving={saving} getNewEchCert={getNewEchCert} clearEchCert={clearEchCert} />
       <Form.Item
+        htmlFor={`${uid}-pinnedPeerCertSha256`}
         label={t('pages.inbounds.form.pinnedPeerCertSha256')}
         tooltip={t('pages.inbounds.form.pinnedPeerCertSha256Tip')}
       >
@@ -384,6 +460,8 @@ export default function TlsForm({
             noStyle
           >
             <Select
+              id={`${uid}-pinnedPeerCertSha256`}
+              aria-describedby={`${uid}-pinnedPeerCertSha256-hint`}
               mode="tags"
               tokenSeparators={[',', ' ']}
               placeholder={t('pages.inbounds.form.pinnedPeerCertSha256Placeholder')}
@@ -391,18 +469,23 @@ export default function TlsForm({
             />
           </FormField>
           <Button
-            icon={<FileProtectOutlined />}
+            icon={<FileProtectOutlined aria-hidden />}
             onClick={pinFromCert}
             loading={saving}
+            aria-label={t('pages.inbounds.form.pinFromCert')}
             title={t('pages.inbounds.form.pinFromCert')}
           />
           <Button
-            icon={<CloudDownloadOutlined />}
+            icon={<CloudDownloadOutlined aria-hidden />}
             onClick={() => pinFromRemote()}
             loading={saving}
+            aria-label={t('pages.inbounds.form.pinFromRemote')}
             title={t('pages.inbounds.form.pinFromRemote')}
           />
         </Space.Compact>
+        <span id={`${uid}-pinnedPeerCertSha256-hint`} hidden>
+          {t('pages.inbounds.form.pinnedPeerCertSha256Tip')}
+        </span>
       </Form.Item>
       <FormField
         name={['streamSettings', 'tlsSettings', 'settings', 'verifyPeerCertByName']}

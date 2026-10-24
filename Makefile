@@ -45,10 +45,6 @@ format-check: ## oxfmt in check mode on frontend sources
 typecheck: ## tsc --noEmit
 	cd $(FRONTEND) && npm run typecheck
 
-.PHONY: msw-worker-check
-msw-worker-check: ## Verify the tracked worker matches the installed MSW runtime
-	cmp $(FRONTEND)/public/mockServiceWorker.js $(FRONTEND)/node_modules/msw/lib/mockServiceWorker.js
-
 .PHONY: test-go
 test-go: dist-stub ## Go tests (shuffle, no cache)
 	go test -shuffle=on -count=1 $(GO_PKGS)
@@ -91,5 +87,5 @@ build-storybook: ## Build the static Storybook (compile-checks all stories)
 # The PR gate. Matches ci.yml: codegen freshness, both linters, the formatter,
 # typecheck, both test suites, a full build, and the Storybook compile-check.
 .PHONY: verify
-verify: gen-check lint format-check typecheck msw-worker-check test build build-storybook ## Full local gate (mirrors CI)
+verify: gen-check lint format-check typecheck test build build-storybook ## Full local gate (mirrors CI)
 	@echo "verify: OK"

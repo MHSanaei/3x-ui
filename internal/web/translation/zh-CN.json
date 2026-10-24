@@ -290,7 +290,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本机设置",
-      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。"
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。",
+      "logLines": "行数",
+      "timeRange": "时间范围"
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",
@@ -472,6 +474,36 @@
       "form": {
         "echSockopt": "ECH Sockopt",
         "echSockoptTip": "Xray 获取 ECH 配置列表时所用连接的 Socket 选项（例如让该查询通过 dialerProxy 出站）。保持禁用则使用默认值。",
+        "echCdnWarningTitle": "本地生成的 ECH 密钥仅适用于直连",
+        "echCdnWarningBody": "「获取新 ECH 证书」生成的密钥对，只有在客户端直连本机 VPS 时才有效。若节点经 Cloudflare CDN 代理（小黄云后的 VLESS + xhttp/WS），外层 TLS 由 Cloudflare 用自己的 ECH 密钥终结且会定期轮换，本地密钥必然导致握手失败。此场景请改用动态 ECH 辅助器。",
+        "echDynamicTitle": "Cloudflare 动态 ECH（小黄云可用）",
+        "echPresetLabel": "预设组合",
+        "echPresetOtherDomains": "其它 ECH 解析域名",
+        "echPresetAdvanced": "自定义组合…",
+        "echDynamicIntro": "把「解析域名 + DoH 服务」自动拼装成客户端动态查询格式并填入 ECH 配置列表。客户端每次连接都会向所选的 DoH 服务查询该域名的 HTTPS 记录，因此始终拿到最新的 ECH 密钥——包括 Cloudflare 轮换后的密钥。",
+        "echDynamicDomain": "ECH 解析域名",
+        "echDynamicDoh": "DoH 服务",
+        "echDomainAuto": "自动获取（使用节点的伪装域名解析 EchConfig）",
+        "echDynamicApply": "应用到 ECH 配置列表",
+        "echDynamicCustom": "自定义 URL…",
+        "echDynamicInvalid": "请填写有效的域名与 DoH 地址（仅支持 https、h2c、udp）后再生成。",
+        "echDynamicUnsupportedScheme": "Xray 仅支持通过 https://、h2c:// 或 udp:// 解析 ECH 配置，该地址永远不会返回结果。",
+        "echDynamicPlaceholder": "cloudflare-ech.com+https://dns.alidns.com/dns-query",
+        "echDynamicOverwriteTitle": "该入站已存在本地生成的 ECH 密钥对",
+        "echDynamicOverwriteBody": "在 CDN 之后，这对密钥根本不会被使用：TLS 握手由 CDN 终止。应用动态值将覆盖 ECH 配置列表，并清空本地 ECH 私钥。",
+        "echDynamicOverwriteConfirm": "覆盖并清空本地密钥",
+        "echExistingNotDynamic": "当前 ECH 配置不是动态格式，填入会覆盖你手工设置的值。",
+        "echDohGroup": {
+          "china": "中国大陆（墙内可直连）",
+          "global": "全球",
+          "europe": "欧洲",
+          "udp": "普通 DNS（udp://）"
+        },
+        "echRecommended": "推荐",
+        "echMainlandAdvisory": "国内 DNS 需搭配能返回 ECH 的解析域名；是否可用请保存前自行验证。",
+        "echConfigList": "ECH 配置列表",
+        "echConfigListHint": "会随分享链接与订阅下发给客户端。可填本地 ECHConfigList（即下方按钮的产物），也可填动态格式 domain+DoH URL。",
+        "echKeyHint": "仅限直连使用；节点位于 CDN 之后时请留空。",
         "curvePreferences": "曲线偏好",
         "curvePreferencesTip": "限制服务器提供的 TLS 密钥交换曲线，并按偏好顺序排列（例如 X25519MLKEM768、X25519）。留空则使用 Xray-core 默认值。",
         "masterKeyLog": "主密钥日志",
@@ -524,6 +556,8 @@
         "mtprotoFakeTlsDomainHint": "生成新客户端密钥时使用的默认 FakeTLS 域名。每个客户端可使用各自的域名。",
         "mtgThrottleMaxConnections": "最大连接数",
         "mtgThrottleMaxConnectionsHint": "按公平分配限制所有用户的并发连接数。0 表示不限制。",
+        "mtgPendingHandshakesMaxPerIp": "每 IP 最大未完成握手数",
+        "mtgPendingHandshakesMaxPerIpHint": "当某个 IP 的未完成握手达到此数量时，关闭其新连接。共享 IP（运营商 NAT）后的客户端共用此上限。0 表示禁用。",
         "mtgAdTagInvalid": "广告标签必须为 32 位十六进制字符。",
         "mtgPublicIpv4": "公网 IPv4",
         "mtgPublicIpv6": "公网 IPv6",
@@ -626,7 +660,6 @@
         "usageOption": "使用选项",
         "buildChain": "构建证书链",
         "echKey": "ECH key",
-        "echConfig": "ECH 配置",
         "pinnedPeerCertSha256": "固定对端证书 SHA-256",
         "pinnedPeerCertSha256Tip": "对端证书的 SHA-256 哈希（十六进制字符串，如 e8e2d3…），逗号分隔。仅面板使用 — 不写入服务器的 xray 配置，但会包含在分享链接中，以便客户端固定证书。",
         "pinnedPeerCertSha256Placeholder": "十六进制哈希，逗号分隔",
@@ -727,7 +760,10 @@
         "autoSystemDnsToGateway": "系统 DNS 指向网关",
         "autoSystemDnsToGatewayTooltip": "仅限 Linux：将 systemd-resolved 指向 TUN 网关，使系统解析经过 Xray。需要设置网关，失败时 TUN 不会启动。",
         "autoSystemWfpBlockLeak": "阻止泄漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "仅限 Windows，需配合自动系统路由：dns 让 DNS 只走 TUN（需设置 DNS 服务器），misconfigtun 阻止没有任何路由指向 TUN 的 IP 版本。"
+        "autoSystemWfpBlockLeakTooltip": "仅限 Windows，需配合自动系统路由：dns 让 DNS 只走 TUN（需设置 DNS 服务器），misconfigtun 阻止没有任何路由指向 TUN 的 IP 版本。",
+        "maxVersion": "最高版本",
+        "headerName": "标头名称",
+        "headerValue": "标头值"
       },
       "info": {
         "mode": "模式",
@@ -946,6 +982,8 @@
       "amneziaWgForwardedPorts": "转发端口",
       "amneziaWgForwardedPortsHint": "转发到此客户端的端口/范围，例如 80, 443, 8000-8100。留空则不转发。",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "秒数可输入数字或范围（例如 15-25）。数值须在 0 到 65535 之间；0 表示禁用 keepalive。",
+      "amneziaWgKeepAliveInvalid": "请输入 0 到 65535 之间的整数或范围。",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 配置",
       "tuicConfig": "TUIC 配置 (Clash)",
@@ -1212,7 +1250,7 @@
       "telegramAPIServer": "Telegram API 服务器",
       "telegramAPIServerDesc": "要使用的 Telegram API 服务器。留空以使用默认服务器。",
       "telegramChatId": "管理员聊天 ID",
-      "telegramChatIdDesc": "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 {'@'}userinfobot 获取，或在机器人中使用 '/id' 命令获取）",
+      "telegramChatIdDesc": "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 {'@'}userinfobot 获取，或在机器人中使用 '/id' 命令获取） 如需发送到论坛话题，请追加 ':topicId'，例如 -1001234567890:42",
       "telegramNotifyTime": "通知时间",
       "telegramNotifyTimeDesc": "Telegram 机器人发送周期性报告的频率。选择预设间隔，或选择“自定义”以输入 crontab 表达式。",
       "notifyTime": {
@@ -1298,6 +1336,8 @@
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",
       "subClashRoutingRulesDesc": "粘贴规则/YAML 或一个固定 HTTPS URL。面板会在后台更新，仅导入代理组、规则提供者和规则，并保留面板生成的 VPN 节点及最后一个有效值。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "监听 IP",
       "subListenDesc": "订阅服务监听的 IP 地址（留空表示监听所有 IP）",
       "subPort": "监听端口",
@@ -1422,6 +1462,15 @@
         "apiTokenName": "名称",
         "apiTokenNamePlaceholder": "例如 central-panel-a",
         "apiTokenNameRequired": "名称必填",
+        "apiTokenScope": "权限范围",
+        "apiTokenScopeAdmin": "管理员",
+        "apiTokenScopeAdminDesc": "可访问面板的所有 API 端点。仅用于可信的自动化。",
+        "apiTokenScopeMonitor": "监控",
+        "apiTokenScopeMonitorDesc": "只读访问系统状态、版本和指标。",
+        "apiTokenScopeNodeSync": "节点同步",
+        "apiTokenScopeNodeSyncDesc": "同步节点配置、入站、客户端、流量和 Xray 状态。不能更新面板软件。",
+        "apiTokenScopeNodeAdmin": "节点管理员",
+        "apiTokenScopeNodeAdminDesc": "包含节点同步权限，还可以启动面板软件更新。",
         "apiTokenEmpty": "暂无令牌 — 创建一个用于认证机器人或远程面板。",
         "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。",
         "apiTokenCreatedTitle": "令牌已创建",
@@ -1469,6 +1518,7 @@
       "eventGroupNode": "节点",
       "eventOutboundDown": "断开",
       "eventOutboundUp": "恢复",
+      "eventDownThresholdHint": "次连续检查失败",
       "eventXrayCrash": "崩溃",
       "eventNodeDown": "离线",
       "eventNodeUp": "上线",
@@ -1780,7 +1830,11 @@
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
       "tgPrivacyOn": "群组隐私已开启",
-      "tgPrivacyOnDesc": "此机器人只在私聊中回复，因此会刻意忽略群组。群组隐私仅决定机器人能否读取群消息，而它并不使用该权限。"
+      "tgPrivacyOnDesc": "此机器人只在私聊中回复，因此会刻意忽略群组。群组隐私仅决定机器人能否读取群消息，而它并不使用该权限。",
+      "subHostSortMode": "订阅节点排序",
+      "subHostSortInbound": "入站顺序（默认）",
+      "subHostSortHosts": "主机顺序",
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2346,7 +2400,6 @@
         "pins": "固定证书 SHA-256",
         "verifyPeerCertByName": "按名称验证对端证书",
         "allowInsecure": "允许不安全连接",
-        "echConfigList": "ECH 配置列表",
         "muxParams": "Mux",
         "sockoptParams": "Sockopt",
         "finalMask": "Final Mask",
@@ -2354,6 +2407,7 @@
         "mihomoIpVersion": "IP 版本",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "随机打乱 Host",
+        "randomCount": "随机 IP 数量",
         "tags": "标签",
         "nodeGuids": "节点",
         "excludeFromSubTypes": "从格式中排除",
@@ -2367,6 +2421,7 @@
         "serverDescription": "可选备注，显示在备注下方。",
         "allowInsecure": "跳过 TLS 证书验证（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "嵌入 UUID 的单个 VLESS 路由值（0-65535），例如 443。留空表示不路由。",
+        "mihomoX25519": "仅 Mihomo：REALITY 握手只使用普通 X25519，不带 ML-KEM（support-x25519mlkem768: false）。适用于运行 Xray-core 26.9.8 以下、不要求 ML-KEM 的服务器。",
         "remark": "此主机的纯文本标签。仅当入站没有自己的备注时，才作为配置名称显示。"
       },
       "remarkVars": {
@@ -2418,7 +2473,8 @@
         "delete": "删除主机",
         "badTag": "无效的标签",
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
-      }
+      },
+      "dragToReorder": "拖动以重新排列 {name}"
     },
     "sponsors": {
       "title": "赞助商",
@@ -2427,19 +2483,7 @@
       "tag": "赞助",
       "visit": "访问",
       "yourBrand": "您的品牌展示位",
-      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。",
-      "placements": "可用展示位",
-      "placementDashboard": "概览横幅",
-      "placementDashboardDesc": "仪表盘顶部的高级位置，每次仅一家赞助商。",
-      "placementSidebar": "侧边栏卡片",
-      "placementSidebarDesc": "在面板所有页面显示，并在赞助商之间轮换。",
-      "placementLogin": "登录页",
-      "placementLoginDesc": "管理员每次登录时都能看到。",
-      "placementPage": "赞助商页面",
-      "placementPageDesc": "在此页面展示徽标、简介和链接。",
-      "available": "可预订",
-      "takenUntil": "已预订至 {date}",
-      "activeCount": "{count} 个进行中"
+      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。"
     }
   },
   "tgbot": {

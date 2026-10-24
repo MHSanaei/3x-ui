@@ -22,5 +22,8 @@ export const MasqueStreamSettingsSchema = z.object({
   pass: z.string().optional(),
   headers: z.record(z.string(), z.string()).optional(),
   warp: MasqueWarpSchema.optional(),
+  // Client XMUX (xray-core 26.10.17); left unset, the core keeps one connection, so no
+  // defaults are filled in here. A JSON subscription hands an inbound's value to clients.
+  xmux: z.record(z.string(), z.unknown()).optional(),
 });
 export type MasqueStreamSettings = z.infer<typeof MasqueStreamSettingsSchema>;

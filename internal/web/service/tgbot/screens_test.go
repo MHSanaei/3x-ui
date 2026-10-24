@@ -649,8 +649,8 @@ func localizeWithRealBundle(t *testing.T) {
 // seeding a client bound to a Telegram user, which the client screens key on
 func seedClientForTgUser(t *testing.T, tgUserID int64, email string) {
 	t.Helper()
-	// A client's Telegram binding lives in the inbound's settings blob, not in a
-	// column: that is where GetClientTrafficTgBot reads it from.
+	// The panel keeps a client's Telegram binding in the settings blob and the clients.tg_id
+	// column; GetClientTrafficTgBot looks it up by the indexed column.
 	settings := fmt.Sprintf(`{"clients":[{"email":%q,"tgId":%d,"subId":"sub-%s"}]}`, email, tgUserID, email)
 	inbound := &model.Inbound{
 		UserId: 1, Tag: "tg-" + email, Remark: "tg-" + email, Port: 8443,
@@ -664,7 +664,7 @@ func seedClientForTgUser(t *testing.T, tgUserID int64, email string) {
 	}).Error; err != nil {
 		t.Fatalf("seed traffic for %s: %v", email, err)
 	}
-	record := (&model.Client{Email: email, Enable: true, SubID: "sub-" + email}).ToRecord()
+	record := (&model.Client{Email: email, Enable: true, SubID: "sub-" + email, TgID: tgUserID}).ToRecord()
 	if err := database.GetDB().Create(record).Error; err != nil {
 		t.Fatalf("seed client %s: %v", email, err)
 	}

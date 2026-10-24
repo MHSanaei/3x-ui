@@ -20,10 +20,19 @@ var ErrUdpPayloadTooLarge = errors.New("tuic socks: UDP packet exceeds the maxim
 
 const maxSocksUdpDatagramSize = 65507
 
+func ValidateRelayEmail(email string) error {
+	if len(email) == 0 || len(email) > 255 {
+		return errors.New("TUIC client email must contain 1 to 255 UTF-8 bytes")
+	}
+	return nil
+}
+
 // SocksRelay describes the loopback SOCKS5 endpoint where decrypted TUIC traffic is forwarded.
 type SocksRelay struct {
-	Addr     string // e.g. "127.0.0.1:63201"
-	Password string // internal shared password for the SOCKS inbound
+	Gate      *RelayGate
+	InboundID int
+	Addr      string // e.g. "127.0.0.1:63201"
+	Password  string // internal shared password for the SOCKS inbound
 }
 
 // CountingConn wraps a net.Conn and tracks bytes read and written atomically.
@@ -51,18 +60,12 @@ func (c *CountingConn) Write(p []byte) (int, error) {
 
 // DialTCP establishes a SOCKS5 CONNECT tunnel to the target address on behalf of user.
 func (r *SocksRelay) DialTCP(ctx context.Context, user string, target *Address) (net.Conn, error) {
-	dialer := net.Dialer{Timeout: 10 * time.Second}
-	conn, err := dialer.DialContext(ctx, "tcp", r.Addr)
+	conn, err := r.dialAuthenticated(ctx, user)
 	if err != nil {
-		return nil, fmt.Errorf("tuic socks: dial relay %s: %w", r.Addr, err)
-	}
-
-	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-
-	if err := socks5Handshake(conn, user, r.Password); err != nil {
-		conn.Close()
 		return nil, err
 	}
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stop()
 
 	// Send SOCKS5 CONNECT request
 	req := buildSocks5ConnectRequest(target)
@@ -81,7 +84,40 @@ func (r *SocksRelay) DialTCP(ctx context.Context, user string, target *Address) 
 	}
 
 	_ = conn.SetDeadline(time.Time{})
+	if err := ctx.Err(); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
 
+	return conn, nil
+}
+
+func (r *SocksRelay) dialAuthenticated(ctx context.Context, user string) (net.Conn, error) {
+	if r.Gate != nil {
+		waiting, cancel := context.WithTimeout(ctx, relayOpenTimeout)
+		release, err := r.Gate.acquire(waiting, r.InboundID, user)
+		cancel()
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+	}
+	dialer := net.Dialer{Timeout: 10 * time.Second}
+	conn, err := dialer.DialContext(ctx, "tcp", r.Addr)
+	if err != nil {
+		return nil, fmt.Errorf("tuic socks: dial relay %s: %w", r.Addr, err)
+	}
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stop()
+	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	if err := socks5Handshake(conn, user, r.Password); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
 	return conn, nil
 }
 
@@ -148,18 +184,12 @@ type SocksUDPSession struct {
 
 // DialUDP establishes a SOCKS5 UDP ASSOCIATE tunnel to Xray.
 func (r *SocksRelay) DialUDP(ctx context.Context, user string) (*SocksUDPSession, error) {
-	dialer := net.Dialer{Timeout: 10 * time.Second}
-	ctrl, err := dialer.DialContext(ctx, "tcp", r.Addr)
+	ctrl, err := r.dialAuthenticated(ctx, user)
 	if err != nil {
-		return nil, fmt.Errorf("tuic socks: dial UDP control connection: %w", err)
-	}
-
-	_ = ctrl.SetDeadline(time.Now().Add(10 * time.Second))
-
-	if err := socks5Handshake(ctrl, user, r.Password); err != nil {
-		ctrl.Close()
 		return nil, err
 	}
+	stop := context.AfterFunc(ctx, func() { _ = ctrl.Close() })
+	defer stop()
 
 	// SOCKS5 UDP ASSOCIATE (0x03), dst 0.0.0.0:0
 	if _, err := ctrl.Write([]byte{0x05, 0x03, 0x00, 0x01, 0, 0, 0, 0, 0, 0}); err != nil {
@@ -179,6 +209,11 @@ func (r *SocksRelay) DialUDP(ctx context.Context, user string) (*SocksUDPSession
 	if err != nil {
 		ctrl.Close()
 		return nil, fmt.Errorf("tuic socks: dial UDP relay endpoint %s: %w", bind, err)
+	}
+	if err := ctx.Err(); err != nil {
+		_ = ctrl.Close()
+		_ = udpConn.Close()
+		return nil, err
 	}
 
 	return &SocksUDPSession{
@@ -558,19 +593,19 @@ func SocksPassword() string {
 	return socksPassword
 }
 
-// SocksInboundSettings builds the JSON `settings` block for a stock Xray
-// SOCKS5 inbound with one username/password account per email, all sharing
-// password. UDP is enabled for UDP ASSOCIATE proxying.
-func SocksInboundSettings(emails []string, password string) ([]byte, error) {
+// SocksInboundSettings preserves each client email as the Xray routing identity.
+// The caller selects a policy level so relay traffic is not billed twice.
+func SocksInboundSettings(emails []string, password string, userLevel uint32) ([]byte, error) {
 	type account struct {
 		User string `json:"user"`
 		Pass string `json:"pass"`
 	}
 	settings := struct {
-		Auth     string    `json:"auth"`
-		UDP      bool      `json:"udp"`
-		Accounts []account `json:"accounts"`
-	}{Auth: "password", UDP: true}
+		Auth      string    `json:"auth"`
+		UDP       bool      `json:"udp"`
+		UserLevel uint32    `json:"userLevel"`
+		Accounts  []account `json:"accounts"`
+	}{Auth: "password", UDP: true, UserLevel: userLevel}
 	for _, email := range emails {
 		settings.Accounts = append(settings.Accounts, account{User: email, Pass: password})
 	}

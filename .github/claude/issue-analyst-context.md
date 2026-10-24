@@ -89,7 +89,7 @@ question it already answers.
      `cd docs && pnpm gen:api`, because `docs-ci.yml` fires only on `docs/**`.
      Step 4 is the one that reaches production wrong.
 - **i18n.** A new English key goes in EVERY locale JSON in
-  `internal/web/translation/` (13 files) AND must be referenced from
+  `internal/web/translation/` (14 files) AND must be referenced from
   `frontend/src` or Go in the SAME change.
   `frontend/src/test/i18n-dead-keys.test.ts` fails on a missing locale file and
   on an orphan key alike.
@@ -152,7 +152,7 @@ It is paths-filtered, so a docs-only or workflow-only change produces no run.
 | `golangci` | `golangci-lint` |
 | `fuzz-smoke` | 30s each on `FuzzParseLink` and `FuzzDecodeCertPin` |
 | `codegen` | `npm run gen` then `git diff --exit-code` on the generated files |
-| `frontend` | MSW worker drift, lint, format:check, typecheck, `npm test` (Vitest + headless-Chromium Storybook), build, build-storybook, `npm audit` |
+| `frontend` | lint, format:check, typecheck, `npm test` (Vitest + headless-Chromium Storybook), build, build-storybook, `npm audit` |
 
 **What CI does NOT prove.** These test families `t.Skip` unless an environment
 variable is set, and CI sets only the PostgreSQL ones above:

@@ -252,12 +252,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	switch {
 	case sc.hasPhoto && sc.photo != "":
 		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), Photo: tu.FileFromID(sc.photo),
+			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: tu.FileFromID(sc.photo),
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	case sc.attachment != nil:
 		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), Photo: *sc.attachment,
+			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: *sc.attachment,
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	case sc.hasPhoto:
@@ -266,12 +266,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 			return 0
 		}
 		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), Photo: upload,
+			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: upload,
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	default:
 		sent, err = liveBot().SendMessage(ctx, &telego.SendMessageParams{
-			ChatID: tu.ID(chatID), Text: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Text: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	}
 	if err != nil {

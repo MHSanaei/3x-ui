@@ -41,7 +41,7 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 - Kapsamı sınırlanmış, isteğe bağlı olarak süresi dolan token'lar ve panel içi API referansı sunan **RESTful API**.
 - **Kurulabilir panel (PWA)** — 3X-UI'yi masaüstüne veya telefon ana ekranına sabitleyin.
 - **Esnek depolama** — SQLite (varsayılan) veya PostgreSQL.
-- Koyu ve açık tema seçenekleriyle **13 farklı UI dili**.
+- Koyu ve açık tema seçenekleriyle **14 farklı UI dili**.
 - Kullanıcı başına IP limitlerini zorunlu kılmak için **Fail2ban entegrasyonu**.
 
 ## Ekran Görüntüleri
@@ -177,9 +177,9 @@ Tam liste [ortam değişkenleri referansında](https://docs.sanaei.dev/docs/refe
 
 ## Desteklenen Diller
 
-Panel arayüzü 13 farklı dilde mevcuttur:
+Panel arayüzü 14 farklı dilde mevcuttur:
 
-İngilizce · Farsça · Arapça · Çince (Basitleştirilmiş) · Çince (Geleneksel) · İspanyolca · Rusça · Ukraynaca · Türkçe · Vietnamca · Japonca · Endonezce · Portekizce (Brezilya)
+İngilizce · Farsça · Arapça · Çince (Basitleştirilmiş) · Çince (Geleneksel) · İspanyolca · Rusça · Ukraynaca · Türkçe · Vietnamca · Japonca · Endonezce · Portekizce (Brezilya) · Slovakça
 
 ## Katkıda Bulunma
 

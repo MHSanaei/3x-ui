@@ -37,6 +37,11 @@ connected). This is your **admin** ID.
 
 In Panel Settings, enable the Telegram bot and set the **token** and **admin chat
 ID(s)** (comma-separated). Save, then message your bot.
+
+To send notifications into a specific topic of a forum supergroup, append the
+topic ID after a colon, e.g. `-1001234567890:42`. The topic ID is the number
+after the chat in a topic message link (`https://t.me/c/1234567890/42/…`). Leave
+the topic off (or use `1`) for the General topic.
 </Step>
 
 </Steps>
@@ -101,7 +106,7 @@ The warning lead times come from `expireDiff` (days before expiry) and
 | -------------- | -------------------------- | ---------------------------------------------- |
 | `tgBotEnable`  | `false`                    | Master on/off.                                 |
 | `tgBotToken`   | _(secret)_                 | Bot API token.                                 |
-| `tgBotChatId`  | _(none)_                   | Comma-separated **admin** Telegram IDs.        |
+| `tgBotChatId`  | _(none)_                   | Comma-separated **admin** Telegram IDs; `chatId:topicId` targets a forum topic. |
 | `tgBotProxy`   | _(none)_                   | `socks5://`, `http://`, or `https://` proxy.   |
 | `tgBotAPIServer` | _(default)_              | Custom Telegram Bot API server.                |
 | `tgRunTime`    | `@daily`                   | Report schedule (cron / `@daily` / `@every …`).|

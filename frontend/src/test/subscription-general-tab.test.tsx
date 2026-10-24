@@ -37,6 +37,27 @@ function LocationProbe() {
 }
 
 describe('SubscriptionGeneralTab', () => {
+  it('selects and reloads the saved subscription node ordering mode', () => {
+    const updateSetting = vi.fn();
+    const { unmount } = renderWithProviders(
+      <MemoryRouter>
+        <SubscriptionGeneralTab allSetting={new AllSetting()} updateSetting={updateSetting} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Inbound order (default)')).toBeTruthy();
+    chooseSelectOption('sub-host-sort-mode', 'Hosts order');
+    expect(updateSetting).toHaveBeenCalledWith({ subHostSortMode: 'hosts-first' });
+    unmount();
+    renderWithProviders(
+      <MemoryRouter>
+        <SubscriptionGeneralTab
+          allSetting={new AllSetting({ subHostSortMode: 'hosts-first' })}
+          updateSetting={updateSetting}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Hosts order')).toBeTruthy();
+  });
   it('switches profile modes without losing the custom URL and warns only for the built-in page', () => {
     const storedUrl = 'https://example.com/profile/{{SUB_ID}}';
     const editedUrl = 'https://example.com/account/{{SUB_ID}}';
@@ -164,6 +185,29 @@ describe('SubscriptionGeneralTab', () => {
       fireEvent.click(linkSwitch);
 
       expect(updateSetting).toHaveBeenCalledExactlyOnceWith({ happLinkEnable: !enabled });
+    },
+  );
+
+  it.each([false, true])(
+    'updates the Clash remote DNS opt-in, not the routing switch, when stored as %s',
+    (enabled) => {
+      const updateSetting = vi.fn();
+
+      renderWithProviders(
+        <MemoryRouter initialEntries={['/settings#subscription']}>
+          <SubscriptionGeneralTab
+            allSetting={new AllSetting({ subClashEnableRouting: true, subClashRemoteDNS: enabled })}
+            updateSetting={updateSetting}
+          />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /Clash/ }));
+      const remoteDNSSwitch = screen.getByRole('switch', { name: 'Use DNS from remote rules' });
+      expect(remoteDNSSwitch.getAttribute('aria-checked')).toBe(String(enabled));
+      fireEvent.click(remoteDNSSwitch);
+
+      expect(updateSetting).toHaveBeenCalledExactlyOnceWith({ subClashRemoteDNS: !enabled });
     },
   );
 

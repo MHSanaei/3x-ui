@@ -489,6 +489,8 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     tls.echConfigList = params.get('ech') ?? '';
     tls.verifyPeerCertByName = params.get('vcn') ?? '';
     tls.pinnedPeerCertSha256 = params.get('pcs') ?? '';
+    const cs = params.get('cs');
+    if (cs) tls.cipherSuites = cs;
   } else if (stream.security === 'reality') {
     const reality = stream.realitySettings as Raw;
     reality.serverName = params.get('sni') ?? '';
@@ -543,7 +545,20 @@ export function parseVmessLink(link: string): Raw | null {
       xhttp.path = json.path ?? '/';
       if (json.mode) xhttp.mode = json.mode;
       applyXhttpStringFromJson(xhttp, json);
+    } else if (network === 'kcp') {
+      applyTransportParams(
+        stream,
+        new URLSearchParams({ mtu: String(json.mtu ?? ''), tti: String(json.tti ?? '') }),
+      );
     }
+    // The vmess object carries fm as-is and the mKCP header and seed as type and path.
+    const maskParams = new URLSearchParams();
+    if (typeof json.fm === 'string') maskParams.set('fm', json.fm);
+    if (network === 'kcp') {
+      if (typeof json.type === 'string') maskParams.set('headerType', json.type);
+      if (typeof json.path === 'string') maskParams.set('seed', json.path);
+    }
+    applyFinalMaskParam(stream, maskParams);
     if (security === 'tls') {
       const tls = stream.tlsSettings as Raw;
       tls.serverName = json.sni ?? '';
@@ -554,6 +569,7 @@ export function parseVmessLink(link: string): Raw | null {
       if (typeof json.ech === 'string') tls.echConfigList = json.ech;
       if (typeof json.vcn === 'string') tls.verifyPeerCertByName = json.vcn;
       if (typeof json.pcs === 'string') tls.pinnedPeerCertSha256 = json.pcs;
+      if (typeof json.cs === 'string') tls.cipherSuites = json.cs;
     }
 
     const port = Number(json.port) || 443;

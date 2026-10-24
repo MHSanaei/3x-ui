@@ -126,6 +126,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "nodeDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "outboundDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -215,6 +220,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashPath": {
         "type": "string"
+      },
+      "subClashRemoteDNS": {
+        "type": "boolean"
       },
       "subClashRules": {
         "type": "string"
@@ -315,6 +323,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subHideSettings": {
         "type": "boolean"
+      },
+      "subHostSortMode": {
+        "example": "inbound-first",
+        "type": "string"
       },
       "subIncyAnnounceUrl": {
         "type": "string"
@@ -610,6 +622,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -636,6 +649,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
+      "subClashRemoteDNS",
       "subClashRules",
       "subClashURI",
       "subClashUserAgentRegex",
@@ -669,6 +683,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subHostSortMode",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -902,6 +917,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "nodeDownThreshold": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "outboundDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -991,6 +1011,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subClashPath": {
         "type": "string"
+      },
+      "subClashRemoteDNS": {
+        "type": "boolean"
       },
       "subClashRules": {
         "type": "string"
@@ -1091,6 +1114,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subHideSettings": {
         "type": "boolean"
+      },
+      "subHostSortMode": {
+        "example": "inbound-first",
+        "type": "string"
       },
       "subIncyAnnounceUrl": {
         "type": "string"
@@ -1394,6 +1421,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -1420,6 +1448,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subClashEnable",
       "subClashEnableRouting",
       "subClashPath",
+      "subClashRemoteDNS",
       "subClashRules",
       "subClashURI",
       "subClashUserAgentRegex",
@@ -1453,6 +1482,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subHostSortMode",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -1713,9 +1743,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "keepAlive": {
-        "description": "Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
-        "nullable": true,
-        "type": "integer"
+        "description": "Numeric values or AmneziaWG ranges; 0 disables, omission preserves.",
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "limitIp": {
         "description": "IP limit for this client",
@@ -1935,7 +1971,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "keepAlive": {
-        "type": "integer"
+        "description": "Numeric values or AmneziaWG ranges.",
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "limitHwid": {
         "type": "integer"
@@ -2712,6 +2756,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "randomCount": {
+        "example": 1,
+        "type": "integer"
+      },
       "remark": {
         "example": "cdn-front",
         "maxLength": 256,
@@ -2784,6 +2832,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "path",
       "pinnedPeerCertSha256",
       "port",
+      "randomCount",
       "remark",
       "security",
       "serverDescription",
@@ -2893,6 +2942,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "randomCount": {
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
       "remark": {
         "maxLength": 256,
         "type": "string"
@@ -2958,6 +3012,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "path",
       "pinnedPeerCertSha256",
       "port",
+      "randomCount",
       "remark",
       "security",
       "serverDescription",

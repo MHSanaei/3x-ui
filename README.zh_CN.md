@@ -41,7 +41,7 @@
 - **RESTful API**，支持带作用域、可设置有效期的令牌，并提供面板内置的 API 参考文档。
 - **可安装面板 (PWA)** — 将 3X-UI 固定到桌面或手机主屏幕。
 - **灵活的存储** — SQLite（默认）或 PostgreSQL。
-- **13 种界面语言**，支持深色和浅色主题。
+- **14 种界面语言**，支持深色和浅色主题。
 - **Fail2ban 集成**，用于强制执行按客户端的 IP 限制。
 
 ## 截图
@@ -177,9 +177,9 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 ## 支持的语言
 
-面板界面提供 13 种语言：
+面板界面提供 14 种语言：
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil) · Slovenčina
 
 ## 贡献
 

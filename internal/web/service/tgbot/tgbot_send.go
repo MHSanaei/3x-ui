@@ -83,9 +83,10 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	allMessages := pageMessage(msg, telegramPageLimit)
 	for n, message := range allMessages {
 		params := telego.SendMessageParams{
-			ChatID:    tu.ID(chatId),
-			Text:      message,
-			ParseMode: "HTML",
+			ChatID:          tu.ID(chatId),
+			MessageThreadID: adminTopic(chatId),
+			Text:            message,
+			ParseMode:       "HTML",
 		}
 		// only add replyMarkup to last message
 		if len(replyMarkup) > 0 && n == (len(allMessages)-1) {

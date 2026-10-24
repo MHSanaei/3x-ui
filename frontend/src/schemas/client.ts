@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { OptionalClientKeepAliveSchema } from '@/schemas/primitives/keepalive';
 
 const nullableStringArray = z
   .array(z.string())
@@ -52,7 +53,7 @@ export const ClientRecordSchema = z
     publicKey: z.string().optional(),
     allowedIPs: z.string().optional(),
     preSharedKey: z.string().optional(),
-    keepAlive: z.number().optional(),
+    keepAlive: OptionalClientKeepAliveSchema,
     forwardedPorts: z.string().optional(),
     secret: z.string().optional(),
     adTag: z.string().optional(),

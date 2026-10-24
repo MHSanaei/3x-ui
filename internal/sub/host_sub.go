@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -18,7 +19,9 @@ import (
 // inbounds.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
 	var hosts []*model.Host
-	if err := database.GetDB().
+	if s.hostsByInbound != nil {
+		hosts = s.hostsByInbound[inbound.Id]
+	} else if err := database.GetDB().
 		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
 		Order("sort_order asc, id asc").
 		Find(&hosts).Error; err != nil {
@@ -31,12 +34,37 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 	defaultDest := s.resolveInboundAddress(inbound)
 	eps := make([]map[string]any, 0, len(hosts))
 	for _, h := range hosts {
-		if slices.Contains(h.ExcludeFromSubTypes, format) {
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
-		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
+		eps = append(eps, hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
 	return eps
+}
+
+// hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
+// random addresses from the range, any other address is a single entry.
+func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
+	if IsCIDR(h.Address) {
+		count := max(h.RandomCount, 1)
+		if ips, err := RandomIPsFromCIDR(h.Address, count); err == nil && len(ips) > 0 {
+			eps := make([]map[string]any, 0, len(ips))
+			for i, ip := range ips {
+				hCopy := *h
+				hCopy.Address = ip
+				if len(ips) > 1 {
+					if h.Remark != "" {
+						hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
+					} else {
+						hCopy.Remark = fmt.Sprintf("%d", i+1)
+					}
+				}
+				eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, defaultPort))
+			}
+			return eps
+		}
+	}
+	return []map[string]any{hostToExternalProxyMap(h, defaultDest, defaultPort)}
 }
 
 // hostToExternalProxyMap projects a Host onto the externalProxy entry shape the
@@ -97,6 +125,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	}
 	if h.MihomoIpVersion != "" {
 		ep["mihomoIpVersion"] = h.MihomoIpVersion
+	}
+	if h.MihomoX25519 {
+		ep["mihomoX25519"] = true
 	}
 	if h.SockoptParams != "" {
 		ep["sockoptParams"] = h.SockoptParams
@@ -169,6 +200,9 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			if rs, ok := stream["realitySettings"].(map[string]any); ok && rs != nil {
 				if sni, ok := externalProxySNI(ep); ok {
 					rs["serverName"] = sni
+				}
+				if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+					rs["fingerprint"] = fp
 				}
 			}
 		}
@@ -310,6 +344,16 @@ func applyEndpointRealityParams(e ShareEndpoint, params map[string]string, secur
 	if fp, ok := e.ep["fingerprint"].(string); ok && fp != "" {
 		params["fp"] = fp
 	}
+	if hostX25519Only(e.ep) {
+		delete(params, "support-x25519mlkem768")
+	}
+}
+
+// hostX25519Only reports whether a host asks Mihomo for a plain X25519 reality
+// hello instead of the ML-KEM one Xray-core 26.9.8+ requires.
+func hostX25519Only(ep map[string]any) bool {
+	v, _ := ep["mihomoX25519"].(bool)
+	return v
 }
 
 // applyEndpointAllowInsecure adds allowInsecure=1 to a TLS/Reality link when the

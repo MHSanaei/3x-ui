@@ -723,6 +723,13 @@ func (s *InboundService) resolveInboundTag(inbound *model.Inbound, ignoreId int)
 }
 
 func (s *InboundService) tagExists(tag string, ignoreId int) (bool, error) {
+	reserved, err := templateInboundTags()
+	if err != nil {
+		return false, err
+	}
+	if _, exists := reserved[tag]; exists {
+		return true, nil
+	}
 	db := database.GetDB()
 	q := db.Model(model.Inbound{}).Where("tag = ?", tag)
 	if ignoreId > 0 {
@@ -733,4 +740,32 @@ func (s *InboundService) tagExists(tag string, ignoreId int) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func templateInboundTags() (map[string]struct{}, error) {
+	raw, err := (&SettingService{}).GetXrayConfigTemplate()
+	if err != nil {
+		return nil, err
+	}
+	var cfg struct {
+		Inbounds []struct {
+			Tag string `json:"tag"`
+		} `json:"inbounds"`
+		API struct {
+			Tag string `json:"tag"`
+		} `json:"api"`
+	}
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return nil, err
+	}
+	tags := map[string]struct{}{"api": {}}
+	if cfg.API.Tag != "" {
+		tags[cfg.API.Tag] = struct{}{}
+	}
+	for _, inbound := range cfg.Inbounds {
+		if inbound.Tag != "" {
+			tags[inbound.Tag] = struct{}{}
+		}
+	}
+	return tags, nil
 }

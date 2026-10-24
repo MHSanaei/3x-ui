@@ -305,7 +305,7 @@ func (t *Tgbot) sendNoticeReturningID(chatID int64, text string) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	sent, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
-		ChatID: tu.ID(chatID), Text: text, ParseMode: "HTML", ReplyMarkup: t.hideButton(),
+		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Text: text, ParseMode: "HTML", ReplyMarkup: t.hideButton(),
 	})
 	if err != nil {
 		logger.Warning("Failed to send a notice:", err)
@@ -328,7 +328,7 @@ func (t *Tgbot) sendBanLogsFile(chatID int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	_, err = liveBot().SendDocument(ctx, &telego.SendDocumentParams{
-		ChatID:      tu.ID(chatID),
+		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID),
 		Document:    tu.File(file),
 		ReplyMarkup: t.hideButton(),
 	})

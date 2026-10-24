@@ -133,7 +133,7 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 		tu.KeyboardRow(tu.KeyboardButton(t.I18nBot("tgbot.buttons.closeKeyboard"))),
 	).WithIsPersistent().WithResizeKeyboard()
 	_, _ = liveBot().SendMessage(ctx, &telego.SendMessageParams{
-		ChatID: tu.ID(chatID), Text: t.I18nBot("tgbot.buttons.selectOneTGUser"), ReplyMarkup: keyboard,
+		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Text: t.I18nBot("tgbot.buttons.selectOneTGUser"), ReplyMarkup: keyboard,
 	})
 }
 
@@ -288,7 +288,7 @@ func (t *Tgbot) sendNoticeNoKeyboard(chatID int64, text string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	_, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
-		ChatID: tu.ID(chatID), Text: text, ParseMode: "HTML",
+		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Text: text, ParseMode: "HTML",
 		ReplyMarkup: tu.ReplyKeyboardRemove(),
 	})
 	if err != nil {

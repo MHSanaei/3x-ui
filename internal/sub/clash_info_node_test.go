@@ -56,7 +56,7 @@ func TestSubClash_InfoNode_Active(t *testing.T) {
 
 	sub := NewSubService("{{EMAIL}}|📊{{TRAFFIC_LEFT}}")
 	sub.subInfoNodeEnable = true
-	clash := NewSubClashService(false, "", sub)
+	clash := NewSubClashService(false, "", false, sub)
 
 	out, _, err := clash.GetClash("sub-clash", "sub.example.com")
 	if err != nil {
@@ -115,7 +115,7 @@ func TestSubClash_InfoNode_Expired(t *testing.T) {
 	sub := NewSubService("{{INBOUND}}")
 	sub.subInfoNodeEnable = true
 	sub.subExpiredTemplate = service.DefaultSubExpiredTemplate
-	clash := NewSubClashService(false, "", sub)
+	clash := NewSubClashService(false, "", false, sub)
 
 	out, _, err := clash.GetClash("sub-clash-exp", "sub.example.com")
 	if err != nil {
@@ -178,7 +178,7 @@ func TestSubClash_InfoNode_Depleted(t *testing.T) {
 	sub := NewSubService("{{INBOUND}}")
 	sub.subInfoNodeEnable = true
 	sub.subTrafficDepletedTemplate = service.DefaultSubTrafficDepletedTemplate
-	clash := NewSubClashService(false, "", sub)
+	clash := NewSubClashService(false, "", false, sub)
 
 	out, _, err := clash.GetClash("sub-clash-dep", "sub.example.com")
 	if err != nil {
@@ -225,7 +225,7 @@ func TestSubClash_InfoNode_ProxyGroupOrder_DoesNotDefaultToDummy(t *testing.T) {
 
 	sub := NewSubService("{{EMAIL}}|📊{{TRAFFIC_LEFT}}|{{STATUS}}")
 	sub.subInfoNodeEnable = true
-	clash := NewSubClashService(false, "", sub)
+	clash := NewSubClashService(false, "", false, sub)
 
 	out, _, err := clash.GetClash("sub-clash", "sub.example.com")
 	if err != nil {

@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
-import type { SubProfileMode } from '@/schemas/setting';
+import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -48,7 +48,11 @@ export default function SubscriptionGeneralTab({
       items={[
         {
           key: '1',
-          label: catTabLabel(<SettingOutlined />, t('pages.settings.panelSettings'), isMobile),
+          label: catTabLabel(
+            <SettingOutlined aria-hidden />,
+            t('pages.settings.panelSettings'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -91,6 +95,22 @@ export default function SubscriptionGeneralTab({
                   }
                 />
               )}
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subHostSortMode')}
+                description={t('pages.settings.subHostSortModeDesc')}
+              >
+                <Select
+                  id="sub-host-sort-mode"
+                  aria-label={t('pages.settings.subHostSortMode')}
+                  value={allSetting.subHostSortMode}
+                  onChange={(value: SubHostSortMode) => updateSetting({ subHostSortMode: value })}
+                  options={[
+                    { value: 'inbound-first', label: t('pages.settings.subHostSortInbound') },
+                    { value: 'hosts-first', label: t('pages.settings.subHostSortHosts') },
+                  ]}
+                />
+              </SettingListItem>
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.subListen')}
@@ -153,7 +173,11 @@ export default function SubscriptionGeneralTab({
         },
         {
           key: '2',
-          label: catTabLabel(<InfoCircleOutlined />, t('pages.settings.information'), isMobile),
+          label: catTabLabel(
+            <InfoCircleOutlined aria-hidden />,
+            t('pages.settings.information'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -273,7 +297,7 @@ export default function SubscriptionGeneralTab({
         },
         {
           key: '3',
-          label: catTabLabel(<IdcardOutlined />, t('pages.settings.profile'), isMobile),
+          label: catTabLabel(<IdcardOutlined aria-hidden />, t('pages.settings.profile'), isMobile),
           children: (
             <>
               <SettingListItem
@@ -379,7 +403,11 @@ export default function SubscriptionGeneralTab({
         },
         {
           key: '4',
-          label: catTabLabel(<SafetyCertificateOutlined />, t('pages.settings.certs'), isMobile),
+          label: catTabLabel(
+            <SafetyCertificateOutlined aria-hidden />,
+            t('pages.settings.certs'),
+            isMobile,
+          ),
           children: (
             <>
               <SettingListItem
@@ -407,7 +435,7 @@ export default function SubscriptionGeneralTab({
         },
         {
           key: '5',
-          label: catTabLabel(<BranchesOutlined />, 'Happ', isMobile),
+          label: catTabLabel(<BranchesOutlined aria-hidden />, 'Happ', isMobile),
           children: (
             <HappSettingsContent
               allSetting={allSetting}
@@ -419,7 +447,7 @@ export default function SubscriptionGeneralTab({
         },
         {
           key: '6',
-          label: catTabLabel(<NodeIndexOutlined />, 'Clash / Mihomo', isMobile),
+          label: catTabLabel(<NodeIndexOutlined aria-hidden />, 'Clash / Mihomo', isMobile),
           children: (
             <>
               <SettingListItem
@@ -447,12 +475,22 @@ export default function SubscriptionGeneralTab({
                   onChange={(e) => updateSetting({ subClashRules: e.target.value })}
                 />
               </SettingListItem>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subClashRemoteDNS')}
+                description={t('pages.settings.subClashRemoteDNSDesc')}
+              >
+                <Switch
+                  checked={allSetting.subClashRemoteDNS}
+                  onChange={(v) => updateSetting({ subClashRemoteDNS: v })}
+                />
+              </SettingListItem>
             </>
           ),
         },
         {
           key: '7',
-          label: catTabLabel(<CompassOutlined />, 'Incy', isMobile),
+          label: catTabLabel(<CompassOutlined aria-hidden />, 'Incy', isMobile),
           children: (
             <IncySettingsContent
               allSetting={allSetting}

@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type HostService struct{}
@@ -61,6 +62,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		MihomoIpVersion:        h.MihomoIpVersion,
 		MihomoX25519:           h.MihomoX25519,
 		ShuffleHost:            h.ShuffleHost,
+		RandomCount:            h.RandomCount,
 	}
 }
 
@@ -91,6 +93,9 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if h.SortOrder < g.SortOrder {
 			g.SortOrder = h.SortOrder
 		}
+		if h.RandomCount > g.RandomCount {
+			g.RandomCount = h.RandomCount
+		}
 	}
 
 	res := make([]*entity.HostGroup, 0, len(orderedGroupIds))
@@ -102,7 +107,10 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if res[i].SortOrder != res[j].SortOrder {
 			return res[i].SortOrder < res[j].SortOrder
 		}
-		return res[i].Remark < res[j].Remark
+		if res[i].Remark != res[j].Remark {
+			return res[i].Remark < res[j].Remark
+		}
+		return res[i].GroupId < res[j].GroupId
 	})
 
 	return res
@@ -150,6 +158,7 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				MihomoIpVersion:        req.MihomoIpVersion,
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
+				RandomCount:            clampRandomCount(req.RandomCount),
 			})
 		}
 	}
@@ -306,8 +315,33 @@ func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
+	seen := make(map[string]bool, len(groupIds))
+	for _, id := range groupIds {
+		if id == "" || seen[id] {
+			return common.NewError("host group IDs must be nonempty and unique")
+		}
+		seen[id] = true
+	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
-		for i, groupId := range groupIds {
+		var rows []*model.Host
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id ASC").Find(&rows).Error; err != nil {
+			return err
+		}
+		groups := groupHosts(rows)
+		known := make(map[string]bool, len(groups))
+		ordered := append([]string(nil), groupIds...)
+		for _, group := range groups {
+			known[group.GroupId] = true
+			if !seen[group.GroupId] {
+				ordered = append(ordered, group.GroupId)
+			}
+		}
+		for _, id := range groupIds {
+			if !known[id] {
+				return common.NewError("host group not found")
+			}
+		}
+		for i, groupId := range ordered {
 			if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Update("sort_order", i).Error; err != nil {
 				return err
 			}
@@ -362,4 +396,14 @@ func parseHostAndPort(hostStr string, defaultPort int) (string, int) {
 		addr = addr[1 : len(addr)-1]
 	}
 	return addr, defaultPort
+}
+
+func clampRandomCount(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	if n > 100 {
+		return 100
+	}
+	return n
 }

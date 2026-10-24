@@ -15,12 +15,12 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// base64("aes-256-gcm:clientpw"), the SIP002 userinfo both spellings share. The
-// panel emits this node as `plugin=obfs-local;obfs=http`, and Clash has no way
-// to represent it, so both the inbound path and the link path drop it.
-const clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=tcp&headerType=http&host=test#obfs"
-
-const tcpObfsStream = `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http","request":{"path":["/"],"headers":{"Host":["test"]}}}}}`
+// A shadowsocks node over kcp has no Clash form, so both the inbound path and the link
+// path must drop it; the userinfo is base64("aes-256-gcm:clientpw").
+const (
+	clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=kcp#unsupported"
+	kcpShadowsocksStream     = `{"network":"kcp","security":"none"}`
+)
 
 func clashSubRouter(t *testing.T) *gin.Engine {
 	t.Helper()
@@ -95,7 +95,7 @@ func TestClashAllUnrepresentableNodesAnswerAlike(t *testing.T) {
 		t.Run(source, func(t *testing.T) {
 			initSubDB(t)
 			if source == "inbound" {
-				seedSubInbound(t, "clash-parity", "obfs", 10001, 1, tcpObfsStream)
+				seedSubInbound(t, "clash-parity", "obfs", 10001, 1, kcpShadowsocksStream)
 			} else {
 				rec := &model.ClientRecord{Email: "B@e", SubID: "clash-parity", UUID: "22222222-2222-4222-8222-222222222222", Enable: true}
 				if err := database.GetDB().Create(rec).Error; err != nil {

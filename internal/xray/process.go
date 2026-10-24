@@ -227,6 +227,8 @@ var (
 	xrayVersionTimeout      = 5 * time.Second
 	// OnCrash is called when xray crashes unexpectedly. Set from web layer.
 	OnCrash func(err error)
+	// ErrXrayNotRunning reports an operation that requires a running core when xray is stopped.
+	ErrXrayNotRunning = errors.New("xray is not running")
 )
 
 // newProcess creates a new internal process struct for Xray.
@@ -243,6 +245,9 @@ func newProcess(config *Config) *process {
 func newTestProcess(config *Config, configPath string) *process {
 	p := newProcess(config)
 	p.configPath = configPath
+	if config != nil {
+		p.refreshAPIPort()
+	}
 	return p
 }
 
@@ -734,6 +739,7 @@ func (p *process) waitForCommand(cmd *exec.Cmd, done chan struct{}) {
 	defer close(done)
 
 	err := cmd.Wait()
+	p.logWriter.Flush()
 	if err == nil || p.intentionalStop.Load() {
 		return
 	}
@@ -757,7 +763,7 @@ func (p *process) waitForCommand(cmd *exec.Cmd, done chan struct{}) {
 // Stop terminates the running Xray process.
 func (p *process) Stop() error {
 	if !p.IsRunning() {
-		return errors.New("xray is not running")
+		return ErrXrayNotRunning
 	}
 	p.intentionalStop.Store(true)
 
@@ -767,7 +773,7 @@ func (p *process) Stop() error {
 	cmd := p.cmd
 	p.mu.RUnlock()
 	if cmd == nil || cmd.Process == nil {
-		return errors.New("xray is not running")
+		return ErrXrayNotRunning
 	}
 
 	// Remove temporary config file used for test runs so main config is never touched
@@ -830,17 +836,27 @@ const (
 	maxCrashReports   = 10
 )
 
-// writeCrashReport persists a captured xray crash chunk to the log folder
-// with nanosecond-precision filename so restart-loop bursts don't overwrite
-// each other, and prunes old reports to keep the folder bounded.
+// writeCrashReport persists a captured xray crash to the log folder; CreateTemp's
+// random suffix keeps restart-loop bursts within one second from overwriting each other.
 func writeCrashReport(m []byte) error {
 	dir := config.GetLogFolder()
 	if err := os.MkdirAll(dir, 0o770); err != nil {
 		return err
 	}
 	pruneOldCrashReports(dir, maxCrashReports-1)
-	name := crashReportPrefix + time.Now().Format("20060102_150405_000000000") + crashReportSuffix
-	return os.WriteFile(filepath.Join(dir, name), m, 0o640)
+	pattern := crashReportPrefix + time.Now().Format("20060102_150405") + "_*" + crashReportSuffix
+	f, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(m)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(f.Name(), 0o640)
+	}
+	return err
 }
 
 func pruneOldCrashReports(dir string, keep int) {

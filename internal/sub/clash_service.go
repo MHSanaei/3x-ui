@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -19,15 +20,16 @@ import (
 )
 
 type SubClashService struct {
-	enableRouting bool
-	clashRules    string
-	SubService    *SubService
+	enableRouting  bool
+	clashRules     string
+	clashRemoteDNS bool
+	SubService     *SubService
 }
 
 var errNoLegacyClashProxies = errors.New("no Clash for Windows-compatible proxies found; use the Mihomo subscription for modern proxy types")
 
-func NewSubClashService(enableRouting bool, clashRules string, subService *SubService) *SubClashService {
-	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, SubService: subService}
+func NewSubClashService(enableRouting bool, clashRules string, clashRemoteDNS bool, subService *SubService) *SubClashService {
+	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, clashRemoteDNS: clashRemoteDNS, SubService: subService}
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
@@ -54,6 +56,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	}
 
 	var proxies []map[string]any
+	var ordered []orderedSubEntry[func() []map[string]any]
 	var hasInactiveExternal bool
 	var hasEnabledClient bool
 
@@ -70,15 +73,29 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
-		if hostEps := subReq.hostEndpoints(inbound, "clash"); len(hostEps) > 0 {
-			injectExternalProxy(inbound, hostEps)
+		if !subReq.hostsFirst {
+			if hostEps := subReq.hostEndpoints(inbound, "clash"); len(hostEps) > 0 {
+				injectExternalProxy(inbound, hostEps)
+			}
 		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
-			proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
+			if subReq.hostsFirst {
+				for _, variant := range subReq.subscriptionHostVariants(inbound, "clash") {
+					render := func() []map[string]any { return s.getProxies(subReq, variant.inbound(subReq, inbound), client, host) }
+					ordered = append(ordered, orderedSubEntry[func() []map[string]any]{variant.order, render})
+				}
+			} else {
+				proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
+			}
+		}
+	}
+	if subReq.hostsFirst {
+		for _, render := range orderedSubValues(ordered) {
+			proxies = append(proxies, render()...)
 		}
 	}
 	for _, ext := range externalLinks {
@@ -169,7 +186,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		resolved, remoteDocument, remote, resolveErr := resolveClashRoutingSource(s.clashRules)
 		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
 			if remote {
-				if err := mergeRemoteClashRules(config, remoteDocument); err != nil {
+				if err := mergeRemoteClashRules(config, remoteDocument, s.clashRemoteDNS); err != nil {
 					return "", "", err
 				}
 			} else if err := mergeClashRulesYAML(config, resolved); err != nil {
@@ -227,6 +244,10 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 		tls, _ := proxy["tls"].(bool)
 		cipher = legacyShadowsocksCipher(proxy["cipher"])
 		if (network != "" && network != "tcp") || tls || cipher == "" {
+			return nil
+		}
+		// Legacy endpoints directly block obfs nodes.
+		if plugin, _ := proxy["plugin"].(string); plugin == "obfs" {
 			return nil
 		}
 		fields = []string{"name", "type", "server", "port", "password", "cipher", "udp", "plugin", "plugin-opts"}
@@ -395,6 +416,13 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 			if v, _ := extPrxy["mihomoIpVersion"].(string); v != "" {
 				proxy["ip-version"] = v
 			}
+			// A pre-26.9.8 core accepts a plain X25519 hello, which some DPI lets
+			// through where it drops the two-segment ML-KEM one.
+			if hostX25519Only(extPrxy) {
+				if opts, ok := proxy["reality-opts"].(map[string]any); ok {
+					opts["support-x25519mlkem768"] = false
+				}
+			}
 			proxies = append(proxies, proxy)
 		}
 	}
@@ -424,9 +452,6 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		"server": inbound.Listen,
 		"port":   inbound.Port,
 		"udp":    true,
-	}
-	if !s.applyTransport(proxy, network, stream) {
-		return nil
 	}
 
 	switch inbound.Protocol {
@@ -467,6 +492,10 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 			}
 		}
 	default:
+		return nil
+	}
+
+	if !s.applyTransport(proxy, network, stream) {
 		return nil
 	}
 
@@ -540,8 +569,8 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 		proxy["fingerprint"] = certFingerprint
 	}
 
-	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
-	// block the subscription link generator uses.
+	// Salamander obfs (Hysteria2), read from the same finalmask.udp[salamander]
+	// block as the link generator; a packetSize range is mihomo's gecko obfs.
 	if finalmask, ok := rawStream["finalmask"].(map[string]any); ok {
 		if udpMasks, ok := finalmask["udp"].([]any); ok {
 			for _, m := range udpMasks {
@@ -553,6 +582,13 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 				if pw, ok := settings["password"].(string); ok && pw != "" {
 					proxy["obfs"] = "salamander"
 					proxy["obfs-password"] = pw
+					packetSize, _ := settings["packetSize"].(string)
+					if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
+						minStr, maxStr := splitHysteriaPacketSize(gecko)
+						proxy["obfs"] = "gecko"
+						proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
+						proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
+					}
 					break
 				}
 			}
@@ -636,7 +672,7 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	if client.PreSharedKey != "" {
 		proxy["pre-shared-key"] = client.PreSharedKey
 	}
-	if ka := client.KeepAliveSeconds(); ka > 0 {
+	if ka, ok := keepAliveForScalarExport(client); ok {
 		proxy["persistent-keepalive"] = ka
 	}
 	for _, addr := range client.AllowedIPs {
@@ -778,7 +814,7 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 	if client.PreSharedKey != "" {
 		proxy["pre-shared-key"] = client.PreSharedKey
 	}
-	if ka := client.KeepAliveSeconds(); ka > 0 {
+	if ka, ok := keepAliveForScalarExport(client); ok {
 		proxy["persistent-keepalive"] = ka
 	}
 
@@ -1009,8 +1045,15 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 			{"hMaxRequestTimes", "h-max-request-times"},
 			{"hMaxReusableSecs", "h-max-reusable-secs"},
 		} {
-			if v, ok := xmux[f.src].(string); ok && v != "" {
-				reuse[f.dst] = v
+			v, ok := nonZeroShareValue(xmux[f.src])
+			if !ok {
+				continue
+			}
+			if n, isFloat := v.(float64); isFloat {
+				// JSON numbers decode as float64, and %v would render 1000000 as "1e+06".
+				reuse[f.dst] = strconv.FormatFloat(n, 'f', -1, 64)
+			} else {
+				reuse[f.dst] = fmt.Sprint(v)
 			}
 		}
 		if v, ok := nonZeroShareValue(xmux["hKeepAlivePeriod"]); ok {
@@ -1051,6 +1094,19 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			if header != nil {
 				typeStr, _ := header["type"].(string)
 				if typeStr != "" && typeStr != "none" {
+					// Mihomo's simple-obfs always sends GET /, and xray-core rejects a request whose
+					// path is not one of the header's paths, so only a "/" header maps to obfs.
+					if proxy["type"] == "ss" && typeStr == "http" && tcpHeaderAcceptsRootPath(header) {
+						proxy["plugin"] = "obfs"
+						opts := map[string]any{
+							"mode": "http",
+						}
+						if host := extractTCPHeaderHost(header); host != "" {
+							opts["host"] = host
+						}
+						proxy["plugin-opts"] = opts
+						return true
+					}
 					return false
 				}
 			}
@@ -1124,6 +1180,50 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 	default:
 		return false
 	}
+}
+
+// tcpHeaderAcceptsRootPath reports whether the inbound's HTTP header accepts "/"; xray-core
+// defaults an absent request path to "/".
+func tcpHeaderAcceptsRootPath(header map[string]any) bool {
+	request, _ := header["request"].(map[string]any)
+	paths, _ := request["path"].([]any)
+	if len(paths) == 0 {
+		return true
+	}
+	for _, p := range paths {
+		if p == "/" {
+			return true
+		}
+	}
+	return false
+}
+
+func extractTCPHeaderHost(header map[string]any) string {
+	request, _ := header["request"].(map[string]any)
+	reqHeaders, _ := request["headers"].(map[string]any)
+	return findHostInHeaders(reqHeaders)
+}
+
+func findHostInHeaders(headers map[string]any) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, "host") {
+			switch val := v.(type) {
+			case string:
+				return strings.TrimSpace(val)
+			case []string:
+				if len(val) > 0 {
+					return strings.TrimSpace(val[0])
+				}
+			case []any:
+				if len(val) > 0 {
+					if h, ok := val[0].(string); ok {
+						return strings.TrimSpace(h)
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func (s *SubClashService) applySecurity(proxy map[string]any, security string, stream map[string]any) bool {
@@ -1288,16 +1388,50 @@ func mergeClashRulesYAML(base map[string]any, raw string) error {
 	return nil
 }
 
-// mergeRemoteClashRules lets remote update only the route graph (see
-// remoteClashAllowedKey) and never mutates remote: cached documents are shared.
-func mergeRemoteClashRules(base map[string]any, remote map[string]any) error {
+type remoteClashKeyClass int
+
+const (
+	remoteClashRouteGraph remoteClashKeyClass = iota + 1
+	remoteClashClientConfig
+)
+
+// Client config keys steer the client's own resolver, so a remote URL may set
+// them only when the admin opts in (subClashRemoteDNS).
+var remoteClashKeyClasses = map[string]remoteClashKeyClass{
+	"proxy-groups":   remoteClashRouteGraph,
+	"rule-providers": remoteClashRouteGraph,
+	"rules":          remoteClashRouteGraph,
+	"dns":            remoteClashClientConfig,
+	"sniffer":        remoteClashClientConfig,
+}
+
+func remoteClashKeyAllowed(key string, allowClientConfig bool) bool {
+	switch remoteClashKeyClasses[key] {
+	case remoteClashRouteGraph:
+		return true
+	case remoteClashClientConfig:
+		return allowClientConfig
+	default:
+		return false
+	}
+}
+
+// mergeRemoteClashRules copies only keys listed in remoteClashKeyClasses and
+// never mutates remote: cached documents are shared.
+func mergeRemoteClashRules(base map[string]any, remote map[string]any, allowClientConfig bool) error {
 	if len(remote) == 0 {
 		return fmt.Errorf("remote Clash routing source must be a YAML map")
 	}
 
 	for key, value := range remote {
-		if !remoteClashAllowedKey(key) {
+		if !remoteClashKeyAllowed(key, allowClientConfig) {
 			continue
+		}
+		if remoteClashKeyClasses[key] == remoteClashClientConfig {
+			// A malformed dns or sniffer must not cost the client its routing.
+			if _, ok := value.(map[string]any); !ok {
+				continue
+			}
 		}
 		if err := validateRemoteClashValue(key, value); err != nil {
 			return err
@@ -1372,15 +1506,6 @@ func validateRemoteClashValue(key string, value any) error {
 		}
 	}
 	return nil
-}
-
-func remoteClashAllowedKey(key string) bool {
-	switch key {
-	case "proxy-groups", "rule-providers", "rules":
-		return true
-	default:
-		return false
-	}
 }
 
 func validateClashRouteGraph(config map[string]any) error {

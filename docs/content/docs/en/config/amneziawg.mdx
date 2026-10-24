@@ -124,6 +124,14 @@ inbound. There is no separate toggle for this: unlike a kernel tunnel,
 there's no other way for a peer's traffic to reach the internet once it's
 decapsulated.
 
+## Keepalive ranges
+
+AmneziaWG clients accept `keepAlive` as a number or an ordered range from 0 to 65535, such as `15-25`. Omitted values keep the existing setting; explicit `0` disables keepalive. Native `.conf` files preserve ranges, while Clash/Mihomo scalar-only output uses the lower bound (`0-25` therefore disables keepalive). Plain WireGuard clients support only a scalar value. Upgrade sub-nodes before sending them range values because older nodes parse keepalive as an integer.
+
+Parser support is present in the native tools and the panel embedded engine: [the native `awg-tools` v3.1.20260812 config parser](https://github.com/amnezia-vpn/amneziawg-tools/blob/v3.1.20260812/src/config.c#L596-L599) sends `PersistentKeepalive` to its [ordered-range parser](https://github.com/amnezia-vpn/amneziawg-tools/blob/v3.1.20260812/src/type.c#L40-L59), and this panel pins [amneziawg-go v3.1.20260828](https://github.com/amnezia-vpn/amneziawg-go/tree/v3.1.20260828) in `go.mod`; its [UAPI parser](https://github.com/amnezia-vpn/amneziawg-go/blob/v3.1.20260828/device/uapi.go#L663-L674) reads the interval as a `UintRange`. This confirms parser support for these code paths, not interoperability with every third-party client. The panel enforces the documented 0-65535 limit on new values; the native parser's syntax support is not a substitute for that validation.
+
+![AmneziaWG client editor with an ordered keepalive range](/images/amneziawg-keepalive-range.png)
+
 ## What the configuration looks like
 
 A client's downloadable `.conf` (also what the `vpn://` share link encodes,

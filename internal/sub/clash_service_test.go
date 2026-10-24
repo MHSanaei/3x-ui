@@ -1,8 +1,10 @@
 package sub
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -167,7 +169,7 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 }
 
 func TestClashRealityMLKEMAcrossSources(t *testing.T) {
-	svc := NewSubClashService(false, "", &SubService{})
+	svc := NewSubClashService(false, "", false, &SubService{})
 	for _, security := range []string{"reality", "tls", "none"} {
 		for _, fingerprint := range []string{"", "chrome", "firefox"} {
 			t.Run(security+"/"+fingerprint, func(t *testing.T) {
@@ -223,6 +225,132 @@ func TestApplyTransport_TCPHeader(t *testing.T) {
 	httpStream := map[string]any{"tcpSettings": map[string]any{"header": map[string]any{"type": "http"}}}
 	if svc.applyTransport(map[string]any{}, "tcp", httpStream) {
 		t.Fatal("tcp + non-none (http) header is not representable in clash and must be rejected")
+	}
+
+	testCases := []struct {
+		name         string
+		proxyType    string
+		stream       map[string]any
+		wantAccepted bool
+		wantPlugin   string
+		wantHost     string
+	}{
+		{
+			name:      "Actual 3x-ui Panel Inbound Data Structure (Including Empty Response Headers)",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"version": "1.1",
+							"method":  "GET",
+							"path":    []any{"/"},
+							"headers": map[string]any{
+								"Host": []any{"gateway.icloud.com"},
+							},
+						},
+						"response": map[string]any{
+							"version": "1.1",
+							"status":  "200",
+							"reason":  "OK",
+							"headers": map[string]any{},
+						},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+			wantHost:     "gateway.icloud.com",
+		},
+		{
+			name:      "Host must be a lowercase plain string",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"headers": map[string]any{
+								"host": "single.example.com",
+							},
+						},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+			wantHost:     "single.example.com",
+		},
+		{
+			name:      "Non-Shadowsocks protocols must be rejected when paired with TCP HTTP obfuscation",
+			proxyType: "vmess",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"headers": map[string]any{
+								"Host": []any{"vmess.example.com"},
+							},
+						},
+					},
+				},
+			},
+			wantAccepted: false,
+		},
+		{
+			name:      "A header path other than / is dropped: obfs always requests /",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"path":    []any{"/download"},
+							"headers": map[string]any{"Host": []any{"cdn.example.com"}},
+						},
+					},
+				},
+			},
+			wantAccepted: false,
+		},
+		{
+			name:      "Host comes from the request headers only",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type":     "http",
+						"response": map[string]any{"headers": map[string]any{"Host": []any{"response.example.com"}}},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			proxy := map[string]any{"type": tc.proxyType}
+			got := svc.applyTransport(proxy, "tcp", tc.stream)
+			if got != tc.wantAccepted {
+				t.Fatalf("expected accepted=%v, got=%v", tc.wantAccepted, got)
+			}
+			if tc.wantAccepted {
+				if proxy["plugin"] != tc.wantPlugin {
+					t.Fatalf("expected plugin=%q, got=%v", tc.wantPlugin, proxy["plugin"])
+				}
+				opts, _ := proxy["plugin-opts"].(map[string]any)
+				if opts["mode"] != "http" {
+					t.Fatalf("expected mode=http, got=%v", opts["mode"])
+				}
+				if host, _ := opts["host"].(string); host != tc.wantHost {
+					t.Fatalf("expected host=%q, got=%v", tc.wantHost, opts["host"])
+				}
+			}
+		})
 	}
 }
 
@@ -796,6 +924,37 @@ func TestBuildXhttpClashOpts_XmuxMapsToReuseSettings(t *testing.T) {
 		}
 		if _, has := opts["reuse-settings"]; has {
 			t.Error("reuse-settings should not appear when only hKeepAlivePeriod=0")
+		}
+	})
+
+	// Sub-test 5: numeric counts as json.Unmarshal yields them (#6841)
+	t.Run("NumericXmux", func(t *testing.T) {
+		cases := []struct {
+			name, xmux string
+			want       map[string]any
+		}{
+			{
+				name: "PanelDefaults",
+				xmux: `{"maxConcurrency":"","maxConnections":3,"cMaxReuseTimes":0,"hMaxRequestTimes":"600-900","hMaxReusableSecs":"1800-3000","hKeepAlivePeriod":0}`,
+				want: map[string]any{"max-connections": "3", "h-max-request-times": "600-900", "h-max-reusable-secs": "1800-3000"},
+			},
+			{
+				name: "LargeCountNotExponent",
+				xmux: `{"cMaxReuseTimes":1000000}`,
+				want: map[string]any{"c-max-reuse-times": "1000000"},
+			},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				var xmux map[string]any
+				if err := json.Unmarshal([]byte(tc.xmux), &xmux); err != nil {
+					t.Fatal(err)
+				}
+				opts := buildXhttpClashOpts(map[string]any{"path": "/", "xmux": xmux})
+				if got := opts["reuse-settings"]; !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("reuse-settings = %#v, want %#v", got, tc.want)
+				}
+			})
 		}
 	})
 }
@@ -1503,5 +1662,29 @@ func TestMihomoCertFingerprintUsesFirstValidPin(t *testing.T) {
 				t.Fatalf("mihomoCertFingerprint() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestBuildAmneziaWGProxyForClashProjectsKeepAliveRangeToLowerBound(t *testing.T) {
+	keepAlive := model.KeepAliveValue("15-25")
+	client := model.Client{Email: "range@awg", PrivateKey: "client-key", KeepAlive: &keepAlive}
+	inbound := &model.Inbound{Protocol: model.AmneziaWG, Listen: "198.51.100.1", Port: 443, Settings: `{"server":{"privateKey":"server","publicKey":"server-pub","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[]}`}
+	svc := NewSubClashService(false, "", false, &SubService{})
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil || proxy["persistent-keepalive"] != 15 {
+		t.Fatalf("Clash persistent-keepalive = %v, want range lower bound 15", proxy["persistent-keepalive"])
+	}
+	blob, err := marshalClashYAML(proxy)
+	if err != nil {
+		t.Fatalf("marshal Clash proxy: %v", err)
+	}
+	if !strings.Contains(string(blob), "persistent-keepalive: 15") {
+		t.Fatalf("Clash YAML did not preserve lower-bound projection:\n%s", blob)
+	}
+	legacyNegative := model.KeepAliveValue("-1")
+	client.KeepAlive = &legacyNegative
+	proxy = svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if _, ok := proxy["persistent-keepalive"]; ok {
+		t.Fatalf("Clash export emitted invalid legacy keepalive: %v", proxy["persistent-keepalive"])
 	}
 }

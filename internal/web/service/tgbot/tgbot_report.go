@@ -250,19 +250,23 @@ func (t *Tgbot) notifyExhausted() {
 		logger.Warning("Unable to load Inbounds", err)
 	}
 
-	var chatIDsDone []int64
+	chatIDsDone := make(map[int64]struct{})
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if len(inbound.ClientStats) > 0 {
-				clients, err := t.inboundService.GetClients(inbound)
+				clients, err := t.inboundService.ListClientsForInbound(inbound.Id)
 				if err == nil {
 					for _, client := range clients {
 						if client.TgID != 0 {
 							chatID := client.TgID
-							if !int64Contains(chatIDsDone, chatID) && !checkAdmin(chatID) {
+							if _, done := chatIDsDone[chatID]; !done && !checkAdmin(chatID) {
+								chatIDsDone[chatID] = struct{}{}
 								var disabledClients []xray.ClientTraffic
 								var exhaustedClients []xray.ClientTraffic
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
+								if err != nil {
+									logger.Warningf("Unable to load Telegram client traffic for %d: %v", chatID, err)
+								}
 								if err == nil && len(traffics) > 0 {
 									var output strings.Builder
 									output.WriteString(t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients")))
@@ -297,7 +301,6 @@ func (t *Tgbot) notifyExhausted() {
 										// rest of the bot uses instead of a message a client cannot clear.
 										t.sendNotice(chatID, output.String())
 									}
-									chatIDsDone = append(chatIDsDone, chatID)
 								}
 							}
 						}

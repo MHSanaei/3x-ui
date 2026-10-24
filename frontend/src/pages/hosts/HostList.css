@@ -2,6 +2,24 @@
   width: 100%;
 }
 
+.host-drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+.host-drag-handle:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+.host-dragging {
+  opacity: 0.5;
+}
+.host-drop-before > td {
+  border-top: 2px solid var(--ant-color-primary) !important;
+}
+.host-drop-after > td {
+  border-bottom: 2px solid var(--ant-color-primary) !important;
+}
+
 .host-remark-cell {
   display: flex;
   flex-direction: column;

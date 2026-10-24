@@ -109,14 +109,19 @@ func TestGetXrayConfig_EnabledClientsStillEmitted(t *testing.T) {
 }
 
 // A flow kept from a TCP+REALITY stream makes xray demand Vision on a transport that cannot run it
-// without VLESS encryption: "XTLS only supports TLS and REALITY directly".
+// without VLESS encryption: "XTLS only supports TLS and REALITY directly". XDRIVE refuses it even
+// inside VLESS encryption since xray-core 26.10.17 (#7182).
 func TestGetXrayConfig_OmitsVisionFlowOnIneligibleStream(t *testing.T) {
 	cases := []struct {
-		name   string
-		stream string
+		name     string
+		stream   string
+		settings string
 	}{
-		{"xdrive", `{"network":"xdrive","security":"none","xdriveSettings":{"service":"local","remoteFolder":"/tmp/shared"}}`},
-		{"ws over tls", `{"network":"ws","security":"tls","wsSettings":{"path":"/"}}`},
+		{
+			"xdrive vlessenc", `{"network":"xdrive","security":"none","xdriveSettings":{"service":"local","remoteFolder":"/tmp/shared"}}`,
+			`{"clients":[],"decryption":"` + goldenVlessDecryption + `"}`,
+		},
+		{"ws over tls", `{"network":"ws","security":"tls","wsSettings":{"path":"/"}}`, `{"clients":[],"decryption":"none"}`},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -125,7 +130,7 @@ func TestGetXrayConfig_OmitsVisionFlowOnIneligibleStream(t *testing.T) {
 				{Email: "vision@x", ID: "44444444-4444-4444-4444-444444444444", Enable: true, Flow: "xtls-rprx-vision"},
 			})
 			if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", tag).
-				Update("stream_settings", tc.stream).Error; err != nil {
+				Updates(map[string]any{"stream_settings": tc.stream, "settings": tc.settings}).Error; err != nil {
 				t.Fatalf("set stream: %v", err)
 			}
 			value, _ := emittedClients(t, tag)
@@ -141,7 +146,7 @@ func TestGetXrayConfig_OmitsVisionFlowOnIneligibleStream(t *testing.T) {
 	}
 }
 
-// xray-core runs Vision over TLS/REALITY on RAW, or over VLESS encryption on any transport.
+// xray-core runs Vision over TLS/REALITY on RAW, or over VLESS encryption on any transport but XDRIVE.
 func TestGetXrayConfig_KeepsVisionFlowWhereTheCoreRunsIt(t *testing.T) {
 	const vlessenc = `{"clients":[],"decryption":"mlkem768x25519plus.native.600s.WB3OymHLL_DJ1jdHiqcMC-u84TgvfNFlgbZIJE-NtUQ"}`
 	cases := []struct {
@@ -152,7 +157,6 @@ func TestGetXrayConfig_KeepsVisionFlowWhereTheCoreRunsIt(t *testing.T) {
 		{"tcp reality", `{"network":"tcp","security":"reality","realitySettings":{}}`, `{"clients":[],"decryption":"none"}`},
 		{"raw vlessenc", `{"network":"tcp","security":"none"}`, vlessenc},
 		{"ws vlessenc", `{"network":"ws","security":"none","wsSettings":{"path":"/"}}`, vlessenc},
-		{"xdrive vlessenc", `{"network":"xdrive","security":"none","xdriveSettings":{"service":"local","remoteFolder":"/tmp/shared"}}`, vlessenc},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

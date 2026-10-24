@@ -86,6 +86,10 @@ func (g *exampleGen) forType(t TypeRef, visited map[string]bool) any {
 		return []any{g.forType(*t.Element, visited)}
 	case KindMap:
 		return map[string]any{}
+	case KindUnion:
+		if len(t.Variants) > 0 {
+			return g.forType(t.Variants[0], visited)
+		}
 	case KindRef:
 		if t.Name == "nullable" {
 			return nil
@@ -105,6 +109,9 @@ func (g *exampleGen) forType(t TypeRef, visited map[string]bool) any {
 }
 
 func baseKind(t TypeRef) TypeRef {
+	if t.Kind == KindUnion && len(t.Variants) > 0 {
+		return t.Variants[0]
+	}
 	if t.Kind == KindRef && t.Name == "nullable" && t.Inner != nil {
 		return *t.Inner
 	}

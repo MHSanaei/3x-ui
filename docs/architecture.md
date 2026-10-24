@@ -231,7 +231,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   ├── network/          # Custom net listeners (e.g. proxy-protocol aware)
 │   │   ├── session/          # Session/cookie helpers
 │   │   ├── websocket/        # WS hub implementation
-│   │   ├── locale/ + translation/  # i18n middleware + 13 locale JSON catalogs
+│   │   ├── locale/ + translation/  # i18n middleware + 14 locale JSON catalogs
 │   │   ├── entity/           # Shared request/response DTOs
 │   │   └── dist/             # ⚠️ Vite build output, embedded via go:embed (generated — do not hand-edit)
 │   │
@@ -340,6 +340,22 @@ code_ works whether the target is the local Xray or a remote node.
 - **Dispatch:** `manager.go` → `Manager.RuntimeFor(nodeID *int)`; `nil` nodeID → `Local`,
   otherwise a cached/lazy-loaded `Remote`. `InvalidateNode(id)` drops a cached remote client.
 
+Bearer tokens use the narrowest scope that matches the caller's duties:
+
+| Scope        | Access                                                                 |
+| ------------ | ---------------------------------------------------------------------- |
+| `monitor`    | Read-only status, version, and metric endpoints.                       |
+| `node-sync`  | Node configuration, inbound/client synchronization, traffic, and Xray. |
+| `node-admin` | All `node-sync` access plus `POST /panel/api/server/updatePanel`.      |
+| `admin`      | Every panel API endpoint; intended for fully trusted automation.       |
+
+`node-admin` remains a node synchronization identity when inbound rules are applied. This
+preserves the node-specific validation path while keeping software-update authority separate
+from ordinary `node-sync` credentials. On an mTLS connection, only a valid `node-admin` bearer
+elevates the request; other bearer scopes retain the historical mTLS `node-sync` behavior.
+Existing tokens retain their stored scope, and legacy tokens without one continue to migrate to
+`admin`.
+
 **Node identity & attribution (the hard part).** Inbounds carry a `NodeID` _and_ an
 `OriginNodeGuid`. Because inbounds can be pushed across hops, the panel attributes traffic and
 online clients back to the originating panel using **stable GUIDs** rather than local IDs.
@@ -381,7 +397,7 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 5s`         | `xray_traffic_job`                                                                               | Pull traffic stats from Xray (5s start delay)                                         |
 | `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                                    |
 | `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                        |
-| `@every 10s`        | `check_client_ip_job`                                                                            | Enforce per-client IP limits                                                          |
+| `@every 10s`        | `check_client_ip_job`                                                                            | Record client IPs (30-min window) and enforce per-client IP limits                    |
 | `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                             |
 | `@every 10s`        | `amneziawg_job`                                                                                  | Reconcile embedded AmneziaWG interfaces against enabled local inbounds                |
 | `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                                     |
@@ -607,7 +623,7 @@ them with a comment starting `@claude review` on a PR or `@claude analyze` on an
   (`FetchCertFingerprint`), `service/node_mtls.go`, and `runtime/tls_client.go`.
 - **Restart is signal-driven.** `main.go` traps SIGHUP to restart panel+sub servers; the
   in-process restart hook (`global.SetRestartHook`) funnels into the same path.
-- **i18n:** backend catalogs in `internal/web/translation/` (13 locales, shared with the
+- **i18n:** backend catalogs in `internal/web/translation/` (14 locales, shared with the
   frontend); frontend wiring in `frontend/src/i18n/`. Persian (`fa_IR`) is a first-class
   locale (Jalali calendar via `persian-calendar-suite`).
 - **Tests live next to code** (`foo.go` ↔ `foo_test.go`), plus golden snapshots in

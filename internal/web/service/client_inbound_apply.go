@@ -334,6 +334,17 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	if err := validateClientsRenewal(clients); err != nil {
 		return false, err
 	}
+	inbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+	existingClients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+	if err := validateClientsKeepAliveAgainstExisting(inbound.Protocol, clients, existingClients); err != nil {
+		return false, err
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -368,9 +379,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	if err != nil {
 		return false, err
 	}
-
-	existingClients, err := inboundSvc.GetClients(oldInbound)
-	if err != nil {
+	if err := validateTuicClientEmails(oldInbound.Protocol, clients); err != nil {
 		return false, err
 	}
 
@@ -667,7 +676,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err := validateClientsRenewal(clients); err != nil {
 		return false, err
 	}
-
+	inbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
 	if err != nil {
@@ -680,10 +692,22 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err != nil {
 		return false, err
 	}
+	if err := validateTuicClientEmails(oldInbound.Protocol, clients); err != nil {
+		return false, err
+	}
 
 	oldClients, err := inboundSvc.GetClients(oldInbound)
 	if err != nil {
 		return false, err
+	}
+	for i, client := range clients {
+		identityEmail := client.Email
+		if i == 0 {
+			identityEmail = oldEmail
+		}
+		if err := validateClientKeepAliveAgainstExisting(inbound.Protocol, client, oldClients, identityEmail); err != nil {
+			return false, fmt.Errorf("client %q: %w", client.Email, err)
+		}
 	}
 
 	newClientId := ""
@@ -838,8 +862,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if clients[0].PreSharedKey != "" {
 					newMap["preSharedKey"] = clients[0].PreSharedKey
 				}
-				if ka := clients[0].KeepAliveSeconds(); ka > 0 {
-					newMap["keepAlive"] = ka
+				if clients[0].KeepAlive != nil {
+					newMap["keepAlive"] = clients[0].KeepAlive
 				}
 				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts != "" {
 					newMap["forwardedPorts"] = clients[0].ForwardedPorts
