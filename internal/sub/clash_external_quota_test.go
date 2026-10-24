@@ -17,8 +17,10 @@ import (
 
 // A shadowsocks node over kcp has no Clash form, so both the inbound path and the link
 // path must drop it; the userinfo is base64("aes-256-gcm:clientpw").
-const clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=kcp#unsupported"
-const kcpShadowsocksStream = `{"network":"kcp","security":"none"}`
+const (
+	clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=kcp#unsupported"
+	kcpShadowsocksStream     = `{"network":"kcp","security":"none"}`
+)
 
 func clashSubRouter(t *testing.T) *gin.Engine {
 	t.Helper()
