@@ -73,6 +73,7 @@ export interface AllSetting {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;
@@ -262,6 +263,7 @@ export interface AllSettingView {
   subClashEnable: boolean;
   subClashEnableRouting: boolean;
   subClashPath: string;
+  subClashRemoteDNS: boolean;
   subClashRules: string;
   subClashURI: string;
   subClashUserAgentRegex: string;

@@ -322,7 +322,11 @@ export default function RoutingTab({
         items={[
           {
             key: 'basic',
-            label: catTabLabel(<ControlOutlined />, t('pages.xray.basicRouting'), isMobile),
+            label: catTabLabel(
+              <ControlOutlined aria-hidden />,
+              t('pages.xray.basicRouting'),
+              isMobile,
+            ),
             children: (
               <RoutingBasic
                 templateSettings={templateSettings}
@@ -332,11 +336,15 @@ export default function RoutingTab({
           },
           {
             key: 'rules',
-            label: catTabLabel(<UnorderedListOutlined />, t('pages.xray.Routings'), isMobile),
+            label: catTabLabel(
+              <UnorderedListOutlined aria-hidden />,
+              t('pages.xray.Routings'),
+              isMobile,
+            ),
             children: (
               <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Space wrap>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+                  <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={openAdd}>
                     {t('pages.xray.Routings')}
                   </Button>
                   <Dropdown
@@ -345,13 +353,13 @@ export default function RoutingTab({
                       items: [
                         {
                           key: 'import',
-                          icon: <ImportOutlined />,
+                          icon: <ImportOutlined aria-hidden />,
                           label: t('pages.xray.importRules'),
                           onClick: () => setImportOpen(true),
                         },
                         {
                           key: 'export',
-                          icon: <ExportOutlined />,
+                          icon: <ExportOutlined aria-hidden />,
                           label: t('pages.xray.exportRules'),
                           disabled: rules.length === 0,
                           onClick: exportRules,
@@ -359,7 +367,7 @@ export default function RoutingTab({
                       ],
                     }}
                   >
-                    <Button icon={<MoreOutlined />}>{t('more')}</Button>
+                    <Button icon={<MoreOutlined aria-hidden />}>{t('more')}</Button>
                   </Dropdown>
                 </Space>
 
@@ -404,7 +412,7 @@ export default function RoutingTab({
           },
           {
             key: 'tester',
-            label: catTabLabel(<AimOutlined />, t('pages.xray.routeTester'), isMobile),
+            label: catTabLabel(<AimOutlined aria-hidden />, t('pages.xray.routeTester'), isMobile),
             children: <RouteTester inboundTags={inboundTagOptions} isMobile={isMobile} />,
           },
         ]}

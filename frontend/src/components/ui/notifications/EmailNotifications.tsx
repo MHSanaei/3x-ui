@@ -13,7 +13,7 @@ import type { NotificationGroupConfig } from './types';
 
 const GROUPS: NotificationGroupConfig[] = [
   {
-    icon: <CloudServerOutlined />,
+    icon: <CloudServerOutlined aria-hidden />,
     title: 'eventGroupOutbound',
     events: [
       {
@@ -36,12 +36,12 @@ const GROUPS: NotificationGroupConfig[] = [
     ],
   },
   {
-    icon: <ThunderboltOutlined />,
+    icon: <ThunderboltOutlined aria-hidden />,
     title: 'eventGroupXray',
     events: [{ key: 'xray.crash', label: 'eventXrayCrash', settingKey: '' }],
   },
   {
-    icon: <DesktopOutlined />,
+    icon: <DesktopOutlined aria-hidden />,
     title: 'eventGroupNode',
     events: [
       { key: 'node.down', label: 'eventNodeDown', settingKey: '' },
@@ -49,7 +49,7 @@ const GROUPS: NotificationGroupConfig[] = [
     ],
   },
   {
-    icon: <DashboardOutlined />,
+    icon: <DashboardOutlined aria-hidden />,
     title: 'eventGroupSystem',
     events: [
       {
@@ -87,7 +87,7 @@ const GROUPS: NotificationGroupConfig[] = [
     ],
   },
   {
-    icon: <SafetyOutlined />,
+    icon: <SafetyOutlined aria-hidden />,
     title: 'eventGroupSecurity',
     events: [{ key: 'login.attempt', label: 'eventLoginAttempt', settingKey: '' }],
   },

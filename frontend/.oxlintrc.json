@@ -9,7 +9,9 @@
     "jsx-a11y"
   ],
   "jsPlugins": [
-    "./tools/oxlint/input-number-guard.mjs"
+    "./tools/oxlint/input-number-guard.mjs",
+    "./tools/oxlint/control-label-guard.mjs",
+    "./tools/oxlint/icon-a11y-guard.mjs"
   ],
   "categories": {
     "correctness": "error"
@@ -48,7 +50,9 @@
     "react-hooks/exhaustive-deps": "error",
     "jsx-a11y/no-autofocus": "off",
     "input-number/no-synthetic-clear": "off",
-    "jsx-a11y/prefer-tag-over-role": "off"
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "control-label/has-name": "off",
+    "antd-icon/explicit-a11y": "off"
   },
   "overrides": [
     {
@@ -66,6 +70,25 @@
       ],
       "rules": {
         "input-number/no-synthetic-clear": "off"
+      }
+    },
+    {
+      "files": [
+        "src/**/*.tsx"
+      ],
+      "rules": {
+        "control-label/has-name": "error",
+        "antd-icon/explicit-a11y": "error"
+      }
+    },
+    {
+      "files": [
+        "src/**/*.stories.tsx",
+        "src/test/**"
+      ],
+      "rules": {
+        "control-label/has-name": "off",
+        "antd-icon/explicit-a11y": "off"
       }
     }
   ]
