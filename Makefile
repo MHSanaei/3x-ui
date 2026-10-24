@@ -34,6 +34,10 @@ lint-go: dist-stub ## golangci-lint on Go sources
 lint-fe: ## oxlint on frontend sources
 	cd $(FRONTEND) && npm run lint
 
+.PHONY: audit-fe
+audit-fe: ## Audit the frontend's production dependencies (needs the network)
+	cd $(FRONTEND) && npm run audit
+
 .PHONY: lint
 lint: lint-go lint-fe ## All linters
 
@@ -72,6 +76,10 @@ test: test-go test-fe ## All tests
 vulncheck: dist-stub ## govulncheck
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
+.PHONY: docs-openapi-check
+docs-openapi-check: ## Fail if the docs OpenAPI spec is not the panel's
+	cmp frontend/public/openapi.json docs/public/openapi.json
+
 .PHONY: build-fe
 build-fe: ## Build the Vite bundles into internal/web/dist
 	cd $(FRONTEND) && npm run build
@@ -85,7 +93,10 @@ build-storybook: ## Build the static Storybook (compile-checks all stories)
 	cd $(FRONTEND) && npm run build-storybook
 
 # The PR gate. Matches ci.yml: codegen freshness, both linters, the formatter,
-# typecheck, both test suites, a full build, and the Storybook compile-check.
+# typecheck, both test suites, a full build, the Storybook compile-check and the
+# docs spec check. The dependency audit is a separate target: it needs the
+# network and a live advisory database, so an unchanged commit could pass today
+# and fail tomorrow.
 .PHONY: verify
-verify: gen-check lint format-check typecheck test build build-storybook ## Full local gate (mirrors CI)
+verify: gen-check lint format-check typecheck test build build-storybook docs-openapi-check ## Full local gate (mirrors CI)
 	@echo "verify: OK"

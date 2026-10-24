@@ -22,19 +22,17 @@ const (
 	hostBindingBound                     // render only the returned bound hosts of this inbound
 )
 
-// clientHostBinding resolves the client's bound host rules against one inbound. A binding whose
-// every id is gone fails closed; a missing id beside a live one never silences other inbounds.
+// clientHostBinding resolves the client's bound host rules against one inbound. A deleted bound host
+// closes only the inbound it served; ids that resolve to no inbound at all fail closed everywhere.
 func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
 	ids := model.EffectiveClientHostRuleIds(client)
-	if len(ids) == 0 || database.GetDB() == nil {
+	db := database.GetDB()
+	if len(ids) == 0 || db == nil {
 		return hostBindingNone, nil
 	}
 	var rows []model.Host
-	if err := database.GetDB().Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := db.Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		logger.Warning("SubService - clientHostBinding:", err)
-		return hostBindingClosed, nil
-	}
-	if len(rows) == 0 {
 		return hostBindingClosed, nil
 	}
 	byId := make(map[int]*model.Host, len(rows))
@@ -42,15 +40,36 @@ func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Clie
 		byId[rows[i].Id] = &rows[i]
 	}
 	var here []*model.Host
+	var gone []int
 	for _, id := range ids {
-		if h, ok := byId[id]; ok && h.InboundId == inbound.Id {
+		h, ok := byId[id]
+		switch {
+		case !ok:
+			gone = append(gone, id)
+		case h.InboundId == inbound.Id:
 			here = append(here, h)
 		}
 	}
-	if len(here) == 0 {
+	if len(here) > 0 {
+		return hostBindingBound, here
+	}
+	if len(gone) == 0 {
 		return hostBindingNone, nil
 	}
-	return hostBindingBound, here
+	var tombstones []model.HostTombstone
+	if err := db.Where("host_id IN ?", gone).Find(&tombstones).Error; err != nil {
+		logger.Warning("SubService - clientHostBinding:", err)
+		return hostBindingClosed, nil
+	}
+	if len(rows) == 0 && len(tombstones) == 0 {
+		return hostBindingClosed, nil
+	}
+	for _, tomb := range tombstones {
+		if tomb.InboundId == inbound.Id {
+			return hostBindingClosed, nil
+		}
+	}
+	return hostBindingNone, nil
 }
 
 // clientHostEndpoints returns the endpoints of the client's usable bound hosts on this inbound, or

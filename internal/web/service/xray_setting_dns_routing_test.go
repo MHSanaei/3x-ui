@@ -183,6 +183,34 @@ func TestEnsureDnsServerRouting_StripsSchemePortAndPath(t *testing.T) {
 	}
 }
 
+func TestEnsureDnsServerRouting_RemoteDohUsesHttpsPort(t *testing.T) {
+	in := `{
+		"dns": {"servers": [
+			"https://10.255.255.1/dns-query",
+			"h2c://10.255.255.2/dns-query",
+			"https://10.255.255.3:8443/dns-query"
+		]},
+		"routing": {"rules": [{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}]}
+	}`
+	out, err := EnsureDnsServerRouting(in)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	rules := rulesFromRaw(t, out)
+	if len(rules) != 3 {
+		t.Fatalf("got %d rules, want 2 allow rules + block: %v", len(rules), rules)
+	}
+	if p, _ := rules[0]["port"].(string); p != "443" {
+		t.Fatalf("rules[0] port = %v, want \"443\"", rules[0]["port"])
+	}
+	if ips := readRuleIPs(rules[0]["ip"]); len(ips) != 2 || ips[0] != "10.255.255.1" || ips[1] != "10.255.255.2" {
+		t.Fatalf("rules[0] ip = %v, want [10.255.255.1 10.255.255.2]", ips)
+	}
+	if p, _ := rules[1]["port"].(string); p != "8443" {
+		t.Fatalf("rules[1] port = %v, want \"8443\"", rules[1]["port"])
+	}
+}
+
 func TestEnsureDnsServerRouting_SkipsSpecialAndDomainAddresses(t *testing.T) {
 	in := `{
 		"dns": {"servers": ["localhost", "fakedns", "dns.google", "8.8.8.8"]},
@@ -463,5 +491,22 @@ func TestEnsureDnsServerRouting_InvalidJsonReturnsAsIs(t *testing.T) {
 	}
 	if out != in {
 		t.Fatalf("expected raw passthrough on error, got %q", out)
+	}
+}
+
+// Xray dials a DoH server from its URL alone; the object's "port" (53 in entries saved by older
+// forms) never reaches it, so the allow rule must still open the URL's port.
+func TestEnsureDnsServerRouting_RemoteDohIgnoresObjectPort(t *testing.T) {
+	in := `{
+		"dns": {"servers": [{"address": "https://10.255.255.4/dns-query", "port": 53, "domains": ["lan"]}]},
+		"routing": {"rules": [{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}]}
+	}`
+	out, err := EnsureDnsServerRouting(in)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	rules := rulesFromRaw(t, out)
+	if p, _ := rules[0]["port"].(string); p != "443" {
+		t.Fatalf("rules[0] port = %v, want \"443\"", rules[0]["port"])
 	}
 }

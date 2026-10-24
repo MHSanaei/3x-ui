@@ -1160,8 +1160,8 @@ func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
 	}
 }
 
-// A deleted binding is skipped; with no valid binding left the client fails closed with zero
-// links (no fallback, no dummy link) but stays in traffic accounting.
+// A deleted binding is skipped; a binding that resolves to no inbound fails closed with zero links
+// (no fallback, no dummy link) but stays in traffic accounting.
 func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 	t.Run("deleted and valid binding renders only the valid host", func(t *testing.T) {
 		seedSubDB(t)
@@ -1191,7 +1191,7 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 		}
 	})
 
-	t.Run("deleted-only binding fails closed with zero links", func(t *testing.T) {
+	t.Run("binding that resolves to no inbound fails closed with zero links", func(t *testing.T) {
 		seedSubDB(t)
 		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
 		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
@@ -1228,8 +1228,8 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 		}
 	})
 
-	// A deleted host id must not silence an inbound without the client's other bound hosts:
-	// relevance comes from rows that still exist, fail-closed only when every bound id is gone.
+	// An unknown host id must not silence an inbound without the client's other bound hosts: the
+	// live and deleted hosts the ids resolve to decide which inbounds the binding guards.
 	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
 		seedSubDB(t)
 		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
@@ -1265,6 +1265,65 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 			t.Fatalf("deleted id must not silence inbound B's fallback link: %s", joined)
 		}
 	})
+}
+
+// Deleting a client's only bound host blanked it on every inbound, since the gone rows no longer
+// said which inbound the binding guarded; only the inbound the host served may close.
+func TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		subId  string
+		portA  int
+		remove func(t *testing.T, ibA *model.Inbound, groupId string) error
+	}{
+		{"by its host group", "dg", 4481, func(_ *testing.T, _ *model.Inbound, groupId string) error {
+			return (&service.HostService{}).DeleteHostGroup(groupId)
+		}},
+		{"with its inbound", "di", 4483, func(t *testing.T, ibA *model.Inbound, _ string) error {
+			if err := database.GetDB().Model(ibA).Update("enable", false).Error; err != nil {
+				t.Fatalf("disable inbound A: %v", err)
+			}
+			_, err := (&service.InboundService{}).DelInbound(ibA.Id)
+			return err
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			ibA := seedSubInbound(t, tc.subId, tc.subId+"a", tc.portA, 1, tcpTLSStream)
+			ibB := seedSubInbound(t, tc.subId, tc.subId+"b", tc.portA+1, 2, tcpTLSStream)
+			email, groupId := tc.subId+"b@e", tc.subId+"-grp"
+
+			db := database.GetDB()
+			var client model.ClientRecord
+			if err := db.Where("email = ?", email).First(&client).Error; err != nil {
+				t.Fatalf("load client %s: %v", email, err)
+			}
+			if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ibA.Id}).Error; err != nil {
+				t.Fatalf("link client to inbound A: %v", err)
+			}
+			hostA := seedHost(t, &model.Host{GroupId: groupId, InboundId: ibA.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+			if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
+				Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id})).Error; err != nil {
+				t.Fatalf("bind host rule: %v", err)
+			}
+			if err := tc.remove(t, ibA, groupId); err != nil {
+				t.Fatalf("delete the bound host: %v", err)
+			}
+
+			links, _, _, _, err := NewSubService("").GetSubs(tc.subId, "req.example.com")
+			if err != nil {
+				t.Fatalf("GetSubs: %v", err)
+			}
+			joined := strings.Join(links, "\n")
+			uuid := "11111111-2222-4333-8444-" + fmt.Sprintf("%012d", ibB.Port)
+			if strings.Contains(joined, "a.cdn.com") || strings.Contains(joined, fmt.Sprintf("%s@203.0.113.5:%d", uuid, ibA.Port)) {
+				t.Fatalf("inbound A lost the client's bound host and must render nothing for it: %s", joined)
+			}
+			if !strings.Contains(joined, fmt.Sprintf("%s@203.0.113.5:%d", uuid, ibB.Port)) {
+				t.Fatalf("inbound B never had a binding and must keep the client's link: %s", joined)
+			}
+		})
+	}
 }
 
 // A client bound to a disabled host fails closed on every format (no links, outbounds or proxies)

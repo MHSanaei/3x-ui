@@ -861,6 +861,7 @@ export interface Node {
   status: string;
   tlsVerifyMode: string;
   transitive?: boolean;
+  unavailableMetrics?: string[];
   updatedAt: number;
   uptimeSecs: number;
   xrayError: string;
@@ -924,6 +925,7 @@ export interface NodeView {
   status: string;
   tlsVerifyMode: string;
   transitive?: boolean;
+  unavailableMetrics?: string[];
   updatedAt: number;
   uptimeSecs: number;
   xrayError: string;
@@ -966,6 +968,7 @@ export interface ProbeResultUI {
   memPct: number;
   panelVersion: string;
   status: string;
+  unavailableMetrics?: string[];
   uptimeSecs: number;
   xrayError: string;
   xrayState: string;

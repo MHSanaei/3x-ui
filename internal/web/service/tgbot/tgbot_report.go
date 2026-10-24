@@ -187,7 +187,12 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 		info += t.I18nBot("tgbot.messages.ipv6", "IPv6=="+ipv6)
 	}
 
-	info += t.I18nBot("tgbot.messages.serverUpTime", "UpTime=="+strconv.FormatUint(t.lastStatus.Uptime/86400, 10), "Unit=="+t.I18nBot("tgbot.days"))
+	uptime, uptimeUnit := "—", ""
+	if t.lastStatus.MetricAvailable("uptime") {
+		uptime = strconv.FormatUint(t.lastStatus.Uptime/86400, 10)
+		uptimeUnit = t.I18nBot("tgbot.days")
+	}
+	info += t.I18nBot("tgbot.messages.serverUpTime", "UpTime=="+uptime, "Unit=="+uptimeUnit)
 	info += t.I18nBot("tgbot.messages.serverLoad", "Load1=="+strconv.FormatFloat(t.lastStatus.Loads[0], 'f', 2, 64), "Load2=="+strconv.FormatFloat(t.lastStatus.Loads[1], 'f', 2, 64), "Load3=="+strconv.FormatFloat(t.lastStatus.Loads[2], 'f', 2, 64))
 	info += t.I18nBot("tgbot.messages.serverMemory", "Current=="+common.FormatTraffic(int64(t.lastStatus.Mem.Current)), "Total=="+common.FormatTraffic(int64(t.lastStatus.Mem.Total)))
 	info += t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(len(onlines)))

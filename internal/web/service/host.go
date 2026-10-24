@@ -395,7 +395,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 			}
 		}
 		if len(toDelete) > 0 {
-			if err := tx.Where("id IN ?", toDelete).Delete(&model.Host{}).Error; err != nil {
+			if _, err := database.DeleteHosts(tx, "id IN ?", toDelete); err != nil {
 				return err
 			}
 		}
@@ -418,7 +418,10 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 }
 
 func (s *HostService) DeleteHostGroup(groupId string) error {
-	return database.GetDB().Where("group_id = ?", groupId).Delete(&model.Host{}).Error
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)
+		return err
+	})
 }
 
 func (s *HostService) SetHostGroupEnable(groupId string, enable bool) error {
@@ -436,7 +439,10 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
-	return database.GetDB().Where("group_id IN ?", groupIds).Delete(&model.Host{}).Error
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		_, err := database.DeleteHosts(tx, "group_id IN ?", groupIds)
+		return err
+	})
 }
 
 func (s *HostService) ReorderHostGroups(groupIds []string) error {
