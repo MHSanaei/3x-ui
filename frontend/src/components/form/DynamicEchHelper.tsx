@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Divider, Form, Input, Select, Space, Typography } from 'antd';
 import { ThunderboltOutlined } from '@ant-design/icons';
@@ -43,6 +43,7 @@ export default function DynamicEchHelper({
   disabled = false,
 }: DynamicEchHelperProps) {
   const { t } = useTranslation();
+  const uid = useId();
   const parsed = parseDynamicEch(value);
   const presetValues = new Set(
     pairPresetOptions(t).flatMap((group) => group.options.map((o) => o.value)),
@@ -101,7 +102,7 @@ export default function DynamicEchHelper({
       <div
         style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, marginBottom: 4 }}
       >
-        <ThunderboltOutlined />
+        <ThunderboltOutlined aria-hidden />
         {t('pages.inbounds.form.echDynamicTitle')}
       </div>
       <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }}>
@@ -120,8 +121,9 @@ export default function DynamicEchHelper({
       {/* component={false}: rendered inside the inbound/host <form>, and a nested
           <form> element is invalid HTML. */}
       <Form layout="vertical" size="small" colon={false} component={false}>
-        <Form.Item label={t('pages.inbounds.form.echPresetLabel')}>
+        <Form.Item htmlFor={`${uid}-preset`} label={t('pages.inbounds.form.echPresetLabel')}>
           <Select
+            id={`${uid}-preset`}
             value={preset}
             disabled={disabled}
             showSearch={{ optionFilterProp: 'label' }}
@@ -139,8 +141,9 @@ export default function DynamicEchHelper({
 
         {preset === ADVANCED && (
           <>
-            <Form.Item label={t('pages.inbounds.form.echDynamicDomain')}>
+            <Form.Item htmlFor={`${uid}-domain`} label={t('pages.inbounds.form.echDynamicDomain')}>
               <Select
+                id={`${uid}-domain`}
                 value={domainChoice}
                 disabled={disabled}
                 showSearch={{ optionFilterProp: 'label' }}
@@ -155,6 +158,7 @@ export default function DynamicEchHelper({
             {domainChoice === CUSTOM && (
               <Form.Item>
                 <Input
+                  aria-label={t('pages.inbounds.form.echDynamicDomain')}
                   value={domainInput}
                   disabled={disabled}
                   placeholder={DEFAULT_ECH_DOMAIN}
@@ -166,8 +170,9 @@ export default function DynamicEchHelper({
               </Form.Item>
             )}
 
-            <Form.Item label={t('pages.inbounds.form.echDynamicDoh')}>
+            <Form.Item htmlFor={`${uid}-doh`} label={t('pages.inbounds.form.echDynamicDoh')}>
               <Select
+                id={`${uid}-doh`}
                 value={dohChoice}
                 disabled={disabled}
                 showSearch={{ optionFilterProp: 'label' }}
@@ -184,6 +189,7 @@ export default function DynamicEchHelper({
             {dohChoice === CUSTOM && (
               <Form.Item>
                 <Input
+                  aria-label={t('pages.inbounds.form.echDynamicDoh')}
                   value={dohInput}
                   disabled={disabled}
                   placeholder={DEFAULT_DOH_ENDPOINT}
@@ -226,7 +232,7 @@ export default function DynamicEchHelper({
       <Button
         type="primary"
         size="small"
-        icon={<ThunderboltOutlined />}
+        icon={<ThunderboltOutlined aria-hidden />}
         disabled={disabled || !built}
         data-testid="ech-dynamic-apply"
         onClick={apply}
