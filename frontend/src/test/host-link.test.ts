@@ -145,37 +145,45 @@ describe('withHostEndpoints', () => {
 describe('hostEndpointsFor - multi SNI', () => {
   it('applies the same random SNI to all endpoints when sniSharedRandom is true', () => {
     const snis = ['sni1.example.com', 'sni2.example.com'];
-    const eps = hostEndpointsFor(
-      [
-        {
-          groupId: 'shared',
-          inboundIds: [1],
-          hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
-          port: 443,
-          snis,
-          sniSharedRandom: true,
-        },
-      ],
-      1,
-      443,
-      'default.com',
-    );
+    const makeGroup = () =>
+      hostEndpointsFor(
+        [
+          {
+            groupId: 'shared',
+            inboundIds: [1],
+            hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
+            port: 443,
+            snis,
+            sniSharedRandom: true,
+          },
+        ],
+        1,
+        443,
+        'default.com',
+      );
+
+    const eps = makeGroup();
     expect(eps).toHaveLength(3);
     const chosenSni = eps[0]!.sni;
     expect(snis).toContain(chosenSni);
     for (const ep of eps) {
       expect(ep.sni).toBe(chosenSni);
     }
+
+    // Verify that across repeated calls, selection is randomized across the pool
+    const picks = new Set(Array.from({ length: 30 }, () => makeGroup()[0]!.sni));
+    expect(picks.size).toBeGreaterThan(1);
   });
 
   it('randomizes SNI per endpoint when sniRandomizePerConfig is true', () => {
     const snis = ['sni1.example.com', 'sni2.example.com'];
+    const hosts = Array.from({ length: 30 }, (_, i) => `h${i}.example.com`);
     const eps = hostEndpointsFor(
       [
         {
           groupId: 'rand',
           inboundIds: [1],
-          hosts: ['h1.example.com', 'h2.example.com', 'h3.example.com'],
+          hosts,
           port: 443,
           snis,
           sniRandomizePerConfig: true,
@@ -185,10 +193,13 @@ describe('hostEndpointsFor - multi SNI', () => {
       443,
       'default.com',
     );
-    expect(eps).toHaveLength(3);
+    expect(eps).toHaveLength(30);
+    const seen = new Set<string>();
     for (const ep of eps) {
       expect(snis).toContain(ep.sni);
+      if (ep.sni) seen.add(ep.sni);
     }
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it('gives precedence to overrideSniFromAddress and keepSniBlank over snis', () => {

@@ -562,6 +562,9 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetHostGroup: %v", err)
 	}
+	if g.Security != "tls" {
+		t.Fatalf("g.Security = %q, want %q", g.Security, "tls")
+	}
 	if !reflect.DeepEqual(g.Snis, snis) {
 		t.Fatalf("g.Snis = %v, want %v", g.Snis, snis)
 	}
@@ -569,7 +572,7 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 		t.Fatalf("g mode mismatch: randomize=%v shared=%v", g.SniRandomizePerConfig, g.SniSharedRandom)
 	}
 
-	// Now update to SniSharedRandom
+	// Now update to SniSharedRandom and verify Security and mode preservation
 	g.SniRandomizePerConfig = false
 	g.SniSharedRandom = true
 	updated, err := svc.UpdateHostGroup(g.GroupId, g)
@@ -577,8 +580,26 @@ func TestHostGroup_MultiSNIRoundTrip(t *testing.T) {
 		t.Fatalf("UpdateHostGroup: %v", err)
 	}
 	for i, row := range updated {
+		if row.Security != "tls" {
+			t.Fatalf("updated row[%d].Security = %q, want %q", i, row.Security, "tls")
+		}
 		if row.SniRandomizePerConfig || !row.SniSharedRandom {
 			t.Fatalf("updated row[%d] mode mismatch: randomize=%v shared=%v", i, row.SniRandomizePerConfig, row.SniSharedRandom)
+		}
+	}
+
+	// Verify REST script updating req.Sni independently is honored and synchronized
+	g.Sni = "rest-updated.example.com"
+	updatedSni, err := svc.UpdateHostGroup(g.GroupId, g)
+	if err != nil {
+		t.Fatalf("UpdateHostGroup with updated Sni: %v", err)
+	}
+	for i, row := range updatedSni {
+		if row.Sni != "rest-updated.example.com" {
+			t.Fatalf("row[%d].Sni = %q, want %q", i, row.Sni, "rest-updated.example.com")
+		}
+		if len(row.Snis) == 0 || row.Snis[0] != "rest-updated.example.com" {
+			t.Fatalf("row[%d].Snis[0] = %v, want %q", i, row.Snis, "rest-updated.example.com")
 		}
 	}
 }

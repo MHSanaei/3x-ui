@@ -1661,7 +1661,7 @@ func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 		Address:               "198.51.100.0/24",
 		Port:                  8443,
 		Security:              "tls",
-		RandomCount:           10,
+		RandomCount:           30,
 		Snis:                  snis,
 		SniRandomizePerConfig: true,
 	})
@@ -1671,8 +1671,8 @@ func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 		t.Fatalf("GetSubs: %v", err)
 	}
 	parts := strings.Split(strings.Join(links, "\n"), "\n")
-	if len(parts) != 10 {
-		t.Fatalf("len(parts) = %d, want 10", len(parts))
+	if len(parts) != 30 {
+		t.Fatalf("len(parts) = %d, want 30", len(parts))
 	}
 
 	seenSNIs := make(map[string]int)
@@ -1685,8 +1685,8 @@ func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
 			t.Fatalf("link carries unexpected SNI: %s", l)
 		}
 	}
-	if len(seenSNIs) == 0 {
-		t.Fatalf("no SNIs matched: %v", seenSNIs)
+	if len(seenSNIs) < 2 {
+		t.Fatalf("expected both SNIs to be picked across 30 randomized configs, got: %v", seenSNIs)
 	}
 }
 
@@ -1754,6 +1754,23 @@ func TestSub_HostMultiSNI_SharedRandom(t *testing.T) {
 		} else if sni != firstSNI {
 			t.Fatalf("shared random mode mismatch: link[%d] had %s, expected %s across all configs in same group", i, sni, firstSNI)
 		}
+	}
+
+	// Verify that across independent subscription fetches, both pool SNIs are selected
+	seenAcrossFetches := make(map[string]bool)
+	seenAcrossFetches[firstSNI] = true
+	for i := 0; i < 25; i++ {
+		l, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err == nil && len(l) > 0 {
+			if strings.Contains(l[0], "sni=sniA.example.com") {
+				seenAcrossFetches["sniA.example.com"] = true
+			} else if strings.Contains(l[0], "sni=sniB.example.com") {
+				seenAcrossFetches["sniB.example.com"] = true
+			}
+		}
+	}
+	if len(seenAcrossFetches) < 2 {
+		t.Fatalf("expected both SNIs to be selected across independent fetches, got: %v", seenAcrossFetches)
 	}
 }
 

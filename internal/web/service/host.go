@@ -40,6 +40,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		IsHidden:               h.IsHidden,
 		Tags:                   h.Tags,
 		Port:                   h.Port,
+		Security:               h.Security,
 		Sni:                    h.Sni,
 		Snis:                   h.Snis,
 		SniRandomizePerConfig:  h.SniRandomizePerConfig,
@@ -128,11 +129,36 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 }
 
 func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
+	trimmedSni := strings.TrimSpace(req.Sni)
 	snis := cleanSnis(req.Snis)
-	primarySni := req.Sni
+
+	if trimmedSni != "" {
+		if len(snis) == 0 {
+			snis = []string{trimmedSni}
+		} else if snis[0] != trimmedSni {
+			if len(snis) == 1 {
+				snis = []string{trimmedSni}
+			} else {
+				var remaining []string
+				for _, s := range snis {
+					if s != trimmedSni {
+						remaining = append(remaining, s)
+					}
+				}
+				snis = append([]string{trimmedSni}, remaining...)
+			}
+		}
+	} else if len(req.Snis) == 0 {
+		snis = []string{}
+	}
+
+	var primarySni string
 	if len(snis) > 0 {
 		primarySni = snis[0]
+	} else if trimmedSni != "" {
+		primarySni = trimmedSni
 	}
+
 	randomize := req.SniRandomizePerConfig
 	shared := req.SniSharedRandom
 	if len(snis) > 1 {

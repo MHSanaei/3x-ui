@@ -75,7 +75,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     isHidden: host?.isHidden ?? false,
     tags: host?.tags ?? [],
     port: host?.port ?? 0,
-    security: (host?.security as BulkAddHostValues['security']) ?? 'same',
+    security: host?.security ? (host.security as BulkAddHostValues['security']) : 'same',
     sni: host?.sni ?? '',
     snis: initialSnis,
     sniRandomizePerConfig: initialRandomize,

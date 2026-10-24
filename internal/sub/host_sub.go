@@ -126,15 +126,7 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 
 // hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
 // random addresses from the range, any other address is a single entry.
-func hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
-	return hostEndpointMapsWithSub(nil, h, defaultDest, defaultPort)
-}
-
 func (s *SubService) hostEndpointMaps(h *model.Host, defaultDest string, defaultPort int) []map[string]any {
-	return hostEndpointMapsWithSub(s, h, defaultDest, defaultPort)
-}
-
-func hostEndpointMapsWithSub(s *SubService, h *model.Host, defaultDest string, defaultPort int) []map[string]any {
 	var sharedSni string
 	if h.SniSharedRandom && len(h.Snis) > 1 {
 		sharedSni = s.resolveSharedSni(h)
