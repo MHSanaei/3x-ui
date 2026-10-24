@@ -1488,6 +1488,7 @@
       "eventGroupNode": "Node",
       "eventOutboundDown": "Ngừng hoạt động",
       "eventOutboundUp": "Hoạt động",
+      "eventDownThresholdHint": "lần kiểm tra thất bại liên tiếp",
       "eventXrayCrash": "Sự cố",
       "eventNodeDown": "Ngừng hoạt động",
       "eventNodeUp": "Hoạt động",

@@ -541,7 +541,7 @@ func TestSub_HostRealityFingerprintJSONAndClash(t *testing.T) {
 		t.Fatalf("json reality fingerprint = %v, want the host's firefox", got)
 	}
 
-	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}
@@ -592,7 +592,7 @@ func TestSub_HostBlankOverridesDoNotLeakBetweenHosts(t *testing.T) {
 			seedHost(t, &first)
 			seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "B", Address: "b.cdn.com", Port: 443, Security: tc.first.Security})
 
-			out, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+			out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 			if err != nil {
 				t.Fatalf("GetClash: %v", err)
 			}
@@ -675,7 +675,7 @@ func TestSub_HostMihomoX25519Clash(t *testing.T) {
 	seedSubDB(t)
 	seedMihomoX25519Hosts(t)
 
-	out, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetClash: %v", err)
 	}

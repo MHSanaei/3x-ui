@@ -152,6 +152,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -639,6 +644,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -931,6 +937,11 @@
           },
           "ldapVlessField": {
             "type": "string"
+          },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
           },
           "outboundDownThreshold": {
             "maximum": 100,
@@ -1427,6 +1438,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",

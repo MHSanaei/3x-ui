@@ -1486,7 +1486,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1657,6 +1657,12 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
+	if !slices.Contains(seedersHistory, "NodeDownNotified") {
+		if err := seedNodeDownNotified(); err != nil {
+			return err
+		}
+	}
+
 	if err := seedHostsFromExternalProxy(); err != nil {
 		return err
 	}
@@ -1704,6 +1710,17 @@ func seedNodeInboundsAdopted() error {
 		return err
 	}
 	return db.Create(&model.HistoryOfSeeders{SeederName: "NodeInboundsAdopted"}).Error
+}
+
+// seedNodeDownNotified treats nodes already offline at upgrade as announced,
+// so the first heartbeat after it does not re-send their node.down.
+func seedNodeDownNotified() error {
+	if err := db.Model(&model.Node{}).
+		Where("status = ?", "offline").
+		Update("down_notified", true).Error; err != nil {
+		return err
+	}
+	return db.Create(&model.HistoryOfSeeders{SeederName: "NodeDownNotified"}).Error
 }
 
 // backfillEmptyHostGroupIds is idempotent and not seeder-gated: builds that
