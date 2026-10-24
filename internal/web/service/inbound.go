@@ -1409,6 +1409,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.PublicKey == "" {
 				return inbound, false, common.NewError("wireguard client requires a key")
 			}
+			if _, err := normalizeWireguardAllowedIPs(client.AllowedIPs); err != nil {
+				return inbound, false, err
+			}
 		case "mtproto":
 			if client.Secret == "" {
 				return inbound, false, common.NewError("mtproto client requires a secret")
@@ -1923,6 +1926,10 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 			if client.Password == "" {
 				return common.NewError("empty client ID")
 			}
+		case model.WireGuard, model.AmneziaWG:
+			if _, err := normalizeWireguardAllowedIPs(client.AllowedIPs); err != nil {
+				return err
+			}
 		case model.TUIC:
 			if client.ID == "" {
 				return common.NewError("empty client ID")
@@ -2038,6 +2045,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			return common.NewError(conflict.String())
 		}
 		if err := s.updateClientTraffics(tx, oldInbound, inbound); err != nil {
+			return err
+		}
+		if err := database.SyncHostsFromExternalProxy(tx, inbound.Id, running.StreamSettings, inbound.StreamSettings); err != nil {
 			return err
 		}
 
