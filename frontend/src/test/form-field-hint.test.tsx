@@ -1,17 +1,21 @@
 import { screen } from '@testing-library/react';
-import { FormProvider } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, InputNumber } from 'antd';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { FormField, useZodForm } from '@/components/form/rhf';
+import { FormField } from '@/components/form/rhf';
 
 import { renderWithProviders } from './test-utils';
 
 const Schema = z.object({ totalGB: z.number() });
 
 function Harness() {
-  const methods = useZodForm(Schema, { defaultValues: { totalGB: 0 } });
+  const methods = useForm<z.infer<typeof Schema>>({
+    resolver: zodResolver(Schema),
+    defaultValues: { totalGB: 0 },
+  });
   return (
     <FormProvider {...methods}>
       <Form layout="vertical">

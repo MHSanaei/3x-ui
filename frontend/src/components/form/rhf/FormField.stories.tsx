@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor } from 'storybook/test';
 import { Button, Form, Input, InputNumber, Select, Switch, Typography } from 'antd';
-import { FormProvider } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { FormField } from './FormField';
-import { useZodForm } from './useZodForm';
 
 const GB = 1024 * 1024 * 1024;
 
@@ -60,7 +60,8 @@ const ClientSchema = z.object({
 });
 
 function ClientDemo() {
-  const methods = useZodForm(ClientSchema, {
+  const methods = useForm<z.infer<typeof ClientSchema>>({
+    resolver: zodResolver(ClientSchema),
     defaultValues: { email: 'user1@example.com', flow: 'xtls-rprx-vision', enable: true },
   });
   return (
@@ -95,8 +96,11 @@ const TrafficSchema = z.object({
 });
 
 function TrafficDemo() {
-  const methods = useZodForm(TrafficSchema, { defaultValues: { totalBytes: 50 * GB } });
-  const totalBytes = methods.watch('totalBytes');
+  const methods = useForm<z.infer<typeof TrafficSchema>>({
+    resolver: zodResolver(TrafficSchema),
+    defaultValues: { totalBytes: 50 * GB },
+  });
+  const totalBytes = useWatch({ control: methods.control, name: 'totalBytes' });
   return (
     <FormProvider {...methods}>
       <Form layout="vertical" style={{ maxWidth: 360 }}>
@@ -128,7 +132,10 @@ const InboundSchema = z.object({
 });
 
 function ValidationDemo() {
-  const methods = useZodForm(InboundSchema, { defaultValues: { remark: '', port: 0 } });
+  const methods = useForm<z.infer<typeof InboundSchema>>({
+    resolver: zodResolver(InboundSchema),
+    defaultValues: { remark: '', port: 0 },
+  });
   useEffect(() => {
     void methods.trigger();
   }, [methods]);
@@ -157,7 +164,8 @@ const RealitySchema = z.object({
 });
 
 function NestedDemo() {
-  const methods = useZodForm(RealitySchema, {
+  const methods = useForm<z.infer<typeof RealitySchema>>({
+    resolver: zodResolver(RealitySchema),
     defaultValues: {
       streamSettings: {
         realitySettings: { dest: 'yahoo.com:443', serverNames: 'yahoo.com,www.yahoo.com' },
