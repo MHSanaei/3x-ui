@@ -88,6 +88,18 @@ function splitAdvertisedHost(value: string, inboundPort: number): [string, numbe
   return [addr, inboundPort];
 }
 
+function randomSni(snis: string[]): string {
+  return snis[Math.floor(Math.random() * snis.length)] ?? '';
+}
+
+// The SNI one endpoint advertises before the address and blank overrides: the group's shared
+// pick, a fresh random entry of a multi-SNI pool, or the single SNI.
+function poolSni(record: HostRecord, shared: string | undefined): string | undefined {
+  if (shared) return shared;
+  const snis = (record.snis ?? []).filter((s) => s.trim() !== '');
+  return snis.length > 1 ? randomSni(snis) : record.sni || undefined;
+}
+
 export interface HostEndpoint {
   dest: string;
   port: number;
@@ -115,6 +127,9 @@ export function hostEndpointsFor(
     ) {
       continue;
     }
+    const snis = (record.snis ?? []).filter((s) => s.trim() !== '');
+    const shared = record.sniSharedRandom && snis.length > 1 ? randomSni(snis) : undefined;
+
     for (const value of record.hosts) {
       const [address, port] = splitAdvertisedHost(value, inboundPort);
       const dest = address || defaultDest;
@@ -129,7 +144,7 @@ export function hostEndpointsFor(
               remark = record.remark ? `${record.remark} - ${i + 1}` : `${i + 1}`;
             }
             const endpoint: HostEndpoint = { dest: ip, port, remark };
-            const sni = record.overrideSniFromAddress ? ip : record.sni;
+            const sni = record.overrideSniFromAddress ? ip : poolSni(record, shared);
             if (!record.keepSniBlank && sni) endpoint.sni = sni;
             if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
             if (record.allowInsecure) endpoint.allowInsecure = true;
@@ -139,7 +154,7 @@ export function hostEndpointsFor(
         }
       }
       const endpoint: HostEndpoint = { dest, port, remark: record.remark || '' };
-      const sni = record.overrideSniFromAddress ? dest : record.sni;
+      const sni = record.overrideSniFromAddress ? dest : poolSni(record, shared);
       if (!record.keepSniBlank && sni) endpoint.sni = sni;
       if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
       if (record.allowInsecure) endpoint.allowInsecure = true;

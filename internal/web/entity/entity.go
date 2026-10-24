@@ -428,6 +428,8 @@ type HostGroup struct {
 	Port                   int      `json:"port" validate:"gte=0,lte=65535"`
 	Security               string   `json:"security" validate:"omitempty,oneof=same tls none reality"`
 	Sni                    string   `json:"sni"`
+	Snis                   []string `json:"snis"`
+	SniSharedRandom        bool     `json:"sniSharedRandom"`
 	HostHeader             string   `json:"hostHeader"`
 	Path                   string   `json:"path"`
 	Alpn                   []string `json:"alpn"`

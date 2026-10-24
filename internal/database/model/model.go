@@ -1186,6 +1186,8 @@ type Host struct {
 
 	Security               string   `json:"security" form:"security" gorm:"default:same" validate:"omitempty,oneof=same tls none reality" example:"same"`
 	Sni                    string   `json:"sni" form:"sni"`
+	Snis                   []string `json:"snis,omitempty" form:"snis" gorm:"serializer:json;column:snis"`
+	SniSharedRandom        bool     `json:"sniSharedRandom" form:"sniSharedRandom" gorm:"column:sni_shared_random"`
 	HostHeader             string   `json:"hostHeader" form:"hostHeader" gorm:"column:host_header"`
 	Path                   string   `json:"path" form:"path"`
 	Alpn                   []string `json:"alpn" form:"alpn" gorm:"serializer:json"`

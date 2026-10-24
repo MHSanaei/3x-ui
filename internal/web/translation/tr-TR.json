@@ -2394,6 +2394,7 @@
         "actions": "İşlemler",
         "security": "Güvenlik",
         "sni": "Toplumsal ve Ulusal Kimlik",
+        "sniSharedRandom": "Tüm yapılandırmalar için aynı rastgele SNI",
         "overrideSniFromAddress": "Adresi SNI olarak kullan",
         "keepSniBlank": "SNI'yi boş bırak",
         "hostHeader": "Host başlığı",

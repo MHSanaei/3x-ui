@@ -722,6 +722,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "serverDescription": "",
     "shuffleHost": false,
     "sni": "",
+    "sniSharedRandom": false,
+    "snis": [
+      ""
+    ],
     "sockoptParams": null,
     "sortOrder": 0,
     "tags": [
@@ -772,6 +776,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "serverDescription": "",
     "shuffleHost": false,
     "sni": "",
+    "sniSharedRandom": false,
+    "snis": [
+      ""
+    ],
     "sockoptParams": "",
     "sortOrder": 0,
     "tags": [

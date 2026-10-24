@@ -1707,3 +1707,173 @@ func TestSub_ClientHostRule_SurvivesGroupEdit(t *testing.T) {
 		t.Fatalf("clash must not contain the unbound host or old SNI:\n%s", yaml)
 	}
 }
+
+func TestSub_HostMultiSNI_RandomizePerConfig(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-rand", 4465, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sni1.example.com", "sni2.example.com"}
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "MultiSNI-CIDR",
+		Address:     "198.51.100.0/24",
+		Port:        8443,
+		Security:    "tls",
+		RandomCount: 30,
+		Snis:        snis,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 30 {
+		t.Fatalf("len(parts) = %d, want 30", len(parts))
+	}
+
+	seenSNIs := make(map[string]int)
+	for _, l := range parts {
+		if strings.Contains(l, "sni=sni1.example.com") {
+			seenSNIs["sni1.example.com"]++
+		} else if strings.Contains(l, "sni=sni2.example.com") {
+			seenSNIs["sni2.example.com"]++
+		} else {
+			t.Fatalf("link carries unexpected SNI: %s", l)
+		}
+	}
+	if len(seenSNIs) < 2 {
+		t.Fatalf("expected both SNIs to be picked across 30 randomized configs, got: %v", seenSNIs)
+	}
+}
+
+func TestSub_HostMultiSNI_SharedRandom(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-shared", 4466, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sniA.example.com", "sniB.example.com"}
+	groupId := "grp_multi_sni_shared"
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       1,
+		Remark:          "Host1",
+		Address:         "h1.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       2,
+		Remark:          "Host2",
+		Address:         "h2.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+	seedHost(t, &model.Host{
+		GroupId:         groupId,
+		InboundId:       ib.Id,
+		SortOrder:       3,
+		Remark:          "Host3",
+		Address:         "h3.example.com",
+		Port:            8443,
+		Security:        "tls",
+		Snis:            snis,
+		SniSharedRandom: true,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 3 {
+		t.Fatalf("len(parts) = %d, want 3", len(parts))
+	}
+
+	var firstSNI string
+	for i, l := range parts {
+		var sni string
+		if strings.Contains(l, "sni=sniA.example.com") {
+			sni = "sniA.example.com"
+		} else if strings.Contains(l, "sni=sniB.example.com") {
+			sni = "sniB.example.com"
+		} else {
+			t.Fatalf("link[%d] missing expected SNI: %s", i, l)
+		}
+		if firstSNI == "" {
+			firstSNI = sni
+		} else if sni != firstSNI {
+			t.Fatalf("shared random mode mismatch: link[%d] had %s, expected %s across all configs in same group", i, sni, firstSNI)
+		}
+	}
+
+	// Verify that across independent subscription fetches, both pool SNIs are selected
+	seenAcrossFetches := make(map[string]bool)
+	seenAcrossFetches[firstSNI] = true
+	for i := 0; i < 25; i++ {
+		l, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err == nil && len(l) > 0 {
+			if strings.Contains(l[0], "sni=sniA.example.com") {
+				seenAcrossFetches["sniA.example.com"] = true
+			} else if strings.Contains(l[0], "sni=sniB.example.com") {
+				seenAcrossFetches["sniB.example.com"] = true
+			}
+		}
+	}
+	if len(seenAcrossFetches) < 2 {
+		t.Fatalf("expected both SNIs to be selected across independent fetches, got: %v", seenAcrossFetches)
+	}
+}
+
+func TestSub_HostMultiSNI_Overrides(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "sni-overrides", 4467, 1,
+		`{"network":"tcp","security":"tls"}`)
+	snis := []string{"sni1.example.com", "sni2.example.com"}
+
+	// When OverrideSniFromAddress is true, address is used as SNI.
+	seedHost(t, &model.Host{
+		InboundId:              ib.Id,
+		SortOrder:              1,
+		Remark:                 "AddrAsSni",
+		Address:                "addr.example.com",
+		Port:                   8443,
+		Security:               "tls",
+		Snis:                   snis,
+		OverrideSniFromAddress: true,
+	})
+
+	// When KeepSniBlank is true, SNI is omitted.
+	seedHost(t, &model.Host{
+		InboundId:    ib.Id,
+		SortOrder:    2,
+		Remark:       "BlankSni",
+		Address:      "blank.example.com",
+		Port:         8443,
+		Security:     "tls",
+		Snis:         snis,
+		KeepSniBlank: true,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 2 {
+		t.Fatalf("len(parts) = %d, want 2", len(parts))
+	}
+	if !strings.Contains(parts[0], "sni=addr.example.com") {
+		t.Errorf("expected address as sni: %s", parts[0])
+	}
+	if strings.Contains(parts[1], "sni=") {
+		t.Errorf("expected blank sni: %s", parts[1])
+	}
+}

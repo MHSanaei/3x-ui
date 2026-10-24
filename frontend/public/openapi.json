@@ -2832,6 +2832,15 @@
           "sni": {
             "type": "string"
           },
+          "sniSharedRandom": {
+            "type": "boolean"
+          },
+          "snis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sockoptParams": {},
           "sortOrder": {
             "type": "integer"
@@ -2885,6 +2894,7 @@
           "serverDescription",
           "shuffleHost",
           "sni",
+          "sniSharedRandom",
           "sockoptParams",
           "sortOrder",
           "tags",
@@ -3017,6 +3027,15 @@
           "sni": {
             "type": "string"
           },
+          "sniSharedRandom": {
+            "type": "boolean"
+          },
+          "snis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sockoptParams": {
             "type": "string"
           },
@@ -3065,6 +3084,8 @@
           "serverDescription",
           "shuffleHost",
           "sni",
+          "sniSharedRandom",
+          "snis",
           "sockoptParams",
           "sortOrder",
           "tags",
@@ -12126,6 +12147,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": "",
                       "sortOrder": 0,
                       "tags": [
@@ -12213,6 +12238,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12310,6 +12339,10 @@
                     "serverDescription": "",
                     "shuffleHost": false,
                     "sni": "",
+                    "sniSharedRandom": false,
+                    "snis": [
+                      ""
+                    ],
                     "sockoptParams": "",
                     "sortOrder": 0,
                     "tags": [
@@ -12409,6 +12442,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": "",
                       "sortOrder": 0,
                       "tags": [
@@ -12558,6 +12595,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12681,6 +12722,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [
@@ -12934,6 +12979,10 @@
                       "serverDescription": "",
                       "shuffleHost": false,
                       "sni": "",
+                      "sniSharedRandom": false,
+                      "snis": [
+                        ""
+                      ],
                       "sockoptParams": null,
                       "sortOrder": 0,
                       "tags": [

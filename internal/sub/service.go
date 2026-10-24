@@ -80,6 +80,7 @@ type SubService struct {
 	hostsByInbound    map[int][]*model.Host
 	hostGroupOrders   map[string]hostEntryOrder
 	hostsFirst        bool
+	sharedGroupSni    map[string]string
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -117,6 +118,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.settingsByInbound = map[int]map[string]any{}
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
+	s.sharedGroupSni = nil
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()

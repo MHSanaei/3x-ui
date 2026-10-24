@@ -42,6 +42,8 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		Port:                   h.Port,
 		Security:               h.Security,
 		Sni:                    h.Sni,
+		Snis:                   h.Snis,
+		SniSharedRandom:        h.SniSharedRandom,
 		HostHeader:             h.HostHeader,
 		Path:                   h.Path,
 		Alpn:                   h.Alpn,
@@ -96,6 +98,12 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if h.RandomCount > g.RandomCount {
 			g.RandomCount = h.RandomCount
 		}
+		if len(h.Snis) > 0 && len(g.Snis) == 0 {
+			g.Snis = h.Snis
+		}
+		if h.SniSharedRandom {
+			g.SniSharedRandom = true
+		}
 	}
 
 	res := make([]*entity.HostGroup, 0, len(orderedGroupIds))
@@ -117,6 +125,13 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 }
 
 func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
+	snis := hostSniPool(req.Sni, req.Snis)
+	primarySni := ""
+	if len(snis) > 0 {
+		primarySni = snis[0]
+	}
+	shared := req.SniSharedRandom && len(snis) > 1
+
 	hostsToProcess := req.Hosts
 	if len(hostsToProcess) == 0 {
 		hostsToProcess = []string{""}
@@ -137,7 +152,9 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				Address:                addr,
 				Port:                   port,
 				Security:               req.Security,
-				Sni:                    req.Sni,
+				Sni:                    primarySni,
+				Snis:                   snis,
+				SniSharedRandom:        shared,
 				HostHeader:             req.HostHeader,
 				Path:                   req.Path,
 				Alpn:                   req.Alpn,
@@ -482,4 +499,33 @@ func clampRandomCount(n int) int {
 		return 100
 	}
 	return n
+}
+
+// hostSniPool is the group's SNI pool, primary first: an sni outside the pool (a caller that only
+// knows the single field) becomes the primary, replacing a one-entry pool.
+func hostSniPool(sni string, pool []string) []string {
+	snis := cleanSnis(pool)
+	sni = strings.TrimSpace(sni)
+	switch {
+	case sni == "" || (len(snis) > 0 && snis[0] == sni):
+		return snis
+	case len(snis) <= 1:
+		return []string{sni}
+	}
+	return append([]string{sni}, slices.DeleteFunc(snis, func(s string) bool { return s == sni })...)
+}
+
+func cleanSnis(snis []string) []string {
+	var out []string
+	seen := make(map[string]struct{})
+	for _, s := range snis {
+		trimmed := strings.TrimSpace(s)
+		if trimmed != "" {
+			if _, exists := seen[trimmed]; !exists {
+				seen[trimmed] = struct{}{}
+				out = append(out, trimmed)
+			}
+		}
+	}
+	return out
 }
