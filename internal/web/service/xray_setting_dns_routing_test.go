@@ -493,3 +493,20 @@ func TestEnsureDnsServerRouting_InvalidJsonReturnsAsIs(t *testing.T) {
 		t.Fatalf("expected raw passthrough on error, got %q", out)
 	}
 }
+
+// Xray dials a DoH server from its URL alone; the object's "port" (53 in entries saved by older
+// forms) never reaches it, so the allow rule must still open the URL's port.
+func TestEnsureDnsServerRouting_RemoteDohIgnoresObjectPort(t *testing.T) {
+	in := `{
+		"dns": {"servers": [{"address": "https://10.255.255.4/dns-query", "port": 53, "domains": ["lan"]}]},
+		"routing": {"rules": [{"type":"field","outboundTag":"blocked","ip":["geoip:private"]}]}
+	}`
+	out, err := EnsureDnsServerRouting(in)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	rules := rulesFromRaw(t, out)
+	if p, _ := rules[0]["port"].(string); p != "443" {
+		t.Fatalf("rules[0] port = %v, want \"443\"", rules[0]["port"])
+	}
+}

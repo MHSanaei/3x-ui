@@ -138,8 +138,8 @@ type dnsServerEndpoint struct {
 // A dns.servers entry is either a bare string or an object with an
 // "address" field (see frontend/src/schemas/dns.ts DnsServerEntrySchema);
 // the object form may also carry an explicit "port" (default 53 there,
-// per DnsServerObjectInnerSchema), which takes precedence over any port
-// embedded in the address itself.
+// per DnsServerObjectInnerSchema), which wins over a port in the address
+// except for remote DoH, which Xray dials from its URL alone.
 func privateDnsServerEndpoint(entry any) (dnsServerEndpoint, bool) {
 	var address string
 	explicitPort := 0
@@ -159,7 +159,7 @@ func privateDnsServerEndpoint(entry any) (dnsServerEndpoint, bool) {
 	if host == "" {
 		return dnsServerEndpoint{}, false
 	}
-	if explicitPort > 0 {
+	if explicitPort > 0 && !isRemoteDoh(address) {
 		port = explicitPort
 	}
 
@@ -175,6 +175,12 @@ func privateDnsServerEndpoint(entry any) (dnsServerEndpoint, bool) {
 	return dnsServerEndpoint{ip: ip.String(), port: port}, true
 }
 
+// isRemoteDoh reports a routed DoH address (https://, h2c://), which Xray dials from the URL alone.
+func isRemoteDoh(address string) bool {
+	scheme, _, ok := strings.Cut(strings.TrimSpace(address), "://")
+	return ok && (strings.EqualFold(scheme, "https") || strings.EqualFold(scheme, "h2c"))
+}
+
 // splitAddressHostPort extracts the bare host and port (defaulting to 443
 // for https:// and h2c://, 53 otherwise) from an Xray-core DNS server
 // address string. Those may carry a URI scheme (tcp://, tcp+local://, https://, https+local://, quic://,
@@ -188,10 +194,8 @@ func splitAddressHostPort(address string) (host string, port int) {
 
 	port = 53
 	if idx := strings.Index(address, "://"); idx != -1 {
-		// Remote DoH goes out on the HTTPS port, h2c included; the
-		// +local forms skip routing.
-		switch strings.ToLower(address[:idx]) {
-		case "https", "h2c":
+		// Remote DoH goes out on the HTTPS port, h2c included; the +local forms skip routing.
+		if isRemoteDoh(address) {
 			port = 443
 		}
 		address = address[idx+3:]
