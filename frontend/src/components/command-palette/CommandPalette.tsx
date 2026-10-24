@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
+import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import { useTranslation } from 'react-i18next';
 import { ConfigProvider, Tag, Tooltip, message } from 'antd';
 import {
-  ApiOutlined,
   ApartmentOutlined,
   CheckCircleFilled,
   ClockCircleOutlined,
@@ -13,13 +13,11 @@ import {
   ClusterOutlined,
   CodeOutlined,
   CopyOutlined,
-  CrownOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DiscordOutlined,
   ExportOutlined,
   FileTextOutlined,
-  GlobalOutlined,
   ImportOutlined,
   LoadingOutlined,
   MailOutlined,
@@ -31,8 +29,6 @@ import {
   SettingOutlined,
   SunOutlined,
   SwapOutlined,
-  TagsOutlined,
-  TeamOutlined,
   TelegramFilled,
   ToolOutlined,
 } from '@ant-design/icons';
@@ -61,6 +57,34 @@ interface PaletteItem {
     execute: (e: React.MouseEvent) => void;
   };
 }
+
+// The search terms of every panel page, so the palette finds it by what it
+// does rather than by its title.
+export const PALETTE_KEYWORDS: Record<string, string[]> = {
+  '/': ['overview', 'dashboard', 'cpu', 'ram', 'memory', 'traffic', 'speed'],
+  '/inbounds': [
+    'inbounds',
+    'ports',
+    'vless',
+    'vmess',
+    'reality',
+    'trojan',
+    'shadowsocks',
+    'wireguard',
+    'hysteria',
+    'masque',
+  ],
+  '/clients': ['clients', 'users', 'sub', 'traffic', 'quota'],
+  '/groups': ['groups', 'tags', 'batch'],
+  '/nodes': ['nodes', 'servers', 'cluster', 'remote nodes'],
+  '/hosts': ['hosts', 'sni', 'domains'],
+  '/outbound': ['outbounds', 'freedom', 'blackhole', 'socks', 'http', 'warp', 'nord', 'pia'],
+  '/routing': ['routing', 'rules', 'geoip', 'geosite', 'direct', 'block'],
+  '/settings': ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
+  '/xray': ['xray', 'templates', 'balancer', 'dns'],
+  '/api-docs': ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
+  '/sponsors': ['sponsors', 'sponsor', 'partners'],
+};
 
 export default function CommandPalette() {
   const { t } = useTranslation();
@@ -343,91 +367,12 @@ export default function CommandPalette() {
       });
     });
 
-    const pages = [
-      {
-        path: '/',
-        title: t('menu.dashboard'),
-        keywords: ['overview', 'dashboard', 'cpu', 'ram', 'memory', 'traffic', 'speed'],
-        icon: <DashboardOutlined aria-hidden />,
-      },
-      {
-        path: '/inbounds',
-        title: t('menu.inbounds'),
-        keywords: [
-          'inbounds',
-          'ports',
-          'vless',
-          'vmess',
-          'reality',
-          'trojan',
-          'shadowsocks',
-          'wireguard',
-          'hysteria',
-          'masque',
-        ],
-        icon: <ImportOutlined aria-hidden />,
-      },
-      {
-        path: '/clients',
-        title: t('menu.clients'),
-        keywords: ['clients', 'users', 'sub', 'traffic', 'quota'],
-        icon: <TeamOutlined aria-hidden />,
-      },
-      {
-        path: '/groups',
-        title: t('menu.groups'),
-        keywords: ['groups', 'tags', 'batch'],
-        icon: <TagsOutlined aria-hidden />,
-      },
-      {
-        path: '/nodes',
-        title: t('menu.nodes'),
-        keywords: ['nodes', 'servers', 'cluster', 'remote nodes'],
-        icon: <ClusterOutlined aria-hidden />,
-      },
-      {
-        path: '/hosts',
-        title: t('menu.hosts'),
-        keywords: ['hosts', 'sni', 'domains'],
-        icon: <GlobalOutlined aria-hidden />,
-      },
-      {
-        path: '/outbound',
-        title: t('menu.outbounds'),
-        keywords: ['outbounds', 'freedom', 'blackhole', 'socks', 'http', 'warp', 'nord', 'pia'],
-        icon: <ExportOutlined aria-hidden />,
-      },
-      {
-        path: '/routing',
-        title: t('menu.routing'),
-        keywords: ['routing', 'rules', 'geoip', 'geosite', 'direct', 'block'],
-        icon: <SwapOutlined aria-hidden />,
-      },
-      {
-        path: '/settings',
-        title: t('menu.settings'),
-        keywords: ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
-        icon: <SettingOutlined aria-hidden />,
-      },
-      {
-        path: '/xray',
-        title: t('menu.xray'),
-        keywords: ['xray', 'templates', 'balancer', 'dns'],
-        icon: <ToolOutlined aria-hidden />,
-      },
-      {
-        path: '/api-docs',
-        title: t('menu.apiDocs'),
-        keywords: ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
-        icon: <ApiOutlined aria-hidden />,
-      },
-      {
-        path: '/sponsors',
-        title: t('menu.sponsors'),
-        keywords: ['sponsors', 'sponsor', 'partners'],
-        icon: <CrownOutlined aria-hidden />,
-      },
-    ];
+    const pages = PANEL_ROUTES.map((route) => ({
+      path: route.path,
+      title: t(route.titleKey),
+      keywords: PALETTE_KEYWORDS[route.path] ?? [],
+      icon: <route.icon aria-hidden />,
+    }));
 
     pages
       .filter((p) => matches(p.title, undefined, p.keywords))
