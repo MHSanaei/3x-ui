@@ -1651,7 +1651,7 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 		logger.Debug("DelInbound: inbound not found, id:", id)
 	}
 
-	if err := db.Transaction(func(tx *gorm.DB) error {
+	if err := runSerializedTx(func(tx *gorm.DB) error {
 		if err := s.clientService.DetachInbound(tx, id); err != nil {
 			return err
 		}

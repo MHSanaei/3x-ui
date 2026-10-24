@@ -1144,6 +1144,35 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/get/subId/:subId',
+        summary: 'Fetch clients by subscription ID.',
+        description:
+          'Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.',
+        params: [
+          {
+            name: 'subId',
+            in: 'path',
+            type: 'string',
+            desc: 'Exact subscription ID (URL-encoded).',
+          },
+        ],
+        responseObjectSchema: {
+          type: 'array',
+          nullable: true,
+          items: {
+            type: 'object',
+            properties: {
+              client: { $ref: '#/components/schemas/ClientRecord' },
+              inboundIds: { type: 'array', items: { type: 'integer' } },
+              externalLinks: { type: 'array', items: { type: 'object' } },
+              usedTraffic: { type: 'integer', format: 'int64' },
+              tunnelAllowedIPs: { type: 'object', additionalProperties: { type: 'string' } },
+            },
+          },
+        },
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/get/tgId/:tgId',
         summary:
           'Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.',

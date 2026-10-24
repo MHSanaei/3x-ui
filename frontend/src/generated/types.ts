@@ -650,6 +650,7 @@ export interface Host {
   path: string;
   pinnedPeerCertSha256: string[];
   port: number;
+  randomCount: number;
   remark: string;
   security: string;
   serverDescription: string;
@@ -686,6 +687,7 @@ export interface HostGroup {
   path: string;
   pinnedPeerCertSha256: string[];
   port: number;
+  randomCount: number;
   remark: string;
   security: string;
   serverDescription: string;
