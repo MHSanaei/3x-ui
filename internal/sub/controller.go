@@ -88,6 +88,8 @@ type SUBController struct {
 
 	subTemplateMu    sync.RWMutex
 	subTemplateCache map[string]*cachedSubTemplate
+
+	releaseSnapshots func()
 }
 
 type subControllerConfig struct {
@@ -282,6 +284,11 @@ func defaultSUBControllerConfig() subControllerConfig {
 	}
 }
 
+// Close unhooks the controller's snapshot cache from panel mutations.
+func (a *SUBController) Close() {
+	a.releaseSnapshots()
+}
+
 // NewSUBController creates a new subscription controller with the given configuration.
 func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBController {
 	config := defaultSUBControllerConfig()
@@ -290,6 +297,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
+	releaseSnapshots := sub.enableSnapshotCache()
 	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	subJsonSvc.SetDnsConfig(config.subJsonDns)
@@ -327,6 +335,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, config.subClashRemoteDNS, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},
+		releaseSnapshots: releaseSnapshots,
 	}
 	a.initRouter(g)
 	return a

@@ -88,14 +88,16 @@ type SubService struct {
 
 // NewSubService creates a new subscription service with the given configuration.
 func NewSubService(remarkTemplate string) *SubService {
-	svc := &SubService{
+	return &SubService{
 		remarkTemplate: remarkTemplate,
-		snapshots:      newSubSnapshotStore(snapshotCacheTTL, snapshotCacheCapacity),
 	}
-	// Panel mutations broadcast through this registry, so subscription bodies
-	// never serve a pre-edit snapshot; the TTL is only a backstop.
-	service.RegisterSubDataInvalidator(svc.snapshots.purgeAll)
-	return svc
+}
+
+// enableSnapshotCache gives the subscription server's service its body snapshot cache, purged on
+// every panel mutation; release unhooks it when the server stops.
+func (s *SubService) enableSnapshotCache() (release func()) {
+	s.snapshots = newSubSnapshotStore(snapshotCacheTTL, snapshotCacheCapacity)
+	return service.RegisterSubDataInvalidator(s.snapshots.purgeAll)
 }
 
 // ForRequest returns a shallow copy with request-scoped state populated.
@@ -733,10 +735,8 @@ func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
 	return 0
 }
 
-// getInboundsBySubId serves subscription bodies from the shared snapshot
-// cache; everything else (panel link/QR rendering) reads fresh so admin edits
-// are visible immediately. Host rows are request-scoped and never cached:
-// host edits carry no invalidation hooks, so every request reads them fresh.
+// getInboundsBySubId serves subscription bodies from the snapshot cache and everything else fresh;
+// host rows have no invalidation hooks, so every request reads them fresh.
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	var inbounds []*model.Inbound
 	if s.snapshots == nil || !s.subscriptionBody {

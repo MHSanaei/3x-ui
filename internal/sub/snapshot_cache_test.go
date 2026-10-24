@@ -12,13 +12,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-func snapshotTestBuild(port int) func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
-	return func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
-		return []*model.Inbound{{Id: 1, Tag: "in-1", Port: port}},
-			map[string]xray.ClientTraffic{"a@e": {Email: "a@e", Up: 10, Down: 20}}, nil
-	}
-}
-
 func TestSnapshotStoreHitMissExpiry(t *testing.T) {
 	now := time.Unix(1_000_000, 0)
 	store := newSubSnapshotStore(10*time.Second, 8)
@@ -154,6 +147,7 @@ func TestGetInboundsBySubIdCacheGate(t *testing.T) {
 	seedSubInbound(t, "s1", "gate", 4601, 1, `{"network":"tcp","security":"none"}`)
 
 	cached := NewSubService("")
+	t.Cleanup(cached.enableSnapshotCache())
 	cached.subscriptionBody = true
 	fresh := NewSubService("")
 
@@ -198,14 +192,14 @@ func TestGetInboundsBySubIdCacheGate(t *testing.T) {
 	}
 }
 
-// Host rows carry no invalidation hooks by design, so a snapshot hit must
-// still read them fresh per request — a host added between two reads has to
-// show up on the second one.
+// Host rows have no invalidation hooks, so a snapshot hit must still read them fresh: a host added
+// between two reads has to show up on the second.
 func TestGetInboundsBySubIdLoadsHostsOnCacheHit(t *testing.T) {
 	seedSubDB(t)
 	ib := seedSubInbound(t, "s1", "hh", 4603, 1, `{"network":"tcp","security":"none"}`)
 
 	cached := NewSubService("")
+	t.Cleanup(cached.enableSnapshotCache())
 	cached.subscriptionBody = true
 
 	// Prime the snapshot while the inbound has no hosts.
@@ -239,5 +233,18 @@ func TestSnapshotStorePurgeAll(t *testing.T) {
 	}
 	if builds.Load() != 2 {
 		t.Fatalf("builds after purge = %d, want 2", builds.Load())
+	}
+}
+
+// Panel link rendering registered an invalidator per render and nothing ever unregistered one; a
+// released invalidator must stop running.
+func TestSubDataInvalidatorRelease(t *testing.T) {
+	var calls atomic.Int32
+	release := service.RegisterSubDataInvalidator(func() { calls.Add(1) })
+	service.InvalidateSubData()
+	release()
+	service.InvalidateSubData()
+	if calls.Load() != 1 {
+		t.Fatalf("invalidator ran %d times, want 1: a released invalidator kept running", calls.Load())
 	}
 }

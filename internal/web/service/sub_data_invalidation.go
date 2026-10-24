@@ -3,17 +3,24 @@ package service
 import "sync"
 
 var (
-	subDataInvalidatorsMu sync.Mutex
-	subDataInvalidators   []func()
+	subDataInvalidatorsMu  sync.Mutex
+	subDataInvalidators    = map[int]func(){}
+	nextSubDataInvalidator int
 )
 
-// RegisterSubDataInvalidator registers a callback invoked after any mutation
-// that can change which inbounds a subscription resolves to or how they are
-// served. The subscription service registers its snapshot cache here.
-func RegisterSubDataInvalidator(f func()) {
+// RegisterSubDataInvalidator registers a callback run after any mutation that can change what a
+// subscription serves; release unregisters it, so a stopped subscription server's cache goes.
+func RegisterSubDataInvalidator(f func()) (release func()) {
 	subDataInvalidatorsMu.Lock()
 	defer subDataInvalidatorsMu.Unlock()
-	subDataInvalidators = append(subDataInvalidators, f)
+	id := nextSubDataInvalidator
+	nextSubDataInvalidator++
+	subDataInvalidators[id] = f
+	return func() {
+		subDataInvalidatorsMu.Lock()
+		defer subDataInvalidatorsMu.Unlock()
+		delete(subDataInvalidators, id)
+	}
 }
 
 // InvalidateSubData drops every registered subscription snapshot. Purging is
