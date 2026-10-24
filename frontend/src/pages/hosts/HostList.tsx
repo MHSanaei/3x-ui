@@ -125,7 +125,7 @@ export default function HostList(props: HostListProps) {
               size="small"
               type="text"
               className="host-drag-handle"
-              icon={<HolderOutlined />}
+              icon={<HolderOutlined aria-hidden />}
               aria-label={t('pages.hosts.dragToReorder', { name: h.remark || h.groupId })}
               disabled={reordering || loading}
               onPointerDown={(event) => onHandlePointerDown(h.groupId, event)}
