@@ -2250,6 +2250,17 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.Save(oldInbound).Error; err != nil {
 			return err
 		}
+		// A master's running fallback was built from this child's listen, port and PROXY flag;
+		// re-adding only the child would leave the master pointing at the old ones.
+		if fallbackTargetChanged(&running, oldInbound) {
+			linked, err := s.fallbackService.HasDerivedFallbackTo(tx, oldInbound.Id)
+			if err != nil {
+				return err
+			}
+			if linked {
+				needRestart = true
+			}
+		}
 		newClients, gcErr := s.GetClients(oldInbound)
 		if gcErr != nil {
 			return gcErr
