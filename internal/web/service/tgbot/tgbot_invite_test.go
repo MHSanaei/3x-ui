@@ -76,7 +76,10 @@ func newInviteTgbot(t *testing.T, email string) (*Tgbot, func(string) int) {
 		Update("settings", `{"clients":[{"id":"6f1d2c3e-8a4b-4c5d-9e6f-7a8b9c0d1e2f","email":"`+email+`","subId":"sub-invite"}]}`).Error; err != nil {
 		t.Fatalf("unbind seeded client: %v", err)
 	}
-	seedClientRecord(t, email, "sub-invite", 0)
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", email).
+		Updates(map[string]any{"sub_id": "sub-invite", "tg_id": 0}).Error; err != nil {
+		t.Fatalf("unbind normalized client: %v", err)
+	}
 	withAdmins(t, 1)
 	return tb, calls
 }
