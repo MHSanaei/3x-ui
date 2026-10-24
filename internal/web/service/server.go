@@ -586,7 +586,6 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		} else {
 			status.Uptime = upTime
 		}
-
 	}
 
 	// Memory stats
@@ -606,7 +605,6 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 			status.Swap.Current = swapInfo.Used
 			status.Swap.Total = swapInfo.Total
 		}
-
 	}
 
 	// Disk stats
