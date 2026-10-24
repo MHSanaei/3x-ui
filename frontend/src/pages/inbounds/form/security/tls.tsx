@@ -1,6 +1,17 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Select,
+  Space,
+  Switch,
+  Typography,
+} from 'antd';
 import {
   CloudDownloadOutlined,
   FileProtectOutlined,
@@ -10,6 +21,7 @@ import {
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
 import { CipherSuitesSelect } from '@/components/form';
+import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField } from '@/components/form/rhf';
 import {
   ALPN_OPTION,
@@ -224,6 +236,79 @@ function EchSockoptSection() {
   );
 }
 
+interface EchKeySectionProps {
+  saving: boolean;
+  getNewEchCert: () => void;
+  clearEchCert: () => void;
+}
+
+function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionProps) {
+  const { t } = useTranslation();
+  const { control, setValue } = useFormContext();
+  const localKeys = useWatch({ control, name: 'streamSettings.tlsSettings.echServerKeys' });
+  const echConfig = useWatch({
+    control,
+    name: 'streamSettings.tlsSettings.settings.echConfigList',
+  });
+  const serverName: string =
+    useWatch({ control, name: 'streamSettings.tlsSettings.serverName' }) ?? '';
+  const helper = (
+    <DynamicEchHelper
+      value={echConfig ?? ''}
+      sni={serverName}
+      hasLocalKeys={!!localKeys}
+      onApply={(next) =>
+        setValue('streamSettings.tlsSettings.settings.echConfigList', next, {
+          shouldDirty: true,
+        })
+      }
+      onClearLocalKeys={() => setValue('streamSettings.tlsSettings.echServerKeys', '')}
+    />
+  );
+  return (
+    <>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
+        label={t('pages.inbounds.form.echConfigList')}
+        extra={
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {t('pages.inbounds.form.echConfigListHint')}
+          </Typography.Text>
+        }
+      >
+        <Input placeholder={t('pages.inbounds.form.echDynamicPlaceholder')} />
+      </FormField>
+      <Form.Item label=" " style={{ marginBottom: 8 }}>
+        {helper}
+      </Form.Item>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'echServerKeys']}
+        label={t('pages.inbounds.form.echKey')}
+      >
+        <Input placeholder={t('pages.inbounds.form.echKeyHint')} />
+      </FormField>
+      <Alert
+        type="info"
+        showIcon
+        data-testid="ech-cdn-warning"
+        style={{ marginBottom: 12 }}
+        title={t('pages.inbounds.form.echCdnWarningTitle')}
+        description={t('pages.inbounds.form.echCdnWarningBody')}
+      />
+      <Form.Item label=" ">
+        <Space wrap>
+          <Button type="primary" loading={saving} onClick={getNewEchCert}>
+            {t('pages.inbounds.form.getNewEchCert')}
+          </Button>
+          <Button danger onClick={clearEchCert}>
+            {t('clear')}
+          </Button>
+        </Space>
+      </Form.Item>
+    </>
+  );
+}
+
 export default function TlsForm({
   saving,
   setCertFromPanel,
@@ -363,28 +448,7 @@ export default function TlsForm({
         <Input placeholder="/path/to/sslkeylog.txt" />
       </FormField>
       <EchSockoptSection />
-      <FormField
-        name={['streamSettings', 'tlsSettings', 'echServerKeys']}
-        label={t('pages.inbounds.form.echKey')}
-      >
-        <Input />
-      </FormField>
-      <FormField
-        name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
-        label={t('pages.inbounds.form.echConfig')}
-      >
-        <Input />
-      </FormField>
-      <Form.Item label=" ">
-        <Space>
-          <Button type="primary" loading={saving} onClick={getNewEchCert}>
-            {t('pages.inbounds.form.getNewEchCert')}
-          </Button>
-          <Button danger onClick={clearEchCert}>
-            {t('clear')}
-          </Button>
-        </Space>
-      </Form.Item>
+      <EchKeySection saving={saving} getNewEchCert={getNewEchCert} clearEchCert={clearEchCert} />
       <Form.Item
         htmlFor={`${uid}-pinnedPeerCertSha256`}
         label={t('pages.inbounds.form.pinnedPeerCertSha256')}
