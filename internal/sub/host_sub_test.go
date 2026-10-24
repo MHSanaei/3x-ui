@@ -14,6 +14,9 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func seedSubDB(t *testing.T) {
@@ -997,5 +1000,651 @@ func TestSub_HostCIDR_ClashAndJson(t *testing.T) {
 	}
 	if !strings.Contains(jsonDoc, "V4Node - 1") || !strings.Contains(jsonDoc, "V4Node - 2") {
 		t.Errorf("JSON config should contain numbered host outbounds: %s", jsonDoc)
+	}
+}
+
+// seedSubClient adds a second client sharing subId to an already-seeded
+// inbound, so per-client host bindings can be compared within one sub.
+func seedSubClient(t *testing.T, ib *model.Inbound, subId, email string) {
+	t.Helper()
+	db := database.GetDB()
+	uuid := "22222222-3333-4444-8555-" + fmt.Sprintf("%012d", ib.Id)
+	client := &model.ClientRecord{Email: email, SubID: subId, UUID: uuid, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client %s: %v", email, err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound %s: %v", email, err)
+	}
+}
+
+const tcpTLSStream = `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`
+
+// A bound host with blank address and port must use the inbound's own, even after an earlier
+// client rewrote the shared inbound's Listen/Port while rendering its endpoints.
+func TestSub_JsonBoundHostBlankAddressIgnoresEarlierClient(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "mv", 4491, 1, tcpTLSStream)
+	// Host A has a real address and sorts last, so the unbound client (lower
+	// id, rendered first) leaves the shared inbound pointing at a.cdn.com:443.
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls"})
+	// Host B is override-only: blank address and port, so the bound client's
+	// endpoint must inherit the inbound's own address and port.
+	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "B", Security: "tls", Sni: "b.sni"})
+	seedSubClient(t, ib, "s1", "bound@e")
+
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", "bound@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostB.Id})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	type config struct {
+		Remarks   string `json:"remarks"`
+		Outbounds []struct {
+			Tag      string `json:"tag"`
+			Settings struct {
+				Address string `json:"address"`
+				Port    int    `json:"port"`
+			} `json:"settings"`
+		} `json:"outbounds"`
+	}
+	var docs []config
+	if err := json.Unmarshal([]byte(out), &docs); err != nil {
+		t.Fatalf("unmarshal json sub: %v\n%s", err, out)
+	}
+	var got struct {
+		address string
+		port    int
+	}
+	for _, doc := range docs {
+		if !strings.Contains(doc.Remarks, "bound@e") {
+			continue
+		}
+		for _, ob := range doc.Outbounds {
+			if ob.Tag == "proxy" {
+				got.address, got.port = ob.Settings.Address, ob.Settings.Port
+			}
+		}
+	}
+	if got.address == "" {
+		t.Fatalf("no proxy outbound found for the bound client:\n%s", out)
+	}
+	if got.address != ib.Listen || got.port != ib.Port {
+		t.Fatalf("override-only host resolved to %s:%d, want the inbound's own %s:%d",
+			got.address, got.port, ib.Listen, ib.Port)
+	}
+}
+
+// A client bound to one host renders only that host's link with its SNI,
+// while an unbound client on the same inbound still fans out to every host.
+func TestSub_ClientHostRule_SingleBinding(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cb", 443, 1, tcpTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
+	seedSubClient(t, ib, "s1", "other@e")
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "cb@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostB.Id})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 3 {
+		t.Fatalf("bound client renders 1 link, unbound renders 2, got %d: %v", len(parts), parts)
+	}
+	bound := 0
+	for _, l := range parts {
+		if strings.Contains(l, "b.cdn.com:443") {
+			bound++
+			if !strings.Contains(l, "sni=b.sni") {
+				t.Fatalf("bound link must carry the bound host SNI: %s", l)
+			}
+		}
+	}
+	if bound != 2 {
+		t.Fatalf("want 2 links via b.cdn.com (1 bound + 1 unbound fan-out), got %d: %v", bound, parts)
+	}
+	aLinks := 0
+	for _, l := range parts {
+		if strings.Contains(l, "a.cdn.com:443") {
+			aLinks++
+			if strings.Contains(l, "sni=b.sni") {
+				t.Fatalf("unbound host-A link must not carry host-B SNI: %s", l)
+			}
+		}
+	}
+	if aLinks != 1 {
+		t.Fatalf("want exactly 1 link via a.cdn.com (unbound fan-out), got %d: %v", aLinks, parts)
+	}
+}
+
+// A client bound to several host rules renders one link per bound host,
+// and only those hosts — a third inbound host stays out of its links.
+func TestSub_ClientHostRule_MultipleBindings(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "mb", 444, 1, tcpTLSStream)
+	hostA := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 3, Remark: "C", Address: "c.cdn.com", Port: 443, Security: "tls", Sni: "c.sni"})
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "mb@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id, hostB.Id})).Error; err != nil {
+		t.Fatalf("bind host rules: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	parts := strings.Split(joined, "\n")
+	if len(parts) != 2 {
+		t.Fatalf("two bound hosts must yield two links, got %d: %v", len(parts), parts)
+	}
+	if !strings.Contains(joined, "sni=a.sni") || !strings.Contains(joined, "sni=b.sni") {
+		t.Fatalf("each bound host SNI must appear: %s", joined)
+	}
+	if strings.Contains(joined, "c.cdn.com") {
+		t.Fatalf("unbound host must not render for the bound client: %s", joined)
+	}
+}
+
+// A deleted binding is skipped; with no valid binding left the client fails closed with zero
+// links (no fallback, no dummy link) but stays in traffic accounting.
+func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
+	t.Run("deleted and valid binding renders only the valid host", func(t *testing.T) {
+		seedSubDB(t)
+		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
+		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+		hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
+
+		db := database.GetDB()
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", "fb@e").
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{9999, hostB.Id})).Error; err != nil {
+			t.Fatalf("bind host rules: %v", err)
+		}
+
+		links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		parts := strings.Split(strings.Join(links, "\n"), "\n")
+		if len(parts) != 1 {
+			t.Fatalf("deleted id skipped, want only the valid host's link, got %d: %v", len(parts), parts)
+		}
+		if !strings.Contains(parts[0], "b.cdn.com:443") || !strings.Contains(parts[0], "sni=b.sni") {
+			t.Fatalf("valid bound host must render with its SNI: %s", parts[0])
+		}
+		if strings.Contains(parts[0], "a.cdn.com") {
+			t.Fatalf("unbound host must not render for the bound client: %s", parts[0])
+		}
+	})
+
+	t.Run("deleted-only binding fails closed with zero links", func(t *testing.T) {
+		seedSubDB(t)
+		ib := seedSubInbound(t, "s1", "fb", 445, 1, tcpTLSStream)
+		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+		seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls", Sni: "b.sni"})
+
+		db := database.GetDB()
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", "fb@e").
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{9999})).Error; err != nil {
+			t.Fatalf("bind host rule: %v", err)
+		}
+		if err := db.Create(&xray.ClientTraffic{InboundId: ib.Id, Email: "fb@e", Up: 100, Down: 200, Enable: true}).Error; err != nil {
+			t.Fatalf("seed traffic: %v", err)
+		}
+
+		links, _, _, traffic, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		if len(links) != 0 {
+			t.Fatalf("deleted-only binding must emit zero links, got %d: %v", len(links), links)
+		}
+		joined := strings.Join(links, "\n")
+		if strings.Contains(joined, "a.cdn.com") || strings.Contains(joined, "b.cdn.com") {
+			t.Fatalf("fail-closed must not fall back to inbound hosts: %s", joined)
+		}
+		if strings.Contains(joined, "socks://") || strings.Contains(joined, "127.0.0.1") {
+			t.Fatalf("fail-closed must not emit a dummy link: %s", joined)
+		}
+		if traffic.Up != 100 || traffic.Down != 200 {
+			t.Fatalf("usage = up %d/down %d, want 100/200: closed client stays in accounting", traffic.Up, traffic.Down)
+		}
+		if !traffic.Enable {
+			t.Fatalf("traffic.Enable = false, want true: closed client stays enabled")
+		}
+	})
+
+	// A deleted host id must not silence an inbound without the client's other bound hosts:
+	// relevance comes from rows that still exist, fail-closed only when every bound id is gone.
+	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
+		seedSubDB(t)
+		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
+		ibB := seedSubInbound(t, "s1", "xb", 4472, 2, tcpTLSStream)
+
+		// Put the client on both inbounds under one email.
+		db := database.GetDB()
+		var client model.ClientRecord
+		if err := db.Where("email = ?", "xb@e").First(&client).Error; err != nil {
+			t.Fatalf("load client xb@e: %v", err)
+		}
+		if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ibA.Id}).Error; err != nil {
+			t.Fatalf("link client to inbound A: %v", err)
+		}
+		// Host A lives on ibA; bind it plus a deleted id 9999.
+		hostA := seedHost(t, &model.Host{InboundId: ibA.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", "xb@e").
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id, 9999})).Error; err != nil {
+			t.Fatalf("bind host rules: %v", err)
+		}
+
+		links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		joined := strings.Join(links, "\n")
+		// Inbound B has no bound host and none of the ids map to it, so its
+		// legacy fallback link must survive; inbound A still renders host A.
+		if !strings.Contains(joined, "a.cdn.com:443") {
+			t.Fatalf("inbound A's bound host must render: %s", joined)
+		}
+		if !strings.Contains(joined, fmt.Sprintf("203.0.113.5:%d", ibB.Port)) {
+			t.Fatalf("deleted id must not silence inbound B's fallback link: %s", joined)
+		}
+	})
+}
+
+// A client bound to a disabled host fails closed on every format (no links, outbounds or proxies)
+// but stays in traffic accounting, so quota and expiry headers stay correct.
+func TestSub_ClientHostRule_DisabledFailsClosed(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "dis", 447, 1, tcpTLSStream)
+	host := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "D", Address: "dis.cdn.com", Port: 443, Security: "tls", Sni: "dis.sni"})
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "dis@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{host.Id})).Error; err != nil {
+		t.Fatalf("bind host rules: %v", err)
+	}
+	if err := db.Model(&model.Host{}).Where("id = ?", host.Id).Update("is_disabled", true).Error; err != nil {
+		t.Fatalf("disable host: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: ib.Id, Email: "dis@e", Up: 100, Down: 200, Enable: true}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	t.Run("raw", func(t *testing.T) {
+		links, _, _, traffic, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		if len(links) != 0 {
+			t.Fatalf("disabled binding must emit zero links, got %d: %v", len(links), links)
+		}
+		joined := strings.Join(links, "\n")
+		if strings.Contains(joined, "dis.cdn.com") || strings.Contains(joined, "203.0.113.5") {
+			t.Fatalf("fail-closed must not fall back: %s", joined)
+		}
+		if strings.Contains(joined, "socks://") || strings.Contains(joined, "127.0.0.1") {
+			t.Fatalf("fail-closed must not emit a dummy link: %s", joined)
+		}
+		if traffic.Up != 100 || traffic.Down != 200 {
+			t.Fatalf("usage = up %d/down %d, want 100/200", traffic.Up, traffic.Down)
+		}
+	})
+
+	t.Run("json", func(t *testing.T) {
+		out, header, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+		if err != nil {
+			t.Fatalf("GetJson: %v", err)
+		}
+		if strings.TrimSpace(out) != "" {
+			t.Fatalf("disabled binding must emit zero outbounds, got:\n%s", out)
+		}
+		if !strings.HasPrefix(header, "upload=100; download=200; ") {
+			t.Fatalf("header = %q, want usage prefix %q", header, "upload=100; download=200; ")
+		}
+		if strings.Contains(out, "dis.cdn.com") {
+			t.Fatalf("fail-closed json must not contain the disabled host:\n%s", out)
+		}
+	})
+
+	t.Run("clash", func(t *testing.T) {
+		out, header, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetClash: %v", err)
+		}
+		if strings.TrimSpace(out) != "" {
+			t.Fatalf("disabled binding must emit zero proxies, got:\n%s", out)
+		}
+		if !strings.HasPrefix(header, "upload=100; download=200; ") {
+			t.Fatalf("header = %q, want usage prefix %q", header, "upload=100; download=200; ")
+		}
+		if strings.Contains(out, "dis.cdn.com") {
+			t.Fatalf("fail-closed clash must not contain the disabled host:\n%s", out)
+		}
+	})
+
+	t.Run("panel links", func(t *testing.T) {
+		if got := NewLinkProvider().LinksForClient("req.example.com", ib, "dis@e"); len(got) != 0 {
+			t.Fatalf("LinksForClient must emit zero links, got %v", got)
+		}
+		svc := NewSubService("")
+		svc.PrepareForRequest("req.example.com")
+		if got := svc.inboundLinks(ib); len(got) != 0 {
+			t.Fatalf("inboundLinks must emit zero links, got %v", got)
+		}
+	})
+}
+
+// A host excluded from one format fails closed only there: that format emits nothing but keeps
+// accounting, while the other formats still render the host.
+func TestSub_ClientHostRule_FormatExcludedFailsClosed(t *testing.T) {
+	formats := []string{"raw", "json", "clash"}
+	for _, format := range formats {
+		t.Run(format, func(t *testing.T) {
+			seedSubDB(t)
+			ib := seedSubInbound(t, "s1", "exc", 448, 1, tcpTLSStream)
+			host := seedHost(t, &model.Host{
+				InboundId: ib.Id, SortOrder: 1, Remark: "X", Address: "exc.cdn.com", Port: 443,
+				Security: "tls", Sni: "exc.sni", ExcludeFromSubTypes: []string{format},
+			})
+
+			db := database.GetDB()
+			if err := db.Model(&model.ClientRecord{}).Where("email = ?", "exc@e").
+				Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{host.Id})).Error; err != nil {
+				t.Fatalf("bind host rules: %v", err)
+			}
+			if err := db.Create(&xray.ClientTraffic{InboundId: ib.Id, Email: "exc@e", Up: 300, Down: 400, Enable: true}).Error; err != nil {
+				t.Fatalf("seed traffic: %v", err)
+			}
+
+			switch format {
+			case "raw":
+				links, _, _, traffic, err := NewSubService("").GetSubs("s1", "req.example.com")
+				if err != nil {
+					t.Fatalf("GetSubs: %v", err)
+				}
+				if len(links) != 0 {
+					t.Fatalf("format-excluded binding must emit zero links, got %d: %v", len(links), links)
+				}
+				if traffic.Up != 300 || traffic.Down != 400 {
+					t.Fatalf("usage = up %d/down %d, want 300/400", traffic.Up, traffic.Down)
+				}
+				out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+				if err != nil {
+					t.Fatalf("GetJson: %v", err)
+				}
+				if !strings.Contains(out, "exc.cdn.com") {
+					t.Fatalf("json (not excluded) must still render the host:\n%s", out)
+				}
+				yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+				if err != nil {
+					t.Fatalf("GetClash: %v", err)
+				}
+				if !strings.Contains(yaml, "exc.cdn.com") {
+					t.Fatalf("clash (not excluded) must still render the host:\n%s", yaml)
+				}
+			case "json":
+				out, header, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+				if err != nil {
+					t.Fatalf("GetJson: %v", err)
+				}
+				if strings.TrimSpace(out) != "" {
+					t.Fatalf("format-excluded binding must emit zero outbounds, got:\n%s", out)
+				}
+				if !strings.HasPrefix(header, "upload=300; download=400; ") {
+					t.Fatalf("header = %q, want usage prefix", header)
+				}
+				links, _, _, traffic, err := NewSubService("").GetSubs("s1", "req.example.com")
+				if err != nil {
+					t.Fatalf("GetSubs: %v", err)
+				}
+				if len(links) != 1 || !strings.Contains(links[0], "exc.cdn.com") {
+					t.Fatalf("raw (not excluded) must still render the host: %v", links)
+				}
+				if traffic.Up != 300 || traffic.Down != 400 {
+					t.Fatalf("usage = up %d/down %d, want 300/400", traffic.Up, traffic.Down)
+				}
+			case "clash":
+				yaml, header, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+				if err != nil {
+					t.Fatalf("GetClash: %v", err)
+				}
+				if strings.TrimSpace(yaml) != "" {
+					t.Fatalf("format-excluded binding must emit zero proxies, got:\n%s", yaml)
+				}
+				if !strings.HasPrefix(header, "upload=300; download=400; ") {
+					t.Fatalf("header = %q, want usage prefix", header)
+				}
+				links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+				if err != nil {
+					t.Fatalf("GetSubs: %v", err)
+				}
+				if len(links) != 1 || !strings.Contains(links[0], "exc.cdn.com") {
+					t.Fatalf("raw (not excluded) must still render the host: %v", links)
+				}
+			}
+		})
+	}
+}
+
+// The bound host's SNI wins in the JSON subscription too, and unbound
+// inbound hosts stay out of the bound client's configs.
+func TestSub_ClientHostRule_JSONSNI(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "jb", 446, 1, tcpTLSStream)
+	host := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "J", Address: "j.cdn.com", Port: 443, Security: "tls", Sni: "bound.sni"})
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 2, Remark: "O", Address: "o.cdn.com", Port: 443, Security: "tls", Sni: "other.sni"})
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "jb@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{host.Id})).Error; err != nil {
+		t.Fatalf("bind host rules: %v", err)
+	}
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(out, "bound.sni") {
+		t.Fatalf("json config must carry the bound host SNI:\n%s", out)
+	}
+	if !strings.Contains(out, "j.cdn.com") {
+		t.Fatalf("json config must dial the bound host address:\n%s", out)
+	}
+	if strings.Contains(out, "other.sni") || strings.Contains(out, "o.cdn.com") {
+		t.Fatalf("json config must not contain the unbound host:\n%s", out)
+	}
+}
+
+// A host bound on inbound A must not leak onto inbound B for a client on
+// both: A renders only the bound host, B keeps its own endpoint.
+func TestSub_ClientHostRule_ScopedToInbound(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	ibA := seedSubInbound(t, "s1", "scope-a", 443, 1, tcpTLSStream)
+	var rec model.ClientRecord
+	if err := db.Where("email = ?", "scope-a@e").First(&rec).Error; err != nil {
+		t.Fatalf("load client record: %v", err)
+	}
+	ibB := &model.Inbound{
+		UserId: 1, Tag: "scope-b", Enable: true, Listen: "203.0.113.5", Port: 8443,
+		Protocol: model.VLESS, Remark: "scope-b", Settings: ibA.Settings,
+		StreamSettings: tcpTLSStream, SubSortIndex: 2,
+	}
+	if err := db.Create(ibB).Error; err != nil {
+		t.Fatalf("seed inbound B: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ibB.Id}).Error; err != nil {
+		t.Fatalf("attach client to inbound B: %v", err)
+	}
+	hostA := seedHost(t, &model.Host{InboundId: ibA.Id, SortOrder: 1, Remark: "HA", Address: "host-a.cdn.com", Port: 9443, Security: "tls", Sni: "host-a.sni"})
+	seedHost(t, &model.Host{InboundId: ibA.Id, SortOrder: 2, Remark: "HA2", Address: "host-a2.cdn.com", Port: 9443, Security: "tls", Sni: "host-a2.sni"})
+	if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 2 {
+		t.Fatalf("one link per inbound, got %d: %v", len(parts), parts)
+	}
+	joined := strings.Join(parts, "\n")
+	if got := strings.Count(joined, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("host-a address appears %d times, want once (inbound A only):\n%s", got, joined)
+	}
+	if got := strings.Count(joined, "host-a.sni"); got != 1 {
+		t.Fatalf("host-a SNI appears %d times, want once (inbound A only):\n%s", got, joined)
+	}
+	if strings.Contains(joined, "host-a2.cdn.com") || strings.Contains(joined, "host-a2.sni") {
+		t.Fatalf("unbound host-a2 must not render for the bound client:\n%s", joined)
+	}
+	plain := ""
+	for _, l := range parts {
+		if strings.Contains(l, "203.0.113.5:8443") {
+			plain = l
+		}
+	}
+	if plain == "" {
+		t.Fatalf("inbound B must keep its own endpoint 203.0.113.5:8443:\n%s", joined)
+	}
+	if strings.Contains(plain, "host-a.cdn.com") || strings.Contains(plain, "host-a.sni") {
+		t.Fatalf("inbound B link leaked host A:\n%s", plain)
+	}
+
+	jsOut, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if got := strings.Count(jsOut, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("json host-a address appears %d times, want once:\n%s", got, jsOut)
+	}
+	if got := strings.Count(jsOut, "host-a.sni"); got != 1 {
+		t.Fatalf("json host-a SNI appears %d times, want once:\n%s", got, jsOut)
+	}
+	if strings.Contains(jsOut, "host-a2.cdn.com") || strings.Contains(jsOut, "host-a2.sni") {
+		t.Fatalf("json must not contain the unbound host-a2:\n%s", jsOut)
+	}
+	if !strings.Contains(jsOut, "203.0.113.5") {
+		t.Fatalf("json must keep inbound B on its own address:\n%s", jsOut)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if got := strings.Count(yaml, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("clash host-a server appears %d times, want once:\n%s", got, yaml)
+	}
+	if strings.Contains(yaml, "host-a2.cdn.com") {
+		t.Fatalf("clash must not contain the unbound host-a2:\n%s", yaml)
+	}
+	if !strings.Contains(yaml, "203.0.113.5") {
+		t.Fatalf("clash must keep inbound B on its own server:\n%s", yaml)
+	}
+}
+
+// Binding survives a host-rule edit: UpdateHostGroup keeps row ids, so
+// raw/JSON/Clash still render only the bound host with the new SNI.
+func TestSub_ClientHostRule_SurvivesGroupEdit(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "edit", 4451, 1, tcpTLSStream)
+	hostSvc := &service.HostService{}
+	created, err := hostSvc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Hosts:      []string{"a.cdn.com:443", "b.cdn.com:443"},
+		Remark:     "orig",
+		Port:       443,
+		Security:   "tls",
+		Sni:        "old.sni",
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	if len(created) != 2 {
+		t.Fatalf("created = %d rows, want 2", len(created))
+	}
+	boundId := 0
+	for _, h := range created {
+		if h.Address == "b.cdn.com" {
+			boundId = h.Id
+		}
+	}
+	if boundId == 0 {
+		t.Fatalf("bound host row not found in %v", created)
+	}
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "edit@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{boundId})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	g, err := hostSvc.GetHostGroup(created[0].GroupId)
+	if err != nil {
+		t.Fatalf("GetHostGroup: %v", err)
+	}
+	g.Remark = "renamed"
+	g.Sni = "new.sni"
+	if _, err := hostSvc.UpdateHostGroup(g.GroupId, g); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 1 {
+		t.Fatalf("edited binding must still render 1 link, got %d: %v", len(parts), parts)
+	}
+	if !strings.Contains(parts[0], "b.cdn.com:443") || !strings.Contains(parts[0], "sni=new.sni") {
+		t.Fatalf("bound link must carry the edited host with new SNI: %s", parts[0])
+	}
+	if strings.Contains(parts[0], "a.cdn.com") || strings.Contains(parts[0], "sni=old.sni") {
+		t.Fatalf("edited binding must not fall back to the unbound host: %s", parts[0])
+	}
+
+	jsOut, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(jsOut, "b.cdn.com") || !strings.Contains(jsOut, "new.sni") {
+		t.Fatalf("json must carry the edited bound host with new SNI:\n%s", jsOut)
+	}
+	if strings.Contains(jsOut, "a.cdn.com") || strings.Contains(jsOut, "old.sni") {
+		t.Fatalf("json must not contain the unbound host or old SNI:\n%s", jsOut)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if got := strings.Count(yaml, "b.cdn.com"); got != 1 {
+		t.Fatalf("clash bound host appears %d times, want once:\n%s", got, yaml)
+	}
+	if !strings.Contains(yaml, "new.sni") {
+		t.Fatalf("clash must carry the new SNI:\n%s", yaml)
+	}
+	if strings.Contains(yaml, "a.cdn.com") || strings.Contains(yaml, "old.sni") {
+		t.Fatalf("clash must not contain the unbound host or old SNI:\n%s", yaml)
 	}
 }

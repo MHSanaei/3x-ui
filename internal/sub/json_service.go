@@ -132,6 +132,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 	var header string
 	var hasInactiveExternal bool
+	var hasBoundClosed bool
 	var hasEnabledClient bool
 
 	seenEmails := make(map[string]struct{})
@@ -150,9 +151,14 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
+		var baseEps []map[string]any
+		baseStream := inbound.StreamSettings
+		// getConfig rewrites inbound.Listen/Port per endpoint while rendering a client, so bound
+		// endpoints resolve against this pre-loop snapshot.
+		baseInbound := *inbound
 		if !subReq.hostsFirst {
-			if hostEps := subReq.hostEndpoints(inbound, "json"); len(hostEps) > 0 {
-				injectExternalProxy(inbound, hostEps)
+			if baseEps = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
+				injectExternalProxy(inbound, baseEps)
 			}
 		}
 
@@ -163,16 +169,29 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			}
 			seenEmails[client.Email] = struct{}{}
 			if subReq.hostsFirst {
-				for _, variant := range subReq.subscriptionHostVariants(inbound, "json") {
+				variants, closed := subReq.clientHostVariants(&baseInbound, client, "json")
+				hasBoundClosed = hasBoundClosed || closed
+				for _, variant := range variants {
 					render := func() subConfigEntry {
 						configs := s.getConfig(subReq, variant.inbound(subReq, inbound), client, host)
 						return subConfigEntry{sortIndex: inbound.SubSortIndex, id: inbound.Id, configs: configs, hostOrder: variant.order}
 					}
 					ordered = append(ordered, orderedSubEntry[func() subConfigEntry]{variant.order, render})
 				}
-			} else {
-				inboundConfigs = append(inboundConfigs, s.getConfig(subReq, inbound, client, host)...)
+				continue
 			}
+			effective := inbound
+			if effectiveEps, bound := subReq.clientHostEndpoints(&baseInbound, client, "json", baseEps); bound {
+				if len(effectiveEps) == 0 {
+					hasBoundClosed = true
+					continue
+				}
+				clone := baseInbound
+				clone.StreamSettings = baseStream
+				injectExternalProxy(&clone, effectiveEps)
+				effective = &clone
+			}
+			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, effective, client, host)...)
 		}
 		if len(inboundConfigs) > 0 {
 			entries = append(entries, subConfigEntry{
@@ -254,7 +273,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 	}
 
-	if len(configArray) == 0 && !hasInactiveExternal {
+	if len(configArray) == 0 && !hasInactiveExternal && !hasBoundClosed {
 		return "", "", nil
 	}
 

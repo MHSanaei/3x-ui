@@ -1704,6 +1704,17 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Auth password (Hysteria)",
         "type": "string"
       },
+      "clientHostRuleIds": {
+        "description": "ClientHostRuleIds binds the client to these host rules, one link each; nil preserves, empty\nclears, and bindings with no usable host leave that inbound out of the subscription.",
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "comment": {
         "description": "Client comment",
         "type": "string"
@@ -1940,6 +1951,16 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "auth": {
         "type": "string"
+      },
+      "clientHostRuleIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "comment": {
         "type": "string"
