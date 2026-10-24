@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -77,6 +76,9 @@ func currentXrayProcess() *xray.Process {
 	process, _ := xrayState.snapshot()
 	return process
 }
+
+// ErrXrayNotRunning reports an operation that requires a running core when xray is stopped.
+var ErrXrayNotRunning = xray.ErrXrayNotRunning
 
 // XrayService provides business logic for Xray process management.
 // It handles starting, stopping, restarting Xray, and managing its configuration.
@@ -184,6 +186,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// pre-26.9.9 quicParams.udpHop, which the core ignores, or a udphop not last, which it cannot dial.
 	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
 		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop, normalizeStreamUDPHop)
+	xrayConfig.OutboundConfigs = dropXDriveOutboundsRefusedByCore(xrayConfig.OutboundConfigs)
 	// Bridge amneziawg outbounds before anything else reads OutboundConfigs;
 	// the core has no amneziawg proxy and would reject the raw entry.
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
@@ -410,6 +413,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+	xrayConfig.InboundConfigs = dropInboundsRefusedByXDrive(xrayConfig.InboundConfigs)
 
 	// Merge subscription-derived outbounds (if any) into the final outbounds array.
 	// These are additive: each subscription is placed before or after the template
@@ -471,6 +475,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectNodeEgresses(xrayConfig, nodes)
 	}
 
+	xrayConfig.RouterConfig = dropRefusedScript(xrayConfig.RouterConfig, "routing", routingScriptRefused)
+	xrayConfig.DNSConfig = dropRefusedScript(xrayConfig.DNSConfig, "dns", dnsScriptRefused)
 	return xrayConfig, nil
 }
 
@@ -1241,7 +1247,7 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		err := errors.New("xray is not running")
+		err := ErrXrayNotRunning
 		logger.Debug("Attempted to fetch Xray traffic, but Xray is not running:", err)
 		return nil, nil, err
 	}
@@ -1351,7 +1357,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return errors.New("xray is not running")
+		return ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return err
@@ -1365,7 +1371,7 @@ func (s *XrayService) OverrideBalancer(tag, target string) error {
 func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResult, error) {
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
-		return nil, errors.New("xray is not running")
+		return nil, ErrXrayNotRunning
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return nil, err
@@ -1607,7 +1613,7 @@ func (s *XrayService) StopXray() error {
 	if process != nil && process.IsRunning() {
 		return process.Stop()
 	}
-	return errors.New("xray is not running")
+	return ErrXrayNotRunning
 }
 
 // SetToNeedRestart marks that Xray needs to be restarted.
@@ -1703,6 +1709,103 @@ func healOutboundStreams(raw json_util.RawMessage, heals ...func(stream map[stri
 		return raw
 	}
 	if rewritten, err := json.Marshal(outbounds); err == nil {
+		return rewritten
+	}
+	return raw
+}
+
+// dropInboundsRefusedByXDrive keeps out an XDRIVE inbound stored before xray-core 26.10.17 made it
+// VLESS-encryption only (#7182); the core would refuse the whole config and stop every inbound.
+func dropInboundsRefusedByXDrive(inbounds []xray.InboundConfig) []xray.InboundConfig {
+	return slices.DeleteFunc(inbounds, func(ib xray.InboundConfig) bool {
+		err := validateXDriveInbound(ib.Protocol, string(ib.Settings), string(ib.StreamSettings))
+		if err != nil {
+			logger.Warningf("Inbound %q: not started, %v", ib.Tag, err)
+		}
+		return err != nil
+	})
+}
+
+// dropXDriveOutboundsRefusedByCore keeps out an XDRIVE outbound stored before xray-core 26.10.17
+// required VLESS encryption and mux on it (#7182), which would stop the whole core at startup.
+func dropXDriveOutboundsRefusedByCore(raw json_util.RawMessage) json_util.RawMessage {
+	var outbounds []json.RawMessage
+	if len(raw) == 0 || json.Unmarshal(raw, &outbounds) != nil {
+		return raw
+	}
+	kept := make([]json.RawMessage, 0, len(outbounds))
+	for _, ob := range outbounds {
+		var probe struct {
+			Tag            string `json:"tag"`
+			StreamSettings struct {
+				Network string `json:"network"`
+			} `json:"streamSettings"`
+		}
+		if json.Unmarshal(ob, &probe) == nil && probe.StreamSettings.Network == "xdrive" {
+			if err := xray.ValidateOutboundConfig(ob); err != nil {
+				logger.Warningf("Outbound %q: not started, xray-core refuses it: %v", probe.Tag, err)
+				continue
+			}
+		}
+		kept = append(kept, ob)
+	}
+	if len(kept) == len(outbounds) {
+		return raw
+	}
+	if rewritten, err := json.Marshal(kept); err == nil {
+		return rewritten
+	}
+	return raw
+}
+
+// routingScriptRefused mirrors xray-core 26.10.17's RouterConfig.Build (#7136): a routing
+// "script" replaces rules and domainStrategy, so the core refuses a config holding both.
+func routingScriptRefused(routing map[string]any) bool {
+	script, _ := routing["script"].(string)
+	rules, _ := routing["rules"].([]any)
+	return script != "" && (routing["domainStrategy"] != nil || len(rules) > 0)
+}
+
+// dnsScriptRefused mirrors xray-core 26.10.17's DNSConfig.Build (#7136): a dns "script" refuses the
+// fallback and parallel switches, and any server scoped by domains, skipFallback or finalQuery.
+func dnsScriptRefused(dns map[string]any) bool {
+	if script, _ := dns["script"].(string); script == "" {
+		return false
+	}
+	for _, key := range []string{"disableFallback", "disableFallbackIfMatch", "enableParallelQuery"} {
+		if on, _ := dns[key].(bool); on {
+			return true
+		}
+	}
+	servers, _ := dns["servers"].([]any)
+	return slices.ContainsFunc(servers, func(entry any) bool {
+		server, _ := entry.(map[string]any)
+		skipFallback, _ := server["skipFallback"].(bool)
+		finalQuery, _ := server["finalQuery"].(bool)
+		return hasDNSDomains(server["domains"]) || skipFallback || finalQuery
+	})
+}
+
+func hasDNSDomains(domains any) bool {
+	switch v := domains.(type) {
+	case []any:
+		return len(v) > 0
+	case string:
+		return v != ""
+	}
+	return false
+}
+
+// dropRefusedScript drops a section's Lua "script" the core would refuse, logging why: the
+// panel's own rules and DNS settings stay, since its stats path depends on the api rule.
+func dropRefusedScript(raw json_util.RawMessage, section string, refused func(map[string]any) bool) json_util.RawMessage {
+	var parsed map[string]any
+	if len(raw) == 0 || json.Unmarshal(raw, &parsed) != nil || !refused(parsed) {
+		return raw
+	}
+	logger.Warningf("%s: ignoring \"script\" %v, xray-core refuses it beside this %s section's other settings", section, parsed["script"], section)
+	delete(parsed, "script")
+	if rewritten, err := json.Marshal(parsed); err == nil {
 		return rewritten
 	}
 	return raw

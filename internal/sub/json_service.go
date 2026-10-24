@@ -715,6 +715,7 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 		}
 	}
 	delete(streamSettings, "sockopt")
+	dropServerOnlyFinalMasks(streamSettings["finalmask"])
 
 	// The inbound's own hop range becomes a mask first, so the global default yields to it.
 	maskcompat.UpgradeLegacyUDPHop(streamSettings["finalmask"])

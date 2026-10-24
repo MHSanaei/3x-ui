@@ -74,6 +74,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
+    randomCount: host?.randomCount ?? 1,
   };
 }
 
@@ -95,6 +96,8 @@ export default function HostFormModal({
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
+  const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
+  const hasCidr = Boolean(watchedHosts?.some((h) => typeof h === 'string' && h.includes('/')));
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
@@ -208,7 +211,11 @@ export default function HostFormModal({
               {
                 key: 'basic',
                 forceRender: true,
-                label: catTabLabel(<ProfileOutlined />, t('pages.hosts.sections.basic'), isMobile),
+                label: catTabLabel(
+                  <ProfileOutlined aria-hidden />,
+                  t('pages.hosts.sections.basic'),
+                  isMobile,
+                ),
                 children: (
                   <>
                     <FormField
@@ -251,6 +258,11 @@ export default function HostFormModal({
                         placeholder="cdn.example.com, cdn2.example.com:443"
                       />
                     </FormField>
+                    {hasCidr && (
+                      <FormField name="randomCount" label={t('pages.hosts.fields.randomCount')}>
+                        <InputNumber min={1} max={100} style={{ width: '100%' }} />
+                      </FormField>
+                    )}
                     <FormField
                       name="port"
                       label={t('pages.hosts.fields.port')}
@@ -291,7 +303,7 @@ export default function HostFormModal({
                 key: 'security',
                 forceRender: true,
                 label: catTabLabel(
-                  <SafetyCertificateOutlined />,
+                  <SafetyCertificateOutlined aria-hidden />,
                   t('pages.hosts.sections.security'),
                   isMobile,
                 ),
@@ -373,7 +385,7 @@ export default function HostFormModal({
                 key: 'advanced',
                 forceRender: true,
                 label: catTabLabel(
-                  <ControlOutlined />,
+                  <ControlOutlined aria-hidden />,
                   t('pages.hosts.sections.advanced'),
                   isMobile,
                 ),
@@ -386,7 +398,7 @@ export default function HostFormModal({
                         key: 'adv-general',
                         forceRender: true,
                         label: catTabLabel(
-                          <SettingOutlined />,
+                          <SettingOutlined aria-hidden />,
                           t('pages.hosts.sections.general'),
                           isMobile,
                         ),
@@ -425,7 +437,7 @@ export default function HostFormModal({
                         key: 'adv-mux',
                         forceRender: true,
                         label: catTabLabel(
-                          <PartitionOutlined />,
+                          <PartitionOutlined aria-hidden />,
                           t('pages.hosts.fields.muxParams'),
                           isMobile,
                         ),
@@ -445,7 +457,7 @@ export default function HostFormModal({
                         key: 'adv-sockopt',
                         forceRender: true,
                         label: catTabLabel(
-                          <DeploymentUnitOutlined />,
+                          <DeploymentUnitOutlined aria-hidden />,
                           t('pages.hosts.fields.sockoptParams'),
                           isMobile,
                         ),
@@ -465,7 +477,7 @@ export default function HostFormModal({
                         key: 'adv-finalmask',
                         forceRender: true,
                         label: catTabLabel(
-                          <RocketOutlined />,
+                          <RocketOutlined aria-hidden />,
                           t('pages.hosts.fields.finalMask'),
                           isMobile,
                         ),
@@ -489,7 +501,7 @@ export default function HostFormModal({
                 key: 'clash',
                 forceRender: true,
                 label: catTabLabel(
-                  <NodeIndexOutlined />,
+                  <NodeIndexOutlined aria-hidden />,
                   t('pages.hosts.sections.clash'),
                   isMobile,
                 ),

@@ -80,6 +80,7 @@ type AllSetting struct {
 	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
 
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
+	NodeDownThreshold     int `json:"nodeDownThreshold" form:"nodeDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
@@ -122,6 +123,7 @@ type AllSetting struct {
 	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`
 	SubClashEnableRouting       bool   `json:"subClashEnableRouting" form:"subClashEnableRouting"`
 	SubClashRules               string `json:"subClashRules" form:"subClashRules"`
+	SubClashRemoteDNS           bool   `json:"subClashRemoteDNS" form:"subClashRemoteDNS"`
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
 	SubJsonRoutingRules         string `json:"subJsonRoutingRules" form:"subJsonRoutingRules"`
@@ -445,4 +447,5 @@ type HostGroup struct {
 	MihomoIpVersion        string   `json:"mihomoIpVersion" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
 	MihomoX25519           bool     `json:"mihomoX25519"`
 	ShuffleHost            bool     `json:"shuffleHost"`
+	RandomCount            int      `json:"randomCount" validate:"omitempty,min=1,max=100"`
 }

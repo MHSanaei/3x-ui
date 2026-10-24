@@ -28,7 +28,7 @@ func inboundShadowsocksMethod(protocol, settings string) string {
 }
 
 // inboundCanEnableTlsFlow mirrors the frontend's canEnableTlsFlow: xray-core runs Vision over
-// TLS/REALITY on raw TCP, or inside VLESS encryption (encryption.CommonConn) on any transport.
+// TLS/REALITY on raw TCP, or inside VLESS encryption on any transport but XDRIVE (#7182).
 func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	if protocol != string(model.VLESS) {
 		return false
@@ -37,8 +37,11 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 		Network  string `json:"network"`
 		Security string `json:"security"`
 	}
-	if json.Unmarshal([]byte(streamSettings), &stream) == nil && stream.Network == "tcp" &&
-		(stream.Security == "tls" || stream.Security == "reality") {
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	if stream.Network == "xdrive" {
+		return false
+	}
+	if stream.Network == "tcp" && (stream.Security == "tls" || stream.Security == "reality") {
 		return true
 	}
 	return vlessEncryptionEnabled(settings)

@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -33,6 +34,28 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 	for _, h := range hosts {
 		if slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
+		}
+		if IsCIDR(h.Address) {
+			count := h.RandomCount
+			if count <= 0 {
+				count = 1
+			}
+			ips, err := RandomIPsFromCIDR(h.Address, count)
+			if err == nil && len(ips) > 0 {
+				for i, ip := range ips {
+					hCopy := *h
+					hCopy.Address = ip
+					if len(ips) > 1 {
+						if h.Remark != "" {
+							hCopy.Remark = fmt.Sprintf("%s - %d", h.Remark, i+1)
+						} else {
+							hCopy.Remark = fmt.Sprintf("%d", i+1)
+						}
+					}
+					eps = append(eps, hostToExternalProxyMap(&hCopy, defaultDest, inbound.Port))
+				}
+				continue
+			}
 		}
 		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
 	}

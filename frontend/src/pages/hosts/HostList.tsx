@@ -95,7 +95,7 @@ export default function HostList(props: HostListProps) {
               <Button
                 size="small"
                 type="text"
-                icon={<ArrowUpOutlined />}
+                icon={<ArrowUpOutlined aria-hidden />}
                 aria-label={t('pages.hosts.moveUp')}
                 disabled={idx === 0}
                 onClick={() => onMove(h, 'up')}
@@ -105,7 +105,7 @@ export default function HostList(props: HostListProps) {
               <Button
                 size="small"
                 type="text"
-                icon={<ArrowDownOutlined />}
+                icon={<ArrowDownOutlined aria-hidden />}
                 aria-label={t('pages.hosts.moveDown')}
                 disabled={idx >= count - 1}
                 onClick={() => onMove(h, 'down')}
@@ -115,7 +115,7 @@ export default function HostList(props: HostListProps) {
               <Button
                 size="small"
                 type="text"
-                icon={<EditOutlined />}
+                icon={<EditOutlined aria-hidden />}
                 aria-label={t('edit')}
                 onClick={() => onEdit(h)}
               />
@@ -125,7 +125,7 @@ export default function HostList(props: HostListProps) {
                 size="small"
                 type="text"
                 danger
-                icon={<DeleteOutlined />}
+                icon={<DeleteOutlined aria-hidden />}
                 aria-label={t('delete')}
                 onClick={() => onDelete(h)}
               />
@@ -139,7 +139,12 @@ export default function HostList(props: HostListProps) {
       key: 'enable',
       width: 90,
       render: (_, h) => (
-        <Switch size="small" checked={!h.isDisabled} onChange={(next) => onToggleEnable(h, next)} />
+        <Switch
+          size="small"
+          checked={!h.isDisabled}
+          aria-label={t('pages.hosts.fields.enable')}
+          onChange={(next) => onToggleEnable(h, next)}
+        />
       ),
     },
     {
@@ -276,7 +281,7 @@ export default function HostList(props: HostListProps) {
   const toolbar = (
     <div className="card-toolbar">
       {selectedGroupIds.length === 0 ? (
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+        <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={onAdd}>
           {!isMobile && t('pages.hosts.addHost')}
         </Button>
       ) : (
@@ -291,7 +296,7 @@ export default function HostList(props: HostListProps) {
           </Tag>
           <Button onClick={() => onBulkEnable(true)}>{t('pages.hosts.bulkEnable')}</Button>
           <Button onClick={() => onBulkEnable(false)}>{t('pages.hosts.bulkDisable')}</Button>
-          <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
+          <Button danger icon={<DeleteOutlined aria-hidden />} onClick={onBulkDelete}>
             {t('pages.hosts.bulkDelete')}
           </Button>
         </>
@@ -316,7 +321,7 @@ export default function HostList(props: HostListProps) {
         locale={{
           emptyText: (
             <div className="card-empty">
-              <GlobalOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+              <GlobalOutlined aria-hidden style={{ fontSize: 32, marginBottom: 8 }} />
               <div>{t('noData')}</div>
             </div>
           ),

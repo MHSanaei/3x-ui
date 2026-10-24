@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -7,6 +8,7 @@ import { FormField } from '@/components/form/rhf';
 
 export default function RawForm() {
   const { t } = useTranslation();
+  const uid = useId();
   const { control, setValue } = useFormContext();
   const type = (useWatch({
     control,
@@ -14,8 +16,9 @@ export default function RawForm() {
   }) ?? 'none') as string;
   return (
     <>
-      <Form.Item label={`HTTP ${t('camouflage')}`}>
+      <Form.Item label={`HTTP ${t('camouflage')}`} htmlFor={`${uid}-httpCamouflage`}>
         <Switch
+          id={`${uid}-httpCamouflage`}
           checked={type === 'http'}
           onChange={(checked) =>
             setValue(

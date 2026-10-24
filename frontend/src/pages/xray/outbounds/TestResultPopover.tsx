@@ -79,7 +79,7 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
     >
       {children ?? (
         <span className={r.success ? 'pill-ok' : 'pill-fail'}>
-          {r.success ? <CheckCircleFilled /> : <CloseCircleFilled />}
+          {r.success ? <CheckCircleFilled aria-hidden /> : <CloseCircleFilled aria-hidden />}
           {r.success ? <span>{r.delay}&nbsp;ms</span> : <span>failed</span>}
         </span>
       )}

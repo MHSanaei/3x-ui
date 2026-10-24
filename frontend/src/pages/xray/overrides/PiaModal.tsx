@@ -340,7 +340,7 @@ export default function PiaModal({
                 type="primary"
                 className="mt-10"
                 loading={loading}
-                icon={<LoginOutlined />}
+                icon={<LoginOutlined aria-hidden />}
                 onClick={() => void login()}
               >
                 {t('login')}

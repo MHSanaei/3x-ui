@@ -787,7 +787,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		amneziawgnet.GetOutboundManager().StopAll()
 	}
 	if stopXray {
-		if err := s.xrayService.StopXray(); err != nil {
+		if err := s.xrayService.StopXray(); err != nil && !errors.Is(err, service.ErrXrayNotRunning) {
 			err2 = common.Combine(err2, err)
 		}
 	}
@@ -811,7 +811,10 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		s.wsHub.Stop()
 	}
 	if s.listener != nil {
-		err1 = common.Combine(err1, s.listener.Close())
+		// httpServer.Shutdown already closes the listener; ignore closed errors.
+		if err := s.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			err1 = common.Combine(err1, err)
+		}
 	}
 	return common.Combine(err1, err2)
 }

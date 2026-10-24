@@ -66,10 +66,13 @@ function hasVlessEncryption(settings: CapabilityProtocolSlice['settings']): bool
   return isSet(settings?.encryption) || isSet(settings?.decryption);
 }
 
+// xray-core 26.10.17 (#7182) refuses a VLESS flow on XDRIVE, encrypted or not.
 export function canEnableTlsFlow(values: CapabilityProtocolSlice): boolean {
   if (values.protocol !== 'vless') return false;
   const network = values.streamSettings?.network;
   const security = values.streamSettings?.security;
+
+  if (network === 'xdrive') return false;
 
   // Classic XTLS Vision: raw TCP carried over TLS or REALITY.
   if (network === 'tcp' && (security === 'tls' || security === 'reality')) return true;
