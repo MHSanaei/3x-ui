@@ -298,6 +298,36 @@ func TestApplyTransport_TCPHeader(t *testing.T) {
 			},
 			wantAccepted: false,
 		},
+		{
+			name:      "A header path other than / is dropped: obfs always requests /",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type": "http",
+						"request": map[string]any{
+							"path":    []any{"/download"},
+							"headers": map[string]any{"Host": []any{"cdn.example.com"}},
+						},
+					},
+				},
+			},
+			wantAccepted: false,
+		},
+		{
+			name:      "Host comes from the request headers only",
+			proxyType: "ss",
+			stream: map[string]any{
+				"tcpSettings": map[string]any{
+					"header": map[string]any{
+						"type":     "http",
+						"response": map[string]any{"headers": map[string]any{"Host": []any{"response.example.com"}}},
+					},
+				},
+			},
+			wantAccepted: true,
+			wantPlugin:   "obfs",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -315,7 +345,7 @@ func TestApplyTransport_TCPHeader(t *testing.T) {
 				if opts["mode"] != "http" {
 					t.Fatalf("expected mode=http, got=%v", opts["mode"])
 				}
-				if opts["host"] != tc.wantHost {
+				if host, _ := opts["host"].(string); host != tc.wantHost {
 					t.Fatalf("expected host=%q, got=%v", tc.wantHost, opts["host"])
 				}
 			}

@@ -1072,8 +1072,9 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			if header != nil {
 				typeStr, _ := header["type"].(string)
 				if typeStr != "" && typeStr != "none" {
-					// Maps TCP HTTP obfuscation headers to Mihomo's native simple-obfs plugin only for the Shadowsocks protocol
-					if proxy["type"] == "ss" && typeStr == "http" {
+					// Mihomo's simple-obfs always sends GET /, and xray-core rejects a request whose
+					// path is not one of the header's paths, so only a "/" header maps to obfs.
+					if proxy["type"] == "ss" && typeStr == "http" && tcpHeaderAcceptsRootPath(header) {
 						proxy["plugin"] = "obfs"
 						opts := map[string]any{
 							"mode": "http",
@@ -1159,30 +1160,26 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 	}
 }
 
+// tcpHeaderAcceptsRootPath reports whether the inbound's HTTP header accepts "/"; xray-core
+// defaults an absent request path to "/".
+func tcpHeaderAcceptsRootPath(header map[string]any) bool {
+	request, _ := header["request"].(map[string]any)
+	paths, _ := request["path"].([]any)
+	if len(paths) == 0 {
+		return true
+	}
+	for _, p := range paths {
+		if p == "/" {
+			return true
+		}
+	}
+	return false
+}
+
 func extractTCPHeaderHost(header map[string]any) string {
-	if header == nil {
-		return ""
-	}
-
-	// Prioritize reading request.headers sent by the client
-	if request, ok := header["request"].(map[string]any); ok {
-		if reqHeaders, ok := request["headers"].(map[string]any); ok {
-			if host := findHostInHeaders(reqHeaders); host != "" {
-				return host
-			}
-		}
-	}
-
-	// Fall back to reading response.headers
-	if response, ok := header["response"].(map[string]any); ok {
-		if respHeaders, ok := response["headers"].(map[string]any); ok {
-			if host := findHostInHeaders(respHeaders); host != "" {
-				return host
-			}
-		}
-	}
-
-	return ""
+	request, _ := header["request"].(map[string]any)
+	reqHeaders, _ := request["headers"].(map[string]any)
+	return findHostInHeaders(reqHeaders)
 }
 
 func findHostInHeaders(headers map[string]any) string {
