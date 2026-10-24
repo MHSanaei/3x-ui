@@ -44,7 +44,6 @@ import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
-import SponsorSlot from '@/components/sponsor/SponsorSlot';
 import './AppSidebar.css';
 
 const DONATE_URL = 'https://donate.sanaei.dev/';
@@ -101,7 +100,7 @@ function DonateButton({ ariaLabel }: { ariaLabel: string }) {
       aria-label={ariaLabel}
       title={ariaLabel}
     >
-      <HeartOutlined />
+      <HeartOutlined aria-hidden />
     </a>
   );
 }
@@ -116,7 +115,7 @@ function DocsButton({ ariaLabel }: { ariaLabel: string }) {
       aria-label={ariaLabel}
       title={ariaLabel}
     >
-      <ReadOutlined />
+      <ReadOutlined aria-hidden />
     </a>
   );
 }
@@ -133,7 +132,7 @@ function VersionBadge({ version, collapsed }: { version: string; collapsed?: boo
       aria-label={`GitHub ${label}`}
       title={label}
     >
-      <GithubOutlined />
+      <GithubOutlined aria-hidden />
       {!collapsed && <span className="sider-version-text">{label}</span>}
     </a>
   );
@@ -152,7 +151,13 @@ function ThemeCycleButton({
   onCycle: () => void;
   ariaLabel: string;
 }) {
-  const icon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
+  const icon = !isDark ? (
+    <SunOutlined aria-hidden />
+  ) : !isUltra ? (
+    <MoonOutlined aria-hidden />
+  ) : (
+    <MoonFilled aria-hidden />
+  );
   return (
     <button
       id={id}
@@ -249,42 +254,46 @@ export default function AppSidebar() {
     const children: NonNullable<MenuProps['items']> = [
       {
         key: '/settings#general',
-        icon: <SettingOutlined />,
+        icon: <SettingOutlined aria-hidden />,
         label: t('pages.settings.panelSettings'),
       },
       {
         key: '/settings#security',
-        icon: <SafetyOutlined />,
+        icon: <SafetyOutlined aria-hidden />,
         label: t('pages.settings.securitySettings'),
       },
       {
         key: '/settings#telegram',
-        icon: <MessageOutlined />,
+        icon: <MessageOutlined aria-hidden />,
         label: t('pages.settings.TGBotSettings'),
       },
-      { key: '/settings#email', icon: <MailOutlined />, label: t('pages.settings.emailSettings') },
+      {
+        key: '/settings#email',
+        icon: <MailOutlined aria-hidden />,
+        label: t('pages.settings.emailSettings'),
+      },
       {
         key: '/settings#discord',
-        icon: <DiscordOutlined />,
+        icon: <DiscordOutlined aria-hidden />,
         label: t('pages.settings.discordSettings'),
       },
       {
         key: '/settings#subscription',
-        icon: <CloudServerOutlined />,
+        icon: <CloudServerOutlined aria-hidden />,
         label: t('pages.settings.subSettings'),
       },
     ];
     if (showSubFormats) {
       children.push({
         key: '/settings#subscription-formats',
-        icon: <CodeOutlined />,
+        icon: <CodeOutlined aria-hidden />,
         label: t('menu.subFormats'),
       });
     }
     if (showSubBalancers) {
       children.push({
         key: '/settings#subscription-balancers',
-        icon: <ApartmentOutlined />,
+        icon: <ApartmentOutlined aria-hidden />,
         label: t('pages.settings.subBalancers.menu'),
       });
     }
@@ -293,10 +302,22 @@ export default function AppSidebar() {
 
   const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(
     () => [
-      { key: '/xray#basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
-      { key: '/xray#balancer', icon: <ClusterOutlined />, label: t('pages.xray.Balancers') },
-      { key: '/xray#dns', icon: <DatabaseOutlined />, label: 'DNS' },
-      { key: '/xray#advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
+      {
+        key: '/xray#basic',
+        icon: <SettingOutlined aria-hidden />,
+        label: t('pages.xray.basicTemplate'),
+      },
+      {
+        key: '/xray#balancer',
+        icon: <ClusterOutlined aria-hidden />,
+        label: t('pages.xray.Balancers'),
+      },
+      { key: '/xray#dns', icon: <DatabaseOutlined aria-hidden />, label: 'DNS' },
+      {
+        key: '/xray#advanced',
+        icon: <CodeOutlined aria-hidden />,
+        label: t('pages.xray.advancedTemplate'),
+      },
     ],
     [t],
   );
@@ -395,7 +416,7 @@ export default function AppSidebar() {
                 title={t(pinned ? 'menu.unpinSidebar' : 'menu.pinSidebar')}
                 onClick={togglePinned}
               >
-                {pinned ? <PushpinFilled /> : <PushpinOutlined />}
+                {pinned ? <PushpinFilled aria-hidden /> : <PushpinOutlined aria-hidden />}
               </button>
               <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
@@ -422,7 +443,7 @@ export default function AppSidebar() {
             aria-label={t('commandPalette.title') || 'Command Palette (Ctrl + K)'}
           >
             <span className="sidebar-command-left">
-              <SearchOutlined className="sidebar-command-icon" />
+              <SearchOutlined aria-hidden className="sidebar-command-icon" />
               <span className="sidebar-command-text">
                 {t('commandPalette.search') || 'Search...'}
               </span>
@@ -452,13 +473,6 @@ export default function AppSidebar() {
           onClick={onMenuClick}
         />
         <div className="sider-footer">
-          <SponsorSlot
-            slot="sidebar"
-            variant="compact"
-            iconOnly={railCollapsed}
-            rotate
-            className="sider-sponsor"
-          />
           <VersionBadge version={panelVersion} collapsed={railCollapsed} />
         </div>
       </Layout.Sider>
@@ -496,7 +510,7 @@ export default function AppSidebar() {
               aria-label={t('close')}
               onClick={() => setDrawerOpen(false)}
             >
-              <CloseOutlined />
+              <CloseOutlined aria-hidden />
             </button>
           </div>
         </div>
@@ -511,7 +525,7 @@ export default function AppSidebar() {
           style={{ margin: '8px 12px 4px', width: 'calc(100% - 24px)' }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SearchOutlined className="sidebar-command-icon" />
+            <SearchOutlined aria-hidden className="sidebar-command-icon" />
             <span>{t('commandPalette.search') || 'Search...'}</span>
           </span>
           <span className="sidebar-command-kbd">
@@ -544,7 +558,6 @@ export default function AppSidebar() {
           }}
         />
         <div className="drawer-footer">
-          <SponsorSlot slot="sidebar" variant="compact" rotate className="sider-sponsor" />
           <VersionBadge version={panelVersion} />
         </div>
       </Drawer>
@@ -556,7 +569,7 @@ export default function AppSidebar() {
           aria-label={t('menu.openMenu')}
           onClick={() => setDrawerOpen(true)}
         >
-          <MenuOutlined />
+          <MenuOutlined aria-hidden />
         </button>
       )}
     </div>

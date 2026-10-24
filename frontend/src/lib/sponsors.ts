@@ -1,6 +1,6 @@
 import type { Sponsor } from '@/generated/types';
 
-export type SponsorSlot = 'dashboard' | 'sidebar' | 'page' | 'login';
+export type SponsorSlot = 'dashboard' | 'page' | 'login';
 
 const DISMISS_KEY = 'xui.sponsor.dismissed';
 export const SPONSOR_DISMISS_MS = 24 * 60 * 60 * 1000;
@@ -37,26 +37,4 @@ export function dismissSponsor(id: string, slot: SponsorSlot, now = Date.now()) 
   try {
     localStorage.setItem(DISMISS_KEY, JSON.stringify(next));
   } catch {}
-}
-
-// Mirrors the backend: dashboard/login show one sponsor, the sidebar rotates up to three.
-export const SLOT_CAPACITY: Partial<Record<SponsorSlot, number>> = {
-  dashboard: 1,
-  login: 1,
-  sidebar: 3,
-};
-
-export interface PlacementStatus {
-  count: number;
-  capacity?: number;
-  takenUntil?: string;
-}
-
-// When full, a place frees up once enough bookings end to drop below capacity.
-export function placementStatus(sponsors: Sponsor[], slot: SponsorSlot): PlacementStatus {
-  const booked = sponsorsForSlot(sponsors, slot);
-  const capacity = SLOT_CAPACITY[slot];
-  if (!capacity || booked.length < capacity) return { count: booked.length, capacity };
-  const ends = booked.map((s) => s.until).sort((a, b) => Date.parse(a) - Date.parse(b));
-  return { count: booked.length, capacity, takenUntil: ends[booked.length - capacity] };
 }

@@ -54,7 +54,7 @@ exports[`NetworkSettingsSchema fixtures > parses xdrive-google-drive byte-stably
       "1//example-refresh-token",
     ],
     "segmentBytes": 524288,
-    "service": "Google Drive",
+    "service": "google-drive",
     "sessionTtlSeconds": 300,
   },
 }

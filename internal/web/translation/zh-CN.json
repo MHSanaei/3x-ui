@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本机设置",
-      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。"
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。",
+      "logLines": "行数",
+      "timeRange": "时间范围"
     },
     "inbounds": {
       "totalDownUp": "总上传 / 下载",
@@ -525,6 +527,8 @@
         "mtprotoFakeTlsDomainHint": "生成新客户端密钥时使用的默认 FakeTLS 域名。每个客户端可使用各自的域名。",
         "mtgThrottleMaxConnections": "最大连接数",
         "mtgThrottleMaxConnectionsHint": "按公平分配限制所有用户的并发连接数。0 表示不限制。",
+        "mtgPendingHandshakesMaxPerIp": "每 IP 最大未完成握手数",
+        "mtgPendingHandshakesMaxPerIpHint": "当某个 IP 的未完成握手达到此数量时，关闭其新连接。共享 IP（运营商 NAT）后的客户端共用此上限。0 表示禁用。",
         "mtgAdTagInvalid": "广告标签必须为 32 位十六进制字符。",
         "mtgPublicIpv4": "公网 IPv4",
         "mtgPublicIpv6": "公网 IPv6",
@@ -728,7 +732,10 @@
         "autoSystemDnsToGateway": "系统 DNS 指向网关",
         "autoSystemDnsToGatewayTooltip": "仅限 Linux：将 systemd-resolved 指向 TUN 网关，使系统解析经过 Xray。需要设置网关，失败时 TUN 不会启动。",
         "autoSystemWfpBlockLeak": "阻止泄漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "仅限 Windows，需配合自动系统路由：dns 让 DNS 只走 TUN（需设置 DNS 服务器），misconfigtun 阻止没有任何路由指向 TUN 的 IP 版本。"
+        "autoSystemWfpBlockLeakTooltip": "仅限 Windows，需配合自动系统路由：dns 让 DNS 只走 TUN（需设置 DNS 服务器），misconfigtun 阻止没有任何路由指向 TUN 的 IP 版本。",
+        "maxVersion": "最高版本",
+        "headerName": "标头名称",
+        "headerValue": "标头值"
       },
       "info": {
         "mode": "模式",
@@ -1299,6 +1306,8 @@
       "subClashEnableRoutingDesc": "在生成的 YAML 订阅中包含 Clash/Mihomo 全局路由规则。",
       "subClashRoutingRules": "全局路由规则",
       "subClashRoutingRulesDesc": "粘贴规则/YAML 或一个固定 HTTPS URL。面板会在后台更新，仅导入代理组、规则提供者和规则，并保留面板生成的 VPN 节点及最后一个有效值。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "监听 IP",
       "subListenDesc": "订阅服务监听的 IP 地址（留空表示监听所有 IP）",
       "subPort": "监听端口",
@@ -1423,6 +1432,15 @@
         "apiTokenName": "名称",
         "apiTokenNamePlaceholder": "例如 central-panel-a",
         "apiTokenNameRequired": "名称必填",
+        "apiTokenScope": "权限范围",
+        "apiTokenScopeAdmin": "管理员",
+        "apiTokenScopeAdminDesc": "可访问面板的所有 API 端点。仅用于可信的自动化。",
+        "apiTokenScopeMonitor": "监控",
+        "apiTokenScopeMonitorDesc": "只读访问系统状态、版本和指标。",
+        "apiTokenScopeNodeSync": "节点同步",
+        "apiTokenScopeNodeSyncDesc": "同步节点配置、入站、客户端、流量和 Xray 状态。不能更新面板软件。",
+        "apiTokenScopeNodeAdmin": "节点管理员",
+        "apiTokenScopeNodeAdminDesc": "包含节点同步权限，还可以启动面板软件更新。",
         "apiTokenEmpty": "暂无令牌 — 创建一个用于认证机器人或远程面板。",
         "apiTokenDeleteWarning": "使用此令牌的任何调用方将立即无法认证。",
         "apiTokenCreatedTitle": "令牌已创建",
@@ -2423,19 +2441,7 @@
       "tag": "赞助",
       "visit": "访问",
       "yourBrand": "您的品牌展示位",
-      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。",
-      "placements": "可用展示位",
-      "placementDashboard": "概览横幅",
-      "placementDashboardDesc": "仪表盘顶部的高级位置，每次仅一家赞助商。",
-      "placementSidebar": "侧边栏卡片",
-      "placementSidebarDesc": "在面板所有页面显示，并在赞助商之间轮换。",
-      "placementLogin": "登录页",
-      "placementLoginDesc": "管理员每次登录时都能看到。",
-      "placementPage": "赞助商页面",
-      "placementPageDesc": "在此页面展示徽标、简介和链接。",
-      "available": "可预订",
-      "takenUntil": "已预订至 {date}",
-      "activeCount": "{count} 个进行中"
+      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。"
     }
   },
   "tgbot": {

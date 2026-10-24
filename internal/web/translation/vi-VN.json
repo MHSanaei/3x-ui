@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Giữ cài đặt của máy này",
-      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên."
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên.",
+      "logLines": "Số dòng",
+      "timeRange": "Khoảng thời gian"
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",
@@ -526,6 +528,8 @@
         "mtprotoFakeTlsDomainHint": "Tên miền FakeTLS mặc định dùng để tạo secret cho client mới. Mỗi client có thể dùng tên miền riêng.",
         "mtgThrottleMaxConnections": "Số kết nối tối đa",
         "mtgThrottleMaxConnectionsHint": "Giới hạn kết nối đồng thời của tất cả người dùng theo phân bổ công bằng. 0 để tắt.",
+        "mtgPendingHandshakesMaxPerIp": "Số bắt tay chờ tối đa mỗi IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Đóng kết nối mới từ IP đang có số bắt tay chưa hoàn tất bằng mức này. Các máy khách dùng chung IP (NAT nhà mạng) chia sẻ giới hạn. 0 để tắt.",
         "mtgAdTagInvalid": "Ad-tag phải có đúng 32 ký tự thập lục phân.",
         "mtgPublicIpv4": "IPv4 công khai",
         "mtgPublicIpv6": "IPv6 công khai",
@@ -728,7 +732,10 @@
         "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
         "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
         "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN."
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN.",
+        "maxVersion": "Phiên bản tối đa",
+        "headerName": "Tên header",
+        "headerValue": "Giá trị header"
       },
       "info": {
         "mode": "Chế độ",
@@ -1299,6 +1306,8 @@
       "subClashEnableRoutingDesc": "Bao gồm quy tắc định tuyến Clash/Mihomo toàn cầu trong các đăng ký YAML được tạo.",
       "subClashRoutingRules": "Quy tắc định tuyến toàn cầu",
       "subClashRoutingRulesDesc": "Dán quy tắc/YAML hoặc một URL HTTPS cố định. Bảng điều khiển cập nhật trong nền, chỉ nhập nhóm, nhà cung cấp quy tắc và quy tắc, đồng thời giữ các nút VPN đã tạo và giá trị hợp lệ gần nhất.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Listening IP",
       "subListenDesc": "Mặc định để trống để nghe tất cả các IP",
       "subPort": "Cổng gói đăng ký",
@@ -1423,6 +1432,15 @@
         "apiTokenName": "Tên",
         "apiTokenNamePlaceholder": "ví dụ: central-panel-a",
         "apiTokenNameRequired": "Tên là bắt buộc",
+        "apiTokenScope": "Phạm vi",
+        "apiTokenScopeAdmin": "Quản trị viên",
+        "apiTokenScopeAdminDesc": "Toàn quyền truy cập mọi endpoint API của panel. Chỉ dùng cho tự động hóa đáng tin cậy.",
+        "apiTokenScopeMonitor": "Giám sát",
+        "apiTokenScopeMonitorDesc": "Quyền chỉ đọc trạng thái hệ thống, phiên bản và số liệu.",
+        "apiTokenScopeNodeSync": "Đồng bộ node",
+        "apiTokenScopeNodeSyncDesc": "Đồng bộ cấu hình node, inbound, client, lưu lượng và trạng thái Xray. Không thể cập nhật phần mềm panel.",
+        "apiTokenScopeNodeAdmin": "Quản trị node",
+        "apiTokenScopeNodeAdminDesc": "Bao gồm quyền đồng bộ node và cũng có thể khởi chạy cập nhật phần mềm panel.",
         "apiTokenEmpty": "Chưa có token nào — tạo một token để xác thực bot hoặc panel từ xa.",
         "apiTokenDeleteWarning": "Mọi client đang dùng token này sẽ ngừng xác thực ngay lập tức.",
         "apiTokenCreatedTitle": "Đã tạo token",
@@ -2423,19 +2441,7 @@
       "tag": "Tài trợ",
       "visit": "Truy cập",
       "yourBrand": "Thương hiệu của bạn ở đây",
-      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày.",
-      "placements": "Vị trí hiện có",
-      "placementDashboard": "Banner tổng quan",
-      "placementDashboardDesc": "Vị trí cao cấp ở đầu bảng điều khiển, mỗi lần một nhà tài trợ.",
-      "placementSidebar": "Thẻ thanh bên",
-      "placementSidebarDesc": "Hiển thị trên mọi trang của panel, luân phiên giữa các nhà tài trợ.",
-      "placementLogin": "Trang đăng nhập",
-      "placementLoginDesc": "Quản trị viên thấy mỗi lần đăng nhập.",
-      "placementPage": "Trang nhà tài trợ",
-      "placementPageDesc": "Được liệt kê tại đây với logo, mô tả và liên kết.",
-      "available": "Còn trống",
-      "takenUntil": "Đã đặt đến {date}",
-      "activeCount": "{count} đang hoạt động"
+      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày."
     }
   },
   "tgbot": {

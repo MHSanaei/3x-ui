@@ -305,8 +305,25 @@ describe('mKCP share params', () => {
   // The emitter flattens one mkcp-legacy mask per field into headerType/seed; a merged
   // mask drops the seed in xray-core (MkcpLegacy.Build), so import rebuilds them separately.
   type Mask = { type: string; settings: { header: string; value: string } };
+  const vmessKcp = (fields: Record<string, unknown>) =>
+    'vmess://' +
+    Base64.encode(
+      JSON.stringify({
+        v: '2',
+        add: 'h.com',
+        port: 443,
+        id: '11111111-2222-4333-8444-555555555555',
+        net: 'kcp',
+        tls: 'none',
+        ...fields,
+      }),
+    );
   const parse = (link: string) => {
-    const out = link.startsWith('trojan://') ? parseTrojanLink(link) : parseVlessLink(link);
+    const out = link.startsWith('trojan://')
+      ? parseTrojanLink(link)
+      : link.startsWith('vmess://')
+        ? parseVmessLink(link)
+        : parseVlessLink(link);
     expect(out).not.toBeNull();
     const stream = out!.streamSettings as Record<string, unknown>;
     const kcp = stream.kcpSettings as { mtu: number; tti: number };
@@ -357,8 +374,41 @@ describe('mKCP share params', () => {
       { mtu: 1350, tti: 20 },
       [],
     ],
+    [
+      'vmess header and seed from type and path',
+      vmessKcp({ type: 'wechat-video', path: 'secret-seed', mtu: 1400, tti: 50 }),
+      { mtu: 1400, tti: 50 },
+      [
+        ['mkcp-legacy', '', 'secret-seed'],
+        ['mkcp-legacy', 'wechat', ''],
+      ],
+    ],
+    [
+      'vmess fm mkcp-legacy mask wins over path',
+      vmessKcp({
+        type: 'none',
+        path: 's3cr3tSeed',
+        mtu: 1350,
+        tti: 20,
+        fm: JSON.stringify({
+          udp: [{ settings: { header: '', value: 's3cr3tSeed' }, type: 'mkcp-legacy' }],
+        }),
+      }),
+      { mtu: 1350, tti: 20 },
+      [['mkcp-legacy', '', 's3cr3tSeed']],
+    ],
   ])('%s', (_name, link, kcp, masks) => {
     expect(parse(link)).toEqual({ kcp, masks });
+  });
+
+  it('keeps a vmess fm udp mask', () => {
+    const fm = JSON.stringify({
+      udp: [{ type: 'salamander', settings: { password: 'obfspw123' } }],
+    });
+    const out = parseVmessLink(vmessKcp({ type: 'none', fm }));
+    expect((out!.streamSettings as Record<string, unknown>).finalmask).toEqual({
+      udp: [{ type: 'salamander', settings: { password: 'obfspw123' } }],
+    });
   });
 });
 

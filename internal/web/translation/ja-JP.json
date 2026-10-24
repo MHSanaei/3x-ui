@@ -291,7 +291,9 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "このマシンの設定を保持する",
-      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。",
+      "logLines": "行数",
+      "timeRange": "期間"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",
@@ -526,6 +528,8 @@
         "mtprotoFakeTlsDomainHint": "新しいクライアントのシークレット生成に使う既定の FakeTLS ドメイン。クライアントごとに別のドメインを使用できます。",
         "mtgThrottleMaxConnections": "最大接続数",
         "mtgThrottleMaxConnectionsHint": "全ユーザーの同時接続数を公平配分で制限します。0 で無効。",
+        "mtgPendingHandshakesMaxPerIp": "IP あたりの未完了ハンドシェイク上限",
+        "mtgPendingHandshakesMaxPerIpHint": "未完了のハンドシェイクをこの数だけ保持している IP からの新規接続を閉じます。共有 IP（キャリア NAT）配下のクライアントはこの上限を共有します。0 で無効。",
         "mtgAdTagInvalid": "広告タグは正確に 32 文字の 16 進数である必要があります。",
         "mtgPublicIpv4": "パブリック IPv4",
         "mtgPublicIpv6": "パブリック IPv6",
@@ -728,7 +732,10 @@
         "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
         "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
         "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS を TUN 内に留め（DNS サーバーが必要）、misconfigtun は TUN へのルートがない IP バージョンを遮断します。"
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS を TUN 内に留め（DNS サーバーが必要）、misconfigtun は TUN へのルートがない IP バージョンを遮断します。",
+        "maxVersion": "最大バージョン",
+        "headerName": "ヘッダー名",
+        "headerValue": "ヘッダー値"
       },
       "info": {
         "mode": "モード",
@@ -1299,6 +1306,8 @@
       "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
       "subClashRoutingRules": "グローバルルーティングルール",
       "subClashRoutingRulesDesc": "ルール/YAML、または永続的な HTTPS URL を入力します。パネルはバックグラウンドで更新し、グループ・ルールプロバイダー・ルールのみを取り込み、生成済み VPN ノードと最後の有効値を保持します。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "監視IP",
       "subListenDesc": "サブスクリプションサービスが監視するIPアドレス（空白にするとすべてのIPを監視）",
       "subPort": "監視ポート",
@@ -1423,6 +1432,15 @@
         "apiTokenName": "名前",
         "apiTokenNamePlaceholder": "例: central-panel-a",
         "apiTokenNameRequired": "名前は必須です",
+        "apiTokenScope": "スコープ",
+        "apiTokenScopeAdmin": "管理者",
+        "apiTokenScopeAdminDesc": "パネルのすべての API エンドポイントへのフルアクセス。信頼できる自動化にのみ使用してください。",
+        "apiTokenScopeMonitor": "監視",
+        "apiTokenScopeMonitorDesc": "システム状態、バージョン、メトリクスへの読み取り専用アクセス。",
+        "apiTokenScopeNodeSync": "ノード同期",
+        "apiTokenScopeNodeSyncDesc": "ノード設定、インバウンド、クライアント、トラフィック、Xray 状態を同期します。パネルソフトウェアは更新できません。",
+        "apiTokenScopeNodeAdmin": "ノード管理者",
+        "apiTokenScopeNodeAdminDesc": "ノード同期権限に加え、パネルソフトウェアの更新も開始できます。",
         "apiTokenEmpty": "トークンがまだありません — ボットやリモートパネルを認証するために作成してください。",
         "apiTokenDeleteWarning": "このトークンを使用しているクライアントは直ちに認証できなくなります。",
         "apiTokenCreatedTitle": "トークンを作成しました",
@@ -2423,19 +2441,7 @@
       "tag": "スポンサー",
       "visit": "訪問",
       "yourBrand": "ここにあなたのブランドを",
-      "yourBrandText": "毎日 3X-UI を開く何千人ものサーバー管理者に御社をアピールできます。",
-      "placements": "掲載枠",
-      "placementDashboard": "ダッシュボードバナー",
-      "placementDashboardDesc": "ダッシュボード上部のプレミアム枠。一度に 1 社のみ。",
-      "placementSidebar": "サイドバーカード",
-      "placementSidebarDesc": "パネルの全ページに表示され、スポンサー間でローテーションします。",
-      "placementLogin": "ログインページ",
-      "placementLoginDesc": "管理者がログインするたびに表示されます。",
-      "placementPage": "スポンサーページ",
-      "placementPageDesc": "ロゴ、説明、リンク付きでここに掲載されます。",
-      "available": "空きあり",
-      "takenUntil": "{date} まで予約済み",
-      "activeCount": "{count} 件掲載中"
+      "yourBrandText": "毎日 3X-UI を開く何千人ものサーバー管理者に御社をアピールできます。"
     }
   },
   "tgbot": {

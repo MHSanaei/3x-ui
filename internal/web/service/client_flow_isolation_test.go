@@ -324,3 +324,35 @@ func TestBulkAttach_PreservesVisionFlowWhenCanonicalColumnZeroed(t *testing.T) {
 		t.Errorf("bulk-attached non-flow inbound must not receive Vision flow, got %#v", wsList)
 	}
 }
+
+// A client detached from its last inbound has no effective flow left to settle
+// its record to, so the record keeps the flow a later attach falls back on.
+func TestRecordFlow_DetachedFromLastInboundKeepsFlow(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+
+	reality := &model.Inbound{Tag: "vless-reality", Enable: true, Port: 43001, Protocol: model.VLESS, StreamSettings: `{"network":"tcp","security":"reality"}`}
+	if err := database.GetDB().Create(reality).Error; err != nil {
+		t.Fatalf("create reality inbound: %v", err)
+	}
+
+	svc := ClientService{}
+	const email = "detached@example.com"
+	const vision = "xtls-rprx-vision"
+	client := model.Client{Email: email, ID: "ce8d33df-3a64-4f10-8f9b-91c3a8e0c333", Enable: true, Flow: vision}
+	if err := svc.SyncInbound(nil, reality.Id, []model.Client{client}); err != nil {
+		t.Fatalf("SyncInbound(attach): %v", err)
+	}
+	if err := svc.SyncInbound(nil, reality.Id, nil); err != nil {
+		t.Fatalf("SyncInbound(detach): %v", err)
+	}
+
+	rec, err := svc.GetRecordByEmail(nil, email)
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.Flow != vision {
+		t.Errorf("record flow after detaching its last inbound = %q, want %q", rec.Flow, vision)
+	}
+}
