@@ -70,9 +70,6 @@ func (m *Manager) NodeEgressProxyURL(nodeID int) string {
 }
 
 func (m *Manager) RuntimeFor(nodeID *int) (Runtime, error) {
-	if m == nil {
-		return nil, errors.New("runtime manager not initialised")
-	}
 	if nodeID == nil {
 		m.mu.RLock()
 		if m.localOverride != nil {
