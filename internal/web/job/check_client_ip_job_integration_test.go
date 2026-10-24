@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // 3x-ui logger must be initialised once before any code path that can
@@ -317,6 +318,67 @@ func TestProcessObserved_CollectsIpsWithoutLimit(t *testing.T) {
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
 		t.Fatalf("3xipl.log should be empty with no limit set, got:\n%s", body)
+	}
+}
+
+// #6722: collection-only runs keep the enforcing run's 30-minute window; the
+// old branch overwrote the blob, dropping IPs seen minutes earlier.
+func TestProcessObserved_CollectionOnlyKeepsRecentWindow(t *testing.T) {
+	setupIntegrationDB(t)
+
+	const email = "window-user"
+	seedInboundWithClient(t, "inbound-window", email, 0)
+	fiveMinAgo := time.Now().Unix() - 5*60
+	seedClientIps(t, email, []IPWithTimestamp{{IP: "198.51.100.1", Timestamp: fiveMinAgo}})
+
+	observed := map[string]map[string]int64{
+		email: {"203.0.113.30": time.Now().Unix()},
+	}
+	NewCheckClientIpJob().processObserved(observed, false, true)
+
+	got := ipSet(readClientIps(t, email))
+	if _, ok := got["198.51.100.1"]; !ok {
+		t.Fatalf("collection-only run dropped the recent IP 198.51.100.1, got %v", got)
+	}
+	if _, ok := got["203.0.113.30"]; !ok {
+		t.Fatalf("collection-only run missed the observed IP 203.0.113.30, got %v", got)
+	}
+}
+
+// staticOnlineUsers pins the job's online-stats source so Run can be driven
+// end to end without a live xray core.
+type staticOnlineUsers []xray.OnlineUser
+
+func (s staticOnlineUsers) GetOnlineUsers() ([]xray.OnlineUser, bool, error) {
+	return s, true, nil
+}
+
+// #6722: fail2ban disabled — an over-limit client is recorded but never banned;
+// the setup can ban (limit 1, two IPs, fake fail2ban), so the flag stops it.
+func TestRun_RecordsIpsWhenFail2banDisabled(t *testing.T) {
+	setupIntegrationDB(t)
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	fakeFail2BanClient(t)
+
+	const email = "track-only-user"
+	seedLinkedInboundWithClient(t, "inbound-track-only", email, 1)
+
+	j := NewCheckClientIpJob()
+	j.onlineUsers = staticOnlineUsers{{Email: email, IPs: []xray.OnlineIP{
+		{IP: "203.0.113.20"}, {IP: "203.0.113.21"},
+	}}}
+	// Bans need a stored row (the first scan only records), so run twice: the
+	// second scan is where enforcement would fire if the flag allowed it.
+	j.Run()
+	j.Run()
+
+	got := ipSet(readClientIps(t, email))
+	if len(got) != 2 {
+		t.Fatalf("expected both observed IPs recorded with fail2ban disabled, got %v", got)
+	}
+	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
+		body, _ := os.ReadFile(readIpLimitLogPath())
+		t.Fatalf("3xipl.log must stay empty with fail2ban disabled, got:\n%s", body)
 	}
 }
 

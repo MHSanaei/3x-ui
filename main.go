@@ -121,7 +121,7 @@ func runWebServer() {
 		log.Printf("No panel user existed, so one was generated. Username: %s  Password: %s  (shown once; change it in Panel Settings)", username, password)
 	}
 
-	server := web.NewServer()
+	server := web.NewServer(sub.NewLinkProvider())
 	global.SetWebServer(server)
 	err = server.Start()
 	if err != nil {
@@ -129,7 +129,6 @@ func runWebServer() {
 	}
 
 	sub.SetDistFS(web.EmbeddedDist())
-	service.RegisterSubLinkProvider(sub.NewLinkProvider())
 	subServer := sub.NewServer()
 	global.SetSubServer(subServer)
 	err = subServer.Start()
@@ -183,7 +182,7 @@ func runWebServer() {
 				logger.Debug("Error stopping sub server:", err)
 			}
 
-			server = web.NewServer()
+			server = web.NewServer(sub.NewLinkProvider())
 			global.SetWebServer(server)
 			err = server.StartPanelOnly()
 			if err != nil {

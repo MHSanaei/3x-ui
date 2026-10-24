@@ -1436,6 +1436,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
+	if err := validateTuicClientEmails(inbound.Protocol, clients); err != nil {
+		return inbound, false, err
+	}
+
 	needRestart := false
 	var postCommitApply func()
 	err = runSerializedTx(func(tx *gorm.DB) error {
@@ -1942,7 +1946,7 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 			}
 		}
 	}
-	return nil
+	return validateTuicClientEmails(inbound.Protocol, clients)
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {

@@ -138,8 +138,12 @@ type Server struct {
 	cancel context.CancelFunc
 }
 
-// NewServer creates a new web server instance with a cancellable context.
-func NewServer() *Server {
+// NewServer installs the share-link provider before anything serves, so an early link request
+// no longer gets "sub link provider not registered".
+func NewServer(subLinkProvider service.SubLinkProvider) *Server {
+	if subLinkProvider != nil {
+		service.RegisterSubLinkProvider(subLinkProvider)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
 		ctx:    ctx,
@@ -550,11 +554,13 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
-	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{
-		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
-	}))
-	runtime.GetManager().SetNodeEgressResolver(&s.settingService)
+	mgr := runtime.NewManager(runtime.LocalDeps{
+		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
+		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
+		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
+	})
+	runtime.SetManager(mgr)
+	mgr.SetNodeEgressResolver(&s.settingService)
 	// Supply the master client certificate for nodes in mtls mode. Issued lazily
 	// from the node CA on first use; runtime stays free of a service import.
 	runtime.SetMasterClientCertProvider(func() (tls.Certificate, error) {

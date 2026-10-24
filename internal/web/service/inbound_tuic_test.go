@@ -13,7 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-func TestInjectTuicSocks(t *testing.T) {
+func TestInjectTuicRelay(t *testing.T) {
 	cfg := &xray.Config{}
 	inbounds := []*model.Inbound{
 		{
@@ -31,7 +31,13 @@ func TestInjectTuicSocks(t *testing.T) {
 		},
 	}
 
-	injectTuicSocks(cfg, inbounds)
+	inst, ok := tuic.InstanceFromInbound(inbounds[0])
+	if !ok {
+		t.Fatal("invalid TUIC fixture")
+	}
+	if err := injectTuicRelay(cfg, []tuic.Instance{inst}); err != nil {
+		t.Fatal(err)
+	}
 
 	if len(cfg.InboundConfigs) != 1 {
 		t.Fatalf("expected 1 injected SOCKS inbound, got %d", len(cfg.InboundConfigs))
@@ -67,14 +73,21 @@ func TestInjectTuicSocks(t *testing.T) {
 	}
 
 	var parsedSettings struct {
-		Auth string `json:"auth"`
-		UDP  bool   `json:"udp"`
+		Auth     string `json:"auth"`
+		UDP      bool   `json:"udp"`
+		Accounts []struct {
+			User string `json:"user"`
+			Pass string `json:"pass"`
+		} `json:"accounts"`
 	}
 	if err := json.Unmarshal(sc.Settings, &parsedSettings); err != nil {
 		t.Fatalf("failed to unmarshal settings: %v", err)
 	}
-	if parsedSettings.Auth != "noauth" || !parsedSettings.UDP {
-		t.Fatalf("expected auth=noauth, udp=true, got %+v", parsedSettings)
+	if parsedSettings.Auth != "password" || !parsedSettings.UDP {
+		t.Fatalf("expected auth=password, udp=true, got %+v", parsedSettings)
+	}
+	if len(parsedSettings.Accounts) != 1 || parsedSettings.Accounts[0].User != "user1@example.com" || parsedSettings.Accounts[0].Pass != tuic.SocksPassword() {
+		t.Fatal("generated SOCKS account must authenticate the TUIC client using the relay password")
 	}
 }
 
@@ -346,4 +359,107 @@ func TestNormalizeTuicSettingsCanonicalizesCongestionAndPacketLimit(t *testing.T
 	if err := normalizeTuicSettings(ib); err == nil {
 		t.Fatal("unsupported congestion controller was accepted")
 	}
+}
+
+func TestTuicRelayIdentitySurvivesNativeEligibilityChanges(t *testing.T) {
+	setupBulkDB(t)
+	clients := []model.Client{
+		{Email: "active@test", ID: "a0000000-0000-0000-0000-000000000071", Password: "p1", Enable: true},
+		{Email: "manual@test", ID: "a0000000-0000-0000-0000-000000000072", Password: "p2", Enable: false},
+		{Email: "quota@test", ID: "a0000000-0000-0000-0000-000000000073", Password: "p3", Enable: true},
+		{Email: "invalid@test", ID: "a0000000-0000-0000-0000-000000000074", Enable: true},
+	}
+	ib := mkInbound(t, 45371, model.TUIC, clientsSettings(t, clients))
+	if err := (&ClientService{}).SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range clients {
+		if err := (&InboundService{}).AddClientStat(database.GetDB(), ib.Id, &c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", "quota@test").Update("enable", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tuicRelayAccountEmails(t, cfg, ib.Tag); !slices.Equal(got, []string{"active@test", "manual@test", "quota@test"}) {
+		t.Fatalf("relay accounts = %v, want configured identities independent of native eligibility", got)
+	}
+	instances, err := (&InboundService{}).DesiredTuicInstances()
+	if err != nil || len(instances) != 1 || len(instances[0].Clients) != 1 || instances[0].Clients[0].Email != "active@test" {
+		t.Fatalf("native TUIC eligibility differs from relay accounts: %+v, %v", instances, err)
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+		t.Fatal(err)
+	}
+	settings["sni"] = "profile.test"
+	settings["udp_relay_mode"] = "quic"
+	settings["congestion_control"] = "cubic"
+	settings["log_level"] = "debug"
+	if err := database.GetDB().Model(ib).Update("settings", string(mustJSON(t, settings))).Error; err != nil {
+		t.Fatal(err)
+	}
+	profileCfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff, hot := xray.ComputeHotDiff(cfg, profileCfg); !hot || !diff.Empty() {
+		t.Fatalf("TUIC profile/runtime settings changed Xray config: hot=%t diff=%+v", hot, diff)
+	}
+
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", "quota@test").Update("enable", true).Error; err != nil {
+		t.Fatal(err)
+	}
+	renewedCfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tuicRelayAccountEmails(t, renewedCfg, ib.Tag); !slices.Equal(got, []string{"active@test", "manual@test", "quota@test"}) {
+		t.Fatalf("renewed relay accounts = %v, want all configured identities", got)
+	}
+	if diff, hot := xray.ComputeHotDiff(profileCfg, renewedCfg); !hot || !diff.Empty() {
+		t.Fatal("quota renewal must leave relay admission unchanged")
+	}
+
+	if err := database.GetDB().Model(ib).Update("settings", `{"clients":[]}`).Error; err != nil {
+		t.Fatal(err)
+	}
+	emptyCfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inbound := range emptyCfg.InboundConfigs {
+		if inbound.Tag == ib.Tag && len(tuicRelayAccountEmails(t, emptyCfg, ib.Tag)) != 0 {
+			t.Fatal("removed clients must lose relay credentials")
+		}
+	}
+}
+
+func tuicRelayAccountEmails(t *testing.T, cfg *xray.Config, tag string) []string {
+	t.Helper()
+	for _, ib := range cfg.InboundConfigs {
+		if ib.Tag != tag {
+			continue
+		}
+		var settings struct {
+			Accounts []struct {
+				User string `json:"user"`
+			} `json:"accounts"`
+		}
+		if err := json.Unmarshal(ib.Settings, &settings); err != nil {
+			t.Fatal(err)
+		}
+		emails := make([]string, 0, len(settings.Accounts))
+		for _, account := range settings.Accounts {
+			emails = append(emails, account.User)
+		}
+		return emails
+	}
+	t.Fatalf("missing generated TUIC relay %q", tag)
+	return nil
 }

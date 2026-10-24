@@ -29,6 +29,11 @@ func TestAudit3ManagerStopMustInterruptIdleTCPRelay(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer listener.Close()
+	update, err := ManagedRelayGate(SOCKSPortForInbound(inboundID)).BeginUpdate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	update.Finish(inboundID, []string{"close-idle@audit3"}, true)
 	release := make(chan struct{})
 	defer close(release)
 	peerFIN := make(chan struct{})

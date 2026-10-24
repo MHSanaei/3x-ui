@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
+import {
+  Alert,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Switch,
+  Tabs,
+  Typography,
+  message,
+} from 'antd';
 import {
   ProfileOutlined,
   SafetyCertificateOutlined,
@@ -18,6 +29,7 @@ import { BulkAddHostSchema, type BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { CipherSuitesSelect } from '@/components/form';
+import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -94,6 +106,8 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
+  const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
+  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
   const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
@@ -372,10 +386,34 @@ export default function HostFormModal({
                         </FormField>
                         <FormField
                           name="echConfigList"
-                          label={t('pages.hosts.fields.echConfigList')}
+                          label={t('pages.inbounds.form.echConfigList')}
+                          extra={
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {t('pages.inbounds.form.echConfigListHint')}
+                            </Typography.Text>
+                          }
                         >
-                          <Input.TextArea rows={2} />
+                          <Input.TextArea
+                            rows={2}
+                            placeholder={t('pages.inbounds.form.echDynamicPlaceholder')}
+                          />
                         </FormField>
+                        <Form.Item label=" " style={{ marginBottom: 8 }}>
+                          <DynamicEchHelper
+                            value={hostEchConfig}
+                            sni={hostSni}
+                            onApply={(next) =>
+                              methods.setValue('echConfigList', next, { shouldDirty: true })
+                            }
+                          />
+                        </Form.Item>
+                        <Alert
+                          type="info"
+                          showIcon
+                          data-testid="ech-cdn-warning"
+                          title={t('pages.inbounds.form.echCdnWarningTitle')}
+                          description={t('pages.inbounds.form.echCdnWarningBody')}
+                        />
                       </>
                     )}
                   </>
@@ -521,6 +559,7 @@ export default function HostFormModal({
                     <FormField
                       name="mihomoX25519"
                       label={t('pages.hosts.fields.mihomoX25519')}
+                      tooltip={t('pages.hosts.hints.mihomoX25519')}
                       valueProp="checked"
                     >
                       <Switch />

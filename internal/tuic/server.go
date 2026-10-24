@@ -32,6 +32,7 @@ type Server struct {
 	logLevel          atomic.Uint32
 
 	maxUdpRelayPacketSize int
+	pendingUdpBudget      pendingUdpBudget
 
 	users *UserRegistry
 	relay *SocksRelay
@@ -355,6 +356,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 		authOnce        sync.Once
 		udpAssociations = newUdpAssociationRegistry(s.maxUdpRelayPacketSize)
 	)
+	udpAssociations.pendingBudget = &s.pendingUdpBudget
 
 	authTimer := time.AfterFunc(s.authTimeout, func() {
 		if authState.CompareAndSwap(0, 2) {
@@ -835,15 +837,35 @@ func (s *Server) forwardUDPPacket(
 	udpAssociations *udpAssociationRegistry,
 	relayWg *sync.WaitGroup,
 ) {
-	if len(payload) > s.maxUdpRelayPacketSize || !isPacketTarget(target) {
-		return
-	}
 	if association == nil || len(payload) > s.maxUdpRelayPacketSize || !isPacketTarget(target) {
 		return
 	}
-	association, created, err := udpAssociations.ensureRelay(ctx, assocID, association, user, s.relay)
+	sess, opening, err := udpAssociations.queuePacket(ctx, assocID, association, target, payload)
 	if err != nil {
-		s.logLimited(tuicLogWarn, "udp-dial", 30*time.Second, "UDP relay could not be opened: %v", err)
+		s.logLimited(tuicLogWarn, "udp-queue", 30*time.Second, "UDP relay packet could not be queued: %v", err)
+		return
+	}
+	if sess != nil {
+		s.sendUDPRequest(user, sess, target, payload)
+		return
+	}
+	if opening == nil {
+		return
+	}
+	relayWg.Add(1)
+	go func() {
+		defer relayWg.Done()
+		s.openUDPRelay(ctx, opening, conn, user, assocID, association, udpAssociations, relayWg)
+	}()
+}
+
+func (s *Server) openUDPRelay(ctx, opening context.Context, conn *quic.Conn, user *User, assocID uint16, association *udpAssociation, udpAssociations *udpAssociationRegistry, relayWg *sync.WaitGroup) {
+	_, created, err := udpAssociations.ensureRelay(opening, assocID, association, user, s.relay)
+	if err != nil {
+		if opening.Err() == nil {
+			s.logLimited(tuicLogWarn, "udp-dial", 30*time.Second, "UDP relay could not be opened: %v", err)
+		}
+		udpAssociations.failPending(association)
 		return
 	}
 	sess := association.relay
@@ -855,7 +877,19 @@ func (s *Server) forwardUDPPacket(
 			s.relayUDPResponses(ctx, conn, user, assocID, association, udpAssociations, sess)
 		}()
 	}
+	for {
+		packet, ok := udpAssociations.nextPending(assocID, association)
+		if !ok {
+			return
+		}
+		if ctx.Err() == nil {
+			s.sendUDPRequest(user, sess, packet.target, packet.payload)
+		}
+		udpAssociations.releasePendingPacket(packet)
+	}
+}
 
+func (s *Server) sendUDPRequest(user *User, sess *udpRelaySession, target *Address, payload []byte) {
 	if _, err := sess.relay.Send(target, payload); err != nil {
 		s.logLimited(tuicLogWarn, "udp-send", 30*time.Second, "UDP relay request failed: %v", err)
 		return

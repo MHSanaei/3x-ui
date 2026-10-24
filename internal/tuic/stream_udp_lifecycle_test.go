@@ -16,6 +16,11 @@ import (
 
 func startLifecycleTestServer(t *testing.T, relayAddr, email string) (*Server, *clientquic.Conn, uuid.UUID, string) {
 	t.Helper()
+	return startLifecycleTestServerWithRelay(t, &SocksRelay{Addr: relayAddr, Password: "lifecycle-socks-password"}, email)
+}
+
+func startLifecycleTestServerWithRelay(t *testing.T, relay *SocksRelay, email string) (*Server, *clientquic.Conn, uuid.UUID, string) {
+	t.Helper()
 	cert, key := generateTestCert(t)
 	clientID := uuid.New()
 	password := "lifecycle-test-password"
@@ -24,7 +29,7 @@ func startLifecycleTestServer(t *testing.T, relayAddr, email string) (*Server, *
 		Certificate: string(cert), PrivateKey: string(key), ALPN: []string{"h3"},
 		AuthenticationTimeout: 2, MaxIdleTime: 30,
 		Clients: []TuicClientSettings{{UUID: clientID.String(), Password: password, Email: email}},
-	}, &SocksRelay{Addr: relayAddr, Password: "lifecycle-socks-password"})
+	}, relay)
 	if err != nil {
 		t.Fatalf("create TUIC server: %v", err)
 	}

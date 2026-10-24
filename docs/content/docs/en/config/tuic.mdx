@@ -10,7 +10,7 @@ and custom congestion control algorithms to maintain stable connections over los
 unstable networks.
 
 <Callout type="info">
-  TUIC runs as an **in-process native Go server** inside 3x-ui. Decrypted traffic is bridged into Xray-core via a loopback SOCKS5 tunnel, enabling full Xray routing rules, cascading outbounds (e.g. TUIC → VLESS / WARP), per-client traffic quotas (`totalGB`), and zero-downtime hot user updates without restarting the port.
+  TUIC runs as an **in-process native Go server** inside 3x-ui. Decrypted traffic is bridged into Xray-core via a loopback SOCKS5 tunnel, enabling full Xray routing rules, cascading outbounds (e.g. TUIC → VLESS / WARP), per-client traffic quotas (`totalGB`), and in-memory client management.
 </Callout>
 
 ## Key settings
@@ -55,7 +55,7 @@ The panel fills recommended defaults (`bbr`, `h3`, `native` UDP relay). Adjust t
 <Step>
 ### Add clients
 
-Each client requires an **Email** identifier, a **UUID** (token), and a **Password**. The panel automatically generates secure random credentials when creating clients.
+Each client requires an **Email** identifier, a **UUID** (token), and a **Password**. TUIC email identifiers must contain 1–255 UTF-8 bytes. Existing clients with invalid identifiers are excluded from TUIC service with a warning; shorten their identifiers to restore access. The panel automatically generates secure random credentials when creating clients.
 </Step>
 
 <Step>
@@ -103,10 +103,10 @@ tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.ex
 
 <Callout type="info">
   - **Native in-process Go engine**: TUIC v5 runs 100% natively in Go within the 3x-ui process. No external binaries or sidecars to download or maintain.
-  - **Full Xray routing & cascading**: Decrypted traffic passes directly through Xray's routing engine. Inbound tags (`in-<port>-udp`) work seamlessly with routing rules, domain/IP blocks, and cascading to any outbound proxy (VLESS, Shadowsocks, WARP, etc.).
+  - **Full Xray routing & cascading**: Decrypted traffic passes directly through Xray's routing engine. The client **Email** is preserved for `user` rules on TCP and both UDP modes. Inbound tags (`in-<port>-udp`), domain/IP rules, and cascading to any outbound proxy (VLESS, Shadowsocks, WARP, etc.) are supported. Put specific `inboundTag` + `user` rules before broader `user` rules; Xray uses the first matching rule.
   - **Per-client traffic limits & expiration**: Individual traffic quotas (`totalGB`) and expiration timestamps (`expiryTime`) are tracked and enforced for each client.
-  - **Live speed & traffic totals**: Native TUIC client counters are sampled every 10 seconds and sent to the panel for per-client live speed. Xray meters inbound totals through the loopback relay; TUIC's client-speed event does not add inbound totals again.
+  - **Live speed & traffic totals**: Native TUIC client counters are sampled every 10 seconds and sent to the panel for per-client live speed. Xray meters inbound totals through the loopback relay. A separate relay policy disables Xray's per-user traffic and loopback online-IP counters; native TUIC remains the source for client accounting, speed, and activity.
   - **UDP resource bounds**: Each QUIC connection can hold up to 256 active UDP associations. Idle associations are closed after five minutes. This is a per-connection limit, not a node-wide association cap. TUIC uses a reserved loopback SOCKS relay port in `64001–65000`; 3x-ui checks it against managed inbound and relay ports.
-  - **Zero-downtime client updates**: Adding, modifying, or disabling clients updates the in-memory user registry instantly without restarting the UDP port or interrupting existing client sessions.
+  - **Client updates**: Native TUIC enforces client enable/disable, quotas, and expiration; resetting a quota restores access without restarting Xray. Adding, removing, or renaming clients replaces only that inbound's internal SOCKS relay. Accounts are validated before replacement and checked again against the running relay afterward. A failed update restores the previous relay and schedules a retry. Failures are isolated to related relays: healthy TUIC inbounds and independent Xray updates continue to apply. Routing changes that depend on a failed tag change wait for that relay to recover. Related client and inbound changes also wait; new TUIC sessions are admitted only after their routing policy is applied. New relay connections wait up to 10 seconds while replacement or rollback is in progress; existing TCP streams and UDP associations continue running. New UDP associations use a bounded packet queue so they do not block existing flows on the same QUIC connection. Waiting is canceled on disconnect. Queue overflow or an unavailable relay can still reject a new request; other protocols keep running. TUIC password-only changes and client-profile edits do not change relay accounts.
   - **Deployment**: A TUIC inbound can be created on, or cloned to, a sub-node. The node's own panel runs the TUIC server, so the node must run panel v3.8.0 or newer; the master refuses an older node.
 </Callout>

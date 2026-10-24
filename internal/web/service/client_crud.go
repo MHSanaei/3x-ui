@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -454,6 +455,9 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
 		}
 	case model.TUIC:
+		if err := tuic.ValidateRelayEmail(c.Email); err != nil {
+			return err
+		}
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
@@ -660,6 +664,17 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	if err := validateClientEmail(updated.Email); err != nil {
 		return false, err
+	}
+	if emailErr := tuic.ValidateRelayEmail(updated.Email); emailErr != nil {
+		var attached int64
+		if err := database.GetDB().Model(&model.Inbound{}).
+			Joins("JOIN client_inbounds ci ON ci.inbound_id = inbounds.id").
+			Where("ci.client_id = ? AND inbounds.protocol = ?", id, model.TUIC).Count(&attached).Error; err != nil {
+			return false, err
+		}
+		if attached > 0 {
+			return false, emailErr
+		}
 	}
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
