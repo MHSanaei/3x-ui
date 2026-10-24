@@ -166,7 +166,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                 <Alert
                   type="warning"
                   showIcon
-                  icon={<WarningOutlined />}
+                  icon={<WarningOutlined aria-hidden />}
                   style={{ marginTop: 16 }}
                   title={t('pages.settings.tgInlineMissing')}
                   description={t('pages.settings.tgInlineMissingDesc')}
@@ -182,7 +182,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                 <Alert
                   type="warning"
                   showIcon
-                  icon={<WarningOutlined />}
+                  icon={<WarningOutlined aria-hidden />}
                   style={{ marginTop: 16 }}
                   title={t('pages.settings.tgPrivacyOn')}
                   description={t('pages.settings.tgPrivacyOnDesc')}
