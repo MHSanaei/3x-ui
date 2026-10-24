@@ -983,6 +983,8 @@
       "amneziaWgForwardedPorts": "Port yang Diteruskan",
       "amneziaWgForwardedPortsHint": "Port/rentang yang di-DNAT ke klien ini, mis. 80, 443, 8000-8100. Biarkan kosong jika tidak ada.",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "Masukkan detik sebagai angka atau rentang (misalnya, 15-25). Nilai harus antara 0 dan 65535; 0 menonaktifkan keepalive.",
+      "amneziaWgKeepAliveInvalid": "Masukkan bilangan bulat atau rentang dari 0 hingga 65535.",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Konfigurasi AmneziaWG",
       "tuicConfig": "Konfigurasi TUIC (Clash)",

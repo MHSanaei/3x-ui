@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -1535,5 +1536,29 @@ func TestMihomoCertFingerprintUsesFirstValidPin(t *testing.T) {
 				t.Fatalf("mihomoCertFingerprint() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestBuildAmneziaWGProxyForClashProjectsKeepAliveRangeToLowerBound(t *testing.T) {
+	keepAlive := model.KeepAliveValue("15-25")
+	client := model.Client{Email: "range@awg", PrivateKey: "client-key", KeepAlive: &keepAlive}
+	inbound := &model.Inbound{Protocol: model.AmneziaWG, Listen: "198.51.100.1", Port: 443, Settings: `{"server":{"privateKey":"server","publicKey":"server-pub","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[]}`}
+	svc := NewSubClashService(false, "", false, &SubService{})
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil || proxy["persistent-keepalive"] != 15 {
+		t.Fatalf("Clash persistent-keepalive = %v, want range lower bound 15", proxy["persistent-keepalive"])
+	}
+	blob, err := marshalClashYAML(proxy)
+	if err != nil {
+		t.Fatalf("marshal Clash proxy: %v", err)
+	}
+	if !strings.Contains(string(blob), "persistent-keepalive: 15") {
+		t.Fatalf("Clash YAML did not preserve lower-bound projection:\n%s", blob)
+	}
+	legacyNegative := model.KeepAliveValue("-1")
+	client.KeepAlive = &legacyNegative
+	proxy = svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if _, ok := proxy["persistent-keepalive"]; ok {
+		t.Fatalf("Clash export emitted invalid legacy keepalive: %v", proxy["persistent-keepalive"])
 	}
 }

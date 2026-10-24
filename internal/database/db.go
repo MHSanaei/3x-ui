@@ -112,7 +112,18 @@ func migrateInboundExcludeFromSubColumn() error {
 	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
 }
 
+func migrateClientKeepAliveRangeColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.ClientRecord{}) || migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive_range") {
+		return nil
+	}
+	return migrator.AddColumn(&model.ClientRecord{}, "KeepAliveRange")
+}
+
 func initModels() error {
+	if err := migrateClientKeepAliveRangeColumn(); err != nil {
+		return err
+	}
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
 		return err
 	}

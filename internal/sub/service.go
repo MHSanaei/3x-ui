@@ -1057,8 +1057,11 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 		lines = append(lines, "PresharedKey = "+client.PreSharedKey)
 	}
 	lines = append(lines, "AllowedIPs = 0.0.0.0/0, ::/0", fmt.Sprintf("Endpoint = %s:%d", host, port))
-	if ka := client.KeepAliveSeconds(); ka > 0 {
-		lines = append(lines, fmt.Sprintf("PersistentKeepalive = %d", ka))
+	if client.KeepAlive != nil {
+		keepAlive := client.KeepAliveText()
+		if (strings.Contains(keepAlive, "-") && client.KeepAlive.Validate(true) == nil) || client.KeepAlive.Seconds() > 0 {
+			lines = append(lines, "PersistentKeepalive = "+keepAlive)
+		}
 	}
 
 	// A control character would split its line, and the split can re-open

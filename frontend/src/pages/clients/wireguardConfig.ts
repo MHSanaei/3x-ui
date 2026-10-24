@@ -11,7 +11,7 @@ export function isWireguardClient(client: ClientRecord | null | undefined): bool
     client.publicKey ||
     client.allowedIPs ||
     client.preSharedKey ||
-    client.keepAlive
+    typeof client.keepAlive === 'number'
   );
 }
 
@@ -53,7 +53,7 @@ export function buildWireguardClientConfig(
   lines.push('[Peer]', `PublicKey = ${inbound?.wgPublicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0)
+  if (typeof client.keepAlive === 'number' && client.keepAlive > 0)
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return joinConfLines(lines);
 }

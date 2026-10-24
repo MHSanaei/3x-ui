@@ -983,6 +983,8 @@
       "amneziaWgForwardedPorts": "Yönlendirilen Portlar",
       "amneziaWgForwardedPortsHint": "Bu istemciye DNAT ile yönlendirilen port/aralıklar, örn. 80, 443, 8000-8100. Yoksa boş bırakın.",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "Saniyeyi sayı veya aralık olarak girin (ör. 15-25). Değerler 0 ile 65535 arasında olmalıdır; 0 keepalive özelliğini kapatır.",
+      "amneziaWgKeepAliveInvalid": "0 ile 65535 arasında bir tam sayı veya aralık girin.",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG Yapılandırması",
       "tuicConfig": "TUIC Yapılandırması (Clash)",

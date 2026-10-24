@@ -983,6 +983,8 @@
       "amneziaWgForwardedPorts": "Cổng chuyển tiếp",
       "amneziaWgForwardedPortsHint": "Cổng/dải cổng được chuyển tiếp (DNAT) đến client này, vd. 80, 443, 8000-8100. Để trống nếu không cần.",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "Nhập số giây dưới dạng số hoặc khoảng (ví dụ: 15-25). Giá trị phải từ 0 đến 65535; 0 sẽ tắt keepalive.",
+      "amneziaWgKeepAliveInvalid": "Nhập số nguyên hoặc khoảng từ 0 đến 65535.",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Cấu hình AmneziaWG",
       "tuicConfig": "Cấu hình TUIC (Clash)",

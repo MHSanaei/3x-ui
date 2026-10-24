@@ -38,9 +38,14 @@ import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
-import { FormField } from '@/components/form/rhf';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
+import {
+  OptionalAmneziaWGKeepAliveInputSchema,
+  OptionalNumericKeepAliveInputSchema,
+  keepAliveInputValue,
+} from '@/schemas/primitives/keepalive';
 import type {
   ClientRecord,
   InboundOption,
@@ -137,7 +142,7 @@ type Values = ClientFormValues & {
   wgAllowedIPs: string;
   awgAllowedIPs: string;
   awgForwardedPorts: string;
-  wgKeepAlive: number;
+  wgKeepAlive: number | string | undefined;
   secret: string;
   adTag: string;
 };
@@ -389,7 +394,7 @@ export default function ClientFormModal({
         wgAllowedIPs: wgTunnelIPs ?? client.allowedIPs ?? '',
         awgAllowedIPs: awgTunnelIPs ?? client.allowedIPs ?? '',
         awgForwardedPorts: client.forwardedPorts || '',
-        wgKeepAlive: client.keepAlive ?? 0,
+        wgKeepAlive: client.keepAlive,
         secret: client.secret || '',
         adTag: client.adTag || '',
       };
@@ -641,6 +646,25 @@ export default function ClientFormModal({
 
   async function onSubmit() {
     const values = methods.getValues();
+    const unchangedLegacyKeepAlive =
+      isEdit &&
+      typeof client?.keepAlive === 'number' &&
+      client.keepAlive > 65535 &&
+      values.wgKeepAlive === client.keepAlive;
+    if (showAmneziawg && !unchangedLegacyKeepAlive) {
+      const keepAliveSchema = showWireguard
+        ? OptionalNumericKeepAliveInputSchema
+        : OptionalAmneziaWGKeepAliveInputSchema;
+      const keepAliveResult = keepAliveSchema.safeParse(values.wgKeepAlive);
+      if (!keepAliveResult.success) {
+        methods.setError('wgKeepAlive', {
+          type: 'validate',
+          message: keepAliveResult.error.issues[0]?.message ?? 'validation.invalid',
+        });
+        return;
+      }
+      methods.clearErrors('wgKeepAlive');
+    }
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
       email: values.email,
@@ -712,7 +736,9 @@ export default function ClientFormModal({
       // so both protocols share this one field set — see wgPrivateKey etc.
       // below and the AmneziaWG-labeled variants of the same inputs.
       clientPayload.privateKey = values.wgPrivateKey;
-      clientPayload.keepAlive = values.wgKeepAlive;
+      if (!unchangedLegacyKeepAlive && values.wgKeepAlive !== undefined) {
+        clientPayload.keepAlive = values.wgKeepAlive;
+      }
       clientPayload.publicKey = values.wgPublicKey;
       if (values.wgPreSharedKey) {
         clientPayload.preSharedKey = values.wgPreSharedKey;
@@ -1339,10 +1365,34 @@ export default function ClientFormModal({
                           <FormField
                             name="wgKeepAlive"
                             label={t('pages.clients.tunnelKeepAlive')}
-                            extra={t('pages.clients.tunnelKeepAliveHint')}
-                            transform={{ output: (v) => Number(v) || 0 }}
+                            extra={t(
+                              showAmneziawg && !showWireguard
+                                ? 'pages.clients.amneziaWgKeepAliveHint'
+                                : 'pages.clients.tunnelKeepAliveHint',
+                            )}
+                            transform={{
+                              output:
+                                showAmneziawg && !showWireguard
+                                  ? keepAliveInputValue
+                                  : (value) => Number(value) || 0,
+                            }}
+                            rules={
+                              showAmneziawg
+                                ? {
+                                    validate: rhfZodValidate(
+                                      showWireguard
+                                        ? OptionalNumericKeepAliveInputSchema
+                                        : OptionalAmneziaWGKeepAliveInputSchema,
+                                    ),
+                                  }
+                                : undefined
+                            }
                           >
-                            <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                            {showAmneziawg && !showWireguard ? (
+                              <Input placeholder="25" />
+                            ) : (
+                              <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                            )}
                           </FormField>
                           {showAmneziawg && (
                             <FormField

@@ -983,6 +983,8 @@
       "amneziaWgForwardedPorts": "转发端口",
       "amneziaWgForwardedPortsHint": "转发到此客户端的端口/范围，例如 80, 443, 8000-8100。留空则不转发。",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "秒数可输入数字或范围（例如 15-25）。数值须在 0 到 65535 之间；0 表示禁用 keepalive。",
+      "amneziaWgKeepAliveInvalid": "请输入 0 到 65535 之间的整数或范围。",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 配置",
       "tuicConfig": "TUIC 配置 (Clash)",

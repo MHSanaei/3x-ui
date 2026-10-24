@@ -1,5 +1,6 @@
 import { Base64, Wireguard } from '@/utils';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
+import { AmneziaWGKeepAliveRangeSchema } from '@/schemas/primitives/keepalive';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
@@ -1127,7 +1128,10 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
     lines.push(`PresharedKey = ${client.preSharedKey}`);
   }
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${address}:${port}`);
-  if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
+  if (typeof client.keepAlive === 'string') {
+    if (!AmneziaWGKeepAliveRangeSchema.safeParse(client.keepAlive).success) return '';
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  } else if (typeof client.keepAlive === 'number' && client.keepAlive > 0) {
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   }
   return joinConfLines(lines);

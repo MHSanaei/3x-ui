@@ -983,6 +983,8 @@
       "amneziaWgForwardedPorts": "پورت‌های هدایت‌شده",
       "amneziaWgForwardedPortsHint": "پورت‌ها/محدوده‌های DNAT شده به این کلاینت، مثلاً 80, 443, 8000-8100. برای غیرفعال بودن خالی بگذارید.",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "ثانیه را به‌صورت عدد یا بازه (مثلاً 15-25) وارد کنید. مقدار باید بین 0 تا 65535 باشد؛ 0 قابلیت keepalive را غیرفعال می‌کند.",
+      "amneziaWgKeepAliveInvalid": "یک عدد صحیح یا بازه‌ای از 0 تا 65535 وارد کنید.",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "پیکربندی AmneziaWG",
       "tuicConfig": "پیکربندی TUIC (Clash)",

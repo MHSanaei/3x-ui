@@ -420,7 +420,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number | null;
+  keepAlive?: number | string;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
@@ -471,7 +471,7 @@ export interface ClientRecord {
   forwardedPorts: string;
   group: string;
   id: number;
-  keepAlive: number;
+  keepAlive: number | string;
   limitHwid: number;
   limitIp: number;
   password: string;

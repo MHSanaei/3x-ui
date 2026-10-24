@@ -1733,9 +1733,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "keepAlive": {
-        "description": "Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
-        "nullable": true,
-        "type": "integer"
+        "description": "Numeric values or AmneziaWG ranges; 0 disables, omission preserves.",
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "limitIp": {
         "description": "IP limit for this client",
@@ -1955,7 +1961,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "keepAlive": {
-        "type": "integer"
+        "description": "Numeric values or AmneziaWG ranges.",
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "limitHwid": {
         "type": "integer"

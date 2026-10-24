@@ -55,7 +55,9 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 		row.AllowedIPs = incoming.AllowedIPs
 	}
 	row.PreSharedKey = incoming.PreSharedKey
-	row.KeepAlive = incoming.KeepAlive
+	if incoming.KeepAlive != "" {
+		row.KeepAlive = incoming.KeepAlive
+	}
 	row.SubID = incoming.SubID
 	row.LimitIP = incoming.LimitIP
 	row.TotalGB = incoming.TotalGB
