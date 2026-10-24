@@ -1,6 +1,9 @@
 package model
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestMergeClientRecordRenewalModes(t *testing.T) {
 	for _, tt := range []struct {
@@ -24,6 +27,30 @@ func TestMergeClientRecordRenewalModes(t *testing.T) {
 			MergeClientRecord(&tt.existing, &tt.incoming)
 			if tt.existing.Reset != tt.reset || tt.existing.ResetDay != tt.day || tt.existing.ResetWeekday != tt.weekday || tt.existing.ResetMax != 4 {
 				t.Fatalf("merged schedule/cap = %d/%d/%d/%d, want %d/%d/%d/4", tt.existing.Reset, tt.existing.ResetDay, tt.existing.ResetWeekday, tt.existing.ResetMax, tt.reset, tt.day, tt.weekday)
+			}
+		})
+	}
+}
+
+// A node snapshot must not undo a newer binding, an omitted list must keep the stored one,
+// and an explicit empty list clears it.
+func TestMergeClientRecordHostBindings(t *testing.T) {
+	for _, tt := range []struct {
+		name               string
+		existing, incoming ClientRecord
+		want               []int
+	}{
+		{"newer list replaces", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{5, 7}, UpdatedAt: 2}, []int{5, 7}},
+		{"older list cannot divert a bound list", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 2}, ClientRecord{ClientHostRuleIds: []int{9}, UpdatedAt: 1}, []int{2}},
+		{"older list fills unset bindings", ClientRecord{UpdatedAt: 2}, ClientRecord{ClientHostRuleIds: []int{9}, UpdatedAt: 1}, []int{9}},
+		{"omitted list preserves", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{UpdatedAt: 2}, []int{2}},
+		{"newer empty list clears", ClientRecord{ClientHostRuleIds: []int{2}, UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{}, UpdatedAt: 2}, []int{}},
+		{"merged list is normalized", ClientRecord{UpdatedAt: 1}, ClientRecord{ClientHostRuleIds: []int{3, 0, 3}, UpdatedAt: 2}, []int{3}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			MergeClientRecord(&tt.existing, &tt.incoming)
+			if got := tt.existing.ClientHostRuleIds; got == nil || !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("ClientHostRuleIds = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

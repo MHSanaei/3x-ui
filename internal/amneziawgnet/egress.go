@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	mrand "math/rand/v2"
 	"net"
 	"net/netip"
 	"sync"
@@ -22,6 +23,15 @@ import (
 // EgressBasePort is the loopback port the panel's SOCKS5 egress server tries
 // first; generated amneziawg socks bridges dial whichever port it holds.
 const EgressBasePort = 64900
+
+// reservedLoopbackFloor is where the panel's own loopback listeners start (Xray API 62789, node
+// egress, TUIC and AmneziaWG relays); a fallback egress port must stay below it.
+const reservedLoopbackFloor = 62789
+
+// listenTCP opens a loopback listener; a test stands in for the OS through it.
+var listenTCP = func(ctx context.Context, addr string) (net.Listener, error) {
+	return (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
+}
 
 // socks5EgressServer is a minimal loopback SOCKS5 server routing Xray's
 // bridged amneziawg outbounds into their embedded devices' netstacks.
@@ -114,11 +124,10 @@ func (s *socks5EgressServer) Listen() error {
 	if s.listener != nil {
 		return nil
 	}
-	lc := &net.ListenConfig{}
-	ln, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf("127.0.0.1:%d", EgressBasePort))
+	ln, err := listenTCP(context.Background(), fmt.Sprintf("127.0.0.1:%d", EgressBasePort))
 	if err != nil {
 		var fallbackErr error
-		if ln, fallbackErr = lc.Listen(context.Background(), "tcp", "127.0.0.1:0"); fallbackErr != nil {
+		if ln, fallbackErr = listenBelowReserved(context.Background()); fallbackErr != nil {
 			return fmt.Errorf("amneziawgnet: egress listen: %w", errors.Join(err, fallbackErr))
 		}
 		logger.Warningf("amneziawgnet: egress port %d unavailable, using a free port: %v", EgressBasePort, err)
@@ -129,6 +138,24 @@ func (s *socks5EgressServer) Listen() error {
 	s.wg.Add(1)
 	go s.acceptLoop(ln, s.closing)
 	return nil
+}
+
+// fallbackPortFloor keeps the fallback clear of the well-known and registered low ports.
+const fallbackPortFloor = 40000
+
+// listenBelowReserved binds a random loopback port under reservedLoopbackFloor, retrying taken or
+// OS-reserved ones; an OS-chosen port could land inside the panel's own ranges.
+func listenBelowReserved(ctx context.Context) (net.Listener, error) {
+	var errs []error
+	for range 64 {
+		port := fallbackPortFloor + mrand.IntN(reservedLoopbackFloor-fallbackPortFloor)
+		ln, err := listenTCP(ctx, fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			return ln, nil
+		}
+		errs = append(errs, err)
+	}
+	return nil, errors.Join(errs...)
 }
 
 // Port is the port generated socks bridges must dial: the bound one, or

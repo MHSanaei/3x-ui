@@ -1704,6 +1704,17 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Auth password (Hysteria)",
         "type": "string"
       },
+      "clientHostRuleIds": {
+        "description": "ClientHostRuleIds binds the client to these host rules, one link each; nil preserves, empty\nclears, and bindings with no usable host leave that inbound out of the subscription.",
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "comment": {
         "description": "Client comment",
         "type": "string"
@@ -1940,6 +1951,16 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "auth": {
         "type": "string"
+      },
+      "clientHostRuleIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "comment": {
         "type": "string"
@@ -4696,6 +4717,35 @@ export const SCHEMAS: Record<string, unknown> = {
       "sortOrder",
       "strategy",
       "updatedAt"
+    ],
+    "type": "object"
+  },
+  "TgBotCapabilities": {
+    "description": "TgBotCapabilities is the browser-safe shape of the bot's own capabilities.",
+    "properties": {
+      "groupPrivacy": {
+        "description": "GroupPrivacy off means the bot reads every group message; when it is on,\na bare /start in a group is invisible to the bot.",
+        "example": false,
+        "type": "boolean"
+      },
+      "inlineEnabled": {
+        "example": true,
+        "type": "boolean"
+      },
+      "running": {
+        "example": true,
+        "type": "boolean"
+      },
+      "username": {
+        "example": "xui_bot",
+        "type": "string"
+      }
+    },
+    "required": [
+      "groupPrivacy",
+      "inlineEnabled",
+      "running",
+      "username"
     ],
     "type": "object"
   },

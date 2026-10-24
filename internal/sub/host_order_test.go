@@ -208,6 +208,9 @@ func renderedHostAddresses(t *testing.T, format string, base *SubService) []stri
 				} `json:"settings"`
 			} `json:"outbounds"`
 		}
+		if body == "" {
+			break
+		}
 		if err := json.Unmarshal([]byte(body), &docs); err != nil {
 			t.Fatal(err)
 		}
@@ -274,6 +277,35 @@ func TestSub_HostOrderExpandsCIDRHosts(t *testing.T) {
 			if ip := net.ParseIP(addr); ip == nil || !cidr.Contains(ip) {
 				t.Fatalf("%s address %q is not inside 198.51.100.0/24", format, addr)
 			}
+		}
+	}
+}
+
+// A client bound to host rules must get only those hosts in the hosts-first order too, on every
+// format, and a binding whose hosts are all gone must render nothing rather than every host.
+func TestSub_HostOrderRespectsClientHostBindings(t *testing.T) {
+	seedSubDB(t)
+	setHostSortMode(t, "hosts-first")
+	ib := seedSubInbound(t, "order-sub", "bound", 46920, 0, wsTLSStream)
+	seedHost(t, &model.Host{GroupId: "a", InboundId: ib.Id, SortOrder: 0, Remark: "A", Address: "a.example.com"})
+	b := seedHost(t, &model.Host{GroupId: "b", InboundId: ib.Id, SortOrder: 1, Remark: "B", Address: "b.example.com"})
+	bind := func(ids ...int) {
+		t.Helper()
+		if err := database.GetDB().Model(&model.ClientRecord{}).Where("sub_id = ?", "order-sub").
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(ids)).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	bind(b.Id)
+	for _, format := range []string{"raw", "clash", "json"} {
+		if got := renderedHostAddresses(t, format, NewSubService("")); !reflect.DeepEqual(got, []string{"b.example.com"}) {
+			t.Fatalf("%s addresses = %v, want only the bound host", format, got)
+		}
+	}
+	bind(999999)
+	for _, format := range []string{"raw", "clash", "json"} {
+		if got := renderedHostAddresses(t, format, NewSubService("")); len(got) != 0 {
+			t.Fatalf("%s addresses = %v, want none for a binding whose hosts are gone", format, got)
 		}
 	}
 }

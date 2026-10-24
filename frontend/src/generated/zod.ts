@@ -434,6 +434,7 @@ export const ClientSchema = z.object({
   allowedIPs: z.array(z.string()).optional(),
   allowedIPsByInbound: z.record(z.number().int(), z.array(z.string())).optional(),
   auth: z.string().optional(),
+  clientHostRuleIds: z.array(z.number().int()).optional(),
   comment: z.string(),
   created_at: z.number().int().optional(),
   email: z.string(),
@@ -488,6 +489,7 @@ export const ClientRecordSchema = z.object({
   adTag: z.string(),
   allowedIPs: z.string(),
   auth: z.string(),
+  clientHostRuleIds: z.array(z.number().int()).optional(),
   comment: z.string(),
   createdAt: z.number().int(),
   email: z.string(),
@@ -1132,6 +1134,14 @@ export const SubBalancerSchema = z.object({
   updatedAt: z.number().int(),
 });
 export type SubBalancer = z.infer<typeof SubBalancerSchema>;
+
+export const TgBotCapabilitiesSchema = z.object({
+  groupPrivacy: z.boolean(),
+  inlineEnabled: z.boolean(),
+  running: z.boolean(),
+  username: z.string(),
+});
+export type TgBotCapabilities = z.infer<typeof TgBotCapabilitiesSchema>;
 
 export const TrafficSchema = z.object({
   Down: z.number().int(),

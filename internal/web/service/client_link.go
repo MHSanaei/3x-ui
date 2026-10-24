@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -41,6 +42,10 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.Flow = incoming.Flow
 	if incoming.Security != "" {
 		row.Security = incoming.Security
+	}
+	// nil preserves the stored binding, empty clears it via Update's write.
+	if ids := model.NormalizeClientHostRuleIds(incoming.ClientHostRuleIds); ids != nil {
+		row.ClientHostRuleIds = ids
 	}
 	if incoming.Reverse != "" {
 		row.Reverse = incoming.Reverse
@@ -169,6 +174,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		// ToRecord copies the raw email; store the trimmed key this function
 		// looks up by, or a padded email is inserted and never found again.
 		incoming.Email = email
+		incoming.ClientHostRuleIds = model.NormalizeClientHostRuleIds(incoming.ClientHostRuleIds)
 		row, ok := existing[email]
 		if !ok {
 			if _, dup := pending[email]; !dup {
@@ -187,7 +193,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 
 		idByEmail[email] = row.Id
 
-		if *row == before {
+		// DeepEqual: ClientRecord now carries a slice (ClientHostRuleIds)
+		// and is no longer ==-comparable.
+		if reflect.DeepEqual(*row, before) {
 			continue
 		}
 		if err := tx.Save(row).Error; err != nil {
