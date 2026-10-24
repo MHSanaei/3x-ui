@@ -10,8 +10,18 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+type LXCReader struct {
+	ProcRoot, CgroupRoot string
+	mu                   sync.Mutex
+	lastCPU              uint64
+	lastAt               time.Time
+	lastCapacity         float64
+	sampled              bool
+}
 
 func (r *LXCReader) roots() (string, string) {
 	proc := r.ProcRoot
