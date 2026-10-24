@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"slices"
 	"strconv"
 	"strings"
@@ -271,7 +272,12 @@ func extractOutboundEndpoints(ob map[string]any) []string {
 		host, _ := addr.(string)
 		p := numAsInt(port)
 		if host != "" && p > 0 {
-			out = append(out, fmt.Sprintf("%s:%d", host, p))
+			if len(host) > 2 && host[0] == '[' && host[len(host)-1] == ']' {
+				if ip, err := netip.ParseAddr(host[1 : len(host)-1]); err == nil && ip.Is6() {
+					host = host[1 : len(host)-1]
+				}
+			}
+			out = append(out, net.JoinHostPort(host, strconv.Itoa(p)))
 		}
 	}
 	switch protocol {

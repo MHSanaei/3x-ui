@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"net"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -75,7 +74,7 @@ func TestGracefulShutdownPersistsFinalTuicTraffic(t *testing.T) {
 		t.Fatal("TUIC listener did not start")
 	}
 
-	if err := NewServer().Stop(); err != nil && !strings.Contains(err.Error(), "xray is not running") {
+	if err := NewServer(nil).Stop(); err != nil {
 		t.Fatalf("graceful server shutdown: %v", err)
 	}
 

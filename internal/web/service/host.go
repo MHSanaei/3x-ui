@@ -61,6 +61,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		MihomoIpVersion:        h.MihomoIpVersion,
 		MihomoX25519:           h.MihomoX25519,
 		ShuffleHost:            h.ShuffleHost,
+		RandomCount:            h.RandomCount,
 	}
 }
 
@@ -90,6 +91,9 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		}
 		if h.SortOrder < g.SortOrder {
 			g.SortOrder = h.SortOrder
+		}
+		if h.RandomCount > g.RandomCount {
+			g.RandomCount = h.RandomCount
 		}
 	}
 
@@ -150,6 +154,7 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				MihomoIpVersion:        req.MihomoIpVersion,
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
+				RandomCount:            clampRandomCount(req.RandomCount),
 			})
 		}
 	}
@@ -362,4 +367,14 @@ func parseHostAndPort(hostStr string, defaultPort int) (string, int) {
 		addr = addr[1 : len(addr)-1]
 	}
 	return addr, defaultPort
+}
+
+func clampRandomCount(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	if n > 100 {
+		return 100
+	}
+	return n
 }

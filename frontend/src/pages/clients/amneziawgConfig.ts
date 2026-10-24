@@ -2,6 +2,7 @@ import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
+import { joinConfLines } from '@/lib/xray/conf-lines';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 // AmneziaWG clients are wire-identical to WireGuard clients (same
@@ -58,13 +59,7 @@ export function buildAmneziaWGClientConfig(
     .filter(Boolean)
     .join(' - ');
 
-  // These land unescaped in [Interface]; a newline here would inject a
-  // config line (e.g. a rogue PostUp) into the downloaded .conf.
   const privateKey = client.privateKey || client.password || '';
-  for (const v of [privateKey, server?.primaryDns ?? '', server?.secondaryDns ?? '', remark]) {
-    if (/[\r\n]/.test(v)) return '';
-  }
-
   const dnsParts = [server?.primaryDns, server?.secondaryDns].filter((v) => !!v && v.trim() !== '');
   const lines = ['[Interface]', `PrivateKey = ${privateKey}`, `Address = ${address}`];
   if (dnsParts.length > 0) lines.push(`DNS = ${dnsParts.join(', ')}`);
@@ -109,5 +104,5 @@ export function buildAmneziaWGClientConfig(
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
   if (client.keepAlive && client.keepAlive > 0)
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
-  return lines.join('\n');
+  return joinConfLines(lines);
 }

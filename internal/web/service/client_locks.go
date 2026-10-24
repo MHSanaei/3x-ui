@@ -119,6 +119,18 @@ func withdrawClientTombstones(emails ...string) {
 	}
 }
 
+// liftTombstonesOnCommit withdraws the delete tombstones of clients a serialized
+// tx re-created once it commits; a rolled-back create leaves them standing.
+func liftTombstonesOnCommit(tx *gorm.DB, created []*model.ClientRecord) {
+	state := serializedTxOf(tx)
+	if state == nil {
+		return
+	}
+	for _, rec := range created {
+		state.createdClientEmails = append(state.createdClientEmails, rec.Email)
+	}
+}
+
 func tombstoneClientEmails(emails []string) {
 	if len(emails) == 0 {
 		return

@@ -289,6 +289,30 @@ func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
 	}
 }
 
+// Map-iteration order must not reach the blob: an unchanged client would CAS-rewrite
+// every 10s, and the ban pick among tied IPs would be random per scan.
+func TestPartitionLiveIps_TiedTimestampsKeepStableIpOrder(t *testing.T) {
+	ipMap := map[string]int64{"203.0.113.3": 100, "203.0.113.1": 100, "203.0.113.2": 100}
+	observed := map[string]bool{"203.0.113.1": true, "203.0.113.2": true, "203.0.113.3": true}
+	var first []IPWithTimestamp
+	for i := range 50 {
+		live, _ := partitionLiveIps(ipMap, observed)
+		if i == 0 {
+			first = live
+			continue
+		}
+		if !reflect.DeepEqual(first, live) {
+			t.Fatalf("tied timestamps produced different orders across runs: %v vs %v", first, live)
+		}
+	}
+	want := []string{"203.0.113.1", "203.0.113.2", "203.0.113.3"}
+	for i, ip := range want {
+		if first[i].IP != ip {
+			t.Fatalf("tied timestamps must order by IP, got %v", first)
+		}
+	}
+}
+
 func TestIsFail2BanEnabled_DefaultsToEnabledWhenUnset(t *testing.T) {
 	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
 	os.Unsetenv("XUI_ENABLE_FAIL2BAN")
@@ -335,4 +359,32 @@ func fakeFail2BanClient(t *testing.T) string {
 	t.Setenv("FAIL2BAN_PROBE_MARKER", marker)
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return marker
+}
+
+// resolveEnforce is platform-pure (the caller supplies needsBinary), so this
+// table pins every branch — the Windows carve-out included — statically.
+func TestResolveEnforce(t *testing.T) {
+	cases := []struct {
+		name         string
+		f2bEnabled   bool
+		hasLimit     bool
+		f2bInstalled bool
+		needsBinary  bool
+		want         bool
+	}{
+		{"disabled env with fail2ban present never enforces", false, true, true, true, false},
+		{"disabled env without fail2ban never enforces", false, true, false, true, false},
+		{"enabled with fail2ban and a limit enforces", true, true, true, true, true},
+		{"enabled, binary needed but absent, cannot enforce", true, true, false, true, false},
+		{"enabled, no binary needed (windows), enforces without fail2ban", true, true, false, false, true},
+		{"no limit never enforces even fully installed", true, false, true, true, false},
+	}
+	j := NewCheckClientIpJob()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := j.resolveEnforce(tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, tc.needsBinary); got != tc.want {
+				t.Fatalf("resolveEnforce(%v, %v, %v, %v) = %v, want %v", tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, tc.needsBinary, got, tc.want)
+			}
+		})
+	}
 }

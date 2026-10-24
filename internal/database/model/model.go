@@ -178,7 +178,7 @@ func IsNodeSyncApiScope(s string) bool {
 type ApiToken struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
-	Token     string `json:"token" gorm:"not null"` // SHA-256 hash; the plaintext is shown only once at creation
+	Token     string `json:"token" gorm:"not null;index:idx_api_tokens_token"` // SHA-256 hash; the plaintext is shown only once at creation
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
 	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
 	Scope     string `json:"scope" gorm:"not null;default:admin"`
@@ -878,6 +878,8 @@ type Node struct {
 	// save that grows the selection zeroes it so reconcile waits before sweeping.
 	InboundsAdoptedAt int64 `json:"-" gorm:"column:inbounds_adopted_at;default:0"`
 
+	DownNotified bool `json:"-" gorm:"column:down_notified;default:false"`
+
 	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
 	ClientCount   int `json:"clientCount" gorm:"-" example:"27"`
 	OnlineCount   int `json:"onlineCount" gorm:"-" example:"3"`
@@ -1159,6 +1161,7 @@ type Host struct {
 	MihomoIpVersion string `json:"mihomoIpVersion" form:"mihomoIpVersion" gorm:"column:mihomo_ip_version" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
 	MihomoX25519    bool   `json:"mihomoX25519" form:"mihomoX25519" gorm:"column:mihomo_x25519"`
 	ShuffleHost     bool   `json:"shuffleHost" form:"shuffleHost" gorm:"column:shuffle_host"`
+	RandomCount     int    `json:"randomCount" form:"randomCount" gorm:"default:1;column:random_count" example:"1"`
 
 	NodeGuids []string `json:"nodeGuids,omitempty" form:"nodeGuids" gorm:"serializer:json;column:node_guids"`
 

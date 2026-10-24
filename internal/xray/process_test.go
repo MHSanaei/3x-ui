@@ -96,6 +96,15 @@ func TestIntentionalStopDoesNotRecordExitError(t *testing.T) {
 	}
 }
 
+func TestStopWhenNotRunningReturnsErrXrayNotRunning(t *testing.T) {
+	initProcessTestLogger(t)
+
+	p := NewProcess(&Config{})
+	if err := p.Stop(); !errors.Is(err, ErrXrayNotRunning) {
+		t.Fatalf("Stop() on unstarted process err = %v, want ErrXrayNotRunning", err)
+	}
+}
+
 func TestStopKillsProcessThatIgnoresSIGTERM(t *testing.T) {
 	initProcessTestLogger(t)
 

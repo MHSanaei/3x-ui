@@ -13,8 +13,8 @@ interface SubAppsTabProps {
 }
 
 const PLATFORM_OPTIONS = [
-  { value: 'android' as const, label: 'Android', icon: <AndroidOutlined /> },
-  { value: 'ios' as const, label: 'iOS', icon: <AppleOutlined /> },
+  { value: 'android' as const, label: 'Android', icon: <AndroidOutlined aria-hidden /> },
+  { value: 'ios' as const, label: 'iOS', icon: <AppleOutlined aria-hidden /> },
 ];
 
 function AppIcon({ name }: { name: string }) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"embed"
+	"fmt"
 	"math/big"
 	"net"
 	"net/url"
@@ -40,6 +41,7 @@ var (
 
 	botHandler  *th.BotHandler
 	adminIds    []int64
+	adminTopics map[int64]int // admin chat -> forum topic (message_thread_id)
 	isRunning   bool
 	hostname    string
 	hashStorage *global.HashStorage
@@ -321,20 +323,14 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
-	parsedAdminIds := make([]int64, 0)
-	// Parse admin IDs from comma-separated string
-	if tgBotID != "" {
-		for adminID := range strings.SplitSeq(tgBotID, ",") {
-			id, err := strconv.ParseInt(adminID, 10, 64)
-			if err != nil {
-				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
-				return err
-			}
-			parsedAdminIds = append(parsedAdminIds, id)
-		}
+	parsedAdminIds, parsedAdminTopics, err := parseAdminChats(tgBotID)
+	if err != nil {
+		logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
+		return err
 	}
 	tgBotMutex.Lock()
 	adminIds = parsedAdminIds
+	adminTopics = parsedAdminTopics
 	tgBotMutex.Unlock()
 
 	// Get Telegram bot proxy URL
@@ -500,6 +496,61 @@ func adminSnapshot() []int64 {
 	return slices.Clone(adminIds)
 }
 
+// parseAdminChats reads "chatId[:topicId],..."; the optional topic targets a
+// forum topic in a supergroup, e.g. "123456789,-1001234567890:42".
+func parseAdminChats(raw string) ([]int64, map[int64]int, error) {
+	ids := make([]int64, 0)
+	topics := make(map[int64]int)
+	if strings.TrimSpace(raw) == "" {
+		return ids, topics, nil
+	}
+	for entry := range strings.SplitSeq(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		chatPart, topicPart, hasTopic := strings.Cut(entry, ":")
+		id, err := strconv.ParseInt(strings.TrimSpace(chatPart), 10, 64)
+		if err != nil {
+			return nil, nil, err
+		}
+		topic := 0
+		if hasTopic {
+			topic, err = strconv.Atoi(strings.TrimSpace(topicPart))
+			if err != nil {
+				return nil, nil, err
+			}
+			if topic <= 0 {
+				return nil, nil, fmt.Errorf("invalid topic ID %q for chat %d", topicPart, id)
+			}
+		}
+		// General is thread 1 internally, but the Bot API only reaches it with no thread id.
+		if hasTopic && topic != generalTopicID {
+			if prev, ok := topics[id]; ok && prev != topic {
+				return nil, nil, fmt.Errorf("chat %d has more than one topic configured", id)
+			}
+			topics[id] = topic
+		}
+		if !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	return ids, topics, nil
+}
+
+const generalTopicID = 1
+
+// adminTopic returns the forum topic configured for chatId, or 0 when the
+// chat has none and messages should go to the chat itself.
+func adminTopic(chatId int64) int {
+	tgBotMutex.Lock()
+	defer tgBotMutex.Unlock()
+	return adminTopics[chatId]
+}
+
+// inAdminTopic routes a document to the configured forum topic of its chat.
+func inAdminTopic(document *telego.SendDocumentParams) *telego.SendDocumentParams {
+	document.MessageThreadID = adminTopic(document.ChatID.ID)
+	return document
+}
+
 // SetHostname sets the hostname for the bot.
 func (t *Tgbot) SetHostname() {
 	host, err := os.Hostname()
@@ -518,6 +569,7 @@ func (t *Tgbot) Stop() {
 	logger.Info("Stop Telegram receiver ...")
 	tgBotMutex.Lock()
 	adminIds = nil
+	adminTopics = nil
 	tgBotMutex.Unlock()
 }
 
@@ -584,11 +636,6 @@ func (t *Tgbot) randomLowerAndNum(length int) string {
 		bytes[i] = charset[randomIndex.Int64()]
 	}
 	return string(bytes)
-}
-
-// int64Contains checks if an int64 slice contains a specific item.
-func int64Contains(slice []int64, item int64) bool {
-	return slices.Contains(slice, item)
 }
 
 // isSingleWord checks if the text contains only a single word.

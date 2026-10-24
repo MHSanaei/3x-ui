@@ -13,6 +13,7 @@ const SERVICE_LABEL_KEYS: Partial<Record<string, string>> = {
   local: 'pages.inbounds.form.xdrive.serviceLocal',
   template: 'pages.inbounds.form.xdrive.serviceTemplate',
 };
+const SERVICE_NAMES: Partial<Record<string, string>> = { 'google-drive': 'Google Drive' };
 
 // Core defaults (transport/internet/xdrive/params.go), shown as placeholders so an
 // empty field keeps meaning "use the core's value".
@@ -76,7 +77,7 @@ export default function XDriveForm() {
   const service = useWatch({ control, name: `${BASE.join('.')}.service` }) as string | undefined;
   const serviceOptions = XDriveServiceSchema.options.map((value) => {
     const labelKey = SERVICE_LABEL_KEYS[value];
-    return { value, label: labelKey ? t(labelKey) : value };
+    return { value, label: labelKey ? t(labelKey) : (SERVICE_NAMES[value] ?? value) };
   });
 
   return (
@@ -91,7 +92,7 @@ export default function XDriveForm() {
       >
         <Input placeholder={service === 'local' ? '/var/lib/xdrive' : 'xray-tunnel'} />
       </FormField>
-      {service === 'Google Drive' &&
+      {service === 'google-drive' &&
         GOOGLE_DRIVE_SECRETS.map((key, index) => (
           <FormField
             key={key}

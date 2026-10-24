@@ -152,6 +152,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -241,6 +246,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -636,6 +644,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -662,6 +671,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -928,6 +938,11 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "nodeDownThreshold": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "outboundDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -1017,6 +1032,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -1420,6 +1438,7 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -1446,6 +1465,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -2738,6 +2758,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "example": 1,
+            "type": "integer"
+          },
           "remark": {
             "example": "cdn-front",
             "maxLength": 256,
@@ -2810,6 +2834,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -2919,6 +2944,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
           "remark": {
             "maxLength": 256,
             "type": "string"
@@ -2984,6 +3014,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -8481,6 +8512,81 @@
         }
       }
     },
+    "/panel/api/clients/get/subId/{subId}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch clients by subscription ID.",
+        "operationId": "get_panel_api_clients_get_subId_subId",
+        "description": "Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.",
+        "parameters": [
+          {
+            "name": "subId",
+            "in": "path",
+            "required": true,
+            "description": "Exact subscription ID (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "client": {
+                            "$ref": "#/components/schemas/ClientRecord"
+                          },
+                          "inboundIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer"
+                            }
+                          },
+                          "externalLinks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "usedTraffic": {
+                            "type": "integer",
+                            "format": "int64"
+                          },
+                          "tunnelAllowedIPs": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/get/tgId/{tgId}": {
       "get": {
         "tags": [
@@ -11909,6 +12015,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12004,6 +12111,7 @@
                       ""
                     ],
                     "port": 0,
+                    "randomCount": 1,
                     "remark": "",
                     "security": "same",
                     "serverDescription": "",
@@ -12102,6 +12210,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12250,6 +12359,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12372,6 +12482,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12624,6 +12735,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",

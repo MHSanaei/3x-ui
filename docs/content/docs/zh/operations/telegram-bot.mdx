@@ -36,6 +36,10 @@ icon: Send
 
 在面板设置中启用 Telegram 机器人，并填写**令牌**和**管理员聊天 ID**
 （多个时以逗号分隔）。保存后，再向你的机器人发送消息。
+
+要把通知发送到论坛超级群组的某个话题，在聊天 ID 后加冒号和话题 ID，例如
+`-1001234567890:42`。话题 ID 是话题消息链接中聊天之后的数字
+（`https://t.me/c/1234567890/42/…`）。General 话题不填（或填 `1`）。
 </Step>
 
 </Steps>
@@ -97,7 +101,7 @@ ID 的所有客户端。订阅 ID 就是邀请码，因此请保持其足够长�
 | -------------- | -------------------------- | ---------------------------------------------- |
 | `tgBotEnable`  | `false`                    | 总开关。                                       |
 | `tgBotToken`   | _（机密）_                 | 机器人 API 令牌。                              |
-| `tgBotChatId`  | _（无）_                   | 以逗号分隔的**管理员** Telegram ID。           |
+| `tgBotChatId`  | _（无）_                   | 以逗号分隔的**管理员** Telegram ID；`chatId:topicId` 发送到论坛话题。 |
 | `tgBotProxy`   | _（无）_                   | `socks5://`、`http://` 或 `https://` 代理。    |
 | `tgBotAPIServer` | _（默认）_              | 自定义 Telegram Bot API 服务器。               |
 | `tgRunTime`    | `@daily`                   | 报告计划（cron / `@daily` / `@every …`）。     |
