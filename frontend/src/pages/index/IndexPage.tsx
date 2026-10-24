@@ -229,9 +229,14 @@ export default function IndexPage() {
                     <VitalTile
                       icon={<DashboardOutlined aria-hidden />}
                       label={t('pages.index.cpu')}
+                      available={status.metricAvailable('cpu')}
                       percent={status.cpu.percent}
                       statusColor={status.cpu.color}
-                      detail={`${CPUFormatter.cpuCoreFormat(status.cpuCores)} / ${status.logicalPro}T · ${CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}`}
+                      detail={
+                        status.resourceScope === 'container'
+                          ? `${status.logicalPro} vCPU`
+                          : `${CPUFormatter.cpuCoreFormat(status.cpuCores)} / ${status.logicalPro}T · ${CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz)}`
+                      }
                       footLeft={`${t('pages.index.avg')} ${mean(history.series.cpu).toFixed(0)}%`}
                       footRight={`${t('pages.index.peak')} ${peak(history.series.cpu).toFixed(0)}%`}
                       data={history.series.cpu}
@@ -251,6 +256,7 @@ export default function IndexPage() {
                     <VitalTile
                       icon={<SwapOutlined aria-hidden />}
                       label={t('pages.index.swap')}
+                      available={status.metricAvailable('swap')}
                       percent={status.swap.percent}
                       statusColor={status.swap.color}
                       detail={`${SizeFormatter.sizeFormat(status.swap.current)} / ${SizeFormatter.sizeFormat(status.swap.total)}`}

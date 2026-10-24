@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { HttpUtil, TimeFormatter } from '@/utils';
 import type { Status } from '@/models/status';
@@ -80,13 +80,27 @@ export function peak(values: number[]): number {
 export function useOverviewHistory(status: Status, hasData: boolean): OverviewHistory {
   const [trend, setTrend] = useState<HistoryWindow>(emptyWindow);
 
+  const seededUnscoped = useRef(false);
+  const seedState = useRef<{ scope: string; complete: boolean } | null>(null);
+
   useEffect(() => {
+    // The placeholder has no resource scope. Wait for the first real status,
+    // then seed each scope once even if polling temporarily loses data.
+    if (
+      !hasData ||
+      (seedState.current?.scope === status.resourceScope && seedState.current.complete)
+    ) {
+      return;
+    }
+    seedState.current = { scope: status.resourceScope, complete: false };
     let cancelled = false;
+    const seedUnscoped = !seededUnscoped.current;
+    const keys = seedUnscoped ? SERIES_KEYS : (['cpu', 'swap'] as const);
 
     const seed = async () => {
       const responses = new Map<OverviewSeriesKey, HistoryPoint[]>();
       await Promise.all(
-        SERIES_KEYS.map(async (key) => {
+        keys.map(async (key) => {
           const msg = await HttpUtil.get<HistoryPoint[]>(
             `/panel/api/server/history/${key}/${SEED_BUCKET_SECONDS}`,
             undefined,
@@ -96,6 +110,8 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
         }),
       );
       if (cancelled || responses.size === 0) return;
+      seedState.current = { scope: status.resourceScope, complete: true };
+      seededUnscoped.current = true;
 
       let axis: HistoryPoint[] = [];
       for (const points of responses.values()) {
@@ -109,14 +125,20 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
       for (const key of SERIES_KEYS) {
         const byTs = new Map<number, number>();
         for (const p of responses.get(key) ?? []) byTs.set(Number(p.t) || 0, Number(p.v) || 0);
-        seedSeries[key] = seedTimes.map((ts) => byTs.get(ts) ?? 0);
+        seedSeries[key] =
+          status.resourceScope && (key === 'cpu' || key === 'swap')
+            ? seedTimes.flatMap((ts) => (byTs.has(ts) ? [byTs.get(ts)!] : []))
+            : seedTimes.map((ts) => byTs.get(ts) ?? 0);
       }
 
       setTrend((prev) => {
         const merged = emptyWindow();
-        merged.times = tailWindow(seedTimes.concat(prev.times));
+        merged.times = seedUnscoped ? tailWindow(seedTimes.concat(prev.times)) : prev.times;
         for (const key of SERIES_KEYS) {
-          merged.series[key] = tailWindow(seedSeries[key].concat(prev.series[key]));
+          merged.series[key] =
+            seedUnscoped || key === 'cpu' || key === 'swap'
+              ? tailWindow(seedSeries[key].concat(prev.series[key]))
+              : prev.series[key];
         }
         return merged;
       });
@@ -126,7 +148,7 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasData, status.resourceScope]);
 
   // Each polled status is appended during render; an effect would show the
   // chart one sample behind the numbers beside it.
@@ -134,11 +156,17 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
   if (hasData && status !== sampledStatus) {
     setSampledStatus(status);
     setTrend((prev) => {
+      const scopeChanged = sampledStatus && sampledStatus.resourceScope !== status.resourceScope;
       const point = sampleOf(status);
       const next = emptyWindow();
       next.times = tailWindow(prev.times.concat(Math.floor(Date.now() / 1000)));
       for (const key of SERIES_KEYS) {
-        next.series[key] = tailWindow(prev.series[key].concat(point[key]));
+        const scoped = key === 'cpu' || key === 'swap';
+        const previous = scoped && scopeChanged ? [] : prev.series[key];
+        next.series[key] =
+          !scoped || status.metricAvailable(key)
+            ? tailWindow(previous.concat(point[key]))
+            : previous;
       }
       return next;
     });

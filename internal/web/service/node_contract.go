@@ -34,6 +34,7 @@ type NodeView struct {
 	CpuPct              float64  `json:"cpuPct" example:"12.5"`
 	MemPct              float64  `json:"memPct" example:"45.2"`
 	UptimeSecs          uint64   `json:"uptimeSecs" example:"86400"`
+	UnavailableMetrics  []string `json:"unavailableMetrics,omitempty"`
 	NetUp               uint64   `json:"netUp" example:"2097152"`
 	NetDown             uint64   `json:"netDown" example:"1048576"`
 	LastError           string   `json:"lastError" example:""`
@@ -82,6 +83,7 @@ func toNodeView(n *model.Node) *NodeView {
 		CpuPct:              n.CpuPct,
 		MemPct:              n.MemPct,
 		UptimeSecs:          n.UptimeSecs,
+		UnavailableMetrics:  n.UnavailableMetrics,
 		NetUp:               n.NetUp,
 		NetDown:             n.NetDown,
 		LastError:           n.LastError,
