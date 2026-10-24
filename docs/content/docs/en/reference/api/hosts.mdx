@@ -35,7 +35,9 @@ _openapi:
       url: '#enable-or-disable-a-host-group'
     - depth: 2
       title: Set host group sort order by the position of each groupId in the array.
-      url: '#set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array'
+        IDs must be unique and refer to existing groups; omitted groups follow
+        in their previous order.
+      url: '#set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array-ids-must-be-unique-and-refer-to-existing-groups-omitted-groups-follow-in-their-previous-order'
     - depth: 2
       title: Add a host group to inbounds (same as /add).
       url: '#add-a-host-group-to-inbounds-same-as-add'
@@ -65,7 +67,9 @@ _openapi:
       - content: Enable or disable a host group.
         id: enable-or-disable-a-host-group
       - content: Set host group sort order by the position of each groupId in the array.
-        id: set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array
+          IDs must be unique and refer to existing groups; omitted groups follow
+          in their previous order.
+        id: set-host-group-sort-order-by-the-position-of-each-groupid-in-the-array-ids-must-be-unique-and-refer-to-existing-groups-omitted-groups-follow-in-their-previous-order
       - content: Add a host group to inbounds (same as /add).
         id: add-a-host-group-to-inbounds-same-as-add
       - content: Enable or disable many host groups in one call.

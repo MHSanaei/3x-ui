@@ -77,6 +77,9 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	hostsByInbound    map[int][]*model.Host
+	hostGroupOrders   map[string]hostEntryOrder
+	hostsFirst        bool
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -112,6 +115,10 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.clientsByInbound = map[int]map[string]model.Client{}
 	s.fullyPrimedInbounds = map[int]bool{}
 	s.settingsByInbound = map[int]map[string]any{}
+	s.hostsByInbound = nil
+	s.hostGroupOrders = nil
+	mode, _ := s.settingService.GetSubHostSortMode()
+	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()
 	s.loadRemarkSettings()
 	s.subCalendarExpireInclusive, _ = s.settingService.GetSubCalendarExpireInclusive()
@@ -464,6 +471,7 @@ func (s *SubService) resolveInfoNodeRemark(subId string, uniqueEmails []string, 
 
 func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
+	var ordered []orderedSubEntry[func() string]
 	var emails []string
 	var traffic xray.ClientTraffic
 	var hasEnabledClient bool
@@ -495,20 +503,40 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		s.projectThroughFallbackMaster(inbound)
 		// Host overrides apply AFTER fallback projection so a host's
 		// address/TLS wins over the projected master stream.
-		hostEps := s.hostEndpoints(inbound, "raw")
+		var hostEps []map[string]any
+		if !s.hostsFirst {
+			hostEps = s.hostEndpoints(inbound, "raw")
+		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
 			var link string
-			if len(hostEps) > 0 {
+			if s.hostsFirst {
+				for _, variant := range s.subscriptionHostVariants(inbound, "raw") {
+					render := func() string {
+						if variant.host != nil {
+							return s.linkFromHosts(inbound, client, variant.endpoint(s, inbound))
+						}
+						return s.GetLink(inbound, client.Email)
+					}
+					ordered = append(ordered, orderedSubEntry[func() string]{variant.order, render})
+				}
+			} else if len(hostEps) > 0 {
 				link = s.linkFromHosts(inbound, client, hostEps)
 			} else {
 				link = s.GetLink(inbound, client.Email)
 			}
-			result = append(result, link)
+			if !s.hostsFirst {
+				result = append(result, link)
+			}
 			emails = append(emails, client.Email)
 			seenEmails[client.Email] = struct{}{}
+		}
+	}
+	if s.hostsFirst {
+		for _, render := range orderedSubValues(ordered) {
+			result = append(result, render())
 		}
 	}
 	for _, ext := range externalLinks {
@@ -693,6 +721,9 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	s.indexStatsBySubId(subId)
+	if err := s.loadSubscriptionHosts(inbounds); err != nil {
+		return nil, err
+	}
 	return inbounds, nil
 }
 

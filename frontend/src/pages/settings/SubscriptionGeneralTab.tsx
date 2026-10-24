@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
-import type { SubProfileMode } from '@/schemas/setting';
+import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -95,6 +95,22 @@ export default function SubscriptionGeneralTab({
                   }
                 />
               )}
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subHostSortMode')}
+                description={t('pages.settings.subHostSortModeDesc')}
+              >
+                <Select
+                  id="sub-host-sort-mode"
+                  aria-label={t('pages.settings.subHostSortMode')}
+                  value={allSetting.subHostSortMode}
+                  onChange={(value: SubHostSortMode) => updateSetting({ subHostSortMode: value })}
+                  options={[
+                    { value: 'inbound-first', label: t('pages.settings.subHostSortInbound') },
+                    { value: 'hosts-first', label: t('pages.settings.subHostSortHosts') },
+                  ]}
+                />
+              </SettingListItem>
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.subListen')}

@@ -1826,7 +1826,11 @@
       "subIncyResolveDnsDomainDesc": "DoH 服务器 URL，通常以 /dns-query 结尾。",
       "subIncyResolveDnsIp": "DoH 服务器 IP",
       "subIncyResolveDnsIpDesc": "用于引导的 DoH 服务器 IP。",
-      "subIncyGroupRouting": "路由"
+      "subIncyGroupRouting": "路由",
+      "subHostSortMode": "订阅节点排序",
+      "subHostSortInbound": "入站顺序（默认）",
+      "subHostSortHosts": "主机顺序",
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2465,7 +2469,8 @@
         "delete": "删除主机",
         "badTag": "无效的标签",
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
-      }
+      },
+      "dragToReorder": "拖动以重新排列 {name}"
     },
     "sponsors": {
       "title": "赞助商",

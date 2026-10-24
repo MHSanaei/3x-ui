@@ -350,6 +350,10 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subHostSortMode": {
+            "example": "inbound-first",
+            "type": "string"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -705,6 +709,7 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subHostSortMode",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -1136,6 +1141,10 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subHostSortMode": {
+            "example": "inbound-first",
+            "type": "string"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -1499,6 +1508,7 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subHostSortMode",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -12619,7 +12629,7 @@
         "tags": [
           "Hosts"
         ],
-        "summary": "Set host group sort order by the position of each groupId in the array.",
+        "summary": "Set host group sort order by the position of each groupId in the array. IDs must be unique and refer to existing groups; omitted groups follow in their previous order.",
         "operationId": "post_panel_api_hosts_reorder",
         "requestBody": {
           "required": true,

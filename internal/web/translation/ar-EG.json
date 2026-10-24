@@ -1826,7 +1826,11 @@
       "subIncyResolveDnsDomainDesc": "رابط سيرفر DoH، غالبًا ينتهي بـ /dns-query.",
       "subIncyResolveDnsIp": "IP سيرفر DoH",
       "subIncyResolveDnsIpDesc": "عنوان IP لسيرفر DoH للتهيئة.",
-      "subIncyGroupRouting": "التوجيه"
+      "subIncyGroupRouting": "التوجيه",
+      "subHostSortMode": "ترتيب عقد الاشتراك",
+      "subHostSortInbound": "ترتيب الاتصالات الواردة (الافتراضي)",
+      "subHostSortHosts": "ترتيب المضيفين",
+      "subHostSortModeDesc": "يتبع ترتيب المضيفين صفحة المضيفين عبر جميع الاتصالات الواردة. يحدد هذا ترتيب مخرجات الخادم؛ وقد تطبق تطبيقات العميل ترتيبًا آخر."
     },
     "xray": {
       "save": "احفظ",
@@ -2465,7 +2469,8 @@
         "delete": "حذف المضيف",
         "badTag": "وسم غير صالح",
         "badVlessRoute": "أدخل رقماً واحداً بين 0 و65535"
-      }
+      },
+      "dragToReorder": "اسحب لتغيير ترتيب {name}"
     },
     "sponsors": {
       "title": "الرعاة",

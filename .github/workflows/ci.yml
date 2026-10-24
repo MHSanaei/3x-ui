@@ -92,6 +92,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL subscription Host ordering tests
+        run: |
+          set -o pipefail
+          go test ./internal/sub -run '^TestSubHostOrder_Postgres$' -count=1 -v | tee /tmp/postgres-host-order.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-host-order.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected passing PostgreSQL Host ordering coverage, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL Telegram lookup and legacy migration tests
         run: |
           set -o pipefail

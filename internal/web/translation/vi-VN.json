@@ -1826,7 +1826,11 @@
       "subIncyResolveDnsDomainDesc": "URL máy chủ DoH, thường kết thúc bằng /dns-query.",
       "subIncyResolveDnsIp": "IP máy chủ DoH",
       "subIncyResolveDnsIpDesc": "IP máy chủ DoH để khởi tạo.",
-      "subIncyGroupRouting": "Định tuyến"
+      "subIncyGroupRouting": "Định tuyến",
+      "subHostSortMode": "Thứ tự nút đăng ký",
+      "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
+      "subHostSortHosts": "Thứ tự máy chủ",
+      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2465,7 +2469,8 @@
         "delete": "Xóa host",
         "badTag": "Tag không hợp lệ",
         "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
-      }
+      },
+      "dragToReorder": "Kéo để sắp xếp lại {name}"
     },
     "sponsors": {
       "title": "Nhà tài trợ",
