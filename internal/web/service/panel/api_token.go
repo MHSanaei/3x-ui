@@ -255,19 +255,14 @@ func requireExpectedScope(expectedScope string) (string, error) {
 	return scope, nil
 }
 
-// MatchToken returns the enabled, non-expired api_token row whose stored
-// SHA-256 hash matches the presented bearer value, or (nil,false). The lookup
-// is one indexed seek on the hash; expiry and scope are checked afterwards so
-// a corrupt value is not treated as admin.
+// MatchToken seeks the enabled row by the presented value's SHA-256 (comparing hashes leaks nothing
+// usable), then checks scope and expiry so a corrupt value is never treated as admin.
 func (s *ApiTokenService) MatchToken(presented string) (*model.ApiToken, bool) {
 	if presented == "" {
 		return nil, false
 	}
 	db := database.GetDB()
 	var row model.ApiToken
-	// The database compares hashes, not secrets: a timing leak would expose the
-	// stored hash, which cannot authenticate (the server re-hashes whatever is
-	// presented).
 	if err := db.Model(model.ApiToken{}).
 		Where("token = ? AND enabled = ?", crypto.HashTokenSHA256(presented), true).
 		First(&row).Error; err != nil {
