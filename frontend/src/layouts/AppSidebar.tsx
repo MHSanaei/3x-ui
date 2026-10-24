@@ -3,7 +3,6 @@ import type { ComponentType, CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Drawer, Layout, Menu, Tooltip } from 'antd';
-import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
@@ -35,6 +34,7 @@ import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
+import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import './AppSidebar.css';
 
 const DONATE_URL = 'https://donate.sanaei.dev/';

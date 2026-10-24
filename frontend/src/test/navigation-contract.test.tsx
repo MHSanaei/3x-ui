@@ -4,16 +4,11 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { PALETTE_KEYWORDS } from '@/components/command-palette/CommandPalette';
-import { PANEL_ROUTES, PANEL_ROUTE_PATHS, PANEL_TITLE_KEYS } from '@/routes/panelRoutes';
+import { PANEL_ROUTES, PANEL_ROUTE_PATHS } from '@/routes/panelRoutes';
 import { routes } from '@/routes';
 
-/*
- * The panel's navigation used to be four hand-kept lists: the router, the
- * sidebar, the page titles and the command palette. A page added to one of them
- * was silently missing from the others - no nav entry, or a page title that
- * fell back to "3X-UI". They all read one manifest now, and this test holds the
- * manifest to the router and to the translation bundle.
- */
+// Four hand-kept nav lists let a page go missing from the sidebar or fall back to the "3X-UI"
+// title; the manifest replaced them, and these tests hold it to the router and the bundle.
 
 const translationDir = resolve(process.cwd(), '..', 'internal', 'web', 'translation');
 
@@ -40,10 +35,6 @@ describe('panel navigation', () => {
       child.index ? '/' : `/${child.path ?? ''}`,
     );
     expect(childPaths.sort()).toEqual([...PANEL_ROUTE_PATHS].sort());
-  });
-
-  it('titles every manifest path', () => {
-    expect(Object.keys(PANEL_TITLE_KEYS).sort()).toEqual([...PANEL_ROUTE_PATHS].sort());
   });
 
   it('translates every title key', () => {

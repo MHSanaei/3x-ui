@@ -33,9 +33,8 @@ export interface PanelRoute {
   component: ComponentType;
 }
 
-// The panel's navigation in one place: the router, the sidebar, the page titles
-// and the command palette all read this list, so a new page cannot be missing
-// from one of them.
+// The router, the sidebar, the page titles and the command palette all read this list, so a
+// page cannot go missing from one of them.
 export const PANEL_ROUTES: PanelRoute[] = [
   { path: '/', titleKey: 'menu.dashboard', icon: DashboardOutlined, component: IndexPage },
   { path: '/inbounds', titleKey: 'menu.inbounds', icon: ImportOutlined, component: InboundsPage },
