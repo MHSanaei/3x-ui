@@ -1985,6 +1985,45 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'dns-tunnel',
+    title: 'DNS Tunnel',
+    description:
+      'DNS tunnels (StormDNS for WhiteDNS-style apps, dnstt) for internet shutdowns: the profiles users import and a resolver test run on a device on the ISP.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/dnstunnel/profiles',
+        summary:
+          'The DNS tunnel servers users connect to (engine, domain, key, encryption method).',
+        responseSchema: 'DnsTunnelProfile',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/dnstunnel/profiles',
+        summary: 'Replace the list of DNS tunnel servers (up to 20).',
+        body: '[{\n  "name": "Iran",\n  "engine": "stormdns",\n  "domain": "st.t.example.com",\n  "key": "93d3404c6701dc9dea2d1ff3282ab88b",\n  "method": 1\n}]',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/dnstunnel/command',
+        summary:
+          'Make a one-day command that tests which DNS resolvers reach the tunnel zone from the device it runs on (its own resolvers, the given list and well-known public ones).',
+        body: '{\n  "zone": "t.example.com",\n  "resolvers": ["178.22.122.100"]\n}',
+        responseSchema: 'CleanIpCommand',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/dnstunnel/command/:token',
+        summary: 'The resolver reports the runs of a command sent back so far, oldest first.',
+        params: [{ name: 'token', in: 'path', type: 'string', desc: 'The command token.' }],
+        responseSchema: 'DnsResolverReport',
+        responseSchemaArray: true,
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

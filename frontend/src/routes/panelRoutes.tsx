@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import {
   ApiOutlined,
   ClusterOutlined,
+  CloudServerOutlined,
   CrownOutlined,
   DashboardOutlined,
   ExportOutlined,
@@ -23,6 +24,7 @@ const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
 const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
 const HostsPage = lazy(() => import('@/pages/hosts/HostsPage'));
 const CleanIpPage = lazy(() => import('@/pages/clean-ip/CleanIpPage'));
+const DnsTunnelPage = lazy(() => import('@/pages/dns-tunnel/DnsTunnelPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
 const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
@@ -49,6 +51,12 @@ export const PANEL_ROUTES: PanelRoute[] = [
     titleKey: 'menu.cleanIp',
     icon: ThunderboltOutlined,
     component: CleanIpPage,
+  },
+  {
+    path: '/dns-tunnel',
+    titleKey: 'menu.dnsTunnel',
+    icon: CloudServerOutlined,
+    component: DnsTunnelPage,
   },
   { path: '/outbound', titleKey: 'menu.outbounds', icon: ExportOutlined, component: XrayPage },
   { path: '/routing', titleKey: 'menu.routing', icon: SwapOutlined, component: XrayPage },

@@ -235,6 +235,26 @@
   text-decoration: line-through;
 }
 
+.dns-tunnel-profiles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dns-tunnel-profile {
+  padding: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 10px;
+}
+
+.dns-tunnel-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
 .clean-ip-range-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));

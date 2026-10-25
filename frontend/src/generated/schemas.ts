@@ -2833,6 +2833,117 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "DnsResolverReport": {
+    "properties": {
+      "at": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "network": {
+        "$ref": "#/components/schemas/CleanIpNetwork"
+      },
+      "results": {
+        "items": {
+          "$ref": "#/components/schemas/DnsResolverResult"
+        },
+        "type": "array"
+      },
+      "zone": {
+        "example": "t.example.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "at",
+      "network",
+      "results",
+      "zone"
+    ],
+    "type": "object"
+  },
+  "DnsResolverResult": {
+    "properties": {
+      "ip": {
+        "example": "178.22.122.100",
+        "type": "string"
+      },
+      "ms": {
+        "example": 120,
+        "type": "integer"
+      },
+      "name": {
+        "example": "Shecan",
+        "type": "string"
+      },
+      "status": {
+        "example": "ok",
+        "type": "string"
+      }
+    },
+    "required": [
+      "ip",
+      "ms",
+      "name",
+      "status"
+    ],
+    "type": "object"
+  },
+  "DnsTunnelCommandRequest": {
+    "properties": {
+      "resolvers": {
+        "example": [
+          "178.22.122.100"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "zone": {
+        "example": "t.example.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "resolvers",
+      "zone"
+    ],
+    "type": "object"
+  },
+  "DnsTunnelProfile": {
+    "description": "DnsTunnelProfile is one tunnel server users connect to: engine stormdns (WhiteDNS,\nMasterDNS-compatible apps) or dnstt, its delegated domain and its key.",
+    "properties": {
+      "domain": {
+        "example": "st.t.example.com",
+        "type": "string"
+      },
+      "engine": {
+        "example": "stormdns",
+        "type": "string"
+      },
+      "key": {
+        "example": "93d3404c6701dc9dea2d1ff3282ab88b",
+        "type": "string"
+      },
+      "method": {
+        "example": 1,
+        "type": "integer"
+      },
+      "name": {
+        "example": "Iran",
+        "type": "string"
+      }
+    },
+    "required": [
+      "domain",
+      "engine",
+      "key",
+      "method",
+      "name"
+    ],
+    "type": "object"
+  },
   "FallbackParentInfo": {
     "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
     "properties": {

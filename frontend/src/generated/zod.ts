@@ -702,6 +702,37 @@ export const ClientsSummarySchema = z.object({
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 
+export const DnsResolverReportSchema = z.object({
+  at: z.number().int(),
+  network: z.lazy(() => CleanIpNetworkSchema),
+  results: z.array(z.lazy(() => DnsResolverResultSchema)),
+  zone: z.string(),
+});
+export type DnsResolverReport = z.infer<typeof DnsResolverReportSchema>;
+
+export const DnsResolverResultSchema = z.object({
+  ip: z.string(),
+  ms: z.number().int(),
+  name: z.string(),
+  status: z.string(),
+});
+export type DnsResolverResult = z.infer<typeof DnsResolverResultSchema>;
+
+export const DnsTunnelCommandRequestSchema = z.object({
+  resolvers: z.array(z.string()),
+  zone: z.string(),
+});
+export type DnsTunnelCommandRequest = z.infer<typeof DnsTunnelCommandRequestSchema>;
+
+export const DnsTunnelProfileSchema = z.object({
+  domain: z.string(),
+  engine: z.string(),
+  key: z.string(),
+  method: z.number().int(),
+  name: z.string(),
+});
+export type DnsTunnelProfile = z.infer<typeof DnsTunnelProfileSchema>;
+
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
   path: z.string().optional(),

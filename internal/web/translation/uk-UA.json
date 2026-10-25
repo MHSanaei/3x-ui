@@ -108,6 +108,7 @@
   },
   "menu": {
     "cleanIp": "Сканер чистих IP",
+    "dnsTunnel": "DNS tunnel",
     "theme": "Тема",
     "dashboard": "Огляд",
     "inbounds": "Вхідні",
@@ -129,6 +130,33 @@
     "subFormats": "Формати підписки"
   },
   "pages": {
+    "dnsTunnel": {
+      "intro": "A DNS tunnel keeps working when the internet is cut but the ISP's DNS still answers. Users connect with an app such as WhiteDNS (StormDNS engine) or a dnstt client; the panel keeps the server profiles to hand out and finds the DNS resolvers that pass the tunnel on each internet.",
+      "servers": "Tunnel servers",
+      "serversHint": "The tunnel servers running beside this panel (their zone must be delegated to this server). For StormDNS the page makes a WhiteDNS import link and QR code.",
+      "noServers": "No tunnel server yet",
+      "name": "Name",
+      "engine": "Engine",
+      "key": "Key (StormDNS encryption key / dnstt public key)",
+      "method": "Encryption method",
+      "whiteDnsLink": "WhiteDNS profile:",
+      "dnsttHint": "dnstt clients take the domain and the server's public key above (for example the dnstt-client command or apps with a dnstt / SlowDNS mode).",
+      "addServer": "Add a server",
+      "saveServers": "Save servers",
+      "resolverTest": "Resolvers that work on this internet",
+      "resolverIntro": "A tunnel only works through DNS resolvers that pass it. This command (Linux / macOS / Android Termux / Windows with Python) tests this device's own DNS, the ones you add and well-known public resolvers against the tunnel zone, and sends the result here. Copy the working list into the app's resolvers.",
+      "needServer": "Add and save a tunnel server first.",
+      "extraResolvers": "More resolvers to test (optional)",
+      "reportLine": "{org} · {ok} of {total} resolvers pass",
+      "copyResolvers": "Copy working resolvers",
+      "resolver": "Resolver",
+      "resolverName": "Name",
+      "resolverOk": "passes ✓",
+      "toasts": {
+        "profiles": "Could not save the tunnel servers",
+        "saved": "Tunnel servers saved"
+      }
+    },
     "cleanIp": {
       "rangesTitle": "Діапазони для сканування · вибрано {count}",
       "extraRanges": "Додаткові діапазони (CIDR, необов'язково)",
