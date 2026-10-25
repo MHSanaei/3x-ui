@@ -2859,6 +2859,117 @@
         ],
         "type": "object"
       },
+      "DnsResolverReport": {
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "network": {
+            "$ref": "#/components/schemas/CleanIpNetwork"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DnsResolverResult"
+            },
+            "type": "array"
+          },
+          "zone": {
+            "example": "t.example.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "network",
+          "results",
+          "zone"
+        ],
+        "type": "object"
+      },
+      "DnsResolverResult": {
+        "properties": {
+          "ip": {
+            "example": "178.22.122.100",
+            "type": "string"
+          },
+          "ms": {
+            "example": 120,
+            "type": "integer"
+          },
+          "name": {
+            "example": "Shecan",
+            "type": "string"
+          },
+          "status": {
+            "example": "ok",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ip",
+          "ms",
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DnsTunnelCommandRequest": {
+        "properties": {
+          "resolvers": {
+            "example": [
+              "178.22.122.100"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "zone": {
+            "example": "t.example.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resolvers",
+          "zone"
+        ],
+        "type": "object"
+      },
+      "DnsTunnelProfile": {
+        "description": "DnsTunnelProfile is one tunnel server users connect to: engine stormdns (WhiteDNS,\nMasterDNS-compatible apps) or dnstt, its delegated domain and its key.",
+        "properties": {
+          "domain": {
+            "example": "st.t.example.com",
+            "type": "string"
+          },
+          "engine": {
+            "example": "stormdns",
+            "type": "string"
+          },
+          "key": {
+            "example": "93d3404c6701dc9dea2d1ff3282ab88b",
+            "type": "string"
+          },
+          "method": {
+            "example": 1,
+            "type": "integer"
+          },
+          "name": {
+            "example": "Iran",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "engine",
+          "key",
+          "method",
+          "name"
+        ],
+        "type": "object"
+      },
       "FallbackParentInfo": {
         "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
         "properties": {
@@ -5377,6 +5488,10 @@
     {
       "name": "Clean IP Scanner",
       "description": "The clean IP scanner tests Cloudflare IPs from the browser of whoever opens it; these endpoints tell it which ISP that is."
+    },
+    {
+      "name": "DNS Tunnel",
+      "description": "DNS tunnels (StormDNS for WhiteDNS-style apps, dnstt) for internet shutdowns: the profiles users import and a resolver test run on a device on the ISP."
     },
     {
       "name": "Backup",
@@ -13817,6 +13932,231 @@
                     {
                       "ip": "104.16.1.1",
                       "status": "ok"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/profiles": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "The DNS tunnel servers users connect to (engine, domain, key, encryption method).",
+        "operationId": "get_panel_api_dnstunnel_profiles",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsTunnelProfile"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "domain": "st.t.example.com",
+                      "engine": "stormdns",
+                      "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                      "method": 1,
+                      "name": "Iran"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Replace the list of DNS tunnel servers (up to 20).",
+        "operationId": "post_panel_api_dnstunnel_profiles",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": [
+                {
+                  "name": "Iran",
+                  "engine": "stormdns",
+                  "domain": "st.t.example.com",
+                  "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                  "method": 1
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/command": {
+      "post": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Make a one-day command that tests which DNS resolvers reach the tunnel zone from the device it runs on (its own resolvers, the given list and well-known public ones).",
+        "operationId": "post_panel_api_dnstunnel_command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "zone": "t.example.com",
+                "resolvers": [
+                  "178.22.122.100"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpCommand"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "expiresAt": 1793000000,
+                    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+                    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+                    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+                    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+                    "via": "104.16.1.1",
+                    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+                    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/command/{token}": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "The resolver reports the runs of a command sent back so far, oldest first.",
+        "operationId": "get_panel_api_dnstunnel_command_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "The command token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsResolverReport"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "at": 1793000000,
+                      "network": {
+                        "asn": 197207,
+                        "country": "IR",
+                        "ip": "5.160.10.20",
+                        "isp": "MCI",
+                        "org": "Mobile Communication Company of Iran PLC"
+                      },
+                      "results": [
+                        {
+                          "ip": "178.22.122.100",
+                          "ms": 120,
+                          "name": "Shecan",
+                          "status": "ok"
+                        }
+                      ],
+                      "zone": "t.example.com"
                     }
                   ]
                 }

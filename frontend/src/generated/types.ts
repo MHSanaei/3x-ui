@@ -658,6 +658,33 @@ export interface ClientsSummary {
   total: number;
 }
 
+export interface DnsResolverReport {
+  at: number;
+  network: CleanIpNetwork;
+  results: DnsResolverResult[];
+  zone: string;
+}
+
+export interface DnsResolverResult {
+  ip: string;
+  ms: number;
+  name: string;
+  status: string;
+}
+
+export interface DnsTunnelCommandRequest {
+  resolvers: string[];
+  zone: string;
+}
+
+export interface DnsTunnelProfile {
+  domain: string;
+  engine: string;
+  key: string;
+  method: number;
+  name: string;
+}
+
 export interface FallbackParentInfo {
   masterId: number;
   path?: string;

@@ -108,6 +108,7 @@
   },
   "menu": {
     "cleanIp": "اسکنر IP تمیز",
+    "dnsTunnel": "تونل DNS",
     "theme": "تم",
     "dashboard": "نمای کلی",
     "inbounds": "ورودی‌ها",
@@ -129,6 +130,33 @@
     "subFormats": "Sub Formats"
   },
   "pages": {
+    "dnsTunnel": {
+      "intro": "تونل DNS وقتی اینترنت قطع است ولی DNS اپراتور هنوز جواب می‌دهد کار می‌کند. کاربر با اپی مثل WhiteDNS (هستهٔ StormDNS) یا یک کلاینت dnstt وصل می‌شود؛ پنل مشخصات سرورها را برای دادن به کاربر نگه می‌دارد و resolverهایی را که روی هر اینترنت تونل را رد می‌کنند پیدا می‌کند.",
+      "servers": "سرورهای تونل",
+      "serversHint": "سرورهای تونلی که کنار این پنل اجرا می‌شوند (زونشان باید به همین سرور سپرده شده باشد). برای StormDNS صفحه لینک و QR وارد کردن در WhiteDNS را می‌سازد.",
+      "noServers": "هنوز سرور تونلی نیست",
+      "name": "اسم",
+      "engine": "هسته",
+      "key": "کلید (کلید رمزنگاری StormDNS / کلید عمومی dnstt)",
+      "method": "روش رمزنگاری",
+      "whiteDnsLink": "پروفایل WhiteDNS:",
+      "dnsttHint": "کلاینت‌های dnstt دامنه و کلید عمومی سرور را می‌گیرند (مثلاً دستور dnstt-client یا اپ‌هایی با حالت dnstt / SlowDNS).",
+      "addServer": "افزودن سرور",
+      "saveServers": "ذخیرهٔ سرورها",
+      "resolverTest": "resolverهایی که روی این اینترنت کار می‌کنند",
+      "resolverIntro": "تونل فقط از resolverهایی رد می‌شود که آن را عبور بدهند. این دستور (لینوکس / مک / اندروید با Termux / ویندوز با Python) DNS خود این دستگاه، resolverهایی که اضافه می‌کنید و resolverهای عمومی معروف را روی زون تونل تست می‌کند و نتیجه را به اینجا می‌فرستد. لیست سالم را در بخش Resolvers اپ کپی کنید.",
+      "needServer": "اول یک سرور تونل اضافه و ذخیره کنید.",
+      "extraResolvers": "resolverهای بیشتر برای تست (اختیاری)",
+      "reportLine": "{org} · {ok} از {total} resolver رد می‌کنند",
+      "copyResolvers": "کپی resolverهای سالم",
+      "resolver": "Resolver",
+      "resolverName": "اسم",
+      "resolverOk": "رد می‌کند ✓",
+      "toasts": {
+        "profiles": "سرورهای تونل ذخیره نشدند",
+        "saved": "سرورهای تونل ذخیره شدند"
+      }
+    },
     "cleanIp": {
       "rangesTitle": "رنج‌های اسکن · {count} انتخاب‌شده",
       "extraRanges": "رنج‌های اضافه (CIDR، اختیاری)",

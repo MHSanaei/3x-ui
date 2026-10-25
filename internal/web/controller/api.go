@@ -225,6 +225,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Clean IP scanner — the visitor's ISP, for the scan that runs in their browser
 	NewCleanIpController(api.Group("/cleanip"))
 
+	// DNS tunnels (StormDNS / dnstt): user profiles and the resolver test
+	NewDnsTunnelController(api.Group("/dnstunnel"))
+
 	// Settings + Xray config management live under the API surface too, so the
 	// same API token drives them. Paths are /panel/api/setting/* and
 	// /panel/api/xray/*.

@@ -731,6 +731,44 @@ export const EXAMPLES: Record<string, unknown> = {
     "onlineCount": 1,
     "total": 2000
   },
+  "DnsResolverReport": {
+    "at": 1793000000,
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.160.10.20",
+      "isp": "MCI",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "results": [
+      {
+        "ip": "178.22.122.100",
+        "ms": 120,
+        "name": "Shecan",
+        "status": "ok"
+      }
+    ],
+    "zone": "t.example.com"
+  },
+  "DnsResolverResult": {
+    "ip": "178.22.122.100",
+    "ms": 120,
+    "name": "Shecan",
+    "status": "ok"
+  },
+  "DnsTunnelCommandRequest": {
+    "resolvers": [
+      "178.22.122.100"
+    ],
+    "zone": "t.example.com"
+  },
+  "DnsTunnelProfile": {
+    "domain": "st.t.example.com",
+    "engine": "stormdns",
+    "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+    "method": 1,
+    "name": "Iran"
+  },
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""

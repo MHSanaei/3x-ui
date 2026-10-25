@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Tag, Typography } from 'antd';
 
 import { HttpUtil } from '@/utils';
 
@@ -52,6 +54,39 @@ export function StepTitle({
       <span className="clean-ip-step-num">{n}</span>
       <span className="clean-ip-step-text">{children}</span>
       {extra}
+    </div>
+  );
+}
+
+export function NetworkInfo({
+  net,
+  loading,
+  error,
+}: {
+  net?: CleanIpNetwork;
+  loading: boolean;
+  error: boolean;
+}) {
+  const { t } = useTranslation();
+  if (loading)
+    return <Typography.Text type="secondary">{t('pages.cleanIp.detecting')}</Typography.Text>;
+  if (error) return <Alert type="warning" showIcon title={t('pages.cleanIp.toasts.network')} />;
+  if (!net) return null;
+  if (!net.asn) return <Alert type="warning" showIcon title={t('pages.cleanIp.privateIp')} />;
+  return (
+    <div className="clean-ip-net">
+      <div className="clean-ip-net-isp">
+        {net.isp ? <Tag color="processing">{net.isp}</Tag> : null}
+        <span>{net.org}</span>
+      </div>
+      <Typography.Text type="secondary" className="clean-ip-mono">
+        AS{net.asn} · {net.country} · {net.ip}
+      </Typography.Text>
+      {CLOUDFLARE_ASNS.has(net.asn) ? (
+        <Alert type="error" showIcon title={t('pages.cleanIp.vpnWarning')} />
+      ) : !net.isp ? (
+        <Alert type="warning" showIcon title={t('pages.cleanIp.noIsp')} />
+      ) : null}
     </div>
   );
 }
