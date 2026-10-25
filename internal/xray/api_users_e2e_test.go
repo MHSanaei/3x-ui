@@ -111,6 +111,7 @@ func startE2ECore(t *testing.T, inbounds []any) *e2eCore {
 		t.Fatalf("api init: %v", err)
 	}
 	t.Cleanup(api.Close)
+	waitForXrayAPIReady(t, api, apiPort)
 	return &e2eCore{api: api, cmd: cmd, port: apiPort}
 }
 

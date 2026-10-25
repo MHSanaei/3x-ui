@@ -12,8 +12,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -75,20 +77,7 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
-			Instance: inst,
-			Options: amneziawgnet.DeviceOptions{
-				HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
-				ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
-				RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
-				RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
-				RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
-				KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
-				MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
-				RandomTrailers:         inst.Obfuscation.RandomTrailers,
-				DisableCookies:         inst.Obfuscation.DisableCookies,
-			},
-		})
+		err := ensureAmneziaWG(inst)
 		// A brand new inbound can be the first one to qualify for
 		// injectAmneziawgnetSocks's Xray-side relay inbound (e.g. its first
 		// valid peer). Ensure only updates the embedded Device -- flag Xray
@@ -125,7 +114,7 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		return nil
 	}
 	if ib.Protocol == model.AmneziaWG {
-		amneziawgnet.GetManager().Remove(ib.Id)
+		removeAmneziaWG(ib.Id)
 		// The removed inbound may have been the only one backing Xray's
 		// injectAmneziawgnetSocks relay inbound for this tag -- flag a
 		// resync so the now-stale relay gets torn down promptly.
@@ -192,27 +181,13 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 	return mtproto.GetManager().Ensure(inst)
 }
 
-// updateAmneziaWGInbound mirrors updateMtprotoInbound: it skips the
-// Remove+Ensure sequence a plain Del+Add would force so that, on an
-// AmneziaWG-to-AmneziaWG edit, Manager.Ensure's own fingerprint comparison
-// can reconfigure the running embedded Device in place via IpcSet instead
-// of always rebuilding it (see internal/amneziawgnet.Manager.ensureLocked --
-// only an address or effective-MTU change forces a rebuild there, S4
-// included, not a peer edit).
-//
-// Every exit path below only touches the embedded Device via
-// amneziawgnet.GetManager() -- none of it rebuilds Xray's own config, which
-// is what actually creates/removes injectAmneziawgnetSocks's relay inbound.
-// A peer edit that changes whether this inbound has a qualifying peer at
-// all (its first peer added, or its last one removed) must still get that
-// relay created or torn down, so flag Xray for a resync unconditionally
-// here rather than trying to enumerate which of the branches below need it.
+// updateAmneziaWGInbound routes AmneziaWG CRUD through the active datapath managers.
 func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if l.deps.SetNeedRestart != nil {
 		l.deps.SetNeedRestart()
 	}
 	if oldIb.Protocol == model.AmneziaWG && newIb.Protocol != model.AmneziaWG {
-		amneziawgnet.GetManager().Remove(oldIb.Id)
+		removeAmneziaWG(oldIb.Id)
 		if !newIb.Enable {
 			return nil
 		}
@@ -222,13 +197,30 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 		_ = l.DelInbound(ctx, oldIb)
 	}
 	if !newIb.Enable {
-		amneziawgnet.GetManager().Remove(newIb.Id)
+		removeAmneziaWG(newIb.Id)
 		return nil
 	}
 	inst, ok := amneziawg.InstanceFromInbound(newIb)
 	if !ok {
-		amneziawgnet.GetManager().Remove(newIb.Id)
+		removeAmneziaWG(newIb.Id)
 		return nil
+	}
+	return ensureAmneziaWG(inst)
+}
+
+// ensureAmneziaWG routes an inbound to its own datapath's manager and clears
+// the other's: both bind the inbound's UDP port, so they must never overlap.
+func ensureAmneziaWG(inst amneziawg.Instance) error {
+	if inst.KernelMode {
+		amneziawgnet.GetManager().Remove(inst.Id)
+		return amneziawgkern.GetManager().Ensure(amneziawgkern.Desired{
+			Instance:         inst,
+			EgressInterface:  inst.ExternalInterface,
+			RouteThroughXray: inst.RouteThroughXray,
+		})
+	}
+	if err := amneziawgkern.GetManager().Remove(inst.Id); err != nil {
+		return err
 	}
 	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
 		Instance: inst,
@@ -244,6 +236,14 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 			DisableCookies:         inst.Obfuscation.DisableCookies,
 		},
 	})
+}
+
+// removeAmneziaWG tears the inbound down on whichever datapath is holding it.
+func removeAmneziaWG(id int) {
+	amneziawgnet.GetManager().Remove(id)
+	if err := amneziawgkern.GetManager().Remove(id); err != nil {
+		logger.Warning("amneziawgkern: removing inbound ", id, ": ", err)
+	}
 }
 
 func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {

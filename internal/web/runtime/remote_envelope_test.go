@@ -90,3 +90,44 @@ func TestRemoteSendsPlainWhenNoCap(t *testing.T) {
 		t.Fatalf("integrity hash should always be sent, got %q", capturedHash)
 	}
 }
+
+// TestRemoteRefusesKernelAmneziaWGOnNodeWithoutCap: an older node drops the
+// kernelMode flag and silently runs the inbound on the embedded datapath.
+func TestRemoteRefusesKernelAmneziaWGOnNodeWithoutCap(t *testing.T) {
+	cases := []struct {
+		name       string
+		caps       string
+		kernel     bool
+		wantRefuse bool
+	}{
+		{"old node, kernel inbound", wirecodec.CapZstd, true, true},
+		{"node without any caps, kernel inbound", "", true, true},
+		{"kernel-capable node, kernel inbound", wirecodec.NodeCaps, true, false},
+		{"old node, embedded inbound", wirecodec.CapZstd, false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var pushed bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.caps != "" {
+					w.Header().Set(wirecodec.CapsHeader, tc.caps)
+				}
+				if r.Method == http.MethodPost {
+					pushed = true
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
+			}))
+			defer srv.Close()
+
+			r := NewRemote(nodeForPlainServer(t, srv, "verify", "tok"), nil)
+			err := r.AddInbound(context.Background(), datapathInbound(t, 1, 51820, tc.kernel))
+			if refused := err != nil && strings.Contains(err.Error(), "does not support AmneziaWG kernel mode"); refused != tc.wantRefuse {
+				t.Fatalf("refused = %v (err %v), want %v", refused, err, tc.wantRefuse)
+			}
+			if pushed == tc.wantRefuse {
+				t.Fatalf("inbound pushed = %v, want %v", pushed, !tc.wantRefuse)
+			}
+		})
+	}
+}

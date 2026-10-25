@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "此主機暫時無法執行核心模式",
+        "kernelBlocker": {
+          "root": "面板未以 root 身分執行，無法建立網路介面",
+          "tools": "缺少必要的指令；請安裝 amneziawg-tools 與 iproute2",
+          "module": "未安裝 amneziawg 核心模組",
+          "nft": "未安裝 nftables；通道的 NAT 規則需要它",
+          "ipv6": "核心模式尚不支援每個對等端的 IPv6 出口",
+          "portForwarding": "核心模式尚不支援每個用戶端的連接埠轉發",
+          "routeThroughXray": "routeThroughXray 沒有核心模式實作，會讓通道沒有出口路徑"
+        },
+        "kernelMode": "核心模式",
+        "kernelModeHint": "以 AmneziaWG 核心模組取代內建的使用者空間堆疊來執行此入站。通常更快，尤其是在高延遲連線上，但 Xray 路由、嗅探、IPv6 與連接埠轉發不適用於其對等端。主機需安裝 AmneziaWG 核心模組與 amneziawg-tools。"
       },
       "tuic": {
         "congestionControl": "壅塞控制演算法",
