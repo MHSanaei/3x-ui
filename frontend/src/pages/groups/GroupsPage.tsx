@@ -358,32 +358,40 @@ export default function GroupsPage() {
   }
 
   async function openHostAssignmentsFor(g: GroupSummary) {
-    const msg = await HttpUtil.get<string[]>(
-      `/panel/api/clients/groups/${encodeURIComponent(g.name)}/hosts`,
-      undefined,
-      { silent: true },
-    );
-    if (!msg?.success || !Array.isArray(msg.obj)) {
-      messageApi.error(msg?.msg || t('somethingWentWrong'));
-      return;
+    try {
+      const msg = await HttpUtil.get<string[]>(
+        `/panel/api/clients/groups/${encodeURIComponent(g.name)}/hosts`,
+        undefined,
+        { silent: true },
+      );
+      if (!msg?.success || !Array.isArray(msg.obj)) {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+        return;
+      }
+      setGroupForAction(g);
+      setHostAssignmentIds(msg.obj);
+      setGroupHostAssignments((current) => ({ ...current, [g.name]: msg.obj }));
+      setHostAssignmentOpen(true);
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
     }
-    setGroupForAction(g);
-    setHostAssignmentIds(msg.obj);
-    setGroupHostAssignments((current) => ({ ...current, [g.name]: msg.obj }));
-    setHostAssignmentOpen(true);
   }
 
   async function saveHostAssignments() {
     if (!groupForAction) return;
     const hostGroupIds = [...new Set(hostAssignmentIds.map((id) => id.trim()).filter(Boolean))];
-    const msg = await hostAssignmentMut.mutateAsync({
-      name: groupForAction.name,
-      hostGroupIds,
-    });
-    if (msg?.success) {
-      const savedIds = Array.isArray(msg.obj) ? (msg.obj as string[]) : hostGroupIds;
-      setGroupHostAssignments((current) => ({ ...current, [groupForAction.name]: savedIds }));
-      setHostAssignmentIds(savedIds);
+    try {
+      const msg = await hostAssignmentMut.mutateAsync({
+        name: groupForAction.name,
+        hostGroupIds,
+      });
+      if (msg?.success) {
+        const savedIds = Array.isArray(msg.obj) ? (msg.obj as string[]) : hostGroupIds;
+        setGroupHostAssignments((current) => ({ ...current, [groupForAction.name]: savedIds }));
+        setHostAssignmentIds(savedIds);
+      }
+    } catch {
+      // The mutation's onError handler already reports the failure to the user.
     }
   }
 
