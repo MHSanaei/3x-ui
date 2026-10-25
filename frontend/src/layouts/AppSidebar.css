@@ -270,6 +270,21 @@
   border-top: 1px solid var(--ant-color-border-secondary);
 }
 
+/* On a short phone screen the page list scrolls; the header, the search box and the
+   log-out row keep their size instead of being squeezed by the flex column. */
+.drawer-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.drawer-header,
+.ant-drawer .sidebar-command-trigger,
+.drawer-utility,
+.drawer-footer {
+  flex-shrink: 0;
+}
+
 .ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
   display: flex;
   flex-direction: column;

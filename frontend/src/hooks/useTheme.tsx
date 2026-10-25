@@ -21,18 +21,18 @@ export const ACCENT_COLORS = [
 ] as const;
 export type AccentColor = (typeof ACCENT_COLORS)[number];
 
-// light: white text on it stays >= 4.5:1; dark: readable on dark cards, with
-// dark text on the button where white text would not be (orange/yellow/green).
+// light: white text on it stays >= 4.5:1; dark: Smart Caddy's brighter tones, readable on
+// dark cards, with dark text on the button where white would not be.
 const ACCENT_SHADES: Record<
   Exclude<AccentColor, 'default'>,
   { light: string; dark: string; darkInk: boolean }
 > = {
-  red: { light: '#dc2626', dark: '#ef4444', darkInk: false },
-  pink: { light: '#db2777', dark: '#ec4899', darkInk: false },
-  orange: { light: '#c2410c', dark: '#fb923c', darkInk: true },
+  red: { light: '#dc2626', dark: '#ff5468', darkInk: false },
+  pink: { light: '#db2777', dark: '#ff5fa2', darkInk: true },
+  orange: { light: '#c2410c', dark: '#ff8a3d', darkInk: true },
   yellow: { light: '#a16207', dark: '#facc15', darkInk: true },
-  green: { light: '#047857', dark: '#34d399', darkInk: true },
-  purple: { light: '#7c3aed', dark: '#8b5cf6', darkInk: false },
+  green: { light: '#047857', dark: '#2fd68f', darkInk: true },
+  purple: { light: '#7c3aed', dark: '#8f80ff', darkInk: false },
 };
 const DEFAULT_PRIMARY = { light: '#0958d9', dark: '#1677ff' };
 const DARK_INK = '#141414';

@@ -4,7 +4,7 @@
 
 html[data-glass] {
   --glass-base: #eef0f7;
-  --glass-glow: 36%;
+  --glass-glow: 30%;
   --glass-solid: #f7f8fc;
   --glass-blur: saturate(160%) blur(18px);
   --glass-shadow: 0 16px 40px -24px rgba(15, 23, 42, 0.35);
@@ -13,7 +13,7 @@ html[data-glass] {
 
 html[data-glass] body.dark {
   --glass-base: #0b0912;
-  --glass-glow: 58%;
+  --glass-glow: 46%;
   --glass-solid: #17131f;
   --glass-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
   --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -21,7 +21,7 @@ html[data-glass] body.dark {
 
 html[data-glass][data-theme='ultra-dark'] body.dark {
   --glass-base: #000;
-  --glass-glow: 44%;
+  --glass-glow: 36%;
   --glass-solid: #0c0b11;
 }
 
