@@ -395,6 +395,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		if err := tx.Commit().Error; err != nil {
 			return 0, err
 		}
+		InvalidateSubData()
 		return 0, nil
 	}
 
@@ -473,5 +474,6 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 	if err := tx.Commit().Error; err != nil {
 		return 0, err
 	}
+	InvalidateSubData()
 	return len(records), nil
 }
