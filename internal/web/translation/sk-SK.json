@@ -603,6 +603,8 @@
         "addCustomOption": "Pridať vlastné nastavenie",
         "serverNameIndication": "Názov servera (SNI)",
         "cipherSuites": "Šifrovacie sady",
+        "cipherSuitesNeedUnsafe": "Klienti použijú tieto šifrovacie sady iba s odtlačkom uTLS „unsafe“; pri akomkoľvek inom odtlačku sa ignorujú.",
+        "presets": "Predvoľby",
         "autoOption": "Automaticky",
         "minMaxVersion": "Najnižšia/najvyššia verzia",
         "rejectUnknownSni": "Odmietnuť neznáme SNI",

@@ -601,6 +601,8 @@
         "addCustomOption": "Özel Seçenek Ekle",
         "serverNameIndication": "Server Name Indication (SNI)",
         "cipherSuites": "Şifreleme Takımları",
+        "cipherSuitesNeedUnsafe": "İstemciler bu şifre paketlerini yalnızca \"unsafe\" uTLS parmak iziyle uygular; başka bir parmak izinde yok sayılır.",
+        "presets": "Hazır ayarlar",
         "autoOption": "Otomatik",
         "minMaxVersion": "Min/Maks Sürüm",
         "rejectUnknownSni": "Bilinmeyen SNI Reddet",

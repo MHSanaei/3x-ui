@@ -601,6 +601,8 @@
         "addCustomOption": "Tambah opsi kustom",
         "serverNameIndication": "SNI",
         "cipherSuites": "Rangkaian Sandi",
+        "cipherSuitesNeedUnsafe": "Klien hanya menerapkan cipher suite ini dengan fingerprint uTLS \"unsafe\"; dengan fingerprint lain akan diabaikan.",
+        "presets": "Preset",
         "autoOption": "Otomatis",
         "minMaxVersion": "Versi Min/Maks",
         "rejectUnknownSni": "Tolak SNI tidak dikenal",

@@ -325,6 +325,14 @@ export default function TlsForm({
     control,
     name: 'streamSettings.tlsSettings.certificates',
   });
+  const cipherSuites = useWatch({ control, name: 'streamSettings.tlsSettings.cipherSuites' });
+  const fingerprint = useWatch({
+    control,
+    name: 'streamSettings.tlsSettings.settings.fingerprint',
+  });
+  // An empty fingerprint is fine: share links pin it to unsafe whenever cs is set.
+  const cipherSuitesIgnoredByClients =
+    Boolean(cipherSuites) && Boolean(fingerprint) && fingerprint !== UTLS_FINGERPRINT.UTLS_UNSAFE;
   return (
     <>
       <FormField name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
@@ -333,6 +341,13 @@ export default function TlsForm({
       <FormField
         name={['streamSettings', 'tlsSettings', 'cipherSuites']}
         label={t('pages.inbounds.form.cipherSuites')}
+        extra={
+          cipherSuitesIgnoredByClients ? (
+            <Typography.Text type="warning" data-testid="cipher-suites-fingerprint-warning">
+              {t('pages.inbounds.form.cipherSuitesNeedUnsafe')}
+            </Typography.Text>
+          ) : undefined
+        }
       >
         <CipherSuitesSelect placeholder={t('pages.inbounds.form.autoOption')} />
       </FormField>

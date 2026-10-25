@@ -136,3 +136,26 @@ describe('inbound TLS dynamic ECH helper', () => {
     expect(screen.getByTestId('ech-cdn-warning').textContent).toMatch(/Cloudflare CDN/i);
   });
 });
+
+// Xray drops cipherSuites under every uTLS fingerprint but unsafe; an empty one
+// is left out because share links pin it to unsafe.
+describe('inbound TLS cipherSuites fingerprint warning', () => {
+  function tlsValues(cipherSuites: string, fingerprint: string) {
+    return { streamSettings: { tlsSettings: { cipherSuites, settings: { fingerprint } } } };
+  }
+
+  it('warns when cipher suites sit under a uTLS fingerprint', async () => {
+    renderTls(tlsValues('TLS_AES_128_GCM_SHA256', 'chrome'));
+    expect(await screen.findByTestId('cipher-suites-fingerprint-warning')).toBeTruthy();
+  });
+
+  it.each([
+    ['unsafe fingerprint', 'TLS_AES_128_GCM_SHA256', 'unsafe'],
+    ['empty fingerprint', 'TLS_AES_128_GCM_SHA256', ''],
+    ['no cipher suites', '', 'chrome'],
+  ])('stays silent with %s', async (_, cipherSuites, fingerprint) => {
+    renderTls(tlsValues(cipherSuites, fingerprint));
+    await screen.findByTestId('ech-dynamic-helper');
+    expect(screen.queryByTestId('cipher-suites-fingerprint-warning')).toBeNull();
+  });
+});

@@ -601,6 +601,8 @@
         "addCustomOption": "Añadir opción personalizada",
         "serverNameIndication": "SNI",
         "cipherSuites": "Conjuntos de cifrado",
+        "cipherSuitesNeedUnsafe": "Los clientes solo aplican estos cipher suites con la huella uTLS \"unsafe\"; con cualquier otra huella se ignoran.",
+        "presets": "Preajustes",
         "autoOption": "Auto",
         "minMaxVersion": "Versión mín/máx",
         "rejectUnknownSni": "Rechazar SNI desconocido",

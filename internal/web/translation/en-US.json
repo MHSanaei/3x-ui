@@ -603,6 +603,8 @@
         "addCustomOption": "Add custom option",
         "serverNameIndication": "Server Name Indication",
         "cipherSuites": "Cipher Suites",
+        "cipherSuitesNeedUnsafe": "Clients apply these cipher suites only with the uTLS fingerprint \"unsafe\"; under any other fingerprint they are ignored.",
+        "presets": "Presets",
         "autoOption": "Auto",
         "minMaxVersion": "Min/Max Version",
         "rejectUnknownSni": "Reject Unknown SNI",

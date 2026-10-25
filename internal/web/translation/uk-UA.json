@@ -601,6 +601,8 @@
         "addCustomOption": "Додати опцію",
         "serverNameIndication": "SNI",
         "cipherSuites": "Набори шифрів",
+        "cipherSuitesNeedUnsafe": "Клієнти застосовують ці набори шифрів лише з відбитком uTLS «unsafe»; з будь-яким іншим відбитком вони ігноруються.",
+        "presets": "Пресети",
         "autoOption": "Авто",
         "minMaxVersion": "Мін/Макс версія",
         "rejectUnknownSni": "Відхиляти невідомий SNI",

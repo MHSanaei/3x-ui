@@ -601,6 +601,8 @@
         "addCustomOption": "افزودن گزینه دلخواه",
         "serverNameIndication": "SNI",
         "cipherSuites": "مجموعه‌های رمز",
+        "cipherSuitesNeedUnsafe": "کلاینت‌ها این cipher suiteها را فقط با فینگرپرینت uTLS «unsafe» اعمال می‌کنند و با هر فینگرپرینت دیگری نادیده گرفته می‌شوند.",
+        "presets": "پیش‌تنظیم‌ها",
         "autoOption": "خودکار",
         "minMaxVersion": "نسخه حداقل/حداکثر",
         "rejectUnknownSni": "رد SNI ناشناخته",

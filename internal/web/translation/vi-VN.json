@@ -652,6 +652,8 @@
         "addCustomOption": "Thêm tùy chọn",
         "serverNameIndication": "SNI",
         "cipherSuites": "Bộ mật mã",
+        "cipherSuitesNeedUnsafe": "Client chỉ áp dụng các cipher suite này với fingerprint uTLS \"unsafe\"; với fingerprint khác chúng sẽ bị bỏ qua.",
+        "presets": "Cấu hình sẵn",
         "autoOption": "Tự động",
         "minMaxVersion": "Phiên bản Min/Max",
         "rejectUnknownSni": "Từ chối SNI lạ",

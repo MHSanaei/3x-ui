@@ -651,6 +651,8 @@
         "addCustomOption": "添加自定义选项",
         "serverNameIndication": "SNI",
         "cipherSuites": "密码套件",
+        "cipherSuitesNeedUnsafe": "客户端仅在 uTLS 指纹为 \"unsafe\" 时应用这些加密套件；使用其他指纹时会被忽略。",
+        "presets": "预设",
         "autoOption": "自动",
         "minMaxVersion": "最小/最大版本",
         "rejectUnknownSni": "拒绝未知 SNI",
