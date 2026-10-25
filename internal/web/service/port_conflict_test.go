@@ -816,6 +816,41 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayBlockedLocal(t *testing.T) {
 	}
 }
 
+func TestCheckPortConflict_KernelAmneziaWGDoesNotReserveEmbeddedRelay(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-kernel", "0.0.0.0", 51820, model.AmneziaWG, ``,
+		`{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"kernelMode":true},"clients":[]}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-kernel").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	candidate := &model.Inbound{
+		Tag:      "vless-kernel-relay-port",
+		Listen:   "0.0.0.0",
+		Port:     amneziawgnet.SOCKSPortForInbound(awgInbound.Id),
+		Protocol: model.VLESS,
+	}
+	if got, err := (&InboundService{}).checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("kernel-mode AmneziaWG must not reserve an embedded relay port, including with no peers; got=%v err=%v", got, err)
+	}
+}
+
+func TestCheckPortConflict_KernelAmneziaWGAllowsItsUDPPortToMatchRelayRange(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-kernel", "0.0.0.0", 51820, model.AmneziaWG, ``,
+		`{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"kernelMode":true},"clients":[]}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-kernel").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	awgInbound.Port = amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+	if got, err := (&InboundService{}).checkPortConflict(&awgInbound, awgInbound.Id); err != nil || got != nil {
+		t.Fatalf("kernel-mode AmneziaWG UDP port may use a port in the embedded TCP relay range; got=%v err=%v", got, err)
+	}
+}
+
 // Nodes run their own Xray, so a node inbound landing on the central panel's
 // AmneziaWG relay port must be allowed -- the relay inbound only ever binds
 // 127.0.0.1 on the local panel's own Xray.

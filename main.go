@@ -4,13 +4,16 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	_ "unsafe"
@@ -664,6 +667,8 @@ func main() {
 			return
 		}
 		runWebServer()
+	case "install-awg-kernel":
+		installAmneziaWGKernelModule()
 	case "migrate":
 		migrateDb()
 	case "encrypt-tokens":
@@ -771,5 +776,51 @@ Commands:
     migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)
     encrypt-tokens encrypt node bearer tokens with the configured active key
     setting        set settings
+    install-awg-kernel
+                   build and install the AmneziaWG kernel module (required for
+                   an AmneziaWG inbound's kernel mode)
 `
+}
+
+//go:embed scripts/install-amneziawg-kernel.sh
+var installAwgKernelScript []byte
+
+// installAmneziaWGKernelModule runs the bundled module installer.
+// It needs a terminal for its apt and DKMS build output.
+func installAmneziaWGKernelModule() {
+	if runtime.GOOS != "linux" {
+		fmt.Println("the AmneziaWG kernel module is Linux-only")
+		return
+	}
+	if os.Geteuid() != 0 {
+		exe, err := os.Executable()
+		if err != nil || exe == "" {
+			exe = "/usr/local/x-ui/x-ui"
+		}
+		fmt.Println("run as root: sudo " + exe + " install-awg-kernel")
+		return
+	}
+
+	f, err := os.CreateTemp("", "install-amneziawg-kernel-*.sh")
+	if err != nil {
+		fmt.Println("could not stage the installer:", err)
+		return
+	}
+	defer os.Remove(f.Name())
+	if _, err := f.Write(installAwgKernelScript); err != nil {
+		f.Close()
+		fmt.Println("could not write the installer:", err)
+		return
+	}
+	f.Close()
+
+	// No timeout: an apt+dkms build legitimately runs for minutes.
+	cmd := exec.CommandContext(context.Background(), "bash", f.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		fmt.Println("install failed:", err)
+		os.Exit(1)
+	}
 }

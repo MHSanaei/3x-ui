@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -27,6 +29,45 @@ func droppedClientNeedsRestart() bool {
 		logger.Warning("get RestartXrayOnClientDisable failed:", err)
 	}
 	return on
+}
+
+func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client) error {
+	if inbound.Protocol != model.AmneziaWG {
+		return nil
+	}
+	var settings amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		return fmt.Errorf("amneziawg: invalid settings: %w", err)
+	}
+	for _, client := range clients {
+		for _, value := range []struct{ field, value string }{
+			{"email", client.Email},
+			{"publicKey", client.PublicKey},
+			{"preSharedKey", client.PreSharedKey},
+		} {
+			if err := amneziawg.ValidateConfigValue(value.field, value.value); err != nil {
+				return fmt.Errorf("amneziawg: client %q: %w", client.Email, err)
+			}
+		}
+		for _, allowedIP := range client.AllowedIPs {
+			if err := amneziawg.ValidateConfigValue("allowedIPs", allowedIP); err != nil {
+				return fmt.Errorf("amneziawg: client %q: %w", client.Email, err)
+			}
+		}
+	}
+	if settings.Server == nil || !settings.Server.KernelMode {
+		return nil
+	}
+	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
+	for _, client := range clients {
+		inst.Peers = append(inst.Peers, amneziawg.Peer{
+			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPorts,
+		})
+	}
+	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
+		return err
+	}
+	return nil
 }
 
 func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {
@@ -441,6 +482,9 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 	}
+	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+		return false, err
+	}
 
 	var portCtx portConflictContext
 	if oldInbound.Protocol == model.AmneziaWG {
@@ -801,14 +845,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if clients[0].KeepAlive == nil {
 			clients[0].KeepAlive = old.KeepAlive
 		}
-		// ForwardedPorts is AmneziaWG-only (WireGuard's own inbound never
-		// reads it), same carry-forward reasoning as the fields above: a
-		// partial edit (e.g. a Telegram-bot enable/expiry toggle, or an API
-		// call that omits the field) must not silently drop a client's
-		// existing port-forwarding spec.
+		// AWG partial edits preserve forwarding specs; kernel mode rejects legacy specs.
 		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == "" {
 			clients[0].ForwardedPorts = old.ForwardedPorts
 		}
+	}
+	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+		return false, err
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
 		portCtx, err := inboundSvc.loadPortConflictContext(database.GetDB(), oldInbound.NodeID)

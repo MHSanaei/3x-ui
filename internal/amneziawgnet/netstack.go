@@ -27,6 +27,10 @@ import (
 // 1024 starved simultaneous TCP slow-starts; channel.Endpoint drops silently when full.
 const tunQueueDepth = 8192
 
+// maxReceiveBuffer caps per-connection receive autotuning; gVisor's own 4 MB
+// cap held a single client upload near 310 Mbit/s at 50 ms RTT.
+const maxReceiveBuffer = 8 << 20
+
 // stackTun implements amneziawg-go tun.Device over a gVisor channel endpoint,
 // exposing *stack.Stack for forwarder attachment.
 type stackTun struct {
@@ -62,6 +66,15 @@ func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device,
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true)
 	if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt); err != nil {
 		return nil, nil, fmt.Errorf("amneziawgnet: enable TCP SACK: %s", err)
+	}
+	// Connections start at gVisor's 1 MB default and only grow while the
+	// relay drains them faster per RTT, so idle peers cost no more memory.
+	rcvBufOpt := tcpip.TCPReceiveBufferSizeRangeOption{Min: tcp.MinBufferSize, Default: tcp.DefaultReceiveBufferSize, Max: maxReceiveBuffer}
+	moderateOpt := tcpip.TCPModerateReceiveBufferOption(true)
+	for _, opt := range []tcpip.SettableTransportProtocolOption{&rcvBufOpt, &moderateOpt} {
+		if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, opt); err != nil {
+			return nil, nil, fmt.Errorf("amneziawgnet: tune TCP receive buffer: %s", err)
+		}
 	}
 	dev.notifyHandle = dev.ep.AddNotify(dev)
 	if err := dev.stack.CreateNIC(1, dev.ep); err != nil {

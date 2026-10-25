@@ -2357,7 +2357,19 @@
         "disableCookiesHint": "Nikdy neposielať odpovede cookie. Odstráni rozpoznateľný znak pre DPI, ale oslabí ochranu pred zahltením.",
         "listenPort": "Port na počúvanie (voliteľné)",
         "listenPortHint": "Pevný miestny zdrojový port UDP. Hodnota 0 vyberie port automaticky.",
-        "outboundObfuscationHint": "Musia sa presne zhodovať s parametrami servera."
+        "outboundObfuscationHint": "Musia sa presne zhodovať s parametrami servera.",
+        "kernelUnavailable": "Tento server zatiaľ nemôže spustiť režim jadra",
+        "kernelBlocker": {
+          "root": "Panel nebeží ako root, preto nemôže vytvoriť sieťové rozhranie",
+          "tools": "Chýba potrebný príkaz; nainštalujte amneziawg-tools a iproute2",
+          "module": "Modul jadra amneziawg nie je nainštalovaný",
+          "nft": "nftables nie je nainštalovaný; je potrebný pre pravidlá NAT tunela",
+          "ipv6": "Výstup IPv6 pre jednotlivé peery režim jadra zatiaľ nepodporuje",
+          "portForwarding": "Presmerovanie portov pre jednotlivých klientov režim jadra zatiaľ nepodporuje",
+          "routeThroughXray": "routeThroughXray nemá implementáciu v režime jadra; tunel by zostal bez výstupnej cesty"
+        },
+        "kernelMode": "Režim jadra",
+        "kernelModeHint": "Spustí tento inbound na module jadra AmneziaWG namiesto vstavaného zásobníka v používateľskom priestore. Zvyčajne je rýchlejší, najmä na linkách s vysokou latenciou, ale smerovanie Xray, sniffing, IPv6 a presmerovanie portov sa na jeho peery neuplatňujú. Vyžaduje modul jadra AmneziaWG a amneziawg-tools na serveri."
       },
       "tuic": {
         "congestionControl": "Riadenie zahltenia",

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -60,7 +61,25 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 func (j *CheckClientIpJob) Run() {
 	j.pruneStaleIpRows()
 	observed, apiMode := j.collectFromOnlineAPI()
-	if !apiMode {
+	// Kernel-mode AmneziaWG peers never reach Xray, so its online users cannot
+	// see them; their connect locations come from the kernel interface instead.
+	kernelIPs := amneziawgkern.GetCollector().ClientIPs()
+	if len(kernelIPs) > 0 {
+		if observed == nil {
+			observed = make(map[string]map[string]int64, len(kernelIPs))
+		}
+		for email, ips := range kernelIPs {
+			if _, ok := observed[email]; !ok {
+				observed[email] = make(map[string]int64, len(ips))
+			}
+			for ip, ts := range ips {
+				if prev, seen := observed[email][ip]; !seen || ts > prev {
+					observed[email][ip] = ts
+				}
+			}
+		}
+	}
+	if !apiMode && len(kernelIPs) == 0 {
 		// xray is down or predates the online-stats API. There is no access-log
 		// fallback anymore, so there is nothing to do this run.
 		logger.Debug("[LimitIP] online-stats API unavailable this run; skipping")

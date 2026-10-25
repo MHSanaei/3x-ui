@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "このホストではまだカーネルモードを実行できません",
+        "kernelBlocker": {
+          "root": "パネルが root で実行されていないため、ネットワークインターフェースを作成できません",
+          "tools": "必要なコマンドがありません。amneziawg-tools と iproute2 をインストールしてください",
+          "module": "amneziawg カーネルモジュールがインストールされていません",
+          "nft": "nftables がインストールされていません。トンネルの NAT ルールに必要です",
+          "ipv6": "カーネルモードではピアごとの IPv6 送信はまだサポートされていません",
+          "portForwarding": "カーネルモードではクライアントごとのポート転送はまだサポートされていません",
+          "routeThroughXray": "routeThroughXray にはカーネルモードの実装がなく、トンネルの出口がなくなります"
+        },
+        "kernelMode": "カーネルモード",
+        "kernelModeHint": "このインバウンドを内蔵のユーザースペーススタックではなく AmneziaWG カーネルモジュールで実行します。特に遅延の大きい回線では通常高速ですが、Xray のルーティング、スニッフィング、IPv6、ポート転送はそのピアに適用されません。ホストに AmneziaWG カーネルモジュールと amneziawg-tools が必要です。"
       },
       "tuic": {
         "congestionControl": "輻輳制御",
