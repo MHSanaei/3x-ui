@@ -1677,6 +1677,23 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "Blocker": {
+    "description": "Blocker is one unmet requirement.",
+    "properties": {
+      "code": {
+        "example": "tools",
+        "type": "string"
+      },
+      "detail": {
+        "example": "awg",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -4305,6 +4322,37 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "Readiness": {
+    "description": "Readiness is the host's ability to run any kernel-mode inbound at all.",
+    "properties": {
+      "blockers": {
+        "example": [
+          {
+            "code": "tools",
+            "detail": "awg"
+          }
+        ],
+        "items": {
+          "$ref": "#/components/schemas/Blocker"
+        },
+        "type": "array"
+      },
+      "installCommand": {
+        "example": "sudo /usr/local/x-ui/x-ui install-awg-kernel",
+        "type": "string"
+      },
+      "ready": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "blockers",
+      "installCommand",
+      "ready"
+    ],
+    "type": "object"
+  },
   "RealityScanResult": {
     "properties": {
       "alpn": {
@@ -4486,6 +4534,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "keepaliveTimeout": {
         "type": "string"
+      },
+      "kernelMode": {
+        "description": "KernelMode runs this inbound on the AmneziaWG kernel module (internal/amneziawgkern)\ninstead of the embedded amneziawg-go + gVisor stack.",
+        "type": "boolean"
       },
       "maxHandshakeAttempts": {
         "type": "string"

@@ -1312,7 +1312,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
-	if err := s.normalizeAmneziaWGSettings(inbound, ""); err != nil {
+	if err := s.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		return inbound, false, err
 	}
 	if inbound.NodeID != nil {
@@ -1458,9 +1458,8 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
-		// The relay port is derived from the id, only known after Save, and only a
-		// local row owns one: checkPortConflictTx ran no relay check with ignoreId==0.
-		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+		// Embedded AmneziaWG owns a relay port derived from its local row id.
+		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG && !amneziawgKernelMode(inbound) {
 			if self := amneziawgnetSocksSelfConflict(inbound, inbound.Id); self != "" {
 				return common.NewError(self)
 			}
@@ -2003,7 +2002,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
-	if err := s.normalizeAmneziaWGSettings(inbound, oldInbound.Settings); err != nil {
+	if err := s.normalizeAmneziaWGSettings(inbound, oldInbound); err != nil {
 		return inbound, false, err
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)

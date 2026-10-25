@@ -286,12 +286,12 @@ func TestForwardedPortsOnlyChangeStillReconcilesPortForwards(t *testing.T) {
 		t.Fatalf("generate peer keypair: %v", err)
 	}
 
-	const forwardedPort = 58930
+	forwardedPort := freePort(t)
 	m := &Manager{ifaces: map[int]*managed{}}
 	inst := amneziawg.Instance{
 		Id:            6,
 		InterfaceName: "awgtest6",
-		ListenPort:    58716,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.205.0.1/24"},

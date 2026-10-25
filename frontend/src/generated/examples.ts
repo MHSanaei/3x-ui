@@ -410,6 +410,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "scope": "admin",
     "token": "new-token-string"
   },
+  "Blocker": {
+    "code": "tools",
+    "detail": "awg"
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
@@ -1069,6 +1073,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayState": "",
     "xrayVersion": "25.10.31"
   },
+  "Readiness": {
+    "blockers": [
+      {
+        "code": "tools",
+        "detail": "awg"
+      }
+    ],
+    "installCommand": "sudo /usr/local/x-ui/x-ui install-awg-kernel",
+    "ready": false
+  },
   "RealityScanResult": {
     "alpn": "h2",
     "certChainBytes": 3427,
@@ -1115,6 +1129,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "jmax": 0,
     "jmin": 0,
     "keepaliveTimeout": "",
+    "kernelMode": false,
     "maxHandshakeAttempts": "",
     "mtu": 0,
     "primaryDns": "",

@@ -22,7 +22,7 @@ const maxDecodedConfigBytes = 8 << 20
 // panels and plain calls keep working (mixed-version safe).
 func ConfigEnvelopeMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header(wirecodec.CapsHeader, wirecodec.CapZstd)
+		c.Header(wirecodec.CapsHeader, wirecodec.NodeCaps)
 
 		enc := c.GetHeader("Content-Encoding")
 		sum := c.GetHeader(wirecodec.HashHeader)

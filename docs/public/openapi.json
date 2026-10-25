@@ -1703,6 +1703,23 @@
         ],
         "type": "object"
       },
+      "Blocker": {
+        "description": "Blocker is one unmet requirement.",
+        "properties": {
+          "code": {
+            "example": "tools",
+            "type": "string"
+          },
+          "detail": {
+            "example": "awg",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -4331,6 +4348,37 @@
         ],
         "type": "object"
       },
+      "Readiness": {
+        "description": "Readiness is the host's ability to run any kernel-mode inbound at all.",
+        "properties": {
+          "blockers": {
+            "example": [
+              {
+                "code": "tools",
+                "detail": "awg"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Blocker"
+            },
+            "type": "array"
+          },
+          "installCommand": {
+            "example": "sudo /usr/local/x-ui/x-ui install-awg-kernel",
+            "type": "string"
+          },
+          "ready": {
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "blockers",
+          "installCommand",
+          "ready"
+        ],
+        "type": "object"
+      },
       "RealityScanResult": {
         "properties": {
           "alpn": {
@@ -4512,6 +4560,10 @@
           },
           "keepaliveTimeout": {
             "type": "string"
+          },
+          "kernelMode": {
+            "description": "KernelMode runs this inbound on the AmneziaWG kernel module (internal/amneziawgkern)\ninstead of the embedded amneziawg-go + gVisor stack.",
+            "type": "boolean"
           },
           "maxHandshakeAttempts": {
             "type": "string"
@@ -5457,6 +5509,51 @@
                       "wgPublicKey": ""
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/amneziawgKernelReadiness": {
+      "get": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Whether this host can run an AmneziaWG inbound on the kernel module. Returns ready, host blocker codes (root/tools/module/nft), and the command that fixes them. Saving an inbound also checks its features and rejects IPv6, port forwarding, routeThroughXray, or a pinned listen address that the kernel backend cannot honor.",
+        "operationId": "get_panel_api_inbounds_amneziawgKernelReadiness",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Readiness"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "blockers": [
+                      {
+                        "code": "tools",
+                        "detail": "awg"
+                      }
+                    ],
+                    "installCommand": "sudo /usr/local/x-ui/x-ui install-awg-kernel",
+                    "ready": false
+                  }
                 }
               }
             }

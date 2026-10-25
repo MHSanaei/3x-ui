@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "این سرور هنوز نمی‌تواند حالت کرنل را اجرا کند",
+        "kernelBlocker": {
+          "root": "پنل با دسترسی root اجرا نمی‌شود و نمی‌تواند رابط شبکه بسازد",
+          "tools": "یک فرمان لازم پیدا نشد؛ amneziawg-tools و iproute2 را نصب کنید",
+          "module": "ماژول کرنل amneziawg نصب نیست",
+          "nft": "nftables نصب نیست؛ برای قواعد NAT تونل لازم است",
+          "ipv6": "خروجی IPv6 برای هر peer هنوز در حالت کرنل پشتیبانی نمی‌شود",
+          "portForwarding": "فوروارد پورت برای هر کلاینت هنوز در حالت کرنل پشتیبانی نمی‌شود",
+          "routeThroughXray": "routeThroughXray در حالت کرنل پیاده‌سازی ندارد و تونل را بدون مسیر خروجی می‌گذارد"
+        },
+        "kernelMode": "حالت کرنل",
+        "kernelModeHint": "این inbound را به‌جای پشتهٔ داخلی userspace روی ماژول کرنل AmneziaWG اجرا می‌کند. معمولاً سریع‌تر است، به‌ویژه روی لینک‌های با تأخیر بالا، اما مسیریابی Xray، sniffing، IPv6 و فوروارد پورت روی peerهای آن اعمال نمی‌شود. به ماژول کرنل AmneziaWG و amneziawg-tools روی سرور نیاز دارد."
       },
       "tuic": {
         "congestionControl": "کنترل ازدحام",
