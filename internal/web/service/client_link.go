@@ -472,6 +472,42 @@ func (s *ClientService) DetachInbound(tx *gorm.DB, inboundId int) error {
 	return tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error
 }
 
+type clientStatsIdentity struct {
+	UUID  string
+	Email string
+	SubID string
+}
+
+func (s *ClientService) listStatsIdentitiesForInbounds(tx *gorm.DB, inboundIDs []int) (map[int][]clientStatsIdentity, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	out := make(map[int][]clientStatsIdentity)
+	for _, batch := range chunkInts(uniqueInts(inboundIDs), sqlInChunk) {
+		var rows []struct {
+			InboundID int    `gorm:"column:inbound_id"`
+			UUID      string `gorm:"column:uuid"`
+			Email     string `gorm:"column:email"`
+			SubID     string `gorm:"column:sub_id"`
+		}
+		err := tx.Table("clients").
+			Select("client_inbounds.inbound_id, clients.uuid, clients.email, clients.sub_id").
+			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+			Where("client_inbounds.inbound_id IN ?", batch).
+			Order("client_inbounds.inbound_id ASC, clients.id ASC").
+			Find(&rows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			out[row.InboundID] = append(out[row.InboundID], clientStatsIdentity{
+				UUID: row.UUID, Email: row.Email, SubID: row.SubID,
+			})
+		}
+	}
+	return out, nil
+}
+
 func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Client, error) {
 	if tx == nil {
 		tx = database.GetDB()
