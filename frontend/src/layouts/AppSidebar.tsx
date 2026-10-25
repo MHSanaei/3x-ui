@@ -501,9 +501,9 @@ export default function AppSidebar() {
         closable={false}
         open={drawerOpen}
         rootClassName={currentTheme}
-        size="min(82vw, 320px)"
+        size="fit-content"
         styles={{
-          wrapper: { padding: 0 },
+          wrapper: { padding: 0, maxWidth: 'min(82vw, 320px)' },
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
           header: { display: 'none' },
         }}
