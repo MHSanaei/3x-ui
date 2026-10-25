@@ -386,6 +386,17 @@ A client reset is queued per hosting node in `model.NodePendingReset` (`service/
 and replayed by the node sync until the node accepts it.
 Periodic resets: `job/periodic_traffic_reset_job.go` (keyed off `Inbound.TrafficReset`).
 
+Cross-panel totals are stored per master GUID and hosted email, separately from local
+`client_traffics`. Directional counter changes, including lower values and resets, persist
+on the next push. Identical totals refresh only when the persisted timestamp is at least
+one hour old; pushes still send the same batches. Display and quota reads retain the
+inclusive 24-hour persisted-row freshness window. Full-list snapshots remain local-only,
+while slim/detail reads and downstream forwarding retain their global overlays.
+
+The heartbeat coarsens liveness, not counter propagation: an idle master can expire up to
+one hour earlier relative to its final unchanged push. Active hourly refresh leaves roughly
+23 hours of missed-push margin. No cache, external service or configurable interval is added.
+
 ### 5.4 Background jobs (cron)
 
 All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` method in `internal/web/job/`:

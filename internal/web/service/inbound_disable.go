@@ -34,8 +34,8 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *traf
 
 const globalTrafficFreshWindow = 24 * time.Hour
 
-func globalTrafficFreshSince() int64 {
-	return time.Now().Add(-globalTrafficFreshWindow).UnixMilli()
+func globalTrafficFreshSince(now time.Time) int64 {
+	return now.Add(-globalTrafficFreshWindow).UnixMilli()
 }
 
 // depletedClientsCond matches clients that exhausted their quota or expired.
@@ -60,21 +60,19 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
 
-// depletedCond returns the predicate matching depleted clients together with
-// the arguments it binds. The local-only variant is used unless this panel
-// holds a global-traffic row a master still refreshes, in which case the
-// cross-panel EXISTS check is needed to enforce combined quota.
+// depletedCond includes cross-panel quota usage only while a master's row is fresh.
+// Without fresh global rows, the local-only predicate avoids a correlated EXISTS scan.
 func depletedCond(tx *gorm.DB) (string, []any) {
-	now := time.Now().UnixMilli()
-	freshSince := globalTrafficFreshSince()
+	now := tx.NowFunc()
+	freshSince := globalTrafficFreshSince(now)
 	var probe int64
 	err := tx.Model(&model.ClientGlobalTraffic{}).
 		Where("updated_at >= ?", freshSince).
 		Limit(1).Count(&probe).Error
 	if err == nil && probe > 0 {
-		return depletedClientsCond, []any{now, freshSince}
+		return depletedClientsCond, []any{now.UnixMilli(), freshSince}
 	}
-	return depletedClientsCondLocal, []any{now}
+	return depletedClientsCondLocal, []any{now.UnixMilli()}
 }
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
