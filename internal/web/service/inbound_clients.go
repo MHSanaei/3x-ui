@@ -25,6 +25,7 @@ type CopyClientsResult struct {
 }
 
 // enrichClientStats refreshes identities from clients while preserving sibling-owned traffic.
+// The clients table, not the embedded settings JSON, matches the running Xray config (#6436).
 func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inbound) {
 	if len(inbounds) == 0 {
 		return
