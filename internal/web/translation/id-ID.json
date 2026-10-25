@@ -130,6 +130,9 @@
   },
   "pages": {
     "cleanIp": {
+      "datacenter": "Datacenter",
+      "countryFilter": "Country",
+      "allCountries": "All countries",
       "intro": "Finds Cloudflare IPs that work on the internet of the device this page is open on. Scan, then save the best IPs for your ISP into a host group: each ISP gets its own group named \"<group> {sep} <ISP>\", so users can pick the one for their internet.",
       "vpnHint": "Turn the VPN off before scanning: the test is for the internet this device is on.",
       "network": "Your network",

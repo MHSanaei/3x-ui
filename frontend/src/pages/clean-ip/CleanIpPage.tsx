@@ -46,12 +46,14 @@ import {
 } from './scan';
 import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } from './FragmentStep';
 import { CLOUDFLARE_ASNS, StepTitle, fetchNetwork } from './common';
+import { coloPlace, flagOf } from './colos';
 import './CleanIpPage.css';
 
 interface IpRow {
   ip: string;
   ms: number;
   uploaded: boolean;
+  colo: string;
 }
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
@@ -82,7 +84,7 @@ function SavedIps({ ips, verdicts }: { ips: string[]; verdicts: Record<string, s
 }
 
 export default function CleanIpPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -164,10 +166,28 @@ export default function CleanIpPage() {
 
   const rows = useMemo<IpRow[]>(() => {
     const out = new Map<string, IpRow>();
-    for (const h of report?.ips ?? []) out.set(h.ip, { ip: h.ip, ms: h.ms, uploaded: true });
-    for (const h of hits) if (!out.has(h.ip)) out.set(h.ip, { ...h, uploaded: false });
+    for (const h of report?.ips ?? [])
+      out.set(h.ip, { ip: h.ip, ms: h.ms, uploaded: true, colo: h.colo });
+    for (const h of hits) if (!out.has(h.ip)) out.set(h.ip, { ...h, uploaded: false, colo: '' });
     return [...out.values()].sort((a, b) => Number(b.uploaded) - Number(a.uploaded) || a.ms - b.ms);
   }, [report, hits]);
+  const placeOf = useCallback(
+    (colo: string) => coloPlace(colo, i18n.language || 'en'),
+    [i18n.language],
+  );
+  const countries = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const r of rows) {
+      const place = placeOf(r.colo);
+      if (place) seen.set(place.country, place.countryName);
+    }
+    return [...seen].map(([value, name]) => ({ value, label: `${flagOf(value)} ${name}` }));
+  }, [rows, placeOf]);
+  const [country, setCountry] = useState<string>();
+  const shown = useMemo(
+    () => (country ? rows.filter((r) => placeOf(r.colo)?.country === country) : rows),
+    [rows, country, placeOf],
+  );
   // What the panel's server saw on each IP: the browser only sees TLS, which every edge answers.
   const [verdicts, setVerdicts] = useState<Record<string, string>>({});
   const [verifying, setVerifying] = useState(false);
@@ -198,7 +218,7 @@ export default function CleanIpPage() {
   );
   const selected =
     picked ??
-    rows
+    shown
       .filter((r) => verdicts[r.ip] !== 'restricted')
       .slice(0, 5)
       .map((r) => r.ip);
@@ -601,11 +621,26 @@ export default function CleanIpPage() {
                   <Typography.Paragraph type="secondary" className="clean-ip-note">
                     {t('pages.cleanIp.quickNote')}
                   </Typography.Paragraph>
+                  {countries.length > 0 && (
+                    <label className="clean-ip-field clean-ip-note">
+                      <span>{t('pages.cleanIp.countryFilter')}</span>
+                      <Select
+                        allowClear
+                        value={country}
+                        placeholder={t('pages.cleanIp.allCountries')}
+                        options={countries}
+                        onChange={(v) => {
+                          setCountry(v);
+                          setPicked(null);
+                        }}
+                      />
+                    </label>
+                  )}
                   <Table
                     size="small"
                     rowKey="ip"
-                    dataSource={rows}
-                    pagination={rows.length > 50 ? { pageSize: 50 } : false}
+                    dataSource={shown}
+                    pagination={shown.length > 50 ? { pageSize: 50 } : false}
                     locale={{ emptyText: <Empty description={t('pages.cleanIp.empty')} /> }}
                     rowSelection={{
                       selectedRowKeys: selected,
@@ -622,6 +657,17 @@ export default function CleanIpPage() {
                         dataIndex: 'ms',
                         width: 110,
                         render: (ms: number) => `${ms} ms`,
+                      },
+                      {
+                        title: t('pages.cleanIp.datacenter'),
+                        dataIndex: 'colo',
+                        responsive: ['sm'],
+                        render: (colo: string) => {
+                          const place = placeOf(colo);
+                          return place
+                            ? `${flagOf(place.country)} ${place.city}, ${place.countryName}`
+                            : colo || '—';
+                        },
                       },
                       {
                         title: t('pages.cleanIp.source'),
