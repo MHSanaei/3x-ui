@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -94,5 +95,54 @@ func TestDnsTunnelReportKeepsOnlyValidRows(t *testing.T) {
 	}
 	if !reflect.DeepEqual(report.Results, want) {
 		t.Errorf("results = %+v, want %+v", report.Results, want)
+	}
+}
+
+func TestDetectStormDnsServerReadsItsConfigAndKeyFile(t *testing.T) {
+	dir := t.TempDir()
+	keyFile := filepath.Join(t.TempDir(), "key.txt")
+	writeFile(t, keyFile, "93d3404c6701dc9dea2d1ff3282ab88b\n")
+	writeFile(t, filepath.Join(dir, "server_config.toml"), strings.Join([]string{
+		`# StormDNS server`,
+		`DOMAIN = ["st.t.example.com", "ST.t2.example.org."]  # both zones`,
+		`UDP_PORT = 5355`,
+		`DATA_ENCRYPTION_METHOD = 2`,
+		`ENCRYPTION_KEY_FILE = "` + filepath.ToSlash(keyFile) + `"`,
+	}, "\n"))
+	var s DnsTunnelService
+
+	got, err := s.DetectStormDns(dir)
+	want := []DnsTunnelProfile{
+		{Name: "StormDNS", Engine: "stormdns", Domain: "st.t.example.com", Key: "93d3404c6701dc9dea2d1ff3282ab88b", Method: 2},
+		{Name: "StormDNS 2", Engine: "stormdns", Domain: "st.t2.example.org", Key: "93d3404c6701dc9dea2d1ff3282ab88b", Method: 2},
+	}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("DetectStormDns = %+v, %v; want %+v", got, err, want)
+	}
+
+	// without ENCRYPTION_KEY_FILE the server keeps encrypt_key.txt next to its config
+	writeFile(t, filepath.Join(dir, "server_config.toml"), "DOMAIN = ['st.t.example.com']\nDATA_ENCRYPTION_METHOD = 1\n")
+	writeFile(t, filepath.Join(dir, "encrypt_key.txt"), "abcdefgh12345678abcdefgh12345678")
+	got, err = s.DetectStormDns(dir)
+	if err != nil || len(got) != 1 || got[0].Key != "abcdefgh12345678abcdefgh12345678" || got[0].Method != 1 {
+		t.Fatalf("default key file: %+v, %v", got, err)
+	}
+
+	if _, err := s.DetectStormDns(t.TempDir()); !errors.Is(err, errDnsTunnelNoServer) {
+		t.Fatalf("empty dir: err = %v; want errDnsTunnelNoServer", err)
+	}
+	if _, err := s.DetectStormDns("relative/dir"); !errors.Is(err, errDnsTunnelNoServer) {
+		t.Fatalf("relative dir: err = %v; want errDnsTunnelNoServer", err)
+	}
+	writeFile(t, filepath.Join(dir, "encrypt_key.txt"), "short")
+	if _, err := s.DetectStormDns(dir); !errors.Is(err, errDnsTunnelBadProfile) {
+		t.Fatalf("bad key: err = %v; want errDnsTunnelBadProfile", err)
+	}
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
 	}
 }

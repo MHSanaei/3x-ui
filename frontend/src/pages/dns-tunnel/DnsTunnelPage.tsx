@@ -22,6 +22,7 @@ import {
 } from 'antd';
 import {
   CodeOutlined,
+  CloudDownloadOutlined,
   CopyOutlined,
   DeleteOutlined,
   PlusOutlined,
@@ -37,7 +38,7 @@ import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { NetworkInfo, StepTitle, fetchNetwork } from '@/pages/clean-ip/common';
-import { whiteDnsLink, resolverList, type DnsTunnelProfile } from './links';
+import { mergeDetected, whiteDnsLink, resolverList, type DnsTunnelProfile } from './links';
 import '@/pages/clean-ip/CleanIpPage.css';
 
 interface ResolverResult {
@@ -71,7 +72,9 @@ const EMPTY_PROFILE: DnsTunnelProfile = {
 };
 
 async function fetchProfiles(): Promise<DnsTunnelProfile[]> {
-  const msg = await HttpUtil.get('/panel/api/dnstunnel/profiles', undefined, { silent: true });
+  const msg = await HttpUtil.get('/panel/api/dnstunnel/profiles', undefined, {
+    silent: true,
+  });
   if (!msg?.success) throw new Error(msg?.msg || 'profiles');
   return (msg.obj as DnsTunnelProfile[] | null) ?? [];
 }
@@ -98,10 +101,16 @@ export default function DnsTunnelPage() {
   );
 
   // 1. the visitor's internet
-  const network = useQuery({ queryKey: ['cleanip', 'network'], queryFn: fetchNetwork });
+  const network = useQuery({
+    queryKey: ['cleanip', 'network'],
+    queryFn: fetchNetwork,
+  });
 
   // 2. tunnel servers
-  const saved = useQuery({ queryKey: ['dnstunnel', 'profiles'], queryFn: fetchProfiles });
+  const saved = useQuery({
+    queryKey: ['dnstunnel', 'profiles'],
+    queryFn: fetchProfiles,
+  });
   const [draft, setDraft] = useState<DnsTunnelProfile[] | null>(null);
   const profiles = useMemo(() => draft ?? saved.data ?? [], [draft, saved.data]);
   const [saving, setSaving] = useState(false);
@@ -122,6 +131,26 @@ export default function DnsTunnelPage() {
       setSaving(false);
     }
   }, [profiles, saved, messageApi, t]);
+  const [stormDir, setStormDir] = useState('/opt/stormdns');
+  const [detecting, setDetecting] = useState(false);
+  const detect = useCallback(async () => {
+    setDetecting(true);
+    try {
+      const msg = await HttpUtil.get(
+        '/panel/api/dnstunnel/detect',
+        { dir: stormDir },
+        { silent: true },
+      );
+      if (msg?.success) {
+        setDraft(mergeDetected(profiles, (msg.obj as DnsTunnelProfile[] | null) ?? []));
+        messageApi.success(t('pages.dnsTunnel.detected'));
+      } else {
+        messageApi.error(msg?.msg || t('pages.dnsTunnel.toasts.detect'));
+      }
+    } finally {
+      setDetecting(false);
+    }
+  }, [stormDir, profiles, messageApi, t]);
 
   // 3. resolver test (a one-day command run on a device on the ISP)
   const zones = useMemo(() => [...new Set((saved.data ?? []).map((p) => p.domain))], [saved.data]);
@@ -244,7 +273,10 @@ export default function DnsTunnelPage() {
                               value={p.engine}
                               onChange={(engine) => edit(i, { engine })}
                               options={[
-                                { value: 'stormdns', label: 'StormDNS (WhiteDNS)' },
+                                {
+                                  value: 'stormdns',
+                                  label: 'StormDNS (WhiteDNS)',
+                                },
                                 { value: 'dnstt', label: 'dnstt' },
                               ]}
                             />
@@ -326,6 +358,21 @@ export default function DnsTunnelPage() {
                     >
                       {t('pages.dnsTunnel.addServer')}
                     </Button>
+                    <Space.Compact>
+                      <Input
+                        className="clean-ip-mono"
+                        value={stormDir}
+                        aria-label={t('pages.dnsTunnel.stormDir')}
+                        onChange={(e) => setStormDir(e.target.value.trim())}
+                      />
+                      <Button
+                        icon={<CloudDownloadOutlined aria-hidden />}
+                        loading={detecting}
+                        onClick={detect}
+                      >
+                        {t('pages.dnsTunnel.detect')}
+                      </Button>
+                    </Space.Compact>
                     <div className="clean-ip-actions">
                       <Button
                         type="primary"
@@ -439,7 +486,10 @@ export default function DnsTunnelPage() {
                                       <span className="clean-ip-mono">{ip}</span>
                                     ),
                                   },
-                                  { title: t('pages.dnsTunnel.resolverName'), dataIndex: 'name' },
+                                  {
+                                    title: t('pages.dnsTunnel.resolverName'),
+                                    dataIndex: 'name',
+                                  },
                                   {
                                     title: t('pages.cleanIp.latency'),
                                     dataIndex: 'ms',

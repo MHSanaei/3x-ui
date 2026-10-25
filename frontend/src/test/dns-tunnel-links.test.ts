@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { whiteDnsLink } from '@/pages/dns-tunnel/links';
+import { mergeDetected, whiteDnsLink } from '@/pages/dns-tunnel/links';
 
 // WhiteDNS refuses a link whose scheme, schema, version or server fields differ from what
 // its importer (WhiteDnsProfileLinks.kt) reads; this decodes the link the way it does.
@@ -41,5 +41,53 @@ describe('whiteDnsLink', () => {
         },
       },
     });
+  });
+});
+
+describe('mergeDetected', () => {
+  it('refreshes the key of a server already listed, keeps its name, and adds new domains', () => {
+    const listed = [
+      {
+        name: 'Iran',
+        engine: 'stormdns' as const,
+        domain: 'st.a.com',
+        key: 'old-key-0123456789',
+        method: 0,
+      },
+      {
+        name: 'dnstt',
+        engine: 'dnstt' as const,
+        domain: 'b.com',
+        key: 'dnstt-pubkey-0123456789',
+        method: 0,
+      },
+    ];
+    const detected = [
+      {
+        name: 'StormDNS',
+        engine: 'stormdns' as const,
+        domain: 'st.a.com',
+        key: 'new-key-0123456789',
+        method: 1,
+      },
+      {
+        name: 'StormDNS 2',
+        engine: 'stormdns' as const,
+        domain: 'st.c.com',
+        key: 'new-key-0123456789',
+        method: 1,
+      },
+    ];
+    expect(mergeDetected(listed, detected)).toEqual([
+      {
+        name: 'Iran',
+        engine: 'stormdns',
+        domain: 'st.a.com',
+        key: 'new-key-0123456789',
+        method: 1,
+      },
+      listed[1],
+      detected[1],
+    ]);
   });
 });

@@ -2005,6 +2005,23 @@ export const sections: readonly Section[] = [
         body: '[{\n  "name": "Iran",\n  "engine": "stormdns",\n  "domain": "st.t.example.com",\n  "key": "93d3404c6701dc9dea2d1ff3282ab88b",\n  "method": 1\n}]',
       },
       {
+        method: 'GET',
+        path: '/panel/api/dnstunnel/detect',
+        summary:
+          'Read the StormDNS server installed on this server (its server_config.toml and key file) as one profile per served domain.',
+        params: [
+          {
+            name: 'dir',
+            in: 'query',
+            type: 'string',
+            desc: 'The StormDNS server folder (default /opt/stormdns).',
+            optional: true,
+          },
+        ],
+        responseSchema: 'DnsTunnelProfile',
+        responseSchemaArray: true,
+      },
+      {
         method: 'POST',
         path: '/panel/api/dnstunnel/command',
         summary:
