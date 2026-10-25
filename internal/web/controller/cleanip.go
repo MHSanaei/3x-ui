@@ -29,7 +29,8 @@ func (a *CleanIpController) initRouter(g *gin.RouterGroup) {
 // network reports the ISP of whoever opened the page: the scan runs in their
 // browser, so that is the ISP its IPs are good for.
 func (a *CleanIpController) network(c *gin.Context) {
-	network, err := a.cleanIpService.LookupNetwork(c.Request.Context(), getRemoteIp(c))
+	visitor := service.CleanIpVisitorIp(getRemoteIp(c), c.GetHeader("CF-Connecting-IP"))
+	network, err := a.cleanIpService.LookupNetwork(c.Request.Context(), visitor)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.cleanIp.toasts.network"), err)
 		return
@@ -98,7 +99,8 @@ func (a *CleanIpRunController) report(c *gin.Context) {
 		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"success": false})
 		return
 	}
-	report, err := a.cleanIpService.AddReport(c.Request.Context(), c.Param("token"), body, getRemoteIp(c))
+	reporter := service.CleanIpVisitorIp(getRemoteIp(c), c.GetHeader("CF-Connecting-IP"))
+	report, err := a.cleanIpService.AddReport(c.Request.Context(), c.Param("token"), body, reporter)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
 		return

@@ -33,6 +33,38 @@ var cleanIpIspNames = map[int]string{
 	206065: "ZTL", 49100: "PSM", 44208: "PSG",
 }
 
+// https://www.cloudflare.com/ips-v6/ (IPv4 in cleanIpCloudflareRanges)
+var cleanIpCloudflareRangesV6 = []string{
+	"2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32", "2405:8100::/32",
+	"2a06:98c0::/29", "2c0f:f248::/32",
+}
+
+var cleanIpCloudflareNets = func() []*net.IPNet {
+	var nets []*net.IPNet
+	for _, cidr := range append(append([]string{}, cleanIpCloudflareRanges...), cleanIpCloudflareRangesV6...) {
+		if _, n, err := net.ParseCIDR(cidr); err == nil {
+			nets = append(nets, n)
+		}
+	}
+	return nets
+}()
+
+// CleanIpVisitorIp is the address to look the ISP up for: a panel behind Cloudflare's
+// proxy sees Cloudflare, so its CF-Connecting-IP counts, but only on Cloudflare's own hops.
+func CleanIpVisitorIp(remote, cfConnectingIp string) string {
+	client := net.ParseIP(strings.TrimSpace(cfConnectingIp))
+	from := net.ParseIP(remote)
+	if client == nil || from == nil {
+		return remote
+	}
+	for _, n := range cleanIpCloudflareNets {
+		if n.Contains(from) {
+			return client.String()
+		}
+	}
+	return remote
+}
+
 const cleanIpCacheTTL = time.Hour
 
 type cleanIpCacheEntry struct {

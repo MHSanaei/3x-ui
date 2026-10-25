@@ -103,6 +103,12 @@ export function hostAddress(entry: string): string {
   return e.split(':').length === 2 ? e.split(':')[0] : e;
 }
 
+// The CDN domain the tests use as SNI: what the group's configs present to Cloudflare.
+export function groupDomain(group: HostRecord): string {
+  const named = group.hosts.map(hostAddress).find((h) => !/^[\d.]+$/.test(h) && !h.includes(':'));
+  return group.sni || group.hostHeader || named || '';
+}
+
 export function joinHost(ip: string, port: number): string {
   return ip.includes(':') ? `[${ip}]:${port}` : `${ip}:${port}`;
 }

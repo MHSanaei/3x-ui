@@ -101,3 +101,19 @@ func TestCleanIpExpiredCommandRefusesReports(t *testing.T) {
 		t.Errorf("Script err = %v, want errCleanIpExpired", err)
 	}
 }
+
+// CF-Connecting-IP is a plain request header: it may only replace the address when the
+// request really came from Cloudflare, or anyone could pick the ISP a scan is saved for.
+func TestCleanIpVisitorIp(t *testing.T) {
+	for _, tc := range []struct{ remote, header, want string }{
+		{"162.158.10.20", "5.160.10.20", "5.160.10.20"},
+		{"2400:cb00::1", "5.160.10.20", "5.160.10.20"},
+		{"5.200.1.1", "8.8.8.8", "5.200.1.1"},
+		{"162.158.10.20", "not-an-ip", "162.158.10.20"},
+		{"162.158.10.20", "", "162.158.10.20"},
+	} {
+		if got := CleanIpVisitorIp(tc.remote, tc.header); got != tc.want {
+			t.Errorf("CleanIpVisitorIp(%q, %q) = %q, want %q", tc.remote, tc.header, got, tc.want)
+		}
+	}
+}

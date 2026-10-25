@@ -148,20 +148,63 @@
   font-weight: 600;
 }
 
-.clean-ip-report-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 12px;
+.clean-ip-card {
+  height: 100%;
 }
 
-.clean-ip-report-body .ant-radio-group {
-  display: block;
+.clean-ip-step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clean-ip-step-text {
+  flex: 1;
   min-width: 0;
 }
 
-@media (max-width: 992px) {
-  .clean-ip-report-body {
-    grid-template-columns: 1fr;
-  }
+.clean-ip-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ant-color-primary);
+  color: var(--ant-button-primary-color, #fff);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clean-ip-frag-group {
+  display: block;
+}
+
+.clean-ip-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.clean-ip-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.clean-ip-summary span {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.clean-ip-summary b {
+  overflow-wrap: anywhere;
+}
+
+.clean-ip-save {
+  display: flex;
+  justify-content: flex-end;
 }

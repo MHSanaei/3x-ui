@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -14,20 +15,12 @@ import {
   Progress,
   Row,
   Select,
-  Space,
   Table,
   Tag,
   Typography,
   message,
 } from 'antd';
-import {
-  CopyOutlined,
-  DeleteOutlined,
-  ReloadOutlined,
-  SaveOutlined,
-  ThunderboltOutlined,
-  WifiOutlined,
-} from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -41,6 +34,7 @@ import { setMessageInstance } from '@/utils/messageBus';
 import type { BulkAddHostValues } from '@/schemas/api/host';
 import {
   ISP_SEP,
+  groupDomain,
   groupPayload,
   hostAddress,
   ispGroupsOf,
@@ -51,7 +45,7 @@ import {
   withFragment,
   type FragmentSetting,
 } from './scan';
-import FullTestCard from './FullTestCard';
+import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } from './FragmentStep';
 import './CleanIpPage.css';
 
 interface CleanIpNetwork {
@@ -62,15 +56,30 @@ interface CleanIpNetwork {
   isp: string;
 }
 
-interface ScanHit {
+interface IpRow {
   ip: string;
   ms: number;
+  uploaded: boolean;
 }
+
+// Cloudflare's own networks: a visitor seen from one of them is on WARP or a VPN, not an ISP.
+const CLOUDFLARE_ASNS = new Set([13335, 14789, 209242, 395747]);
+const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
 
 async function fetchNetwork(): Promise<CleanIpNetwork> {
   const msg = await HttpUtil.get('/panel/api/cleanip/network', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'network');
   return msg.obj as CleanIpNetwork;
+}
+
+function StepTitle({ n, children, extra }: { n: number; children: ReactNode; extra?: ReactNode }) {
+  return (
+    <div className="clean-ip-step-title">
+      <span className="clean-ip-step-num">{n}</span>
+      <span className="clean-ip-step-text">{children}</span>
+      {extra}
+    </div>
+  );
 }
 
 export default function CleanIpPage() {
@@ -82,19 +91,82 @@ export default function CleanIpPage() {
     setMessageInstance(messageApi);
   }, [messageApi]);
 
+  // 1. the visitor's internet
   const network = useQuery({ queryKey: ['cleanip', 'network'], queryFn: fetchNetwork });
+  const net = network.data;
   const [ispTyped, setIsp] = useState<string | null>(null);
-  const isp = ispTyped ?? network.data?.isp ?? '';
+  const isp = (ispTyped ?? net?.isp ?? '').trim();
+  const viaCloudflare = !!net && CLOUDFLARE_ASNS.has(net.asn);
 
+  // 2. the CDN domain: a host group and the domain its configs present to Cloudflare
+  const { hosts, refetch: refetchHosts } = useHostsQuery();
+  const { bulkCreate, update, remove } = useHostMutations();
+  const groups = useMemo(() => mainGroups(hosts), [hosts]);
+  const [pickedGroupId, setGroupId] = useState<string>();
+  const group = groups.find((g) => g.groupId === pickedGroupId) ?? groups[0];
+  const groupId = group?.groupId;
+  const ispGroups = useMemo(() => (group ? ispGroupsOf(group, hosts) : new Map()), [group, hosts]);
+  const [portTyped, setPortTyped] = useState<{ groupId?: string; port: number } | null>(null);
+  const port = portTyped && portTyped.groupId === groupId ? portTyped.port : group?.port || 443;
+  const [domainTyped, setDomainTyped] = useState<{ groupId?: string; domain: string } | null>(null);
+  const domain =
+    domainTyped && domainTyped.groupId === groupId
+      ? domainTyped.domain
+      : group
+        ? groupDomain(group)
+        : '';
+  const { allSetting } = useAllSettings();
+  const namesShowHost = String(allSetting.remarkTemplate ?? '').includes('{{HOST}}');
+
+  // 3. fragment and upload test (a command run on a device on the ISP)
+  const [size, setSize] = useState(5000);
+  const [cmdPerRange, setCmdPerRange] = useState(8);
+  const [command, setCommand] = useState<CleanIpCommand | null>(null);
+  const [making, setMaking] = useState(false);
+  const reports = useQuery({
+    queryKey: ['cleanip', 'reports', command?.token],
+    enabled: !!command,
+    refetchInterval: 5000,
+    queryFn: async () => {
+      const msg = await HttpUtil.get(`/panel/api/cleanip/command/${command?.token}`, undefined, {
+        silent: true,
+      });
+      if (!msg?.success) throw new Error(msg?.msg || 'expired');
+      return (msg.obj as CleanIpReport[] | null) ?? [];
+    },
+  });
+  const report = reports.data?.length ? reports.data[reports.data.length - 1] : undefined;
+  // null = no fragment; undefined = the group's current fragment stays as it is
+  const [fragPick, setFragPick] = useState<{ at: number; key: string } | null>(null);
+  const suggestedKey = useMemo(() => {
+    if (!report) return '';
+    const none = report.fragments.find((f) => !f.packets);
+    const best = report.fragments[0];
+    return best && best.packets && best.ok > (none?.ok ?? 0) ? fragmentKey(best) : '';
+  }, [report]);
+  const fragKey = report ? (fragPick?.at === report.at ? fragPick.key : suggestedKey) : '';
+  const fragment: FragmentSetting | null | undefined = report
+    ? (report.fragments.find((f) => f.packets && fragmentKey(f) === fragKey) ?? null)
+    : undefined;
+
+  // 4. quick scan in this browser
   const [perRange, setPerRange] = useState(8);
   const [timeoutMs, setTimeoutMs] = useState(3000);
   const [parallel, setParallel] = useState(8);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
-  const [hits, setHits] = useState<ScanHit[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [hits, setHits] = useState<{ ip: string; ms: number }[]>([]);
   const stopRef = useRef(false);
+  const [picked, setPicked] = useState<string[] | null>(null);
+
+  const rows = useMemo<IpRow[]>(() => {
+    const out = new Map<string, IpRow>();
+    for (const h of report?.ips ?? []) out.set(h.ip, { ip: h.ip, ms: h.ms, uploaded: true });
+    for (const h of hits) if (!out.has(h.ip)) out.set(h.ip, { ...h, uploaded: false });
+    return [...out.values()].sort((a, b) => Number(b.uploaded) - Number(a.uploaded) || a.ms - b.ms);
+  }, [report, hits]);
+  const selected = picked ?? rows.slice(0, 5).map((r) => r.ip);
 
   const startScan = useCallback(async () => {
     const targets = scanTargets(perRange);
@@ -103,8 +175,8 @@ export default function CleanIpPage() {
     setDone(0);
     setTotal(targets.length);
     setHits([]);
-    setSelected([]);
-    const found: ScanHit[] = [];
+    setPicked(null);
+    const found: { ip: string; ms: number }[] = [];
     let next = 0;
     const worker = async () => {
       while (!stopRef.current && next < targets.length) {
@@ -120,77 +192,96 @@ export default function CleanIpPage() {
     };
     await Promise.all(Array.from({ length: parallel }, worker));
     setRunning(false);
-    const best = [...found].sort((a, b) => a.ms - b.ms);
-    setSelected(best.slice(0, 5).map((h) => h.ip));
   }, [perRange, timeoutMs, parallel]);
 
-  const { hosts, refetch: refetchHosts } = useHostsQuery();
-  const { bulkCreate, update, remove } = useHostMutations();
-  const groups = useMemo(() => mainGroups(hosts), [hosts]);
-  const [pickedGroupId, setGroupId] = useState<string>();
-  const group = groups.find((g) => g.groupId === pickedGroupId) ?? groups[0];
-  const groupId = group?.groupId;
-  const ispGroups = useMemo(() => (group ? ispGroupsOf(group, hosts) : new Map()), [group, hosts]);
-  const [portTyped, setPortTyped] = useState<{ groupId?: string; port: number } | null>(null);
-  const port = portTyped && portTyped.groupId === groupId ? portTyped.port : group?.port || 443;
-  const setPort = (value: number) => setPortTyped({ groupId, port: value });
+  const makeCommand = useCallback(async () => {
+    setMaking(true);
+    try {
+      const msg = await HttpUtil.post(
+        '/panel/api/cleanip/command',
+        {
+          host: domain,
+          path: group?.path || '/',
+          size,
+          perRange: cmdPerRange,
+          ips: hits.slice(0, 5).map((h) => h.ip),
+        },
+        JSON_HEADERS,
+      );
+      if (msg?.success) setCommand(msg.obj as CleanIpCommand);
+      else messageApi.error(msg?.msg || t('pages.cleanIp.toasts.command'));
+    } finally {
+      setMaking(false);
+    }
+  }, [domain, group?.path, size, cmdPerRange, hits, messageApi, t]);
+
+  // 5. save for the ISP
   const [saving, setSaving] = useState(false);
+  const targetName = group ? `${group.remark ?? ''}${ISP_SEP}${isp || '?'}` : '';
+  const fragmentLabel = (f: FragmentSetting | null | undefined) =>
+    f === undefined
+      ? t('pages.cleanIp.keepFragment')
+      : f
+        ? `${f.packets === 'tlshello' ? 'tlshello' : 'TCP'} · ${f.length} · ${f.delay} ms`
+        : t('pages.cleanIp.noFragment');
 
-  const { allSetting } = useAllSettings();
-  const namesShowHost = String(allSetting.remarkTemplate ?? '').includes('{{HOST}}');
-
-  // frag: undefined keeps the group's Final Mask as it is; null removes its fragment.
-  const saveIspGroup = useCallback(
-    async (rawName: string, ips: string[], frag?: FragmentSetting | null) => {
-      const name = rawName.trim();
-      if (!group) return;
-      if (!name) {
-        messageApi.warning(t('pages.cleanIp.needIsp'));
-        return;
+  const save = useCallback(async () => {
+    if (!group) return;
+    if (!isp) {
+      messageApi.warning(t('pages.cleanIp.needIsp'));
+      return;
+    }
+    if (!selected.length) {
+      messageApi.warning(t('pages.cleanIp.needIps'));
+      return;
+    }
+    const remark = `${group.remark ?? ''}${ISP_SEP}${isp}`.slice(0, 256);
+    const entries = selected.map((ip) => joinHost(ip, port));
+    const existing = ispGroups.get(isp);
+    const payload = groupPayload(existing ?? group, remark, entries);
+    if (fragment !== undefined) payload.finalMask = withFragment(payload.finalMask, fragment);
+    setSaving(true);
+    try {
+      const values = payload as unknown as BulkAddHostValues;
+      const msg = existing ? await update(existing.groupId, values) : await bulkCreate(values);
+      if (msg?.success) {
+        messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: remark }));
+        await refetchHosts();
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
-      if (!ips.length) {
-        messageApi.warning(t('pages.cleanIp.needIps'));
-        return;
-      }
-      const remark = `${group.remark ?? ''}${ISP_SEP}${name}`.slice(0, 256);
-      const entries = ips.map((ip) => joinHost(ip, port));
-      const existing = ispGroups.get(name);
-      const payload = groupPayload(existing ?? group, remark, entries);
-      if (frag !== undefined) payload.finalMask = withFragment(payload.finalMask, frag);
-      setSaving(true);
-      try {
-        const values = payload as unknown as BulkAddHostValues;
-        const msg = existing ? await update(existing.groupId, values) : await bulkCreate(values);
-        if (msg?.success) {
-          messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: remark }));
-          await refetchHosts();
-        } else {
-          messageApi.error(msg?.msg || t('somethingWentWrong'));
-        }
-      } finally {
-        setSaving(false);
-      }
-    },
-    [group, port, ispGroups, update, bulkCreate, refetchHosts, messageApi, t],
-  );
-  const save = useCallback(() => saveIspGroup(isp, selected), [saveIspGroup, isp, selected]);
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    group,
+    isp,
+    selected,
+    port,
+    ispGroups,
+    fragment,
+    update,
+    bulkCreate,
+    refetchHosts,
+    messageApi,
+    t,
+  ]);
 
   const copyResults = useCallback(async () => {
-    const name = isp.trim();
-    const text = hits.map((h) => (name ? `${h.ip} ${name}` : h.ip)).join('\n');
+    const text = rows.map((r) => (isp ? `${r.ip} ${isp}` : r.ip)).join('\n');
     try {
       await navigator.clipboard.writeText(text);
       messageApi.success(t('pages.cleanIp.copied'));
     } catch {
       messageApi.error(t('somethingWentWrong'));
     }
-  }, [hits, isp, messageApi, t]);
+  }, [rows, isp, messageApi, t]);
 
   const pageClass = ['clean-ip-page', isDark ? 'is-dark' : '', isUltra ? 'is-ultra' : '']
     .filter(Boolean)
     .join(' ');
-  const net = network.data;
   const percent = total ? Math.round((done / total) * 100) : 0;
+  const gutter: [number, number] = [isMobile ? 8 : 16, isMobile ? 8 : 16];
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
@@ -199,7 +290,7 @@ export default function CleanIpPage() {
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 16]}>
+            <Row gutter={gutter}>
               <Col span={24}>
                 <Card size="small">
                   <Typography.Paragraph className="clean-ip-intro">
@@ -209,24 +300,26 @@ export default function CleanIpPage() {
                 </Card>
               </Col>
 
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={12}>
                 <Card
                   size="small"
+                  className="clean-ip-card"
                   title={
-                    <Space>
-                      <WifiOutlined aria-hidden />
+                    <StepTitle
+                      n={1}
+                      extra={
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<ReloadOutlined aria-hidden />}
+                          loading={network.isFetching}
+                          aria-label={t('refresh')}
+                          onClick={() => network.refetch()}
+                        />
+                      }
+                    >
                       {t('pages.cleanIp.network')}
-                    </Space>
-                  }
-                  extra={
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<ReloadOutlined aria-hidden />}
-                      loading={network.isFetching}
-                      aria-label={t('refresh')}
-                      onClick={() => network.refetch()}
-                    />
+                    </StepTitle>
                   }
                 >
                   {network.isLoading ? (
@@ -246,15 +339,17 @@ export default function CleanIpPage() {
                       <Typography.Text type="secondary" className="clean-ip-mono">
                         AS{net.asn} · {net.country} · {net.ip}
                       </Typography.Text>
-                      {!net.isp && (
+                      {viaCloudflare ? (
+                        <Alert type="error" showIcon title={t('pages.cleanIp.vpnWarning')} />
+                      ) : !net.isp ? (
                         <Alert type="warning" showIcon title={t('pages.cleanIp.noIsp')} />
-                      )}
+                      ) : null}
                     </div>
                   ) : null}
                   <label className="clean-ip-field">
                     <span>{t('pages.cleanIp.ispName')}</span>
                     <Input
-                      value={isp}
+                      value={ispTyped ?? net?.isp ?? ''}
                       maxLength={24}
                       placeholder="MCI"
                       onChange={(e) => setIsp(e.target.value.replace(/\s+/g, ''))}
@@ -263,14 +358,103 @@ export default function CleanIpPage() {
                 </Card>
               </Col>
 
-              <Col xs={24} lg={16}>
+              <Col xs={24} lg={12}>
+                <Card
+                  size="small"
+                  className="clean-ip-card"
+                  title={<StepTitle n={2}>{t('pages.cleanIp.domainStep')}</StepTitle>}
+                >
+                  {!groups.length ? (
+                    <Alert type="info" showIcon title={t('pages.cleanIp.noGroups')} />
+                  ) : (
+                    <>
+                      <Typography.Paragraph type="secondary">
+                        {t('pages.cleanIp.domainHint')}
+                      </Typography.Paragraph>
+                      <div className="clean-ip-settings">
+                        <label className="clean-ip-field clean-ip-grow">
+                          <span>{t('pages.cleanIp.group')}</span>
+                          <Select
+                            value={groupId}
+                            onChange={setGroupId}
+                            options={groups.map((g) => ({ value: g.groupId, label: g.remark }))}
+                          />
+                        </label>
+                        <label className="clean-ip-field">
+                          <span>{t('pages.cleanIp.port')}</span>
+                          <InputNumber
+                            min={1}
+                            max={65535}
+                            value={port}
+                            onChange={(v) => setPortTyped({ groupId, port: Number(v) || 443 })}
+                          />
+                        </label>
+                        <label className="clean-ip-field clean-ip-grow">
+                          <span>{t('pages.cleanIp.domain')}</span>
+                          <Input
+                            className="clean-ip-mono"
+                            value={domain}
+                            placeholder="cdn.example.com"
+                            onChange={(e) =>
+                              setDomainTyped({ groupId, domain: e.target.value.trim() })
+                            }
+                          />
+                        </label>
+                      </div>
+                      {!domain && (
+                        <Alert
+                          className="clean-ip-note"
+                          type="warning"
+                          showIcon
+                          title={t('pages.cleanIp.noDomain')}
+                        />
+                      )}
+                    </>
+                  )}
+                </Card>
+              </Col>
+
+              <Col span={24}>
+                <Card
+                  size="small"
+                  title={<StepTitle n={3}>{t('pages.cleanIp.fullTest')}</StepTitle>}
+                >
+                  <FragmentStep
+                    domain={domain}
+                    size={size}
+                    perRange={cmdPerRange}
+                    onSize={setSize}
+                    onPerRange={setCmdPerRange}
+                    command={command}
+                    making={making}
+                    onMakeCommand={makeCommand}
+                    expired={reports.isError}
+                    report={report}
+                    fragKey={fragKey}
+                    onFragKey={(key) => report && setFragPick({ at: report.at, key })}
+                  />
+                </Card>
+              </Col>
+
+              <Col span={24}>
                 <Card
                   size="small"
                   title={
-                    <Space>
-                      <ThunderboltOutlined aria-hidden />
+                    <StepTitle
+                      n={4}
+                      extra={
+                        <Button
+                          size="small"
+                          icon={<CopyOutlined aria-hidden />}
+                          disabled={!rows.length}
+                          onClick={copyResults}
+                        >
+                          {t('pages.cleanIp.copy')}
+                        </Button>
+                      }
+                    >
                       {t('pages.cleanIp.scan')}
-                    </Space>
+                    </StepTitle>
                   }
                 >
                   <div className="clean-ip-settings">
@@ -311,11 +495,7 @@ export default function CleanIpPage() {
                           {t('pages.cleanIp.stop')}
                         </Button>
                       ) : (
-                        <Button
-                          type="primary"
-                          icon={<ThunderboltOutlined aria-hidden />}
-                          onClick={startScan}
-                        >
+                        <Button type="primary" onClick={startScan}>
                           {t('pages.cleanIp.start')}
                         </Button>
                       )}
@@ -332,33 +512,15 @@ export default function CleanIpPage() {
                   <Typography.Paragraph type="secondary" className="clean-ip-note">
                     {t('pages.cleanIp.quickNote')}
                   </Typography.Paragraph>
-                </Card>
-              </Col>
-
-              <Col xs={24} lg={12}>
-                <Card
-                  size="small"
-                  title={t('pages.cleanIp.results')}
-                  extra={
-                    <Button
-                      size="small"
-                      icon={<CopyOutlined aria-hidden />}
-                      disabled={!hits.length}
-                      onClick={copyResults}
-                    >
-                      {t('pages.cleanIp.copy')}
-                    </Button>
-                  }
-                >
                   <Table
                     size="small"
                     rowKey="ip"
-                    dataSource={hits}
-                    pagination={hits.length > 50 ? { pageSize: 50 } : false}
+                    dataSource={rows}
+                    pagination={rows.length > 50 ? { pageSize: 50 } : false}
                     locale={{ emptyText: <Empty description={t('pages.cleanIp.empty')} /> }}
                     rowSelection={{
                       selectedRowKeys: selected,
-                      onChange: (keys) => setSelected(keys as string[]),
+                      onChange: (keys) => setPicked(keys as string[]),
                     }}
                     columns={[
                       {
@@ -369,60 +531,60 @@ export default function CleanIpPage() {
                       {
                         title: t('pages.cleanIp.latency'),
                         dataIndex: 'ms',
-                        width: 120,
+                        width: 110,
                         render: (ms: number) => `${ms} ms`,
+                      },
+                      {
+                        title: t('pages.cleanIp.source'),
+                        dataIndex: 'uploaded',
+                        width: 120,
+                        render: (uploaded: boolean) =>
+                          uploaded ? (
+                            <Tag color="success">{t('pages.cleanIp.sourceUpload')}</Tag>
+                          ) : (
+                            <Tag>{t('pages.cleanIp.sourceQuick')}</Tag>
+                          ),
                       },
                     ]}
                   />
                 </Card>
               </Col>
 
-              <Col xs={24} lg={12}>
+              <Col span={24}>
                 <Card
                   size="small"
-                  title={
-                    <Space>
-                      <SaveOutlined aria-hidden />
-                      {t('pages.cleanIp.save')}
-                    </Space>
-                  }
+                  title={<StepTitle n={5}>{t('pages.cleanIp.saveStep')}</StepTitle>}
                 >
-                  {!groups.length ? (
+                  {!group ? (
                     <Alert type="info" showIcon title={t('pages.cleanIp.noGroups')} />
                   ) : (
                     <>
-                      <div className="clean-ip-settings">
-                        <label className="clean-ip-field clean-ip-grow">
-                          <span>{t('pages.cleanIp.group')}</span>
-                          <Select
-                            value={groupId}
-                            onChange={setGroupId}
-                            options={groups.map((g) => ({ value: g.groupId, label: g.remark }))}
-                          />
-                        </label>
-                        <label className="clean-ip-field">
-                          <span>{t('pages.cleanIp.port')}</span>
-                          <InputNumber
-                            min={1}
-                            max={65535}
-                            value={port}
-                            onChange={(v) => setPort(Number(v) || 443)}
-                          />
-                        </label>
-                        <div className="clean-ip-actions">
-                          <Button
-                            type="primary"
-                            icon={<SaveOutlined aria-hidden />}
-                            loading={saving}
-                            disabled={!selected.length || !isp.trim()}
-                            onClick={save}
-                          >
-                            {t('pages.cleanIp.saveFor', {
-                              count: selected.length,
-                              isp: isp.trim() || '?',
-                            })}
-                          </Button>
+                      <div className="clean-ip-summary">
+                        <div>
+                          <span>{t('pages.cleanIp.summaryGroup')}</span>
+                          <b>{targetName}</b>
                         </div>
+                        <div>
+                          <span>{t('pages.cleanIp.summaryIps')}</span>
+                          <b className="clean-ip-mono">
+                            {selected.length ? selected.join('  ') : '—'}
+                          </b>
+                        </div>
+                        <div>
+                          <span>{t('pages.cleanIp.fragment')}</span>
+                          <b className="clean-ip-mono">{fragmentLabel(fragment)}</b>
+                        </div>
+                      </div>
+                      <div className="clean-ip-actions clean-ip-save">
+                        <Button
+                          type="primary"
+                          icon={<SaveOutlined aria-hidden />}
+                          loading={saving}
+                          disabled={!selected.length || !isp}
+                          onClick={save}
+                        >
+                          {t('pages.cleanIp.saveFor', { count: selected.length, isp: isp || '?' })}
+                        </Button>
                       </div>
                       {!namesShowHost && (
                         <Alert
@@ -475,18 +637,6 @@ export default function CleanIpPage() {
                   )}
                 </Card>
               </Col>
-
-              {group && (
-                <Col span={24}>
-                  <FullTestCard
-                    group={group}
-                    seedIps={selected.length ? selected : hits.slice(0, 5).map((h) => h.ip)}
-                    defaultIsp={isp}
-                    saving={saving}
-                    onSave={saveIspGroup}
-                  />
-                </Col>
-              )}
             </Row>
           </Layout.Content>
         </Layout>
