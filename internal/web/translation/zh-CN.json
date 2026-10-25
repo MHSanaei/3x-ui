@@ -1087,7 +1087,11 @@
       "removeFromGroup": "移除客户端…",
       "removeFromGroupTitle": "从分组 “{name}” 移除客户端",
       "removeFromGroupDesc": "选择要从此分组中移除的成员。客户端本身保留(使用 “删除分组中的客户端” 完全移除)。",
-      "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。"
+      "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。",
+      "assignHostGroups": "分配主机",
+      "hostGroupsFor": "{name} 的主机",
+      "hostGroups": "主机",
+      "hostsEmptyMeansLegacy": "留空以使用旧版的全部主机行为"
     },
     "nodes": {
       "addNode": "添加节点",

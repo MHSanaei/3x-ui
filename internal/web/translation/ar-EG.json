@@ -1087,7 +1087,11 @@
       "removeFromGroup": "إزالة عملاء…",
       "removeFromGroupTitle": "إزالة عملاء من المجموعة «{name}»",
       "removeFromGroupDesc": "اختر الأعضاء لإزالتهم من هذه المجموعة. يُحفظ العملاء (استخدم «حذف عملاء المجموعة» للإزالة الكاملة).",
-      "removeFromGroupResult": "تمت إزالة {count} عميل من {name}."
+      "removeFromGroupResult": "تمت إزالة {count} عميل من {name}.",
+      "assignHostGroups": "تعيين المضيفين",
+      "hostGroupsFor": "المضيفين لـ {name}",
+      "hostGroups": "المضيفين",
+      "hostsEmptyMeansLegacy": "اتركه فارغًا لاستخدام السلوك القديم مع جميع المضيفين"
     },
     "nodes": {
       "addNode": "إضافة نود",

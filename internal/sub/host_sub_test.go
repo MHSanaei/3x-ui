@@ -60,6 +60,53 @@ func seedHost(t *testing.T, h *model.Host) *model.Host {
 	return h
 }
 
+func setSubClientGroup(t *testing.T, ib *model.Inbound, email, group string) {
+	t.Helper()
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+		t.Fatalf("decode inbound settings: %v", err)
+	}
+	clients, ok := settings["clients"].([]any)
+	if !ok {
+		t.Fatalf("inbound settings has no clients array")
+	}
+	found := false
+	for i := range clients {
+		client, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		clientEmail, _ := client["email"].(string)
+		if clientEmail != email {
+			continue
+		}
+		if group == "" {
+			delete(client, "group")
+		} else {
+			client["group"] = group
+		}
+		clients[i] = client
+		found = true
+		break
+	}
+	if !found {
+		t.Fatalf("client %q not found in inbound settings", email)
+	}
+	settings["clients"] = clients
+	updated, err := json.Marshal(settings)
+	if err != nil {
+		t.Fatalf("encode inbound settings: %v", err)
+	}
+	ib.Settings = string(updated)
+	if err := database.GetDB().Save(ib).Error; err != nil {
+		t.Fatalf("save inbound settings: %v", err)
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("email = ?", email).Update("group_name", group).Error; err != nil {
+		t.Fatalf("update normalized client group: %v", err)
+	}
+}
+
 const wsTLSStream = `{"network":"ws","security":"tls","wsSettings":{"path":"/base","host":"base.host"},"tlsSettings":{"serverName":"base.sni"}}`
 
 // #1 — an inbound with no hosts renders identically to the legacy path: a single
@@ -1960,3 +2007,121 @@ func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 		t.Errorf("expected blank sni: %s", parts[1])
 	}
 }
+
+
+// A client-group HostGroup assignment limits subscriptions when the client has no explicit host rule.
+func TestSub_ClientGroupHostAssignment_RestrictsHosts(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "group-hosts", "group-hosts", 4661, 1, tcpTLSStream)
+	seedHost(t, &model.Host{GroupId: "cdn-a", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.group-cdn.example", Port: 443, Security: "tls", Sni: "a.sni"})
+	seedHost(t, &model.Host{GroupId: "cdn-b", InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.group-cdn.example", Port: 443, Security: "tls", Sni: "b.sni"})
+
+	db := database.GetDB()
+	setSubClientGroup(t, ib, "group-hosts@e", "staff")
+	if err := db.Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "cdn-b"}).Error; err != nil {
+		t.Fatalf("assign host group to client group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("group-hosts", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "b.group-cdn.example:443") {
+		t.Fatalf("assigned host group must render: %s", joined)
+	}
+	if strings.Contains(joined, "a.group-cdn.example") {
+		t.Fatalf("unassigned host group must not render: %s", joined)
+	}
+}
+
+func TestSub_ClientGroupHostAssignment_ExplicitClientBindingWins(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "group-precedence", "group-precedence", 4662, 1, tcpTLSStream)
+	hostA := seedHost(t, &model.Host{GroupId: "cdn-a", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.precedence.example", Port: 443, Security: "tls", Sni: "a.sni"})
+	seedHost(t, &model.Host{GroupId: "cdn-b", InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.precedence.example", Port: 443, Security: "tls", Sni: "b.sni"})
+
+	db := database.GetDB()
+	setSubClientGroup(t, ib, "group-precedence@e", "staff")
+	if err := db.Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "cdn-b"}).Error; err != nil {
+		t.Fatalf("assign host group to client group: %v", err)
+	}
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "group-precedence@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id})).Error; err != nil {
+		t.Fatalf("bind explicit client host: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("group-precedence", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "a.precedence.example:443") {
+		t.Fatalf("explicit per-client binding must render: %s", joined)
+	}
+	if strings.Contains(joined, "b.precedence.example") {
+		t.Fatalf("group default must not override explicit per-client binding: %s", joined)
+	}
+}
+
+func TestSub_ClientGroupHostAssignment_UnassignedGroupKeepsLegacyBehavior(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "group-legacy", "group-legacy", 4663, 1, tcpTLSStream)
+	seedHost(t, &model.Host{GroupId: "cdn-a", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.legacy.example", Port: 443, Security: "tls", Sni: "a.sni"})
+	seedHost(t, &model.Host{GroupId: "cdn-b", InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.legacy.example", Port: 443, Security: "tls", Sni: "b.sni"})
+	setSubClientGroup(t, ib, "group-legacy@e", "staff")
+
+	links, _, _, _, err := NewSubService("").GetSubs("group-legacy", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "a.legacy.example:443") || !strings.Contains(joined, "b.legacy.example:443") {
+		t.Fatalf("an unassigned group must retain all-host behavior: %s", joined)
+	}
+}
+
+func TestSub_ClientGroupHostAssignment_FailsClosed(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "group-closed", "group-closed", 4664, 1, tcpTLSStream)
+	seedHost(t, &model.Host{GroupId: "cdn-other", InboundId: ib.Id, SortOrder: 1, Remark: "Other", Address: "other.closed.example", Port: 443, Security: "tls", Sni: "other.sni"})
+
+	db := database.GetDB()
+	setSubClientGroup(t, ib, "group-closed@e", "staff")
+	if err := db.Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "deleted-group"}).Error; err != nil {
+		t.Fatalf("assign stale host group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("group-closed", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != 0 {
+		t.Fatalf("stale assignment must fail closed, got links: %v", links)
+	}
+}
+
+func TestSub_ClientGroupHostAssignment_CachesHostsPerInbound(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "group-cache", "group-cache", 4665, 1, tcpTLSStream)
+	seedHost(t, &model.Host{GroupId: "cdn-a", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cache.example", Port: 443, Security: "tls", Sni: "a.sni"})
+	setSubClientGroup(t, ib, "group-cache@e", "staff")
+	if err := database.GetDB().Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "cdn-a"}).Error; err != nil {
+		t.Fatalf("assign host group to client group: %v", err)
+	}
+
+	svc := NewSubService("")
+	client := model.Client{Group: "staff"}
+	state1, hosts1 := svc.clientGroupHostBinding(ib, client)
+	state2, hosts2 := svc.clientGroupHostBinding(ib, client)
+	if state1 != hostBindingBound || state2 != hostBindingBound {
+		t.Fatalf("group binding states = (%v, %v), want bound twice", state1, state2)
+	}
+	if len(hosts1) != 1 || len(hosts2) != 1 {
+		t.Fatalf("group host counts = (%d, %d), want 1 each", len(hosts1), len(hosts2))
+	}
+	if hosts1[0] != hosts2[0] {
+		t.Fatal("second client group lookup should reuse the cached host row for this inbound")
+	}
+}
+

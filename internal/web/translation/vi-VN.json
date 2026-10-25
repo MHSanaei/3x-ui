@@ -1087,7 +1087,11 @@
       "removeFromGroup": "Xóa client…",
       "removeFromGroupTitle": "Xóa client khỏi nhóm «{name}»",
       "removeFromGroupDesc": "Chọn thành viên để xóa khỏi nhóm này. Bản thân client được giữ lại (dùng «Xóa client trong nhóm» để xóa hoàn toàn).",
-      "removeFromGroupResult": "Đã xóa {count} client khỏi {name}."
+      "removeFromGroupResult": "Đã xóa {count} client khỏi {name}.",
+      "assignHostGroups": "Gán host",
+      "hostGroupsFor": "Host cho {name}",
+      "hostGroups": "Host",
+      "hostsEmptyMeansLegacy": "Để trống để dùng hành vi cũ với tất cả máy chủ"
     },
     "nodes": {
       "addNode": "Thêm nút",

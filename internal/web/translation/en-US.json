@@ -1087,7 +1087,11 @@
       "removeFromGroup": "Remove clients…",
       "removeFromGroupTitle": "Remove clients from group \"{name}\"",
       "removeFromGroupDesc": "Select members to remove from this group. Clients themselves are kept (use \"Delete clients in group\" to remove them entirely).",
-      "removeFromGroupResult": "Removed {count} client(s) from {name}."
+      "removeFromGroupResult": "Removed {count} client(s) from {name}.",
+      "assignHostGroups": "Assign hosts",
+      "hostGroupsFor": "Hosts for {name}",
+      "hostGroups": "Hosts",
+      "hostsEmptyMeansLegacy": "Leave empty to use legacy all-host behavior"
     },
     "hosts": {
       "addHost": "Add Host",

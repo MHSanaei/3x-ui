@@ -1087,7 +1087,11 @@
       "removeFromGroup": "移除客戶端…",
       "removeFromGroupTitle": "從群組「{name}」移除客戶端",
       "removeFromGroupDesc": "選擇要從此群組移除的成員。客戶端本身保留(用「刪除群組中的客戶端」完全移除)。",
-      "removeFromGroupResult": "已從 {name} 移除 {count} 個客戶端。"
+      "removeFromGroupResult": "已從 {name} 移除 {count} 個客戶端。",
+      "assignHostGroups": "指派主機",
+      "hostGroupsFor": "{name} 的主機",
+      "hostGroups": "主機",
+      "hostsEmptyMeansLegacy": "留空以使用舊版的全部主機行為"
     },
     "nodes": {
       "addNode": "新增節點",

@@ -7,6 +7,7 @@ import (
 	"maps"
 	"math/big"
 	"slices"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -15,6 +16,21 @@ import (
 
 // hostBinding is how a client's host binding applies to one inbound.
 type hostBinding int
+
+// clientGroupHostBindingResult caches the resolved group binding for one inbound.
+type clientGroupHostBindingResult struct {
+	state hostBinding
+	hosts []*model.Host
+}
+
+// clientGroupHostSelection caches group defaults and their inbound-specific host rows
+// for one subscription request, avoiding repeated database reads for group members.
+type clientGroupHostSelection struct {
+	assigned        bool
+	failed          bool
+	groupIDs        []string
+	inboundBindings map[int]clientGroupHostBindingResult
+}
 
 const (
 	hostBindingNone   hostBinding = iota // nothing bound here: the inbound's own hosts apply
@@ -25,10 +41,13 @@ const (
 // clientHostBinding resolves the client's bound host rules against one inbound. A deleted bound host
 // closes only the inbound it served; ids that resolve to no inbound at all fail closed everywhere.
 func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
-	ids := model.EffectiveClientHostRuleIds(client)
 	db := database.GetDB()
-	if len(ids) == 0 || db == nil {
+	if db == nil {
 		return hostBindingNone, nil
+	}
+	ids := model.EffectiveClientHostRuleIds(client)
+	if len(ids) == 0 {
+		return s.clientGroupHostBinding(inbound, client)
 	}
 	var rows []model.Host
 	if err := db.Where("id IN ?", ids).Find(&rows).Error; err != nil {
@@ -70,6 +89,77 @@ func (s *SubService) clientHostBinding(inbound *model.Inbound, client model.Clie
 		}
 	}
 	return hostBindingNone, nil
+}
+
+// clientGroupHostSelection resolves group defaults once per client group per request.
+func (s *SubService) clientGroupHostSelection(groupName string) clientGroupHostSelection {
+	groupName = strings.TrimSpace(groupName)
+	if groupName == "" {
+		return clientGroupHostSelection{}
+	}
+	if selection, ok := s.clientGroupHostAssignments[groupName]; ok {
+		return selection
+	}
+
+	selection := clientGroupHostSelection{
+		inboundBindings: make(map[int]clientGroupHostBindingResult),
+	}
+	db := database.GetDB()
+	if db == nil {
+		selection.failed = true
+	} else {
+		var ids []string
+		err := db.Model(&model.ClientGroupHost{}).
+			Where("group_name = ?", groupName).
+			Order("host_group_id ASC").
+			Pluck("host_group_id", &ids).Error
+		if err != nil {
+			logger.Warning("SubService - clientGroupHostSelection:", err)
+			selection.failed = true
+		} else {
+			selection.groupIDs = ids
+			selection.assigned = len(ids) > 0
+		}
+	}
+	if s.clientGroupHostAssignments == nil {
+		s.clientGroupHostAssignments = make(map[string]clientGroupHostSelection)
+	}
+	s.clientGroupHostAssignments[groupName] = selection
+	return selection
+}
+
+// clientGroupHostBinding applies the group-level default only when the client has no explicit
+// host-rule binding. Assignments target stable Host.GroupId values, not row IDs; a stale or
+// unmatched non-empty assignment fails closed instead of leaking the inbound's full host list.
+func (s *SubService) clientGroupHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
+	selection := s.clientGroupHostSelection(client.Group)
+	if selection.failed {
+		return hostBindingClosed, nil
+	}
+	if !selection.assigned {
+		return hostBindingNone, nil
+	}
+
+	if binding, ok := selection.inboundBindings[inbound.Id]; ok {
+		return binding.state, binding.hosts
+	}
+
+	binding := clientGroupHostBindingResult{state: hostBindingClosed}
+	var rows []model.Host
+	if err := database.GetDB().
+		Where("inbound_id = ? AND group_id IN ?", inbound.Id, selection.groupIDs).
+		Order("sort_order ASC, id ASC").
+		Find(&rows).Error; err != nil {
+		logger.Warning("SubService - clientGroupHostBinding hosts:", err)
+	} else if len(rows) > 0 {
+		hosts := make([]*model.Host, 0, len(rows))
+		for i := range rows {
+			hosts = append(hosts, &rows[i])
+		}
+		binding = clientGroupHostBindingResult{state: hostBindingBound, hosts: hosts}
+	}
+	selection.inboundBindings[inbound.Id] = binding
+	return binding.state, binding.hosts
 }
 
 // clientHostEndpoints returns the endpoints of the client's usable bound hosts on this inbound, or

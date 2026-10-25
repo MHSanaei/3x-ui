@@ -1518,6 +1518,35 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": ["alice", "bob", "carol"]\n}',
       },
       {
+        method: 'GET',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Return the HostGroup IDs assigned to the given client group. An empty array means no group default is configured and preserves the existing all-host subscription behavior.',
+        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        response: '{\n  "success": true,\n  "obj": ["cdn-a", "cdn-b"]\n}',
+        responseObjectSchema: { type: 'array', items: { type: 'string' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Replace the HostGroup defaults for a client group. Assignments target stable HostGroup IDs and survive individual Host row edits or recreation. An empty array clears the assignment.',
+        description:
+          'If a group exists only as a current client label, a non-empty assignment promotes it to a persisted group so the defaults remain visible after its last member leaves. Clearing with an empty array does not create a group.',
+        params: [
+          { name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' },
+          {
+            name: 'hostGroupIds',
+            in: 'body',
+            type: 'string[]',
+            desc: 'HostGroup IDs to assign. An empty array restores legacy all-host behavior.',
+          },
+        ],
+        body: '{\n  "hostGroupIds": ["cdn-a", "cdn-b"]\n}',
+        response: '{\n  "success": true,\n  "obj": ["cdn-a", "cdn-b"]\n}',
+        responseObjectSchema: { type: 'array', items: { type: 'string' } },
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/groups/create',
         summary:

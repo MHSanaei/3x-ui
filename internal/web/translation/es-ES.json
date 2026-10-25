@@ -1087,7 +1087,11 @@
       "removeFromGroup": "Quitar clientes…",
       "removeFromGroupTitle": "Quitar clientes del grupo «{name}»",
       "removeFromGroupDesc": "Selecciona miembros para quitar de este grupo. Los clientes se conservan (usa «Eliminar clientes del grupo» para eliminarlos por completo).",
-      "removeFromGroupResult": "Quitados {count} cliente(s) de {name}."
+      "removeFromGroupResult": "Quitados {count} cliente(s) de {name}.",
+      "assignHostGroups": "Asignar hosts",
+      "hostGroupsFor": "Hosts para {name}",
+      "hostGroups": "Hosts",
+      "hostsEmptyMeansLegacy": "Déjelo vacío para usar el comportamiento anterior con todos los hosts"
     },
     "nodes": {
       "addNode": "Agregar nodo",

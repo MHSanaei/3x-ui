@@ -1087,7 +1087,11 @@
       "removeFromGroup": "Видалити клієнтів…",
       "removeFromGroupTitle": "Видалити клієнтів з групи «{name}»",
       "removeFromGroupDesc": "Виберіть учасників для видалення з цієї групи. Самі клієнти зберігаються (використовуйте «Видалити клієнтів групи» для повного видалення).",
-      "removeFromGroupResult": "Видалено {count} клієнт(ів) з {name}."
+      "removeFromGroupResult": "Видалено {count} клієнт(ів) з {name}.",
+      "assignHostGroups": "Призначити хости",
+      "hostGroupsFor": "Хости для {name}",
+      "hostGroups": "Хости",
+      "hostsEmptyMeansLegacy": "Залиште порожнім, щоб використовувати всі хости за старою логікою"
     },
     "nodes": {
       "addNode": "Додати вузол",
