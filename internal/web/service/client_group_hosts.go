@@ -116,4 +116,9 @@ func (s *ClientGroupHostAssignmentService) SetGroupIDs(groupName string, ids []s
 		}
 		return tx.Create(&rows).Error
 	})
+	if err != nil {
+		return err
+	}
+	InvalidateSubData()
+	return nil
 }
