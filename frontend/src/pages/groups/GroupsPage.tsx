@@ -189,7 +189,14 @@ export default function GroupsPage() {
         JSON_HEADERS,
       ),
     onSuccess: (msg) => {
-      if (msg?.success) setHostAssignmentOpen(false);
+      if (msg?.success) {
+        setHostAssignmentOpen(false);
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    },
+    onError: (error) => {
+      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
     },
   });
 
