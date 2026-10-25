@@ -129,6 +129,9 @@ def probe(ip, frag=None):
         ms = round((time.perf_counter() - t0) * 1000)
         if not head.startswith(b"HTTP/"):
             return None
+        # Cloudflare's own 1xxx error (1034: this edge IP may not serve the domain)
+        if head.split(None, 2)[1:2] == [b"403"] and b"\r\n\r\nerror code: 1" in head:
+            return None
         colo = ""
         for line in head.split(b"\r\n"):
             if line.lower().startswith(b"cf-ray:"):

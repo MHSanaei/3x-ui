@@ -492,6 +492,18 @@ export const CleanIpReportSchema = z.object({
 });
 export type CleanIpReport = z.infer<typeof CleanIpReportSchema>;
 
+export const CleanIpVerdictSchema = z.object({
+  ip: z.string(),
+  status: z.string(),
+});
+export type CleanIpVerdict = z.infer<typeof CleanIpVerdictSchema>;
+
+export const CleanIpVerifyRequestSchema = z.object({
+  host: z.string(),
+  ips: z.array(z.string()),
+});
+export type CleanIpVerifyRequest = z.infer<typeof CleanIpVerifyRequestSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),

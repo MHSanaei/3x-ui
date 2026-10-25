@@ -479,6 +479,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "size": 5000,
     "tested": 120
   },
+  "CleanIpVerdict": {
+    "ip": "104.16.1.1",
+    "status": "ok"
+  },
+  "CleanIpVerifyRequest": {
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ]
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [

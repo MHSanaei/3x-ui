@@ -1964,6 +1964,15 @@ export const sections: readonly Section[] = [
         responseSchema: 'CleanIpReport',
         responseSchemaArray: true,
       },
+      {
+        method: 'POST',
+        path: '/panel/api/cleanip/verify',
+        summary:
+          "Check from the panel's server that each IP really serves the domain: ok, restricted (Cloudflare refuses it there, error 1xxx such as 1034) or unreachable from the server. Up to 200 IPs.",
+        body: '{\n  "host": "cdn.example.com",\n  "ips": ["104.16.1.1"]\n}',
+        responseSchema: 'CleanIpVerdict',
+        responseSchemaArray: true,
+      },
     ],
   },
 

@@ -186,10 +186,20 @@
       "summaryIps": "IPها",
       "keepFragment": "بدون تغییر (تست فرگمنت اجرا نشده)",
       "vpnWarning": "اینترنت شما از Cloudflare (WARP یا VPN) خارج می‌شود، نه از اپراتورتان. خاموشش کنید و دکمهٔ تازه‌سازی را بزنید، وگرنه IPها برای شبکهٔ اشتباه تست و ذخیره می‌شوند.",
+      "serverCheck": "بررسی سرور",
+      "verdictOk": "سرو می‌کند ✓",
+      "verdictRestricted": "محدود ✗",
+      "verdictUnreachable": "نامعلوم",
+      "checkSaved": "بررسی IPهای ذخیره‌شده",
+      "checkedSaved": "{count} IP از سمت سرور بررسی شد: {bad} محدود",
+      "removeRestricted": "حذف {count} IP محدود",
+      "removeRestrictedConfirm": "{count} IP محدود از این Host group و گروه‌های اپراتورش حذف شوند؟ Cloudflare روی آن‌ها دامنه را سرو نمی‌کند (خطای 1034).",
+      "removedRestricted": "{count} IP محدود حذف شد",
       "toasts": {
         "network": "شبکه تشخیص داده نشد",
         "command": "دستور ساخته نشد",
-        "expired": "این دستور منقضی شده؛ یک دستور تازه بسازید."
+        "expired": "این دستور منقضی شده؛ یک دستور تازه بسازید.",
+        "verify": "IPها از سمت سرور بررسی نشدند"
       }
     },
     "login": {

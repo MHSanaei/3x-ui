@@ -462,6 +462,16 @@ export interface CleanIpReport {
   tested: number;
 }
 
+export interface CleanIpVerdict {
+  ip: string;
+  status: string;
+}
+
+export interface CleanIpVerifyRequest {
+  host: string;
+  ips: string[];
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];

@@ -24,6 +24,7 @@ func (a *CleanIpController) initRouter(g *gin.RouterGroup) {
 	g.GET("/network", a.network)
 	g.POST("/command", a.newCommand)
 	g.GET("/command/:token", a.reports)
+	g.POST("/verify", a.verify)
 }
 
 // network reports the ISP of whoever opened the page: the scan runs in their
@@ -59,6 +60,21 @@ func (a *CleanIpController) newCommand(c *gin.Context) {
 		return
 	}
 	jsonObj(c, cmd, nil)
+}
+
+// verify checks from this server that the IPs the browser found really serve the domain.
+func (a *CleanIpController) verify(c *gin.Context) {
+	var req service.CleanIpVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.cleanIp.toasts.verify"), err)
+		return
+	}
+	verdicts, err := a.cleanIpService.VerifyIps(c.Request.Context(), req)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.cleanIp.toasts.verify"), err)
+		return
+	}
+	jsonObj(c, verdicts, nil)
 }
 
 func (a *CleanIpController) reports(c *gin.Context) {

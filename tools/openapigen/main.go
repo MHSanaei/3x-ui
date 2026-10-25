@@ -101,6 +101,8 @@ func run(root, outDir string) error {
 				"CleanIpHit",
 				"CleanIpFragment",
 				"CleanIpReport",
+				"CleanIpVerifyRequest",
+				"CleanIpVerdict",
 				"HappLinkResult",
 				"ClientSlim",
 				"ClientRenewalPreviewRequest",

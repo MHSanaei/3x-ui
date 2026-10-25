@@ -1899,6 +1899,46 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "CleanIpVerdict": {
+    "description": "CleanIpVerdict is what the panel's server saw on one IP: ok, restricted (Cloudflare refuses\nto serve the domain there, error 1xxx such as 1034) or unreachable from the server.",
+    "properties": {
+      "ip": {
+        "example": "104.16.1.1",
+        "type": "string"
+      },
+      "status": {
+        "example": "ok",
+        "type": "string"
+      }
+    },
+    "required": [
+      "ip",
+      "status"
+    ],
+    "type": "object"
+  },
+  "CleanIpVerifyRequest": {
+    "properties": {
+      "host": {
+        "example": "cdn.example.com",
+        "type": "string"
+      },
+      "ips": {
+        "example": [
+          "104.16.1.1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "host",
+      "ips"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {

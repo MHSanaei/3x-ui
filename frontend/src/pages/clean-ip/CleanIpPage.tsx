@@ -31,7 +31,7 @@ import { useAllSettings } from '@/api/queries/useAllSettings';
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
-import type { BulkAddHostValues } from '@/schemas/api/host';
+import type { BulkAddHostValues, HostRecord } from '@/schemas/api/host';
 import {
   ISP_SEP,
   groupDomain,
@@ -82,6 +82,31 @@ function StepTitle({ n, children, extra }: { n: number; children: ReactNode; ext
   );
 }
 
+function isIpv4(value: string): boolean {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
+}
+
+function VerdictTag({ status }: { status?: string }) {
+  const { t } = useTranslation();
+  if (status === 'ok') return <Tag color="success">{t('pages.cleanIp.verdictOk')}</Tag>;
+  if (status === 'restricted')
+    return <Tag color="error">{t('pages.cleanIp.verdictRestricted')}</Tag>;
+  if (status === 'unreachable') return <Tag>{t('pages.cleanIp.verdictUnreachable')}</Tag>;
+  return <Typography.Text type="secondary">—</Typography.Text>;
+}
+
+function SavedIps({ ips, verdicts }: { ips: string[]; verdicts: Record<string, string> }) {
+  return (
+    <>
+      {ips.map((ip) => (
+        <span key={ip} className={'clean-ip-saved clean-ip-saved-' + (verdicts[ip] ?? 'unknown')}>
+          {ip}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export default function CleanIpPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -105,7 +130,10 @@ export default function CleanIpPage() {
   const [pickedGroupId, setGroupId] = useState<string>();
   const group = groups.find((g) => g.groupId === pickedGroupId) ?? groups[0];
   const groupId = group?.groupId;
-  const ispGroups = useMemo(() => (group ? ispGroupsOf(group, hosts) : new Map()), [group, hosts]);
+  const ispGroups = useMemo(
+    () => (group ? ispGroupsOf(group, hosts) : new Map<string, HostRecord>()),
+    [group, hosts],
+  );
   const [portTyped, setPortTyped] = useState<{ groupId?: string; port: number } | null>(null);
   const port = portTyped && portTyped.groupId === groupId ? portTyped.port : group?.port || 443;
   const [domainTyped, setDomainTyped] = useState<{ groupId?: string; domain: string } | null>(null);
@@ -166,7 +194,40 @@ export default function CleanIpPage() {
     for (const h of hits) if (!out.has(h.ip)) out.set(h.ip, { ...h, uploaded: false });
     return [...out.values()].sort((a, b) => Number(b.uploaded) - Number(a.uploaded) || a.ms - b.ms);
   }, [report, hits]);
-  const selected = picked ?? rows.slice(0, 5).map((r) => r.ip);
+  // What the panel's server saw on each IP: the browser only sees TLS, which every edge answers.
+  const [verdicts, setVerdicts] = useState<Record<string, string>>({});
+  const [verifying, setVerifying] = useState(false);
+  const verifyIps = useCallback(
+    async (ips: string[]) => {
+      if (!domain || !ips.length) return {};
+      setVerifying(true);
+      try {
+        const msg = await HttpUtil.post(
+          '/panel/api/cleanip/verify',
+          { host: domain, ips },
+          JSON_HEADERS,
+        );
+        if (!msg?.success) {
+          messageApi.error(msg?.msg || t('pages.cleanIp.toasts.verify'));
+          return {};
+        }
+        const got: Record<string, string> = {};
+        for (const v of (msg.obj as { ip: string; status: string }[] | null) ?? [])
+          got[v.ip] = v.status;
+        setVerdicts((prev) => ({ ...prev, ...got }));
+        return got;
+      } finally {
+        setVerifying(false);
+      }
+    },
+    [domain, messageApi, t],
+  );
+  const selected =
+    picked ??
+    rows
+      .filter((r) => verdicts[r.ip] !== 'restricted')
+      .slice(0, 5)
+      .map((r) => r.ip);
 
   const startScan = useCallback(async () => {
     const targets = scanTargets(perRange);
@@ -192,7 +253,8 @@ export default function CleanIpPage() {
     };
     await Promise.all(Array.from({ length: parallel }, worker));
     setRunning(false);
-  }, [perRange, timeoutMs, parallel]);
+    await verifyIps(found.map((h) => h.ip));
+  }, [perRange, timeoutMs, parallel, verifyIps]);
 
   const makeCommand = useCallback(async () => {
     setMaking(true);
@@ -224,6 +286,59 @@ export default function CleanIpPage() {
       : f
         ? `${f.packets === 'tlshello' ? 'tlshello' : 'TCP'} · ${f.length} · ${f.delay} ms`
         : t('pages.cleanIp.noFragment');
+
+  const savedGroups = useMemo(
+    () => (group ? [group, ...ispGroups.values()] : []),
+    [group, ispGroups],
+  );
+  const mainIps = useMemo(
+    () => (group ? group.hosts.map(hostAddress).filter(isIpv4) : []),
+    [group],
+  );
+  const restrictedSaved = useMemo(
+    () =>
+      [...new Set(savedGroups.flatMap((g) => g.hosts.map(hostAddress)))].filter(
+        (ip) => verdicts[ip] === 'restricted',
+      ),
+    [savedGroups, verdicts],
+  );
+  const checkSaved = useCallback(async () => {
+    const ips = [...new Set(savedGroups.flatMap((g) => g.hosts.map(hostAddress)))].filter(isIpv4);
+    const got = await verifyIps(ips);
+    const bad = Object.values(got).filter((v) => v === 'restricted').length;
+    messageApi.info(t('pages.cleanIp.checkedSaved', { count: ips.length, bad }));
+  }, [savedGroups, verifyIps, messageApi, t]);
+  const removeRestricted = useCallback(async () => {
+    setSaving(true);
+    try {
+      for (const g of savedGroups) {
+        const kept = g.hosts.filter((h) => verdicts[hostAddress(h)] !== 'restricted');
+        if (kept.length === g.hosts.length) continue;
+        const values = groupPayload(g, g.remark ?? '', kept) as unknown as BulkAddHostValues;
+        // an ISP group left with no IP has no reason to exist; the main group always stays
+        const msg =
+          kept.length || g === group ? await update(g.groupId, values) : await remove(g.groupId);
+        if (!msg?.success) {
+          messageApi.error(msg?.msg || t('somethingWentWrong'));
+          return;
+        }
+      }
+      messageApi.success(t('pages.cleanIp.removedRestricted', { count: restrictedSaved.length }));
+      await refetchHosts();
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    savedGroups,
+    verdicts,
+    group,
+    update,
+    remove,
+    refetchHosts,
+    restrictedSaved.length,
+    messageApi,
+    t,
+  ]);
 
   const save = useCallback(async () => {
     if (!group) return;
@@ -545,6 +660,13 @@ export default function CleanIpPage() {
                             <Tag>{t('pages.cleanIp.sourceQuick')}</Tag>
                           ),
                       },
+                      {
+                        title: t('pages.cleanIp.serverCheck'),
+                        dataIndex: 'ip',
+                        key: 'verdict',
+                        width: 150,
+                        render: (ip: string) => <VerdictTag status={verdicts[ip]} />,
+                      },
                     ]}
                   />
                 </Card>
@@ -594,9 +716,38 @@ export default function CleanIpPage() {
                           title={t('pages.cleanIp.templateHint', { tag: '{{HOST}}' })}
                         />
                       )}
-                      <Typography.Title level={5} className="clean-ip-subtitle">
-                        {t('pages.cleanIp.ispGroups')}
-                      </Typography.Title>
+                      <div className="clean-ip-step-title clean-ip-subtitle">
+                        <Typography.Title level={5} className="clean-ip-step-text">
+                          {t('pages.cleanIp.ispGroups')}
+                        </Typography.Title>
+                        <Button size="small" loading={verifying} onClick={checkSaved}>
+                          {t('pages.cleanIp.checkSaved')}
+                        </Button>
+                        {restrictedSaved.length > 0 && (
+                          <Popconfirm
+                            title={t('pages.cleanIp.removeRestrictedConfirm', {
+                              count: restrictedSaved.length,
+                            })}
+                            okText={t('delete')}
+                            cancelText={t('cancel')}
+                            onConfirm={removeRestricted}
+                          >
+                            <Button size="small" danger loading={saving}>
+                              {t('pages.cleanIp.removeRestricted', {
+                                count: restrictedSaved.length,
+                              })}
+                            </Button>
+                          </Popconfirm>
+                        )}
+                      </div>
+                      {mainIps.length > 0 && (
+                        <div className="clean-ip-isp-row">
+                          <Tag>{group.remark}</Tag>
+                          <span className="clean-ip-mono clean-ip-isp-ips">
+                            <SavedIps ips={mainIps} verdicts={verdicts} />
+                          </span>
+                        </div>
+                      )}
                       {ispGroups.size === 0 ? (
                         <Typography.Text type="secondary">
                           {t('pages.cleanIp.noIspGroups')}
@@ -610,7 +761,7 @@ export default function CleanIpPage() {
                                 <Tag>{t('pages.cleanIp.fragment')}</Tag>
                               )}
                               <span className="clean-ip-mono clean-ip-isp-ips">
-                                {g.hosts.map(hostAddress).join('  ')}
+                                <SavedIps ips={g.hosts.map(hostAddress)} verdicts={verdicts} />
                               </span>
                               <Popconfirm
                                 title={t('pages.cleanIp.removeConfirm', { name })}

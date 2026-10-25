@@ -208,3 +208,17 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.clean-ip-saved {
+  margin-inline-end: 10px;
+  white-space: nowrap;
+}
+
+.clean-ip-saved-ok {
+  color: var(--ant-color-success);
+}
+
+.clean-ip-saved-restricted {
+  color: var(--ant-color-error);
+  text-decoration: line-through;
+}

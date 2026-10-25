@@ -186,10 +186,20 @@
       "summaryIps": "IPs",
       "keepFragment": "Unchanged (no fragment test run)",
       "vpnWarning": "Your internet goes out through Cloudflare (WARP or a VPN), not through your ISP. Turn it off and press refresh, or the IPs are tested and saved for the wrong network.",
+      "serverCheck": "Server check",
+      "verdictOk": "serves ✓",
+      "verdictRestricted": "restricted ✗",
+      "verdictUnreachable": "unknown",
+      "checkSaved": "Check saved IPs",
+      "checkedSaved": "Checked {count} IPs from the server: {bad} restricted",
+      "removeRestricted": "Remove {count} restricted",
+      "removeRestrictedConfirm": "Remove the {count} restricted IPs from this host group and its ISP groups? Cloudflare refuses to serve the domain on them (error 1034).",
+      "removedRestricted": "Removed {count} restricted IPs",
       "toasts": {
         "network": "Could not detect the network",
         "command": "Could not make the command",
-        "expired": "This command has expired; make a new one."
+        "expired": "This command has expired; make a new one.",
+        "verify": "Could not check the IPs from the server"
       }
     },
     "login": {

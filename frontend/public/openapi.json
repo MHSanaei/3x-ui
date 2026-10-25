@@ -1925,6 +1925,46 @@
         ],
         "type": "object"
       },
+      "CleanIpVerdict": {
+        "description": "CleanIpVerdict is what the panel's server saw on one IP: ok, restricted (Cloudflare refuses\nto serve the domain there, error 1xxx such as 1034) or unreachable from the server.",
+        "properties": {
+          "ip": {
+            "example": "104.16.1.1",
+            "type": "string"
+          },
+          "status": {
+            "example": "ok",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ip",
+          "status"
+        ],
+        "type": "object"
+      },
+      "CleanIpVerifyRequest": {
+        "properties": {
+          "host": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "ips": {
+            "example": [
+              "104.16.1.1"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "host",
+          "ips"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -13573,6 +13613,66 @@
                       },
                       "size": 5000,
                       "tested": 120
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/verify": {
+      "post": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "Check from the panel's server that each IP really serves the domain: ok, restricted (Cloudflare refuses it there, error 1xxx such as 1034) or unreachable from the server. Up to 200 IPs.",
+        "operationId": "post_panel_api_cleanip_verify",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "host": "cdn.example.com",
+                "ips": [
+                  "104.16.1.1"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpVerdict"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "ip": "104.16.1.1",
+                      "status": "ok"
                     }
                   ]
                 }

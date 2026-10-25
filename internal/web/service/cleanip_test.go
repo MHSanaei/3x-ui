@@ -117,3 +117,23 @@ func TestCleanIpVisitorIp(t *testing.T) {
 		}
 	}
 }
+
+// Cloudflare answers the TLS handshake on every edge IP, but on an IP that may not serve the
+// zone it replies 403 "error code: 1034" - such an IP must not pass, an origin's own 403 must.
+func TestCleanIpClassifyResponse(t *testing.T) {
+	for _, tc := range []struct {
+		name, raw string
+		want      string
+	}{
+		{"edge restricted", "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain; charset=UTF-8\r\nServer: cloudflare\r\n\r\nerror code: 1034", cleanIpRestricted},
+		{"other cloudflare 1xxx", "HTTP/1.1 403 Forbidden\r\nServer: cloudflare\r\n\r\nerror code: 1003", cleanIpRestricted},
+		{"origin redirect", "HTTP/1.1 302 Found\r\nServer: cloudflare\r\nLocation: https://github.com/\r\n\r\n", cleanIpOk},
+		{"origin 403 page", "HTTP/1.1 403 Forbidden\r\nServer: cloudflare\r\nContent-Type: text/html\r\n\r\n<html>forbidden by the site</html>", cleanIpOk},
+		{"origin down is still a good IP", "HTTP/1.1 521 Web Server Is Down\r\nServer: cloudflare\r\n\r\nerror code: 521", cleanIpOk},
+		{"not http", "garbage", cleanIpUnreachable},
+	} {
+		if got := classifyCleanIpResponse([]byte(tc.raw)); got != tc.want {
+			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
