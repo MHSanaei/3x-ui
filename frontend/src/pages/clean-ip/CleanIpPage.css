@@ -119,3 +119,49 @@
     width: 100%;
   }
 }
+
+.clean-ip-command {
+  margin-top: 16px;
+}
+
+.clean-ip-code {
+  margin: 4px 0 12px !important;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.clean-ip-report {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.clean-ip-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.clean-ip-report-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.clean-ip-report-body .ant-radio-group {
+  display: block;
+  min-width: 0;
+}
+
+@media (max-width: 992px) {
+  .clean-ip-report-body {
+    grid-template-columns: 1fr;
+  }
+}

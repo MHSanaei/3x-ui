@@ -414,12 +414,52 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface CleanIpCommand {
+  expiresAt: number;
+  scriptUrl: string;
+  token: string;
+  unix: string;
+  windows: string;
+}
+
+export interface CleanIpCommandRequest {
+  host: string;
+  ips: string[];
+  path: string;
+  perRange: number;
+  size: number;
+}
+
+export interface CleanIpFragment {
+  delay: string;
+  length: string;
+  ms: number;
+  n: number;
+  ok: number;
+  packets: string;
+}
+
+export interface CleanIpHit {
+  colo: string;
+  ip: string;
+  ms: number;
+}
+
 export interface CleanIpNetwork {
   asn: number;
   country: string;
   ip: string;
   isp: string;
   org: string;
+}
+
+export interface CleanIpReport {
+  at: number;
+  fragments: CleanIpFragment[];
+  ips: CleanIpHit[];
+  network: CleanIpNetwork;
+  size: number;
+  tested: number;
 }
 
 export interface Client {

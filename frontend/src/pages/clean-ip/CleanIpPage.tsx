@@ -48,7 +48,10 @@ import {
   mainGroups,
   probeIp,
   scanTargets,
+  withFragment,
+  type FragmentSetting,
 } from './scan';
+import FullTestCard from './FullTestCard';
 import './CleanIpPage.css';
 
 interface CleanIpNetwork {
@@ -136,38 +139,41 @@ export default function CleanIpPage() {
   const { allSetting } = useAllSettings();
   const namesShowHost = String(allSetting.remarkTemplate ?? '').includes('{{HOST}}');
 
-  const save = useCallback(async () => {
-    const name = isp.trim();
-    if (!group) return;
-    if (!name) {
-      messageApi.warning(t('pages.cleanIp.needIsp'));
-      return;
-    }
-    if (!selected.length) {
-      messageApi.warning(t('pages.cleanIp.needIps'));
-      return;
-    }
-    const remark = `${group.remark ?? ''}${ISP_SEP}${name}`.slice(0, 256);
-    const entries = selected.map((ip) => joinHost(ip, port));
-    const existing = ispGroups.get(name);
-    setSaving(true);
-    try {
-      const msg = existing
-        ? await update(
-            existing.groupId,
-            groupPayload(existing, remark, entries) as unknown as BulkAddHostValues,
-          )
-        : await bulkCreate(groupPayload(group, remark, entries) as unknown as BulkAddHostValues);
-      if (msg?.success) {
-        messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: remark }));
-        await refetchHosts();
-      } else {
-        messageApi.error(msg?.msg || t('somethingWentWrong'));
+  // frag: undefined keeps the group's Final Mask as it is; null removes its fragment.
+  const saveIspGroup = useCallback(
+    async (rawName: string, ips: string[], frag?: FragmentSetting | null) => {
+      const name = rawName.trim();
+      if (!group) return;
+      if (!name) {
+        messageApi.warning(t('pages.cleanIp.needIsp'));
+        return;
       }
-    } finally {
-      setSaving(false);
-    }
-  }, [isp, group, selected, port, ispGroups, update, bulkCreate, refetchHosts, messageApi, t]);
+      if (!ips.length) {
+        messageApi.warning(t('pages.cleanIp.needIps'));
+        return;
+      }
+      const remark = `${group.remark ?? ''}${ISP_SEP}${name}`.slice(0, 256);
+      const entries = ips.map((ip) => joinHost(ip, port));
+      const existing = ispGroups.get(name);
+      const payload = groupPayload(existing ?? group, remark, entries);
+      if (frag !== undefined) payload.finalMask = withFragment(payload.finalMask, frag);
+      setSaving(true);
+      try {
+        const values = payload as unknown as BulkAddHostValues;
+        const msg = existing ? await update(existing.groupId, values) : await bulkCreate(values);
+        if (msg?.success) {
+          messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: remark }));
+          await refetchHosts();
+        } else {
+          messageApi.error(msg?.msg || t('somethingWentWrong'));
+        }
+      } finally {
+        setSaving(false);
+      }
+    },
+    [group, port, ispGroups, update, bulkCreate, refetchHosts, messageApi, t],
+  );
+  const save = useCallback(() => saveIspGroup(isp, selected), [saveIspGroup, isp, selected]);
 
   const copyResults = useCallback(async () => {
     const name = isp.trim();
@@ -438,6 +444,9 @@ export default function CleanIpPage() {
                           {[...ispGroups.entries()].map(([name, g]) => (
                             <div key={g.groupId} className="clean-ip-isp-row">
                               <Tag color="processing">{name}</Tag>
+                              {g.finalMask?.includes('"fragment"') && (
+                                <Tag>{t('pages.cleanIp.fragment')}</Tag>
+                              )}
                               <span className="clean-ip-mono clean-ip-isp-ips">
                                 {g.hosts.map(hostAddress).join('  ')}
                               </span>
@@ -466,6 +475,18 @@ export default function CleanIpPage() {
                   )}
                 </Card>
               </Col>
+
+              {group && (
+                <Col span={24}>
+                  <FullTestCard
+                    group={group}
+                    seedIps={selected.length ? selected : hits.slice(0, 5).map((h) => h.ip)}
+                    defaultIsp={isp}
+                    saving={saving}
+                    onSave={saveIspGroup}
+                  />
+                </Col>
+              )}
             </Row>
           </Layout.Content>
         </Layout>

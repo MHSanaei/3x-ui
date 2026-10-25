@@ -1948,6 +1948,22 @@ export const sections: readonly Section[] = [
           "The network (AS number, organization, country and short ISP name such as MCI or MTN) of the caller's IP address. Private addresses come back with only the IP.",
         responseSchema: 'CleanIpNetwork',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/cleanip/command',
+        summary:
+          'Make a one-day command for the full test (an upload, then 26 fragment settings), to run on a device on the ISP to test. Its script reports back to the panel with the token alone.',
+        body: '{\n  "host": "cdn.example.com",\n  "path": "/",\n  "size": 5000,\n  "perRange": 8,\n  "ips": ["104.16.1.1"]\n}',
+        responseSchema: 'CleanIpCommand',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/cleanip/command/:token',
+        summary: 'The reports the runs of a command sent back so far, oldest first.',
+        params: [{ name: 'token', in: 'path', type: 'string', desc: 'The command token.' }],
+        responseSchema: 'CleanIpReport',
+        responseSchemaArray: true,
+      },
     ],
   },
 

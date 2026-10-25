@@ -1720,6 +1720,137 @@
         ],
         "type": "object"
       },
+      "CleanIpCommand": {
+        "properties": {
+          "expiresAt": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "scriptUrl": {
+            "example": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+            "type": "string"
+          },
+          "token": {
+            "example": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+            "type": "string"
+          },
+          "unix": {
+            "example": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+            "type": "string"
+          },
+          "windows": {
+            "example": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "scriptUrl",
+          "token",
+          "unix",
+          "windows"
+        ],
+        "type": "object"
+      },
+      "CleanIpCommandRequest": {
+        "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
+        "properties": {
+          "host": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "ips": {
+            "example": [
+              "104.16.1.1"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "example": "/",
+            "type": "string"
+          },
+          "perRange": {
+            "example": 8,
+            "type": "integer"
+          },
+          "size": {
+            "example": 5000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host",
+          "ips",
+          "path",
+          "perRange",
+          "size"
+        ],
+        "type": "object"
+      },
+      "CleanIpFragment": {
+        "description": "CleanIpFragment is one fragment setting the test tried; an empty Packets is the run\nwithout a fragment, to compare against.",
+        "properties": {
+          "delay": {
+            "example": "1-2",
+            "type": "string"
+          },
+          "length": {
+            "example": "10-20",
+            "type": "string"
+          },
+          "ms": {
+            "example": 700,
+            "type": "integer"
+          },
+          "n": {
+            "example": 10,
+            "type": "integer"
+          },
+          "ok": {
+            "example": 9,
+            "type": "integer"
+          },
+          "packets": {
+            "example": "tlshello",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delay",
+          "length",
+          "ms",
+          "n",
+          "ok",
+          "packets"
+        ],
+        "type": "object"
+      },
+      "CleanIpHit": {
+        "properties": {
+          "colo": {
+            "example": "FRA",
+            "type": "string"
+          },
+          "ip": {
+            "example": "104.16.1.1",
+            "type": "string"
+          },
+          "ms": {
+            "example": 410,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "colo",
+          "ip",
+          "ms"
+        ],
+        "type": "object"
+      },
       "CleanIpNetwork": {
         "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
         "properties": {
@@ -1750,6 +1881,47 @@
           "ip",
           "isp",
           "org"
+        ],
+        "type": "object"
+      },
+      "CleanIpReport": {
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/CleanIpFragment"
+            },
+            "type": "array"
+          },
+          "ips": {
+            "items": {
+              "$ref": "#/components/schemas/CleanIpHit"
+            },
+            "type": "array"
+          },
+          "network": {
+            "$ref": "#/components/schemas/CleanIpNetwork"
+          },
+          "size": {
+            "example": 5000,
+            "type": "integer"
+          },
+          "tested": {
+            "example": 120,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "fragments",
+          "ips",
+          "network",
+          "size",
+          "tested"
         ],
         "type": "object"
       },
@@ -13262,6 +13434,147 @@
                     "isp": "MCI",
                     "org": "Mobile Communication Company of Iran PLC"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/command": {
+      "post": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "Make a one-day command for the full test (an upload, then 26 fragment settings), to run on a device on the ISP to test. Its script reports back to the panel with the token alone.",
+        "operationId": "post_panel_api_cleanip_command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "host": "cdn.example.com",
+                "path": "/",
+                "size": 5000,
+                "perRange": 8,
+                "ips": [
+                  "104.16.1.1"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpCommand"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "expiresAt": 1793000000,
+                    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+                    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+                    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+                    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/command/{token}": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The reports the runs of a command sent back so far, oldest first.",
+        "operationId": "get_panel_api_cleanip_command_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "The command token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpReport"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "at": 1793000000,
+                      "fragments": [
+                        {
+                          "delay": "1-2",
+                          "length": "10-20",
+                          "ms": 700,
+                          "n": 10,
+                          "ok": 9,
+                          "packets": "tlshello"
+                        }
+                      ],
+                      "ips": [
+                        {
+                          "colo": "FRA",
+                          "ip": "104.16.1.1",
+                          "ms": 410
+                        }
+                      ],
+                      "network": {
+                        "asn": 197207,
+                        "country": "IR",
+                        "ip": "5.160.10.20",
+                        "isp": "MCI",
+                        "org": "Mobile Communication Company of Iran PLC"
+                      },
+                      "size": 5000,
+                      "tested": 120
+                    }
+                  ]
                 }
               }
             }

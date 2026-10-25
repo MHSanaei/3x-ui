@@ -163,8 +163,26 @@
       "ispGroups": "ISP groups of this host group",
       "noIspGroups": "None yet.",
       "removeConfirm": "Delete the {name} group?",
+      "fullTest": "Full test and fragment (on a device on the ISP)",
+      "fullIntro": "A browser can not upload through an IP or cut the TLS hello, so this part runs on a computer or phone (Termux) on the internet you want IPs for. The command tests each Cloudflare IP with a real upload, then tries 26 fragment settings against no fragment, and sends the result here. It needs Python 3 and works for a day.",
+      "domain": "CDN domain (SNI)",
+      "size": "Upload (bytes)",
+      "makeCommand": "Make the command",
+      "noDomain": "This host group has no domain (SNI, Host or a domain entry); the full test needs the CDN domain.",
+      "unixCmd": "Linux / macOS / Android (Termux):",
+      "windowsCmd": "Windows (PowerShell, Python installed):",
+      "expires": "Works until {time}",
+      "waiting": "Waiting for a report… run the command with the VPN off. This page updates by itself.",
+      "reportLine": "{org} · {ok} of {tested} working · {size}-byte upload",
+      "fragment": "Fragment",
+      "passed": "Passed",
+      "noFragment": "No fragment",
+      "saveWithFragment": "Save {count} IPs + fragment for {isp}",
+      "fragHint": "The fragment is saved in the ISP group's Final Mask: clients get it in the JSON subscription and in links (fm=) when their core supports it.",
       "toasts": {
-        "network": "Could not detect the network"
+        "network": "Could not detect the network",
+        "command": "Could not make the command",
+        "expired": "This command has expired; make a new one."
       }
     },
     "login": {

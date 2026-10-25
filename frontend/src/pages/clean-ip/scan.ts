@@ -107,6 +107,39 @@ export function joinHost(ip: string, port: number): string {
   return ip.includes(':') ? `[${ip}]:${port}` : `${ip}:${port}`;
 }
 
+export interface FragmentSetting {
+  packets: string;
+  length: string;
+  delay: string;
+}
+
+// A host group's Final Mask (JSON) with its fragment mask replaced by `frag`, or removed for
+// null; the other masks stay. xray-core #6334 takes lengths/delays as range arrays.
+export function withFragment(finalMask: string | undefined, frag: FragmentSetting | null): string {
+  let mask: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(finalMask || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      mask = parsed as Record<string, unknown>;
+    }
+  } catch {
+    mask = {};
+  }
+  const tcp = (Array.isArray(mask.tcp) ? mask.tcp : []).filter(
+    (m: unknown) => !(m && typeof m === 'object' && (m as { type?: unknown }).type === 'fragment'),
+  );
+  if (frag) {
+    tcp.push({
+      type: 'fragment',
+      settings: { packets: frag.packets, lengths: [frag.length], delays: [frag.delay] },
+    });
+  }
+  const next: Record<string, unknown> = { ...mask };
+  if (tcp.length) next.tcp = tcp;
+  else delete next.tcp;
+  return Object.keys(next).length ? JSON.stringify(next) : '';
+}
+
 // The group's fields as the add/update endpoints take them, with new hosts.
 export function groupPayload(group: HostRecord, remark: string, hosts: string[]) {
   const { groupId: _groupId, sortOrder: _sortOrder, ...fields } = group;

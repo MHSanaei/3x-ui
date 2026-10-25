@@ -1694,6 +1694,137 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "CleanIpCommand": {
+    "properties": {
+      "expiresAt": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "scriptUrl": {
+        "example": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+        "type": "string"
+      },
+      "token": {
+        "example": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+        "type": "string"
+      },
+      "unix": {
+        "example": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+        "type": "string"
+      },
+      "windows": {
+        "example": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+        "type": "string"
+      }
+    },
+    "required": [
+      "expiresAt",
+      "scriptUrl",
+      "token",
+      "unix",
+      "windows"
+    ],
+    "type": "object"
+  },
+  "CleanIpCommandRequest": {
+    "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
+    "properties": {
+      "host": {
+        "example": "cdn.example.com",
+        "type": "string"
+      },
+      "ips": {
+        "example": [
+          "104.16.1.1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "path": {
+        "example": "/",
+        "type": "string"
+      },
+      "perRange": {
+        "example": 8,
+        "type": "integer"
+      },
+      "size": {
+        "example": 5000,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "host",
+      "ips",
+      "path",
+      "perRange",
+      "size"
+    ],
+    "type": "object"
+  },
+  "CleanIpFragment": {
+    "description": "CleanIpFragment is one fragment setting the test tried; an empty Packets is the run\nwithout a fragment, to compare against.",
+    "properties": {
+      "delay": {
+        "example": "1-2",
+        "type": "string"
+      },
+      "length": {
+        "example": "10-20",
+        "type": "string"
+      },
+      "ms": {
+        "example": 700,
+        "type": "integer"
+      },
+      "n": {
+        "example": 10,
+        "type": "integer"
+      },
+      "ok": {
+        "example": 9,
+        "type": "integer"
+      },
+      "packets": {
+        "example": "tlshello",
+        "type": "string"
+      }
+    },
+    "required": [
+      "delay",
+      "length",
+      "ms",
+      "n",
+      "ok",
+      "packets"
+    ],
+    "type": "object"
+  },
+  "CleanIpHit": {
+    "properties": {
+      "colo": {
+        "example": "FRA",
+        "type": "string"
+      },
+      "ip": {
+        "example": "104.16.1.1",
+        "type": "string"
+      },
+      "ms": {
+        "example": 410,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "colo",
+      "ip",
+      "ms"
+    ],
+    "type": "object"
+  },
   "CleanIpNetwork": {
     "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
     "properties": {
@@ -1724,6 +1855,47 @@ export const SCHEMAS: Record<string, unknown> = {
       "ip",
       "isp",
       "org"
+    ],
+    "type": "object"
+  },
+  "CleanIpReport": {
+    "properties": {
+      "at": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "fragments": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpFragment"
+        },
+        "type": "array"
+      },
+      "ips": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpHit"
+        },
+        "type": "array"
+      },
+      "network": {
+        "$ref": "#/components/schemas/CleanIpNetwork"
+      },
+      "size": {
+        "example": 5000,
+        "type": "integer"
+      },
+      "tested": {
+        "example": 120,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "at",
+      "fragments",
+      "ips",
+      "network",
+      "size",
+      "tested"
     ],
     "type": "object"
   },

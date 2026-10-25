@@ -414,12 +414,70 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "CleanIpCommand": {
+    "expiresAt": 1793000000,
+    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"
+  },
+  "CleanIpCommandRequest": {
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ],
+    "path": "/",
+    "perRange": 8,
+    "size": 5000
+  },
+  "CleanIpFragment": {
+    "delay": "1-2",
+    "length": "10-20",
+    "ms": 700,
+    "n": 10,
+    "ok": 9,
+    "packets": "tlshello"
+  },
+  "CleanIpHit": {
+    "colo": "FRA",
+    "ip": "104.16.1.1",
+    "ms": 410
+  },
   "CleanIpNetwork": {
     "asn": 197207,
     "country": "IR",
     "ip": "5.160.10.20",
     "isp": "MCI",
     "org": "Mobile Communication Company of Iran PLC"
+  },
+  "CleanIpReport": {
+    "at": 1793000000,
+    "fragments": [
+      {
+        "delay": "1-2",
+        "length": "10-20",
+        "ms": 700,
+        "n": 10,
+        "ok": 9,
+        "packets": "tlshello"
+      }
+    ],
+    "ips": [
+      {
+        "colo": "FRA",
+        "ip": "104.16.1.1",
+        "ms": 410
+      }
+    ],
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.160.10.20",
+      "isp": "MCI",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "size": 5000,
+    "tested": 120
   },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
