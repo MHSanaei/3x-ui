@@ -2147,7 +2147,20 @@ func deriveSpiderX(seed, clientKey string) string {
 	return path
 }
 
+// fingerprintForCipherSuites returns the fingerprint a client needs for cs to apply:
+// xray drops cipherSuites under every uTLS fingerprint and reads an empty one as chrome.
+func fingerprintForCipherSuites(fp, cs string) string {
+	if cs != "" && fp == "" {
+		return "unsafe"
+	}
+	return fp
+}
+
 func buildVmessLink(obj map[string]any) string {
+	if cs, _ := obj["cs"].(string); cs != "" {
+		fp, _ := obj["fp"].(string)
+		obj["fp"] = fingerprintForCipherSuites(fp, cs)
+	}
 	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
 	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
 }
@@ -2481,6 +2494,9 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 				continue
 			}
 			q.Set(k, v)
+		}
+		if fp := fingerprintForCipherSuites(q.Get("fp"), q.Get("cs")); fp != q.Get("fp") {
+			q.Set("fp", fp)
 		}
 		encoded := q.Encode()
 		if encoded != "" {

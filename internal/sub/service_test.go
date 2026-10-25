@@ -634,6 +634,36 @@ func TestBuildVmessLink(t *testing.T) {
 	}
 }
 
+// Xray drops cipherSuites under every uTLS fingerprint and reads an empty one as
+// chrome, so a vmess link with cs and no fingerprint must carry fp=unsafe.
+func TestBuildVmessLink_CipherSuitesPinUnsafeFingerprint(t *testing.T) {
+	cases := []struct {
+		name   string
+		obj    map[string]any
+		wantFp any
+	}{
+		{"cs with empty fp", map[string]any{"cs": "TLS_AES_128_GCM_SHA256", "fp": ""}, "unsafe"},
+		{"cs with no fp key", map[string]any{"cs": "TLS_AES_128_GCM_SHA256"}, "unsafe"},
+		{"cs with explicit fp", map[string]any{"cs": "TLS_AES_128_GCM_SHA256", "fp": "firefox"}, "firefox"},
+		{"no cs", map[string]any{"fp": ""}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(buildVmessLink(tc.obj), "vmess://"))
+			if err != nil {
+				t.Fatalf("base64 decode failed: %v", err)
+			}
+			var roundTrip map[string]any
+			if err := json.Unmarshal(decoded, &roundTrip); err != nil {
+				t.Fatalf("decoded payload is not JSON: %v", err)
+			}
+			if roundTrip["fp"] != tc.wantFp {
+				t.Fatalf("fp = %#v, want %#v", roundTrip["fp"], tc.wantFp)
+			}
+		})
+	}
+}
+
 func TestCloneVmessShareObj_CopiesEverythingByDefault(t *testing.T) {
 	base := map[string]any{
 		"v":    "2",

@@ -847,6 +847,89 @@ func TestSub_HostCipherSuitesJSON(t *testing.T) {
 	}
 }
 
+// seedCipherSuitesHosts seeds an inbound with no fingerprint and three hosts:
+// cipher suites alone, cipher suites under chrome, and neither.
+func seedCipherSuitesHosts(t *testing.T) {
+	t.Helper()
+	ib := seedSubInbound(t, "s1", "csfp", 4463, 1,
+		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni","settings":{"fingerprint":""}}}`)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "CS", Address: "cs.cdn.com", Port: 443, Security: "tls",
+		CipherSuites: "TLS_AES_128_GCM_SHA256",
+	})
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 1, Remark: "CHROME", Address: "chrome.cdn.com", Port: 443, Security: "tls",
+		CipherSuites: "TLS_AES_128_GCM_SHA256", Fingerprint: "chrome",
+	})
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 2, Remark: "PLAIN", Address: "plain.cdn.com", Port: 443, Security: "tls",
+	})
+}
+
+// Xray reads an empty fingerprint as chrome, whose uTLS hello drops cipherSuites:
+// a link that carries cs with no fingerprint must ask for unsafe.
+func TestSub_HostCipherSuitesPinUnsafeFingerprint_RawLink(t *testing.T) {
+	seedSubDB(t)
+	seedCipherSuitesHosts(t)
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	want := map[string]string{"cs.cdn.com": "unsafe", "chrome.cdn.com": "chrome", "plain.cdn.com": ""}
+	for _, raw := range strings.Split(strings.Join(links, "\n"), "\n") {
+		link, err := url.Parse(raw)
+		if err != nil {
+			t.Fatalf("parse raw link %q: %v", raw, err)
+		}
+		wantFp, ok := want[link.Hostname()]
+		if !ok {
+			t.Fatalf("unexpected link %q", raw)
+		}
+		delete(want, link.Hostname())
+		if got := link.Query().Get("fp"); got != wantFp {
+			t.Fatalf("%s: fp = %q, want %q (link %s)", link.Hostname(), got, wantFp, raw)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing links for %v", want)
+	}
+}
+
+func TestSub_HostCipherSuitesPinUnsafeFingerprint_JSON(t *testing.T) {
+	seedSubDB(t)
+	seedCipherSuitesHosts(t)
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var configs []map[string]any
+	if err := json.Unmarshal([]byte(out), &configs); err != nil {
+		t.Fatalf("unmarshal JSON subscription: %v\n%s", err, out)
+	}
+	want := map[string]string{"CS": "unsafe", "CHROME": "chrome", "PLAIN": ""}
+	for _, config := range configs {
+		outbounds, _ := config["outbounds"].([]any)
+		proxy, _ := outbounds[0].(map[string]any)
+		stream, _ := proxy["streamSettings"].(map[string]any)
+		tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+		fullRemark, _ := config["remarks"].(string)
+		remark := strings.Split(fullRemark, "-")[1]
+		wantFp, ok := want[remark]
+		if !ok {
+			t.Fatalf("unexpected config remark %q", fullRemark)
+		}
+		delete(want, remark)
+		if got, _ := tlsSettings["fingerprint"].(string); got != wantFp {
+			t.Fatalf("%s: fingerprint = %q, want %q (tlsSettings %#v)", remark, got, wantFp, tlsSettings)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing configs for %v", want)
+	}
+}
+
 // Xray reads a client's TLS verification fields at the top of tlsSettings; a
 // nested "settings" map is panel-only shape and xray silently ignores it.
 func TestSub_HostTLSVerificationJSONAtXrayLevel(t *testing.T) {

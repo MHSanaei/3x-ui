@@ -696,6 +696,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			liftHostTLSVerification(newStream)
 		}
 		applyHostStreamOverrides(extPrxy, newStream)
+		if tlsSettings, ok := newStream["tlsSettings"].(map[string]any); ok && security == "tls" {
+			cs, _ := tlsSettings["cipherSuites"].(string)
+			fp, _ := tlsSettings["fingerprint"].(string)
+			if pinned := fingerprintForCipherSuites(fp, cs); pinned != fp {
+				tlsSettings["fingerprint"] = pinned
+			}
+		}
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
 			newStream["finalmask"] = withLegacyFragmentRanges(finalmask)
 		}
