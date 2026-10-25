@@ -366,14 +366,8 @@ func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
 	return nil
 }
 
-// ValidateConfigValue rejects control characters in any value interpolated
-// verbatim into a rendered .conf: a newline re-opens an [Interface] section
-// whose "PostUp = ..." runs as root the moment whoever downloaded that
-// config -- the client app, or an admin importing it into the official
-// awg-quick CLI directly -- applies it. The panel's own server side never
-// runs awg-quick itself (internal/amneziawgnet applies config via
-// amneziawg-go's UAPI, not a parsed text file), but this exact value still
-// reaches a real text-based config downstream. field names the value.
+// ValidateConfigValue rejects control characters in values written to AWG configs,
+// preventing newline injection into config directives and awg-quick hooks.
 func ValidateConfigValue(field, v string) error {
 	for _, r := range v {
 		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {

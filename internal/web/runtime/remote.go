@@ -12,11 +12,13 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -90,6 +92,10 @@ type Remote struct {
 	// seen, config pushes to this node are zstd-compressed. Old nodes never set
 	// it, so they keep receiving plain bodies (mixed-version safe).
 	supportsZstd bool
+	// capsSeen tells a node that advertised no AmneziaWG kernel support apart
+	// from one this Remote has not heard from yet.
+	capsSeen          bool
+	supportsAWGKernel bool
 
 	// Per-node client honoring the TLS verify mode, built once and reused; a
 	// node config change drops the cached Remote so the next one rebuilds it.
@@ -130,12 +136,41 @@ func (r *Remote) nodeSupportsZstd() bool {
 // recordCaps learns the node's capabilities from a response header so later
 // pushes can use the negotiated envelope.
 func (r *Remote) recordCaps(h http.Header) {
-	if !strings.Contains(h.Get(wirecodec.CapsHeader), wirecodec.CapZstd) {
-		return
-	}
+	caps := strings.Split(h.Get(wirecodec.CapsHeader), ",")
 	r.mu.Lock()
-	r.supportsZstd = true
-	r.mu.Unlock()
+	defer r.mu.Unlock()
+	r.capsSeen = true
+	r.supportsAWGKernel = slices.Contains(caps, wirecodec.CapAmneziaWGKernel)
+	if slices.Contains(caps, wirecodec.CapZstd) {
+		r.supportsZstd = true
+	}
+}
+
+// requireAmneziaWGKernel refuses to push a kernel-mode AmneziaWG inbound to a
+// node that would drop the flag and silently serve it on the embedded datapath.
+func (r *Remote) requireAmneziaWGKernel(ctx context.Context, ib *model.Inbound) error {
+	if ib.Protocol != model.AmneziaWG {
+		return nil
+	}
+	var settings amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil || settings.Server == nil || !settings.Server.KernelMode {
+		return nil
+	}
+	r.mu.RLock()
+	seen := r.capsSeen
+	r.mu.RUnlock()
+	if !seen {
+		if err := r.refreshRemoteIDs(ctx); err != nil {
+			return err
+		}
+	}
+	r.mu.RLock()
+	supported := r.supportsAWGKernel
+	r.mu.RUnlock()
+	if !supported {
+		return fmt.Errorf("node %s does not support AmneziaWG kernel mode; upgrade its panel or switch the inbound to the embedded datapath", r.node.Name)
+	}
+	return nil
 }
 
 // httpClient lazily builds and caches the per-node client honoring the TLS
@@ -432,6 +467,9 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 }
 
 func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
+	if err := r.requireAmneziaWGKernel(ctx, ib); err != nil {
+		return err
+	}
 	payload := wireInbound(ib, r.node.Id)
 	env, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/add", payload)
 	if err != nil {
@@ -467,6 +505,9 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	id, err := r.resolveRemoteID(ctx, oldIb.Tag)
 	if err != nil {
 		return r.AddInbound(ctx, newIb)
+	}
+	if err := r.requireAmneziaWGKernel(ctx, newIb); err != nil {
+		return err
 	}
 	payload := wireInbound(newIb, r.node.Id)
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/update/"+strconv.Itoa(id), payload); err != nil {

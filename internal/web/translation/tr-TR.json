@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "Cookie reply asla gönderilmez — bir DPI parmak izini kaldırır ancak taşma korumasını zayıflatır.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "Bu sunucu henüz çekirdek modunu çalıştıramıyor",
+        "kernelBlocker": {
+          "root": "Panel root olarak çalışmıyor, bu yüzden ağ arayüzü oluşturamıyor",
+          "tools": "Gerekli bir komut eksik; amneziawg-tools ve iproute2'yi kurun",
+          "module": "amneziawg çekirdek modülü kurulu değil",
+          "nft": "nftables kurulu değil; tünelin NAT kuralları için gerekli",
+          "ipv6": "Eş başına IPv6 çıkışı çekirdek modunda henüz desteklenmiyor",
+          "portForwarding": "İstemci başına port yönlendirme çekirdek modunda henüz desteklenmiyor",
+          "routeThroughXray": "routeThroughXray'in çekirdek modunda bir uygulaması yok; tüneli çıkış yolu olmadan bırakır"
+        },
+        "kernelMode": "Çekirdek modu",
+        "kernelModeHint": "Bu inbound'u yerleşik kullanıcı alanı yığını yerine AmneziaWG çekirdek modülünde çalıştırır. Özellikle yüksek gecikmeli bağlantılarda genellikle daha hızlıdır, ancak Xray yönlendirmesi, sniffing, IPv6 ve port yönlendirme eşlerine uygulanmaz. Sunucuda AmneziaWG çekirdek modülü ve amneziawg-tools gerekir."
       },
       "tuic": {
         "congestionControl": "Tıkanıklık Kontrolü",

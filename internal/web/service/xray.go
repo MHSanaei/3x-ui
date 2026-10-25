@@ -790,6 +790,11 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 		if !ok {
 			continue
 		}
+		// Kernel-mode inbounds forward in the kernel and never dial Xray, so a
+		// relay inbound for them would listen forever with nothing behind it.
+		if inst.KernelMode {
+			continue
+		}
 		if _, taken := existingTags[inbound.Tag]; taken {
 			logger.Warning("amneziawgnet socks: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
 			continue

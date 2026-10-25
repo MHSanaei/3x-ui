@@ -1,13 +1,3 @@
-// Package amneziawg holds the AmneziaWG protocol's shared, DB-backed shapes
-// (Instance, Peer, Obfuscation31, ServerSettings/InboundSettings) and the
-// pure functions that derive an Instance from a stored inbound row. It no
-// longer manages any OS-level interface itself: that was the kernel-module
-// (DKMS) + awg-quick + TPROXY architecture this fork shipped originally,
-// retired in favor of an embedded, pure-Go one (amneziawg-go over a gVisor
-// netstack, see internal/amneziawgnet) in a hard cutover. This package's
-// remaining code is deliberately protocol-shape-only, with no OS dependency
-// at all, so both the (now-removed) kernel-module path and the embedded
-// path could read -- and, historically, did read -- it identically.
 package amneziawg
 
 import (
@@ -74,6 +64,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		IPv6Enabled:           server.IPv6Enabled,
 		IPv6ExternalInterface: server.IPv6ExternalInterface,
 		RouteThroughXray:      server.RouteThroughXray,
+		KernelMode:            server.KernelMode,
 	}, true
 }
 

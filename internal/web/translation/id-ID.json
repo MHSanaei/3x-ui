@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "Host ini belum bisa menjalankan mode kernel",
+        "kernelBlocker": {
+          "root": "Panel tidak berjalan sebagai root, sehingga tidak bisa membuat antarmuka jaringan",
+          "tools": "Perintah yang diperlukan tidak ada; pasang amneziawg-tools dan iproute2",
+          "module": "Modul kernel amneziawg belum terpasang",
+          "nft": "nftables belum terpasang; diperlukan untuk aturan NAT terowongan",
+          "ipv6": "Egress IPv6 per peer belum didukung dalam mode kernel",
+          "portForwarding": "Penerusan port per klien belum didukung dalam mode kernel",
+          "routeThroughXray": "routeThroughXray tidak punya implementasi mode kernel; terowongan akan tanpa jalur keluar"
+        },
+        "kernelMode": "Mode kernel",
+        "kernelModeHint": "Jalankan inbound ini pada modul kernel AmneziaWG alih-alih stack userspace bawaan. Biasanya lebih cepat, terutama pada tautan berlatensi tinggi, tetapi routing Xray, sniffing, IPv6, dan penerusan port tidak berlaku untuk peer-nya. Memerlukan modul kernel AmneziaWG dan amneziawg-tools di host."
       },
       "tuic": {
         "congestionControl": "Kontrol Kemacetan",

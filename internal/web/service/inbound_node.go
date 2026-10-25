@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -1537,11 +1538,29 @@ func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
 }
 
 func (s *InboundService) GetOnlineClients() []string {
+	// Kernel-mode AmneziaWG peers are invisible to Xray's online-users set;
+	// their handshakes are the equivalent signal, unioned in once here.
+	kernelOnline := amneziawgkern.GetCollector().OnlineEmails(time.Now())
+
 	process := currentXrayProcess()
 	if process == nil {
-		return []string{}
+		return kernelOnline
 	}
-	return process.GetOnlineClients()
+	xrayOnline := process.GetOnlineClients()
+	if len(kernelOnline) == 0 {
+		return xrayOnline
+	}
+
+	seen := make(map[string]struct{}, len(xrayOnline)+len(kernelOnline))
+	out := make([]string, 0, len(xrayOnline)+len(kernelOnline))
+	for _, email := range append(append([]string{}, xrayOnline...), kernelOnline...) {
+		if _, dup := seen[email]; dup {
+			continue
+		}
+		seen[email] = struct{}{}
+		out = append(out, email)
+	}
+	return out
 }
 
 // GetOnlineClientsByGuid returns online emails keyed by the panelGuid of the

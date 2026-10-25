@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "Nunca enviar cookie replies — remove uma impressão digital de DPI, mas enfraquece a mitigação de inundações.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "Este host ainda não pode executar o modo kernel",
+        "kernelBlocker": {
+          "root": "O painel não está rodando como root, então não pode criar uma interface de rede",
+          "tools": "Falta um comando necessário; instale amneziawg-tools e iproute2",
+          "module": "O módulo de kernel amneziawg não está instalado",
+          "nft": "nftables não está instalado; ele é necessário para as regras NAT do túnel",
+          "ipv6": "Saída IPv6 por peer ainda não é suportada no modo kernel",
+          "portForwarding": "Encaminhamento de portas por cliente ainda não é suportado no modo kernel",
+          "routeThroughXray": "routeThroughXray não tem implementação no modo kernel; deixaria o túnel sem rota de saída"
+        },
+        "kernelMode": "Modo kernel",
+        "kernelModeHint": "Executa este inbound no módulo de kernel do AmneziaWG em vez da pilha embutida em espaço de usuário. Geralmente mais rápido, principalmente em links de alta latência, mas o roteamento do Xray, o sniffing, IPv6 e o encaminhamento de portas não se aplicam aos seus peers. Requer o módulo de kernel do AmneziaWG e o amneziawg-tools no host."
       },
       "tuic": {
         "congestionControl": "Controle de congestionamento",

@@ -129,6 +129,11 @@ func run(root, outDir string) error {
 			StructAllow: setOf("ServerSettings"),
 		},
 		{
+			Path:        resolveRel(root, "internal/amneziawgkern"),
+			StructAllow: setOf("Readiness", "Blocker"),
+			AliasAllow:  setOf("BlockerCode"),
+		},
+		{
 			Path:        resolveRel(root, "internal/tuic"),
 			StructAllow: setOf("TuicServerSettings", "TuicClientSettings"),
 		},

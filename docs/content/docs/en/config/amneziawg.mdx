@@ -1,6 +1,6 @@
 ---
 title: AmneziaWG
-description: Set up an AmneziaWG inbound in 3x-ui — obfuscation parameters, native IPv6, per-client port-forwarding, and routing client traffic through Xray.
+description: Configure embedded or optional Linux kernel AmneziaWG inbounds in 3x-ui.
 icon: Lock
 ---
 
@@ -116,13 +116,53 @@ the server.
 
 </Steps>
 
-Every AmneziaWG inbound's traffic already goes through Xray — each peer
-relays into its own loopback SOCKS5 inbound, tagged with the AmneziaWG
-inbound's own tag, so it shows up as a normal source on the
-[Routing](/docs/operations/outbounds-routing) page like any other protocol's
-inbound. There is no separate toggle for this: unlike a kernel tunnel,
-there's no other way for a peer's traffic to reach the internet once it's
-decapsulated.
+In the **embedded** backend, each peer relays into its own loopback SOCKS5
+inbound, tagged with the AmneziaWG inbound's tag. Its traffic therefore uses
+Xray routing and appears on the [Routing](/docs/operations/outbounds-routing)
+page, like other Xray inbounds.
+
+## Optional Linux kernel backend
+
+The embedded backend remains the default. On a supported Linux host, an
+administrator can opt an individual inbound into the kernel backend with
+**Kernel mode**. The panel then creates an `xui-awg<id>` interface on the
+AmneziaWG kernel module, configures it with `awg setconf`, and masquerades
+peer traffic out of the host NIC with an nftables table of its own
+(`xui_awg<id>`). Peer traffic bypasses Xray. Nothing runs through a shell:
+every step is a direct `ip`, `awg` or `nft` command, and the interface's
+config lives in a panel-private directory (`/etc/x-ui/amneziawg` on a standard
+install), never next to your own `awg-quick` configs.
+
+Kernel mode requires a Linux host running the panel as root, with the
+`amneziawg` module installed and `awg`, `ip` and `nft` available. The
+readiness panel reports missing host requirements and provides the install
+command. On a standard install, run
+`sudo /usr/local/x-ui/x-ui install-awg-kernel`. The bundled command builds a
+pinned, commit-verified release of the module and tools on Debian and Ubuntu;
+kernel headers and, when Secure Boot is enabled, module signing must be
+available. Review the script and host changes before running it.
+
+The panel enables IPv4 forwarding and, when `iptables` is installed, adds two
+`FORWARD` accept rules per interface (commented `3x-ui:xui-awg<id>`), so a host
+whose `FORWARD` policy is `DROP` — as Docker and ufw set it — still forwards
+the tunnel. A firewall that drops forwarded traffic in its own nftables table,
+such as firewalld, still needs a rule from you.
+
+Kernel mode is not supported in Docker. Embedded mode continues to work in
+containers. The kernel backend does not support Xray routing or sniffing,
+per-client IPv6, client port forwarding, or a pinned listen address; the panel
+rejects saves that request those features. On a multi-node setup the master
+checks that the target node supports kernel mode before pushing such an
+inbound, and the node checks its own host when it applies it.
+
+Stopping the panel records the interfaces' final traffic and then tears them
+down, exactly as the embedded backend stops: a stopped panel enforces no quota
+or expiry, so nothing keeps forwarding. A panel-only restart (`SIGHUP`) leaves
+them running. If the panel process dies instead, the next start adopts the
+surviving interfaces; traffic between the crash and the first counter read
+after it is not charged. Interfaces and configs the panel cannot prove are its
+own — a same-named link with a different key, or an unmarked, non-regular or
+symlinked config file — are never changed or removed.
 
 ## Keepalive ranges
 

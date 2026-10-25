@@ -2236,7 +2236,19 @@
         "disableCookiesHint": "Không bao giờ gửi cookie reply — xóa một dấu vết DPI nhưng làm yếu khả năng chống flood.",
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
-        "outboundObfuscationHint": "Must exactly match the server side parameters."
+        "outboundObfuscationHint": "Must exactly match the server side parameters.",
+        "kernelUnavailable": "Máy chủ này chưa thể chạy chế độ kernel",
+        "kernelBlocker": {
+          "root": "Bảng điều khiển không chạy với quyền root nên không thể tạo giao diện mạng",
+          "tools": "Thiếu một lệnh cần thiết; hãy cài amneziawg-tools và iproute2",
+          "module": "Chưa cài mô-đun kernel amneziawg",
+          "nft": "Chưa cài nftables; cần cho các quy tắc NAT của đường hầm",
+          "ipv6": "Chế độ kernel chưa hỗ trợ đầu ra IPv6 theo từng peer",
+          "portForwarding": "Chế độ kernel chưa hỗ trợ chuyển tiếp cổng theo từng client",
+          "routeThroughXray": "routeThroughXray chưa có triển khai cho chế độ kernel; đường hầm sẽ không có đường ra"
+        },
+        "kernelMode": "Chế độ kernel",
+        "kernelModeHint": "Chạy inbound này trên mô-đun kernel AmneziaWG thay cho ngăn xếp userspace tích hợp. Thường nhanh hơn, nhất là trên đường truyền có độ trễ cao, nhưng định tuyến Xray, sniffing, IPv6 và chuyển tiếp cổng không áp dụng cho các peer của nó. Cần mô-đun kernel AmneziaWG và amneziawg-tools trên máy chủ."
       },
       "tuic": {
         "congestionControl": "Kiểm soát tắc nghẽn",
