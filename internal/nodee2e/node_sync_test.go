@@ -342,3 +342,119 @@ func runNodeSyncScenarios(t *testing.T, bin, scope string) {
 		}
 	})
 }
+
+func panelTraffic(t *testing.T, p *panel, email string) (int64, int64) {
+	t.Helper()
+	var tr struct{ Up, Down int64 }
+	if err := json.Unmarshal(p.call(http.MethodGet, "/panel/api/clients/traffic/"+email, nil), &tr); err != nil {
+		t.Fatal(err)
+	}
+	return tr.Up, tr.Down
+}
+
+func enrollTrafficNode(t *testing.T, master, node *panel) {
+	t.Helper()
+	token := node.mintToken("traffic-upstream", "node-sync")
+	master.call(http.MethodPost, "/panel/api/nodes/add", map[string]any{
+		"name": node.name, "scheme": "http", "address": "127.0.0.1", "port": node.port, "basePath": "/",
+		"apiToken": token, "enable": true, "allowPrivateAddress": true,
+	})
+}
+
+func TestNodeGlobalTrafficHeartbeatChain(t *testing.T) {
+	bin := panelBinary(t)
+	root := newPanel(t, bin, "traffic-root")
+	middle := newPanel(t, bin, "traffic-middle")
+	leaf := newPanel(t, bin, "traffic-leaf")
+	const email = "chain-usage"
+	localIDs := make(map[*panel]int)
+	makeClient := func() map[string]any {
+		client := vlessClient(email)
+		client["subId"] = "chain-sub"
+		return client
+	}
+	for _, p := range []*panel{root, middle, leaf} {
+		p.start()
+		var ib inboundView
+		obj := p.call(http.MethodPost, "/panel/api/inbounds/add", vlessInbound(p.name, freePort(t), nil, makeClient()))
+		if err := json.Unmarshal(obj, &ib); err != nil || ib.Id == 0 {
+			t.Fatalf("%s local inbound=%s err=%v", p.name, obj, err)
+		}
+		localIDs[p] = ib.Id
+	}
+	enrollTrafficNode(t, middle, leaf)
+	enrollTrafficNode(t, root, middle)
+	eventually(t, 90*time.Second, "chain adopts all zero-traffic baselines", func() (bool, string) {
+		rootCount, middleCount := len(root.inbounds()), len(middle.inbounds())
+		return rootCount == 3 && middleCount == 2, fmt.Sprintf("root inbounds=%d middle inbounds=%d", rootCount, middleCount)
+	})
+	waitUsage := func(p *panel, up, down int64) {
+		t.Helper()
+		eventually(t, 90*time.Second, p.name+" converges global traffic", func() (bool, string) {
+			gotUp, gotDown := panelTraffic(t, p, email)
+			return gotUp == up && gotDown == down, fmt.Sprintf("%s usage=%d/%d want %d/%d", p.name, gotUp, gotDown, up, down)
+		})
+	}
+	root.call(http.MethodPost, "/panel/api/clients/updateTraffic/"+email, map[string]any{"upload": 100, "download": 200})
+	middle.call(http.MethodPost, "/panel/api/clients/updateTraffic/"+email, map[string]any{"upload": 10, "download": 20})
+	leaf.call(http.MethodPost, "/panel/api/clients/updateTraffic/"+email, map[string]any{"upload": 1, "download": 2})
+	for _, p := range []*panel{root, middle, leaf} {
+		waitUsage(p, 111, 222)
+	}
+	pushRoot := func(up, down int64) {
+		root.call(http.MethodPost, "/panel/api/inbounds/pushClientTraffics", map[string]any{
+			"masterGuid": "synthetic-upstream", "traffics": []map[string]any{{"email": email, "up": up, "down": down}},
+		})
+	}
+	pushRoot(900, 800)
+	waitUsage(middle, 900, 800)
+	waitUsage(leaf, 900, 800)
+	pushRoot(500, 400)
+	waitUsage(middle, 500, 400)
+	waitUsage(leaf, 500, 400)
+	// Each panel independently produced local usage; resetting an overlay cannot erase it.
+	// Reset those producers through their real API before testing forwarded zero counters.
+	for _, p := range []*panel{leaf, middle, root} {
+		p.call(http.MethodPost, "/panel/api/clients/resetTraffic/"+email, nil)
+	}
+	pushRoot(0, 0)
+	for _, p := range []*panel{root, middle, leaf} {
+		waitUsage(p, 0, 0)
+	}
+	leaf.stop()
+	pushRoot(77, 88)
+	waitUsage(middle, 77, 88)
+	leaf.start()
+	waitUsage(leaf, 77, 88)
+	for _, p := range []*panel{leaf, middle, root} {
+		p.call(http.MethodPost, "/panel/api/clients/del/"+email, nil)
+	}
+	for _, p := range []*panel{root, middle, leaf} {
+		eventually(t, 90*time.Second, p.name+" deletes chain client", func() (bool, string) {
+			for _, ib := range p.inbounds() {
+				if ib.client(email) != nil {
+					return false, fmt.Sprintf("%s retains %s", p.name, email)
+				}
+			}
+			return true, ""
+		})
+	}
+	for _, p := range []*panel{leaf, middle, root} {
+		p.call(http.MethodPost, "/panel/api/clients/add", map[string]any{
+			"client": makeClient(), "inboundIds": []int{localIDs[p]},
+		})
+	}
+	for _, p := range []*panel{root, middle, leaf} {
+		eventually(t, 90*time.Second, p.name+" recreates chain client", func() (bool, string) {
+			for _, ib := range p.inbounds() {
+				if ib.client(email) != nil {
+					return true, ""
+				}
+			}
+			return false, "missing recreated client"
+		})
+	}
+	pushRoot(9, 8)
+	waitUsage(middle, 9, 8)
+	waitUsage(leaf, 9, 8)
+}
