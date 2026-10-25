@@ -174,8 +174,10 @@
 
 .accent-swatches {
   display: grid;
-  grid-template-columns: repeat(7, 28px);
+  grid-template-columns: repeat(auto-fill, 28px);
   gap: 8px;
+  /* seven in a row, fewer on a phone too narrow for the popover */
+  width: min(244px, calc(100vw - 64px));
 }
 
 .accent-swatch {

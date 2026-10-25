@@ -138,7 +138,15 @@ function ThemeCycleButton({
   );
 }
 
-function AccentPicker({ id, ariaLabel }: { id: string; ariaLabel: string }) {
+function AccentPicker({
+  id,
+  ariaLabel,
+  placement = 'bottomRight',
+}: {
+  id: string;
+  ariaLabel: string;
+  placement?: 'bottomRight' | 'bottom';
+}) {
   const { t } = useTranslation();
   const { isDark, accent, setAccent, isGlass, setGlass } = useTheme();
   const swatches = (
@@ -165,7 +173,7 @@ function AccentPicker({ id, ariaLabel }: { id: string; ariaLabel: string }) {
     </div>
   );
   return (
-    <Popover content={swatches} title={ariaLabel} trigger="click" placement="bottomRight">
+    <Popover content={swatches} title={ariaLabel} trigger="click" placement={placement}>
       <button
         id={id}
         type="button"
@@ -508,7 +516,11 @@ export default function AppSidebar() {
           <div className="drawer-header-actions">
             <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
-            <AccentPicker id="accent-picker-drawer" ariaLabel={t('menu.accentColor')} />
+            <AccentPicker
+              id="accent-picker-drawer"
+              ariaLabel={t('menu.accentColor')}
+              placement="bottom"
+            />
             <ThemeCycleButton
               id="theme-cycle-drawer"
               isDark={isDark}
