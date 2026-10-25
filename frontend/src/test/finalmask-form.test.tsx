@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { FinalMaskField } from '@/lib/xray/forms/fields';
 
-import { listSelectOptions, renderWithProviders } from './test-utils';
+import { chooseSelectOption, listSelectOptions, renderWithProviders } from './test-utils';
 
 describe('FinalMaskForm item types', () => {
   // Only the noise mask parses tag expressions; header-custom items go through the
@@ -65,5 +65,78 @@ describe('FinalMaskForm salamander password', () => {
 
     fireEvent.change(input, { target: { value: 'a€' } });
     await waitFor(() => expect(screen.queryByText(/at least 4 bytes/)).toBeNull());
+  });
+});
+
+describe('FinalMaskForm fragment lengths', () => {
+  // xray-core refuses only a fragment whose LAST lengths entry has a 0 minimum; an
+  // earlier 0 is a zero-byte segment that PattN's tlshello-0-len preset relies on.
+  function renderLengths(lengths: string[]) {
+    renderWithProviders(
+      <FinalMaskField
+        network="tcp"
+        protocol="vless"
+        value={{ tcp: [{ type: 'fragment', settings: { packets: 'tlshello', lengths } }], udp: [] }}
+      />,
+    );
+    return (idx: number) =>
+      document.getElementById(`finalmask_tcp_0_settings_lengths_${idx}`) as HTMLInputElement;
+  }
+
+  it('accepts 0 in an entry before the last', async () => {
+    const lengthInput = renderLengths(['5', '104', '1']);
+    fireEvent.change(lengthInput(0), { target: { value: '0' } });
+    // The blank last entry's error proves validation ran before the assertion.
+    fireEvent.change(lengthInput(2), { target: { value: '' } });
+    expect(await screen.findByText(/Length is required/)).toBeTruthy();
+    expect(screen.queryByText(/greater than 0/)).toBeNull();
+  });
+
+  it('rejects 0 in the last entry', async () => {
+    const lengthInput = renderLengths(['0', '104', '1']);
+    fireEvent.change(lengthInput(2), { target: { value: '0' } });
+    expect(await screen.findByText(/greater than 0/)).toBeTruthy();
+  });
+});
+
+describe('FinalMaskForm TCP mask presets', () => {
+  // PattN's tlshello presets are two chained fragments, so a pick replaces the TCP list.
+  it('replaces the client TCP masks with the picked preset', async () => {
+    const changes: unknown[] = [];
+    renderWithProviders(
+      <FinalMaskField
+        network="tcp"
+        protocol="vless"
+        value={{ tcp: [{ type: 'sudoku', settings: {} }], udp: [] }}
+        onChange={(next) => changes.push(next)}
+      />,
+    );
+    const presets = screen.getByRole('combobox', { name: 'Presets' });
+    chooseSelectOption(presets.id, 'tlshello-0-len');
+
+    await waitFor(() =>
+      expect((changes.at(-1) as { tcp?: unknown } | undefined)?.tcp).toEqual([
+        {
+          type: 'fragment',
+          settings: {
+            packets: 'tlshello',
+            lengths: ['0', '104', '1'],
+            delays: ['0'],
+            maxSplit: '0',
+          },
+        },
+        {
+          type: 'fragment',
+          settings: { packets: '1-1', lengths: ['114', '1'], delays: ['1'], maxSplit: '11' },
+        },
+      ]),
+    );
+  });
+
+  it('offers no presets on the server side', () => {
+    renderWithProviders(
+      <FinalMaskField network="tcp" protocol="vless" side="server" value={{ tcp: [], udp: [] }} />,
+    );
+    expect(screen.queryByRole('combobox', { name: 'Presets' })).toBeNull();
   });
 });

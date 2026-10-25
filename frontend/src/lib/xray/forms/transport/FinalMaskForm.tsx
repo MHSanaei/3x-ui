@@ -19,6 +19,7 @@ import type { NamePath } from 'antd/es/form/interface';
 import { RandomUtil } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { TCP_MASK_PRESETS } from '@/lib/xray/finalmask-presets';
 import { upgradeLegacyUdpHop } from '@/lib/xray/udphop-mask';
 import { upgradeLegacyXdnsMasks, XDNS_LEGACY_EDNS0 } from '@/lib/xray/xdns-mask';
 
@@ -333,7 +334,14 @@ export default function FinalMaskForm({
 
   return (
     <>
-      {showTcp && <TcpMasksList base={base} form={form} allowFilter={side === 'server'} />}
+      {showTcp && (
+        <TcpMasksList
+          base={base}
+          form={form}
+          allowFilter={side === 'server'}
+          allowPresets={side === 'client'}
+        />
+      )}
       {showUdp && (
         <UdpMasksList
           base={base}
@@ -373,26 +381,48 @@ function TcpMasksList({
   base,
   form,
   allowFilter,
+  allowPresets,
 }: {
   base: (string | number)[];
   form: FormInstance;
   allowFilter: boolean;
+  allowPresets: boolean;
 }) {
   const { t } = useTranslation();
+  const uid = useId();
   return (
     <Form.List name={[...base, 'tcp']}>
       {(fields, { add, remove }) => (
         <>
           <Form.Item label="TCP Masks">
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined aria-hidden />}
-              aria-label={t('add')}
-              onClick={() =>
-                add({ type: 'fragment', settings: defaultTcpMaskSettings('fragment') })
-              }
-            />
+            <Space>
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined aria-hidden />}
+                aria-label={t('add')}
+                onClick={() =>
+                  add({ type: 'fragment', settings: defaultTcpMaskSettings('fragment') })
+                }
+              />
+              {allowPresets && (
+                <Select
+                  id={`${uid}-tcp-presets`}
+                  size="small"
+                  style={{ minWidth: 160 }}
+                  aria-label={t('pages.inbounds.form.presets')}
+                  placeholder={t('pages.inbounds.form.presets')}
+                  value={null}
+                  options={Object.keys(TCP_MASK_PRESETS).map((name) => ({
+                    value: name,
+                    label: name,
+                  }))}
+                  onChange={(name: string) =>
+                    form.setFieldValue([...base, 'tcp'], structuredClone(TCP_MASK_PRESETS[name]))
+                  }
+                />
+              )}
+            </Space>
           </Form.Item>
           {fields.map((field, mIdx) => (
             <TcpMaskItem
@@ -641,15 +671,15 @@ function validateFragmentPackets(_rule: unknown, value: unknown): Promise<void> 
   return Promise.reject(new Error('Use "tlshello" or a packet range like 1-3'));
 }
 
-function validateFragmentLength(_rule: unknown, value: unknown): Promise<void> {
+// xray refuses only a 0 minimum in the LAST lengths entry; an earlier 0 is an
+// empty segment, which PattN's tlshello-0-len preset relies on.
+function validateFragmentLength(_rule: unknown, value: unknown, isLast: boolean): Promise<void> {
   const str = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
   if (str.length === 0) {
-    return Promise.reject(
-      new Error('Length is required — xray rejects a fragment mask whose LengthMin is 0'),
-    );
+    return Promise.reject(new Error('Length is required — remove the row if you do not need it'));
   }
   const min = Number(str.split('-')[0]);
-  if (!Number.isFinite(min) || min <= 0) {
+  if (!Number.isFinite(min) || min < 0 || (isLast && min === 0)) {
     return Promise.reject(new Error('Length minimum must be greater than 0 (e.g. 100-200)'));
   }
   return Promise.resolve();
@@ -685,7 +715,7 @@ function FragmentRangeList({
   listName: (string | number)[];
   label: string;
   placeholder: string;
-  validator?: (rule: unknown, value: unknown) => Promise<void>;
+  validator?: (rule: unknown, value: unknown, isLast: boolean) => Promise<void>;
   minItems?: number;
 }) {
   const { t } = useTranslation();
@@ -707,7 +737,11 @@ function FragmentRangeList({
               key={field.key}
               label={`#${idx + 1}`}
               name={field.name}
-              rules={validator ? [{ validator }] : undefined}
+              rules={
+                validator
+                  ? [{ validator: (r, v) => validator(r, v, idx === fields.length - 1) }]
+                  : undefined
+              }
             >
               <Input
                 placeholder={placeholder}
