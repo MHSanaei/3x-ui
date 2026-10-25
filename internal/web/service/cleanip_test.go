@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"reflect"
 	"regexp"
@@ -134,6 +135,22 @@ func TestCleanIpClassifyResponse(t *testing.T) {
 	} {
 		if got := classifyCleanIpResponse([]byte(tc.raw)); got != tc.want {
 			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// The page reads report.fragments / report.ips as arrays; a JSON null crashed it.
+func TestCleanIpReportWithNothingValidSendsEmptyLists(t *testing.T) {
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com"})
+	var s CleanIpService
+	report, err := s.AddReport(context.Background(), cmd.Token, []byte(`{"tested": 5, "ips": [{"ip": "x"}]}`), "127.0.0.1")
+	if err != nil {
+		t.Fatalf("AddReport: %v", err)
+	}
+	raw, _ := json.Marshal(report)
+	for _, want := range []string{`"ips":[]`, `"fragments":[]`} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("report JSON %s lacks %s", raw, want)
 		}
 	}
 }

@@ -251,6 +251,9 @@ func (s *CleanIpService) AddReport(ctx context.Context, token string, body []byt
 		At:     cleanIpNow().Unix(),
 		Tested: max(0, min(raw.Tested, 100000)),
 		Size:   max(0, min(raw.Size, 64000)),
+		// empty, not nil: the page reads both as arrays
+		Ips:       []CleanIpHit{},
+		Fragments: []CleanIpFragment{},
 	}
 	for _, hit := range raw.Ips {
 		ip, ok := validIPv4(hit.Ip)
