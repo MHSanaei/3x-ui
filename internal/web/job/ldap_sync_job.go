@@ -174,7 +174,7 @@ func (j *LdapSyncJob) Run() {
 	j.lastTrustedFlagCount.Store(int64(len(flags)))
 }
 
-// autoDeleteSafeForFetch rejects directory answers that cannot establish a trustworthy population.
+// An empty fetch can mean a renamed OU or lost read grant, not that every user is gone.
 func (j *LdapSyncJob) autoDeleteSafeForFetch(fetched int) bool {
 	if fetched == 0 {
 		logger.Warning("LDAP auto-delete skipped: directory returned no usable users")
