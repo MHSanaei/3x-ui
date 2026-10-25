@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Card, theme } from 'antd';
 
 import { Sparkline } from '@/components/viz';
+import { USAGE_OK_COLOR } from '@/models/status';
 import { mean, peak } from './useOverviewHistory';
 
 interface VitalTileProps {
@@ -32,6 +33,8 @@ export default function VitalTile({
 }: VitalTileProps) {
   const { token } = theme.useToken();
   const meanColor = token.colorTextTertiary;
+  // A healthy reading follows the accent color; warning and critical keep their own.
+  const stroke = statusColor === USAGE_OK_COLOR ? token.colorPrimary : statusColor;
 
   const referenceLines = useMemo(
     () => (data.length > 1 ? [{ y: mean(data), dash: '3 4', color: meanColor }] : []),
@@ -66,7 +69,7 @@ export default function VitalTile({
           showGrid={false}
           showMarker={false}
           valueMax={peak(data) > 0 ? null : 100}
-          stroke={statusColor}
+          stroke={stroke}
           referenceLines={referenceLines}
           yFormatter={(v) => `${v.toFixed(0)}%`}
           name1={label}

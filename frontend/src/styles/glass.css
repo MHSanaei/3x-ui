@@ -29,15 +29,15 @@ html[data-glass] body {
   background-color: var(--glass-base);
   background-image:
     radial-gradient(
-      60rem 40rem at 0% 25%,
+      95vw 90vh at 0% 30%,
       color-mix(in srgb, var(--xui-accent) var(--glass-glow), transparent),
-      transparent 70%
+      transparent 75%
     ),
-    radial-gradient(50rem 40rem at 100% 0%, rgba(31, 110, 255, 0.3), transparent 70%),
+    radial-gradient(70vw 70vh at 100% 0%, rgba(31, 110, 255, 0.3), transparent 72%),
     radial-gradient(
-      45rem 32rem at 60% 110%,
-      color-mix(in srgb, var(--xui-accent) calc(var(--glass-glow) / 2), transparent),
-      transparent 70%
+      90vw 75vh at 55% 112%,
+      color-mix(in srgb, var(--xui-accent) calc(var(--glass-glow) * 0.8), transparent),
+      transparent 75%
     );
   background-attachment: fixed;
 }
