@@ -20,7 +20,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupScaleDB opens a disposable scale database; PostgreSQL uses the package's isolated schema.
+// setupScaleDB opens package-isolated PostgreSQL or opt-in SQLite (XUI_SCALE_TEST); otherwise it skips.
+// XUI_SCALE_DB_PATH preserves SQLite for manual smoke runs instead of temporary-file cleanup.
 func setupScaleDB(t testing.TB) {
 	t.Helper()
 	xuilogger.InitLogger(logging.ERROR)
@@ -79,7 +80,8 @@ type scaleDataset struct {
 	perInbound [][]model.Client
 }
 
-// seedScaleDataset spreads healthy clients across inbounds in one seed transaction.
+// seedScaleDataset writes healthy-client fixture tables directly in one transaction.
+// Skipping SyncInbound keeps per-client reconciliation out of benchmark setup.
 func seedScaleDataset(t testing.TB, n, numInbounds int) scaleDataset {
 	t.Helper()
 	db := database.GetDB()
@@ -181,7 +183,8 @@ func sampleEmails(emails []string, k int) []string {
 	return out
 }
 
-// resetScaleTables resets only the disposable scale fixture's tables.
+// resetScaleTables uses PostgreSQL TRUNCATE ... CASCADE with identity restart.
+// SQLite deletes table by table, then clears its autoincrement counters.
 func resetScaleTables(t testing.TB, db *gorm.DB, tables ...string) {
 	t.Helper()
 	if config.GetDBKind() == "postgres" {
