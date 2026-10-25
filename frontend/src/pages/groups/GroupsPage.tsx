@@ -195,9 +195,6 @@ export default function GroupsPage() {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
     },
-    onError: (error) => {
-      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
-    },
   });
 
   useEffect(() => {
@@ -390,8 +387,8 @@ export default function GroupsPage() {
         setGroupHostAssignments((current) => ({ ...current, [groupForAction.name]: savedIds }));
         setHostAssignmentIds(savedIds);
       }
-    } catch {
-      // The mutation's onError handler already reports the failure to the user.
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
     }
   }
 
