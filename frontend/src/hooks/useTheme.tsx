@@ -3,9 +3,12 @@ import type { ReactNode } from 'react';
 import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
 
+import '@/styles/glass.css';
+
 const STORAGE_DARK = 'dark-mode';
 const STORAGE_ULTRA = 'isUltraDarkThemeEnabled';
 const STORAGE_ACCENT = 'accentColor';
+const STORAGE_GLASS = 'glassTheme';
 
 export const ACCENT_COLORS = [
   'default',
@@ -69,11 +72,25 @@ function applyDom(isDark: boolean, isUltra: boolean) {
   }
 }
 
+// The glow behind the glass cards is drawn by glass.css from --xui-accent.
+function applyGlassDom(isGlass: boolean, accent: AccentColor, isDark: boolean) {
+  const root = document.documentElement;
+  if (isGlass) {
+    root.setAttribute('data-glass', 'on');
+    root.style.setProperty('--xui-accent', accentPrimary(accent, isDark));
+  } else {
+    root.removeAttribute('data-glass');
+    root.style.removeProperty('--xui-accent');
+  }
+}
+
 // module load so the document is in the right theme before React mounts.
 const initialDark = readBool(STORAGE_DARK, true);
 const initialUltra = readBool(STORAGE_ULTRA, false);
 const initialAccent = readAccent();
+const initialGlass = readBool(STORAGE_GLASS, false);
 applyDom(initialDark, initialUltra);
+applyGlassDom(initialGlass, initialAccent, initialDark);
 
 const DARK_TOKENS = {
   colorBgBase: '#1a1b1f',
@@ -153,14 +170,79 @@ const SHARED_STYLE_CONFIG = {
   cssVar: { key: 'xui' },
 } as const;
 
+// Glassy style: translucent surfaces over the page glow; popups stay nearly
+// opaque so menus and pickers remain readable over busy content.
+const GLASS_SURFACES = {
+  light: {
+    container: 'rgba(255, 255, 255, 0.62)',
+    elevated: 'rgba(255, 255, 255, 0.94)',
+    layout: 'rgba(15, 23, 42, 0.04)',
+    side: 'rgba(255, 255, 255, 0.55)',
+    border: 'rgba(15, 23, 42, 0.08)',
+  },
+  dark: {
+    container: 'rgba(22, 18, 34, 0.56)',
+    elevated: 'rgba(26, 22, 38, 0.95)',
+    layout: 'rgba(255, 255, 255, 0.04)',
+    side: 'rgba(14, 11, 24, 0.62)',
+    border: 'rgba(255, 255, 255, 0.09)',
+  },
+  ultra: {
+    container: 'rgba(10, 9, 16, 0.6)',
+    elevated: 'rgba(14, 13, 20, 0.96)',
+    layout: 'rgba(255, 255, 255, 0.03)',
+    side: 'rgba(4, 4, 8, 0.7)',
+    border: 'rgba(255, 255, 255, 0.07)',
+  },
+};
+
+function withGlass(config: ThemeConfig, isDark: boolean, isUltra: boolean): ThemeConfig {
+  const s = GLASS_SURFACES[isUltra && isDark ? 'ultra' : isDark ? 'dark' : 'light'];
+  const components = config.components ?? {};
+  return {
+    ...config,
+    token: {
+      ...config.token,
+      colorBgContainer: s.container,
+      colorBgElevated: s.elevated,
+      colorBgLayout: s.layout,
+      colorBorderSecondary: s.border,
+    },
+    components: {
+      ...components,
+      Layout: {
+        ...components.Layout,
+        bodyBg: 'transparent',
+        footerBg: 'transparent',
+        headerBg: s.side,
+        siderBg: s.side,
+        lightSiderBg: s.side,
+        triggerBg: s.side,
+      },
+      Menu: {
+        ...components.Menu,
+        itemBg: 'transparent',
+        subMenuItemBg: 'transparent',
+        darkItemBg: 'transparent',
+        darkSubMenuItemBg: 'transparent',
+        darkPopupBg: s.elevated,
+        popupBg: s.elevated,
+      },
+      Card: { ...components.Card, colorBorderSecondary: s.border },
+    },
+  };
+}
+
 export function buildAntdThemeConfig(
   isDark: boolean,
   isUltra: boolean,
   accent: AccentColor = 'default',
+  isGlass = false,
 ): ThemeConfig {
+  let config: ThemeConfig;
   if (!isDark) {
     const accentToken = accent === 'default' ? {} : { colorPrimary: accentPrimary(accent, false) };
-    return {
+    config = {
       ...SHARED_STYLE_CONFIG,
       algorithm: antdTheme.defaultAlgorithm,
       token: { ...LIGHT_CONTRAST_TOKENS, ...accentToken },
@@ -169,21 +251,23 @@ export function buildAntdThemeConfig(
         Button: accent === 'default' ? LIGHT_BUTTON_TOKENS : {},
       },
     };
+  } else {
+    const accentToken = accent === 'default' ? {} : { colorPrimary: accentPrimary(accent, true) };
+    const darkInk = accent !== 'default' && ACCENT_SHADES[accent].darkInk;
+    config = {
+      ...SHARED_STYLE_CONFIG,
+      algorithm: antdTheme.darkAlgorithm,
+      token: { ...(isUltra ? ULTRA_DARK_TOKENS : DARK_TOKENS), ...accentToken },
+      components: {
+        Layout: isUltra ? ULTRA_DARK_LAYOUT_TOKENS : DARK_LAYOUT_TOKENS,
+        Menu: isUltra ? ULTRA_DARK_MENU_TOKENS : DARK_MENU_TOKENS,
+        Card: isUltra ? ULTRA_DARK_CARD_TOKENS : DARK_CARD_TOKENS,
+        Statistic: STATISTIC_TOKENS,
+        ...(darkInk ? { Button: { primaryColor: DARK_INK } } : {}),
+      },
+    };
   }
-  const accentToken = accent === 'default' ? {} : { colorPrimary: accentPrimary(accent, true) };
-  const darkInk = accent !== 'default' && ACCENT_SHADES[accent].darkInk;
-  return {
-    ...SHARED_STYLE_CONFIG,
-    algorithm: antdTheme.darkAlgorithm,
-    token: { ...(isUltra ? ULTRA_DARK_TOKENS : DARK_TOKENS), ...accentToken },
-    components: {
-      Layout: isUltra ? ULTRA_DARK_LAYOUT_TOKENS : DARK_LAYOUT_TOKENS,
-      Menu: isUltra ? ULTRA_DARK_MENU_TOKENS : DARK_MENU_TOKENS,
-      Card: isUltra ? ULTRA_DARK_CARD_TOKENS : DARK_CARD_TOKENS,
-      Statistic: STATISTIC_TOKENS,
-      ...(darkInk ? { Button: { primaryColor: DARK_INK } } : {}),
-    },
-  };
+  return isGlass ? withGlass(config, isDark, isUltra) : config;
 }
 
 export function pauseAnimationsUntilLeave(elementId: string): void {
@@ -206,6 +290,8 @@ interface ThemeContextValue {
   toggleUltra: () => void;
   accent: AccentColor;
   setAccent: (accent: AccentColor) => void;
+  isGlass: boolean;
+  setGlass: (isGlass: boolean) => void;
   antdThemeConfig: ThemeConfig;
 }
 
@@ -215,6 +301,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(initialDark);
   const [isUltra, setIsUltra] = useState<boolean>(initialUltra);
   const [accent, setAccent] = useState<AccentColor>(initialAccent);
+  const [isGlass, setGlass] = useState<boolean>(initialGlass);
 
   useLayoutEffect(() => {
     applyDom(isDark, isUltra);
@@ -223,20 +310,32 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [isDark, isUltra]);
 
   useLayoutEffect(() => {
+    applyGlassDom(isGlass, accent, isDark);
     localStorage.setItem(STORAGE_ACCENT, accent);
-  }, [accent]);
+    localStorage.setItem(STORAGE_GLASS, String(isGlass));
+  }, [accent, isGlass, isDark]);
 
   const toggleTheme = useCallback(() => setIsDark((v) => !v), []);
   const toggleUltra = useCallback(() => setIsUltra((v) => !v), []);
 
   const antdThemeConfig = useMemo(
-    () => buildAntdThemeConfig(isDark, isUltra, accent),
-    [isDark, isUltra, accent],
+    () => buildAntdThemeConfig(isDark, isUltra, accent, isGlass),
+    [isDark, isUltra, accent, isGlass],
   );
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ isDark, isUltra, toggleTheme, toggleUltra, accent, setAccent, antdThemeConfig }),
-    [isDark, isUltra, toggleTheme, toggleUltra, accent, antdThemeConfig],
+    () => ({
+      isDark,
+      isUltra,
+      toggleTheme,
+      toggleUltra,
+      accent,
+      setAccent,
+      isGlass,
+      setGlass,
+      antdThemeConfig,
+    }),
+    [isDark, isUltra, toggleTheme, toggleUltra, accent, isGlass, antdThemeConfig],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

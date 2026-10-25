@@ -156,6 +156,22 @@
   font-size: 16px;
 }
 
+.accent-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.accent-glass {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  cursor: pointer;
+}
+
 .accent-swatches {
   display: grid;
   grid-template-columns: repeat(7, 28px);

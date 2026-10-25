@@ -1,0 +1,102 @@
+/* Glassy style: only with html[data-glass] (the toggle under the accent
+   colors). Surfaces are made translucent by the antd tokens in useTheme; this file
+   paints the glow behind them and adds the frosted blur. */
+
+html[data-glass] {
+  --glass-base: #eef0f7;
+  --glass-glow: 36%;
+  --glass-solid: #f7f8fc;
+  --glass-blur: saturate(160%) blur(18px);
+  --glass-shadow: 0 16px 40px -24px rgba(15, 23, 42, 0.35);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html[data-glass] body.dark {
+  --glass-base: #0b0912;
+  --glass-glow: 58%;
+  --glass-solid: #17131f;
+  --glass-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-glass][data-theme='ultra-dark'] body.dark {
+  --glass-base: #000;
+  --glass-glow: 44%;
+  --glass-solid: #0c0b11;
+}
+
+html[data-glass] body {
+  background-color: var(--glass-base);
+  background-image:
+    radial-gradient(
+      60rem 40rem at 0% 25%,
+      color-mix(in srgb, var(--xui-accent) var(--glass-glow), transparent),
+      transparent 70%
+    ),
+    radial-gradient(50rem 40rem at 100% 0%, rgba(31, 110, 255, 0.3), transparent 70%),
+    radial-gradient(
+      45rem 32rem at 60% 110%,
+      color-mix(in srgb, var(--xui-accent) calc(var(--glass-glow) / 2), transparent),
+      transparent 70%
+    );
+  background-attachment: fixed;
+}
+
+/* page shells set a solid --bg-page per theme (.x-page.is-dark.is-ultra); the
+   important wins over any of them so the glow shows through */
+html[data-glass] body * {
+  --bg-page: transparent !important;
+  --bg-card: var(--ant-color-bg-container, transparent) !important;
+}
+
+html[data-glass] .ant-card,
+html[data-glass] .ant-layout-sider,
+html[data-glass] .ant-drawer-content,
+html[data-glass] .ant-modal-content,
+html[data-glass] .ant-modal-container {
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+html[data-glass] .ant-card {
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+
+html[data-glass] .ant-popover-inner,
+html[data-glass] .ant-popover-container,
+html[data-glass] .ant-dropdown-menu,
+html[data-glass] .ant-select-dropdown,
+html[data-glass] .ant-picker-panel-container,
+html[data-glass] .ant-message-notice-content,
+html[data-glass] .ant-notification-notice {
+  background-color: color-mix(in srgb, var(--glass-solid) 97%, transparent);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+/* sticky headers and fixed columns sit over scrolled rows: keep them solid */
+html[data-glass] .ant-table-thead > tr > th[class*='ant-table-cell-fix'],
+html[data-glass] .ant-table-tbody > tr > td[class*='ant-table-cell-fix'],
+html[data-glass] .ant-table-sticky-holder,
+html[data-glass] .ant-table-header {
+  background-color: var(--glass-solid);
+}
+
+/* the main button: an accent gradient */
+html[data-glass] .ant-btn-variant-solid.ant-btn-color-primary:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ant-color-primary) 72%, #fff) 0%,
+    var(--ant-color-primary) 100%
+  );
+  border-color: transparent;
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--ant-color-primary) 80%, transparent);
+}
+
+html[data-glass] .ant-btn-variant-solid.ant-btn-color-primary:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+html[data-glass] .ant-menu-item-selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ant-color-primary) 35%, transparent);
+}

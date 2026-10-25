@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Drawer, Layout, Menu, Popover, Tooltip } from 'antd';
+import { Drawer, Layout, Menu, Popover, Switch, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
@@ -140,22 +140,28 @@ function ThemeCycleButton({
 
 function AccentPicker({ id, ariaLabel }: { id: string; ariaLabel: string }) {
   const { t } = useTranslation();
-  const { isDark, accent, setAccent } = useTheme();
+  const { isDark, accent, setAccent, isGlass, setGlass } = useTheme();
   const swatches = (
-    <div className="accent-swatches" role="radiogroup" aria-label={ariaLabel}>
-      {ACCENT_COLORS.map((color) => (
-        <button
-          key={color}
-          type="button"
-          role="radio"
-          aria-checked={accent === color}
-          className={`accent-swatch${accent === color ? ' active' : ''}`}
-          style={{ '--swatch': accentPrimary(color, isDark) } as CSSProperties}
-          aria-label={t(`menu.accentColors.${color}`)}
-          title={t(`menu.accentColors.${color}`)}
-          onClick={() => setAccent(color)}
-        />
-      ))}
+    <div className="accent-panel">
+      <div className="accent-swatches" role="radiogroup" aria-label={ariaLabel}>
+        {ACCENT_COLORS.map((color) => (
+          <button
+            key={color}
+            type="button"
+            role="radio"
+            aria-checked={accent === color}
+            className={`accent-swatch${accent === color ? ' active' : ''}`}
+            style={{ '--swatch': accentPrimary(color, isDark) } as CSSProperties}
+            aria-label={t(`menu.accentColors.${color}`)}
+            title={t(`menu.accentColors.${color}`)}
+            onClick={() => setAccent(color)}
+          />
+        ))}
+      </div>
+      <label className="accent-glass">
+        <span>{t('menu.glassTheme')}</span>
+        <Switch size="small" checked={isGlass} onChange={setGlass} />
+      </label>
     </div>
   );
   return (
