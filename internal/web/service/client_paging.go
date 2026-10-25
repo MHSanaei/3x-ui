@@ -185,7 +185,7 @@ func newClientQuery(db *gorm.DB, nowMs, expireDiffMs, trafficDiffBytes int64) cl
 		joins:            []clientQueryJoin{{sql: "LEFT JOIN client_traffics ct ON ct.email = c.email"}},
 		usedExpr:         "(COALESCE(ct.up, 0) + COALESCE(ct.down, 0))",
 	}
-	freshSince := globalTrafficFreshSince()
+	freshSince := globalTrafficFreshSince(db.NowFunc())
 	var probe int64
 	err := db.Model(&model.ClientGlobalTraffic{}).
 		Where("updated_at >= ?", freshSince).
