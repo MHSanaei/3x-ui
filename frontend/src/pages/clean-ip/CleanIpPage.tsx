@@ -602,17 +602,19 @@ export default function CleanIpPage() {
                             size="small"
                             icon={<CopyOutlined aria-hidden />}
                             disabled={!rows.length}
+                            aria-label={t('pages.cleanIp.copy')}
                             onClick={copyResults}
                           >
-                            {t('pages.cleanIp.copy')}
+                            {isMobile ? null : t('pages.cleanIp.copy')}
                           </Button>
                           <Button
                             size="small"
                             icon={<DownloadOutlined aria-hidden />}
                             disabled={!shown.length}
+                            aria-label="CSV"
                             onClick={downloadCsv}
                           >
-                            CSV
+                            {isMobile ? null : 'CSV'}
                           </Button>
                         </Space>
                       }
@@ -704,7 +706,7 @@ export default function CleanIpPage() {
                     {t('pages.cleanIp.quickNote')}
                   </Typography.Paragraph>
                   {countries.length > 0 && (
-                    <label className="clean-ip-field clean-ip-note">
+                    <label className="clean-ip-field clean-ip-note clean-ip-country">
                       <span>{t('pages.cleanIp.countryFilter')}</span>
                       <Select
                         allowClear

@@ -71,7 +71,14 @@
 }
 
 .clean-ip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-inline-start: auto;
+}
+
+.clean-ip-country {
+  width: min(320px, 100%);
 }
 
 .clean-ip-progress {
@@ -161,6 +168,7 @@
 .clean-ip-step-text {
   flex: 1;
   min-width: 0;
+  white-space: normal;
 }
 
 .clean-ip-step-num {
