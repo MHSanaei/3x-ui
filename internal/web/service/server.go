@@ -153,8 +153,9 @@ type ServerService struct {
 	settingService     SettingService
 	cachedIPv4         string
 	cachedIPv6         string
-	noIPv6             bool
-	resolvingIPs       bool
+	nextIPv4Lookup     time.Time
+	nextIPv6Lookup     time.Time
+	publicIPLookupDone chan struct{}
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
 	hasLastCPUSample   bool
@@ -452,36 +453,29 @@ var publicIPv6Services = []string{
 	"https://6.ident.me",
 }
 
-// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. The
-// lookups run outside s.mu so a stalling service cannot block a status sample.
+const (
+	publicIPRefreshInterval = 5 * time.Minute
+	publicIPRetryInterval   = time.Minute
+)
+
+// resolvePublicIPs waits for the initial lookup so cold backups can use it.
+// Warm callers use cached addresses while a refresh runs in the background.
 func (s *ServerService) resolvePublicIPs() {
-	s.mu.Lock()
-	wantIPv4 := s.cachedIPv4 == ""
-	wantIPv6 := s.cachedIPv6 == "" && !s.noIPv6
-	s.mu.Unlock()
-	if !wantIPv4 && !wantIPv6 {
-		return
+	ipv4, ipv6 := s.publicIPs()
+	if done := s.resolvePublicIPsInBackground(); done != nil && ipv4 == "" && ipv6 == "" {
+		<-done
 	}
+}
 
-	var ipv4, ipv6 string
-	if wantIPv4 {
-		ipv4 = firstPublicIP(publicIPv4Services)
+// refreshedPublicIP retains a known address through temporary lookup failures.
+func refreshedPublicIP(cached, fetched string, now time.Time) (string, time.Time) {
+	if fetched != "" && fetched != "N/A" {
+		return fetched, now.Add(publicIPRefreshInterval)
 	}
-	if wantIPv6 {
-		ipv6 = firstPublicIP(publicIPv6Services)
+	if cached == "" {
+		cached = "N/A"
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if wantIPv4 && s.cachedIPv4 == "" {
-		s.cachedIPv4 = ipv4
-	}
-	if wantIPv6 && s.cachedIPv6 == "" {
-		s.cachedIPv6 = ipv6
-	}
-	if s.cachedIPv6 == "N/A" {
-		s.noIPv6 = true
-	}
+	return cached, now.Add(publicIPRetryInterval)
 }
 
 // firstPublicIP returns the first service that answers, or "N/A" when every
@@ -497,26 +491,47 @@ func firstPublicIP(services []string) string {
 	return ip
 }
 
-// resolvePublicIPsInBackground keeps a status sample off the lookup path: a box
-// with no IPv6 route spends 3s per service, and the sample is what nodes report.
-func (s *ServerService) resolvePublicIPsInBackground() {
+// resolvePublicIPsInBackground shares one lookup without blocking status samples.
+// Each address family has its own deadline; cached values stay readable.
+func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
 	s.mu.Lock()
-	settled := s.cachedIPv4 != "" && (s.cachedIPv6 != "" || s.noIPv6)
-	if s.resolvingIPs || settled {
+	if done := s.publicIPLookupDone; done != nil {
 		s.mu.Unlock()
-		return
+		return done
 	}
-	s.resolvingIPs = true
+	now := time.Now()
+	wantIPv4 := !now.Before(s.nextIPv4Lookup)
+	wantIPv6 := !now.Before(s.nextIPv6Lookup)
+	if !wantIPv4 && !wantIPv6 {
+		s.mu.Unlock()
+		return nil
+	}
+	done := make(chan struct{})
+	s.publicIPLookupDone = done
 	s.mu.Unlock()
 
 	go func() {
-		defer func() {
-			s.mu.Lock()
-			s.resolvingIPs = false
-			s.mu.Unlock()
-		}()
-		s.resolvePublicIPs()
+		var ipv4, ipv6 string
+		if wantIPv4 {
+			ipv4 = firstPublicIP(publicIPv4Services)
+		}
+		if wantIPv6 {
+			ipv6 = firstPublicIP(publicIPv6Services)
+		}
+
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		now := time.Now()
+		if wantIPv4 {
+			s.cachedIPv4, s.nextIPv4Lookup = refreshedPublicIP(s.cachedIPv4, ipv4, now)
+		}
+		if wantIPv6 {
+			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now)
+		}
+		s.publicIPLookupDone = nil
+		close(done)
 	}()
+	return done
 }
 
 func (s *ServerService) publicIPs() (ipv4 string, ipv6 string) {
