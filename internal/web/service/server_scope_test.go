@@ -45,7 +45,7 @@ func TestContainerStatusOnlyOverridesCPUSwapAndUptime(t *testing.T) {
 	}
 	t.Setenv("HOST_PROC", proc)
 	t.Setenv("HOST_SYS", filepath.Join(root, "sys"))
-	svc := &ServerService{cachedIPv4: "192.0.2.1", noIPv6: true, cachedCpuSpeedMhz: 5000, lxcMetrics: sys.LXCReader{ProcRoot: proc, CgroupRoot: cg}}
+	svc := &ServerService{cachedIPv4: "192.0.2.1", cachedIPv6: "N/A", nextIPv4Lookup: time.Now().Add(time.Hour), nextIPv6Lookup: time.Now().Add(time.Hour), cachedCpuSpeedMhz: 5000, lxcMetrics: sys.LXCReader{ProcRoot: proc, CgroupRoot: cg}}
 	previous := &Status{T: time.Now().Add(-time.Second)}
 	got := svc.GetStatus(previous)
 	if got.ResourceScope != "container" || got.CpuCores != 2 || got.LogicalPro != 2 || got.CpuSpeedMhz != 0 || got.Swap.Total != 512<<20 || got.Swap.Current != 19357696 || got.Uptime != 52624 {
