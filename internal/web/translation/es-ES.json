@@ -130,6 +130,10 @@
   },
   "pages": {
     "cleanIp": {
+      "sourceRanges": "Cloudflare ranges",
+      "sourceList": "My list",
+      "noTargets": "Type IPs or ranges (for example 104.16.1.1 or 172.64.0.0/24) first.",
+      "findMore": "Find more nearby",
       "datacenter": "Datacenter",
       "countryFilter": "Country",
       "allCountries": "All countries",

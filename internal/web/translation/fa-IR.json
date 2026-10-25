@@ -130,6 +130,10 @@
   },
   "pages": {
     "cleanIp": {
+      "sourceRanges": "رنج‌های Cloudflare",
+      "sourceList": "لیست خودم",
+      "noTargets": "اول IP یا رنج وارد کنید (مثلاً 104.16.1.1 یا 172.64.0.0/24).",
+      "findMore": "پیدا کردن بیشتر در همسایگی",
       "datacenter": "دیتاسنتر",
       "countryFilter": "کشور",
       "allCountries": "همهٔ کشورها",

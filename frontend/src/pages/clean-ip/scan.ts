@@ -1,5 +1,7 @@
 import type { HostRecord } from '@/schemas/api/host';
 
+import { coloPlace } from './colos';
+
 // https://www.cloudflare.com/ips-v4/
 export const CLOUDFLARE_RANGES = [
   '173.245.48.0/20',
@@ -38,6 +40,57 @@ export function scanTargets(perRange: number): string[] {
     [ips[i], ips[j]] = [ips[j], ips[i]];
   }
   return ips;
+}
+
+function ipv4(text: string): string | null {
+  const parts = text.split('.');
+  if (parts.length !== 4 || parts.some((p) => !/^\d{1,3}$/.test(p) || Number(p) > 255)) return null;
+  return parts.map(Number).join('.');
+}
+
+// The admin's own list: single IPs are tested as given, each range gives perRange random IPs.
+export function parseTargets(text: string, perRange: number): string[] {
+  const out = new Set<string>();
+  const words = text.replace(/#[^\n]*/g, ' ').split(/[\s,;]+/);
+  for (const word of words) {
+    const [base, bits, extra] = word.split('/');
+    const ip = ipv4(base);
+    if (!ip || extra !== undefined) continue;
+    if (bits === undefined) {
+      out.add(ip);
+      continue;
+    }
+    const n = Number(bits);
+    if (!/^\d{1,2}$/.test(bits) || n > 32) continue;
+    if (n >= 31) out.add(ip);
+    else for (const hit of randomIps(`${ip}/${n}`, perRange)) out.add(hit);
+  }
+  return [...out];
+}
+
+// Edges next to a working one usually sit behind the same route, so its /24 is worth a look.
+export function nearbyIps(working: string[], tested: Set<string>, perIp: number): string[] {
+  const out = new Set<string>();
+  for (const ip of working) {
+    const prefix = ip.split('.').slice(0, 3).join('.');
+    const free: string[] = [];
+    for (let last = 1; last <= 254; last++) {
+      const candidate = `${prefix}.${last}`;
+      if (!tested.has(candidate) && !out.has(candidate)) free.push(candidate);
+    }
+    for (let i = 0; i < perIp && free.length; i++) {
+      out.add(free.splice(Math.floor(Math.random() * free.length), 1)[0]);
+    }
+  }
+  return [...out];
+}
+
+export function resultsCsv(rows: { ip: string; ms: number; colo: string }[], lang: string): string {
+  const lines = rows.map((r) => {
+    const place = coloPlace(r.colo, lang);
+    return [r.ip, r.ms, r.colo, place?.city ?? '', place?.country ?? ''].join(',');
+  });
+  return ['ip,ms,colo,city,country', ...lines].join('\n') + '\n';
 }
 
 // The panel's CSP allows wss: to any host, and a WebSocket to an IP runs the same TLS

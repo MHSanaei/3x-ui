@@ -13,13 +13,21 @@ import {
   Popconfirm,
   Progress,
   Row,
+  Segmented,
   Select,
+  Space,
   Table,
   Tag,
   Typography,
   message,
 } from 'antd';
-import { CopyOutlined, DeleteOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons';
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+} from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -39,7 +47,10 @@ import {
   ispGroupsOf,
   joinHost,
   mainGroups,
+  nearbyIps,
+  parseTargets,
   probeIp,
+  resultsCsv,
   scanTargets,
   withFragment,
   type FragmentSetting,
@@ -162,6 +173,9 @@ export default function CleanIpPage() {
   const [total, setTotal] = useState(0);
   const [hits, setHits] = useState<{ ip: string; ms: number }[]>([]);
   const stopRef = useRef(false);
+  const testedRef = useRef(new Set<string>());
+  const [source, setSource] = useState<'ranges' | 'list'>('ranges');
+  const [listText, setListText] = useState('');
   const [picked, setPicked] = useState<string[] | null>(null);
 
   const rows = useMemo<IpRow[]>(() => {
@@ -223,32 +237,55 @@ export default function CleanIpPage() {
       .slice(0, 5)
       .map((r) => r.ip);
 
-  const startScan = useCallback(async () => {
-    const targets = scanTargets(perRange);
-    stopRef.current = false;
-    setRunning(true);
-    setDone(0);
-    setTotal(targets.length);
-    setHits([]);
-    setPicked(null);
-    const found: { ip: string; ms: number }[] = [];
-    let next = 0;
-    const worker = async () => {
-      while (!stopRef.current && next < targets.length) {
-        const ip = targets[next++];
-        const r = await probeIp(ip, timeoutMs);
-        if (stopRef.current) return;
-        if (r.ok) {
-          found.push({ ip, ms: r.ms });
-          setHits([...found].sort((a, b) => a.ms - b.ms));
-        }
-        setDone((d) => d + 1);
+  const runScan = useCallback(
+    async (targets: string[], keep: boolean) => {
+      stopRef.current = false;
+      setRunning(true);
+      if (!keep) {
+        testedRef.current = new Set();
+        setDone(0);
+        setTotal(0);
+        setHits([]);
+        setPicked(null);
       }
-    };
-    await Promise.all(Array.from({ length: parallel }, worker));
-    setRunning(false);
-    await verifyIps(found.map((h) => h.ip));
-  }, [perRange, timeoutMs, parallel, verifyIps]);
+      setTotal((n) => n + targets.length);
+      const found: { ip: string; ms: number }[] = keep ? [...hits] : [];
+      let next = 0;
+      const worker = async () => {
+        while (!stopRef.current && next < targets.length) {
+          const ip = targets[next++];
+          testedRef.current.add(ip);
+          const r = await probeIp(ip, timeoutMs);
+          if (stopRef.current) return;
+          if (r.ok) {
+            found.push({ ip, ms: r.ms });
+            setHits([...found].sort((a, b) => a.ms - b.ms));
+          }
+          setDone((d) => d + 1);
+        }
+      };
+      await Promise.all(Array.from({ length: parallel }, worker));
+      setRunning(false);
+      await verifyIps(found.map((h) => h.ip));
+    },
+    [hits, timeoutMs, parallel, verifyIps],
+  );
+  const startScan = useCallback(() => {
+    const targets = source === 'list' ? parseTargets(listText, perRange) : scanTargets(perRange);
+    if (!targets.length) {
+      messageApi.warning(t('pages.cleanIp.noTargets'));
+      return;
+    }
+    void runScan(targets, false);
+  }, [source, listText, perRange, runScan, messageApi, t]);
+  const findMore = useCallback(() => {
+    const targets = nearbyIps(
+      hits.map((h) => h.ip),
+      testedRef.current,
+      8,
+    );
+    if (targets.length) void runScan(targets, true);
+  }, [hits, runScan]);
 
   const makeCommand = useCallback(async () => {
     setMaking(true);
@@ -376,6 +413,14 @@ export default function CleanIpPage() {
     t,
   ]);
 
+  const downloadCsv = useCallback(() => {
+    const blob = new Blob([resultsCsv(shown, i18n.language || 'en')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `clean-ips${isp ? '-' + isp : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [shown, isp, i18n.language]);
   const copyResults = useCallback(async () => {
     const text = rows.map((r) => (isp ? `${r.ip} ${isp}` : r.ip)).join('\n');
     try {
@@ -552,20 +597,52 @@ export default function CleanIpPage() {
                     <StepTitle
                       n={4}
                       extra={
-                        <Button
-                          size="small"
-                          icon={<CopyOutlined aria-hidden />}
-                          disabled={!rows.length}
-                          onClick={copyResults}
-                        >
-                          {t('pages.cleanIp.copy')}
-                        </Button>
+                        <Space size={6}>
+                          <Button
+                            size="small"
+                            icon={<CopyOutlined aria-hidden />}
+                            disabled={!rows.length}
+                            onClick={copyResults}
+                          >
+                            {t('pages.cleanIp.copy')}
+                          </Button>
+                          <Button
+                            size="small"
+                            icon={<DownloadOutlined aria-hidden />}
+                            disabled={!shown.length}
+                            onClick={downloadCsv}
+                          >
+                            CSV
+                          </Button>
+                        </Space>
                       }
                     >
                       {t('pages.cleanIp.scan')}
                     </StepTitle>
                   }
                 >
+                  <div className="clean-ip-settings">
+                    <Segmented
+                      value={source}
+                      disabled={running}
+                      onChange={(v) => setSource(v as 'ranges' | 'list')}
+                      options={[
+                        { value: 'ranges', label: t('pages.cleanIp.sourceRanges') },
+                        { value: 'list', label: t('pages.cleanIp.sourceList') },
+                      ]}
+                    />
+                  </div>
+                  {source === 'list' && (
+                    <Input.TextArea
+                      aria-label={t('pages.cleanIp.sourceList')}
+                      className="clean-ip-mono clean-ip-note"
+                      rows={4}
+                      value={listText}
+                      disabled={running}
+                      placeholder={'104.16.1.1\n172.64.0.0/24'}
+                      onChange={(e) => setListText(e.target.value)}
+                    />
+                  )}
                   <div className="clean-ip-settings">
                     <label className="clean-ip-field">
                       <span>{t('pages.cleanIp.perRange')}</span>
@@ -604,9 +681,14 @@ export default function CleanIpPage() {
                           {t('pages.cleanIp.stop')}
                         </Button>
                       ) : (
-                        <Button type="primary" onClick={startScan}>
-                          {t('pages.cleanIp.start')}
-                        </Button>
+                        <>
+                          <Button type="primary" onClick={startScan}>
+                            {t('pages.cleanIp.start')}
+                          </Button>
+                          <Button disabled={!hits.length} onClick={findMore}>
+                            {t('pages.cleanIp.findMore')}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
