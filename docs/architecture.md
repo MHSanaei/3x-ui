@@ -320,6 +320,12 @@ Restart is debounced via an atomic "need restart" flag (`SetToNeedRestart` /
 **Key files:** `service/xray.go` (orchestration), `xray/hot_diff.go` (the diff algorithm),
 `xray/process.go` (process lifecycle), `xray/api.go` (gRPC calls), `xray/config.go` (config model).
 
+Inbound-list statistics read only UUID, email and subscription ID from `clients`, joined
+through `client_inbounds` in batches of up to 400 distinct inbound IDs. Full client records
+remain the source for Xray and subscriptions. Missing shared-client traffic is fetched by
+email, including rows owned by an inbound outside the requested list; enrichment preserves
+the stored traffic, lifecycle and last-online fields.
+
 ### 5.2 Runtime abstraction — Local vs Remote (multi-node) ⭐ most important
 
 A "node" (`model.Node`) is another 3x-ui instance this panel controls. Every state-changing

@@ -20,11 +20,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupScaleDB initializes the DB for a scale benchmark on either Postgres
-// (XUI_DB_TYPE=postgres + XUI_DB_DSN) or SQLite (XUI_SCALE_TEST=1, temp file;
-// XUI_SCALE_DB_PATH persists the DB for manual smoke runs), and registers
-// cleanup. Skips the test when neither backend is configured.
-func setupScaleDB(t *testing.T) {
+// setupScaleDB opens a disposable scale database; PostgreSQL uses the package's isolated schema.
+func setupScaleDB(t testing.TB) {
 	t.Helper()
 	xuilogger.InitLogger(logging.ERROR)
 
@@ -82,11 +79,8 @@ type scaleDataset struct {
 	perInbound [][]model.Client
 }
 
-// seedScaleDataset seeds n healthy clients (future expiry, unfilled quota)
-// spread across numInbounds inbounds, writing inbounds, clients,
-// client_inbounds and client_traffics directly in one transaction — orders of
-// magnitude faster than SyncInbound and one fsync instead of thousands.
-func seedScaleDataset(t *testing.T, n, numInbounds int) scaleDataset {
+// seedScaleDataset spreads healthy clients across inbounds in one seed transaction.
+func seedScaleDataset(t testing.TB, n, numInbounds int) scaleDataset {
 	t.Helper()
 	db := database.GetDB()
 	resetScaleTables(t, db, "inbounds", "clients", "client_inbounds", "client_traffics")
@@ -187,10 +181,8 @@ func sampleEmails(emails []string, k int) []string {
 	return out
 }
 
-// resetScaleTables empties the given tables between sub-sizes. Postgres uses a
-// single TRUNCATE ... CASCADE; SQLite deletes per table and clears the
-// autoincrement counters so ids restart like RESTART IDENTITY.
-func resetScaleTables(t *testing.T, db *gorm.DB, tables ...string) {
+// resetScaleTables resets only the disposable scale fixture's tables.
+func resetScaleTables(t testing.TB, db *gorm.DB, tables ...string) {
 	t.Helper()
 	if config.GetDBKind() == "postgres" {
 		stmt := "TRUNCATE TABLE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
