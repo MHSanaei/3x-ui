@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Taranacak aralıklar · {count} seçili",
+      "extraRanges": "Ek aralıklar (CIDR, isteğe bağlı)",
+      "rangeGroups": {
+        "official": "Resmî liste",
+        "popular": "Popüler ek aralıklar",
+        "as13335": "Diğer tüm Cloudflare önekleri (AS13335)",
+        "as209242": "Cloudflare AS209242 (müşteri / Spectrum)",
+        "as54113": "Diğer Fastly önekleri (AS54113)",
+        "as199524": "Gcore önekleri (AS199524 + AS202422)",
+        "regional": "Bölgesel önbellekler"
+      },
       "sourceFailed": "yükleme ✗",
       "cdn": "CDN",
       "sourceRanges": "CDN aralıkları",

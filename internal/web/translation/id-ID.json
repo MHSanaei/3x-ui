@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Rentang yang dipindai · {count} dipilih",
+      "extraRanges": "Rentang tambahan (CIDR, opsional)",
+      "rangeGroups": {
+        "official": "Daftar resmi",
+        "popular": "Rentang tambahan populer",
+        "as13335": "Semua prefiks Cloudflare lainnya (AS13335)",
+        "as209242": "Cloudflare AS209242 (pelanggan / Spectrum)",
+        "as54113": "Prefiks Fastly lainnya (AS54113)",
+        "as199524": "Prefiks Gcore (AS199524 + AS202422)",
+        "regional": "Cache edge regional"
+      },
       "sourceFailed": "unggah ✗",
       "cdn": "CDN",
       "sourceRanges": "Rentang CDN",

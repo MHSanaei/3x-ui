@@ -415,9 +415,9 @@ export interface Blocker {
 }
 
 export interface CleanIpCdn {
+  groups: CleanIpRangeGroup[];
   id: string;
   name: string;
-  ranges: string[];
 }
 
 export interface CleanIpCommand {
@@ -434,6 +434,7 @@ export interface CleanIpCommandRequest {
   ips: string[];
   path: string;
   perRange: number;
+  ranges: string[];
   size: number;
 }
 
@@ -458,6 +459,12 @@ export interface CleanIpNetwork {
   ip: string;
   isp: string;
   org: string;
+}
+
+export interface CleanIpRangeGroup {
+  id: string;
+  on: boolean;
+  ranges: string[];
 }
 
 export interface CleanIpReport {

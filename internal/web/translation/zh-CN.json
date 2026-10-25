@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "要扫描的网段 · 已选 {count} 个",
+      "extraRanges": "额外网段（CIDR，可选）",
+      "rangeGroups": {
+        "official": "官方列表",
+        "popular": "常用额外网段",
+        "as13335": "其他所有 Cloudflare 前缀（AS13335）",
+        "as209242": "Cloudflare AS209242（客户 / Spectrum）",
+        "as54113": "其他 Fastly 前缀（AS54113）",
+        "as199524": "Gcore 前缀（AS199524 + AS202422）",
+        "regional": "区域边缘缓存"
+      },
       "sourceFailed": "上传 ✗",
       "cdn": "CDN",
       "sourceRanges": "CDN 网段",

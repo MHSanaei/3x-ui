@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"net/netip"
 	"regexp"
 	"sort"
 	"strconv"
@@ -49,6 +50,7 @@ type CleanIpCommandRequest struct {
 	PerRange int      `json:"perRange" example:"8"`
 	Ips      []string `json:"ips" example:"[\"104.16.1.1\"]"`
 	Cdn      string   `json:"cdn" example:"cloudflare"`
+	Ranges   []string `json:"ranges" example:"[\"104.16.0.0/13\"]"`
 }
 
 type CleanIpCommand struct {
@@ -129,6 +131,9 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	if cleanIpCdnRanges(req.Cdn) == nil {
 		return nil, errCleanIpBadRequest
 	}
+	if req.Ranges = cleanIpTickedRanges(req.Ranges); len(req.Ranges) == 0 {
+		req.Ranges = cleanIpCdnRanges(req.Cdn)
+	}
 	ips := make([]string, 0, len(req.Ips))
 	for _, raw := range req.Ips {
 		if ip, ok := validIPv4(raw); ok && len(ips) < 100 {
@@ -188,13 +193,39 @@ func pyLiteral(v any) string {
 }
 
 // Script is the job's test with its values written in as JSON, which Python reads as literals.
+// cleanIpCdnRanges is a CDN's default selection: its groups that are on.
 func cleanIpCdnRanges(id string) []string {
 	for _, cdn := range cleanIpCdns {
-		if cdn.Id == id {
-			return cdn.Ranges
+		if cdn.Id != id {
+			continue
 		}
+		var ranges []string
+		for _, g := range cdn.Groups {
+			if g.On {
+				ranges = append(ranges, g.Ranges...)
+			}
+		}
+		return ranges
 	}
 	return nil
+}
+
+// cleanIpTickedRanges keeps the admin's IPv4 ranges the script can sample (/8 to /30).
+func cleanIpTickedRanges(raw []string) []string {
+	seen := map[string]bool{}
+	ranges := make([]string, 0, len(raw))
+	for _, r := range raw {
+		prefix, err := netip.ParsePrefix(strings.TrimSpace(r))
+		if err != nil || !prefix.Addr().Is4() || prefix.Bits() < 8 || prefix.Bits() > 30 {
+			continue
+		}
+		key := prefix.Masked().String()
+		if !seen[key] && len(ranges) < 3000 {
+			seen[key] = true
+			ranges = append(ranges, key)
+		}
+	}
+	return ranges
 }
 
 func (s *CleanIpService) Cdns() []CleanIpCdn {
@@ -218,7 +249,7 @@ func (s *CleanIpService) Script(token, reportURL string) (string, error) {
 		"__REPORT__", pyLiteral(reportURL),
 		"__SIZE__", strconv.Itoa(req.Size),
 		"__PER_RANGE__", strconv.Itoa(req.PerRange),
-		"__RANGES__", pyLiteral(cleanIpCdnRanges(req.Cdn)),
+		"__RANGES__", pyLiteral(req.Ranges),
 		"__IPS__", pyLiteral(req.Ips),
 	).Replace(cleanIpScript), nil
 }

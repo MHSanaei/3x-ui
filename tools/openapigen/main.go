@@ -97,6 +97,7 @@ func run(root, outDir string) error {
 				"InboundOption",
 				"CleanIpNetwork",
 				"CleanIpCdn",
+				"CleanIpRangeGroup",
 				"CleanIpCommandRequest",
 				"CleanIpCommand",
 				"CleanIpHit",

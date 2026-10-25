@@ -29,6 +29,29 @@ function ipv4(text: string): string | null {
   return parts.map(Number).join('.');
 }
 
+export interface CleanIpCdn {
+  id: string;
+  name: string;
+  groups: { id: string; on: boolean; ranges: string[] }[];
+}
+
+export function defaultSelection(cdn: CleanIpCdn): string[] {
+  return cdn.groups.filter((g) => g.on).flatMap((g) => g.ranges);
+}
+
+// What both tests sample: the ticked ranges plus the admin's extra ones (IPv4 /8 to /30).
+export function scanRanges(ticked: string[], extraText: string): string[] {
+  const out = new Set(ticked);
+  for (const word of extraText.split(/[\s,;]+/)) {
+    const [base, bits, rest] = word.split('/');
+    const ip = ipv4(base);
+    const n = Number(bits);
+    if (ip && rest === undefined && /^\d{1,2}$/.test(bits ?? '') && n >= 8 && n <= 30)
+      out.add(`${ip}/${n}`);
+  }
+  return [...out];
+}
+
 // The admin's own list: single IPs are tested as given, each range gives perRange random IPs.
 export function parseTargets(text: string, perRange: number): string[] {
   const out = new Set<string>();

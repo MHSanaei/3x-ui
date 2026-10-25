@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "النطاقات المراد فحصها · {count} محددة",
+      "extraRanges": "نطاقات إضافية (CIDR، اختياري)",
+      "rangeGroups": {
+        "official": "القائمة الرسمية",
+        "popular": "نطاقات إضافية شائعة",
+        "as13335": "باقي نطاقات Cloudflare (AS13335)",
+        "as209242": "Cloudflare AS209242 (العملاء / Spectrum)",
+        "as54113": "باقي نطاقات Fastly (AS54113)",
+        "as199524": "نطاقات Gcore (AS199524 + AS202422)",
+        "regional": "ذاكرات التخزين الإقليمية"
+      },
       "sourceFailed": "رفع ✗",
       "cdn": "CDN",
       "sourceRanges": "نطاقات CDN",

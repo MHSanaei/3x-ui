@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Діапазони для сканування · вибрано {count}",
+      "extraRanges": "Додаткові діапазони (CIDR, необов'язково)",
+      "rangeGroups": {
+        "official": "Офіційний список",
+        "popular": "Популярні додаткові діапазони",
+        "as13335": "Решта префіксів Cloudflare (AS13335)",
+        "as209242": "Cloudflare AS209242 (клієнти / Spectrum)",
+        "as54113": "Інші префікси Fastly (AS54113)",
+        "as199524": "Префікси Gcore (AS199524 + AS202422)",
+        "regional": "Регіональні кеші"
+      },
       "sourceFailed": "вивантаження ✗",
       "cdn": "CDN",
       "sourceRanges": "Діапазони CDN",

@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Диапазоны для сканирования · выбрано {count}",
+      "extraRanges": "Дополнительные диапазоны (CIDR, необязательно)",
+      "rangeGroups": {
+        "official": "Официальный список",
+        "popular": "Популярные дополнительные диапазоны",
+        "as13335": "Остальные префиксы Cloudflare (AS13335)",
+        "as209242": "Cloudflare AS209242 (клиенты / Spectrum)",
+        "as54113": "Другие префиксы Fastly (AS54113)",
+        "as199524": "Префиксы Gcore (AS199524 + AS202422)",
+        "regional": "Региональные кэши"
+      },
       "sourceFailed": "загрузка ✗",
       "cdn": "CDN",
       "sourceRanges": "Диапазоны CDN",

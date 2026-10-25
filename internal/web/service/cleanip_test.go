@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -263,5 +264,40 @@ print(failure_summary())
 	}
 	if got := strings.TrimSpace(string(out)); got != "refused 1" {
 		t.Fatalf("failure_summary() = %q after one probe of a closed port; want \"refused 1\"", got)
+	}
+}
+
+func TestCleanIpCommandScansExactlyTheTickedRanges(t *testing.T) {
+	var s CleanIpService
+	rangesOf := func(req CleanIpCommandRequest) []string {
+		t.Helper()
+		cmd := newTestCommand(t, req)
+		cleanIpJobsMu.Lock()
+		defer cleanIpJobsMu.Unlock()
+		return cleanIpJobs[cmd.Token].req.Ranges
+	}
+	got := rangesOf(CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{
+		"104.16.0.0/13", "not-a-range", "104.16.0.0/13", "10.0.0.0/33", "2606:4700::/32", "1.2.3.4/32", " 172.64.0.0/24 ",
+	}})
+	if want := []string{"104.16.0.0/13", "172.64.0.0/24"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("ticked ranges kept = %v, want %v (IPv4 /8../30, deduplicated)", got, want)
+	}
+
+	// nothing ticked: the CDN's default groups, never an opt-in AS group
+	optIn := ""
+	for _, g := range cleanIpCdns[0].Groups {
+		if !g.On {
+			optIn = g.Ranges[0]
+			break
+		}
+	}
+	defaults := rangesOf(CleanIpCommandRequest{Host: "cdn.example.com"})
+	if !slices.Contains(defaults, "104.16.0.0/13") || slices.Contains(defaults, optIn) {
+		t.Errorf("default ranges must be the on groups only (has 104.16.0.0/13: %v, has opt-in %s: %v)",
+			slices.Contains(defaults, "104.16.0.0/13"), optIn, slices.Contains(defaults, optIn))
+	}
+	script, err := s.Script(newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{"151.101.0.0/16"}}).Token, "https://p/r")
+	if err != nil || !strings.Contains(script, `RANGES = ["151.101.0.0/16"]`) {
+		t.Errorf("script must sample exactly the ticked ranges (err %v)", err)
 	}
 }

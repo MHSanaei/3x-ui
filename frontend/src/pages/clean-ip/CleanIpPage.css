@@ -230,3 +230,11 @@
   color: var(--ant-color-error);
   text-decoration: line-through;
 }
+
+.clean-ip-range-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 2px 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}

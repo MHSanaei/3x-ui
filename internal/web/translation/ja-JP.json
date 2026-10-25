@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "スキャンする範囲 · {count} 件選択",
+      "extraRanges": "追加の範囲（CIDR、任意）",
+      "rangeGroups": {
+        "official": "公式リスト",
+        "popular": "よく使われる追加範囲",
+        "as13335": "その他の Cloudflare プレフィックス（AS13335）",
+        "as209242": "Cloudflare AS209242（顧客 / Spectrum）",
+        "as54113": "その他の Fastly プレフィックス（AS54113）",
+        "as199524": "Gcore のプレフィックス（AS199524 + AS202422）",
+        "regional": "リージョナルエッジキャッシュ"
+      },
       "sourceFailed": "アップロード ✗",
       "cdn": "CDN",
       "sourceRanges": "CDN の範囲",

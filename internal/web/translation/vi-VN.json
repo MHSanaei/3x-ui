@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Dải cần quét · đã chọn {count}",
+      "extraRanges": "Dải thêm (CIDR, tùy chọn)",
+      "rangeGroups": {
+        "official": "Danh sách chính thức",
+        "popular": "Dải thêm phổ biến",
+        "as13335": "Các prefix Cloudflare khác (AS13335)",
+        "as209242": "Cloudflare AS209242 (khách hàng / Spectrum)",
+        "as54113": "Các prefix Fastly khác (AS54113)",
+        "as199524": "Prefix Gcore (AS199524 + AS202422)",
+        "regional": "Bộ nhớ đệm khu vực"
+      },
       "sourceFailed": "tải lên ✗",
       "cdn": "CDN",
       "sourceRanges": "Dải CDN",

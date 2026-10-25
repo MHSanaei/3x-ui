@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
   ConfigProvider,
   Empty,
   Input,
@@ -46,11 +47,13 @@ import {
   hostAddress,
   ispGroupsOf,
   joinHost,
+  defaultSelection,
   mainGroups,
   nearbyIps,
   parseTargets,
   probeIp,
   resultsCsv,
+  scanRanges,
   scanTargets,
   withFragment,
   type FragmentSetting,
@@ -58,6 +61,7 @@ import {
 import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } from './FragmentStep';
 import { CLOUDFLARE_ASNS, StepTitle, fetchCdns, fetchNetwork } from './common';
 import { coloPlace, flagOf } from './colos';
+import RangePicker from './RangePicker';
 import './CleanIpPage.css';
 
 interface IpRow {
@@ -68,6 +72,16 @@ interface IpRow {
 }
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
+const TICKED_KEY = 'cleanIp.tickedRanges';
+
+function readTickedRanges(): Record<string, string[]> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TICKED_KEY) || '{}');
+    return saved && typeof saved === 'object' ? saved : {};
+  } catch {
+    return {};
+  }
+}
 
 function isIpv4(value: string): boolean {
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
@@ -168,10 +182,23 @@ export default function CleanIpPage() {
   // the CDN the host group's domain is behind: its edge ranges are what both tests sample
   const cdns = useQuery({ queryKey: ['cleanip', 'cdns'], queryFn: fetchCdns });
   const [cdnId, setCdnId] = useState('cloudflare');
-  const cdnRanges = useMemo(
-    () => cdns.data?.find((c) => c.id === cdnId)?.ranges ?? [],
-    [cdns.data, cdnId],
+  const cdn = cdns.data?.find((c) => c.id === cdnId);
+  const [tickedByCdn, setTickedByCdn] = useState<Record<string, string[]>>(readTickedRanges);
+  const [extraRanges, setExtraRanges] = useState('');
+  const ticked = useMemo(
+    () => (cdn ? (tickedByCdn[cdn.id] ?? defaultSelection(cdn)) : []),
+    [cdn, tickedByCdn],
   );
+  const cdnRanges = useMemo(() => scanRanges(ticked, extraRanges), [ticked, extraRanges]);
+  const setTicked = (ranges: string[]) => {
+    const next = { ...tickedByCdn, [cdnId]: ranges };
+    setTickedByCdn(next);
+    try {
+      localStorage.setItem(TICKED_KEY, JSON.stringify(next));
+    } catch {
+      // private mode: the choice lasts for this visit only
+    }
+  };
 
   // 4. quick scan in this browser
   const [perRange, setPerRange] = useState(8);
@@ -315,6 +342,7 @@ export default function CleanIpPage() {
           perRange: cmdPerRange,
           ips,
           cdn: cdnId,
+          ranges: cdnRanges,
         },
         JSON_HEADERS,
       );
@@ -325,7 +353,7 @@ export default function CleanIpPage() {
     } finally {
       setMaking(false);
     }
-  }, [domain, group?.path, size, cmdPerRange, hits, cdnId, messageApi, t]);
+  }, [domain, group?.path, size, cmdPerRange, hits, cdnId, cdnRanges, messageApi, t]);
 
   // 5. save for the ISP
   const [saving, setSaving] = useState(false);
@@ -584,6 +612,29 @@ export default function CleanIpPage() {
                           />
                         </label>
                       </div>
+                      {cdn && (
+                        <Collapse
+                          className="clean-ip-note"
+                          size="small"
+                          ghost
+                          items={[
+                            {
+                              key: 'ranges',
+                              label: t('pages.cleanIp.rangesTitle', { count: cdnRanges.length }),
+                              children: (
+                                <RangePicker
+                                  cdn={cdn}
+                                  ticked={ticked}
+                                  onTicked={setTicked}
+                                  extra={extraRanges}
+                                  onExtra={setExtraRanges}
+                                  disabled={running}
+                                />
+                              ),
+                            },
+                          ]}
+                        />
+                      )}
                       {!domain && (
                         <Alert
                           className="clean-ip-note"

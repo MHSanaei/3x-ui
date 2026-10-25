@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Rozsahy na skenovanie · vybraných {count}",
+      "extraRanges": "Ďalšie rozsahy (CIDR, voliteľné)",
+      "rangeGroups": {
+        "official": "Oficiálny zoznam",
+        "popular": "Obľúbené ďalšie rozsahy",
+        "as13335": "Ostatné prefixy Cloudflare (AS13335)",
+        "as209242": "Cloudflare AS209242 (zákazníci / Spectrum)",
+        "as54113": "Ostatné prefixy Fastly (AS54113)",
+        "as199524": "Prefixy Gcore (AS199524 + AS202422)",
+        "regional": "Regionálne vyrovnávacie pamäte"
+      },
       "sourceFailed": "odoslanie ✗",
       "cdn": "CDN",
       "sourceRanges": "Rozsahy CDN",

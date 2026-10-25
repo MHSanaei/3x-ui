@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Ranges to scan · {count} selected",
+      "extraRanges": "Extra ranges (CIDR, optional)",
+      "rangeGroups": {
+        "official": "Official list",
+        "popular": "Popular extra ranges",
+        "as13335": "All other Cloudflare prefixes (AS13335)",
+        "as209242": "Cloudflare AS209242 (customer / Spectrum)",
+        "as54113": "Other Fastly prefixes (AS54113)",
+        "as199524": "Gcore prefixes (AS199524 + AS202422)",
+        "regional": "Regional edge caches"
+      },
       "sourceFailed": "upload ✗",
       "cdn": "CDN",
       "sourceRanges": "CDN ranges",

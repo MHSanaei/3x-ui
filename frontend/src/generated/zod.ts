@@ -439,9 +439,9 @@ export const BlockerSchema = z.object({
 export type Blocker = z.infer<typeof BlockerSchema>;
 
 export const CleanIpCdnSchema = z.object({
+  groups: z.array(z.lazy(() => CleanIpRangeGroupSchema)),
   id: z.string(),
   name: z.string(),
-  ranges: z.array(z.string()),
 });
 export type CleanIpCdn = z.infer<typeof CleanIpCdnSchema>;
 
@@ -460,6 +460,7 @@ export const CleanIpCommandRequestSchema = z.object({
   ips: z.array(z.string()),
   path: z.string(),
   perRange: z.number().int(),
+  ranges: z.array(z.string()),
   size: z.number().int(),
 });
 export type CleanIpCommandRequest = z.infer<typeof CleanIpCommandRequestSchema>;
@@ -489,6 +490,13 @@ export const CleanIpNetworkSchema = z.object({
   org: z.string(),
 });
 export type CleanIpNetwork = z.infer<typeof CleanIpNetworkSchema>;
+
+export const CleanIpRangeGroupSchema = z.object({
+  id: z.string(),
+  on: z.boolean(),
+  ranges: z.array(z.string()),
+});
+export type CleanIpRangeGroup = z.infer<typeof CleanIpRangeGroupSchema>;
 
 export const CleanIpReportSchema = z.object({
   at: z.number().int(),

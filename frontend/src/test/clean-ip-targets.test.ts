@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { nearbyIps, parseTargets, resultsCsv } from '@/pages/clean-ip/scan';
+import {
+  defaultSelection,
+  nearbyIps,
+  parseTargets,
+  resultsCsv,
+  scanRanges,
+} from '@/pages/clean-ip/scan';
 
 describe('parseTargets', () => {
   it('takes single IPs as they are, samples ranges, and drops junk and repeats', () => {
@@ -40,5 +46,26 @@ describe('resultsCsv', () => {
         'en-US',
       ),
     ).toBe('ip,ms,colo,city,country\n104.16.1.1,120,FRA,Frankfurt,DE\n104.16.1.2,300,,,\n');
+  });
+});
+
+describe('range selection', () => {
+  const cdn = {
+    id: 'cloudflare',
+    name: 'Cloudflare',
+    groups: [
+      { id: 'official', on: true, ranges: ['104.16.0.0/13', '172.64.0.0/13'] },
+      { id: 'as13335', on: false, ranges: ['5.83.149.0/24'] },
+    ],
+  };
+
+  it('starts from the groups that are on, so opt-in AS ranges are not scanned', () => {
+    expect(defaultSelection(cdn)).toEqual(['104.16.0.0/13', '172.64.0.0/13']);
+  });
+
+  it('scans the ticked ranges plus valid extra ones, once each', () => {
+    expect(
+      scanRanges(['104.16.0.0/13'], '104.16.0.0/13\n198.41.128.0/17, junk 1.2.3.4 8.8.8.0/33'),
+    ).toEqual(['104.16.0.0/13', '198.41.128.0/17']);
   });
 });

@@ -415,11 +415,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "detail": "awg"
   },
   "CleanIpCdn": {
+    "groups": [
+      {
+        "id": "official",
+        "on": true,
+        "ranges": [
+          "104.16.0.0/13"
+        ]
+      }
+    ],
     "id": "cloudflare",
-    "name": "Cloudflare",
-    "ranges": [
-      "104.16.0.0/13"
-    ]
+    "name": "Cloudflare"
   },
   "CleanIpCommand": {
     "expiresAt": 1793000000,
@@ -436,6 +442,9 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "path": "/",
     "perRange": 8,
+    "ranges": [
+      "104.16.0.0/13"
+    ],
     "size": 5000
   },
   "CleanIpFragment": {
@@ -457,6 +466,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "ip": "5.160.10.20",
     "isp": "MCI",
     "org": "Mobile Communication Company of Iran PLC"
+  },
+  "CleanIpRangeGroup": {
+    "id": "official",
+    "on": true,
+    "ranges": [
+      "104.16.0.0/13"
+    ]
   },
   "CleanIpReport": {
     "at": 1793000000,

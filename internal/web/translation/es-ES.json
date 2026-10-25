@@ -130,6 +130,17 @@
   },
   "pages": {
     "cleanIp": {
+      "rangesTitle": "Rangos a escanear · {count} seleccionados",
+      "extraRanges": "Rangos extra (CIDR, opcional)",
+      "rangeGroups": {
+        "official": "Lista oficial",
+        "popular": "Rangos extra populares",
+        "as13335": "Resto de prefijos de Cloudflare (AS13335)",
+        "as209242": "Cloudflare AS209242 (clientes / Spectrum)",
+        "as54113": "Otros prefijos de Fastly (AS54113)",
+        "as199524": "Prefijos de Gcore (AS199524 + AS202422)",
+        "regional": "Cachés regionales"
+      },
       "sourceFailed": "subida ✗",
       "cdn": "CDN",
       "sourceRanges": "Rangos de la CDN",

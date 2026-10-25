@@ -1696,6 +1696,12 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "CleanIpCdn": {
     "properties": {
+      "groups": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpRangeGroup"
+        },
+        "type": "array"
+      },
       "id": {
         "example": "cloudflare",
         "type": "string"
@@ -1703,21 +1709,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "name": {
         "example": "Cloudflare",
         "type": "string"
-      },
-      "ranges": {
-        "example": [
-          "104.16.0.0/13"
-        ],
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
       }
     },
     "required": [
+      "groups",
       "id",
-      "name",
-      "ranges"
+      "name"
     ],
     "type": "object"
   },
@@ -1782,6 +1779,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 8,
         "type": "integer"
       },
+      "ranges": {
+        "example": [
+          "104.16.0.0/13"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "size": {
         "example": 5000,
         "type": "integer"
@@ -1793,6 +1799,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ips",
       "path",
       "perRange",
+      "ranges",
       "size"
     ],
     "type": "object"
@@ -1887,6 +1894,33 @@ export const SCHEMAS: Record<string, unknown> = {
       "ip",
       "isp",
       "org"
+    ],
+    "type": "object"
+  },
+  "CleanIpRangeGroup": {
+    "properties": {
+      "id": {
+        "example": "official",
+        "type": "string"
+      },
+      "on": {
+        "example": true,
+        "type": "boolean"
+      },
+      "ranges": {
+        "example": [
+          "104.16.0.0/13"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "on",
+      "ranges"
     ],
     "type": "object"
   },
