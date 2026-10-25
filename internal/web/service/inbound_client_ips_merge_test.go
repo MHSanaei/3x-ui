@@ -9,6 +9,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
 
 	"gorm.io/gorm"
 )
@@ -17,12 +18,17 @@ import (
 // for a single test, mirroring the harness used by the other service tests.
 func setupClientIpTestDB(t *testing.T) {
 	t.Helper()
+	cleanup, err := testpg.IsolatePackage("client_ip_sync")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cleanup)
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
-func marshalIps(t *testing.T, entries ...clientIpEntry) string {
+func marshalIps(t *testing.T, entries ...model.ClientIpEntry) string {
 	t.Helper()
 	b, err := json.Marshal(entries)
 	if err != nil {
@@ -43,7 +49,7 @@ func readClientIps(t *testing.T, email string) (map[string]int64, bool) {
 	if err != nil {
 		t.Fatalf("read client ips for %s: %v", email, err)
 	}
-	var entries []clientIpEntry
+	var entries []model.ClientIpEntry
 	if row.Ips != "" {
 		if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
 			t.Fatalf("unmarshal stored ips for %s: %v", email, err)
@@ -62,7 +68,7 @@ func TestMergeInboundClientIps_CreatesNodeOnlyRowIgnoringRemoteId(t *testing.T) 
 	now := time.Now().Unix()
 
 	// Local client occupies id 1.
-	local := &model.InboundClientIps{ClientEmail: "local@x", Ips: marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now})}
+	local := &model.InboundClientIps{ClientEmail: "local@x", Ips: marshalIps(t, model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now})}
 	if err := db.Create(local).Error; err != nil {
 		t.Fatalf("seed local row: %v", err)
 	}
@@ -72,7 +78,7 @@ func TestMergeInboundClientIps_CreatesNodeOnlyRowIgnoringRemoteId(t *testing.T) 
 	incoming := []model.InboundClientIps{{
 		Id:          1,
 		ClientEmail: "node@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "2.2.2.2", Timestamp: now}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "2.2.2.2", Timestamp: now}),
 	}}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
 		t.Fatalf("merge: %v", err)
@@ -103,7 +109,7 @@ func TestMergeInboundClientIps_DedupKeepsMaxTimestamp(t *testing.T) {
 
 	if err := db.Create(&model.InboundClientIps{
 		ClientEmail: "a@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now - 100}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now - 100}),
 	}).Error; err != nil {
 		t.Fatalf("seed: %v", err)
 	}
@@ -111,8 +117,8 @@ func TestMergeInboundClientIps_DedupKeepsMaxTimestamp(t *testing.T) {
 	incoming := []model.InboundClientIps{{
 		ClientEmail: "a@x",
 		Ips: marshalIps(t,
-			clientIpEntry{IP: "1.1.1.1", Timestamp: now - 50}, // newer than stored -> wins
-			clientIpEntry{IP: "2.2.2.2", Timestamp: now - 10},
+			model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now - 50}, // newer than stored -> wins
+			model.ClientIpEntry{IP: "2.2.2.2", Timestamp: now - 10},
 		),
 	}}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
@@ -139,8 +145,8 @@ func TestMergeInboundClientIps_DropsStaleIps(t *testing.T) {
 	if err := db.Create(&model.InboundClientIps{
 		ClientEmail: "a@x",
 		Ips: marshalIps(t,
-			clientIpEntry{IP: "old", Timestamp: now - 3600}, // > 30m -> stale
-			clientIpEntry{IP: "fresh", Timestamp: now - 60},
+			model.ClientIpEntry{IP: "old", Timestamp: now - 3600}, // > 30m -> stale
+			model.ClientIpEntry{IP: "fresh", Timestamp: now - 60},
 		),
 	}).Error; err != nil {
 		t.Fatalf("seed: %v", err)
@@ -149,8 +155,8 @@ func TestMergeInboundClientIps_DropsStaleIps(t *testing.T) {
 	incoming := []model.InboundClientIps{{
 		ClientEmail: "a@x",
 		Ips: marshalIps(t,
-			clientIpEntry{IP: "incStale", Timestamp: now - 4000}, // > 30m -> stale
-			clientIpEntry{IP: "incFresh", Timestamp: now - 10},
+			model.ClientIpEntry{IP: "incStale", Timestamp: now - 4000}, // > 30m -> stale
+			model.ClientIpEntry{IP: "incFresh", Timestamp: now - 10},
 		),
 	}}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
@@ -178,7 +184,7 @@ func TestMergeInboundClientIps_SkipsAllStaleCreate(t *testing.T) {
 
 	incoming := []model.InboundClientIps{{
 		ClientEmail: "b@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now - 9999}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now - 9999}),
 	}}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
 		t.Fatalf("merge: %v", err)
@@ -194,7 +200,7 @@ func TestMergeInboundClientIps_SkipsBlankRows(t *testing.T) {
 	now := time.Now().Unix()
 
 	incoming := []model.InboundClientIps{
-		{ClientEmail: "", Ips: marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now})},
+		{ClientEmail: "", Ips: marshalIps(t, model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now})},
 		{ClientEmail: "c@x", Ips: ""},
 	}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
@@ -217,13 +223,13 @@ func TestCasUpdateInboundClientIps_MatchAndMismatch(t *testing.T) {
 
 	seed := &model.InboundClientIps{
 		ClientEmail: "cas@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "1.1.1.1", Timestamp: now}),
 	}
 	if err := db.Create(seed).Error; err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
-	next := marshalIps(t, clientIpEntry{IP: "2.2.2.2", Timestamp: now})
+	next := marshalIps(t, model.ClientIpEntry{IP: "2.2.2.2", Timestamp: now})
 	ok, err := CasUpdateInboundClientIps(db, seed.Id, "not-the-blob", next)
 	if err != nil {
 		t.Fatalf("stale CAS: %v", err)
@@ -258,13 +264,13 @@ func TestMergeInboundClientIps_RetriesAfterConcurrentWriter(t *testing.T) {
 
 	seed := &model.InboundClientIps{
 		ClientEmail: "race@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "10.0.0.1", Timestamp: now - 30}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "10.0.0.1", Timestamp: now - 30}),
 	}
 	if err := db.Create(seed).Error; err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
-	jobBlob := marshalIps(t, clientIpEntry{IP: "10.0.0.2", Timestamp: now - 10})
+	jobBlob := marshalIps(t, model.ClientIpEntry{IP: "10.0.0.2", Timestamp: now - 10})
 	const callback = "test:inbound_client_ips_cas_inject"
 	injected := false
 	if err := db.Callback().Update().Before("gorm:update").Register(callback, func(tx *gorm.DB) {
@@ -294,7 +300,7 @@ func TestMergeInboundClientIps_RetriesAfterConcurrentWriter(t *testing.T) {
 
 	incoming := []model.InboundClientIps{{
 		ClientEmail: "race@x",
-		Ips:         marshalIps(t, clientIpEntry{IP: "10.0.0.3", Timestamp: now}),
+		Ips:         marshalIps(t, model.ClientIpEntry{IP: "10.0.0.3", Timestamp: now}),
 	}}
 	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
 		t.Fatalf("merge: %v", err)

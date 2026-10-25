@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 func banLineCount(t *testing.T, email string) int {
@@ -27,7 +29,7 @@ func TestUpdateInboundClientIps_FrozenLastSeenBannedOnce(t *testing.T) {
 
 	now := time.Now().Unix()
 	deadStart := now - 300
-	live := []IPWithTimestamp{
+	live := []model.ClientIpEntry{
 		{IP: "10.2.0.1", Timestamp: deadStart},
 		{IP: "192.0.2.7", Timestamp: now},
 	}
@@ -53,7 +55,7 @@ func TestUpdateInboundClientIps_FrozenLastSeenBannedOnce(t *testing.T) {
 		t.Fatalf("ban lines after frozen rescan = %d, want still 1", got)
 	}
 
-	reconnected := []IPWithTimestamp{
+	reconnected := []model.ClientIpEntry{
 		{IP: "10.2.0.1", Timestamp: now + 30},
 		{IP: "192.0.2.7", Timestamp: now + 60},
 	}

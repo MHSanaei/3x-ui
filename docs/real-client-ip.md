@@ -86,6 +86,12 @@ fields) is pushed to child nodes verbatim, so the node's Xray records the real I
 parent panel pulls each node's per-client IPs roughly every 10 seconds. The real visitor IP
 shows up on the parent automatically.
 
+Reports retain each address's newest timestamp within the 30-minute retention window.
+Flat and per-node IP blobs use a stable timestamp-ascending order, with IP text breaking
+ties, so equivalent reports preserve the same bytes and skip redundant writes. Flat-row
+merges use compare-and-set retries to preserve concurrent observations; advancing a
+timestamp remains a real change. GUID attribution stays separate from the flat union.
+
 ## Security note
 
 Both `acceptProxyProtocol` and `trustedXForwardedFor` are **server-side only** — they are

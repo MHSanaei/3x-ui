@@ -18,9 +18,7 @@ import (
 // observations under its panelGuid, and the master merges every node's
 // guid-keyed report — never mixing in IPs a parent pushed down.
 
-// mergeModelClientIpEntries unions old and incoming observations, drops anything
-// older than cutoff, keeps the newest timestamp per IP, and sorts newest-first.
-// It mirrors mergeClientIpEntries but operates on the exported wire type.
+// Attribution excludes empty addresses and keeps each fresh IP's maximum timestamp.
 func mergeModelClientIpEntries(old, incoming []model.ClientIpEntry, cutoff int64) []model.ClientIpEntry {
 	ipMap := make(map[string]int64, len(old)+len(incoming))
 	for _, e := range old {
@@ -41,13 +39,11 @@ func mergeModelClientIpEntries(old, incoming []model.ClientIpEntry, cutoff int64
 	for ip, ts := range ipMap {
 		out = append(out, model.ClientIpEntry{IP: ip, Timestamp: ts})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp > out[j].Timestamp })
 	return out
 }
 
-// upsertNodeClientIps folds a guid's per-email observations into NodeClientIp,
-// merging with whatever is already stored for that (guid, email) and dropping
-// stale entries. Empty merged results delete the row so the table stays bounded.
+// upsertNodeClientIps merges fresh observations per (guid, email).
+// Empty results delete attribution instead of retaining expired rows.
 func upsertNodeClientIps(guid string, perEmail map[string][]model.ClientIpEntry) error {
 	if guid == "" || len(perEmail) == 0 {
 		return nil
@@ -99,8 +95,11 @@ func upsertNodeClientIps(guid string, perEmail map[string][]model.ClientIpEntry)
 			}
 			continue
 		}
-		b, _ := json.Marshal(merged)
-		row := model.NodeClientIp{NodeGuid: guid, Email: email, Ips: string(b)}
+		encoded, _ := model.MarshalClientIpEntries(merged)
+		if current := existingByEmail[email]; current != nil && current.Ips == encoded {
+			continue
+		}
+		row := model.NodeClientIp{NodeGuid: guid, Email: email, Ips: encoded}
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "node_guid"}, {Name: "email"}},
 			DoUpdates: clause.AssignmentColumns([]string{"ips"}),
@@ -112,9 +111,7 @@ func upsertNodeClientIps(guid string, perEmail map[string][]model.ClientIpEntry)
 	return tx.Commit().Error
 }
 
-// RecordLocalClientIps stores this panel's own Xray observations under its
-// panelGuid. Called by check_client_ip_job each scan with the live per-email IPs
-// the local core reported.
+// RecordLocalClientIps stores the scanner's local observations under this panel's GUID.
 func (s *InboundService) RecordLocalClientIps(panelGuid string, observed map[string][]model.ClientIpEntry) error {
 	return upsertNodeClientIps(panelGuid, observed)
 }
@@ -172,6 +169,7 @@ func (s *InboundService) GetClientIpsByGuid() (map[string]map[string][]model.Cli
 		if len(fresh) == 0 {
 			continue
 		}
+		model.SortClientIpEntries(fresh)
 		if out[row.NodeGuid] == nil {
 			out[row.NodeGuid] = make(map[string][]model.ClientIpEntry)
 		}
@@ -325,8 +323,8 @@ func pruneStaleNodeClientIps(cutoff int64) error {
 		if len(kept) == len(entries) {
 			continue
 		}
-		b, _ := json.Marshal(kept)
-		if err := db.Model(&model.NodeClientIp{}).Where("id = ?", row.Id).Update("ips", string(b)).Error; err != nil {
+		encoded, _ := model.MarshalClientIpEntries(kept)
+		if err := db.Model(&model.NodeClientIp{}).Where("id = ?", row.Id).Update("ips", encoded).Error; err != nil {
 			return err
 		}
 	}
