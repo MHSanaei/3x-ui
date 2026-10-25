@@ -22,6 +22,7 @@ func NewCleanIpController(g *gin.RouterGroup) *CleanIpController {
 
 func (a *CleanIpController) initRouter(g *gin.RouterGroup) {
 	g.GET("/network", a.network)
+	g.GET("/cdns", a.cdns)
 	g.POST("/command", a.newCommand)
 	g.GET("/command/:token", a.reports)
 	g.POST("/verify", a.verify)
@@ -29,6 +30,10 @@ func (a *CleanIpController) initRouter(g *gin.RouterGroup) {
 
 // network reports the ISP of whoever opened the page: the scan runs in their
 // browser, so that is the ISP its IPs are good for.
+func (a *CleanIpController) cdns(c *gin.Context) {
+	jsonObj(c, a.cleanIpService.Cdns(), nil)
+}
+
 func (a *CleanIpController) network(c *gin.Context) {
 	visitor := service.CleanIpVisitorIp(getRemoteIp(c), c.GetHeader("CF-Connecting-IP"))
 	network, err := a.cleanIpService.LookupNetwork(c.Request.Context(), visitor)

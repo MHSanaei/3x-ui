@@ -1694,6 +1694,33 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "CleanIpCdn": {
+    "properties": {
+      "id": {
+        "example": "cloudflare",
+        "type": "string"
+      },
+      "name": {
+        "example": "Cloudflare",
+        "type": "string"
+      },
+      "ranges": {
+        "example": [
+          "104.16.0.0/13"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "ranges"
+    ],
+    "type": "object"
+  },
   "CleanIpCommand": {
     "properties": {
       "expiresAt": {
@@ -1730,6 +1757,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "CleanIpCommandRequest": {
     "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
     "properties": {
+      "cdn": {
+        "example": "cloudflare",
+        "type": "string"
+      },
       "host": {
         "example": "cdn.example.com",
         "type": "string"
@@ -1757,6 +1788,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "cdn",
       "host",
       "ips",
       "path",

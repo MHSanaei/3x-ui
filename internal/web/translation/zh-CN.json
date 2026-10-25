@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Cloudflare 网段",
+      "sourceFailed": "上传 ✗",
+      "cdn": "CDN",
+      "sourceRanges": "CDN 网段",
       "sourceList": "我的列表",
       "noTargets": "请先输入 IP 或网段（例如 104.16.1.1 或 172.64.0.0/24）。",
       "findMore": "在附近查找更多",

@@ -13,6 +13,10 @@ _openapi:
         only the IP.
       url: '#the-network-as-number-organization-country-and-short-isp-name-such-as-mci-or-mtn-of-the-callers-ip-address-private-addresses-come-back-with-only-the-ip'
     - depth: 2
+      title: The CDNs the scanner can search (Cloudflare, Fastly, Gcore, CloudFront)
+        with the edge ranges it samples for each.
+      url: '#the-cdns-the-scanner-can-search-cloudflare-fastly-gcore-cloudfront-with-the-edge-ranges-it-samples-for-each'
+    - depth: 2
       title: Make a one-day command for the full test (an upload, then 26 fragment
         settings), to run on a device on the ISP to test. Its script reports
         back to the panel with the token alone.
@@ -31,6 +35,9 @@ _openapi:
           as MCI or MTN) of the caller's IP address. Private addresses come back
           with only the IP.
         id: the-network-as-number-organization-country-and-short-isp-name-such-as-mci-or-mtn-of-the-callers-ip-address-private-addresses-come-back-with-only-the-ip
+      - content: The CDNs the scanner can search (Cloudflare, Fastly, Gcore, CloudFront)
+          with the edge ranges it samples for each.
+        id: the-cdns-the-scanner-can-search-cloudflare-fastly-gcore-cloudfront-with-the-edge-ranges-it-samples-for-each
       - content: Make a one-day command for the full test (an upload, then 26 fragment
           settings), to run on a device on the ISP to test. Its script reports
           back to the panel with the token alone.
@@ -51,7 +58,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/cleanip/network","method":"get"},{"path":"/panel/api/cleanip/command","method":"post"},{"path":"/panel/api/cleanip/command/{token}","method":"get"},{"path":"/panel/api/cleanip/verify","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/cleanip/network","method":"get"},{"path":"/panel/api/cleanip/cdns","method":"get"},{"path":"/panel/api/cleanip/command","method":"post"},{"path":"/panel/api/cleanip/command/{token}","method":"get"},{"path":"/panel/api/cleanip/verify","method":"post"}]} showTitle />
     </>
   );
 }

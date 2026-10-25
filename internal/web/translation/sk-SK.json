@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Rozsahy Cloudflare",
+      "sourceFailed": "odoslanie ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Rozsahy CDN",
       "sourceList": "Môj zoznam",
       "noTargets": "Najprv zadajte IP alebo rozsahy (napríklad 104.16.1.1 alebo 172.64.0.0/24).",
       "findMore": "Nájsť ďalšie v okolí",

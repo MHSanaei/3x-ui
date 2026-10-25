@@ -414,6 +414,12 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface CleanIpCdn {
+  id: string;
+  name: string;
+  ranges: string[];
+}
+
 export interface CleanIpCommand {
   expiresAt: number;
   scriptUrl: string;
@@ -423,6 +429,7 @@ export interface CleanIpCommand {
 }
 
 export interface CleanIpCommandRequest {
+  cdn: string;
   host: string;
   ips: string[];
   path: string;

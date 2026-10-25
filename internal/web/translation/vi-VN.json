@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Dải Cloudflare",
+      "sourceFailed": "tải lên ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Dải CDN",
       "sourceList": "Danh sách của tôi",
       "noTargets": "Hãy nhập IP hoặc dải trước (ví dụ 104.16.1.1 hoặc 172.64.0.0/24).",
       "findMore": "Tìm thêm ở gần",

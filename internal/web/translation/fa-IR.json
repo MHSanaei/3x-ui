@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "رنج‌های Cloudflare",
+      "sourceFailed": "آپلود ✗",
+      "cdn": "CDN",
+      "sourceRanges": "رنج‌های CDN",
       "sourceList": "لیست خودم",
       "noTargets": "اول IP یا رنج وارد کنید (مثلاً 104.16.1.1 یا 172.64.0.0/24).",
       "findMore": "پیدا کردن بیشتر در همسایگی",

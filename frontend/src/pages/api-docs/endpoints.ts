@@ -1949,11 +1949,19 @@ export const sections: readonly Section[] = [
         responseSchema: 'CleanIpNetwork',
       },
       {
+        method: 'GET',
+        path: '/panel/api/cleanip/cdns',
+        summary:
+          'The CDNs the scanner can search (Cloudflare, Fastly, Gcore, CloudFront) with the edge ranges it samples for each.',
+        responseSchema: 'CleanIpCdn',
+        responseSchemaArray: true,
+      },
+      {
         method: 'POST',
         path: '/panel/api/cleanip/command',
         summary:
           'Make a one-day command for the full test (an upload, then 26 fragment settings), to run on a device on the ISP to test. Its script reports back to the panel with the token alone.',
-        body: '{\n  "host": "cdn.example.com",\n  "path": "/",\n  "size": 5000,\n  "perRange": 8,\n  "ips": ["104.16.1.1"]\n}',
+        body: '{\n  "host": "cdn.example.com",\n  "path": "/",\n  "size": 5000,\n  "perRange": 8,\n  "ips": ["104.16.1.1"],\n  "cdn": "cloudflare"\n}',
         responseSchema: 'CleanIpCommand',
       },
       {

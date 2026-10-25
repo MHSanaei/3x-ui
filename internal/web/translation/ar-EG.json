@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "نطاقات Cloudflare",
+      "sourceFailed": "رفع ✗",
+      "cdn": "CDN",
+      "sourceRanges": "نطاقات CDN",
       "sourceList": "قائمتي",
       "noTargets": "اكتب عناوين IP أو نطاقات أولاً (مثل 104.16.1.1 أو 172.64.0.0/24).",
       "findMore": "البحث عن المزيد بالجوار",

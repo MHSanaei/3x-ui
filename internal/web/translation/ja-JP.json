@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Cloudflare の範囲",
+      "sourceFailed": "アップロード ✗",
+      "cdn": "CDN",
+      "sourceRanges": "CDN の範囲",
       "sourceList": "自分のリスト",
       "noTargets": "先に IP または範囲を入力してください（例：104.16.1.1 や 172.64.0.0/24）。",
       "findMore": "近くでさらに探す",

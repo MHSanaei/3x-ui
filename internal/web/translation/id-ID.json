@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Rentang Cloudflare",
+      "sourceFailed": "unggah ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Rentang CDN",
       "sourceList": "Daftar saya",
       "noTargets": "Ketik IP atau rentang terlebih dahulu (misalnya 104.16.1.1 atau 172.64.0.0/24).",
       "findMore": "Cari lebih banyak di sekitarnya",

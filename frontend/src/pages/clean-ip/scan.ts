@@ -2,25 +2,6 @@ import type { HostRecord } from '@/schemas/api/host';
 
 import { coloPlace } from './colos';
 
-// https://www.cloudflare.com/ips-v4/
-export const CLOUDFLARE_RANGES = [
-  '173.245.48.0/20',
-  '103.21.244.0/22',
-  '103.22.200.0/22',
-  '103.31.4.0/22',
-  '141.101.64.0/18',
-  '108.162.192.0/18',
-  '190.93.240.0/20',
-  '188.114.96.0/20',
-  '197.234.240.0/22',
-  '198.41.128.0/17',
-  '162.158.0.0/15',
-  '104.16.0.0/13',
-  '104.24.0.0/14',
-  '172.64.0.0/13',
-  '131.0.72.0/22',
-];
-
 export function randomIps(cidr: string, count: number): string[] {
   const [base, bits] = cidr.split('/');
   const start = base.split('.').reduce((acc, part) => acc * 256 + Number(part), 0);
@@ -33,8 +14,8 @@ export function randomIps(cidr: string, count: number): string[] {
   return [...out];
 }
 
-export function scanTargets(perRange: number): string[] {
-  const ips = CLOUDFLARE_RANGES.flatMap((cidr) => randomIps(cidr, perRange));
+export function scanTargets(ranges: string[], perRange: number): string[] {
+  const ips = ranges.flatMap((cidr) => randomIps(cidr, perRange));
   for (let i = ips.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [ips[i], ips[j]] = [ips[j], ips[i]];

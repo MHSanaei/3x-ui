@@ -438,6 +438,13 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const CleanIpCdnSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  ranges: z.array(z.string()),
+});
+export type CleanIpCdn = z.infer<typeof CleanIpCdnSchema>;
+
 export const CleanIpCommandSchema = z.object({
   expiresAt: z.number().int(),
   scriptUrl: z.string(),
@@ -448,6 +455,7 @@ export const CleanIpCommandSchema = z.object({
 export type CleanIpCommand = z.infer<typeof CleanIpCommandSchema>;
 
 export const CleanIpCommandRequestSchema = z.object({
+  cdn: z.string(),
   host: z.string(),
   ips: z.array(z.string()),
   path: z.string(),

@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -152,5 +156,112 @@ func TestCleanIpReportWithNothingValidSendsEmptyLists(t *testing.T) {
 		if !strings.Contains(string(raw), want) {
 			t.Errorf("report JSON %s lacks %s", raw, want)
 		}
+	}
+}
+
+func TestCleanIpCommandSamplesTheChosenCdn(t *testing.T) {
+	var s CleanIpService
+	script := func(cdn string) string {
+		t.Helper()
+		cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Cdn: cdn})
+		out, err := s.Script(cmd.Token, "https://p/r")
+		if err != nil {
+			t.Fatalf("Script(%q): %v", cdn, err)
+		}
+		return out
+	}
+	if got := script("fastly"); !strings.Contains(got, `"151.101.0.0/16"`) || strings.Contains(got, `"104.16.0.0/13"`) {
+		t.Error("a Fastly command must sample Fastly's ranges, not Cloudflare's")
+	}
+	if got := script(""); !strings.Contains(got, `"104.16.0.0/13"`) {
+		t.Error("a command without a CDN must sample Cloudflare, as before")
+	}
+	if _, err := s.NewCommand(CleanIpCommandRequest{Host: "cdn.example.com", Cdn: "akamai"}, "https://p/"); !errors.Is(err, errCleanIpBadRequest) {
+		t.Errorf("unknown CDN: err = %v, want errCleanIpBadRequest", err)
+	}
+}
+
+// The quick scan's hits get the upload test too: that is the only way the page learns their datacenter.
+func TestCleanIpCommandKeepsUpToAHundredPageIps(t *testing.T) {
+	ips := make([]string, 150)
+	for i := range ips {
+		ips[i] = "104.16." + strconv.Itoa(i/250) + "." + strconv.Itoa(i%250+1)
+	}
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ips: ips})
+	cleanIpJobsMu.Lock()
+	got := cleanIpJobs[cmd.Token].req.Ips
+	cleanIpJobsMu.Unlock()
+	if len(got) != 100 || got[0] != ips[0] || got[99] != ips[99] {
+		t.Fatalf("kept %d page IPs (first %v); want the first 100", len(got), got[:1])
+	}
+}
+
+func pythonForTest(t *testing.T) string {
+	t.Helper()
+	for _, name := range []string{"python3", "python"} {
+		if out, err := exec.Command(name, "-c", "import sys; print(sys.version_info[0])").Output(); err == nil && strings.TrimSpace(string(out)) == "3" {
+			return name
+		}
+	}
+	t.Skip("no Python 3 to run the clean IP script")
+	return ""
+}
+
+// Runs the real script's helpers (without main) on the reply heads each CDN sends.
+func TestCleanIpScriptReadsTheDatacenterOfEveryCdnAndTestsPageIpsFirst(t *testing.T) {
+	py := pythonForTest(t)
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Cdn: "fastly", PerRange: 1, Ips: []string{"151.101.1.1", "151.101.2.2"}})
+	var s CleanIpService
+	script, err := s.Script(cmd.Token, "https://p/r")
+	if err != nil {
+		t.Fatalf("Script: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "clean.py")
+	harness := strings.Replace(script, "if __name__ == \"__main__\":", "if False:", 1) + `
+heads = [b"HTTP/1.1 200 OK\r\nCF-RAY: 8f1c2d3e4a5b6c7d-FRA\r\n",
+         b"HTTP/1.1 200 OK\r\nX-Served-By: cache-iad-kiad7000-IAD, cache-ams21-AMS\r\n",
+         b"HTTP/1.1 200 OK\r\nX-Amz-Cf-Pop: IST50-P2\r\n",
+         b"HTTP/1.1 200 OK\r\nX-ID: lon1-up-gc30\r\n",
+         b"HTTP/1.1 200 OK\r\nServer: nginx\r\n"]
+print(",".join(colo_of(h) for h in heads))
+ips = targets()
+print(ips[:2] == FRAG_IPS and len(ips) == len(set(ips)) and len(ips) > 2)
+`
+	if err := os.WriteFile(path, []byte(harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(py, "-I", path).CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	if got := strings.Fields(string(out)); len(got) != 2 || got[0] != "FRA,AMS,IST,LON," || got[1] != "True" {
+		t.Fatalf("script printed %q; want colos FRA,AMS,IST,LON, and the page IPs first", out)
+	}
+}
+
+// A run where every IP fails must say why (timeouts vs certificate vs refused), or the
+// admin has nothing to go on.
+func TestCleanIpScriptCountsWhyIpsFail(t *testing.T) {
+	py := pythonForTest(t)
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com"})
+	var s CleanIpService
+	script, err := s.Script(cmd.Token, "https://p/r")
+	if err != nil {
+		t.Fatalf("Script: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "clean.py")
+	harness := strings.Replace(script, "if __name__ == \"__main__\":", "if False:", 1) + `
+probe("127.0.0.1")
+print(failure_summary())
+`
+	if err := os.WriteFile(path, []byte(harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(py, "-I", path).CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "refused 1" {
+		t.Fatalf("failure_summary() = %q after one probe of a closed port; want \"refused 1\"", got)
 	}
 }

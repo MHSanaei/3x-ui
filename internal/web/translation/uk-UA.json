@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Діапазони Cloudflare",
+      "sourceFailed": "вивантаження ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Діапазони CDN",
       "sourceList": "Мій список",
       "noTargets": "Спершу введіть IP або діапазони (наприклад 104.16.1.1 чи 172.64.0.0/24).",
       "findMore": "Знайти ще поруч",

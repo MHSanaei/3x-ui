@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Диапазоны Cloudflare",
+      "sourceFailed": "загрузка ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Диапазоны CDN",
       "sourceList": "Мой список",
       "noTargets": "Сначала введите IP или диапазоны (например 104.16.1.1 или 172.64.0.0/24).",
       "findMore": "Найти ещё рядом",

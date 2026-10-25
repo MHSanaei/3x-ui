@@ -1720,6 +1720,33 @@
         ],
         "type": "object"
       },
+      "CleanIpCdn": {
+        "properties": {
+          "id": {
+            "example": "cloudflare",
+            "type": "string"
+          },
+          "name": {
+            "example": "Cloudflare",
+            "type": "string"
+          },
+          "ranges": {
+            "example": [
+              "104.16.0.0/13"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ranges"
+        ],
+        "type": "object"
+      },
       "CleanIpCommand": {
         "properties": {
           "expiresAt": {
@@ -1756,6 +1783,10 @@
       "CleanIpCommandRequest": {
         "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
         "properties": {
+          "cdn": {
+            "example": "cloudflare",
+            "type": "string"
+          },
           "host": {
             "example": "cdn.example.com",
             "type": "string"
@@ -1783,6 +1814,7 @@
           }
         },
         "required": [
+          "cdn",
           "host",
           "ips",
           "path",
@@ -13481,6 +13513,53 @@
         }
       }
     },
+    "/panel/api/cleanip/cdns": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The CDNs the scanner can search (Cloudflare, Fastly, Gcore, CloudFront) with the edge ranges it samples for each.",
+        "operationId": "get_panel_api_cleanip_cdns",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpCdn"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": "cloudflare",
+                      "name": "Cloudflare",
+                      "ranges": [
+                        "104.16.0.0/13"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/cleanip/command": {
       "post": {
         "tags": [
@@ -13502,7 +13581,8 @@
                 "perRange": 8,
                 "ips": [
                   "104.16.1.1"
-                ]
+                ],
+                "cdn": "cloudflare"
               }
             }
           }

@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Rangos de Cloudflare",
+      "sourceFailed": "subida ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Rangos de la CDN",
       "sourceList": "Mi lista",
       "noTargets": "Primero escribe IP o rangos (por ejemplo 104.16.1.1 o 172.64.0.0/24).",
       "findMore": "Buscar más cerca",

@@ -56,14 +56,14 @@ import {
   type FragmentSetting,
 } from './scan';
 import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } from './FragmentStep';
-import { CLOUDFLARE_ASNS, StepTitle, fetchNetwork } from './common';
+import { CLOUDFLARE_ASNS, StepTitle, fetchCdns, fetchNetwork } from './common';
 import { coloPlace, flagOf } from './colos';
 import './CleanIpPage.css';
 
 interface IpRow {
   ip: string;
   ms: number;
-  uploaded: boolean;
+  test: 'upload' | 'quick' | 'failed';
   colo: string;
 }
 
@@ -137,6 +137,7 @@ export default function CleanIpPage() {
   const [size, setSize] = useState(5000);
   const [cmdPerRange, setCmdPerRange] = useState(8);
   const [command, setCommand] = useState<CleanIpCommand | null>(null);
+  const [sentIps, setSentIps] = useState<string[]>([]);
   const [making, setMaking] = useState(false);
   const reports = useQuery({
     queryKey: ['cleanip', 'reports', command?.token],
@@ -164,6 +165,14 @@ export default function CleanIpPage() {
     ? (report.fragments.find((f) => f.packets && fragmentKey(f) === fragKey) ?? null)
     : undefined;
 
+  // the CDN the host group's domain is behind: its edge ranges are what both tests sample
+  const cdns = useQuery({ queryKey: ['cleanip', 'cdns'], queryFn: fetchCdns });
+  const [cdnId, setCdnId] = useState('cloudflare');
+  const cdnRanges = useMemo(
+    () => cdns.data?.find((c) => c.id === cdnId)?.ranges ?? [],
+    [cdns.data, cdnId],
+  );
+
   // 4. quick scan in this browser
   const [perRange, setPerRange] = useState(8);
   const [timeoutMs, setTimeoutMs] = useState(3000);
@@ -181,10 +190,15 @@ export default function CleanIpPage() {
   const rows = useMemo<IpRow[]>(() => {
     const out = new Map<string, IpRow>();
     for (const h of report?.ips ?? [])
-      out.set(h.ip, { ip: h.ip, ms: h.ms, uploaded: true, colo: h.colo });
-    for (const h of hits) if (!out.has(h.ip)) out.set(h.ip, { ...h, uploaded: false, colo: '' });
-    return [...out.values()].sort((a, b) => Number(b.uploaded) - Number(a.uploaded) || a.ms - b.ms);
-  }, [report, hits]);
+      out.set(h.ip, { ip: h.ip, ms: h.ms, test: 'upload', colo: h.colo });
+    // a quick-scan hit the command tested but did not report answered TLS yet carried no upload
+    const sent = new Set(report ? sentIps : []);
+    for (const h of hits)
+      if (!out.has(h.ip))
+        out.set(h.ip, { ...h, test: sent.has(h.ip) ? 'failed' : 'quick', colo: '' });
+    const rank = { upload: 0, quick: 1, failed: 2 };
+    return [...out.values()].sort((a, b) => rank[a.test] - rank[b.test] || a.ms - b.ms);
+  }, [report, hits, sentIps]);
   const placeOf = useCallback(
     (colo: string) => coloPlace(colo, i18n.language || 'en'),
     [i18n.language],
@@ -233,7 +247,7 @@ export default function CleanIpPage() {
   const selected =
     picked ??
     shown
-      .filter((r) => verdicts[r.ip] !== 'restricted')
+      .filter((r) => verdicts[r.ip] !== 'restricted' && r.test !== 'failed')
       .slice(0, 5)
       .map((r) => r.ip);
 
@@ -271,13 +285,14 @@ export default function CleanIpPage() {
     [hits, timeoutMs, parallel, verifyIps],
   );
   const startScan = useCallback(() => {
-    const targets = source === 'list' ? parseTargets(listText, perRange) : scanTargets(perRange);
+    const targets =
+      source === 'list' ? parseTargets(listText, perRange) : scanTargets(cdnRanges, perRange);
     if (!targets.length) {
       messageApi.warning(t('pages.cleanIp.noTargets'));
       return;
     }
     void runScan(targets, false);
-  }, [source, listText, perRange, runScan, messageApi, t]);
+  }, [source, listText, perRange, cdnRanges, runScan, messageApi, t]);
   const findMore = useCallback(() => {
     const targets = nearbyIps(
       hits.map((h) => h.ip),
@@ -289,6 +304,7 @@ export default function CleanIpPage() {
 
   const makeCommand = useCallback(async () => {
     setMaking(true);
+    const ips = hits.slice(0, 100).map((h) => h.ip);
     try {
       const msg = await HttpUtil.post(
         '/panel/api/cleanip/command',
@@ -297,16 +313,19 @@ export default function CleanIpPage() {
           path: group?.path || '/',
           size,
           perRange: cmdPerRange,
-          ips: hits.slice(0, 5).map((h) => h.ip),
+          ips,
+          cdn: cdnId,
         },
         JSON_HEADERS,
       );
-      if (msg?.success) setCommand(msg.obj as CleanIpCommand);
-      else messageApi.error(msg?.msg || t('pages.cleanIp.toasts.command'));
+      if (msg?.success) {
+        setCommand(msg.obj as CleanIpCommand);
+        setSentIps(ips);
+      } else messageApi.error(msg?.msg || t('pages.cleanIp.toasts.command'));
     } finally {
       setMaking(false);
     }
-  }, [domain, group?.path, size, cmdPerRange, hits, messageApi, t]);
+  }, [domain, group?.path, size, cmdPerRange, hits, cdnId, messageApi, t]);
 
   // 5. save for the ISP
   const [saving, setSaving] = useState(false);
@@ -535,6 +554,16 @@ export default function CleanIpPage() {
                           />
                         </label>
                         <label className="clean-ip-field">
+                          <span>{t('pages.cleanIp.cdn')}</span>
+                          <Select
+                            value={cdnId}
+                            onChange={setCdnId}
+                            loading={cdns.isLoading}
+                            options={(cdns.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                            popupMatchSelectWidth={false}
+                          />
+                        </label>
+                        <label className="clean-ip-field">
                           <span>{t('pages.cleanIp.port')}</span>
                           <InputNumber
                             min={1}
@@ -755,11 +784,13 @@ export default function CleanIpPage() {
                       },
                       {
                         title: t('pages.cleanIp.source'),
-                        dataIndex: 'uploaded',
+                        dataIndex: 'test',
                         width: 120,
-                        render: (uploaded: boolean) =>
-                          uploaded ? (
+                        render: (test: IpRow['test']) =>
+                          test === 'upload' ? (
                             <Tag color="success">{t('pages.cleanIp.sourceUpload')}</Tag>
+                          ) : test === 'failed' ? (
+                            <Tag color="error">{t('pages.cleanIp.sourceFailed')}</Tag>
                           ) : (
                             <Tag>{t('pages.cleanIp.sourceQuick')}</Tag>
                           ),

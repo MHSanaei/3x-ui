@@ -414,6 +414,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "CleanIpCdn": {
+    "id": "cloudflare",
+    "name": "Cloudflare",
+    "ranges": [
+      "104.16.0.0/13"
+    ]
+  },
   "CleanIpCommand": {
     "expiresAt": 1793000000,
     "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
@@ -422,6 +429,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"
   },
   "CleanIpCommandRequest": {
+    "cdn": "cloudflare",
     "host": "cdn.example.com",
     "ips": [
       "104.16.1.1"

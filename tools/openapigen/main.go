@@ -96,6 +96,7 @@ func run(root, outDir string) error {
 			StructAllow: setOf(
 				"InboundOption",
 				"CleanIpNetwork",
+				"CleanIpCdn",
 				"CleanIpCommandRequest",
 				"CleanIpCommand",
 				"CleanIpHit",

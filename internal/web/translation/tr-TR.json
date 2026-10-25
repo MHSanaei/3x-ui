@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Cloudflare aralıkları",
+      "sourceFailed": "yükleme ✗",
+      "cdn": "CDN",
+      "sourceRanges": "CDN aralıkları",
       "sourceList": "Listem",
       "noTargets": "Önce IP veya aralık yazın (örneğin 104.16.1.1 veya 172.64.0.0/24).",
       "findMore": "Yakınlarda daha fazla bul",

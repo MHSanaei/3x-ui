@@ -22,13 +22,6 @@ import (
 //go:embed cleanip_script.py
 var cleanIpScript string
 
-// https://www.cloudflare.com/ips-v4/
-var cleanIpCloudflareRanges = []string{
-	"173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18",
-	"108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17",
-	"162.158.0.0/15", "104.16.0.0/13", "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
-}
-
 const (
 	cleanIpCommandTTL  = 24 * time.Hour
 	cleanIpMaxCommands = 50
@@ -55,6 +48,7 @@ type CleanIpCommandRequest struct {
 	Size     int      `json:"size" example:"5000"`
 	PerRange int      `json:"perRange" example:"8"`
 	Ips      []string `json:"ips" example:"[\"104.16.1.1\"]"`
+	Cdn      string   `json:"cdn" example:"cloudflare"`
 }
 
 type CleanIpCommand struct {
@@ -129,9 +123,15 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	}
 	req.Size = clampInt(req.Size, 5000, 1000, 64000)
 	req.PerRange = clampInt(req.PerRange, 8, 1, 64)
+	if req.Cdn == "" {
+		req.Cdn = cleanIpCdns[0].Id
+	}
+	if cleanIpCdnRanges(req.Cdn) == nil {
+		return nil, errCleanIpBadRequest
+	}
 	ips := make([]string, 0, len(req.Ips))
 	for _, raw := range req.Ips {
-		if ip, ok := validIPv4(raw); ok && len(ips) < 20 {
+		if ip, ok := validIPv4(raw); ok && len(ips) < 100 {
 			ips = append(ips, ip)
 		}
 	}
@@ -188,6 +188,19 @@ func pyLiteral(v any) string {
 }
 
 // Script is the job's test with its values written in as JSON, which Python reads as literals.
+func cleanIpCdnRanges(id string) []string {
+	for _, cdn := range cleanIpCdns {
+		if cdn.Id == id {
+			return cdn.Ranges
+		}
+	}
+	return nil
+}
+
+func (s *CleanIpService) Cdns() []CleanIpCdn {
+	return cleanIpCdns
+}
+
 func (s *CleanIpService) Script(token, reportURL string) (string, error) {
 	cleanIpJobsMu.Lock()
 	job, err := cleanIpJobFor(token)
@@ -205,7 +218,7 @@ func (s *CleanIpService) Script(token, reportURL string) (string, error) {
 		"__REPORT__", pyLiteral(reportURL),
 		"__SIZE__", strconv.Itoa(req.Size),
 		"__PER_RANGE__", strconv.Itoa(req.PerRange),
-		"__RANGES__", pyLiteral(cleanIpCloudflareRanges),
+		"__RANGES__", pyLiteral(cleanIpCdnRanges(req.Cdn)),
 		"__IPS__", pyLiteral(req.Ips),
 	).Replace(cleanIpScript), nil
 }

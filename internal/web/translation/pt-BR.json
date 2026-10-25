@@ -130,7 +130,9 @@
   },
   "pages": {
     "cleanIp": {
-      "sourceRanges": "Faixas da Cloudflare",
+      "sourceFailed": "upload ✗",
+      "cdn": "CDN",
+      "sourceRanges": "Faixas da CDN",
       "sourceList": "Minha lista",
       "noTargets": "Primeiro digite IPs ou faixas (por exemplo 104.16.1.1 ou 172.64.0.0/24).",
       "findMore": "Encontrar mais por perto",
