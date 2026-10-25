@@ -155,6 +155,7 @@ type ServerService struct {
 	cachedIPv6         string
 	nextIPv4Lookup     time.Time
 	nextIPv6Lookup     time.Time
+	ipv6RetryInterval  time.Duration
 	publicIPLookupDone chan struct{}
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
@@ -478,6 +479,19 @@ func refreshedPublicIP(cached, fetched string, now time.Time) (string, time.Time
 	return cached, now.Add(publicIPRetryInterval)
 }
 
+func nextPublicIPv6RetryInterval(previous time.Duration) time.Duration {
+	switch {
+	case previous < time.Minute:
+		return time.Minute
+	case previous < 2*time.Minute:
+		return 2 * time.Minute
+	case previous < 5*time.Minute:
+		return 5 * time.Minute
+	default:
+		return 15 * time.Minute
+	}
+}
+
 // firstPublicIP returns the first service that answers, or "N/A" when every
 // one of them fails.
 func firstPublicIP(services []string) string {
@@ -527,6 +541,12 @@ func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
 		}
 		if wantIPv6 {
 			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now)
+			if ipv6 != "" && ipv6 != "N/A" {
+				s.ipv6RetryInterval = 0
+			} else {
+				s.ipv6RetryInterval = nextPublicIPv6RetryInterval(s.ipv6RetryInterval)
+				s.nextIPv6Lookup = now.Add(s.ipv6RetryInterval)
+			}
 		}
 		s.publicIPLookupDone = nil
 		close(done)

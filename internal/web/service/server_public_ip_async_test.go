@@ -380,3 +380,187 @@ func TestPublicIPColdSynchronousCallersShareInitialLookup(t *testing.T) {
 		}
 	})
 }
+
+func waitForPublicIPLookup(t *testing.T, svc *ServerService) {
+	t.Helper()
+	if done := svc.resolvePublicIPsInBackground(); done != nil {
+		<-done
+	}
+}
+
+func TestPublicIPv6FailuresBackOffAndCapRetries(t *testing.T) {
+	for _, failure := range []string{"http-error", "empty-body", "transport-error", "timeout"} {
+		t.Run(failure, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				var calls6 atomic.Int32
+				stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+					if r.URL.Hostname() == "ipv4.example.test" {
+						return publicIPResponse(http.StatusOK, "192.0.2.10")
+					}
+					calls6.Add(1)
+					switch failure {
+					case "empty-body":
+						return publicIPResponse(http.StatusOK, "")
+					case "transport-error":
+						return nil, io.ErrUnexpectedEOF
+					case "timeout":
+						<-r.Context().Done()
+						return nil, r.Context().Err()
+					default:
+						return publicIPResponse(http.StatusServiceUnavailable, "")
+					}
+				})
+				svc := &ServerService{}
+				svc.resolvePublicIPs()
+				assertCachedPublicIPs(t, svc, "192.0.2.10", "N/A")
+				if got := calls6.Load(); got != 2 {
+					t.Fatalf("initial IPv6 requests=%d, want 2", got)
+				}
+				for _, delay := range []time.Duration{time.Minute, 2 * time.Minute, 5 * time.Minute, 15 * time.Minute, 15 * time.Minute, 15 * time.Minute} {
+					before := calls6.Load()
+					time.Sleep(delay - time.Nanosecond)
+					waitForPublicIPLookup(t, svc)
+					if got := calls6.Load(); got != before {
+						t.Fatalf("IPv6 retried before %v: requests=%d, want %d", delay, got, before)
+					}
+					time.Sleep(time.Nanosecond)
+					waitForPublicIPLookup(t, svc)
+					if got := calls6.Load(); got != before+2 {
+						t.Fatalf("IPv6 requests at %v=%d, want %d", delay, got, before+2)
+					}
+					assertCachedPublicIPs(t, svc, "192.0.2.10", "N/A")
+				}
+			})
+		})
+	}
+}
+
+func TestPublicIPv6RecoveryResetsBackoffAndRefreshesNormally(t *testing.T) {
+	for _, recovered := range []string{"2001:db8::10", "2001:db8::20"} {
+		t.Run(recovered, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				var calls6 atomic.Int32
+				available := true
+				value6 := "2001:db8::10"
+				stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+					if r.URL.Hostname() == "ipv4.example.test" {
+						return publicIPResponse(http.StatusOK, "192.0.2.10")
+					}
+					calls6.Add(1)
+					if !available {
+						return publicIPResponse(http.StatusServiceUnavailable, "")
+					}
+					return publicIPResponse(http.StatusOK, value6)
+				})
+				svc := &ServerService{}
+				svc.resolvePublicIPs()
+				available = false
+				for _, delay := range []time.Duration{5 * time.Minute, time.Minute, 2 * time.Minute, 5 * time.Minute} {
+					time.Sleep(delay)
+					waitForPublicIPLookup(t, svc)
+					assertCachedPublicIPs(t, svc, "192.0.2.10", "2001:db8::10")
+				}
+				available, value6 = true, recovered
+				before := calls6.Load()
+				time.Sleep(15*time.Minute - time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				if got := calls6.Load(); got != before {
+					t.Fatalf("recovery attempted before capped deadline: requests=%d, want %d", got, before)
+				}
+				time.Sleep(time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				assertCachedPublicIPs(t, svc, "192.0.2.10", recovered)
+				if got := calls6.Load(); got != before+1 {
+					t.Fatalf("recovery requests=%d, want %d", got, before+1)
+				}
+
+				before = calls6.Load()
+				time.Sleep(5*time.Minute - time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				if got := calls6.Load(); got != before {
+					t.Fatalf("successful IPv6 refreshed before five minutes: requests=%d, want %d", got, before)
+				}
+				available = false
+				time.Sleep(time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				if got := calls6.Load(); got != before+2 {
+					t.Fatalf("refresh requests=%d, want %d", got, before+2)
+				}
+				assertCachedPublicIPs(t, svc, "192.0.2.10", recovered)
+				before = calls6.Load()
+				time.Sleep(time.Minute - time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				if got := calls6.Load(); got != before {
+					t.Fatalf("IPv6 retried before reset one-minute deadline: requests=%d, want %d", got, before)
+				}
+				available, value6 = true, "2001:db8::30"
+				time.Sleep(time.Nanosecond)
+				waitForPublicIPLookup(t, svc)
+				assertCachedPublicIPs(t, svc, "192.0.2.10", value6)
+				if got := calls6.Load(); got != before+1 {
+					t.Fatalf("one-minute recovery requests=%d, want %d", got, before+1)
+				}
+			})
+		})
+	}
+}
+
+func TestPublicIPv6BackoffPreservesIPv4RefreshAndRetry(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var calls4, calls6 atomic.Int32
+		available4, value4 := true, "192.0.2.10"
+		stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+			if r.URL.Hostname() == "ipv4.example.test" {
+				calls4.Add(1)
+				if available4 {
+					return publicIPResponse(http.StatusOK, value4)
+				}
+			} else {
+				calls6.Add(1)
+			}
+			return publicIPResponse(http.StatusServiceUnavailable, "")
+		})
+		svc := &ServerService{}
+		svc.resolvePublicIPs()
+		for _, delay := range []time.Duration{time.Minute, 2 * time.Minute, 5 * time.Minute} {
+			time.Sleep(delay)
+			waitForPublicIPLookup(t, svc)
+		}
+		if got := calls6.Load(); got != 8 {
+			t.Fatalf("IPv6 requests before capped backoff=%d, want 8", got)
+		}
+		value4 = "192.0.2.20"
+		before := calls4.Load()
+		time.Sleep(5*time.Minute - time.Nanosecond)
+		waitForPublicIPLookup(t, svc)
+		if got := calls4.Load(); got != before {
+			t.Fatalf("IPv4 refreshed before five minutes: requests=%d, want %d", got, before)
+		}
+		time.Sleep(time.Nanosecond)
+		waitForPublicIPLookup(t, svc)
+		assertCachedPublicIPs(t, svc, value4, "N/A")
+		if got := calls4.Load(); got != before+1 {
+			t.Fatalf("IPv4 refresh requests=%d, want %d", got, before+1)
+		}
+		available4 = false
+		time.Sleep(5 * time.Minute)
+		waitForPublicIPLookup(t, svc)
+		assertCachedPublicIPs(t, svc, value4, "N/A")
+		before = calls4.Load()
+		time.Sleep(time.Minute - time.Nanosecond)
+		waitForPublicIPLookup(t, svc)
+		if got := calls4.Load(); got != before {
+			t.Fatalf("IPv4 retried before one minute: requests=%d, want %d", got, before)
+		}
+		available4, value4 = true, "192.0.2.30"
+		time.Sleep(time.Nanosecond)
+		waitForPublicIPLookup(t, svc)
+		assertCachedPublicIPs(t, svc, value4, "N/A")
+		if got := calls4.Load(); got != before+1 {
+			t.Fatalf("IPv4 retry requests=%d, want %d", got, before+1)
+		}
+		if got := calls6.Load(); got != 8 {
+			t.Fatalf("IPv6 retried during capped backoff: requests=%d, want 8", got)
+		}
+	})
+}
