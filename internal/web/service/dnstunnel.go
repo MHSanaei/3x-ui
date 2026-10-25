@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +28,7 @@ var dnsTunnelScript string
 
 var (
 	errDnsTunnelBadProfile = errors.New("dns tunnel: bad profile")
+	errDnsTunnelNoServer   = errors.New("dns tunnel: no StormDNS server config in that folder")
 
 	dnsTunnelKeyRe  = regexp.MustCompile(`^[A-Za-z0-9+/=_-]{16,128}$`)
 	dnsTunnelNameRe = regexp.MustCompile(`^[\p{L}\p{N} ._()·-]{1,40}$`)
@@ -105,6 +109,66 @@ func (s *DnsTunnelService) SaveProfiles(profiles []DnsTunnelProfile) error {
 		return err
 	}
 	return s.settingService.setString(dnsTunnelProfilesKey, string(raw))
+}
+
+// DetectStormDns reads the StormDNS server installed in dir (server_config.toml and its key
+// file) so the admin never copies the key by hand; one profile per served domain.
+func (s *DnsTunnelService) DetectStormDns(dir string) ([]DnsTunnelProfile, error) {
+	if !filepath.IsAbs(dir) {
+		return nil, errDnsTunnelNoServer
+	}
+	dir = filepath.Clean(dir)
+	raw, err := os.ReadFile(filepath.Join(dir, "server_config.toml"))
+	if err != nil {
+		return nil, errDnsTunnelNoServer
+	}
+	conf := map[string]string{}
+	for _, line := range strings.Split(string(raw), "\n") {
+		key, value, ok := strings.Cut(line, "=")
+		if !ok || strings.HasPrefix(strings.TrimSpace(key), "#") {
+			continue
+		}
+		if i := strings.Index(value, "#"); i >= 0 {
+			value = value[:i]
+		}
+		conf[strings.TrimSpace(key)] = strings.ReplaceAll(strings.TrimSpace(value), "'", `"`)
+	}
+	var domains []string
+	if err := json.Unmarshal([]byte(conf["DOMAIN"]), &domains); err != nil || len(domains) == 0 {
+		return nil, errDnsTunnelBadProfile
+	}
+	method, err := strconv.Atoi(conf["DATA_ENCRYPTION_METHOD"])
+	if err != nil {
+		return nil, errDnsTunnelBadProfile
+	}
+	keyFile := filepath.Join(dir, "encrypt_key.txt")
+	if v := conf["ENCRYPTION_KEY_FILE"]; v != "" {
+		if err := json.Unmarshal([]byte(v), &keyFile); err != nil {
+			return nil, errDnsTunnelBadProfile
+		}
+	}
+	key, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, errDnsTunnelBadProfile
+	}
+	profiles := make([]DnsTunnelProfile, 0, len(domains))
+	for i, domain := range domains {
+		p := DnsTunnelProfile{
+			Name:   "StormDNS",
+			Engine: "stormdns",
+			Domain: strings.ToLower(strings.TrimSuffix(strings.TrimSpace(domain), ".")),
+			Key:    strings.TrimSpace(string(key)),
+			Method: method,
+		}
+		if i > 0 {
+			p.Name += " " + strconv.Itoa(i+1)
+		}
+		if !validDnsTunnelProfile(p) {
+			return nil, errDnsTunnelBadProfile
+		}
+		profiles = append(profiles, p)
+	}
+	return profiles, nil
 }
 
 // ---- resolver scan: a one-day command run on a device on the ISP to test ----

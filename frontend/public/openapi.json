@@ -14035,6 +14035,64 @@
         }
       }
     },
+    "/panel/api/dnstunnel/detect": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Read the StormDNS server installed on this server (its server_config.toml and key file) as one profile per served domain.",
+        "operationId": "get_panel_api_dnstunnel_detect",
+        "parameters": [
+          {
+            "name": "dir",
+            "in": "query",
+            "required": false,
+            "description": "The StormDNS server folder (default /opt/stormdns).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsTunnelProfile"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "domain": "st.t.example.com",
+                      "engine": "stormdns",
+                      "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                      "method": 1,
+                      "name": "Iran"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/dnstunnel/command": {
       "post": {
         "tags": [

@@ -131,6 +131,9 @@
   },
   "pages": {
     "dnsTunnel": {
+      "detect": "Read from this server",
+      "detected": "Read the StormDNS server on this machine; check and save",
+      "stormDir": "StormDNS server folder",
       "intro": "A DNS tunnel keeps working when the internet is cut but the ISP's DNS still answers. Users connect with an app such as WhiteDNS (StormDNS engine) or a dnstt client; the panel keeps the server profiles to hand out and finds the DNS resolvers that pass the tunnel on each internet.",
       "servers": "Tunnel servers",
       "serversHint": "The tunnel servers running beside this panel (their zone must be delegated to this server). For StormDNS the page makes a WhiteDNS import link and QR code.",
@@ -153,6 +156,7 @@
       "resolverName": "Name",
       "resolverOk": "passes ✓",
       "toasts": {
+        "detect": "Could not read a StormDNS server in that folder (server_config.toml and its key file)",
         "profiles": "Could not save the tunnel servers",
         "saved": "Tunnel servers saved"
       }

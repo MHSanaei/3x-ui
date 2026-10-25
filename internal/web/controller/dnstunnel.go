@@ -17,6 +17,7 @@ func NewDnsTunnelController(g *gin.RouterGroup) *DnsTunnelController {
 	a := &DnsTunnelController{}
 	g.GET("/profiles", a.profiles)
 	g.POST("/profiles", a.saveProfiles)
+	g.GET("/detect", a.detect)
 	g.POST("/command", a.newCommand)
 	g.GET("/command/:token", a.reports)
 	return a
@@ -39,6 +40,15 @@ func (a *DnsTunnelController) saveProfiles(c *gin.Context) {
 	}
 	err := a.dnsTunnelService.SaveProfiles(profiles)
 	jsonMsg(c, I18nWeb(c, "pages.dnsTunnel.toasts.saved"), err)
+}
+
+func (a *DnsTunnelController) detect(c *gin.Context) {
+	profiles, err := a.dnsTunnelService.DetectStormDns(c.DefaultQuery("dir", "/opt/stormdns"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.dnsTunnel.toasts.detect"), err)
+		return
+	}
+	jsonObj(c, profiles, nil)
 }
 
 func (a *DnsTunnelController) newCommand(c *gin.Context) {
