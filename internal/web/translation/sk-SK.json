@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Vzhľad",
+    "accentColor": "Farba zvýraznenia",
+    "accentColors": {
+      "default": "Predvolená",
+      "red": "Červená",
+      "pink": "Ružová",
+      "orange": "Oranžová",
+      "yellow": "Žltá",
+      "green": "Zelená",
+      "purple": "Fialová"
+    },
     "dashboard": "Prehľad",
     "inbounds": "Vstupy",
     "clients": "Klienti",

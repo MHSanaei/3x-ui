@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Tema",
+    "accentColor": "Color de acento",
+    "accentColors": {
+      "default": "Predeterminado",
+      "red": "Rojo",
+      "pink": "Rosa",
+      "orange": "Naranja",
+      "yellow": "Amarillo",
+      "green": "Verde",
+      "purple": "Morado"
+    },
     "dashboard": "Estado del Sistema",
     "inbounds": "Entradas",
     "clients": "Clientes",

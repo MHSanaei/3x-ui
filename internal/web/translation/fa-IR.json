@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "تم",
+    "accentColor": "رنگ اصلی",
+    "accentColors": {
+      "default": "پیش‌فرض",
+      "red": "قرمز",
+      "pink": "صورتی",
+      "orange": "نارنجی",
+      "yellow": "زرد",
+      "green": "سبز",
+      "purple": "بنفش"
+    },
     "dashboard": "نمای کلی",
     "inbounds": "ورودی‌ها",
     "clients": "کلاینت‌ها",

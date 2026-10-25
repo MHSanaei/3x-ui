@@ -156,6 +156,36 @@
   font-size: 16px;
 }
 
+.accent-swatches {
+  display: grid;
+  grid-template-columns: repeat(7, 28px);
+  gap: 8px;
+}
+
+.accent-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.accent-swatch:hover,
+.accent-swatch:focus-visible {
+  transform: scale(1.12);
+  outline: none;
+}
+
+.accent-swatch.active,
+.accent-swatch:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--ant-color-bg-elevated),
+    0 0 0 4px var(--swatch);
+}
+
 .drawer-header-actions {
   display: inline-flex;
   align-items: center;

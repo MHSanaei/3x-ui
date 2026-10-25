@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Тема",
+    "accentColor": "Цвет акцента",
+    "accentColors": {
+      "default": "По умолчанию",
+      "red": "Красный",
+      "pink": "Розовый",
+      "orange": "Оранжевый",
+      "yellow": "Жёлтый",
+      "green": "Зелёный",
+      "purple": "Фиолетовый"
+    },
     "dashboard": "Дашборд",
     "inbounds": "Входящие",
     "clients": "Клиенты",

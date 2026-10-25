@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "主题",
+    "accentColor": "强调色",
+    "accentColors": {
+      "default": "默认",
+      "red": "红色",
+      "pink": "粉色",
+      "orange": "橙色",
+      "yellow": "黄色",
+      "green": "绿色",
+      "purple": "紫色"
+    },
     "dashboard": "系统状态",
     "inbounds": "入站",
     "clients": "客户端",

@@ -355,7 +355,7 @@ export default function CommandPalette() {
         category: 'inbounds',
         title: ib.remark || ib.tag || `Inbound #${ib.id}`,
         subtitle: `Port ${ib.port || ''}`,
-        icon: <ImportOutlined aria-hidden style={{ color: '#1677ff' }} />,
+        icon: <ImportOutlined aria-hidden style={{ color: 'var(--ant-color-primary)' }} />,
         tag:
           tags.length > 0 ? (
             <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{tags}</div>

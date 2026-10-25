@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "主題",
+    "accentColor": "強調色",
+    "accentColors": {
+      "default": "預設",
+      "red": "紅色",
+      "pink": "粉紅色",
+      "orange": "橙色",
+      "yellow": "黃色",
+      "green": "綠色",
+      "purple": "紫色"
+    },
     "dashboard": "系統狀態",
     "inbounds": "入站",
     "clients": "客戶端",

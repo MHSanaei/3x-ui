@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Тема",
+    "accentColor": "Колір акценту",
+    "accentColors": {
+      "default": "Типовий",
+      "red": "Червоний",
+      "pink": "Рожевий",
+      "orange": "Помаранчевий",
+      "yellow": "Жовтий",
+      "green": "Зелений",
+      "purple": "Фіолетовий"
+    },
     "dashboard": "Огляд",
     "inbounds": "Вхідні",
     "clients": "Клієнти",

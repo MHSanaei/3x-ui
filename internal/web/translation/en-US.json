@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Theme",
+    "accentColor": "Accent color",
+    "accentColors": {
+      "default": "Default",
+      "red": "Red",
+      "pink": "Pink",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "purple": "Purple"
+    },
     "dashboard": "Overview",
     "inbounds": "Inbounds",
     "clients": "Clients",

@@ -117,7 +117,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
   font-size: 24px;
   width: 28px;
   height: 28px;
-  color: #1677ff;
+  color: var(--ant-color-primary);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -126,7 +126,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-search-icon.spinning {
-  color: #1677ff;
+  color: var(--ant-color-primary);
   animation: cp-spin 0.8s linear infinite;
 }
 
@@ -262,18 +262,18 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.light .command-palette-item.active {
-  background: #e6f4ff;
-  color: #0958d9;
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary-text-active);
 }
 
 .command-palette-modal.dark .command-palette-item.active {
-  background: rgba(22, 119, 255, 0.2);
-  color: #4096ff;
+  background: color-mix(in srgb, var(--ant-color-primary) 20%, transparent);
+  color: color-mix(in srgb, var(--ant-color-primary) 80%, #fff);
 }
 
 .command-palette-modal.ultra .command-palette-item.active {
-  background: rgba(22, 119, 255, 0.28);
-  color: #69b1ff;
+  background: color-mix(in srgb, var(--ant-color-primary) 28%, transparent);
+  color: color-mix(in srgb, var(--ant-color-primary) 65%, #fff);
 }
 
 .command-palette-item-main {
@@ -353,7 +353,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.light .command-palette-action-btn:hover {
-  color: #0958d9;
+  color: var(--ant-color-primary-text-active);
   background: rgba(0, 0, 0, 0.06);
 }
 
@@ -362,7 +362,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.dark .command-palette-action-btn:hover {
-  color: #4096ff;
+  color: color-mix(in srgb, var(--ant-color-primary) 80%, #fff);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -371,7 +371,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.ultra .command-palette-action-btn:hover {
-  color: #69b1ff;
+  color: color-mix(in srgb, var(--ant-color-primary) 65%, #fff);
   background: rgba(255, 255, 255, 0.15);
 }
 

@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Chủ đề",
+    "accentColor": "Màu nhấn",
+    "accentColors": {
+      "default": "Mặc định",
+      "red": "Đỏ",
+      "pink": "Hồng",
+      "orange": "Cam",
+      "yellow": "Vàng",
+      "green": "Xanh lá",
+      "purple": "Tím"
+    },
     "dashboard": "Trạng thái hệ thống",
     "inbounds": "Inbound",
     "clients": "Khách hàng",

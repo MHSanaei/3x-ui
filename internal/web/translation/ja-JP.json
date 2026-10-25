@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "テーマ",
+    "accentColor": "アクセントカラー",
+    "accentColors": {
+      "default": "デフォルト",
+      "red": "レッド",
+      "pink": "ピンク",
+      "orange": "オレンジ",
+      "yellow": "イエロー",
+      "green": "グリーン",
+      "purple": "パープル"
+    },
     "dashboard": "ダッシュボード",
     "inbounds": "インバウンド",
     "clients": "クライアント",

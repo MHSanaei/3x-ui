@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "الثيم",
+    "accentColor": "لون التمييز",
+    "accentColors": {
+      "default": "افتراضي",
+      "red": "أحمر",
+      "pink": "وردي",
+      "orange": "برتقالي",
+      "yellow": "أصفر",
+      "green": "أخضر",
+      "purple": "بنفسجي"
+    },
     "dashboard": "نظرة عامة",
     "inbounds": "الواردات",
     "clients": "العملاء",

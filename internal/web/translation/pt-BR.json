@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Tema",
+    "accentColor": "Cor de destaque",
+    "accentColors": {
+      "default": "Padrão",
+      "red": "Vermelho",
+      "pink": "Rosa",
+      "orange": "Laranja",
+      "yellow": "Amarelo",
+      "green": "Verde",
+      "purple": "Roxo"
+    },
     "dashboard": "Visão Geral",
     "inbounds": "Entradas",
     "clients": "Clientes",

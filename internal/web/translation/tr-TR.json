@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Tema",
+    "accentColor": "Vurgu rengi",
+    "accentColors": {
+      "default": "Varsayılan",
+      "red": "Kırmızı",
+      "pink": "Pembe",
+      "orange": "Turuncu",
+      "yellow": "Sarı",
+      "green": "Yeşil",
+      "purple": "Mor"
+    },
     "dashboard": "Genel Bakış",
     "inbounds": "Gelen Bağlantılar",
     "clients": "Kullanıcılar",

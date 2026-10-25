@@ -108,6 +108,16 @@
   },
   "menu": {
     "theme": "Tema",
+    "accentColor": "Warna aksen",
+    "accentColors": {
+      "default": "Bawaan",
+      "red": "Merah",
+      "pink": "Merah muda",
+      "orange": "Oranye",
+      "yellow": "Kuning",
+      "green": "Hijau",
+      "purple": "Ungu"
+    },
     "dashboard": "Ikhtisar",
     "inbounds": "Inbound",
     "clients": "Klien",
