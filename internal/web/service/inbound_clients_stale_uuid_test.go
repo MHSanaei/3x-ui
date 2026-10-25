@@ -25,7 +25,7 @@ func TestEnrichClientStats_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
 	if err := db.Create(ib).Error; err != nil {
 		t.Fatalf("create inbound: %v", err)
 	}
-	rec := &model.ClientRecord{Email: "stale@e", SubID: "sub1", UUID: fresh, Enable: true}
+	rec := &model.ClientRecord{Email: "stale@e", SubID: "fresh-sub", UUID: fresh, Enable: true}
 	if err := db.Create(rec).Error; err != nil {
 		t.Fatalf("create client: %v", err)
 	}
@@ -51,7 +51,22 @@ func TestEnrichClientStats_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
 	if got != fresh {
 		t.Fatalf("ClientStats.UUID = %q, want fresh %q (settings still had stale %q)", got, fresh, stale)
 	}
-	if got == stale {
-		t.Fatalf("ClientStats.UUID still carries stale settings value %q", stale)
+	if gotSub := inbounds[0].ClientStats[0].SubId; gotSub != "fresh-sub" {
+		t.Fatalf("ClientStats.SubId = %q, want fresh-sub", gotSub)
+	}
+	for _, identity := range []struct{ uuid, sub string }{
+		{"33333333-3333-3333-3333-333333333333", "next-sub"},
+		{"44444444-4444-4444-4444-444444444444", ""},
+	} {
+		if err := db.Model(rec).Updates(map[string]any{"uuid": identity.uuid, "sub_id": identity.sub}).Error; err != nil {
+			t.Fatal(err)
+		}
+		inbounds, err = svc.GetInbounds(1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st := inbounds[0].ClientStats[0]; st.UUID != identity.uuid || st.SubId != identity.sub {
+			t.Fatalf("successive read identity = %q/%q, want %q/%q", st.UUID, st.SubId, identity.uuid, identity.sub)
+		}
 	}
 }

@@ -68,6 +68,19 @@ func TestRuntimeDropsDepletedClientWhoseStatsRowPointsAtSibling(t *testing.T) {
 		requireOnlyHealthy(t, "buildInboundForLocalRuntime", emails)
 	})
 
+	t.Run("generated xray config", func(t *testing.T) {
+		a, _ := seedDepletedOnSibling(t, model.VLESS, 23351, vless)
+		value, present := emittedClients(t, a.Tag)
+		list, ok := value.([]any)
+		if !present || !ok || len(list) != 1 {
+			t.Fatalf("generated clients = %#v, want only healthy client", value)
+		}
+		client, ok := list[0].(map[string]any)
+		if !ok || client["email"] != "h" || client["id"] != "11111111-1111-1111-1111-11111111111e" {
+			t.Fatalf("generated client = %#v, want exact healthy identity", list[0])
+		}
+	})
+
 	t.Run("mtproto sidecar", func(t *testing.T) {
 		a, _ := seedDepletedOnSibling(t, model.MTProto, 23321,
 			`{"clients":[{"email":"d","secret":"`+mtprotoTestSecretA+`","enable":true},`+

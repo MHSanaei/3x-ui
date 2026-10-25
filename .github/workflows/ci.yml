@@ -80,6 +80,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL batched stats identities
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientStatsIdentitiesPostgres$' -count=1 -v | tee /tmp/postgres-stats-identities.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-stats-identities.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected 1 passing PostgreSQL stats identities test, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL client IP sync regressions
         run: |
           set -o pipefail
