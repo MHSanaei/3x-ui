@@ -289,7 +289,7 @@ func (s *DnsTunnelService) AddReport(ctx context.Context, token string, body []b
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, errCleanIpBadRequest
 	}
-	report := DnsResolverReport{At: cleanIpNow().Unix(), Zone: zone}
+	report := DnsResolverReport{At: cleanIpNow().Unix(), Zone: zone, Results: []DnsResolverResult{}}
 	for _, r := range raw.Results {
 		ip, ok := validResolverIp(r.Ip)
 		if !ok || !dnsResolverStatuses[r.Status] || len(report.Results) >= 300 {

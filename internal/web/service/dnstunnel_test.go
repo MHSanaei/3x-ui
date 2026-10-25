@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -144,5 +145,20 @@ func writeFile(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDnsTunnelReportWithNothingValidSendsEmptyList(t *testing.T) {
+	var s DnsTunnelService
+	cmd, err := s.NewCommand(DnsTunnelCommandRequest{Zone: "t.example.com"}, "https://p/")
+	if err != nil {
+		t.Fatalf("NewCommand: %v", err)
+	}
+	report, err := s.AddReport(context.Background(), cmd.Token, []byte(`{"results": [{"ip": "x"}]}`), "127.0.0.1")
+	if err != nil {
+		t.Fatalf("AddReport: %v", err)
+	}
+	if raw, _ := json.Marshal(report); !strings.Contains(string(raw), `"results":[]`) {
+		t.Errorf("report JSON %s lacks \"results\":[]", raw)
 	}
 }
