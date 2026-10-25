@@ -58,6 +58,11 @@ func (j *AmneziaWGJob) Run() {
 // FlushKernelTraffic charges what kernel interfaces counted since the last
 // tick; shutdown runs it before tearing the interfaces and counters down.
 func (j *AmneziaWGJob) FlushKernelTraffic() {
+	// With no kernel interface there is nothing to charge, so a panel that
+	// never used kernel mode shuts down without touching the database.
+	if !amneziawgkern.GetManager().HasRunning() {
+		return
+	}
 	desired, err := j.inboundService.DesiredAmneziaWGInstances()
 	if err != nil {
 		logger.Warning("amneziawg job: get desired instances for the final traffic flush failed:", err)
