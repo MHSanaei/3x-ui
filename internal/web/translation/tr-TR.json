@@ -1088,9 +1088,9 @@
       "removeFromGroupTitle": "«{name}» Grubundan Kullanıcı Çıkar",
       "removeFromGroupDesc": "Bu gruptan çıkarılacak üyeleri seçin. Kullanıcılar korunur (tamamen kaldırmak için «Gruptaki kullanıcıları sil» kullanın).",
       "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı.",
-      "assignHostGroups": "Host atama",
-      "hostGroupsFor": "{name} için hostlar",
-      "hostGroups": "Hostlar",
+      "assignHostGroups": "Host gruplarını ata",
+      "hostGroupsFor": "{name} için host grupları",
+      "hostGroups": "Host grupları",
       "hostsEmptyMeansLegacy": "Tüm ana bilgisayarların eski davranışını kullanmak için boş bırakın"
     },
     "nodes": {

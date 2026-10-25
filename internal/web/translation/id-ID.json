@@ -1088,9 +1088,9 @@
       "removeFromGroupTitle": "Hapus klien dari grup «{name}»",
       "removeFromGroupDesc": "Pilih anggota untuk dihapus dari grup ini. Klien tetap dipertahankan (gunakan «Hapus klien di grup» untuk menghapus sepenuhnya).",
       "removeFromGroupResult": "{count} klien dihapus dari {name}.",
-      "assignHostGroups": "Tetapkan host",
-      "hostGroupsFor": "Host untuk {name}",
-      "hostGroups": "Host",
+      "assignHostGroups": "Tetapkan grup host",
+      "hostGroupsFor": "Grup host untuk {name}",
+      "hostGroups": "Grup host",
       "hostsEmptyMeansLegacy": "Biarkan kosong untuk menggunakan perilaku lama dengan semua host"
     },
     "nodes": {

@@ -1088,9 +1088,9 @@
       "removeFromGroupTitle": "グループ「{name}」からクライアントを削除",
       "removeFromGroupDesc": "このグループから外すメンバーを選択してください。クライアント自体は保持されます (完全に削除するには「グループのクライアントを削除」を使用)。",
       "removeFromGroupResult": "{count} クライアントを {name} から外しました。",
-      "assignHostGroups": "ホストを割り当て",
-      "hostGroupsFor": "{name} のホスト",
-      "hostGroups": "ホスト",
+      "assignHostGroups": "ホストグループを割り当て",
+      "hostGroupsFor": "{name} のホストグループ",
+      "hostGroups": "ホストグループ",
       "hostsEmptyMeansLegacy": "空欄にすると従来どおりすべてのホストを使用します"
     },
     "nodes": {

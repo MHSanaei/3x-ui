@@ -1088,9 +1088,9 @@
       "removeFromGroupTitle": "Удалить клиентов из группы «{name}»",
       "removeFromGroupDesc": "Выберите участников для удаления из этой группы. Сами клиенты сохраняются (используйте «Удалить клиентов группы» для полного удаления).",
       "removeFromGroupResult": "Удалено {count} клиент(ов) из {name}.",
-      "assignHostGroups": "Назначить хосты",
-      "hostGroupsFor": "Хосты для {name}",
-      "hostGroups": "Хосты",
+      "assignHostGroups": "Назначить группы хостов",
+      "hostGroupsFor": "Группы хостов для {name}",
+      "hostGroups": "Группы хостов",
       "hostsEmptyMeansLegacy": "Оставьте пустым, чтобы использовать все хосты по старому поведению"
     },
     "nodes": {

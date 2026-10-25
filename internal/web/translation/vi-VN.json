@@ -1088,9 +1088,9 @@
       "removeFromGroupTitle": "Xóa client khỏi nhóm «{name}»",
       "removeFromGroupDesc": "Chọn thành viên để xóa khỏi nhóm này. Bản thân client được giữ lại (dùng «Xóa client trong nhóm» để xóa hoàn toàn).",
       "removeFromGroupResult": "Đã xóa {count} client khỏi {name}.",
-      "assignHostGroups": "Gán host",
-      "hostGroupsFor": "Host cho {name}",
-      "hostGroups": "Host",
+      "assignHostGroups": "Gán nhóm máy chủ",
+      "hostGroupsFor": "Nhóm máy chủ cho {name}",
+      "hostGroups": "Nhóm máy chủ",
       "hostsEmptyMeansLegacy": "Để trống để dùng hành vi cũ với tất cả máy chủ"
     },
     "nodes": {
