@@ -90,6 +90,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL global-traffic heartbeat regressions
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestGlobalTrafficHeartbeatPostgres$' -count=1 -v | tee /tmp/postgres-global-traffic-heartbeat.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-global-traffic-heartbeat.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected 1 passing global-traffic heartbeat test, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL deferred-commit test
         run: |
           set -o pipefail
