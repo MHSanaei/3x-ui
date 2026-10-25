@@ -558,6 +558,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 			dbIps = append(dbIps, kept...)
 			dbIps = append(dbIps, historicalIps...)
 		} else {
+			// Collection-only run (#6722): no ban selection, keep every IP in the window.
 			for ip, timestamp := range ipMap {
 				dbIps = append(dbIps, model.ClientIpEntry{IP: ip, Timestamp: timestamp})
 			}
