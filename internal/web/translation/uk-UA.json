@@ -107,6 +107,7 @@
     "saveQr": "Зберегти QR"
   },
   "menu": {
+    "cleanIp": "Clean IP scanner",
     "theme": "Тема",
     "dashboard": "Огляд",
     "inbounds": "Вхідні",
@@ -128,6 +129,44 @@
     "subFormats": "Формати підписки"
   },
   "pages": {
+    "cleanIp": {
+      "intro": "Finds Cloudflare IPs that work on the internet of the device this page is open on. Scan, then save the best IPs for your ISP into a host group: each ISP gets its own group named \"<group> {sep} <ISP>\", so users can pick the one for their internet.",
+      "vpnHint": "Turn the VPN off before scanning: the test is for the internet this device is on.",
+      "network": "Your network",
+      "detecting": "Detecting…",
+      "privateIp": "The panel sees a local address (opened on the server itself or through a proxy), so it can not tell your ISP. Type its name below.",
+      "noIsp": "This ISP has no short name yet. Type one below (for example MCI or MTN).",
+      "ispName": "ISP name",
+      "scan": "Scan",
+      "perRange": "IPs per range",
+      "timeout": "Timeout (ms)",
+      "parallel": "Parallel tests",
+      "start": "Start scan",
+      "stop": "Stop",
+      "progress": "Tested {done} of {total}, working {ok}",
+      "quickNote": "This quick test checks that each IP answers a TLS handshake from this browser. Some ISPs cut a connection only after the first kilobytes, so check the saved IPs with a real client.",
+      "results": "Working IPs",
+      "copy": "Copy",
+      "copied": "Copied",
+      "empty": "No working IP yet",
+      "ip": "IP",
+      "latency": "Latency",
+      "save": "Save to a host group",
+      "noGroups": "No host group yet. Make one on the Hosts page for your CDN inbound first.",
+      "group": "Host group",
+      "port": "Port",
+      "saveFor": "Save {count} IPs for {isp}",
+      "saved": "Saved {count} IPs as {name}",
+      "needIsp": "Type the ISP name first.",
+      "needIps": "Select at least one working IP.",
+      "templateHint": "Config names show the host group only when the remark template has {tag} (Settings › Subscription). Without it, every ISP's config gets the same name.",
+      "ispGroups": "ISP groups of this host group",
+      "noIspGroups": "None yet.",
+      "removeConfirm": "Delete the {name} group?",
+      "toasts": {
+        "network": "Could not detect the network"
+      }
+    },
     "login": {
       "hello": "Привіт",
       "title": "Привітання!",

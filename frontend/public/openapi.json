@@ -1720,6 +1720,39 @@
         ],
         "type": "object"
       },
+      "CleanIpNetwork": {
+        "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
+        "properties": {
+          "asn": {
+            "example": 197207,
+            "type": "integer"
+          },
+          "country": {
+            "example": "IR",
+            "type": "string"
+          },
+          "ip": {
+            "example": "5.160.10.20",
+            "type": "string"
+          },
+          "isp": {
+            "example": "MCI",
+            "type": "string"
+          },
+          "org": {
+            "example": "Mobile Communication Company of Iran PLC",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asn",
+          "country",
+          "ip",
+          "isp",
+          "org"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -5041,6 +5074,10 @@
     {
       "name": "Hosts",
       "description": "Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts."
+    },
+    {
+      "name": "Clean IP Scanner",
+      "description": "The clean IP scanner tests Cloudflare IPs from the browser of whoever opens it; these endpoints tell it which ISP that is."
     },
     {
       "name": "Backup",
@@ -13182,6 +13219,48 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/network": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The network (AS number, organization, country and short ISP name such as MCI or MTN) of the caller's IP address. Private addresses come back with only the IP.",
+        "operationId": "get_panel_api_cleanip_network",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpNetwork"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "asn": 197207,
+                    "country": "IR",
+                    "ip": "5.160.10.20",
+                    "isp": "MCI",
+                    "org": "Mobile Communication Company of Iran PLC"
                   }
                 }
               }

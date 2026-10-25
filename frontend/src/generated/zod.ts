@@ -438,6 +438,15 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const CleanIpNetworkSchema = z.object({
+  asn: z.number().int(),
+  country: z.string(),
+  ip: z.string(),
+  isp: z.string(),
+  org: z.string(),
+});
+export type CleanIpNetwork = z.infer<typeof CleanIpNetworkSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),

@@ -1694,6 +1694,39 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "CleanIpNetwork": {
+    "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
+    "properties": {
+      "asn": {
+        "example": 197207,
+        "type": "integer"
+      },
+      "country": {
+        "example": "IR",
+        "type": "string"
+      },
+      "ip": {
+        "example": "5.160.10.20",
+        "type": "string"
+      },
+      "isp": {
+        "example": "MCI",
+        "type": "string"
+      },
+      "org": {
+        "example": "Mobile Communication Company of Iran PLC",
+        "type": "string"
+      }
+    },
+    "required": [
+      "asn",
+      "country",
+      "ip",
+      "isp",
+      "org"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {

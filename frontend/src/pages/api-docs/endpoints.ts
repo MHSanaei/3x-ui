@@ -1936,6 +1936,22 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'clean-ip',
+    title: 'Clean IP Scanner',
+    description:
+      'The clean IP scanner tests Cloudflare IPs from the browser of whoever opens it; these endpoints tell it which ISP that is.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/cleanip/network',
+        summary:
+          "The network (AS number, organization, country and short ISP name such as MCI or MTN) of the caller's IP address. Private addresses come back with only the IP.",
+        responseSchema: 'CleanIpNetwork',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',
