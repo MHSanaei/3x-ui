@@ -1,6 +1,10 @@
 package job
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+)
 
 // Addresses in the examples below come from the documentation ranges reserved
 // by RFC 5737 and RFC 3849.
@@ -37,7 +41,7 @@ func TestIpLimitAllowlistIgnoresUnparsableEntries(t *testing.T) {
 // The point of the setting: a shared address is neither banned nor counted, so
 // the office NAT it protects does not consume the client's limit either.
 func TestIpLimitAllowlistSplitKeepsAllowedOutOfTheCount(t *testing.T) {
-	live := []IPWithTimestamp{
+	live := []model.ClientIpEntry{
 		{IP: "203.0.113.10", Timestamp: 1},
 		{IP: "192.0.2.1", Timestamp: 2},
 		{IP: "192.0.2.2", Timestamp: 3},
@@ -62,7 +66,7 @@ func TestIpLimitAllowlistSplitKeepsAllowedOutOfTheCount(t *testing.T) {
 }
 
 func TestIpLimitAllowlistEmptyListChangesNothing(t *testing.T) {
-	live := []IPWithTimestamp{{IP: "192.0.2.1", Timestamp: 1}, {IP: "192.0.2.2", Timestamp: 2}}
+	live := []model.ClientIpEntry{{IP: "192.0.2.1", Timestamp: 1}, {IP: "192.0.2.2", Timestamp: 2}}
 	limited, allowed := parseIpLimitAllowlist("").split(live)
 	if allowed != nil || len(limited) != 2 {
 		t.Fatalf("empty allowlist changed the input: limited=%v allowed=%v", limited, allowed)

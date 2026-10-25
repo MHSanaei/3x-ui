@@ -28,8 +28,8 @@ func TestRecordLocalClientIps_RoundTripByGuid(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("want 2 entries, got %v", got)
 	}
-	if got[0].IP != "1.1.1.1" { // newest-first ordering
-		t.Fatalf("want newest first, got %v", got)
+	if got[0].IP != "2.2.2.2" || got[0].Timestamp != now-10 || got[1].IP != "1.1.1.1" || got[1].Timestamp != now {
+		t.Fatalf("want ascending timestamps, got %v", got)
 	}
 }
 

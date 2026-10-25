@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"gorm.io/gorm"
 )
@@ -86,7 +87,7 @@ func TestProcessObserved_CommitFailureDoesNotPublishBan(t *testing.T) {
 	const email = "rollback-must-not-ban@x"
 	seedLinkedInboundWithClient(t, "rollback-must-not-ban", email, 1)
 	now := time.Now().Unix()
-	seedClientIps(t, email, []IPWithTimestamp{{IP: "198.51.100.10", Timestamp: now - 2}})
+	seedClientIps(t, email, []model.ClientIpEntry{{IP: "198.51.100.10", Timestamp: now - 2}})
 
 	installClientIpCommitFailure(t)
 
@@ -146,7 +147,7 @@ func TestProcessObserved_ForgetsBannedSeenWhenClientReturnsUnderLimit(t *testing
 	const email = "prune-banned-seen@x"
 	seedLinkedInboundWithClient(t, "prune-banned-seen", email, 1)
 	now := time.Now().Unix()
-	seedClientIps(t, email, []IPWithTimestamp{{IP: "203.0.113.1", Timestamp: now - 500}})
+	seedClientIps(t, email, []model.ClientIpEntry{{IP: "203.0.113.1", Timestamp: now - 500}})
 	j := NewCheckClientIpJob()
 
 	j.processObserved(map[string]map[string]int64{
@@ -180,7 +181,7 @@ func (f failingWriter) Write([]byte) (int, error) { return 0, f.err }
 // sees, so it has to reach the caller.
 func TestWriteBanLinesSurfacesWriteFailure(t *testing.T) {
 	want := errors.New("no space left on device")
-	err := writeBanLines(failingWriter{err: want}, "write-failure@x", []IPWithTimestamp{
+	err := writeBanLines(failingWriter{err: want}, "write-failure@x", []model.ClientIpEntry{
 		{IP: "203.0.113.9", Timestamp: time.Now().Unix()},
 	})
 	if !errors.Is(err, want) {
@@ -195,7 +196,7 @@ func TestProcessObserved_PublishesBanForCommittedScan(t *testing.T) {
 	const email = "published-ban@x"
 	seedLinkedInboundWithClient(t, "published-ban", email, 1)
 	now := time.Now().Unix()
-	seedClientIps(t, email, []IPWithTimestamp{{IP: "203.0.113.50", Timestamp: now - 500}})
+	seedClientIps(t, email, []model.ClientIpEntry{{IP: "203.0.113.50", Timestamp: now - 500}})
 
 	j := NewCheckClientIpJob()
 	if cleaned := j.processObserved(map[string]map[string]int64{

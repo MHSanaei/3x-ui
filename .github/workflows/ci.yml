@@ -90,6 +90,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client IP sync regressions
+        run: |
+          set -o pipefail
+          go test -p=1 ./internal/web/service ./internal/web/job -run '^TestClientIpSyncPostgres(Scanner)?$' -count=1 -v | tee /tmp/postgres-client-ip-sync.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-client-ip-sync.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected 2 passing PostgreSQL client IP sync tests, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL global-traffic heartbeat regressions
         run: |
           set -o pipefail

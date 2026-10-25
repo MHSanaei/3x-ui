@@ -29,10 +29,10 @@ func TestPruneStaleClientIpsExpiresUnobservedRows(t *testing.T) {
 	}
 
 	seed := []any{
-		&model.InboundClientIps{ClientEmail: "offline", Ips: marshalIps(t, clientIpEntry{IP: "198.51.100.7", Timestamp: stale})},
+		&model.InboundClientIps{ClientEmail: "offline", Ips: marshalIps(t, model.ClientIpEntry{IP: "198.51.100.7", Timestamp: stale})},
 		&model.InboundClientIps{ClientEmail: "mixed", Ips: marshalIps(t,
-			clientIpEntry{IP: "198.51.100.8", Timestamp: stale},
-			clientIpEntry{IP: "203.0.113.9", Timestamp: fresh})},
+			model.ClientIpEntry{IP: "198.51.100.8", Timestamp: stale},
+			model.ClientIpEntry{IP: "203.0.113.9", Timestamp: fresh})},
 		&model.NodeClientIp{NodeGuid: "g1", Email: "node-offline", Ips: mkNode(model.ClientIpEntry{IP: "198.51.100.9", Timestamp: stale})},
 		&model.NodeClientIp{NodeGuid: "g1", Email: "node-fresh", Ips: mkNode(model.ClientIpEntry{IP: "203.0.113.10", Timestamp: fresh})},
 	}

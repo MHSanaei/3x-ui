@@ -1,7 +1,7 @@
 package job
 
 import (
-	"encoding/json"
+	"maps"
 	"testing"
 	"time"
 
@@ -9,20 +9,26 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // A node sync landing between the scan's read and its write must keep its remote
 // IP (#6587); the hook injects that write, since SQLite serializes real writers.
 func TestProcessObserved_KeepsNodeSyncWriteThatLandsMidScan(t *testing.T) {
 	setupIntegrationDB(t)
+	processObservedKeepsNodeSyncWrite(t)
+}
+
+func processObservedKeepsNodeSyncWrite(t *testing.T) {
+	t.Helper()
 	db := database.GetDB()
 
 	const email = "cas-scan@x"
 	seedLinkedInboundWithClient(t, "cas-scan", email, 3)
 	now := time.Now().Unix()
-	seedClientIps(t, email, []IPWithTimestamp{{IP: "198.51.100.1", Timestamp: now - 60}})
+	seed := seedClientIps(t, email, []model.ClientIpEntry{{IP: "198.51.100.1", Timestamp: now - 60}})
 
-	nodeBlob, err := json.Marshal([]IPWithTimestamp{
+	nodeBlob, err := model.MarshalClientIpEntries([]model.ClientIpEntry{
 		{IP: "198.51.100.1", Timestamp: now - 60},
 		{IP: "203.0.113.77", Timestamp: now - 5},
 	})
@@ -35,11 +41,19 @@ func TestProcessObserved_KeepsNodeSyncWriteThatLandsMidScan(t *testing.T) {
 		if injected || tx.Statement.Schema == nil || tx.Statement.Schema.Table != "inbound_client_ips" {
 			return
 		}
+		where, ok := tx.Statement.Clauses["WHERE"].Expression.(clause.Where)
+		if !ok || len(where.Exprs) != 1 {
+			return
+		}
+		predicate, ok := where.Exprs[0].(clause.Expr)
+		if !ok || len(predicate.Vars) != 2 || predicate.Vars[0] != seed.Id {
+			return
+		}
 		injected = true
 		if err := tx.Session(&gorm.Session{SkipHooks: true, NewDB: true}).
 			Model(&model.InboundClientIps{}).
 			Where("client_email = ?", email).
-			Update("ips", string(nodeBlob)).Error; err != nil {
+			Update("ips", nodeBlob).Error; err != nil {
 			_ = tx.AddError(err)
 		}
 	}); err != nil {
@@ -55,10 +69,8 @@ func TestProcessObserved_KeepsNodeSyncWriteThatLandsMidScan(t *testing.T) {
 	}
 
 	got := ipSet(readClientIps(t, email))
-	if _, ok := got["203.0.113.77"]; !ok {
-		t.Fatalf("scan overwrote the node's remote IP (the #6587 lost update): %v", got)
-	}
-	if got["198.51.100.1"] != now {
-		t.Fatalf("scan's own observation missing or stale: %v", got)
+	want := map[string]int64{"203.0.113.77": now - 5, "198.51.100.1": now}
+	if !maps.Equal(got, want) {
+		t.Fatalf("scan/node union = %v, want %v", got, want)
 	}
 }

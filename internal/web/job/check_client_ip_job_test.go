@@ -18,11 +18,11 @@ func TestMergeClientIps_EvictsStaleOldEntries(t *testing.T) {
 	// banned again immediately because a long-disconnected IP stayed in the
 	// DB with an ancient timestamp and kept "protecting" itself against
 	// eviction. Guard against that regression here.
-	old := []IPWithTimestamp{
+	old := []model.ClientIpEntry{
 		{IP: "1.1.1.1", Timestamp: 100},  // stale — client disconnected long ago
 		{IP: "2.2.2.2", Timestamp: 1900}, // fresh — still connecting
 	}
-	new := []IPWithTimestamp{
+	new := []model.ClientIpEntry{
 		{IP: "2.2.2.2", Timestamp: 2000}, // same IP, newer log line
 	}
 
@@ -37,7 +37,7 @@ func TestMergeClientIps_EvictsStaleOldEntries(t *testing.T) {
 func TestMergeClientIps_KeepsFreshOldEntriesUnchanged(t *testing.T) {
 	// Backwards-compat: entries that aren't stale are still carried forward,
 	// so enforcement survives access-log rotation.
-	old := []IPWithTimestamp{
+	old := []model.ClientIpEntry{
 		{IP: "1.1.1.1", Timestamp: 1500},
 	}
 	got := mergeClientIps(old, nil, 1000, false)
@@ -49,8 +49,8 @@ func TestMergeClientIps_KeepsFreshOldEntriesUnchanged(t *testing.T) {
 }
 
 func TestMergeClientIps_PrefersLaterTimestampForSameIp(t *testing.T) {
-	old := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 1500}}
-	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 1700}}
+	old := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 1500}}
+	new := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 1700}}
 
 	got := mergeClientIps(old, new, 1000, false)
 
@@ -62,7 +62,7 @@ func TestMergeClientIps_PrefersLaterTimestampForSameIp(t *testing.T) {
 func TestMergeClientIps_DropsStaleNewEntries(t *testing.T) {
 	// A log line with a clock-skewed old timestamp must not resurrect a
 	// stale IP past the cutoff.
-	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 500}}
+	new := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 500}}
 	got := mergeClientIps(nil, new, 1000, false)
 
 	if len(got) != 0 {
@@ -73,8 +73,8 @@ func TestMergeClientIps_DropsStaleNewEntries(t *testing.T) {
 func TestMergeClientIps_NoStaleCutoffStillWorks(t *testing.T) {
 	// Defensive: a zero cutoff (e.g. during very first run on a fresh
 	// install) must not over-evict.
-	old := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 100}}
-	new := []IPWithTimestamp{{IP: "2.2.2.2", Timestamp: 200}}
+	old := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 100}}
+	new := []model.ClientIpEntry{{IP: "2.2.2.2", Timestamp: 200}}
 
 	got := mergeClientIps(old, new, 0, false)
 
@@ -88,7 +88,7 @@ func TestMergeClientIps_LiveObservationsBypassStaleCutoff(t *testing.T) {
 	// online-API mode: lastSeen is set when the connection was dispatched, so
 	// a connection held open for hours has an "old" timestamp while being live
 	// by definition. It must survive the stale cutoff.
-	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 500}} // opened long ago, still connected
+	new := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 500}} // opened long ago, still connected
 	got := mergeClientIps(nil, new, 1000, true)
 
 	want := map[string]int64{"1.1.1.1": 500}
@@ -100,8 +100,8 @@ func TestMergeClientIps_LiveObservationsBypassStaleCutoff(t *testing.T) {
 func TestMergeClientIps_LiveModeStillEvictsStaleOldEntries(t *testing.T) {
 	// the bypass applies only to this scan's observations — persisted entries
 	// from past scans still age out as before.
-	old := []IPWithTimestamp{{IP: "2.2.2.2", Timestamp: 100}}
-	new := []IPWithTimestamp{{IP: "1.1.1.1", Timestamp: 2000}}
+	old := []model.ClientIpEntry{{IP: "2.2.2.2", Timestamp: 100}}
+	new := []model.ClientIpEntry{{IP: "1.1.1.1", Timestamp: 2000}}
 	got := mergeClientIps(old, new, 1000, true)
 
 	want := map[string]int64{"1.1.1.1": 2000}
@@ -111,7 +111,7 @@ func TestMergeClientIps_LiveModeStillEvictsStaleOldEntries(t *testing.T) {
 }
 
 func TestSelectIpsToBan(t *testing.T) {
-	live := []IPWithTimestamp{ // sorted oldest-first, as partitionLiveIps returns
+	live := []model.ClientIpEntry{ // sorted oldest-first, as partitionLiveIps returns
 		{IP: "A", Timestamp: 100},
 		{IP: "B", Timestamp: 200},
 		{IP: "C", Timestamp: 300},
@@ -144,7 +144,7 @@ func TestSelectIpsToBan(t *testing.T) {
 	}
 }
 
-func collectIps(entries []IPWithTimestamp) []string {
+func collectIps(entries []model.ClientIpEntry) []string {
 	out := make([]string, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, e.IP)
@@ -294,7 +294,7 @@ func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
 func TestPartitionLiveIps_TiedTimestampsKeepStableIpOrder(t *testing.T) {
 	ipMap := map[string]int64{"203.0.113.3": 100, "203.0.113.1": 100, "203.0.113.2": 100}
 	observed := map[string]bool{"203.0.113.1": true, "203.0.113.2": true, "203.0.113.3": true}
-	var first []IPWithTimestamp
+	var first []model.ClientIpEntry
 	for i := range 50 {
 		live, _ := partitionLiveIps(ipMap, observed)
 		if i == 0 {
