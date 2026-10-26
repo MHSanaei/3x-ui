@@ -21,6 +21,9 @@ func seedClientGroupHostAssignmentDB(t *testing.T) {
 func TestClientGroupHostAssignment_SetValidateAndClear(t *testing.T) {
 	seedClientGroupHostAssignmentDB(t)
 	db := database.GetDB()
+	invalidations := 0
+	releaseInvalidator := RegisterSubDataInvalidator(func() { invalidations++ })
+	t.Cleanup(releaseInvalidator)
 	if err := db.Create(&model.ClientGroup{Name: "staff"}).Error; err != nil {
 		t.Fatalf("create client group: %v", err)
 	}
@@ -31,6 +34,9 @@ func TestClientGroupHostAssignment_SetValidateAndClear(t *testing.T) {
 	svc := &ClientGroupHostAssignmentService{}
 	if err := svc.SetGroupIDs("staff", []string{" cdn-a ", "cdn-a", ""}); err != nil {
 		t.Fatalf("set valid assignment: %v", err)
+	}
+	if invalidations != 1 {
+		t.Fatalf("successful assignment invalidations = %d, want 1", invalidations)
 	}
 	ids, err := svc.GetGroupIDs("staff")
 	if err != nil {
@@ -43,6 +49,9 @@ func TestClientGroupHostAssignment_SetValidateAndClear(t *testing.T) {
 	if err := svc.SetGroupIDs("staff", []string{"missing"}); err == nil {
 		t.Fatal("unknown HostGroup ID should be rejected")
 	}
+	if invalidations != 1 {
+		t.Fatalf("rejected assignment invalidations = %d, want unchanged at 1", invalidations)
+	}
 	ids, err = svc.GetGroupIDs("staff")
 	if err != nil {
 		t.Fatalf("get assignment after rejected replacement: %v", err)
@@ -53,6 +62,9 @@ func TestClientGroupHostAssignment_SetValidateAndClear(t *testing.T) {
 
 	if err := svc.SetGroupIDs("staff", []string{}); err != nil {
 		t.Fatalf("clear assignment: %v", err)
+	}
+	if invalidations != 2 {
+		t.Fatalf("assignment-clear invalidations = %d, want 2", invalidations)
 	}
 	ids, err = svc.GetGroupIDs("staff")
 	if err != nil {
