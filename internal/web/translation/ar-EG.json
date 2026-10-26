@@ -156,6 +156,10 @@
       "resolver": "خادم DNS",
       "resolverName": "الاسم",
       "resolverOk": "يمرّر ✓",
+      "resolverLowMtu": "MTU منخفض · أسماء {chars} حرفًا",
+      "resolverLiar": "يختلق الإجابات ✗",
+      "lowMtuLeftOut": "{count} آخرون يمرون بأسماء استعلام قصيرة فقط (MTU منخفض): استُبعدوا من القائمة، لأن StormDNS سيشغّل كل المحللات بـ MTU الصغير الخاص بهم.",
+      "lowMtuOnly": "هذه تمر بأسماء استعلام قصيرة فقط (MTU منخفض): اضبط MIN_UPLOAD_MTU = 40 و MIN_DOWNLOAD_MTU = 200 في عميل StormDNS لاستخدامها.",
       "toasts": {
         "detect": "تعذرت قراءة خادم StormDNS في ذلك المجلد (server_config.toml وملف مفتاحه)",
         "profiles": "تعذر حفظ خوادم النفق",

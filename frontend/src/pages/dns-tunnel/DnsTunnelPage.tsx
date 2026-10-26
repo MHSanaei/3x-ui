@@ -38,15 +38,16 @@ import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { NetworkInfo, StepTitle, fetchNetwork } from '@/pages/clean-ip/common';
-import { mergeDetected, whiteDnsLink, resolverList, type DnsTunnelProfile } from './links';
+import {
+  isLowMtu,
+  mergeDetected,
+  resolverList,
+  resolverShare,
+  whiteDnsLink,
+  type DnsTunnelProfile,
+  type ResolverResult,
+} from './links';
 import '@/pages/clean-ip/CleanIpPage.css';
-
-interface ResolverResult {
-  ip: string;
-  status: string;
-  ms: number;
-  name: string;
-}
 
 interface ResolverReport {
   at: number;
@@ -198,9 +199,15 @@ export default function DnsTunnelPage() {
     .filter(Boolean)
     .join(' ');
   const gutter: [number, number] = [isMobile ? 8 : 16, isMobile ? 8 : 16];
-  const statusTag = (status: string) =>
+  const statusTag = (status: string, r: ResolverResult) =>
     status === 'ok' ? (
-      <Tag color="success">{t('pages.dnsTunnel.resolverOk')}</Tag>
+      isLowMtu(r) ? (
+        <Tag color="warning">{t('pages.dnsTunnel.resolverLowMtu', { chars: r.maxName })}</Tag>
+      ) : (
+        <Tag color="success">{t('pages.dnsTunnel.resolverOk')}</Tag>
+      )
+    ) : status === 'liar' ? (
+      <Tag color="error">{t('pages.dnsTunnel.resolverLiar')}</Tag>
     ) : (
       <Tag color={status === 'timeout' ? 'default' : 'error'}>{status}</Tag>
     );
@@ -465,7 +472,8 @@ export default function DnsTunnelPage() {
                         </Typography.Paragraph>
                       ) : (
                         newestFirst.map((r) => {
-                          const ok = r.results.filter((x) => x.status === 'ok').map((x) => x.ip);
+                          const ok = r.results.filter((x) => x.status === 'ok');
+                          const share = resolverShare(r.results);
                           return (
                             <div key={r.at} className="clean-ip-report">
                               <div className="clean-ip-report-head">
@@ -482,12 +490,30 @@ export default function DnsTunnelPage() {
                                 <Button
                                   size="small"
                                   icon={<CopyOutlined aria-hidden />}
-                                  disabled={!ok.length}
-                                  onClick={() => copy(resolverList(ok))}
+                                  disabled={!share.ips.length}
+                                  onClick={() => copy(resolverList(share.ips))}
                                 >
                                   {t('pages.dnsTunnel.copyResolvers')}
                                 </Button>
                               </div>
+                              {share.leftOut > 0 && (
+                                <Alert
+                                  className="clean-ip-note"
+                                  type="info"
+                                  showIcon
+                                  title={t('pages.dnsTunnel.lowMtuLeftOut', {
+                                    count: share.leftOut,
+                                  })}
+                                />
+                              )}
+                              {share.low && (
+                                <Alert
+                                  className="clean-ip-note"
+                                  type="warning"
+                                  showIcon
+                                  title={t('pages.dnsTunnel.lowMtuOnly')}
+                                />
+                              )}
                               <Table
                                 size="small"
                                 rowKey="ip"

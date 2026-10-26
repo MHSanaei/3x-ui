@@ -743,6 +743,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "results": [
       {
         "ip": "178.22.122.100",
+        "maxName": 253,
         "ms": 120,
         "name": "Shecan",
         "status": "ok"
@@ -752,6 +753,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "DnsResolverResult": {
     "ip": "178.22.122.100",
+    "maxName": 253,
     "ms": 120,
     "name": "Shecan",
     "status": "ok"

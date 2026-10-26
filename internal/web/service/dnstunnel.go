@@ -48,11 +48,14 @@ type DnsTunnelCommandRequest struct {
 	Resolvers []string `json:"resolvers" example:"[\"178.22.122.100\"]"`
 }
 
+// DnsResolverResult is one resolver as the test saw it; MaxName is the longest query name it
+// carried to the server (StormDNS packs its upload there), 0 when not measured.
 type DnsResolverResult struct {
-	Ip     string `json:"ip" example:"178.22.122.100"`
-	Status string `json:"status" example:"ok"`
-	Ms     int    `json:"ms" example:"120"`
-	Name   string `json:"name" example:"Shecan"`
+	Ip      string `json:"ip" example:"178.22.122.100"`
+	Status  string `json:"status" example:"ok"`
+	Ms      int    `json:"ms" example:"120"`
+	Name    string `json:"name" example:"Shecan"`
+	MaxName int    `json:"maxName" example:"253"`
 }
 
 type DnsResolverReport struct {
@@ -228,7 +231,7 @@ func (s *DnsTunnelService) Reports(token string) ([]DnsResolverReport, error) {
 	return dnsTunnelJobs.reports(token)
 }
 
-var dnsResolverStatuses = map[string]bool{"ok": true, "timeout": true, "servfail": true, "refused": true, "error": true}
+var dnsResolverStatuses = map[string]bool{"ok": true, "liar": true, "timeout": true, "servfail": true, "refused": true, "error": true}
 
 func (s *DnsTunnelService) AddReport(ctx context.Context, token string, body []byte, reporterIp string) (*DnsResolverReport, error) {
 	job, err := dnsTunnelJobs.request(token)
@@ -250,7 +253,7 @@ func (s *DnsTunnelService) AddReport(ctx context.Context, token string, body []b
 		if !dnsTunnelResolverNameRe.MatchString(name) {
 			name = ""
 		}
-		report.Results = append(report.Results, DnsResolverResult{Ip: ip, Status: r.Status, Ms: max(0, min(r.Ms, 60000)), Name: name})
+		report.Results = append(report.Results, DnsResolverResult{Ip: ip, Status: r.Status, Ms: max(0, min(r.Ms, 60000)), Name: name, MaxName: max(0, min(r.MaxName, 253))})
 	}
 	// working resolvers first, fastest first
 	sort.SliceStable(report.Results, func(i, j int) bool {

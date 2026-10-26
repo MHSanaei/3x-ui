@@ -667,6 +667,7 @@ export interface DnsResolverReport {
 
 export interface DnsResolverResult {
   ip: string;
+  maxName: number;
   ms: number;
   name: string;
   status: string;

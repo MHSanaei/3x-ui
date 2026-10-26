@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "اسم",
       "resolverOk": "رد می‌کند ✓",
+      "resolverLowMtu": "MTU پایین · نام {chars} نویسه",
+      "resolverLiar": "جواب ساختگی می‌دهد ✗",
+      "lowMtuLeftOut": "{count} ریزالور دیگر فقط با نام‌های کوتاه (MTU پایین) رد می‌شوند: از لیست کنار گذاشته شدند، چون StormDNS همهٔ ریزالورها را با MTU کوچک آن‌ها اجرا می‌کرد.",
+      "lowMtuOnly": "این‌ها فقط با نام‌های کوتاه (MTU پایین) رد می‌شوند: برای استفاده، در کلاینت StormDNS مقدار MIN_UPLOAD_MTU = 40 و MIN_DOWNLOAD_MTU = 200 بگذارید.",
       "toasts": {
         "detect": "سرور StormDNS در آن پوشه پیدا نشد (server_config.toml و فایل کلیدش)",
         "profiles": "سرورهای تونل ذخیره نشدند",

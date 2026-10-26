@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "Name",
       "resolverOk": "passes ✓",
+      "resolverLowMtu": "low MTU · {chars}-char names",
+      "resolverLiar": "makes answers up ✗",
+      "lowMtuLeftOut": "{count} more pass only with short query names (low MTU): left out of the list, as StormDNS would run every resolver at their small MTU.",
+      "lowMtuOnly": "These pass only with short query names (low MTU): set MIN_UPLOAD_MTU = 40 and MIN_DOWNLOAD_MTU = 200 in the StormDNS client to use them.",
       "toasts": {
         "detect": "Could not read a StormDNS server in that folder (server_config.toml and its key file)",
         "profiles": "Could not save the tunnel servers",

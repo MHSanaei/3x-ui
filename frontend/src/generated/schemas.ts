@@ -2863,10 +2863,15 @@ export const SCHEMAS: Record<string, unknown> = {
     "type": "object"
   },
   "DnsResolverResult": {
+    "description": "DnsResolverResult is one resolver as the test saw it; MaxName is the longest query name it\ncarried to the server (StormDNS packs its upload there), 0 when not measured.",
     "properties": {
       "ip": {
         "example": "178.22.122.100",
         "type": "string"
+      },
+      "maxName": {
+        "example": 253,
+        "type": "integer"
       },
       "ms": {
         "example": 120,
@@ -2883,6 +2888,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "ip",
+      "maxName",
       "ms",
       "name",
       "status"
