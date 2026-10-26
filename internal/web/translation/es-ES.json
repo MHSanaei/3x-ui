@@ -1180,7 +1180,7 @@
       "tlsPin": "Fijar certificado (SHA-256)",
       "tlsSkip": "Omitir verificación",
       "tlsMtls": "TLS mutuo (certificado de cliente)",
-      "mtlsFormHint": "Este nodo autentica al panel con un certificado de cliente. Copia el CA de este panel desde la sección mTLS del nodo al nodo, configura su CA de confianza y luego reinícialo.",
+      "mtlsFormHint": "Este nodo autentica al panel con un certificado de cliente. Copia el CA de este panel desde la sección mTLS del nodo al nodo, configura su CA de confianza y luego reinícialo. Actualizar el panel de este nodo desde aquí sigue requiriendo un token de API con el alcance node-admin.",
       "mtls": {
         "title": "mTLS del nodo",
         "intro": "TLS mutuo añade un factor de certificado de cliente además del token de API para las llamadas entre nodos. Es opcional: déjalo vacío para mantener solo la autenticación por token.",

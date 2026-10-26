@@ -1180,7 +1180,7 @@
       "tlsPin": "Ghim chứng chỉ (SHA-256)",
       "tlsSkip": "Bỏ qua xác minh",
       "tlsMtls": "TLS song phương (chứng chỉ máy khách)",
-      "mtlsFormHint": "Nút này xác thực bảng điều khiển bằng chứng chỉ máy khách. Sao chép CA của bảng điều khiển này từ mục mTLS nút sang nút, đặt CA tin cậy của nó, rồi khởi động lại.",
+      "mtlsFormHint": "Nút này xác thực bảng điều khiển bằng chứng chỉ máy khách. Sao chép CA của bảng điều khiển này từ mục mTLS nút sang nút, đặt CA tin cậy của nó, rồi khởi động lại. Cập nhật bảng điều khiển của nút này từ đây vẫn cần token API có phạm vi node-admin.",
       "mtls": {
         "title": "mTLS nút",
         "intro": "TLS song phương bổ sung yếu tố chứng chỉ máy khách bên cạnh token API cho các lệnh gọi giữa các nút. Đây là tùy chọn: để trống để chỉ dùng xác thực bằng token.",

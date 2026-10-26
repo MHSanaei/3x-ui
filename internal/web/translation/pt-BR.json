@@ -1180,7 +1180,7 @@
       "tlsPin": "Fixar certificado (SHA-256)",
       "tlsSkip": "Ignorar verificação",
       "tlsMtls": "TLS mútuo (certificado de cliente)",
-      "mtlsFormHint": "Este nó autentica o painel com um certificado de cliente. Copie o CA deste painel na seção mTLS do nó para o nó, defina o CA confiável dele e reinicie-o.",
+      "mtlsFormHint": "Este nó autentica o painel com um certificado de cliente. Copie o CA deste painel na seção mTLS do nó para o nó, defina o CA confiável dele e reinicie-o. Atualizar o painel deste nó a partir daqui ainda exige um token de API com o escopo node-admin.",
       "mtls": {
         "title": "mTLS do nó",
         "intro": "O TLS mútuo adiciona um fator de certificado de cliente além do token de API nas chamadas entre nós. É opcional: deixe vazio para manter apenas a autenticação por token.",

@@ -1301,7 +1301,7 @@
       "tlsPin": "Pin certificate (SHA-256)",
       "tlsSkip": "Skip verification",
       "tlsMtls": "Mutual TLS (client certificate)",
-      "mtlsFormHint": "This node authenticates the panel with a client certificate. Copy this panel's CA from the Node mTLS section onto the node, set its Trusted parent CA, then restart it.",
+      "mtlsFormHint": "This node authenticates the panel with a client certificate. Copy this panel's CA from the Node mTLS section onto the node, set its Trusted parent CA, then restart it. Updating this node's panel from here still needs an API token with the node-admin scope.",
       "mtls": {
         "title": "Node mTLS",
         "intro": "Mutual TLS adds a client-certificate factor on top of the API token for node-to-node calls. It is opt-in: leave it empty to keep token-only auth.",
