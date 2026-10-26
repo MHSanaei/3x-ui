@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ func droppedClientNeedsRestart() bool {
 	return on
 }
 
-func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client) error {
+func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client, previousEmail string) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
 	}
@@ -71,6 +72,33 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 	}
 	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
 		return err
+	}
+	if !inbound.Enable {
+		return nil
+	}
+	inst.Peers = nil
+	for _, client := range clients {
+		if !client.Enable {
+			continue
+		}
+		allowedIPs := client.AllowedIPs
+		for _, old := range settings.Clients {
+			if previousEmail == "" || !strings.EqualFold(old.Email, previousEmail) {
+				continue
+			}
+			if len(allowedIPs) == 0 {
+				allowedIPs = old.AllowedIPs
+			}
+			// Preserve legacy addresses on active peers; validate newly added
+			// addresses, or every address when enabling a disabled peer.
+			if old.Enable {
+				allowedIPs = slices.DeleteFunc(slices.Clone(allowedIPs), func(ip string) bool {
+					return slices.Contains(old.AllowedIPs, ip)
+				})
+			}
+			break
+		}
+		inst.Peers = append(inst.Peers, amneziawg.Peer{Email: client.Email, AllowedIPs: allowedIPs})
 	}
 	return amneziawgkern.ValidatePeerSubnets(inst)
 }
@@ -487,7 +515,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, ""); err != nil {
 		return false, err
 	}
 
@@ -855,7 +883,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			clients[0].ForwardedPorts = old.ForwardedPorts
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, oldEmail); err != nil {
 		return false, err
 	}
 	if oldInbound.Protocol == model.AmneziaWG {

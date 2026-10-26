@@ -91,6 +91,7 @@ func TestKernelAWGClientUpdateRejectsUnsafeValuesAndUnsupportedFeatures(t *testi
 				t.Fatal(getErr)
 			}
 			update := tc.update
+			update.Enable = true
 			if len(update.AllowedIPs) > 0 {
 				update.AllowedIPsByInbound = map[int][]string{ib.Id: update.AllowedIPs}
 			}
@@ -127,6 +128,87 @@ func TestKernelAWGClientFeatureChecksPreserveSupportedPaths(t *testing.T) {
 	embedded := mkInbound(t, 52003, model.AmneziaWG, amneziawgClientTestSettings)
 	if _, err := svc.CreateOne(inboundSvc, embedded.Id, model.Client{Email: "forward@embedded", Enable: true, PublicKey: "valid-key", AllowedIPs: []string{"10.8.1.3/32"}, ForwardedPorts: "54321"}); err != nil {
 		t.Fatalf("embedded AWG port forwarding was rejected: %v", err)
+	}
+}
+
+func TestKernelAWGLegacyClientRecovery(t *testing.T) {
+	cases := []struct {
+		name, action                              string
+		clientEnabled, inboundEnabled, wantReject bool
+	}{
+		{"disable legacy peer", "disable", true, true, false},
+		{"renew legacy peer", "renew", true, true, false},
+		{"edit legacy peer", "edit", true, true, false},
+		{"rename legacy peer", "rename", true, true, false},
+		{"edit disabled peer", "edit", false, true, false},
+		{"edit disabled inbound", "change", true, false, false},
+		{"enable legacy peer", "enable", false, true, true},
+		{"change to another invalid address", "change", true, true, true},
+		{"repair legacy address", "repair", true, true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setupBulkDB(t)
+			inboundSvc, svc := &InboundService{}, &ClientService{}
+			ib := mkInbound(t, 52009, model.AmneziaWG, kernelAWGSettings(nil))
+			seed := model.Client{Email: "legacy@awg", Enable: tc.clientEnabled, PublicKey: "valid-key", PrivateKey: "valid-private", AllowedIPs: []string{"10.8.1.2/32"}}
+			if _, err := svc.CreateOne(inboundSvc, ib.Id, seed); err != nil {
+				t.Fatal(err)
+			}
+			rec := lookupClientRecord(t, seed.Email)
+			ib, _ = inboundSvc.GetInbound(ib.Id)
+			// Model a restored legacy row without going through save validation.
+			legacy := strings.Replace(ib.Settings, "10.8.1.0", "10.9.1.0", 1)
+			if legacy == ib.Settings {
+				t.Fatal("failed to change legacy subnet")
+			}
+			if err := database.GetDB().Model(ib).Updates(map[string]any{"settings": legacy, "enable": tc.inboundEnabled}).Error; err != nil {
+				t.Fatal(err)
+			}
+			update := seed
+			update.ExpiryTime = 4102444800000
+			update.AllowedIPsByInbound = map[int][]string{ib.Id: seed.AllowedIPs}
+			var err error
+			switch tc.action {
+			case "disable":
+				_, _, err = svc.SetClientEnableByEmail(inboundSvc, seed.Email, false)
+			case "enable":
+				_, _, err = svc.SetClientEnableByEmail(inboundSvc, seed.Email, true)
+			case "renew":
+				_, err = svc.ResetClientExpiryTimeByEmail(inboundSvc, seed.Email, update.ExpiryTime)
+			default:
+				if tc.action == "rename" {
+					update.Email = "renamed@awg"
+				}
+				if tc.action == "change" {
+					update.AllowedIPsByInbound[ib.Id] = []string{"10.10.1.2/32"}
+				}
+				if tc.action == "repair" {
+					update.AllowedIPsByInbound[ib.Id] = []string{"10.9.1.2/32"}
+				}
+				_, err = svc.Update(inboundSvc, rec.Id, update, 0)
+			}
+			if tc.wantReject {
+				if err == nil || !strings.Contains(err.Error(), "outside kernel interface subnets") {
+					t.Fatalf("error = %v, want subnet rejection", err)
+				}
+			} else if err != nil {
+				t.Fatalf("legacy recovery rejected: %v", err)
+			}
+			after, getErr := inboundSvc.GetInbound(ib.Id)
+			if getErr != nil {
+				t.Fatal(getErr)
+			}
+			if tc.wantReject && after.Settings != legacy {
+				t.Fatal("rejected update changed inbound settings")
+			}
+			if tc.action == "disable" && mustAWGClients(t, after)[0].Enable {
+				t.Fatal("client remained enabled")
+			}
+			if tc.action == "renew" && mustAWGClients(t, after)[0].ExpiryTime != update.ExpiryTime {
+				t.Fatal("client expiry was not renewed")
+			}
+		})
 	}
 }
 
