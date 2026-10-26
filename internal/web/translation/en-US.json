@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Assign host groups",
       "hostGroupsFor": "Host groups for {name}",
       "hostGroups": "Host groups",
-      "hostsEmptyMeansLegacy": "Leave empty to use legacy all-host behavior"
+      "hostsEmptyMeansLegacy": "Leave empty to use legacy all-host behavior",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "hosts": {
       "addHost": "Add Host",

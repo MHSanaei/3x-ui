@@ -181,6 +181,17 @@ export default function GroupsPage() {
   const [hostAssignmentOpen, setHostAssignmentOpen] = useState(false);
   const [hostAssignmentIds, setHostAssignmentIds] = useState<string[]>([]);
   const [groupHostAssignments, setGroupHostAssignments] = useState<Record<string, string[]>>({});
+  const hostAssignmentOptions = useMemo(() => {
+    if (hostsLoading || hostsFetchError) return hostGroupOptions;
+    const knownIds = new Set(hostGroupOptions.map(({ value }) => value));
+    const missingOptions = hostAssignmentIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => ({
+        value: id,
+        label: t('pages.groups.missingHostGroup', { id }),
+      }));
+    return [...hostGroupOptions, ...missingOptions];
+  }, [hostGroupOptions, hostAssignmentIds, hostsLoading, hostsFetchError, t]);
   const hostAssignmentMut = useMutation({
     mutationFn: ({ name, hostGroupIds }: { name: string; hostGroupIds: string[] }) =>
       HttpUtil.post(
@@ -525,7 +536,11 @@ export default function GroupsPage() {
     }
     return assignedIds.map((groupId) => ({
       groupId,
-      label: labels.get(groupId) ?? groupId,
+      label:
+        labels.get(groupId) ??
+        (hostsLoading || hostsFetchError
+          ? groupId
+          : t('pages.groups.missingHostGroup', { id: groupId })),
     }));
   }
 
@@ -784,7 +799,7 @@ export default function GroupsPage() {
             style={{ width: '100%' }}
             value={hostAssignmentIds}
             onChange={setHostAssignmentIds}
-            options={hostGroupOptions}
+            options={hostAssignmentOptions}
             placeholder={t('pages.groups.hostsEmptyMeansLegacy')}
           />
         </Modal>

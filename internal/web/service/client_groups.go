@@ -362,9 +362,8 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		return 0, err
 	}
 
-	// Host-group defaults and the client-group record must change in the same
-	// transaction as client labels and inbound settings. Otherwise a failed
-	// rename can leave defaults attached to the wrong group.
+	// Update HostGroup defaults with client labels in the same transaction so a
+	// failed rename cannot leave them attached to a different group.
 	if newName == "" {
 		if err := tx.Where("group_name = ?", oldName).Delete(&model.ClientGroupHost{}).Error; err != nil {
 			return rollback(err)
@@ -436,7 +435,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		}
 		var settings map[string]any
 		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
-			return rollback(err)
+			continue
 		}
 		clients, ok := settings["clients"].([]any)
 		if !ok {
@@ -462,7 +461,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 			settings["clients"] = clients
 			newSettings, err := json.Marshal(settings)
 			if err != nil {
-				return rollback(err)
+				continue
 			}
 			ib.Settings = string(newSettings)
 			if err := tx.Save(&ib).Error; err != nil {

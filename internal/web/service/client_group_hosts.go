@@ -74,10 +74,8 @@ func (s *ClientGroupHostAssignmentService) SetGroupIDs(groupName string, ids []s
 			if clientCount == 0 {
 				return common.NewError("client group not found:", groupName)
 			}
-			// A group that only exists as a client label would disappear from
-			// ListGroups after its last member leaves. Persist it when assigning
-			// defaults so the HostGroup configuration remains attached to a
-			// visible, stable group. Clearing an assignment does not create a row.
+			// Persist derived groups when they receive defaults so the HostGroup
+			// assignment remains available after the group's last client leaves.
 			if len(ids) > 0 {
 				if err := tx.Create(&model.ClientGroup{Name: groupName}).Error; err != nil {
 					return err

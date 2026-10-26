@@ -18,6 +18,22 @@ import (
 
 type HostService struct{}
 
+// ensureHostGroupsUnassigned prevents a HostGroup from disappearing while client
+// groups still reference it.
+func ensureHostGroupsUnassigned(tx *gorm.DB, groupIDs []string) error {
+	if len(groupIDs) == 0 {
+		return nil
+	}
+	var count int64
+	if err := tx.Model(&model.ClientGroupHost{}).Where("host_group_id IN ?", groupIDs).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return common.NewError("host group is assigned to client groups; remove the assignment before deleting it")
+	}
+	return nil
+}
+
 func formatHostAddr(addr string, port int) string {
 	if port <= 0 {
 		return addr
@@ -303,6 +319,11 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err
 		}
+		if len(desired) == 0 {
+			if err := ensureHostGroupsUnassigned(tx, []string{groupId}); err != nil {
+				return err
+			}
+		}
 		// Exact (inbound, address, port) matches reuse ids so edits keep bindings; a second pass pairs
 		// same-inbound leftovers with edits, and rows still unclaimed are deleted.
 		type hostKey struct {
@@ -378,6 +399,9 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 
 func (s *HostService) DeleteHostGroup(groupId string) error {
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := ensureHostGroupsUnassigned(tx, []string{groupId}); err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)
 		return err
 	})
@@ -399,6 +423,9 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 		return nil
 	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := ensureHostGroupsUnassigned(tx, groupIds); err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id IN ?", groupIds)
 		return err
 	})

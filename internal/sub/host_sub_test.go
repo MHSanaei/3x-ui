@@ -2145,3 +2145,33 @@ func TestSub_ClientGroupHostAssignment_CachesHostsPerInbound(t *testing.T) {
 		t.Fatal("second client group lookup should reuse the cached host row for this inbound")
 	}
 }
+
+func TestSub_ClientGroupHostAssignment_PreservesHostlessInbounds(t *testing.T) {
+	seedSubDB(t)
+	withHost := seedSubInbound(t, "group-hostless", "group-hosted", 4666, 1, tcpTLSStream)
+	withoutHost := seedSubInbound(t, "group-hostless", "group-hostless", 4667, 2, tcpTLSStream)
+	seedHost(t, &model.Host{
+		GroupId: "cdn-staff", InboundId: withHost.Id, SortOrder: 1, Remark: "Staff",
+		Address: "staff.cdn.example", Port: 443, Security: "tls", Sni: "staff.sni",
+	})
+
+	setSubClientGroup(t, withHost, "group-hosted@e", "staff")
+	setSubClientGroup(t, withoutHost, "group-hostless@e", "staff")
+	if err := database.GetDB().Create(&model.ClientGroupHost{
+		GroupName: "staff", HostGroupId: "cdn-staff",
+	}).Error; err != nil {
+		t.Fatalf("assign host group to client group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("group-hostless", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "staff.cdn.example:443") {
+		t.Fatalf("assigned HostGroup should render: %s", joined)
+	}
+	if !strings.Contains(joined, "203.0.113.5:4667") {
+		t.Fatalf("inbound without Host rows should retain its legacy link: %s", joined)
+	}
+}

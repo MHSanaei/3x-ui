@@ -128,9 +128,8 @@ func (s *SubService) clientGroupHostSelection(groupName string) clientGroupHostS
 	return selection
 }
 
-// clientGroupHostBinding applies the group-level default only when the client has no explicit
-// host-rule binding. Assignments target stable Host.GroupId values, not row IDs; a stale or
-// unmatched non-empty assignment fails closed instead of leaking the inbound's full host list.
+// clientGroupHostBinding applies group defaults when no explicit client host rule exists.
+// Unselected Hosts stay hidden; inbounds without Host rows retain their legacy links.
 func (s *SubService) clientGroupHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
 	selection := s.clientGroupHostSelection(client.Group)
 	if selection.failed {
@@ -145,8 +144,9 @@ func (s *SubService) clientGroupHostBinding(inbound *model.Inbound, client model
 	}
 
 	binding := clientGroupHostBindingResult{state: hostBindingClosed}
+	db := database.GetDB()
 	var rows []model.Host
-	if err := database.GetDB().
+	if err := db.
 		Where("inbound_id = ? AND group_id IN ?", inbound.Id, selection.groupIDs).
 		Order("sort_order ASC, id ASC").
 		Find(&rows).Error; err != nil {
@@ -157,6 +157,13 @@ func (s *SubService) clientGroupHostBinding(inbound *model.Inbound, client model
 			hosts = append(hosts, &rows[i])
 		}
 		binding = clientGroupHostBindingResult{state: hostBindingBound, hosts: hosts}
+	} else {
+		var hostCount int64
+		if err := db.Model(&model.Host{}).Where("inbound_id = ?", inbound.Id).Count(&hostCount).Error; err != nil {
+			logger.Warning("SubService - clientGroupHostBinding inbound hosts:", err)
+		} else if hostCount == 0 {
+			binding.state = hostBindingNone
+		}
 	}
 	selection.inboundBindings[inbound.Id] = binding
 	return binding.state, binding.hosts

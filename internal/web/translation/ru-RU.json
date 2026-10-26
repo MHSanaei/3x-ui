@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Назначить группы хостов",
       "hostGroupsFor": "Группы хостов для {name}",
       "hostGroups": "Группы хостов",
-      "hostsEmptyMeansLegacy": "Оставьте пустым, чтобы использовать все хосты по старому поведению"
+      "hostsEmptyMeansLegacy": "Оставьте пустым, чтобы использовать все хосты по старому поведению",
+      "missingHostGroup": "Группа HostGroup не найдена: {id}"
     },
     "nodes": {
       "addNode": "Добавить узел",

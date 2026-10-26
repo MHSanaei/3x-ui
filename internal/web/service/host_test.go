@@ -2,6 +2,7 @@ package service
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -165,6 +166,42 @@ func TestDeleteHosts(t *testing.T) {
 	if len(got) != 1 || got[0].GroupId != h2.GroupId {
 		t.Fatalf("remaining = %v, want only h2 (%s)", got, h2.GroupId)
 	}
+}
+
+func TestAssignedHostGroupCannotBeDeletedOrEmptied(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	assigned := mkHost(t, svc, ib.Id, "assigned", 0)
+	other := mkHost(t, svc, ib.Id, "other", 1)
+
+	if err := database.GetDB().Create(&model.ClientGroupHost{
+		GroupName: "staff", HostGroupId: assigned.GroupId,
+	}).Error; err != nil {
+		t.Fatalf("assign HostGroup: %v", err)
+	}
+
+	assertStillExists := func(groupID string) {
+		t.Helper()
+		if _, err := svc.GetHostGroup(groupID); err != nil {
+			t.Fatalf("HostGroup %q should remain after rejected delete: %v", groupID, err)
+		}
+	}
+	if err := svc.DeleteHostGroup(assigned.GroupId); err == nil || !strings.Contains(err.Error(), "assigned to client groups") {
+		t.Fatalf("DeleteHostGroup error = %v, want assigned-group error", err)
+	}
+	assertStillExists(assigned.GroupId)
+
+	if err := svc.DeleteHostsGroup([]string{assigned.GroupId, other.GroupId}); err == nil || !strings.Contains(err.Error(), "assigned to client groups") {
+		t.Fatalf("DeleteHostsGroup error = %v, want assigned-group error", err)
+	}
+	assertStillExists(assigned.GroupId)
+	assertStillExists(other.GroupId)
+
+	if _, err := svc.UpdateHostGroup(assigned.GroupId, &entity.HostGroup{}); err == nil || !strings.Contains(err.Error(), "assigned to client groups") {
+		t.Fatalf("empty UpdateHostGroup error = %v, want assigned-group error", err)
+	}
+	assertStillExists(assigned.GroupId)
 }
 
 func TestDeleteInboundCascadesHosts(t *testing.T) {
