@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -43,7 +45,7 @@ func syncAWGPing(tx *gorm.DB, clients []model.Client) error {
 	return nil
 }
 
-func (s *InboundService) validateAWGPingTarget(inbound *model.Inbound, policy *model.AWGPingPolicy) error {
+func (s *InboundService) validateAWGPingTarget(inbound *model.Inbound, policy *model.AWGPingPolicy, previousEmail string) error {
 	if policy == nil || !policy.Enabled {
 		return nil
 	}
@@ -58,6 +60,21 @@ func (s *InboundService) validateAWGPingTarget(inbound *model.Inbound, policy *m
 		return errors.New("AWG ping policy requires the embedded datapath")
 	}
 	if inbound.NodeID != nil {
+		// An existing, unchanged grant was already negotiated for this inbound.
+		// Metadata edits must remain durable while its node is unreachable.
+		candidate := policy.Clone()
+		if err := candidate.Normalize(); err != nil {
+			return err
+		}
+		for _, client := range settings.Clients {
+			if !strings.EqualFold(client.Email, previousEmail) || client.AWGPing == nil {
+				continue
+			}
+			previous := client.AWGPing.Clone()
+			if previous.Normalize() == nil && previous.Enabled && slices.Equal(previous.Allow, candidate.Allow) && slices.Equal(previous.Deny, candidate.Deny) {
+				return nil
+			}
+		}
 		rt, err := s.runtimeFor(inbound)
 		if err != nil {
 			return err

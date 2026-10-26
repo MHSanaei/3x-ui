@@ -489,7 +489,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 		}
 	}
 	for _, c := range clients {
-		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing); err != nil {
+		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing, c.Email); err != nil {
 			return false, err
 		}
 	}
@@ -861,8 +861,12 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			clients[0].ForwardedPorts = old.ForwardedPorts
 		}
 	}
-	for _, c := range clients {
-		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing); err != nil {
+	for i, c := range clients {
+		previousEmail := c.Email
+		if i == 0 {
+			previousEmail = oldEmail
+		}
+		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing, previousEmail); err != nil {
 			return false, err
 		}
 	}

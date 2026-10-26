@@ -187,8 +187,11 @@ The normalized client record is authoritative, including after a restart or a
 parent-inbound edit. Client export/import includes the policy. New node imports
 preserve their policy, while an existing hub identity keeps the hub's policy.
 Master pushes explicitly synchronize it. A node must advertise `awg-ping4`;
-enabling ping on an older or unreachable node is refused. Kernel mode cannot
-be selected while a client has an enabled embedded ping policy.
+enabling ping on an older or unreachable node is refused. Ordinary account edits
+with an unchanged policy can still be saved while the node is offline and are
+queued for reconciliation; a new or changed enabled grant requires a fresh
+capability check. Kernel mode cannot be selected while a client has an enabled
+embedded ping policy.
 
 The local support indicator probes opening a raw ICMP socket without sending
 traffic. The server needs permission to open that socket (on Linux, normally
@@ -205,6 +208,13 @@ addresses, its own tunnel addresses and VPN peer destinations. It rechecks
 account enablement, expiration, quota and the canonical policy for both directions.
 A policy revision invalidates outstanding replies even when access is restored
 before they return. Fresh cross-panel quota snapshots retain their native meaning.
+
+This changes the previous local gVisor ICMP behavior on every embedded inbound:
+IPv4 ICMP is intercepted before the stack, so a disabled policy produces no Echo
+reply, including to the server's own tunnel address. Other IPv4 ICMP types are
+also dropped in this first implementation. Existing ping-based tunnel-health
+checks must account for this; the policy does not preserve local Echo as an
+implicit exception.
 
 Limits are 128 requests/second per account (burst 256), 256 outstanding probes per
 account, and 1,024 requests/second globally (burst 2,048), with 4,096 outstanding

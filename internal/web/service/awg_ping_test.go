@@ -366,3 +366,64 @@ func TestAWGPingParallelAccountingHasNoLostOrDuplicatedBytes(t *testing.T) {
 		t.Fatal("native inbound counters drifted")
 	}
 }
+
+func TestAWGPingOfflineNodeAllowsUnchangedPolicyEdits(t *testing.T) {
+	for _, field := range []string{"comment", "disable", "expiry", "quota", "rename"} {
+		t.Run(field, func(t *testing.T) {
+			ib, _, record := seedAWGPing(t)
+			useTestRuntimeManager(t).SetLocalRuntimeOverride(&fakeNodeRuntime{})
+			db := database.GetDB()
+			node := &model.Node{Name: "synthetic-offline", Address: "127.0.0.1", Port: 1, ApiToken: "synthetic", Enable: true, Status: "offline"}
+			if err := db.Create(node).Error; err != nil {
+				t.Fatal(err)
+			}
+			var settings amneziawg.InboundSettings
+			if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+				t.Fatal(err)
+			}
+			settings.Clients[0].AWGPing = record.AWGPing.Clone()
+			raw, err := json.Marshal(settings)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Model(ib).Updates(map[string]any{"node_id": node.Id, "settings": string(raw)}).Error; err != nil {
+				t.Fatal(err)
+			}
+			update := *record.ToClient()
+			update.AWGPing = nil
+			switch field {
+			case "comment":
+				update.Comment = "edited while offline"
+			case "disable":
+				update.Enable = false
+			case "expiry":
+				update.ExpiryTime = time.Now().Add(time.Hour).UnixMilli()
+			case "quota":
+				update.TotalGB = 1048576
+			case "rename":
+				update.Email = "synthetic-renamed"
+			}
+			if _, err := (&ClientService{}).Update(&InboundService{}, record.Id, update, 0); err != nil {
+				t.Fatalf("offline %s edit rejected: %v", field, err)
+			}
+			got := lookupClientRecord(t, update.Email)
+			if got.Comment != update.Comment || got.Enable != update.Enable || got.ExpiryTime != update.ExpiryTime || got.TotalGB != update.TotalGB || got.Email != update.Email {
+				t.Fatal("offline edit was not persisted")
+			}
+			if got.AWGPing == nil || !got.AWGPing.Enabled {
+				t.Fatal("unchanged policy lost")
+			}
+			_, _, dirty, _, err := (&NodeService{}).NodeSyncState(node.Id)
+			if err != nil || !dirty {
+				t.Fatal("offline edit must queue node reconciliation")
+			}
+			var stored model.Inbound
+			if err := db.First(&stored, ib.Id).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := (&InboundService{}).validateAWGPingTarget(&stored, &model.AWGPingPolicy{Enabled: true, Allow: []string{"203.0.113.0/24"}}, update.Email); err == nil {
+				t.Fatal("changed grant bypassed capability check")
+			}
+		})
+	}
+}

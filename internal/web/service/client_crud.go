@@ -277,7 +277,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			// comment on the Attach path.
 			clientForInbound.AllowedIPs = nil
 		}
-		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing); err != nil {
+		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing, clientForInbound.Email); err != nil {
 			return false, err
 		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
@@ -842,7 +842,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			// instead.
 			clientForInbound.AllowedIPs = nil
 		}
-		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing); err != nil {
+		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing, existing.Email); err != nil {
 			return false, err
 		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
