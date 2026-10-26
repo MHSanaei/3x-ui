@@ -1018,7 +1018,8 @@
         "delDepleted": "{count} klien habis dihapus",
         "delOrphans": "{count} klien tanpa inbound dihapus",
         "imported": "{count} klien diimpor",
-        "importedMixed": "{ok} diimpor, {failed} dilewati"
+        "importedMixed": "{ok} diimpor, {failed} dilewati",
+        "bulkLinksAppended": "{clients} klien diperbarui: {added} ditambahkan, {skipped} duplikat dilewati, {errors} klien tidak ditemukan."
       },
       "renewMax": "Maksimum perpanjangan",
       "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "Perpanjangan terpakai",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto.",
       "renewIntervalDesc": "Setelah kedaluwarsa, menambahkan jumlah hari yang ditentukan (24 jam per hari) ke batas waktu sebelumnya dan mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
-      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan."
+      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
+      "bulkAdjustSettings": "Batas dan pengaturan",
+      "bulkAppendLinks": "Tambahkan tautan eksternal",
+      "bulkAppendLinksHint": "Tambahkan ke semua klien yang dipilih. Entri dan pengaturan yang ada dipertahankan; pasangan jenis dan nilai duplikat dilewati. Terapkan penyesuaian lain secara terpisah.",
+      "bulkAppendLinksRequired": "Tambahkan setidaknya satu tautan atau langganan eksternal.",
+      "externalLinkInvalid": "Masukkan tautan berbagi yang didukung.",
+      "externalSubscriptionInvalid": "Masukkan URL langganan http(s)."
     },
     "groups": {
       "name": "Nama",

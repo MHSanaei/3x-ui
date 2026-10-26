@@ -1018,7 +1018,8 @@
         "delDepleted": "{count} clientes esgotados excluídos",
         "delOrphans": "{count} clientes sem inbound excluídos",
         "imported": "{count} clientes importados",
-        "importedMixed": "{ok} importados, {failed} ignorados"
+        "importedMixed": "{ok} importados, {failed} ignorados",
+        "bulkLinksAppended": "{clients} clientes atualizados: {added} adicionados, {skipped} duplicados ignorados, {errors} clientes não encontrados."
       },
       "renewMax": "Renovações máximas",
       "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "Renovações usadas",
       "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
       "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
-      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
+      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
+      "bulkAdjustSettings": "Limites e configurações",
+      "bulkAppendLinks": "Adicionar links externos",
+      "bulkAppendLinksHint": "Adiciona a todos os clientes selecionados. Preserva as entradas e configurações existentes; ignora pares de tipo e valor duplicados. Aplique outros ajustes separadamente.",
+      "bulkAppendLinksRequired": "Adicione pelo menos um link ou assinatura externa.",
+      "externalLinkInvalid": "Insira um link de compartilhamento compatível.",
+      "externalSubscriptionInvalid": "Insira uma URL de assinatura http(s)."
     },
     "groups": {
       "name": "Nome",

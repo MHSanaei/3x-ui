@@ -1018,7 +1018,8 @@
         "delDepleted": "Odstránení ukončení klienti: {count}",
         "delOrphans": "Odstránení nepriradení klienti: {count}",
         "imported": "Importovaní klienti: {count}",
-        "importedMixed": "Importované: {ok}, preskočené: {failed}"
+        "importedMixed": "Importované: {ok}, preskočené: {failed}",
+        "bulkLinksAppended": "Aktualizovaní klienti: {clients}; pridané: {added}, preskočené duplicity: {skipped}, nenájdení klienti: {errors}."
       },
       "renewMax": "Najviac obnovení",
       "renewMaxDesc": "Koľkokrát sa môže platnosť automaticky obnoviť, než účet zostane neplatný. Hodnota 0 znamená bez obmedzenia. Pri dobiehaní zmeškaných období sa každé obdobie počíta ako jedno obnovenie.",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "Použité obnovenia",
       "bulkAdTagHint": "Zadajte 32-znakovú hexadecimálnu značku alebo 'none' na odstránenie sponzorovaného kanála zo vstupov MTProto.",
       "renewIntervalDesc": "Po skončení platnosti pridá nastavený počet 24-hodinových dní k predchádzajúcemu koncu platnosti a vynuluje spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
-      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše."
+      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
+      "bulkAdjustSettings": "Limity a nastavenia",
+      "bulkAppendLinks": "Pridať externé odkazy",
+      "bulkAppendLinksHint": "Pridá všetkým vybraným klientom. Existujúce záznamy a nastavenia sa zachovajú; duplicitné dvojice typu a hodnoty sa preskočia. Ostatné úpravy použite samostatne.",
+      "bulkAppendLinksRequired": "Pridajte aspoň jeden externý odkaz alebo odber.",
+      "externalLinkInvalid": "Zadajte podporovaný odkaz na zdieľanie.",
+      "externalSubscriptionInvalid": "Zadajte URL odberu http(s)."
     },
     "groups": {
       "name": "Názov",

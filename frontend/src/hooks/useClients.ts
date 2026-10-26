@@ -33,16 +33,10 @@ import {
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { ExternalLinksAppendSchema, type ExternalLinkInput } from '@/schemas/external-link';
 
 // One row sent to POST /clients/:email/externalLinks.
-export type ExternalLinkInput = {
-  kind: 'link' | 'subscription';
-  value: string;
-  remark: string;
-  enable: boolean;
-  expiryTime: number;
-  namePrefix: string;
-};
+export type { ExternalLinkInput } from '@/schemas/external-link';
 
 export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, ExternalLink };
 
@@ -424,7 +418,9 @@ export function useClients(options: UseClientsOptions = {}) {
       flow?: string;
       limitHwid?: number | null;
       adTag?: string;
+      externalLinks?: ExternalLinkInput[];
     }): Promise<Msg<BulkAdjustResult>> => {
+      if (payload.externalLinks !== undefined) ExternalLinksAppendSchema.parse(payload);
       const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
     },
@@ -599,9 +595,18 @@ export function useClients(options: UseClientsOptions = {}) {
       flow = '',
       limitHwid?: number | null,
       adTag?: string,
+      externalLinks?: ExternalLinkInput[],
     ) => {
       if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-      return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow, limitHwid, adTag });
+      return bulkAdjustMut.mutateAsync({
+        emails,
+        addDays,
+        addBytes,
+        flow,
+        limitHwid,
+        adTag,
+        externalLinks,
+      });
     },
     [bulkAdjustMut],
   );

@@ -1018,7 +1018,8 @@
         "delDepleted": "已刪除 {count} 個已耗盡的客戶端",
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
-        "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
+        "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個",
+        "bulkLinksAppended": "已更新 {clients} 個用戶端：新增 {added} 筆，略過 {skipped} 筆重複項目，找不到 {errors} 個用戶端。"
       },
       "renewMax": "最大續期次數",
       "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "已用續期次數",
       "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。",
       "renewIntervalDesc": "到期後從上次截止時間增加指定天數（每天 24 小時），並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
-      "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。"
+      "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
+      "bulkAdjustSettings": "限額與設定",
+      "bulkAppendLinks": "附加外部連結",
+      "bulkAppendLinksHint": "附加至所有選取的用戶端。保留現有項目及其設定，略過類型和值相同的重複項目。其他調整請單獨套用。",
+      "bulkAppendLinksRequired": "請至少新增一個外部連結或訂閱。",
+      "externalLinkInvalid": "請輸入支援的分享連結。",
+      "externalSubscriptionInvalid": "請輸入 http(s) 訂閱網址。"
     },
     "groups": {
       "name": "名稱",

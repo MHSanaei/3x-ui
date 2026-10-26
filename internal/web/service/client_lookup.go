@@ -292,7 +292,9 @@ func clientRecordsByEmail(tx *gorm.DB, emails []string) (map[string]*model.Clien
 	var records []model.ClientRecord
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := tx.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+		// Scoped transactions can reuse their Statement; clone each chunk so
+		// WHERE clauses from earlier chunks cannot accumulate.
+		if err := tx.Session(&gorm.Session{}).Where("email IN ?", batch).Find(&rows).Error; err != nil {
 			return nil, err
 		}
 		records = append(records, rows...)

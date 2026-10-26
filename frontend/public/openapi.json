@@ -1720,6 +1720,73 @@
         ],
         "type": "object"
       },
+      "BulkAdjustReport": {
+        "properties": {
+          "email": {
+            "example": "carol",
+            "type": "string"
+          },
+          "reason": {
+            "example": "client not found",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustResult": {
+        "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+        "properties": {
+          "adjusted": {
+            "example": 2,
+            "type": "integer"
+          },
+          "externalLinks": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BulkExternalLinksResult"
+              }
+            ],
+            "nullable": true
+          },
+          "skipped": {
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/BulkAdjustReport"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjusted"
+        ],
+        "type": "object"
+      },
+      "BulkExternalLinksResult": {
+        "properties": {
+          "added": {
+            "example": 4,
+            "type": "integer"
+          },
+          "errors": {
+            "example": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "errors",
+          "skipped"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -2524,6 +2591,40 @@
           "online",
           "onlineCount",
           "total"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkInput": {
+        "description": "ExternalLinkInput is one row from the client form's Links tab.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "example": "link",
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "example": "Backup",
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
         ],
         "type": "object"
       },
@@ -9577,25 +9678,71 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "emails"
+                ],
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "addDays": {
+                    "type": "integer"
+                  },
+                  "addBytes": {
+                    "type": "integer"
+                  },
+                  "flow": {
+                    "type": "string"
+                  },
+                  "limitHwid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "adTag": {
+                    "type": "string"
+                  },
+                  "externalLinks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/ExternalLinkInput"
+                    }
+                  }
+                }
               },
               "example": {
                 "emails": [
                   "alice",
                   "bob"
                 ],
-                "addDays": 30,
-                "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision",
-                "limitHwid": 2,
-                "adTag": "0123456789abcdef0123456789abcdef"
+                "externalLinks": [
+                  {
+                    "kind": "link",
+                    "value": "vless://uuid@example.com:443",
+                    "remark": "Backup",
+                    "enable": true,
+                    "expiryTime": 0
+                  },
+                  {
+                    "kind": "subscription",
+                    "value": "https://provider.example/sub",
+                    "namePrefix": "[provider] ",
+                    "enable": true,
+                    "expiryTime": 0
+                  }
+                ]
               }
             }
           }
@@ -9614,19 +9761,17 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/BulkAdjustResult"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
                     "adjusted": 2,
-                    "skipped": [
-                      {
-                        "email": "carol",
-                        "reason": "unlimited expiry"
-                      }
-                    ]
+                    "externalLinks": null,
+                    "skipped": []
                   }
                 }
               }

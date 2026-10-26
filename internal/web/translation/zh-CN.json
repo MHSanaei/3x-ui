@@ -1018,7 +1018,8 @@
         "delDepleted": "已删除 {count} 个已耗尽的客户端",
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
-        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个",
+        "bulkLinksAppended": "已更新 {clients} 个客户端：新增 {added} 条，跳过 {skipped} 条重复项，{errors} 个客户端未找到。"
       },
       "renewMax": "最大续期次数",
       "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "已用续期次数",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。",
       "renewIntervalDesc": "到期后从上次截止时间增加指定天数（每天 24 小时），并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
-      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。"
+      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
+      "bulkAdjustSettings": "限额与设置",
+      "bulkAppendLinks": "追加外部链接",
+      "bulkAppendLinksHint": "追加到所有选中的客户端。保留现有条目及其设置，跳过类型和值相同的重复条目。其他调整请单独应用。",
+      "bulkAppendLinksRequired": "请至少添加一个外部链接或订阅。",
+      "externalLinkInvalid": "请输入支持的分享链接。",
+      "externalSubscriptionInvalid": "请输入 http(s) 订阅地址。"
     },
     "groups": {
       "name": "名称",

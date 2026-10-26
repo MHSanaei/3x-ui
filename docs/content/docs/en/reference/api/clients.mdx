@@ -118,9 +118,19 @@ _openapi:
         "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
         supports it (omit or "" to leave it unchanged). The optional limitHwid
         sets maximum registered devices (0 = unlimited). The optional adTag sets
-        MTProto Telegram sponsor channel ("none" clears). Returns the adjusted
-        count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons'
+        MTProto Telegram sponsor channel ("none" clears). Alternatively, send
+        externalLinks to append external share links and http(s) subscriptions
+        to each selected client in one transaction. This mode cannot be combined
+        with other adjustments. Existing entries, metadata, and ordering are
+        preserved. Duplicates match (kind, value) per client, including repeated
+        input rows; the first entry wins. Missing clients are not written and
+        appear in skipped. externalLinks.added counts inserted rows,
+        externalLinks.skipped counts duplicate rows across found clients,
+        externalLinks.errors counts missing clients, and adjusted counts clients
+        receiving at least one new row. Validation or database failure aborts
+        the whole append without writes. Repeating an append is idempotent and
+        does not restart Xray.'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -400,8 +410,19 @@ _openapi:
           the inbound supports it (omit or "" to leave it unchanged). The
           optional limitHwid sets maximum registered devices (0 = unlimited).
           The optional adTag sets MTProto Telegram sponsor channel ("none"
-          clears). Returns the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons
+          clears). Alternatively, send externalLinks to append external share
+          links and http(s) subscriptions to each selected client in one
+          transaction. This mode cannot be combined with other adjustments.
+          Existing entries, metadata, and ordering are preserved. Duplicates
+          match (kind, value) per client, including repeated input rows; the
+          first entry wins. Missing clients are not written and appear in
+          skipped. externalLinks.added counts inserted rows,
+          externalLinks.skipped counts duplicate rows across found clients,
+          externalLinks.errors counts missing clients, and adjusted counts
+          clients receiving at least one new row. Validation or database failure
+          aborts the whole append without writes. Repeating an append is
+          idempotent and does not restart Xray.'
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling

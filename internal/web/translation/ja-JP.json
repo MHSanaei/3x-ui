@@ -1018,7 +1018,8 @@
         "delDepleted": "使い切った {count} 件のクライアントを削除しました",
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
-        "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
+        "importedMixed": "{ok} 件インポート、{failed} 件スキップ",
+        "bulkLinksAppended": "{clients}クライアントを更新：{added}件追加、重複{skipped}件をスキップ、{errors}クライアントが見つかりません。"
       },
       "renewMax": "最大更新回数",
       "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "使用済み更新回数",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。",
       "renewIntervalDesc": "期限切れ後、前回の期限に指定日数（1 日 24 時間）を加算し、クライアントの通信量をリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
-      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。"
+      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
+      "bulkAdjustSettings": "制限と設定",
+      "bulkAppendLinks": "外部リンクを追加",
+      "bulkAppendLinksHint": "選択したすべてのクライアントに追加します。既存の項目と設定を保持し、種類と値が同じ項目はスキップします。他の調整は別に適用してください。",
+      "bulkAppendLinksRequired": "外部リンクまたはサブスクリプションを1件以上追加してください。",
+      "externalLinkInvalid": "対応する共有リンクを入力してください。",
+      "externalSubscriptionInvalid": "http(s)のサブスクリプションURLを入力してください。"
     },
     "groups": {
       "name": "名前",

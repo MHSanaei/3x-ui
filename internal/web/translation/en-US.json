@@ -1018,7 +1018,8 @@
         "delDepleted": "{count} depleted clients deleted",
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
-        "importedMixed": "{ok} imported, {failed} skipped"
+        "importedMixed": "{ok} imported, {failed} skipped",
+        "bulkLinksAppended": "{clients} clients updated: {added} added, {skipped} duplicates skipped, {errors} clients not found."
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "Renewals used",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds.",
       "renewIntervalDesc": "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
-      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended."
+      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
+      "bulkAdjustSettings": "Limits and settings",
+      "bulkAppendLinks": "Append external links",
+      "bulkAppendLinksHint": "Append to every selected client. Existing entries and their settings stay unchanged; duplicate kind and value pairs are skipped. Apply other adjustments separately.",
+      "bulkAppendLinksRequired": "Add at least one external link or subscription.",
+      "externalLinkInvalid": "Enter a supported share link.",
+      "externalSubscriptionInvalid": "Enter an http(s) subscription URL."
     },
     "groups": {
       "name": "Name",
