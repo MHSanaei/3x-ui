@@ -179,6 +179,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, common.NewError("empty payload")
 	}
 	client := payload.Client
+	if err := client.AWGPing.Normalize(); err != nil {
+		return false, err
+	}
 	if strings.TrimSpace(client.Email) == "" {
 		return false, common.NewError("client email is required")
 	}
@@ -274,6 +277,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			// comment on the Attach path.
 			clientForInbound.AllowedIPs = nil
 		}
+		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing); err != nil {
+			return false, err
+		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
@@ -296,6 +302,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(client.ClientHostRuleIds)).Error; err != nil {
 			return needRestart, err
 		}
+	}
+	if err := saveAWGPing(database.GetDB(), client.Email, client.AWGPing); err != nil {
+		return needRestart, err
 	}
 	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
 }
@@ -657,6 +666,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err != nil {
 		return false, err
 	}
+	if updated.AWGPing == nil {
+		updated.AWGPing = existing.AWGPing.Clone()
+	}
+	if err := updated.AWGPing.Normalize(); err != nil {
+		return false, err
+	}
 	inboundIds, err := s.GetInboundIdsForRecord(id)
 	if err != nil {
 		return false, err
@@ -827,6 +842,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			// instead.
 			clientForInbound.AllowedIPs = nil
 		}
+		if err := inboundSvc.validateAWGPingTarget(inbound, clientForInbound.AWGPing); err != nil {
+			return false, err
+		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
@@ -947,6 +965,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
+	if err := saveAWGPing(database.GetDB(), updated.Email, updated.AWGPing); err != nil {
+		return needRestart, err
+	}
 	if err := s.setClientLimitHwidByEmail(updated.Email, limitHwid); err != nil {
 		return needRestart, err
 	}

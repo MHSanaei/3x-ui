@@ -788,6 +788,16 @@
       "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
+      "awgPingTitle": "IPv4-пінг через AWG",
+      "awgPingEnable": "Дозволити пінг",
+      "awgPingAllow": "Дозволені IPv4-адреси / CIDR",
+      "awgPingDeny": "Заборонені IPv4-адреси / CIDR",
+      "awgPingHint": "Права незалежні від маршрутизації TCP/UDP. Порожній список нічого не дозволяє; заборона має пріоритет. Підтримка віддаленого вузла перевіряється під час збереження.",
+      "awgPingLocalStatus": "Підтримка на локальному сервері",
+      "awgPingAvailable": "Доступна",
+      "awgPingUnavailable": "Немає дозволу на прямий ICMP",
+      "awgPingUnknown": "Невідома",
+      "awgPingInvalid": "Не більше 256 IPv4-адрес або CIDR у кожному списку.",
       "tabBasics": "Основні",
       "tabCredentials": "Облікові дані",
       "tabLinks": "Посилання",

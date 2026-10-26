@@ -559,6 +559,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
 		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
 		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
+		EchoGate:         (&service.InboundService{}).RecordAWGPing,
 	})
 	runtime.SetManager(mgr)
 	mgr.SetNodeEgressResolver(&s.settingService)

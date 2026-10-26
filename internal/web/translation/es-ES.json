@@ -788,6 +788,16 @@
       "advancedTitle": "Configuración avanzada"
     },
     "clients": {
+      "awgPingTitle": "Ping IPv4 mediante AWG",
+      "awgPingEnable": "Permitir ping",
+      "awgPingAllow": "Direcciones IPv4 / CIDR permitidas",
+      "awgPingDeny": "Direcciones IPv4 / CIDR denegadas",
+      "awgPingHint": "Permisos independientes del enrutamiento TCP/UDP. Una lista vacía no permite nada; la denegación tiene prioridad. La compatibilidad del nodo remoto se comprueba al guardar.",
+      "awgPingLocalStatus": "Compatibilidad del servidor local",
+      "awgPingAvailable": "Disponible",
+      "awgPingUnavailable": "Permiso ICMP directo no disponible",
+      "awgPingUnknown": "Desconocida",
+      "awgPingInvalid": "Introduzca como máximo 256 direcciones IPv4 o CIDR por lista.",
       "tabBasics": "Básico",
       "tabCredentials": "Credenciales",
       "tabLinks": "Enlaces",

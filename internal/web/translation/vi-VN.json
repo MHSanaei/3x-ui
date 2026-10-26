@@ -788,6 +788,16 @@
       "advancedTitle": "Cài đặt nâng cao"
     },
     "clients": {
+      "awgPingTitle": "Ping IPv4 qua AWG",
+      "awgPingEnable": "Cho phép ping",
+      "awgPingAllow": "Địa chỉ IPv4 / CIDR được phép",
+      "awgPingDeny": "Địa chỉ IPv4 / CIDR bị chặn",
+      "awgPingHint": "Quyền riêng biệt với định tuyến TCP/UDP. Danh sách trống chặn tất cả; quy tắc chặn được ưu tiên. Hỗ trợ nút từ xa được kiểm tra khi lưu.",
+      "awgPingLocalStatus": "Hỗ trợ máy chủ cục bộ",
+      "awgPingAvailable": "Khả dụng",
+      "awgPingUnavailable": "Không có quyền ICMP trực tiếp",
+      "awgPingUnknown": "Chưa rõ",
+      "awgPingInvalid": "Dùng tối đa 256 địa chỉ IPv4 hoặc CIDR cho mỗi danh sách.",
       "tabBasics": "Cơ bản",
       "tabCredentials": "Thông tin xác thực",
       "tabLinks": "Liên kết",

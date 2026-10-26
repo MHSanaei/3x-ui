@@ -788,6 +788,16 @@
       "advancedTitle": "詳細設定"
     },
     "clients": {
+      "awgPingTitle": "AWG 経由の IPv4 ping",
+      "awgPingEnable": "ping を許可",
+      "awgPingAllow": "許可する IPv4 アドレス / CIDR",
+      "awgPingDeny": "拒否する IPv4 アドレス / CIDR",
+      "awgPingHint": "TCP/UDP ルーティングとは独立した権限です。許可リストが空の場合はすべて拒否し、拒否ルールが優先されます。リモートノードの対応状況は保存時に確認します。",
+      "awgPingLocalStatus": "ローカルサーバーの対応状況",
+      "awgPingAvailable": "利用可能",
+      "awgPingUnavailable": "直接 ICMP の権限がありません",
+      "awgPingUnknown": "不明",
+      "awgPingInvalid": "各リストに IPv4 アドレスまたは CIDR を最大 256 件入力してください。",
       "tabBasics": "基本",
       "tabCredentials": "認証情報",
       "tabLinks": "リンク",

@@ -788,6 +788,16 @@
       "advancedTitle": "تنظیمات پیشرفته"
     },
     "clients": {
+      "awgPingTitle": "پینگ IPv4 از طریق AWG",
+      "awgPingEnable": "اجازه پینگ",
+      "awgPingAllow": "نشانی‌های مجاز IPv4 / CIDR",
+      "awgPingDeny": "نشانی‌های مسدود IPv4 / CIDR",
+      "awgPingHint": "این مجوز مستقل از مسیریابی TCP/UDP است. فهرست مجاز خالی همه را مسدود می‌کند؛ منع اولویت دارد. پشتیبانی گره راه دور هنگام ذخیره بررسی می‌شود.",
+      "awgPingLocalStatus": "پشتیبانی سرور محلی",
+      "awgPingAvailable": "در دسترس",
+      "awgPingUnavailable": "مجوز ICMP خام در دسترس نیست",
+      "awgPingUnknown": "نامشخص",
+      "awgPingInvalid": "در هر فهرست حداکثر ۲۵۶ نشانی IPv4 یا CIDR وارد کنید.",
       "tabBasics": "پایه",
       "tabCredentials": "اطلاعات اتصال",
       "tabLinks": "لینک‌ها",

@@ -788,6 +788,16 @@
       "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
+      "awgPingTitle": "AWG üzerinden IPv4 ping",
+      "awgPingEnable": "Pinge izin ver",
+      "awgPingAllow": "İzin verilen IPv4 adresleri / CIDR",
+      "awgPingDeny": "Engellenen IPv4 adresleri / CIDR",
+      "awgPingHint": "TCP/UDP yönlendirmesinden bağımsız izinlerdir. Boş liste hiçbir hedefe izin vermez; engelleme önceliklidir. Uzak sunucu desteği kaydederken denetlenir.",
+      "awgPingLocalStatus": "Yerel sunucu desteği",
+      "awgPingAvailable": "Kullanılabilir",
+      "awgPingUnavailable": "Doğrudan ICMP izni yok",
+      "awgPingUnknown": "Bilinmiyor",
+      "awgPingInvalid": "Her listeye en fazla 256 IPv4 adresi veya CIDR girin.",
       "tabBasics": "Temel",
       "tabCredentials": "Kimlik Bilgileri",
       "tabLinks": "Bağlantılar",

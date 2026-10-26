@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
@@ -82,6 +83,9 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/:id/fallbacks", a.getFallbacks)
 	g.GET("/amneziawgKernelReadiness", a.getAmneziaWGKernelReadiness)
+	g.GET("/amneziawgPingReadiness", func(c *gin.Context) {
+		jsonObj(c, map[string]bool{"available": amneziawgnet.EchoSocketAvailable()}, nil)
+	})
 
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)

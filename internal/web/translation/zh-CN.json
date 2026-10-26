@@ -788,6 +788,16 @@
       "advancedTitle": "高级设置"
     },
     "clients": {
+      "awgPingTitle": "通过 AWG 进行 IPv4 ping",
+      "awgPingEnable": "允许 ping",
+      "awgPingAllow": "允许的 IPv4 地址 / CIDR",
+      "awgPingDeny": "拒绝的 IPv4 地址 / CIDR",
+      "awgPingHint": "权限独立于 TCP/UDP 路由。允许列表为空时全部拒绝；拒绝规则优先。保存时检查远程节点支持情况。",
+      "awgPingLocalStatus": "本地服务器支持情况",
+      "awgPingAvailable": "可用",
+      "awgPingUnavailable": "缺少原始 ICMP 权限",
+      "awgPingUnknown": "未知",
+      "awgPingInvalid": "每个列表最多输入 256 个 IPv4 地址或 CIDR。",
       "tabBasics": "基本",
       "tabCredentials": "凭据",
       "tabLinks": "链接",

@@ -788,6 +788,16 @@
       "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
+      "awgPingTitle": "اختبار اتصال IPv4 عبر AWG",
+      "awgPingEnable": "السماح باختبار الاتصال",
+      "awgPingAllow": "عناوين IPv4 / CIDR المسموح بها",
+      "awgPingDeny": "عناوين IPv4 / CIDR المحظورة",
+      "awgPingHint": "صلاحيات مستقلة عن توجيه TCP/UDP. القائمة الفارغة تحظر الجميع؛ الحظر له الأولوية. يتم فحص دعم العقدة البعيدة عند الحفظ.",
+      "awgPingLocalStatus": "دعم الخادم المحلي",
+      "awgPingAvailable": "متاح",
+      "awgPingUnavailable": "صلاحية ICMP الخام غير متاحة",
+      "awgPingUnknown": "غير معروف",
+      "awgPingInvalid": "استخدم 256 عنوان IPv4 أو نطاق CIDR كحد أقصى لكل قائمة.",
       "tabBasics": "أساسي",
       "tabCredentials": "بيانات الاعتماد",
       "tabLinks": "الروابط",

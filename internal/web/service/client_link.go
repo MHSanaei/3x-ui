@@ -171,6 +171,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		}
 
 		incoming := clients[i].ToRecord()
+		incoming.AWGPing = nil
 		// ToRecord copies the raw email; store the trimmed key this function
 		// looks up by, or a padded email is inserted and never found again.
 		incoming.Email = email

@@ -68,6 +68,7 @@ type DeviceOptions struct {
 type Device struct {
 	*device.Device
 	Stack *stack.Stack
+	tun   *stackTun
 
 	// localAddrs snapshots the netstack interface addresses (gVisor exposes
 	// no read-back); set once at construction, read-only afterwards.
@@ -137,7 +138,7 @@ func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device
 	bind := newResolvingBind(inst.Listen)
 	dev := device.NewDevice(tun, bind, logger)
 
-	return &Device{Device: dev, Stack: gstack, localAddrs: addrs}, nil
+	return &Device{Device: dev, Stack: gstack, tun: tun.(*stackTun), localAddrs: addrs}, nil
 }
 
 // Configure applies inst/opts to d via UAPI and brings the interface up.

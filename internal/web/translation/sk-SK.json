@@ -788,6 +788,16 @@
       "sniffingDestOverride": "Prepísať cieľ"
     },
     "clients": {
+      "awgPingTitle": "IPv4 ping cez AWG",
+      "awgPingEnable": "Povoliť ping",
+      "awgPingAllow": "Povolené IPv4 adresy / rozsahy CIDR",
+      "awgPingDeny": "Zakázané IPv4 adresy / rozsahy CIDR",
+      "awgPingHint": "Samostatné práva, nezávislé od smerovania TCP/UDP. Prázdny zoznam nič nepovolí; zákaz má prednosť. Podpora vzdialeného servera sa overí pri uložení.",
+      "awgPingLocalStatus": "Podpora na miestnom serveri",
+      "awgPingAvailable": "Dostupná",
+      "awgPingUnavailable": "Chýba oprávnenie na priamy ICMP",
+      "awgPingUnknown": "Neznáma",
+      "awgPingInvalid": "Zadajte najviac 256 IPv4 adries alebo rozsahov CIDR v každom zozname.",
       "tabBasics": "Základné údaje",
       "tabCredentials": "Prihlasovacie údaje",
       "tabLinks": "Odkazy",

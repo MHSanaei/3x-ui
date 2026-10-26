@@ -43,6 +43,7 @@ type stackTun struct {
 	closeMu        sync.Mutex
 	closed         bool
 	mtu            int
+	echoHandler    func([]byte)
 }
 
 // createNetTUNWithStack builds a gVisor-backed tun.Device for localAddresses
@@ -157,6 +158,12 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 	for _, b := range buf {
 		packet := b[offset:]
 		if len(packet) == 0 {
+			continue
+		}
+		if t.echoHandler != nil && packet[0]>>4 == 4 && len(packet) > 9 && packet[9] == 1 {
+			if len(packet) <= t.mtu {
+				t.echoHandler(packet)
+			}
 			continue
 		}
 		pkb := stack.NewPacketBuffer(stack.PacketBufferOptions{Payload: buffer.MakeWithData(packet)})
