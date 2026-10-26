@@ -19,29 +19,20 @@ import (
 )
 
 const (
-	// subRateLimitDefaultPerMinute is the fallback per-client limit when the
-	// stored setting is unreadable or zero.
+	// subRateLimitDefaultPerMinute is the fallback per-client limit when the stored setting is unreadable or zero.
 	subRateLimitDefaultPerMinute = 60
-	// subRateLimitMaxPerMinute clamps the stored limit on the read path: the
-	// entity validation only guards writes through the panel API, and a
-	// hand-edited DB row must not scale one bucket to unbounded memory.
+	// subRateLimitMaxPerMinute clamps the read path: a hand-edited DB row must not scale one bucket to unbounded memory.
 	subRateLimitMaxPerMinute = 1000
 	// subRateLimitWindow is the fixed window one subRateLimiter counts over.
 	subRateLimitWindow = time.Minute
-	// subRateLimitMaxKeys bounds tracked client buckets. Each bucket holds at
-	// most `limit` timestamps, so the worst-case map stays proportional to the
-	// configured limit.
+	// subRateLimitMaxKeys bounds tracked client buckets; each holds at most `limit` timestamps.
 	subRateLimitMaxKeys = 4096
-	// subRateLimitIdleTTL drops buckets for clients that stopped requesting,
-	// so scanners rotating source addresses cannot pin the map at its ceiling
-	// forever.
+	// subRateLimitIdleTTL drops buckets for clients that stopped requesting.
 	subRateLimitIdleTTL = 20 * time.Minute
 )
 
-// subRateLimiter is a fixed-capacity sliding-window rate limiter keyed by
-// client identity. Every subscription route passes through one instance: the
-// subscription body is cheap to serve but its reads are not free, and a
-// subId probe loop must not turn into a database load generator.
+// subRateLimiter is a fixed-capacity sliding-window rate limiter keyed by client identity: a subId
+// probe loop must not turn into a database load generator.
 type subRateLimiter struct {
 	mu       sync.Mutex
 	limit    int
@@ -78,9 +69,8 @@ func newSubRateLimiter(limit int, window time.Duration) *subRateLimiter {
 	}
 }
 
-// allow records one request for key and reports whether it is under the
-// window limit. When it is not, retryAfter is the time until the oldest hit
-// in the window ages out.
+// allow records one request for key and reports whether it is under the window limit. When it is
+// not, retryAfter is the time until the oldest hit in the window ages out.
 func (l *subRateLimiter) allow(key string) (retryAfter time.Duration, ok bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -115,9 +105,8 @@ func (l *subRateLimiter) allow(key string) (retryAfter time.Duration, ok bool) {
 	return 0, true
 }
 
-// purgeIdleLocked drops buckets whose client has not been seen for idleTTL.
-// The LRU front is the least recently used, so the scan stops at the first
-// fresh entry. Callers hold l.mu.
+// purgeIdleLocked drops buckets idle for longer than idleTTL; the LRU front is the least recently
+// used, so the scan stops at the first fresh entry. Callers hold l.mu.
 func (l *subRateLimiter) purgeIdleLocked(now time.Time) {
 	cutoff := now.Add(-l.idleTTL)
 	for l.lru.Len() > 0 {
@@ -130,9 +119,8 @@ func (l *subRateLimiter) purgeIdleLocked(now time.Time) {
 	}
 }
 
-// evictOldestLocked drops one least-recently-used bucket to make room. It
-// only runs when the map is at capacity, i.e. under a genuine flood of
-// distinct identities. Callers hold l.mu.
+// evictOldestLocked drops one least-recently-used bucket to make room; it only runs at capacity,
+// i.e. under a flood of distinct identities. Callers hold l.mu.
 func (l *subRateLimiter) evictOldestLocked() {
 	front := l.lru.Front()
 	if front == nil {
@@ -146,25 +134,13 @@ func (l *subRateLimiter) removeLocked(element *list.Element, key string) {
 	delete(l.buckets, key)
 }
 
-// clientIPResolver derives the identity the rate limiter keys on. It keeps
-// the panel's login-limiter semantics (internal/web/controller/util.go
-// getRemoteIp): the peer address, unless the peer is a trusted proxy, in
-// which case X-Forwarded-For is walked from the proxy end and a
-// client-supplied X-Real-IP is only believed when it agrees with the
-// forwarded chain. A spoofed header behind a trusted proxy therefore falls
-// back to the proxy's own address instead of poisoning the bucket key.
-//
-// One deliberate deviation from the panel: a partially invalid
-// trustedProxyCIDRs list fails closed (loopback only) instead of trusting
-// the remaining entries, because a silently narrowed identity would lump
-// every proxied client into one bucket.
+// clientIPResolver keys the limiter on the panel login limiter's identity (util.go getRemoteIp).
+// A partially invalid CIDR list fails closed to loopback, unlike the panel's skip-bad-entries parse.
 type clientIPResolver struct {
 	trusted []netip.Prefix
 }
 
-// newClientIPResolver parses the panel's trustedProxyCIDRs setting once per
-// subscription server start. An unset, empty, or invalid value falls back to
-// loopback only — a wildcard or malformed entry must never widen trust.
+// newClientIPResolver parses trustedProxyCIDRs once per server start; an invalid value falls back to loopback.
 func newClientIPResolver(settingService service.SettingService) *clientIPResolver {
 	trusted := service.DefaultTrustedProxyCIDRs
 	if value, err := settingService.GetTrustedProxyCIDRs(); err == nil {
@@ -184,6 +160,7 @@ func newLoopbackIPResolver() *clientIPResolver {
 	return &clientIPResolver{trusted: loopbackTrustedCIDRs()}
 }
 
+// loopbackTrustedCIDRs is the fail-closed fallback; the default constant always parses.
 func loopbackTrustedCIDRs() []netip.Prefix {
 	prefixes, err := parseTrustedCIDRs(service.DefaultTrustedProxyCIDRs)
 	if err != nil {
@@ -250,9 +227,7 @@ func (r *clientIPResolver) resolve(remoteAddr, xff, xRealIP string) string {
 	return remoteIP.String()
 }
 
-// forwardedForClient walks X-Forwarded-For from the proxy end: entries a
-// client sent come first, so the first hop that is not a trusted proxy is the
-// address one saw. Mirrors the panel's forwardedForClient.
+// forwardedForClient walks X-Forwarded-For from the proxy end, mirroring the panel's copy.
 func (r *clientIPResolver) forwardedForClient(xff string) (netip.Addr, bool) {
 	parts := strings.Split(xff, ",")
 	var client netip.Addr
@@ -298,9 +273,8 @@ func extractIP(value string) (netip.Addr, bool) {
 // resolver: trust loopback only, never widen it.
 var loopbackIPResolver = newLoopbackIPResolver()
 
-// subRateLimitGuard rejects requests over the per-client subscription limit
-// with 429 and a Retry-After hint. A nil limiter disables the guard: direct
-// NewSUBController users (tests, embedders) keep the historical behavior.
+// subRateLimitGuard rejects over-limit requests with 429 + Retry-After; a nil limiter is a no-op
+// so direct NewSUBController users (tests, embedders) keep the historical behavior.
 func subRateLimitGuard(limiter *subRateLimiter, resolver *clientIPResolver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if limiter == nil {

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -161,8 +162,8 @@ func TestParseTrustedCIDRs(t *testing.T) {
 	if len(prefixes) != 3 {
 		t.Fatalf("prefixes = %d, want 3", len(prefixes))
 	}
-	if _, err := parseTrustedCIDRs("*"); err == nil {
-		t.Fatal("a wildcard entry must be refused")
+	if _, err := parseTrustedCIDRs("*"); err == nil || !strings.Contains(err.Error(), "must not trust every address") {
+		t.Fatalf("wildcard error = %v, want the exact trust-widening refusal", err)
 	}
 	if _, err := parseTrustedCIDRs("10.0.0.0/8,not-an-ip"); err == nil {
 		t.Fatal("a malformed entry must be refused")
@@ -179,16 +180,13 @@ func TestClientIPResolverDirectClientIgnoresHeaders(t *testing.T) {
 
 func TestClientIPResolverWalksForwardedForFromProxyEnd(t *testing.T) {
 	resolver := newClientIPResolverWith("127.0.0.1/32,10.0.0.0/8")
-	// Internet -> 10.1.1.1 (trusted) -> panel on loopback: the proxy-end walk
-	// finds 10.1.1.1 as the address one saw... the chain read from the right
-	// ends at the first untrusted hop, here the public client address.
+	// Chain: client 203.0.113.9 -> 10.1.1.1 (trusted) -> panel on loopback.
 	ip := resolver.resolve("127.0.0.1:5555", "203.0.113.9, 10.1.1.1", "")
 	if ip != "203.0.113.9" {
 		t.Fatalf("ip = %q, want the first untrusted hop 203.0.113.9", ip)
 	}
 
-	// A client-supplied leftmost entry is ignored: only the proxy-end walk
-	// decides.
+	// A client-supplied leftmost entry is ignored: only the proxy-end walk decides.
 	ip = resolver.resolve("127.0.0.1:5555", "6.6.6.6, 203.0.113.9, 10.1.1.1", "")
 	if ip != "203.0.113.9" {
 		t.Fatalf("ip = %q, want the proxy-end client 203.0.113.9, not the client-sent 6.6.6.6", ip)
@@ -256,8 +254,9 @@ func TestSubRateLimitGuard(t *testing.T) {
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("third request: code = %d, want 429", w.Code)
 	}
-	if got := w.Header().Get("Retry-After"); got == "" {
-		t.Fatal("429 response has no Retry-After header")
+	// limit=1, first hit at t=0, reject at t=0: the window frees in exactly 60s.
+	if got := w.Header().Get("Retry-After"); got != "60" {
+		t.Fatalf("Retry-After = %q, want \"60\"", got)
 	}
 
 	// A nil limiter keeps the historical behavior: everything passes.
@@ -274,10 +273,8 @@ func TestSubRateLimitGuard(t *testing.T) {
 	}
 }
 
-// The guard is wired through initRouter's group-level Use, so a limited
-// controller must 429 on EVERY subscription format route, and an unlimited
-// one must serve them all (unknown subId → 404 from the handler itself, so
-// the exact code proves the guard did not interfere).
+// initRouter's group-level Use must 429 every subscription format route when limited; unlimited,
+// handlers answer 404 themselves — the exact code proves the guard did not interfere.
 func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -312,9 +309,7 @@ func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 
 	paths := []string{"/sub/abc", "/sub/abc/hwid-status", "/json/abc", "/clash/abc", "/clash-legacy/abc", "/mihomo/abc"}
 
-	// With limit=1 the very first request legitimately consumes the slot and
-	// reaches the handler (unknown subId → 404); every later route from the
-	// same client must be rejected before touching any handler.
+	// With limit=1 the priming request consumes the slot (handler → 404); every later route rejects.
 	router := limited(true)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sub/prime", nil))
