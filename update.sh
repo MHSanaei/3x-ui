@@ -173,8 +173,22 @@ config_after_update() {
 
     # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
+    local settings existing_webBasePath
+    if ! settings=$("${xui_folder}/x-ui" setting -show true) ||
+        ! existing_webBasePath=$(printf '%s\n' "$settings" | awk '
+            /^get .* failed, error info:/ { failed = 1 }
+            /^hasDefaultCredential: (true|false)$/ { credentials++ }
+            /^port: [0-9]+$/ { ports++ }
+            /^webBasePath:/ { paths++; sub(/^webBasePath: ?/, ""); path = $0 }
+            END {
+                if (failed || credentials != 1 || ports != 1 || paths != 1 || (path != "" && path !~ /^\//)) exit 1
+                print path
+            }'); then
+        echo -e "${red}Unable to read webBasePath; leaving existing settings unchanged.${plain}" >&2
+        return 1
+    fi
+    existing_webBasePath=${existing_webBasePath#/}
+    local existing_port=$(printf '%s\n' "$settings" | awk '/^port: / {print $2}')
 
     # Get server IP
     local URL_lists=(
@@ -202,9 +216,9 @@ config_after_update() {
         server_ip="${server_ip:-<server-ip>}"
     fi
 
-    # Handle missing/short webBasePath
-    if [[ ${#existing_webBasePath} -lt 4 ]]; then
-        echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
+    # Only an unset or default root path needs initialization.
+    if [[ -z "$existing_webBasePath" ]]; then
+        echo -e "${yellow}WebBasePath is missing or set to root. Generating a new one...${plain}"
         local config_webBasePath=$(gen_random_string 18)
         ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
         existing_webBasePath="${config_webBasePath}"
