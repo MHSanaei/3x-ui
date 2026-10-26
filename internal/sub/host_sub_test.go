@@ -2033,6 +2033,28 @@ func TestSub_ClientGroupHostAssignment_RestrictsHosts(t *testing.T) {
 	if strings.Contains(joined, "a.group-cdn.example") {
 		t.Fatalf("unassigned host group must not render: %s", joined)
 	}
+
+	jsonOut, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("group-hosts", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(jsonOut, "b.group-cdn.example") {
+		t.Fatalf("JSON subscription must include the assigned HostGroup:\n%s", jsonOut)
+	}
+	if strings.Contains(jsonOut, "a.group-cdn.example") {
+		t.Fatalf("JSON subscription leaked an unassigned HostGroup:\n%s", jsonOut)
+	}
+
+	clashOut, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash("group-hosts", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(clashOut, "b.group-cdn.example") {
+		t.Fatalf("Clash subscription must include the assigned HostGroup:\n%s", clashOut)
+	}
+	if strings.Contains(clashOut, "a.group-cdn.example") {
+		t.Fatalf("Clash subscription leaked an unassigned HostGroup:\n%s", clashOut)
+	}
 }
 
 func TestSub_ClientGroupHostAssignment_ExplicitClientBindingWins(t *testing.T) {
