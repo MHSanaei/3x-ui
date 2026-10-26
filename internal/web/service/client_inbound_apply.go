@@ -59,11 +59,11 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 		return nil
 	}
 	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
-	cidr := settings.Server.SubnetCIDR
-	if cidr <= 0 {
-		cidr = 24
+	v4Base, _, err := defaultAmneziaWGSubnetBases(inbound.Settings)
+	if err != nil {
+		return err
 	}
-	inst.Address = []string{fmt.Sprintf("%s/%d", settings.Server.SubnetIP, cidr)}
+	inst.Address = []string{v4Base}
 	for _, client := range clients {
 		inst.Peers = append(inst.Peers, amneziawg.Peer{
 			Email: client.Email, AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPorts,

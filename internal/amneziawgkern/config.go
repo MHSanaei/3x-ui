@@ -86,9 +86,6 @@ func buildSpec(d Desired) (spec, error) {
 	if err != nil {
 		return spec{}, err
 	}
-	if err := ValidatePeerSubnets(inst); err != nil {
-		return spec{}, err
-	}
 	s := spec{name: name, conf: conf, addresses: addresses, mtu: effectiveMTU(inst)}
 	s.structFP = structuralFingerprint(conf, addresses, s.mtu)
 	s.nat = natTransaction(inst.Id, "")

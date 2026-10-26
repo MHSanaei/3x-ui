@@ -119,32 +119,28 @@ func TestBuildSpecMasqueradesSubnetNotHostAddress(t *testing.T) {
 	}
 }
 
-func TestBuildSpecRejectsPeersOutsideNATSubnet(t *testing.T) {
+func TestValidatePeerSubnetsRejectsPeersOutsideNATSubnet(t *testing.T) {
 	for _, allowedIP := range []string{"10.9.1.2/32", "10.8.0.0/16"} {
 		t.Run(allowedIP, func(t *testing.T) {
 			inst := testInstance()
 			inst.Peers[0].AllowedIPs = []string{allowedIP}
-			_, err := buildSpec(Desired{Instance: inst, EgressInterface: "ens3"})
+			err := ValidatePeerSubnets(inst)
 			want := fmt.Sprintf("amneziawgkern: peer %q allowedIPs %q is outside kernel interface subnets [10.8.1.0/24]; align the server subnet and client addresses before enabling kernel mode", "alice", allowedIP)
 			if err == nil || err.Error() != want {
-				t.Fatalf("buildSpec error = %v, want %q", err, want)
+				t.Fatalf("ValidatePeerSubnets error = %v, want %q", err, want)
 			}
 		})
 	}
 }
 
-func TestBuildSpecAcceptsPeersCoveredByInterfaceSubnets(t *testing.T) {
+func TestValidatePeerSubnetsAcceptsPeersCoveredByInterfaceSubnets(t *testing.T) {
 	for _, allowedIP := range []string{"10.8.1.2/32", "10.8.1.2", "10.8.1.2/31"} {
 		t.Run(allowedIP, func(t *testing.T) {
 			inst := testInstance()
 			inst.Address = []string{"10.8.1.5/24"}
 			inst.Peers[0].AllowedIPs = []string{allowedIP}
-			s, err := buildSpec(Desired{Instance: inst, EgressInterface: "ens3"})
-			if err != nil {
+			if err := ValidatePeerSubnets(inst); err != nil {
 				t.Fatalf("covered peer was rejected: %v", err)
-			}
-			if !strings.Contains(s.nat, `ip saddr 10.8.1.0/24 oifname "ens3" masquerade`) {
-				t.Fatalf("peer has no matching NAT subnet: %s", s.nat)
 			}
 		})
 	}

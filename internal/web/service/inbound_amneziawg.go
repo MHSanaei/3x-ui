@@ -328,11 +328,11 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 			}
 		}
 		if len(inst.Address) == 0 {
-			cidr := parsed.Server.SubnetCIDR
-			if cidr <= 0 {
-				cidr = 24
+			v4Base, _, err := defaultAmneziaWGSubnetBases(inbound.Settings)
+			if err != nil {
+				return err
 			}
-			inst.Address = []string{fmt.Sprintf("%s/%d", parsed.Server.SubnetIP, cidr)}
+			inst.Address = []string{v4Base}
 		}
 		if inbound.Enable {
 			if err := amneziawgkern.ValidatePeerSubnets(inst); err != nil {
