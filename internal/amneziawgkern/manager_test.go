@@ -250,6 +250,39 @@ func forwardRulesFor(h *fakeHost, name string) []string {
 	return out
 }
 
+func TestEnsureLegacySubnetMismatchPreservesAvailabilityAndPeerRevocation(t *testing.T) {
+	for _, coldStart := range []bool{true, false} {
+		t.Run(fmt.Sprintf("coldStart=%t", coldStart), func(t *testing.T) {
+			m, h, _ := newTestManager(t)
+			d := managerDesired(1)
+			aliceKey := d.Instance.Peers[0].PublicKey
+			bobKey := d.Instance.Peers[1].PublicKey
+			if !coldStart {
+				if err := m.Ensure(d); err != nil {
+					t.Fatal(err)
+				}
+			}
+			d.Instance.Peers[1].AllowedIPs = []string{"10.9.1.2/32"}
+			if !coldStart {
+				d.Instance.Peers = d.Instance.Peers[1:]
+			}
+			if err := m.Ensure(d); err != nil {
+				t.Fatalf("a legacy stray peer must not block startup or peer revocation: %v", err)
+			}
+			link := h.links["xui-awg1"]
+			if link == nil || !link.up || strings.Join(link.addresses, ",") != "10.8.1.1/24" {
+				t.Fatalf("legacy configuration lost the interface: %+v", link)
+			}
+			if strings.Contains(link.conf, "PublicKey = "+aliceKey+"\n") != coldStart {
+				t.Fatalf("valid peer was lost at startup or remained after revocation: %s", link.conf)
+			}
+			if !strings.Contains(link.conf, "PublicKey = "+bobKey+"\n") || !strings.Contains(h.nat["xui_awg1"], "ip saddr 10.8.1.0/24") {
+				t.Fatalf("legacy runtime configuration was unexpectedly changed: interface=%+v NAT=%s", link, h.nat["xui_awg1"])
+			}
+		})
+	}
+}
+
 // TestEnsureBuildsInterfaceWithoutShell: every step is a direct exec, so no
 // client-controlled value ever reaches a shell running as root.
 func TestEnsureBuildsInterfaceWithoutShell(t *testing.T) {

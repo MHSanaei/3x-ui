@@ -257,6 +257,49 @@ func interfaceAddresses(inst amneziawg.Instance) ([]string, error) {
 	return out, nil
 }
 
+// ValidatePeerSubnets rejects peers the kernel interface cannot route or NAT.
+func ValidatePeerSubnets(inst amneziawg.Instance) error {
+	if len(inst.Peers) == 0 {
+		return nil
+	}
+	addresses, err := interfaceAddresses(inst)
+	if err != nil {
+		return err
+	}
+	subnets := make([]netip.Prefix, 0, len(addresses))
+	for i, address := range addresses {
+		subnet := netip.MustParsePrefix(address).Masked()
+		subnets = append(subnets, subnet)
+		addresses[i] = subnet.String()
+	}
+	for _, peer := range inst.Peers {
+		for _, raw := range peer.AllowedIPs {
+			prefix, err := netip.ParsePrefix(strings.TrimSpace(raw))
+			if err != nil {
+				address, addressErr := netip.ParseAddr(strings.TrimSpace(raw))
+				if addressErr != nil {
+					return fmt.Errorf("amneziawgkern: peer %q has invalid allowedIPs %q", peer.Email, raw)
+				}
+				prefix = netip.PrefixFrom(address, address.BitLen())
+			}
+			if !prefix.Addr().Is4() {
+				continue
+			}
+			covered := false
+			for _, subnet := range subnets {
+				if prefix.Bits() >= subnet.Bits() && subnet.Contains(prefix.Masked().Addr()) {
+					covered = true
+					break
+				}
+			}
+			if !covered {
+				return fmt.Errorf("amneziawgkern: peer %q allowedIPs %q is outside kernel interface subnets %v; align the server subnet and client addresses before enabling kernel mode", peer.Email, raw, addresses)
+			}
+		}
+	}
+	return nil
+}
+
 // natChain masquerades each tunnel subnet (not the host address) out of egress.
 func natChain(addresses []string, egress string) string {
 	var b strings.Builder
