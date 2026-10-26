@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoapi"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
@@ -185,37 +187,13 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 
 	var err error
 	switch {
-	case next.hasPhoto && next.photo != "":
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: tu.FileFromID(next.photo), Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
-		})
-	case next.attachment != nil:
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: *next.attachment, Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
-		})
-	case next.hasPhoto:
-		// No file_id yet (the avatar was never read): upload the fallback tile.
-		upload, ok := artUpload(next.kind)
-		if !ok {
-			return false
-		}
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: upload, Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
+	case next.hasPhoto || next.attachment != nil:
+		_, err = requestScreenPhoto(next, func(photo telego.InputFile) (*telego.Message, error) {
+			return liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+				ChatID: tu.ID(chatID), MessageID: prev.msgID,
+				Media:       &telego.InputMediaPhoto{Type: "photo", Media: photo, Caption: next.text, ParseMode: "HTML"},
+				ReplyMarkup: next.markup,
+			})
 		})
 	case prev.hasPhoto:
 		// A photo message cannot become a text one: drop the picture and let
@@ -250,24 +228,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	var sent *telego.Message
 	var err error
 	switch {
-	case sc.hasPhoto && sc.photo != "":
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: tu.FileFromID(sc.photo),
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
-		})
-	case sc.attachment != nil:
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: *sc.attachment,
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
-		})
-	case sc.hasPhoto:
-		upload, ok := artUpload(sc.kind)
-		if !ok {
-			return 0
-		}
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: upload,
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+	case sc.hasPhoto || sc.attachment != nil:
+		sent, err = requestScreenPhoto(sc, func(photo telego.InputFile) (*telego.Message, error) {
+			return liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
+				ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: photo,
+				Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+			})
 		})
 	default:
 		sent, err = liveBot().SendMessage(ctx, &telego.SendMessageParams{
@@ -290,6 +256,45 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	}
 	t.screens().put(chatID, sc)
 	return sent.MessageID
+}
+
+// Only a rejected cached decoration gets one upload retry; QR pictures remain intact.
+// The cache is invalidated only after the same caption and keyboard succeed without that id.
+func requestScreenPhoto(sc *screen, request func(telego.InputFile) (*telego.Message, error)) (*telego.Message, error) {
+	var photo telego.InputFile
+	switch {
+	case sc.hasPhoto && sc.photo != "":
+		photo = tu.FileFromID(sc.photo)
+	case sc.attachment != nil:
+		photo = *sc.attachment
+	default:
+		var ok bool
+		photo, ok = artUpload(sc.kind)
+		if !ok {
+			return nil, errors.New("screen artwork is unavailable")
+		}
+	}
+	sent, err := request(photo)
+	var apiErr *telegoapi.Error
+	if err == nil || sc.photo == "" || sc.qrPicture != nil || sc.attachment != nil ||
+		!errors.As(err, &apiErr) || apiErr.ErrorCode != 400 || isTelegramNotModifiedError(err) {
+		return sent, err
+	}
+	upload, ok := artUpload(sc.kind)
+	if !ok {
+		return sent, err
+	}
+	sent, err = request(upload)
+	if err != nil {
+		return sent, err
+	}
+	rejectArtFileID(sc.photo)
+	sc.photo = ""
+	if sent != nil && len(sent.Photo) > 0 {
+		sc.photo = sent.Photo[len(sent.Photo)-1].FileID
+		cacheArtFileID(sc.kind, sc.photo)
+	}
+	return sent, nil
 }
 
 // ensureBackRow guarantees every screen can be left (a screen with only its own
