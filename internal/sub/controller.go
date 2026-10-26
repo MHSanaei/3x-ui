@@ -362,6 +362,9 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 // initRouter registers HTTP routes for subscription links and JSON endpoints
 // on the provided router group.
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
+	// The guard covers exactly the subscription routes mounted below; static
+	// assets are mounted on the engine before the controller and stay out of
+	// the limiter on purpose (cheap, no database reads).
 	g.Use(subRateLimitGuard(a.rateLimiter, a.clientIPResolver))
 	gLink := g.Group(a.subPath, setNoCacheHeaders)
 	gLink.GET(":subid", a.subs)
