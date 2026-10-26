@@ -33,7 +33,11 @@ html[data-glass] body {
       color-mix(in srgb, var(--xui-accent) var(--glass-glow), transparent),
       transparent 75%
     ),
-    radial-gradient(70vw 70vh at 100% 0%, rgba(31, 110, 255, 0.3), transparent 72%),
+    radial-gradient(
+      70vw 70vh at 100% 0%,
+      color-mix(in srgb, var(--xui-accent) calc(var(--glass-glow) * 0.6), transparent),
+      transparent 72%
+    ),
     radial-gradient(
       90vw 75vh at 55% 112%,
       color-mix(in srgb, var(--xui-accent) calc(var(--glass-glow) * 0.8), transparent),

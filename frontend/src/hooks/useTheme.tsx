@@ -72,15 +72,15 @@ function applyDom(isDark: boolean, isUltra: boolean) {
   }
 }
 
-// The glow behind the glass cards is drawn by glass.css from --xui-accent.
-function applyGlassDom(isGlass: boolean, accent: AccentColor, isDark: boolean) {
+// --xui-accent lives on :root because antd's --ant-* vars only reach antd roots;
+// the glass glow and the command palette (plain divs) read it.
+function applyAccentDom(isGlass: boolean, accent: AccentColor, isDark: boolean) {
   const root = document.documentElement;
+  root.style.setProperty('--xui-accent', accentPrimary(accent, isDark));
   if (isGlass) {
     root.setAttribute('data-glass', 'on');
-    root.style.setProperty('--xui-accent', accentPrimary(accent, isDark));
   } else {
     root.removeAttribute('data-glass');
-    root.style.removeProperty('--xui-accent');
   }
 }
 
@@ -90,7 +90,7 @@ const initialUltra = readBool(STORAGE_ULTRA, false);
 const initialAccent = readAccent();
 const initialGlass = readBool(STORAGE_GLASS, false);
 applyDom(initialDark, initialUltra);
-applyGlassDom(initialGlass, initialAccent, initialDark);
+applyAccentDom(initialGlass, initialAccent, initialDark);
 
 const DARK_TOKENS = {
   colorBgBase: '#1a1b1f',
@@ -310,7 +310,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [isDark, isUltra]);
 
   useLayoutEffect(() => {
-    applyGlassDom(isGlass, accent, isDark);
+    applyAccentDom(isGlass, accent, isDark);
     localStorage.setItem(STORAGE_ACCENT, accent);
     localStorage.setItem(STORAGE_GLASS, String(isGlass));
   }, [accent, isGlass, isDark]);

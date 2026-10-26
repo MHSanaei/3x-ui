@@ -117,7 +117,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
   font-size: 24px;
   width: 28px;
   height: 28px;
-  color: var(--ant-color-primary);
+  color: var(--xui-accent);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -126,7 +126,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-search-icon.spinning {
-  color: var(--ant-color-primary);
+  color: var(--xui-accent);
   animation: cp-spin 0.8s linear infinite;
 }
 
@@ -262,18 +262,18 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.light .command-palette-item.active {
-  background: var(--ant-color-primary-bg);
-  color: var(--ant-color-primary-text-active);
+  background: color-mix(in srgb, var(--xui-accent) 10%, #fff);
+  color: var(--xui-accent);
 }
 
 .command-palette-modal.dark .command-palette-item.active {
-  background: color-mix(in srgb, var(--ant-color-primary) 20%, transparent);
-  color: color-mix(in srgb, var(--ant-color-primary) 80%, #fff);
+  background: color-mix(in srgb, var(--xui-accent) 20%, transparent);
+  color: color-mix(in srgb, var(--xui-accent) 80%, #fff);
 }
 
 .command-palette-modal.ultra .command-palette-item.active {
-  background: color-mix(in srgb, var(--ant-color-primary) 28%, transparent);
-  color: color-mix(in srgb, var(--ant-color-primary) 65%, #fff);
+  background: color-mix(in srgb, var(--xui-accent) 28%, transparent);
+  color: color-mix(in srgb, var(--xui-accent) 65%, #fff);
 }
 
 .command-palette-item-main {
@@ -353,7 +353,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.light .command-palette-action-btn:hover {
-  color: var(--ant-color-primary-text-active);
+  color: var(--xui-accent);
   background: rgba(0, 0, 0, 0.06);
 }
 
@@ -362,7 +362,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.dark .command-palette-action-btn:hover {
-  color: color-mix(in srgb, var(--ant-color-primary) 80%, #fff);
+  color: color-mix(in srgb, var(--xui-accent) 80%, #fff);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -371,7 +371,7 @@ html[data-theme='ultra-dark'] .command-palette-modal {
 }
 
 .command-palette-modal.ultra .command-palette-action-btn:hover {
-  color: color-mix(in srgb, var(--ant-color-primary) 65%, #fff);
+  color: color-mix(in srgb, var(--xui-accent) 65%, #fff);
   background: rgba(255, 255, 255, 0.15);
 }
 
