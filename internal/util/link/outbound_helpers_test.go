@@ -430,3 +430,25 @@ func TestParse_VmessFinalMask(t *testing.T) {
 		t.Fatalf("finalmask.udp = %#v, want %#v", udp, want)
 	}
 }
+
+func TestParseWireguard_Endpoint(t *testing.T) {
+	cases := []struct {
+		link string
+		want string
+	}{
+		{"wireguard://key@a.com:51820?publickey=pub#x", "a.com:51820"},
+		{"wireguard://key@1.2.3.4:51820?publickey=pub#x", "1.2.3.4:51820"},
+		{"wireguard://key@[2001:db8::1]:51820?publickey=pub#x", "[2001:db8::1]:51820"},
+		{"wireguard://key@a.com?publickey=pub#x", "a.com"},
+	}
+	for _, c := range cases {
+		res, err := ParseLink(c.link)
+		if err != nil {
+			t.Fatalf("parse %s: %v", c.link, err)
+		}
+		peer := res.Outbound["settings"].(map[string]any)["peers"].([]any)[0].(map[string]any)
+		if peer["endpoint"] != c.want {
+			t.Errorf("%s: endpoint = %v, want %q", c.link, peer["endpoint"], c.want)
+		}
+	}
+}
