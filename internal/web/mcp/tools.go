@@ -55,17 +55,25 @@ func registerTools(s *sdk.Server, d *dispatcher, names []string) {
 	addCallAPITool(s, d)
 }
 
-func readOnly() *sdk.ToolAnnotations { return &sdk.ToolAnnotations{ReadOnlyHint: true} }
+// Tools only touch this panel, so OpenWorldHint is false (the spec defaults it to
+// true); readOnlyOpenWorld marks the ones returning text remote parties can write.
+func readOnly() *sdk.ToolAnnotations {
+	return &sdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: boolPtr(false)}
+}
+
+func readOnlyOpenWorld() *sdk.ToolAnnotations {
+	return &sdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: boolPtr(true)}
+}
 
 func additive() *sdk.ToolAnnotations {
-	f := false
-	return &sdk.ToolAnnotations{DestructiveHint: &f}
+	return &sdk.ToolAnnotations{DestructiveHint: boolPtr(false), OpenWorldHint: boolPtr(false)}
 }
 
 func destructive() *sdk.ToolAnnotations {
-	t := true
-	return &sdk.ToolAnnotations{DestructiveHint: &t}
+	return &sdk.ToolAnnotations{DestructiveHint: boolPtr(true), OpenWorldHint: boolPtr(false)}
 }
+
+func boolPtr(b bool) *bool { return &b }
 
 type callAPIInput struct {
 	Method string            `json:"method" jsonschema:"HTTP method: GET or POST (a few routes also take PUT or DELETE)"`
@@ -87,7 +95,12 @@ func cleanAPIPath(p string) (string, error) {
 	if cleaned := path.Clean(decoded); cleaned == Path || strings.HasPrefix(cleaned, Path+"/") {
 		return "", errBadAPIPath
 	}
-	return path.Clean(p), nil
+	cleaned := path.Clean(p)
+	// Gin answers a dropped trailing slash (POST /xray/) with a bodiless 307 redirect.
+	if strings.HasSuffix(p, "/") && cleaned != "/" {
+		cleaned += "/"
+	}
+	return cleaned, nil
 }
 
 func addCallAPITool(s *sdk.Server, d *dispatcher) {
