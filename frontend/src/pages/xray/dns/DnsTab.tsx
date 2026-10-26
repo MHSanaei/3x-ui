@@ -26,6 +26,7 @@ import {
 import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { usePointerRowReorder } from '@/hooks/usePointerRowReorder';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import DnsServerModal from './DnsServerModal';
 import type { DnsServerValue } from './DnsServerModal';
@@ -51,6 +52,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
   const [editingServer, setEditingServer] = useState<DnsServerValue | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [presetsModalOpen, setPresetsModalOpen] = useState(false);
+  const serversContainerRef = useRef<HTMLDivElement>(null);
 
   const dns = (templateSettings?.dns as DnsConfig | undefined) ?? null;
   const dnsEnabled = !!dns;
@@ -165,8 +167,33 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
     },
     [mutate],
   );
+  const moveServer = useCallback(
+    (from: number, to: number) => {
+      mutate((tt) => {
+        const servers = (tt.dns as DnsConfig | undefined)?.servers;
+        if (!servers) return;
+        const [moved] = servers.splice(from, 1);
+        servers.splice(to, 0, moved);
+      });
+    },
+    [mutate],
+  );
 
-  const dnsColumns = useDnsServerColumns({ openEditServer, deleteServer });
+  const { drag, onPointerDown: onHandlePointerDown } = usePointerRowReorder({
+    containerRef: serversContainerRef,
+    getRowKey: (row) => Number(row.dataset.rowKey),
+    onDrop: ({ from, to }) => moveServer(from, to),
+  });
+  const draggedIndex = drag?.from ?? null;
+  const dropTargetIndex = drag?.to ?? null;
+
+  const dnsColumns = useDnsServerColumns({
+    rowsLength: dnsServers.length,
+    onHandlePointerDown,
+    openEditServer,
+    moveServer,
+    deleteServer,
+  });
 
   function openAddServer() {
     setEditingServer(null);
@@ -473,14 +500,21 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                   {t('pages.xray.dns.clearAll')}
                 </Button>
               </Space>
-              <Table
-                columns={dnsColumns}
-                dataSource={dnsServers}
-                rowKey={(r) => r.key}
-                pagination={false}
-                size="small"
-                bordered
-              />
+              <div ref={serversContainerRef}>
+                <Table
+                  columns={dnsColumns}
+                  dataSource={dnsServers}
+                  rowKey={(r) => r.key}
+                  rowClassName={(_r, i) => {
+                    if (i === draggedIndex) return 'row-dragging';
+                    if (i !== dropTargetIndex || draggedIndex == null) return '';
+                    return i > draggedIndex ? 'drop-after' : 'drop-before';
+                  }}
+                  pagination={false}
+                  size="small"
+                  bordered
+                />
+              </div>
             </Space>
           ),
       });
@@ -515,7 +549,17 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
 
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, isMobile, dnsEnabled, dns, hostsList, dnsServers, fakeDnsList]);
+  }, [
+    t,
+    isMobile,
+    dnsEnabled,
+    dns,
+    hostsList,
+    dnsServers,
+    fakeDnsList,
+    draggedIndex,
+    dropTargetIndex,
+  ]);
 
   return (
     <>
