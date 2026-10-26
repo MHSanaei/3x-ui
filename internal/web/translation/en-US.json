@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Read from this server",
       "detected": "Read the StormDNS server on this machine; check and save",
+      "notInstalled": "No StormDNS server is installed in {dir} on this server. Install the StormDNS server here and delegate its zone (NS record) to this server, then read it again, or add a server that runs elsewhere by hand with its domain and key.",
       "stormDir": "StormDNS server folder",
       "intro": "A DNS tunnel keeps working when the internet is cut but the ISP's DNS still answers. Users connect with an app such as WhiteDNS (StormDNS engine) or a dnstt client; the panel keeps the server profiles to hand out and finds the DNS resolvers that pass the tunnel on each internet.",
       "servers": "Tunnel servers",

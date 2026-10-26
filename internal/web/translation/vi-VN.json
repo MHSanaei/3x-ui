@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Đọc từ máy chủ này",
       "detected": "Đã đọc máy chủ StormDNS trên máy này; hãy kiểm tra rồi lưu",
+      "notInstalled": "Không có máy chủ StormDNS nào được cài trong {dir} trên máy chủ này. Hãy cài máy chủ StormDNS tại đây và ủy quyền vùng của nó (bản ghi NS) cho máy chủ này rồi đọc lại, hoặc tự thêm một máy chủ chạy ở nơi khác với tên miền và khóa của nó.",
       "stormDir": "Thư mục máy chủ StormDNS",
       "intro": "Đường hầm DNS vẫn hoạt động khi internet bị cắt nhưng DNS của nhà mạng vẫn trả lời. Người dùng kết nối bằng ứng dụng như WhiteDNS (lõi StormDNS) hoặc một client dnstt; bảng điều khiển lưu hồ sơ máy chủ để phát cho người dùng và tìm các resolver DNS cho đường hầm đi qua trên từng mạng.",
       "servers": "Máy chủ đường hầm",

@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Načítať z tohto servera",
       "detected": "Server StormDNS na tomto počítači bol načítaný; skontrolujte a uložte",
+      "notInstalled": "Na tomto serveri nie je v {dir} nainštalovaný žiadny server StormDNS. Nainštalujte sem server StormDNS a delegujte jeho zónu (záznam NS) na tento server, potom ho načítajte znova, alebo ručne pridajte server bežiaci inde s jeho doménou a kľúčom.",
       "stormDir": "Priečinok servera StormDNS",
       "intro": "DNS tunel funguje ďalej, keď je internet odpojený, ale DNS poskytovateľa ešte odpovedá. Používatelia sa pripájajú aplikáciou ako WhiteDNS (jadro StormDNS) alebo klientom dnstt; panel uchováva profily serverov na rozdávanie a hľadá DNS resolvery, ktoré tunel v danej sieti prepustia.",
       "servers": "Tunelové servery",

@@ -2008,7 +2008,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/dnstunnel/detect',
         summary:
-          'Read the StormDNS server installed on this server (its server_config.toml and key file) as one profile per served domain.',
+          'Read the StormDNS server installed on this server (its server_config.toml and key file) as one profile per served domain. An empty list means no StormDNS server is installed in that folder.',
         params: [
           {
             name: 'dir',

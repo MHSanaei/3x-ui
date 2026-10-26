@@ -129,11 +129,14 @@ func TestDetectStormDnsServerReadsItsConfigAndKeyFile(t *testing.T) {
 		t.Fatalf("default key file: %+v, %v", got, err)
 	}
 
-	if _, err := s.DetectStormDns(t.TempDir()); !errors.Is(err, errDnsTunnelNoServer) {
-		t.Fatalf("empty dir: err = %v; want errDnsTunnelNoServer", err)
+	// no StormDNS installed there is an answer the page explains, not an error toast
+	for _, empty := range []string{t.TempDir(), filepath.Join(t.TempDir(), "missing")} {
+		if got, err := s.DetectStormDns(empty); err != nil || got == nil || len(got) != 0 {
+			t.Fatalf("not installed in %s: %#v, %v; want an empty list, no error", empty, got, err)
+		}
 	}
-	if _, err := s.DetectStormDns("relative/dir"); !errors.Is(err, errDnsTunnelNoServer) {
-		t.Fatalf("relative dir: err = %v; want errDnsTunnelNoServer", err)
+	if _, err := s.DetectStormDns("relative/dir"); !errors.Is(err, errDnsTunnelBadDir) {
+		t.Fatalf("relative dir: err = %v; want errDnsTunnelBadDir", err)
 	}
 	writeFile(t, filepath.Join(dir, "encrypt_key.txt"), "short")
 	if _, err := s.DetectStormDns(dir); !errors.Is(err, errDnsTunnelBadProfile) {
