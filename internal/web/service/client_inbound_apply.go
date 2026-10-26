@@ -59,15 +59,20 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 		return nil
 	}
 	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
+	cidr := settings.Server.SubnetCIDR
+	if cidr <= 0 {
+		cidr = 24
+	}
+	inst.Address = []string{fmt.Sprintf("%s/%d", settings.Server.SubnetIP, cidr)}
 	for _, client := range clients {
 		inst.Peers = append(inst.Peers, amneziawg.Peer{
-			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPorts,
+			Email: client.Email, AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPorts,
 		})
 	}
 	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
 		return err
 	}
-	return nil
+	return amneziawgkern.ValidatePeerSubnets(inst)
 }
 
 func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {

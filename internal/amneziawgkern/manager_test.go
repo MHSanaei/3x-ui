@@ -250,6 +250,27 @@ func forwardRulesFor(h *fakeHost, name string) []string {
 	return out
 }
 
+func TestEnsureSubnetMismatchPreservesRunningInterface(t *testing.T) {
+	m, h, _ := newTestManager(t)
+	d := managerDesired(1)
+	if err := m.Ensure(d); err != nil {
+		t.Fatal(err)
+	}
+	before := h.nat["xui_awg1"]
+	h.commands = nil
+	d.Instance.Address = []string{"10.9.1.1/24"}
+	if err := m.Ensure(d); err == nil || !strings.Contains(err.Error(), "outside kernel interface subnets [10.9.1.0/24]") {
+		t.Fatalf("Ensure error = %v, want mismatched subnet rejection", err)
+	}
+	link := h.links["xui-awg1"]
+	if link == nil || !link.up || strings.Join(link.addresses, ",") != "10.8.1.1/24" {
+		t.Fatalf("failed update changed the running interface: %+v", link)
+	}
+	if h.nat["xui_awg1"] != before || len(h.commands) != 0 {
+		t.Fatalf("failed update changed host state: NAT=%q commands=%v", h.nat["xui_awg1"], h.commands)
+	}
+}
+
 // TestEnsureBuildsInterfaceWithoutShell: every step is a direct exec, so no
 // client-controlled value ever reaches a shell running as root.
 func TestEnsureBuildsInterfaceWithoutShell(t *testing.T) {

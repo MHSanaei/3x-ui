@@ -25,6 +25,7 @@ func TestKernelAWGClientWritesRejectUnsafeValuesAndUnsupportedFeatures(t *testin
 		{"public key hook injection", "control characters", model.Client{Email: "bad-key@awg", Enable: true, PublicKey: "peer-key\n[Interface]\nPostDown = touch /tmp/pwned", AllowedIPs: []string{"10.8.1.2/32"}}},
 		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "bad-forward@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"10.8.1.2/32"}, ForwardedPorts: "54321"}},
 		{"IPv6 allowed IP", "per-peer IPv6 egress is not supported", model.Client{Email: "bad-v6@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"2001:db8::2/128"}}},
+		{"outside server subnet", "outside kernel interface subnets", model.Client{Email: "bad-subnet@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"10.9.1.2/32"}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -72,6 +73,7 @@ func TestKernelAWGClientUpdateRejectsUnsafeValuesAndUnsupportedFeatures(t *testi
 		{"preshared key hook injection", "control characters", model.Client{Email: "kept@awg", PreSharedKey: "psk\n[Interface]\nPreDown = touch /tmp/pwned"}},
 		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "kept@awg", ForwardedPorts: "54321"}},
 		{"IPv6 allowed IP", "per-peer IPv6 egress is not supported", model.Client{Email: "kept@awg", AllowedIPs: []string{"2001:db8::2/128"}}},
+		{"outside server subnet", "outside kernel interface subnets", model.Client{Email: "kept@awg", AllowedIPs: []string{"10.9.1.2/32"}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
