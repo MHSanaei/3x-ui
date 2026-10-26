@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "Tên",
       "resolverOk": "cho qua ✓",
+      "resolverLowMtu": "MTU thấp · tên {chars} ký tự",
+      "resolverLiar": "bịa câu trả lời ✗",
+      "lowMtuLeftOut": "Thêm {count} resolver chỉ qua được với tên truy vấn ngắn (MTU thấp): bị bỏ khỏi danh sách, vì StormDNS sẽ chạy mọi resolver ở MTU nhỏ của chúng.",
+      "lowMtuOnly": "Các resolver này chỉ qua được với tên truy vấn ngắn (MTU thấp): đặt MIN_UPLOAD_MTU = 40 và MIN_DOWNLOAD_MTU = 200 trong client StormDNS để dùng chúng.",
       "toasts": {
         "detect": "Không đọc được máy chủ StormDNS trong thư mục đó (server_config.toml và tệp khóa của nó)",
         "profiles": "Không lưu được máy chủ đường hầm",

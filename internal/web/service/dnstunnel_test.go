@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -182,5 +183,83 @@ func TestDnsTunnelCommandMakesRoomWhenFull(t *testing.T) {
 	}
 	if _, err := s.Reports(first); !errors.Is(err, errCleanIpExpired) {
 		t.Errorf("oldest command after the store filled: err = %v, want errCleanIpExpired", err)
+	}
+}
+
+// A resolver that drops long query names forces StormDNS's upload MTU down for the whole list,
+// and one that makes answers up passes any reach test: the script must tell both apart.
+func TestDnsTunnelScriptMeasuresNameLengthAndFlagsLiars(t *testing.T) {
+	py := pythonForTest(t)
+	var s DnsTunnelService
+	cmd, err := s.NewCommand(DnsTunnelCommandRequest{Zone: "t.example.com"}, "https://p/")
+	if err != nil {
+		t.Fatalf("NewCommand: %v", err)
+	}
+	script, err := s.Script(cmd.Token, "https://p/r")
+	if err != nil {
+		t.Fatalf("Script: %v", err)
+	}
+	harness := strings.Replace(script, "if __name__ == \"__main__\":", "if False:", 1) + `
+import socket, struct, threading
+def serve(longest, liar):
+    srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    srv.bind(("127.0.0.1", 0))
+    def loop():
+        while True:
+            data, addr = srv.recvfrom(4096)
+            labels, i = [], 12
+            while data[i]:
+                labels.append(data[i + 1:i + 1 + data[i]].decode()); i += 1 + data[i]
+            name = ".".join(labels)
+            if name.endswith(".invalid"):
+                answers = 1 if liar else 0
+                srv.sendto(data[:2] + struct.pack(">HHHHH", 0x8180 if liar else 0x8183, 1, answers, 0, 0) + data[12:], addr)
+            elif len(name) <= longest:
+                srv.sendto(data[:2] + struct.pack(">HHHHH", 0x8180, 1, 0, 0, 0) + data[12:], addr)
+    threading.Thread(target=loop, daemon=True).start()
+    return srv.getsockname()[1]
+TIMEOUT, TRIES = 0.3, 1
+print(all(len(zone_name(n)) == n and max(map(len, zone_name(n).split("."))) <= 63 for n in range(27, 254)))
+PORT = serve(150, False)
+r = probe("127.0.0.1"); print(r["status"], r["maxName"])
+PORT = serve(253, True)
+print(probe("127.0.0.1")["status"])
+print(shared_list([{"ip": "a", "status": "ok", "maxName": 253}, {"ip": "b", "status": "ok", "maxName": 150}]))
+print(shared_list([{"ip": "b", "status": "ok", "maxName": 150}]))
+`
+	path := filepath.Join(t.TempDir(), "dns.py")
+	if err := os.WriteFile(path, []byte(harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(py, "-I", path).CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	want := "True\nok 150\nliar\n(['a'], False, 1)\n(['b'], True, 0)"
+	if got := strings.TrimSpace(strings.ReplaceAll(string(out), "\r\n", "\n")); got != want {
+		t.Fatalf("script printed\n%s\nwant\n%s", got, want)
+	}
+}
+
+// Old reports and other statuses carry no name length; a forged one must stay in range.
+func TestDnsTunnelReportKeepsTheNameLength(t *testing.T) {
+	var s DnsTunnelService
+	cmd, err := s.NewCommand(DnsTunnelCommandRequest{Zone: "t.example.com"}, "https://p/")
+	if err != nil {
+		t.Fatalf("NewCommand: %v", err)
+	}
+	body := `{"results": [{"ip": "1.1.1.1", "status": "ok", "maxName": 150}, {"ip": "8.8.8.8", "status": "liar"},
+	  {"ip": "9.9.9.9", "status": "ok", "maxName": 99999}]}`
+	report, err := s.AddReport(context.Background(), cmd.Token, []byte(body), "127.0.0.1")
+	if err != nil {
+		t.Fatalf("AddReport: %v", err)
+	}
+	got := map[string][2]any{}
+	for _, r := range report.Results {
+		got[r.Ip] = [2]any{r.Status, r.MaxName}
+	}
+	want := map[string][2]any{"1.1.1.1": {"ok", 150}, "8.8.8.8": {"liar", 0}, "9.9.9.9": {"ok", 253}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("results = %v, want %v", got, want)
 	}
 }

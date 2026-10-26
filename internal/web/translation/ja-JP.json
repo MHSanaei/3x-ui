@@ -156,6 +156,10 @@
       "resolver": "リゾルバー",
       "resolverName": "名前",
       "resolverOk": "通過 ✓",
+      "resolverLowMtu": "低MTU · {chars}文字の名前",
+      "resolverLiar": "応答を捏造 ✗",
+      "lowMtuLeftOut": "さらに{count}件は短いクエリ名でのみ通過します（低MTU）。StormDNSが全リゾルバーをその小さいMTUで動かすため、リストから外しました。",
+      "lowMtuOnly": "これらは短いクエリ名でのみ通過します（低MTU）。使うにはStormDNSクライアントで MIN_UPLOAD_MTU = 40、MIN_DOWNLOAD_MTU = 200 に設定してください。",
       "toasts": {
         "detect": "そのフォルダーの StormDNS サーバー（server_config.toml とキーファイル）を読み込めませんでした",
         "profiles": "トンネルサーバーを保存できませんでした",

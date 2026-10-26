@@ -156,6 +156,10 @@
       "resolver": "解析器",
       "resolverName": "名稱",
       "resolverOk": "可通過 ✓",
+      "resolverLowMtu": "低 MTU · {chars} 字元的名稱",
+      "resolverLiar": "偽造回應 ✗",
+      "lowMtuLeftOut": "另有 {count} 個僅在查詢名稱較短時通過（低 MTU）：已從清單中排除，否則 StormDNS 會讓所有解析器都以它們的小 MTU 執行。",
+      "lowMtuOnly": "這些僅在查詢名稱較短時通過（低 MTU）：若要使用，請在 StormDNS 用戶端設定 MIN_UPLOAD_MTU = 40 和 MIN_DOWNLOAD_MTU = 200。",
       "toasts": {
         "detect": "無法讀取該資料夾中的 StormDNS 伺服器（server_config.toml 及其金鑰檔）",
         "profiles": "無法儲存隧道伺服器",

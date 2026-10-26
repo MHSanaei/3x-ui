@@ -156,6 +156,10 @@
       "resolver": "Çözümleyici",
       "resolverName": "Ad",
       "resolverOk": "geçiriyor ✓",
+      "resolverLowMtu": "düşük MTU · {chars} karakterlik adlar",
+      "resolverLiar": "yanıt uyduruyor ✗",
+      "lowMtuLeftOut": "{count} tane daha yalnızca kısa sorgu adlarıyla geçiyor (düşük MTU): listeye alınmadı, çünkü StormDNS tüm çözücüleri onların küçük MTU'suyla çalıştırırdı.",
+      "lowMtuOnly": "Bunlar yalnızca kısa sorgu adlarıyla geçiyor (düşük MTU): kullanmak için StormDNS istemcisinde MIN_UPLOAD_MTU = 40 ve MIN_DOWNLOAD_MTU = 200 ayarlayın.",
       "toasts": {
         "detect": "Bu klasörde StormDNS sunucusu okunamadı (server_config.toml ve anahtar dosyası)",
         "profiles": "Tünel sunucuları kaydedilemedi",

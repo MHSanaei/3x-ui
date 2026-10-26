@@ -712,6 +712,7 @@ export type DnsResolverReport = z.infer<typeof DnsResolverReportSchema>;
 
 export const DnsResolverResultSchema = z.object({
   ip: z.string(),
+  maxName: z.number().int(),
   ms: z.number().int(),
   name: z.string(),
   status: z.string(),

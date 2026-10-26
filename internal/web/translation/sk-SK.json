@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "Názov",
       "resolverOk": "prepúšťa ✓",
+      "resolverLowMtu": "nízke MTU · názvy do {chars} znakov",
+      "resolverLiar": "vymýšľa odpovede ✗",
+      "lowMtuLeftOut": "Ďalších {count} prejde len s krátkymi názvami dotazov (nízke MTU): vynechané zo zoznamu, lebo StormDNS by všetky resolvery spúšťal s ich malým MTU.",
+      "lowMtuOnly": "Tieto prejdú len s krátkymi názvami dotazov (nízke MTU): na ich použitie nastavte v klientovi StormDNS MIN_UPLOAD_MTU = 40 a MIN_DOWNLOAD_MTU = 200.",
       "toasts": {
         "detect": "V tom priečinku sa nepodarilo načítať server StormDNS (server_config.toml a jeho súbor s kľúčom)",
         "profiles": "Tunelové servery sa nepodarilo uložiť",

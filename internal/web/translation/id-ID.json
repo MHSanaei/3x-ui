@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "Nama",
       "resolverOk": "lolos ✓",
+      "resolverLowMtu": "MTU rendah · nama {chars} karakter",
+      "resolverLiar": "mengarang jawaban ✗",
+      "lowMtuLeftOut": "{count} lagi hanya lolos dengan nama kueri pendek (MTU rendah): tidak dimasukkan ke daftar, karena StormDNS akan menjalankan semua resolver dengan MTU kecil mereka.",
+      "lowMtuOnly": "Ini hanya lolos dengan nama kueri pendek (MTU rendah): atur MIN_UPLOAD_MTU = 40 dan MIN_DOWNLOAD_MTU = 200 di klien StormDNS untuk memakainya.",
       "toasts": {
         "detect": "Tidak dapat membaca server StormDNS di folder itu (server_config.toml dan file kuncinya)",
         "profiles": "Tidak dapat menyimpan server tunnel",

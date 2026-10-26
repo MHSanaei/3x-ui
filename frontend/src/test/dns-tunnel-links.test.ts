@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mergeDetected, whiteDnsLink } from '@/pages/dns-tunnel/links';
+import { mergeDetected, resolverShare, whiteDnsLink } from '@/pages/dns-tunnel/links';
 
 // WhiteDNS refuses a link whose scheme, schema, version or server fields differ from what
 // its importer (WhiteDnsProfileLinks.kt) reads; this decodes the link the way it does.
@@ -89,5 +89,29 @@ describe('mergeDetected', () => {
       listed[1],
       detected[1],
     ]);
+  });
+});
+
+// StormDNS runs every resolver at the smallest MTU among them (internal/client/mtu.go), so a
+// resolver that only carries short names would slow the whole shared list down.
+describe('resolverShare', () => {
+  const ok = (ip: string, maxName: number) => ({ ip, status: 'ok', ms: 1, name: '', maxName });
+
+  it('leaves low-MTU resolvers out while full-length ones work', () => {
+    const share = resolverShare([
+      ok('1.1.1.1', 253),
+      ok('2.2.2.2', 140),
+      { ip: '3.3.3.3', status: 'liar', ms: 1, name: '', maxName: 0 },
+      ok('4.4.4.4', 0),
+    ]);
+    expect(share).toEqual({ ips: ['1.1.1.1', '4.4.4.4'], low: false, leftOut: 1 });
+  });
+
+  it('falls back to the low-MTU ones, flagged, when nothing else works', () => {
+    expect(resolverShare([ok('2.2.2.2', 140)])).toEqual({
+      ips: ['2.2.2.2'],
+      low: true,
+      leftOut: 0,
+    });
   });
 });

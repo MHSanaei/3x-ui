@@ -156,6 +156,10 @@
       "resolver": "Resolver",
       "resolverName": "Nome",
       "resolverOk": "deixa passar ✓",
+      "resolverLowMtu": "MTU baixo · nomes de {chars} caracteres",
+      "resolverLiar": "inventa respostas ✗",
+      "lowMtuLeftOut": "Mais {count} passam só com nomes de consulta curtos (MTU baixo): ficaram fora da lista, pois o StormDNS rodaria todos os resolvers no MTU pequeno deles.",
+      "lowMtuOnly": "Estes passam só com nomes de consulta curtos (MTU baixo): defina MIN_UPLOAD_MTU = 40 e MIN_DOWNLOAD_MTU = 200 no cliente StormDNS para usá-los.",
       "toasts": {
         "detect": "Não foi possível ler um servidor StormDNS nessa pasta (server_config.toml e o arquivo da chave)",
         "profiles": "Não foi possível salvar os servidores de túnel",

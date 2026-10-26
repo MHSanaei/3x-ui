@@ -156,6 +156,10 @@
       "resolver": "Резолвер",
       "resolverName": "Назва",
       "resolverOk": "пропускає ✓",
+      "resolverLowMtu": "низький MTU · імена до {chars} симв.",
+      "resolverLiar": "вигадує відповіді ✗",
+      "lowMtuLeftOut": "Ще {count} проходять лише з короткими іменами запитів (низький MTU): не додані до списку, бо StormDNS працював би з усіма резолверами на їхньому малому MTU.",
+      "lowMtuOnly": "Ці проходять лише з короткими іменами запитів (низький MTU): щоб їх використати, задайте MIN_UPLOAD_MTU = 40 і MIN_DOWNLOAD_MTU = 200 у клієнті StormDNS.",
       "toasts": {
         "detect": "Не вдалося прочитати сервер StormDNS у цій теці (server_config.toml і файл ключа)",
         "profiles": "Не вдалося зберегти сервери тунелю",
