@@ -269,3 +269,51 @@ func TestSubRateLimitGuard(t *testing.T) {
 		}
 	}
 }
+
+// The guard is wired through initRouter's group-level Use, so a limited
+// controller must 429 on EVERY subscription format route, and an unlimited
+// one must serve them all.
+func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	limited := func(t *testing.T, withLimit bool) *gin.Engine {
+		t.Helper()
+		router := gin.New()
+		options := []SUBControllerOption{
+			WithSUBPath("/sub/"),
+			WithSUBJsonPath("/json/"),
+			WithSUBJsonEnabled(true),
+			WithSUBClashPath("/clash/"),
+			WithSUBClashEnabled(true),
+		}
+		if withLimit {
+			limiter := newSubRateLimiter(1, time.Minute)
+			limiter.now = func() time.Time { return baseTime() }
+			options = append(options, WithSUBRateLimit(limiter, newLoopbackIPResolver()))
+		}
+		NewSUBController(router.Group("/"), options...)
+		return router
+	}
+
+	paths := []string{"/sub/abc", "/sub/abc/hwid-status", "/json/abc", "/clash/abc", "/clash-legacy/abc", "/mihomo/abc"}
+	router := limited(t, true)
+	for _, path := range paths {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusTooManyRequests {
+			t.Fatalf("limited %s: code = %d, want 429", path, w.Code)
+		}
+		if w.Header().Get("Retry-After") == "" {
+			t.Fatalf("limited %s: 429 without Retry-After", path)
+		}
+	}
+
+	open := limited(t, false)
+	for _, path := range paths {
+		w := httptest.NewRecorder()
+		open.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code == http.StatusTooManyRequests {
+			t.Fatalf("unlimited %s: got 429, limiter must be off", path)
+		}
+	}
+}
