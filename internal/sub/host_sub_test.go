@@ -2105,10 +2105,12 @@ func TestSub_ClientGroupHostAssignment_UnassignedGroupKeepsLegacyBehavior(t *tes
 func TestSub_ClientGroupHostAssignment_FailsClosed(t *testing.T) {
 	seedSubDB(t)
 	ib := seedSubInbound(t, "group-closed", "group-closed", 4664, 1, tcpTLSStream)
+	hostless := seedSubInbound(t, "group-closed", "group-closed-hostless", 4668, 2, tcpTLSStream)
 	seedHost(t, &model.Host{GroupId: "cdn-other", InboundId: ib.Id, SortOrder: 1, Remark: "Other", Address: "other.closed.example", Port: 443, Security: "tls", Sni: "other.sni"})
 
 	db := database.GetDB()
 	setSubClientGroup(t, ib, "group-closed@e", "staff")
+	setSubClientGroup(t, hostless, "group-closed-hostless@e", "staff")
 	if err := db.Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "deleted-group"}).Error; err != nil {
 		t.Fatalf("assign stale host group: %v", err)
 	}

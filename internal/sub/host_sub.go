@@ -119,6 +119,18 @@ func (s *SubService) clientGroupHostSelection(groupName string) clientGroupHostS
 		} else {
 			selection.groupIDs = ids
 			selection.assigned = len(ids) > 0
+			if selection.assigned {
+				var existingIDs []string
+				if err := db.Model(&model.Host{}).
+					Where("group_id IN ?", ids).
+					Distinct().
+					Pluck("group_id", &existingIDs).Error; err != nil {
+					logger.Warning("SubService - clientGroupHostSelection hosts:", err)
+					selection.failed = true
+				} else if len(existingIDs) != len(ids) {
+					selection.failed = true
+				}
+			}
 		}
 	}
 	if s.clientGroupHostAssignments == nil {
