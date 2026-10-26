@@ -153,6 +153,11 @@ func (l *subRateLimiter) removeLocked(element *list.Element, key string) {
 // client-supplied X-Real-IP is only believed when it agrees with the
 // forwarded chain. A spoofed header behind a trusted proxy therefore falls
 // back to the proxy's own address instead of poisoning the bucket key.
+//
+// One deliberate deviation from the panel: a partially invalid
+// trustedProxyCIDRs list fails closed (loopback only) instead of trusting
+// the remaining entries, because a silently narrowed identity would lump
+// every proxied client into one bucket.
 type clientIPResolver struct {
 	trusted []netip.Prefix
 }
