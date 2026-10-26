@@ -178,6 +178,8 @@ var defaultValueMap = map[string]string{
 	"subKeyFile":                  "",
 	"externalSubUserAgent":        DefaultExternalSubUserAgent,
 	"subUpdates":                  "12",
+	"subRateLimitEnable":          "false",
+	"subRateLimit":                "60",
 	"subEncrypt":                  "true",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
@@ -1200,6 +1202,14 @@ func (s *SettingService) GetSubKeyFile() (string, error) {
 
 func (s *SettingService) GetSubUpdates() (string, error) {
 	return s.getString("subUpdates")
+}
+
+func (s *SettingService) GetSubRateLimitEnable() (bool, error) {
+	return s.getBool("subRateLimitEnable")
+}
+
+func (s *SettingService) GetSubRateLimit() (int, error) {
+	return s.getInt("subRateLimit")
 }
 
 func (s *SettingService) GetExternalSubUserAgent() (string, error) {
