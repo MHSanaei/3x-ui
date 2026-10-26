@@ -91,7 +91,7 @@ type SUBController struct {
 
 	releaseSettingsCache func()
 
-	rateLimiter     *subRateLimiter
+	rateLimiter      *subRateLimiter
 	clientIPResolver *clientIPResolver
 }
 
