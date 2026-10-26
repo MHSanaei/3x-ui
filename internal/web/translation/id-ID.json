@@ -788,6 +788,16 @@
       "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
+      "awgPingTitle": "Ping IPv4 melalui AWG",
+      "awgPingEnable": "Izinkan ping",
+      "awgPingAllow": "Alamat IPv4 / CIDR yang diizinkan",
+      "awgPingDeny": "Alamat IPv4 / CIDR yang ditolak",
+      "awgPingHint": "Izin terpisah dari perutean TCP/UDP. Daftar kosong menolak semua; penolakan diutamakan. Dukungan node jarak jauh diperiksa saat menyimpan.",
+      "awgPingLocalStatus": "Dukungan server lokal",
+      "awgPingAvailable": "Tersedia",
+      "awgPingUnavailable": "Izin ICMP langsung tidak tersedia",
+      "awgPingUnknown": "Tidak diketahui",
+      "awgPingInvalid": "Gunakan maksimal 256 alamat IPv4 atau CIDR per daftar.",
       "tabBasics": "Dasar",
       "tabCredentials": "Kredensial",
       "tabLinks": "Tautan",

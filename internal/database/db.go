@@ -614,6 +614,7 @@ func seedWireguardPeersToClients() error {
 				c.Email = email
 
 				incoming := c.ToRecord()
+				incoming.AWGPing = nil
 				var row model.ClientRecord
 				err = tx.Where("email = ?", email).First(&row).Error
 				if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -743,6 +744,7 @@ func seedMtprotoSecretsToClients() error {
 			c := model.Client{Email: email, Secret: secret, Enable: true, SubID: obj["subId"].(string)}
 
 			incoming := c.ToRecord()
+			incoming.AWGPing = nil
 			var row model.ClientRecord
 			err := tx.Where("email = ?", email).First(&row).Error
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -3148,6 +3150,7 @@ func seedClientsFromInboundJSON() error {
 					continue
 				}
 				incoming := c.ToRecord()
+				incoming.AWGPing = nil
 
 				row, dup := byEmail[email]
 				if !dup {

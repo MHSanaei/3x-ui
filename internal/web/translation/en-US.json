@@ -788,6 +788,16 @@
       "sniffingDestOverride": "Destination override"
     },
     "clients": {
+      "awgPingTitle": "IPv4 ping via AWG",
+      "awgPingEnable": "Allow ping",
+      "awgPingAllow": "Allowed IPv4 addresses / CIDRs",
+      "awgPingDeny": "Denied IPv4 addresses / CIDRs",
+      "awgPingHint": "Separate from TCP/UDP routing. Empty allow list denies all; deny takes priority. Remote node support is checked on save.",
+      "awgPingLocalStatus": "Local server support",
+      "awgPingAvailable": "Available",
+      "awgPingUnavailable": "Raw ICMP permission unavailable",
+      "awgPingUnknown": "Unknown",
+      "awgPingInvalid": "Use at most 256 IPv4 addresses or CIDRs per list.",
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
       "tabLinks": "Links",

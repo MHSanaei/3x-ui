@@ -788,6 +788,16 @@
       "sniffingDestOverride": "Переопределение назначения"
     },
     "clients": {
+      "awgPingTitle": "IPv4-пинг через AWG",
+      "awgPingEnable": "Разрешить пинг",
+      "awgPingAllow": "Разрешённые IPv4-адреса / CIDR",
+      "awgPingDeny": "Запрещённые IPv4-адреса / CIDR",
+      "awgPingHint": "Права независимы от маршрутизации TCP/UDP. Пустой список ничего не разрешает; запрет имеет приоритет. Поддержка удалённого узла проверяется при сохранении.",
+      "awgPingLocalStatus": "Поддержка на локальном сервере",
+      "awgPingAvailable": "Доступна",
+      "awgPingUnavailable": "Нет разрешения на прямой ICMP",
+      "awgPingUnknown": "Неизвестна",
+      "awgPingInvalid": "Не более 256 IPv4-адресов или CIDR в каждом списке.",
       "tabBasics": "Основные",
       "tabCredentials": "Учетные данные",
       "tabLinks": "Ссылки",

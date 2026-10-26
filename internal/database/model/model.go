@@ -952,7 +952,8 @@ type Client struct {
 	// before -- fully backward compatible for callers that never set this.
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
-	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"`      // Numeric values or AmneziaWG ranges; 0 disables, omission preserves.
+	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"` // Numeric values or AmneziaWG ranges; 0 disables, omission preserves.
+	AWGPing             *AWGPingPolicy   `json:"awgPing,omitempty"`
 	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
@@ -994,6 +995,8 @@ type ClientRecord struct {
 	KeepAlive         KeepAliveValue `json:"keepAlive" gorm:"-"` // Numeric values or AmneziaWG ranges.
 	KeepAliveLegacy   int            `json:"-" gorm:"column:wg_keep_alive;default:0"`
 	KeepAliveRange    KeepAliveValue `json:"-" gorm:"column:wg_keep_alive_range;type:text;default:''"`
+	AWGPing           *AWGPingPolicy `json:"awgPing,omitempty" gorm:"serializer:json;column:awg_ping;type:text"`
+	AWGPingRevision   uint64         `json:"-" gorm:"column:awg_ping_revision;default:0"`
 	ForwardedPorts    string         `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
 	Secret            string         `json:"secret" gorm:"column:secret"`
 	AdTag             string         `json:"adTag" gorm:"column:ad_tag;default:''"`
@@ -1021,6 +1024,9 @@ type ClientRecord struct {
 func (ClientRecord) TableName() string { return "clients" }
 
 func (r *ClientRecord) BeforeSave(*gorm.DB) error {
+	if err := r.AWGPing.Normalize(); err != nil {
+		return err
+	}
 	legacy, ranged, err := splitKeepAliveStorage(r.KeepAlive)
 	if err != nil {
 		return err
@@ -1301,6 +1307,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PreSharedKey:   c.PreSharedKey,
 		KeepAlive:      keepAliveValue(c.KeepAlive),
 		ForwardedPorts: c.ForwardedPorts,
+		AWGPing:        c.AWGPing.Clone(),
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
 	}
@@ -1361,6 +1368,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PreSharedKey:   r.PreSharedKey,
 		KeepAlive:      keepAlivePtr(r.KeepAlive),
 		ForwardedPorts: r.ForwardedPorts,
+		AWGPing:        r.AWGPing.Clone(),
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
 	}

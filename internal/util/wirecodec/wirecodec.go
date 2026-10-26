@@ -26,7 +26,8 @@ const (
 	// kernelMode; an older node drops the flag and serves it embedded.
 	CapAmneziaWGKernel = "awg-kernel"
 	// NodeCaps is the full CapsHeader value this build advertises.
-	NodeCaps = CapZstd + "," + CapAmneziaWGKernel
+	CapAWGPing = "awg-ping4"
+	NodeCaps   = CapZstd + "," + CapAmneziaWGKernel + "," + CapAWGPing
 
 	// maxDecodeBytes bounds in-memory decompression to defuse a zstd bomb from
 	// an (authenticated) node-API caller.

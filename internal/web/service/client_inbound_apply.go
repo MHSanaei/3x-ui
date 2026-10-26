@@ -40,6 +40,12 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 		return fmt.Errorf("amneziawg: invalid settings: %w", err)
 	}
 	for _, client := range clients {
+		if err := client.AWGPing.Normalize(); err != nil {
+			return err
+		}
+		if client.AWGPing != nil && client.AWGPing.Enabled && settings.Server != nil && settings.Server.KernelMode {
+			return fmt.Errorf("AWG ping policy requires the embedded datapath")
+		}
 		for _, value := range []struct{ field, value string }{
 			{"email", client.Email},
 			{"publicKey", client.PublicKey},
@@ -482,6 +488,11 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 	}
+	for _, c := range clients {
+		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing, c.Email); err != nil {
+			return false, err
+		}
+	}
 	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
 		return false, err
 	}
@@ -848,6 +859,15 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		// AWG partial edits preserve forwarding specs; kernel mode rejects legacy specs.
 		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == "" {
 			clients[0].ForwardedPorts = old.ForwardedPorts
+		}
+	}
+	for i, c := range clients {
+		previousEmail := c.Email
+		if i == 0 {
+			previousEmail = oldEmail
+		}
+		if err := inboundSvc.validateAWGPingTarget(oldInbound, c.AWGPing, previousEmail); err != nil {
+			return false, err
 		}
 	}
 	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {

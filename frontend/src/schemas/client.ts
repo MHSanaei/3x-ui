@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AWGPingPolicySchema } from '@/schemas/primitives/awg-ping';
 import { OptionalClientKeepAliveSchema } from '@/schemas/primitives/keepalive';
 
 const nullableStringArray = z
@@ -56,6 +57,7 @@ export const ClientRecordSchema = z
     allowedIPs: z.string().optional(),
     preSharedKey: z.string().optional(),
     keepAlive: OptionalClientKeepAliveSchema,
+    awgPing: AWGPingPolicySchema.nullable().optional(),
     forwardedPorts: z.string().optional(),
     secret: z.string().optional(),
     adTag: z.string().optional(),

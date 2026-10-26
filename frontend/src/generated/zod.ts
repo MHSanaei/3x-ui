@@ -27,6 +27,13 @@ export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSche
 export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
+export const AWGPingPolicySchema = z.object({
+  allow: z.array(z.string()),
+  deny: z.array(z.string()),
+  enabled: z.boolean(),
+});
+export type AWGPingPolicy = z.infer<typeof AWGPingPolicySchema>;
+
 export const AllSettingSchema = z.object({
   datepicker: z.string(),
   discordAdminIds: z.string(),
@@ -443,6 +450,7 @@ export const ClientSchema = z.object({
   allowedIPs: z.array(z.string()).optional(),
   allowedIPsByInbound: z.record(z.number().int(), z.array(z.string())).optional(),
   auth: z.string().optional(),
+  awgPing: z.lazy(() => AWGPingPolicySchema).nullable().optional(),
   clientHostRuleIds: z.array(z.number().int()).optional(),
   comment: z.string(),
   created_at: z.number().int().optional(),
@@ -498,6 +506,7 @@ export const ClientRecordSchema = z.object({
   adTag: z.string(),
   allowedIPs: z.string(),
   auth: z.string(),
+  awgPing: z.lazy(() => AWGPingPolicySchema).nullable().optional(),
   clientHostRuleIds: z.array(z.number().int()).optional(),
   comment: z.string(),
   createdAt: z.number().int(),

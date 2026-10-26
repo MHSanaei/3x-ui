@@ -1533,6 +1533,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := s.clientService.SyncInbound(tx, inbound.Id, clients); err != nil {
 			return err
 		}
+		if s.FromNodeSync {
+			if err := syncAWGPing(tx, clients); err != nil {
+				return err
+			}
+		}
 		if _, err := database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
 			return err
 		}
@@ -1920,6 +1925,9 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) validateUpdatedInboundClients(inbound, existing *model.Inbound) error {
+	if err := validateStoredAWGPingForKernel(database.GetDB(), inbound); err != nil {
+		return err
+	}
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return err
@@ -2289,6 +2297,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 			return err
+		}
+		if s.FromNodeSync {
+			if err := syncAWGPing(tx, newClients); err != nil {
+				return err
+			}
 		}
 		if oldInbound.NodeID != nil {
 			if err := (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID); err != nil {

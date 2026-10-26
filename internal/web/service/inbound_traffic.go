@@ -50,10 +50,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 	// Commit durable traffic before best-effort lifecycle maintenance so helper
 	// failures cannot discard usage already reported by Xray.
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
-			return err
-		}
-		return s.addClientTraffic(tx, clientTraffics)
+		return s.addTrafficCounters(tx, inboundTraffics, clientTraffics)
 	}); err != nil {
 		return false, false, nil, nil, nil, err
 	}
@@ -338,7 +335,6 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 	err = tx.Save(inbounds).Error
 	if err != nil {
 		logger.Warning("AddClientTraffic update inbounds ", err)
-		logger.Error(inbounds)
 	} else {
 		for _, ib := range inbounds {
 			if ib == nil {
@@ -1271,4 +1267,11 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	}
 
 	return traffic, nil
+}
+
+func (s *InboundService) addTrafficCounters(tx *gorm.DB, inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) error {
+	if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
+		return err
+	}
+	return s.addClientTraffic(tx, clientTraffics)
 }

@@ -9,6 +9,12 @@ export type staticEgressResolver = string;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
+export interface AWGPingPolicy {
+  allow: string[];
+  deny: string[];
+  enabled: boolean;
+}
+
 export interface AllSetting {
   datepicker: string;
   discordAdminIds: string;
@@ -419,6 +425,7 @@ export interface Client {
   allowedIPs?: string[];
   allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
+  awgPing?: AWGPingPolicy | null;
   clientHostRuleIds?: number[];
   comment: string;
   created_at?: number;
@@ -471,6 +478,7 @@ export interface ClientRecord {
   adTag: string;
   allowedIPs: string;
   auth: string;
+  awgPing?: AWGPingPolicy | null;
   clientHostRuleIds?: number[];
   comment: string;
   createdAt: number;

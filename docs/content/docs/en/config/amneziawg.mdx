@@ -172,6 +172,66 @@ Parser support is present in the native tools and the panel embedded engine: [th
 
 ![AmneziaWG client editor with an ordered keepalive range](/images/amneziawg-keepalive-range.png)
 
+## IPv4 ping permissions
+
+The embedded datapath can relay ICMP Echo Request/Reply using the server's
+native IPv4 network. In **Clients → Edit → Credentials → IPv4 ping via AWG**,
+enable ping and enter allowed IPv4 addresses or CIDRs. An empty allow list
+permits nothing, denied entries take priority, and existing clients default to
+disabled. Each list accepts at most 256 entries. These permissions are independent
+of Xray's TCP/UDP routing and outbound rules; changing one does not change the other.
+
+The client API field is `awgPing: { enabled, allow, deny }`. Omitting it on a
+client update preserves the stored policy; explicit empty lists clear access.
+The normalized client record is authoritative, including after a restart or a
+parent-inbound edit. Client export/import includes the policy. New node imports
+preserve their policy, while an existing hub identity keeps the hub's policy.
+Master pushes explicitly synchronize it. A node must advertise `awg-ping4`;
+enabling ping on an older or unreachable node is refused. Ordinary account edits
+with an unchanged policy can still be saved while the node is offline and are
+queued for reconciliation; a new or changed enabled grant requires a fresh
+capability check. Kernel mode cannot be selected while a client has an enabled
+embedded ping policy.
+
+The local support indicator probes opening a raw ICMP socket without sending
+traffic. The server needs permission to open that socket (on Linux, normally
+`CAP_NET_RAW`). The panel does not change privileges, system settings or firewall
+rules. A failed socket or accounting operation produces no successful ping.
+Requests use the server's network namespace and source address; the original VPN
+source address is not routed to the target. Only a matching real Echo Reply is
+returned, preserving the client's payload, identifier and sequence. IPv6 Echo,
+traceroute and other IP protocols are outside this feature.
+
+The relay rejects malformed checksums, IPv4 options, fragments, oversized packets,
+loopback, link-local, multicast, reserved addresses, known CIDR broadcast
+addresses, its own tunnel addresses and VPN peer destinations. It rechecks
+account enablement, expiration, quota and the canonical policy for both directions.
+A policy revision invalidates outstanding replies even when access is restored
+before they return. Fresh cross-panel quota snapshots retain their native meaning.
+
+This changes the previous local gVisor ICMP behavior on every embedded inbound:
+IPv4 ICMP is intercepted before the stack, so a disabled policy produces no Echo
+reply, including to the server's own tunnel address. Other IPv4 ICMP types are
+also dropped in this first implementation. Existing ping-based tunnel-health
+checks must account for this; the policy does not preserve local Echo as an
+implicit exception.
+
+Limits are 128 requests/second per account (burst 256), 256 outstanding probes per
+account, and 1,024 requests/second globally (burst 2,048), with 4,096 outstanding
+probes and 4,096 queued packets globally. Each inbound queue holds at most 512
+packets. The reply timeout is three seconds. The inner IPv4 packet must fit both
+the tunnel MTU and the 1,200-byte limit. Monitoring should stagger larger batches.
+A 16-byte random correlation token is appended to the host-side Echo payload and
+removed on return.
+
+Each admitted inner IPv4 request/reply is durably charged once through the same
+native counter transaction as `AddTraffic`, before sending or returning it.
+Transport failures after admission can still leave the request charged. TCP/UDP
+continues to be counted by Xray; AWG wire totals are never added again. There is
+no deferred ICMP counter buffer to lose or replay on shutdown. Quota checks occur
+on each ICMP admission; other protocols keep their existing polling intervals.
+No new client profile or QR fields are needed.
+
 ## What the configuration looks like
 
 A client's downloadable `.conf` (also what the `vpn://` share link encodes,

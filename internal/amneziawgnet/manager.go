@@ -37,6 +37,7 @@ func verboseLoggerIfEnabled(inboundID int) *device.Logger {
 type Desired struct {
 	Instance amneziawg.Instance
 	Options  DeviceOptions
+	EchoGate EchoGate
 }
 
 // managed is one running embedded interface: the live Device, its UDP relay
@@ -46,6 +47,7 @@ type Desired struct {
 // place or needs to rebuild it from scratch.
 type managed struct {
 	dev          *Device
+	echo         *echoRelay
 	udpRelay     *UDPRelay
 	portForwards *PortForwardSet
 	peers        atomic.Pointer[PeerIndex]
@@ -74,6 +76,9 @@ func (m *managed) close() {
 	m.portForwards.Close()
 	// Stop packet delivery before closing the relay so an in-flight handler
 	// cannot publish a new session after the relay has already been swept.
+	if m.echo != nil {
+		m.echo.close()
+	}
 	m.dev.Close()
 	m.udpRelay.Close()
 }
@@ -205,6 +210,18 @@ func (m *Manager) ensureLocked(d Desired) error {
 		structFP:     structFP,
 	}
 	next.peers.Store(NewPeerIndex(inst.Peers))
+	next.echo = newEchoRelay(inst.Id, d.EchoGate, next.lookupPeer, dev.tun.emitEcho, func(addr netip.Addr) bool {
+		if _, ok := next.lookupPeer(addr); ok {
+			return true
+		}
+		for _, local := range dev.LocalAddresses() {
+			if addr == local {
+				return true
+			}
+		}
+		return false
+	})
+	dev.tun.echoHandler = next.echo.handle
 	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
 		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
 		if err != nil {
@@ -228,6 +245,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	// race-free.
 	if err := dev.Configure(inst, opts); err != nil {
 		udpRelay.Close()
+		next.echo.close()
 		portForwards.Close()
 		return err
 	}

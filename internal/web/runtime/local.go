@@ -25,6 +25,7 @@ type LocalDeps struct {
 	APIPort          func() int
 	SetNeedRestart   func()
 	RequestReconcile func()
+	EchoGate         amneziawgnet.EchoGate
 }
 
 type Local struct {
@@ -77,7 +78,7 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		err := ensureAmneziaWG(inst)
+		err := ensureAmneziaWG(inst, l.deps.EchoGate)
 		// A brand new inbound can be the first one to qualify for
 		// injectAmneziawgnetSocks's Xray-side relay inbound (e.g. its first
 		// valid peer). Ensure only updates the embedded Device -- flag Xray
@@ -205,12 +206,16 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 		removeAmneziaWG(newIb.Id)
 		return nil
 	}
-	return ensureAmneziaWG(inst)
+	return ensureAmneziaWG(inst, l.deps.EchoGate)
 }
 
 // ensureAmneziaWG routes an inbound to its own datapath's manager and clears
 // the other's: both bind the inbound's UDP port, so they must never overlap.
-func ensureAmneziaWG(inst amneziawg.Instance) error {
+func ensureAmneziaWG(inst amneziawg.Instance, gates ...amneziawgnet.EchoGate) error {
+	var gate amneziawgnet.EchoGate
+	if len(gates) > 0 {
+		gate = gates[0]
+	}
 	if inst.KernelMode {
 		amneziawgnet.GetManager().Remove(inst.Id)
 		return amneziawgkern.GetManager().Ensure(amneziawgkern.Desired{
@@ -224,6 +229,7 @@ func ensureAmneziaWG(inst amneziawg.Instance) error {
 	}
 	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
 		Instance: inst,
+		EchoGate: gate,
 		Options: amneziawgnet.DeviceOptions{
 			HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
 			ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
