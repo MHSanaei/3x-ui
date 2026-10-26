@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net"
@@ -14,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -93,16 +90,7 @@ type CleanIpReport struct {
 	Fragments []CleanIpFragment `json:"fragments"`
 }
 
-type cleanIpJob struct {
-	req     CleanIpCommandRequest
-	expires time.Time
-	reports []CleanIpReport
-}
-
-var (
-	cleanIpJobsMu sync.Mutex
-	cleanIpJobs   = map[string]*cleanIpJob{}
-)
+var cleanIpJobs oneDayJobs[CleanIpCommandRequest, CleanIpReport]
 
 func clampInt(v, def, lo, hi int) int {
 	if v == 0 {
@@ -148,31 +136,10 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	}
 	req.Ips = ips
 
-	buf := make([]byte, 18)
-	if _, err := rand.Read(buf); err != nil {
+	token, expires, err := cleanIpJobs.add(req)
+	if err != nil {
 		return nil, err
 	}
-	token := base64.RawURLEncoding.EncodeToString(buf)
-	now := cleanIpNow()
-	expires := now.Add(cleanIpCommandTTL)
-
-	cleanIpJobsMu.Lock()
-	for t, job := range cleanIpJobs {
-		if now.After(job.expires) {
-			delete(cleanIpJobs, t)
-		}
-	}
-	for len(cleanIpJobs) >= cleanIpMaxCommands {
-		oldest := ""
-		for t, job := range cleanIpJobs {
-			if oldest == "" || job.expires.Before(cleanIpJobs[oldest].expires) {
-				oldest = t
-			}
-		}
-		delete(cleanIpJobs, oldest)
-	}
-	cleanIpJobs[token] = &cleanIpJob{req: req, expires: expires}
-	cleanIpJobsMu.Unlock()
 
 	scriptURL := baseURL + "cleanip/run/" + token + "/script.py"
 	cmd := &CleanIpCommand{
@@ -203,15 +170,6 @@ func panelHostPort(baseURL string) (string, bool) {
 		port = map[string]string{"http": "80", "https": "443"}[u.Scheme]
 	}
 	return u.Hostname() + ":" + port, port != ""
-}
-
-// cleanIpJobFor needs cleanIpJobsMu held.
-func cleanIpJobFor(token string) (*cleanIpJob, error) {
-	job, ok := cleanIpJobs[token]
-	if !ok || cleanIpNow().After(job.expires) {
-		return nil, errCleanIpExpired
-	}
-	return job, nil
 }
 
 func pyLiteral(v any) string {
@@ -262,13 +220,7 @@ func (s *CleanIpService) Cdns() []CleanIpCdn {
 // via is the IP the command was fetched through (?via=); the script reports through it too.
 func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
 	via, _ = validIPv4(via)
-	cleanIpJobsMu.Lock()
-	job, err := cleanIpJobFor(token)
-	var req CleanIpCommandRequest
-	if err == nil {
-		req = job.req
-	}
-	cleanIpJobsMu.Unlock()
+	req, err := cleanIpJobs.request(token)
 	if err != nil {
 		return "", err
 	}
@@ -285,13 +237,7 @@ func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
 }
 
 func (s *CleanIpService) Reports(token string) ([]CleanIpReport, error) {
-	cleanIpJobsMu.Lock()
-	defer cleanIpJobsMu.Unlock()
-	job, err := cleanIpJobFor(token)
-	if err != nil {
-		return nil, err
-	}
-	return append([]CleanIpReport{}, job.reports...), nil
+	return cleanIpJobs.reports(token)
 }
 
 func sanitizeFragment(f CleanIpFragment) (CleanIpFragment, bool) {
@@ -311,10 +257,7 @@ func sanitizeFragment(f CleanIpFragment) (CleanIpFragment, bool) {
 
 // AddReport records what a run of the script found, under the ISP it reported from.
 func (s *CleanIpService) AddReport(ctx context.Context, token string, body []byte, reporterIp string) (*CleanIpReport, error) {
-	cleanIpJobsMu.Lock()
-	_, err := cleanIpJobFor(token)
-	cleanIpJobsMu.Unlock()
-	if err != nil {
+	if _, err := cleanIpJobs.request(token); err != nil {
 		return nil, err
 	}
 	var raw CleanIpReport
@@ -352,15 +295,8 @@ func (s *CleanIpService) AddReport(ctx context.Context, token string, body []byt
 		report.Network = CleanIpNetwork{Ip: reporterIp}
 	}
 
-	cleanIpJobsMu.Lock()
-	defer cleanIpJobsMu.Unlock()
-	job, err := cleanIpJobFor(token)
-	if err != nil {
+	if err := cleanIpJobs.addReport(token, report); err != nil {
 		return nil, err
-	}
-	job.reports = append(job.reports, report)
-	if len(job.reports) > cleanIpMaxReports {
-		job.reports = job.reports[len(job.reports)-cleanIpMaxReports:]
 	}
 	return &report, nil
 }

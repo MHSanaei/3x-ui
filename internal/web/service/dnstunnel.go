@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -15,8 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 )
 
 // DNS tunnels (StormDNS for WhiteDNS-style apps, dnstt) run beside the panel, behind the
@@ -178,16 +174,7 @@ func (s *DnsTunnelService) DetectStormDns(dir string) ([]DnsTunnelProfile, error
 
 // ---- resolver scan: a one-day command run on a device on the ISP to test ----
 
-type dnsTunnelJob struct {
-	req     DnsTunnelCommandRequest
-	expires time.Time
-	reports []DnsResolverReport
-}
-
-var (
-	dnsTunnelJobsMu sync.Mutex
-	dnsTunnelJobs   = map[string]*dnsTunnelJob{}
-)
+var dnsTunnelJobs oneDayJobs[DnsTunnelCommandRequest, DnsResolverReport]
 
 func validResolverIp(s string) (string, bool) {
 	ip := net.ParseIP(strings.TrimSpace(s))
@@ -210,25 +197,10 @@ func (s *DnsTunnelService) NewCommand(req DnsTunnelCommandRequest, baseURL strin
 	}
 	req.Resolvers = resolvers
 
-	buf := make([]byte, 18)
-	if _, err := rand.Read(buf); err != nil {
+	token, expires, err := dnsTunnelJobs.add(req)
+	if err != nil {
 		return nil, err
 	}
-	token := base64.RawURLEncoding.EncodeToString(buf)
-	now := cleanIpNow()
-	expires := now.Add(cleanIpCommandTTL)
-	dnsTunnelJobsMu.Lock()
-	for t, job := range dnsTunnelJobs {
-		if now.After(job.expires) {
-			delete(dnsTunnelJobs, t)
-		}
-	}
-	if len(dnsTunnelJobs) >= cleanIpMaxCommands {
-		dnsTunnelJobsMu.Unlock()
-		return nil, errCleanIpBadRequest
-	}
-	dnsTunnelJobs[token] = &dnsTunnelJob{req: req, expires: expires}
-	dnsTunnelJobsMu.Unlock()
 
 	scriptURL := baseURL + "dnstunnel/run/" + token + "/script.py"
 	return &CleanIpCommand{
@@ -240,23 +212,8 @@ func (s *DnsTunnelService) NewCommand(req DnsTunnelCommandRequest, baseURL strin
 	}, nil
 }
 
-// dnsTunnelJobFor needs dnsTunnelJobsMu held.
-func dnsTunnelJobFor(token string) (*dnsTunnelJob, error) {
-	job, ok := dnsTunnelJobs[token]
-	if !ok || cleanIpNow().After(job.expires) {
-		return nil, errCleanIpExpired
-	}
-	return job, nil
-}
-
 func (s *DnsTunnelService) Script(token, reportURL string) (string, error) {
-	dnsTunnelJobsMu.Lock()
-	job, err := dnsTunnelJobFor(token)
-	var req DnsTunnelCommandRequest
-	if err == nil {
-		req = job.req
-	}
-	dnsTunnelJobsMu.Unlock()
+	req, err := dnsTunnelJobs.request(token)
 	if err != nil {
 		return "", err
 	}
@@ -268,28 +225,17 @@ func (s *DnsTunnelService) Script(token, reportURL string) (string, error) {
 }
 
 func (s *DnsTunnelService) Reports(token string) ([]DnsResolverReport, error) {
-	dnsTunnelJobsMu.Lock()
-	defer dnsTunnelJobsMu.Unlock()
-	job, err := dnsTunnelJobFor(token)
-	if err != nil {
-		return nil, err
-	}
-	return append([]DnsResolverReport{}, job.reports...), nil
+	return dnsTunnelJobs.reports(token)
 }
 
 var dnsResolverStatuses = map[string]bool{"ok": true, "timeout": true, "servfail": true, "refused": true, "error": true}
 
 func (s *DnsTunnelService) AddReport(ctx context.Context, token string, body []byte, reporterIp string) (*DnsResolverReport, error) {
-	dnsTunnelJobsMu.Lock()
-	job, err := dnsTunnelJobFor(token)
-	zone := ""
-	if err == nil {
-		zone = job.req.Zone
-	}
-	dnsTunnelJobsMu.Unlock()
+	job, err := dnsTunnelJobs.request(token)
 	if err != nil {
 		return nil, err
 	}
+	zone := job.Zone
 	var raw DnsResolverReport
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, errCleanIpBadRequest
@@ -320,15 +266,8 @@ func (s *DnsTunnelService) AddReport(ctx context.Context, token string, body []b
 		report.Network = CleanIpNetwork{Ip: reporterIp}
 	}
 
-	dnsTunnelJobsMu.Lock()
-	defer dnsTunnelJobsMu.Unlock()
-	job, err = dnsTunnelJobFor(token)
-	if err != nil {
+	if err := dnsTunnelJobs.addReport(token, report); err != nil {
 		return nil, err
-	}
-	job.reports = append(job.reports, report)
-	if len(job.reports) > cleanIpMaxReports {
-		job.reports = job.reports[len(job.reports)-cleanIpMaxReports:]
 	}
 	return &report, nil
 }

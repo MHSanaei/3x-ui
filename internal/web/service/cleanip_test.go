@@ -192,9 +192,8 @@ func TestCleanIpCommandKeepsUpToAHundredPageIps(t *testing.T) {
 		ips[i] = "104.16." + strconv.Itoa(i/250) + "." + strconv.Itoa(i%250+1)
 	}
 	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ips: ips})
-	cleanIpJobsMu.Lock()
-	got := cleanIpJobs[cmd.Token].req.Ips
-	cleanIpJobsMu.Unlock()
+	req, _ := cleanIpJobs.request(cmd.Token)
+	got := req.Ips
 	if len(got) != 100 || got[0] != ips[0] || got[99] != ips[99] {
 		t.Fatalf("kept %d page IPs (first %v); want the first 100", len(got), got[:1])
 	}
@@ -339,9 +338,8 @@ func TestCleanIpCommandScansExactlyTheTickedRanges(t *testing.T) {
 	rangesOf := func(req CleanIpCommandRequest) []string {
 		t.Helper()
 		cmd := newTestCommand(t, req)
-		cleanIpJobsMu.Lock()
-		defer cleanIpJobsMu.Unlock()
-		return cleanIpJobs[cmd.Token].req.Ranges
+		stored, _ := cleanIpJobs.request(cmd.Token)
+		return stored.Ranges
 	}
 	got := rangesOf(CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{
 		"104.16.0.0/13", "not-a-range", "104.16.0.0/13", "10.0.0.0/33", "2606:4700::/32", "1.2.3.4/32", " 172.64.0.0/24 ",

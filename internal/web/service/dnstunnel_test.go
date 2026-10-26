@@ -165,3 +165,22 @@ func TestDnsTunnelReportWithNothingValidSendsEmptyList(t *testing.T) {
 		t.Errorf("report JSON %s lacks \"results\":[]", raw)
 	}
 }
+
+// The page keeps its command only in memory, so every reload makes a new one: a full store
+// must make room (the oldest goes, as on the clean IP page), not refuse for up to a day.
+func TestDnsTunnelCommandMakesRoomWhenFull(t *testing.T) {
+	var s DnsTunnelService
+	var first string
+	for i := 0; i <= cleanIpMaxCommands; i++ {
+		cmd, err := s.NewCommand(DnsTunnelCommandRequest{Zone: "t.example.com"}, "https://p/")
+		if err != nil {
+			t.Fatalf("command %d of %d: %v", i+1, cleanIpMaxCommands+1, err)
+		}
+		if i == 0 {
+			first = cmd.Token
+		}
+	}
+	if _, err := s.Reports(first); !errors.Is(err, errCleanIpExpired) {
+		t.Errorf("oldest command after the store filled: err = %v, want errCleanIpExpired", err)
+	}
+}
