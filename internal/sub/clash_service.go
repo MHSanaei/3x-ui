@@ -523,11 +523,8 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	return proxy
 }
 
-// buildHysteriaProxy produces a mihomo-compatible Clash entry for a
-// Hysteria (v1) or Hysteria2 inbound. It reads `inbound.StreamSettings`
-// directly instead of going through streamData/tlsData, because those
-// helpers prune fields (like `allowInsecure` / the salamander obfs
-// block) that the hysteria proxy wants preserved.
+// buildHysteriaProxy reads the raw stream because streamData prunes
+// TLS pins and finalmask settings needed by Hysteria clients.
 func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
 	inboundSettings := subReq.linkSettings(inbound)
 
@@ -550,34 +547,9 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	var rawStream map[string]any
 	_ = json.Unmarshal([]byte(inbound.StreamSettings), &rawStream)
 
-	// TLS details — hysteria always uses TLS.
-	if tlsSettings, ok := rawStream["tlsSettings"].(map[string]any); ok {
-		if serverName, ok := tlsSettings["serverName"].(string); ok && serverName != "" {
-			proxy["sni"] = serverName
-		}
-		if alpnList, ok := tlsSettings["alpn"].([]any); ok && len(alpnList) > 0 {
-			out := make([]string, 0, len(alpnList))
-			for _, a := range alpnList {
-				if s, ok := a.(string); ok && s != "" {
-					out = append(out, s)
-				}
-			}
-			if len(out) > 0 {
-				proxy["alpn"] = out
-			}
-		}
-		if inner, ok := tlsSettings["settings"].(map[string]any); ok {
-			if insecure, ok := inner["allowInsecure"].(bool); ok && insecure {
-				proxy["skip-cert-verify"] = true
-			}
-			if fp, ok := inner["fingerprint"].(string); ok && fp != "" {
-				proxy["client-fingerprint"] = fp
-			}
-			if certFingerprint := mihomoCertFingerprint(inner["pinnedPeerCertSha256"]); certFingerprint != "" {
-				proxy["fingerprint"] = certFingerprint
-			}
-		}
-	}
+	tlsSettings, _ := rawStream["tlsSettings"].(map[string]any)
+	clientTLS, _ := tlsSettings["settings"].(map[string]any)
+	applyHysteriaTLS(proxy, tlsSettings, clientTLS)
 	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
 		proxy["skip-cert-verify"] = true
 	}
@@ -585,39 +557,54 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 		proxy["fingerprint"] = certFingerprint
 	}
 
-	// Salamander obfs (Hysteria2), read from the same finalmask.udp[salamander]
-	// block as the link generator; a packetSize range is mihomo's gecko obfs.
-	if finalmask, ok := rawStream["finalmask"].(map[string]any); ok {
-		if udpMasks, ok := finalmask["udp"].([]any); ok {
-			for _, m := range udpMasks {
-				mask, _ := m.(map[string]any)
-				if mask == nil || mask["type"] != "salamander" {
-					continue
-				}
-				settings, _ := mask["settings"].(map[string]any)
-				if pw, ok := settings["password"].(string); ok && pw != "" {
-					proxy["obfs"] = "salamander"
-					proxy["obfs-password"] = pw
-					packetSize, _ := settings["packetSize"].(string)
-					if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
-						minStr, maxStr := splitHysteriaPacketSize(gecko)
-						proxy["obfs"] = "gecko"
-						proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
-						proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
-					}
-					break
-				}
-			}
-		}
-	}
-
-	// UDP port hopping. mihomo reads the range from a dedicated `ports`
-	// field (the base `port` stays as the redirect target).
-	if hopPorts := hysteriaHopPorts(rawStream); hopPorts != "" {
-		proxy["ports"] = hopPorts
-	}
+	applyHysteriaFinalMask(proxy, rawStream)
 
 	return proxy
+}
+
+func applyHysteriaTLS(proxy, tlsSettings, clientTLS map[string]any) {
+	if sni, _ := tlsSettings["serverName"].(string); sni != "" {
+		proxy["sni"] = sni
+	}
+	if alpn := clashStringList(tlsSettings["alpn"]); len(alpn) > 0 {
+		proxy["alpn"] = alpn
+	}
+	if insecure, _ := clientTLS["allowInsecure"].(bool); insecure {
+		proxy["skip-cert-verify"] = true
+	}
+	if fp, _ := clientTLS["fingerprint"].(string); fp != "" {
+		proxy["client-fingerprint"] = fp
+	}
+	if certFingerprint := mihomoCertFingerprint(clientTLS["pinnedPeerCertSha256"]); certFingerprint != "" {
+		proxy["fingerprint"] = certFingerprint
+	}
+}
+
+func applyHysteriaFinalMask(proxy, stream map[string]any) {
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	udpMasks, _ := finalmask["udp"].([]any)
+	for _, m := range udpMasks {
+		mask, _ := m.(map[string]any)
+		if mask == nil || mask["type"] != "salamander" {
+			continue
+		}
+		settings, _ := mask["settings"].(map[string]any)
+		if pw, ok := settings["password"].(string); ok && pw != "" {
+			proxy["obfs"] = "salamander"
+			proxy["obfs-password"] = pw
+			packetSize, _ := settings["packetSize"].(string)
+			if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
+				minStr, maxStr := splitHysteriaPacketSize(gecko)
+				proxy["obfs"] = "gecko"
+				proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
+				proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
+			}
+			break
+		}
+	}
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		proxy["ports"] = hopPorts
+	}
 }
 
 // Mihomo supports only one certificate fingerprint, so mihomoCertFingerprint
