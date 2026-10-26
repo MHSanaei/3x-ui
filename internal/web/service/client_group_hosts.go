@@ -61,7 +61,7 @@ func (s *ClientGroupHostAssignmentService) SetGroupIDs(groupName string, ids []s
 	}
 	ids = normalizeAssignedHostGroupIDs(ids)
 
-	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		var storedGroupCount int64
 		if err := tx.Model(&model.ClientGroup{}).Where("name = ?", groupName).Count(&storedGroupCount).Error; err != nil {
 			return err
