@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, within } from '@testing-library/react';
 
 import DnsTab from '@/pages/xray/dns/DnsTab';
 import type { SetTemplate, XraySettingsValue } from '@/hooks/useXraySetting';
 import { renderWithProviders } from './test-utils';
+import { installPointerEvents, pointAt } from './pointer-events';
 
 function withHosts(hosts: Record<string, string>): XraySettingsValue {
   return {
@@ -150,5 +151,68 @@ describe('DnsTab', () => {
 
     fireEvent.change(script, { target: { value: '' } });
     expect(latest().dns).not.toHaveProperty('script');
+  });
+});
+
+describe('DnsTab server reorder', () => {
+  beforeEach(installPointerEvents);
+  afterEach(() => vi.unstubAllGlobals());
+
+  const google = { address: '8.8.8.8', domains: ['geosite:google'] };
+  const rows = () => document.querySelectorAll<HTMLElement>('tr[data-row-key]');
+  const servers = () =>
+    JSON.parse(screen.getByTestId('settings').textContent || '{}').dns.servers as unknown[];
+
+  function openServers() {
+    function Harness() {
+      const [settings, setSettings] = useState<XraySettingsValue | null>({
+        dns: { servers: ['1.1.1.1', google, 'localhost'] },
+      } as unknown as XraySettingsValue);
+      return (
+        <>
+          <DnsTab templateSettings={settings} setTemplateSettings={setSettings} />
+          <output data-testid="settings">{JSON.stringify(settings)}</output>
+        </>
+      );
+    }
+    renderWithProviders(<Harness />);
+    fireEvent.click(screen.getByRole('tab', { name: 'DNS' }));
+  }
+
+  it.each([
+    {
+      dir: 'down',
+      from: 0,
+      to: 2,
+      marker: 'drop-after',
+      expected: [google, 'localhost', '1.1.1.1'],
+    },
+    {
+      dir: 'up',
+      from: 2,
+      to: 0,
+      marker: 'drop-before',
+      expected: ['localhost', '1.1.1.1', google],
+    },
+  ])('drags a server $dir into the target slot', ({ from, to, marker, expected }) => {
+    openServers();
+    const handle = rows()[from].querySelector('.drag-handle');
+    if (!handle) throw new Error('missing drag handle');
+    pointAt(rows()[to]);
+    const pointer = { pointerId: 7, button: 0, clientX: 10, clientY: 32 };
+    fireEvent.pointerDown(handle, { ...pointer, clientY: 0 });
+    fireEvent.pointerMove(document, pointer);
+    expect(rows()[to].className).toContain(marker);
+    fireEvent.pointerUp(document, pointer);
+    expect(servers()).toEqual(expected);
+  });
+
+  it('moves a server from the row menu and disables Move up on the first row', async () => {
+    openServers();
+    fireEvent.click(within(rows()[0]).getByRole('button', { name: 'more' }));
+    const moveUp = await screen.findByRole('menuitem', { name: /Move up/ });
+    expect(moveUp.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(screen.getByRole('menuitem', { name: /Move down/ }));
+    expect(servers()).toEqual([google, '1.1.1.1', 'localhost']);
   });
 });
