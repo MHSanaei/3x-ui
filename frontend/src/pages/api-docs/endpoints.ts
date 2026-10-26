@@ -1936,6 +1936,56 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'reality-watch',
+    title: 'REALITY watch',
+    description:
+      'Spare targets per REALITY inbound. Every 10 minutes the panel checks each watched target from this server; after 3 failed checks in a row, an inbound with auto switch on moves to the first spare that passes the same check and a real REALITY connection through a throwaway Xray server and client. Inbounds on nodes are not checked.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/realityWatch/list',
+        summary:
+          'Status of every watched inbound: current target, spares, last check and the switch history.',
+        responseSchema: 'RealityWatchStatus',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/realityWatch/status/:id',
+        summary: 'Status of one REALITY inbound.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        responseSchema: 'RealityWatchStatus',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/save/:id',
+        summary:
+          'Set the spare targets (host[:port], in order of preference, at most 10; the current target is dropped) and whether a dead target is replaced automatically.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: '{\n  "auto": true,\n  "spares": ["www.example.com:443"]\n}',
+        responseSchema: 'RealityWatchStatus',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/switch/:id',
+        summary:
+          'Move the inbound to this target now. Refused unless the target passes the server check and a real REALITY connection; only target and serverNames change.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: '{\n  "target": "www.example.com:443"\n}',
+        responseSchema: 'RealityWatchEvent',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/test',
+        summary:
+          'Check a target from this server and through a real REALITY connection; feasible is false with a reason when either fails.',
+        body: '{\n  "target": "www.example.com:443"\n}',
+        responseSchema: 'RealityScanResult',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',

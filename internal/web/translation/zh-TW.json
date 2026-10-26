@@ -785,7 +785,36 @@
         "peerNumberConfig": "Peer {n} 設定"
       },
       "sniffingDestOverride": "目標覆寫",
-      "advancedTitle": "進階設定"
+      "advancedTitle": "進階設定",
+      "realityWatch": {
+        "title": "保持 REALITY 可用",
+        "saveFirst": "請先儲存入站，然後在這裡設定備用目標。",
+        "hint": "本伺服器每 10 分鐘檢查一次目標。連續 {limit} 次檢查失敗後，入站會切換到第一個通過同樣檢查並經臨時 Xray 完成真實 REALITY 連線的備用目標。只改變目標與 SNI；用戶端會在下次更新訂閱時取得新的 SNI。",
+        "onNode": "此入站執行在節點上，本伺服器不會檢查它；仍可手動切換。",
+        "status": "狀態",
+        "notChecked": "尚未檢查",
+        "failing": "失敗（{fails}/{limit}）",
+        "working": "正常",
+        "auto": "自動替換",
+        "spares": "備用目標",
+        "noSpares": "還沒有備用目標：用「尋找備用」新增",
+        "realTest": "真實測試",
+        "testOk": "可用",
+        "testFailed": "不可用",
+        "test": "測試",
+        "switchNow": "立即切換到此",
+        "findSpares": "尋找備用",
+        "save": "儲存備用",
+        "history": "歷史",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} 失效，且沒有可用的備用目標",
+        "toasts": {
+          "saved": "備用目標已儲存",
+          "failed": "無法儲存備用目標",
+          "switchFailed": "無法切換：目標未通過檢查或真實 REALITY 測試",
+          "switched": "已切換到 {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "基本",

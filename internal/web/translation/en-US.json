@@ -785,7 +785,36 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} config"
       },
-      "sniffingDestOverride": "Destination override"
+      "sniffingDestOverride": "Destination override",
+      "realityWatch": {
+        "title": "Keep REALITY working",
+        "saveFirst": "Save the inbound first, then set spare targets here.",
+        "hint": "Every 10 minutes this server checks the target. After {limit} failed checks in a row, the inbound moves to the first spare that passes the same check and a real REALITY connection through a temporary Xray. Only the target and SNI change; clients get the new SNI with their next subscription update.",
+        "onNode": "This inbound runs on a node, so this server does not check it; you can still switch by hand.",
+        "status": "Status",
+        "notChecked": "not checked yet",
+        "failing": "failing ({fails} of {limit})",
+        "working": "working",
+        "auto": "Replace automatically",
+        "spares": "Spare targets",
+        "noSpares": "No spares yet: add some with Find spares",
+        "realTest": "Real test",
+        "testOk": "works",
+        "testFailed": "fails",
+        "test": "Test",
+        "switchNow": "Switch to this now",
+        "findSpares": "Find spares",
+        "save": "Save spares",
+        "history": "History",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} failed and no spare worked",
+        "toasts": {
+          "saved": "Spares saved",
+          "failed": "Could not save the spares",
+          "switchFailed": "Could not switch: the target failed the check or the real REALITY test",
+          "switched": "Switched to {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Basics",

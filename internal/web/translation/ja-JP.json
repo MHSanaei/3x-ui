@@ -785,7 +785,36 @@
         "peerNumberConfig": "Peer {n} 設定"
       },
       "sniffingDestOverride": "宛先のオーバーライド",
-      "advancedTitle": "詳細設定"
+      "advancedTitle": "詳細設定",
+      "realityWatch": {
+        "title": "REALITY を維持",
+        "saveFirst": "まずインバウンドを保存してから、ここで予備ターゲットを設定してください。",
+        "hint": "このサーバーは10分ごとにターゲットを確認します。{limit}回連続で失敗すると、同じ確認と一時的な Xray を使った実際の REALITY 接続に合格した最初の予備に切り替えます。変わるのはターゲットと SNI だけで、クライアントは次のサブスクリプション更新で新しい SNI を受け取ります。",
+        "onNode": "このインバウンドはノードで動いているため、このサーバーは確認しません。手動での切り替えは可能です。",
+        "status": "状態",
+        "notChecked": "未確認",
+        "failing": "失敗中（{fails} / {limit}）",
+        "working": "正常",
+        "auto": "自動で置き換える",
+        "spares": "予備ターゲット",
+        "noSpares": "予備がありません。「予備を探す」で追加してください",
+        "realTest": "実接続テスト",
+        "testOk": "成功",
+        "testFailed": "失敗",
+        "test": "テスト",
+        "switchNow": "今すぐこれに切り替え",
+        "findSpares": "予備を探す",
+        "save": "予備を保存",
+        "history": "履歴",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} が失敗し、使える予備がありませんでした",
+        "toasts": {
+          "saved": "予備を保存しました",
+          "failed": "予備を保存できませんでした",
+          "switchFailed": "切り替えできません：ターゲットが確認または実際の REALITY テストに失敗しました",
+          "switched": "{target} に切り替えました"
+        }
+      }
     },
     "clients": {
       "tabBasics": "基本",

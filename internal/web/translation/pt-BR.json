@@ -785,7 +785,36 @@
         "peerNumberConfig": "Config Peer {n}"
       },
       "sniffingDestOverride": "Substituição de destino",
-      "advancedTitle": "Configurações avançadas"
+      "advancedTitle": "Configurações avançadas",
+      "realityWatch": {
+        "title": "Manter o REALITY funcionando",
+        "saveFirst": "Salve o inbound primeiro e depois defina aqui os destinos reserva.",
+        "hint": "A cada 10 minutos este servidor verifica o destino. Após {limit} verificações seguidas com falha, o inbound passa para a primeira reserva que passar na mesma verificação e numa conexão REALITY real por um Xray temporário. Só o destino e o SNI mudam; os clientes recebem o novo SNI na próxima atualização da assinatura.",
+        "onNode": "Este inbound roda em um nó, então este servidor não o verifica; ainda dá para trocar manualmente.",
+        "status": "Status",
+        "notChecked": "ainda não verificado",
+        "failing": "falhando ({fails} de {limit})",
+        "working": "funcionando",
+        "auto": "Substituir automaticamente",
+        "spares": "Destinos reserva",
+        "noSpares": "Nenhuma reserva ainda: adicione com Buscar reservas",
+        "realTest": "Teste real",
+        "testOk": "funciona",
+        "testFailed": "falha",
+        "test": "Testar",
+        "switchNow": "Trocar para este agora",
+        "findSpares": "Buscar reservas",
+        "save": "Salvar reservas",
+        "history": "Histórico",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} falhou e nenhuma reserva funcionou",
+        "toasts": {
+          "saved": "Reservas salvas",
+          "failed": "Não foi possível salvar as reservas",
+          "switchFailed": "Não foi possível trocar: o destino falhou na verificação ou no teste REALITY real",
+          "switched": "Trocado para {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Básico",

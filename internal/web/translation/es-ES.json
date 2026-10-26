@@ -785,7 +785,36 @@
         "peerNumberConfig": "Config Peer {n}"
       },
       "sniffingDestOverride": "Anulación de destino",
-      "advancedTitle": "Configuración avanzada"
+      "advancedTitle": "Configuración avanzada",
+      "realityWatch": {
+        "title": "Mantener REALITY funcionando",
+        "saveFirst": "Guarda primero el inbound y luego configura aquí los destinos de reserva.",
+        "hint": "Cada 10 minutos este servidor comprueba el destino. Tras {limit} comprobaciones fallidas seguidas, el inbound pasa a la primera reserva que supere la misma comprobación y una conexión REALITY real a través de un Xray temporal. Solo cambian el destino y el SNI; los clientes reciben el nuevo SNI con la próxima actualización de la suscripción.",
+        "onNode": "Este inbound se ejecuta en un nodo, así que este servidor no lo comprueba; aún puedes cambiarlo a mano.",
+        "status": "Estado",
+        "notChecked": "aún sin comprobar",
+        "failing": "fallando ({fails} de {limit})",
+        "working": "funciona",
+        "auto": "Reemplazar automáticamente",
+        "spares": "Destinos de reserva",
+        "noSpares": "Aún no hay reservas: añade algunas con Buscar reservas",
+        "realTest": "Prueba real",
+        "testOk": "funciona",
+        "testFailed": "falla",
+        "test": "Probar",
+        "switchNow": "Cambiar a este ahora",
+        "findSpares": "Buscar reservas",
+        "save": "Guardar reservas",
+        "history": "Historial",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} falló y ninguna reserva funcionó",
+        "toasts": {
+          "saved": "Reservas guardadas",
+          "failed": "No se pudieron guardar las reservas",
+          "switchFailed": "No se pudo cambiar: el destino no superó la comprobación o la prueba REALITY real",
+          "switched": "Cambiado a {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Básico",

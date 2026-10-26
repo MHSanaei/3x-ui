@@ -1108,6 +1108,38 @@ export const EXAMPLES: Record<string, unknown> = {
     "tlsVersion": "1.3",
     "x25519": true
   },
+  "RealityWatchEntry": {
+    "auto": true,
+    "spares": [
+      "www.example.com:443"
+    ]
+  },
+  "RealityWatchEvent": {
+    "at": 1793000000,
+    "from": "old.example.com:443",
+    "reason": "TLS handshake failed: EOF",
+    "to": "www.example.com:443"
+  },
+  "RealityWatchStatus": {
+    "auto": true,
+    "checkedAt": 1793000000,
+    "events": [
+      {
+        "at": 1793000000,
+        "from": "old.example.com:443",
+        "reason": "TLS handshake failed: EOF",
+        "to": "www.example.com:443"
+      }
+    ],
+    "fails": 0,
+    "inboundId": 3,
+    "ok": true,
+    "reason": "",
+    "spares": [
+      "www.example.com:443"
+    ],
+    "target": "old.example.com:443"
+  },
   "ServerSettings": {
     "contentPaddingAddition": "",
     "disableCookies": false,
