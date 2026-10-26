@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 )
 
 func baseTime() time.Time {
@@ -272,12 +276,23 @@ func TestSubRateLimitGuard(t *testing.T) {
 
 // The guard is wired through initRouter's group-level Use, so a limited
 // controller must 429 on EVERY subscription format route, and an unlimited
-// one must serve them all.
+// one must serve them all (unknown subId → 404 from the handler itself, so
+// the exact code proves the guard did not interfere).
 func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	limited := func(t *testing.T, withLimit bool) *gin.Engine {
-		t.Helper()
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	if err := os.MkdirAll("internal/web/dist", 0o755); err != nil {
+		t.Fatalf("mkdir dist: %v", err)
+	}
+	if err := os.WriteFile("internal/web/dist/subpage.html", []byte("<html><head></head><body></body></html>"), 0o644); err != nil {
+		t.Fatalf("write subpage: %v", err)
+	}
+	t.Setenv("XUI_DB_FOLDER", tmp)
+	dbtest.InitDB(t, filepath.Join(tmp, "x-ui.db"))
+
+	limited := func(withLimit bool) *gin.Engine {
 		router := gin.New()
 		options := []SUBControllerOption{
 			WithSUBPath("/sub/"),
@@ -296,13 +311,15 @@ func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 	}
 
 	paths := []string{"/sub/abc", "/sub/abc/hwid-status", "/json/abc", "/clash/abc", "/clash-legacy/abc", "/mihomo/abc"}
-	router := limited(t, true)
-	// With limit=1 the very first request legitimately consumes the slot;
-	// prime the limiter once, then every route must reject the same client.
+
+	// With limit=1 the very first request legitimately consumes the slot and
+	// reaches the handler (unknown subId → 404); every later route from the
+	// same client must be rejected before touching any handler.
+	router := limited(true)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sub/prime", nil))
-	if w.Code == http.StatusTooManyRequests {
-		t.Fatal("priming request was rejected; the limiter must allow under the limit")
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("priming request: code = %d, want 404 from the handler (limiter must allow it)", w.Code)
 	}
 	for _, path := range paths {
 		w := httptest.NewRecorder()
@@ -315,12 +332,14 @@ func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 		}
 	}
 
-	open := limited(t, false)
+	// Unlimited controller: the guard is a no-op, handlers answer 404 for the
+	// unknown subId — never 429, never 5xx.
+	open := limited(false)
 	for _, path := range paths {
 		w := httptest.NewRecorder()
 		open.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
-		if w.Code == http.StatusTooManyRequests {
-			t.Fatalf("unlimited %s: got 429, limiter must be off", path)
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("unlimited %s: code = %d, want 404 from the handler", path, w.Code)
 		}
 	}
 }
