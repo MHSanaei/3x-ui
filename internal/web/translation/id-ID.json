@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. Langganan JSON",
       "qrLegendLink": "{{ .Code }}. Tautan aplikasi {{ .App }}",
       "backupFailed": "Tidak dapat membaca basis data; tidak ada cadangan yang dikirim.",
-      "privateOnly": "🤖 Bot ini hanya berfungsi di obrolan pribadi. Silakan buka di pesan langsung."
+      "privateOnly": "🤖 Bot ini hanya berfungsi di obrolan pribadi. Silakan buka di pesan langsung.",
+      "chooseOneConfig": "👇 Konfigurasi mana yang Anda inginkan?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Panduan pemasangan</b>\nPilih perangkat yang ingin Anda atur.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Pasang <b>Streisand</b> atau <b>V2Box</b> dari App Store.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, ketuk <b>+</b> → <b>Add from clipboard</b>.\n4. Tarik ke bawah untuk memperbarui, lalu sambungkan.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Pasang <b>v2rayNG</b> atau <b>Hiddify</b> dari Google Play.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, ketuk <b>+</b> → <b>Import from clipboard</b>.\n4. Segarkan langganan, pilih server, lalu sambungkan.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Pasang <b>Hiddify</b> atau <b>v2rayN</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Pasang <b>Hiddify</b> atau <b>V2Box</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Pasang <b>Hiddify</b> (AppImage) atau <b>Nekoray</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Siaran",
       "attachInbound": "Lampirkan inbound ({{ .Count }})",
-      "attachDone": "✅ Selesai"
+      "attachDone": "✅ Selesai",
+      "getOneConfig": "🎯 Ambil satu",
+      "setupGuide": "📖 Panduan pemasangan",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Panduan pemasangan"
     },
     "inline": {
       "noneTitle": "Nothing found",

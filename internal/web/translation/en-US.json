@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON subscription",
       "qrLegendLink": "{{ .Code }}. App link {{ .App }}",
       "backupFailed": "Could not read the database; no backup was sent.",
-      "privateOnly": "🤖 This bot works in private chat only. Please open it in a direct message."
+      "privateOnly": "🤖 This bot works in private chat only. Please open it in a direct message.",
+      "chooseOneConfig": "👇 Which config do you want?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Setup guide</b>\nPick the device you want to set up.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Install <b>Streisand</b> or <b>V2Box</b> from the App Store.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, tap <b>+</b> → <b>Add from clipboard</b>.\n4. Pull down to update, then connect.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Install <b>v2rayNG</b> or <b>Hiddify</b> from Google Play.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, tap <b>+</b> → <b>Import from clipboard</b>.\n4. Refresh the subscription, pick a server and connect.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Install <b>Hiddify</b> or <b>v2rayN</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Install <b>Hiddify</b> or <b>V2Box</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Install <b>Hiddify</b> (AppImage) or <b>Nekoray</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect."
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Broadcast",
       "attachInbound": "Attach inbound ({{ .Count }})",
-      "attachDone": "✅ Done"
+      "attachDone": "✅ Done",
+      "getOneConfig": "🎯 Get one",
+      "setupGuide": "📖 Setup guide",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Broadcast started.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Setup guide"
     },
     "inline": {
       "noneTitle": "Nothing found",

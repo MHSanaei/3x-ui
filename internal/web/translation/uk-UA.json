@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON-підписка",
       "qrLegendLink": "{{ .Code }}. Посилання для застосунку {{ .App }}",
       "backupFailed": "Не вдалося прочитати базу даних; резервну копію не надіслано.",
-      "privateOnly": "🤖 Бот працює лише в особистих повідомленнях. Відкрий його в особистому чаті."
+      "privateOnly": "🤖 Бот працює лише в особистих повідомленнях. Відкрий його в особистому чаті.",
+      "chooseOneConfig": "👇 Який конфіг вам потрібен?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Інструкція з налаштування</b>\nОберіть пристрій.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Встановіть <b>Streisand</b> або <b>V2Box</b> з App Store.\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте своє посилання.\n3. У застосунку натисніть <b>+</b> → <b>Add from clipboard</b>.\n4. Потягніть вниз для оновлення та підключайтеся.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Встановіть <b>v2rayNG</b> або <b>Hiddify</b> з Google Play.\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте своє посилання.\n3. У застосунку натисніть <b>+</b> → <b>Import from clipboard</b>.\n4. Оновіть підписку, оберіть сервер і підключіться.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Встановіть <b>Hiddify</b> або <b>v2rayN</b>.\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте своє посилання.\n3. У застосунку додайте підписку та вставте посилання.\n4. Оновіть підписку, оберіть сервер і підключіться.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Встановіть <b>Hiddify</b> або <b>V2Box</b>.\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте своє посилання.\n3. У застосунку додайте підписку та вставте посилання.\n4. Оновіть підписку, оберіть сервер і підключіться.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Встановіть <b>Hiddify</b> (AppImage) або <b>Nekoray</b>.\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте своє посилання.\n3. У застосунку додайте підписку та вставте посилання.\n4. Оновіть підписку, оберіть сервер і підключіться."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Розсилка",
       "attachInbound": "Прив’язати інбаунд ({{ .Count }})",
-      "attachDone": "✅ Готово"
+      "attachDone": "✅ Готово",
+      "getOneConfig": "🎯 Отримати один",
+      "setupGuide": "📖 Інструкція",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Розсилку запущено.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Інструкція"
     },
     "inline": {
       "noneTitle": "Nothing found",

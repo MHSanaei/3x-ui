@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON サブスクリプション",
       "qrLegendLink": "{{ .Code }}. アプリのリンク {{ .App }}",
       "backupFailed": "データベースを読み取れませんでした。バックアップは送信されていません。",
-      "privateOnly": "🤖 このボットは個人チャットでのみ動作します。ダイレクトメッセージで開いてください。"
+      "privateOnly": "🤖 このボットは個人チャットでのみ動作します。ダイレクトメッセージで開いてください。",
+      "chooseOneConfig": "👇 どの設定が必要ですか？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>設定ガイド</b>\n設定したい端末を選んでください。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. App Store から <b>Streisand</b> または <b>V2Box</b> をインストールします。\n2. このボットの購読リンクのページを開き、購読 URL をコピーします。\n3. アプリで <b>+</b> → <b>Add from clipboard</b> をタップします。\n4. 下に引いて更新し、接続します。",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Google Play から <b>v2rayNG</b> または <b>Hiddify</b> をインストールします。\n2. このボットの購読リンクのページを開き、購読 URL をコピーします。\n3. アプリで <b>+</b> → <b>Import from clipboard</b> をタップします。\n4. 購読を更新し、サーバーを選んで接続します。",
+      "guideWindows": "🪟 <b>Windows</b>\n1. <b>Hiddify</b> または <b>v2rayN</b> をインストールします。\n2. このボットの購読リンクのページを開き、購読 URL をコピーします。\n3. アプリで購読を追加し、URL を貼り付けます。\n4. 購読を更新し、サーバーを選んで接続します。",
+      "guideMacos": "💻 <b>macOS</b>\n1. <b>Hiddify</b> または <b>V2Box</b> をインストールします。\n2. このボットの購読リンクのページを開き、購読 URL をコピーします。\n3. アプリで購読を追加し、URL を貼り付けます。\n4. 購読を更新し、サーバーを選んで接続します。",
+      "guideLinux": "🐧 <b>Linux</b>\n1. <b>Hiddify</b> (AppImage) または <b>Nekoray</b> をインストールします。\n2. このボットの購読リンクのページを開き、購読 URL をコピーします。\n3. アプリで購読を追加し、URL を貼り付けます。\n4. 購読を更新し、サーバーを選んで接続します。"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 一斉送信",
       "attachInbound": "インバウンドを追加 ({{ .Count }})",
-      "attachDone": "✅ 完了"
+      "attachDone": "✅ 完了",
+      "getOneConfig": "🎯 1つ取得",
+      "setupGuide": "📖 設定ガイド",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 一括送信を開始しました。",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "設定ガイド"
     },
     "inline": {
       "noneTitle": "Nothing found",

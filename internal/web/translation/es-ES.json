@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. Suscripción JSON",
       "qrLegendLink": "{{ .Code }}. Enlace de la app {{ .App }}",
       "backupFailed": "No se pudo leer la base de datos; no se envió ninguna copia de seguridad.",
-      "privateOnly": "🤖 Este bot solo funciona en el chat privado. Ábrelo en un mensaje directo."
+      "privateOnly": "🤖 Este bot solo funciona en el chat privado. Ábrelo en un mensaje directo.",
+      "chooseOneConfig": "👇 ¿Qué config quieres?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Guía de instalación</b>\nElige el dispositivo que quieres configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Instala <b>Streisand</b> o <b>V2Box</b> desde la App Store.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, pulsa <b>+</b> → <b>Add from clipboard</b>.\n4. Desliza hacia abajo para actualizar y conéctate.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Instala <b>v2rayNG</b> o <b>Hiddify</b> desde Google Play.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, pulsa <b>+</b> → <b>Import from clipboard</b>.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Instala <b>Hiddify</b> o <b>v2rayN</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Instala <b>Hiddify</b> o <b>V2Box</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Instala <b>Hiddify</b> (AppImage) o <b>Nekoray</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate."
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Difusión",
       "attachInbound": "Adjuntar entrada ({{ .Count }})",
-      "attachDone": "✅ Listo"
+      "attachDone": "✅ Listo",
+      "getOneConfig": "🎯 Obtener uno",
+      "setupGuide": "📖 Guía de instalación",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Guía de instalación"
     },
     "inline": {
       "noneTitle": "Nothing found",

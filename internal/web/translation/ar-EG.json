@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. اشتراك JSON",
       "qrLegendLink": "{{ .Code }}. رابط التطبيق {{ .App }}",
       "backupFailed": "فشل قراءة قاعدة البيانات؛ لم يُرسل أي نسخة احتياطية.",
-      "privateOnly": "🤖 يعمل هذا البوت في المحادثة الخاصة فقط. يرجى فتحه في رسالة مباشرة."
+      "privateOnly": "🤖 يعمل هذا البوت في المحادثة الخاصة فقط. يرجى فتحه في رسالة مباشرة.",
+      "chooseOneConfig": "👇 أي إعداد تريد؟",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>دليل الإعداد</b>\nاختر الجهاز الذي تريد إعداده.",
+      "guideIos": "🍎 <b>آيفون / آيباد</b>\n1. ثبّت <b>Streisand</b> أو <b>V2Box</b> من App Store.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق اضغط <b>+</b> ثم <b>Add from clipboard</b>.\n4. اسحب للأسفل للتحديث ثم اتصل.",
+      "guideAndroid": "🤖 <b>أندرويد</b>\n1. ثبّت <b>v2rayNG</b> أو <b>Hiddify</b> من Google Play.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق اضغط <b>+</b> ثم <b>Import from clipboard</b>.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideWindows": "🪟 <b>ويندوز</b>\n1. ثبّت <b>Hiddify</b> أو <b>v2rayN</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideMacos": "💻 <b>ماك</b>\n1. ثبّت <b>Hiddify</b> أو <b>V2Box</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideLinux": "🐧 <b>لينكس</b>\n1. ثبّت <b>Hiddify</b> (AppImage) أو <b>Nekoray</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل."
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 بث",
       "attachInbound": "إرفاق مدخل ({{ .Count }})",
-      "attachDone": "✅ تم"
+      "attachDone": "✅ تم",
+      "getOneConfig": "🎯 الحصول على واحد",
+      "setupGuide": "📖 دليل الإعداد",
+      "guideIos": "🍎 آيفون / آيباد",
+      "guideAndroid": "🤖 أندرويد",
+      "guideWindows": "🪟 ويندوز",
+      "guideMacos": "💻 ماك",
+      "guideLinux": "🐧 لينكس"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "دليل الإعداد"
     },
     "inline": {
       "noneTitle": "Nothing found",

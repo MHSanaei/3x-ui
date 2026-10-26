@@ -175,5 +175,5 @@ func resetScreenArt() {
 // same avatar, but the names keep each screen's intent visible in the code.
 var screenKinds = []string{
 	"main", "status", "inbounds", "clients", "client", "links", "qr",
-	"wizard", "reports", "backup", "onlines", "deplete", "commands", "broadcast",
+	"wizard", "reports", "backup", "onlines", "deplete", "commands", "broadcast", "guide",
 }

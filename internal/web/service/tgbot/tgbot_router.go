@@ -420,6 +420,19 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "client_qr_links":
 				t.screenClientQR(chatId, email)
 				return
+			case "client_one_link":
+				t.answerSilent(callbackQuery.ID)
+				t.screenOneLinkPicker(chatId, email)
+				return
+			case "link_one":
+				_, target, index, ok := splitClientLinkCallback(decodedQuery)
+				if !ok {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+					return
+				}
+				t.answerSilent(callbackQuery.ID)
+				t.screenOneLink(chatId, target, index)
+				return
 			case "client_get_usage":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.email", "Email=="+email))
 				t.searchClientScreen(chatId, email)
@@ -1024,10 +1037,13 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "client_traffic":
 		t.answerSilent(callbackQuery.ID)
 		t.getClientUsage(chatId, callbackQuery.From.ID)
-	case "client_sub_links", "client_individual_links", "client_qr_links":
+	case "client_sub_links", "client_individual_links", "client_qr_links", "client_one_link":
 		// A client tapped its own link button: its identity already says which
 		// subscription, so it opens directly. A second one still needs a choice.
 		t.openOwnClientScreen(chatId, callbackQuery.From.ID, callbackQuery.Data)
+	case cbClientGuide:
+		t.answerSilent(callbackQuery.ID)
+		t.screenGuide(chatId, "")
 	case "add_client_ch_default_email":
 		userStateMgr.set(actor, "awaiting_email")
 		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+html.EscapeString(draft.email)))
@@ -1199,7 +1215,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		// only button being the one just pressed.
 		t.screenHome(chatId, callbackQuery.From.ID)
 	default:
-		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
+		if messageKey, ok := parseGuideCallback(callbackQuery.Data); ok {
+			t.answerSilent(callbackQuery.ID)
+			t.screenGuide(chatId, messageKey)
+			return
+		}
+		action, email, index, ok := splitClientLinkCallback(callbackQuery.Data)
 		if !ok {
 			// Nothing matched: an unknown button still has to be answered, or it
 			// keeps spinning until Telegram times the callback out.
@@ -1219,6 +1240,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.screenIndividualLinks(chatId, email)
 		case "client_qr_links":
 			t.screenClientQR(chatId, email)
+		case "client_one_link":
+			t.answerSilent(callbackQuery.ID)
+			t.screenOneLinkPicker(chatId, email)
+		case "link_one":
+			t.answerSilent(callbackQuery.ID)
+			t.screenOneLink(chatId, email, index)
 		}
 	}
 }
@@ -1235,22 +1262,35 @@ func isClientSelfCallback(data string) bool {
 	// "hide" and the pager act on the message they sit on and name no client, so
 	// they are safe for anyone to reach.
 	case "home", "hide", cbPageNext, cbPagePrev, cbPageNone, "client_traffic", "client_commands",
-		"client_sub_links", "client_individual_links", "client_qr_links":
+		"client_sub_links", "client_individual_links", "client_qr_links", "client_one_link", cbClientGuide:
 		return true
 	}
-	_, _, ok := splitClientLinkCallback(data)
+	if _, ok := parseGuideCallback(data); ok {
+		return true
+	}
+	_, _, _, ok := splitClientLinkCallback(data)
 	return ok
 }
 
+// clientLinkActions are the callbacks that name one client, so each must pass
+// the ownership check before a customer is served.
+var clientLinkActions = []string{"client_sub_links", "client_individual_links", "client_qr_links", "client_one_link", "link_one"}
+
 // splitClientLinkCallback splits "<action> <email>" for the per-client link
-// callbacks; ok is false for every other data.
-func splitClientLinkCallback(data string) (action, email string, ok bool) {
-	for _, candidate := range []string{"client_sub_links", "client_individual_links", "client_qr_links"} {
-		if rest, found := strings.CutPrefix(data, candidate+" "); found && rest != "" {
-			return candidate, rest, true
+// callbacks; link_one also carries the link's index, which is never the client.
+func splitClientLinkCallback(data string) (action, email string, index int, ok bool) {
+	for _, candidate := range clientLinkActions {
+		rest, found := strings.CutPrefix(data, candidate+" ")
+		if !found || rest == "" {
+			continue
 		}
+		if candidate == "link_one" {
+			email, index, ok = splitEmailIndex(rest)
+			return candidate, email, index, ok
+		}
+		return candidate, rest, 0, true
 	}
-	return "", "", false
+	return "", "", 0, false
 }
 
 // refuseGroups keeps every update in a private chat: a group shares one screen and keyboard among its

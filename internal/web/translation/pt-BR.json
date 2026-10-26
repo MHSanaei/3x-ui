@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. Assinatura JSON",
       "qrLegendLink": "{{ .Code }}. Link do app {{ .App }}",
       "backupFailed": "Não foi possível ler o banco de dados; nenhum backup foi enviado.",
-      "privateOnly": "🤖 Este bot funciona apenas no chat privado. Abra-o em uma mensagem direta."
+      "privateOnly": "🤖 Este bot funciona apenas no chat privado. Abra-o em uma mensagem direta.",
+      "chooseOneConfig": "👇 Qual config você quer?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Guia de instalação</b>\nEscolha o dispositivo que quer configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Instale <b>Streisand</b> ou <b>V2Box</b> pela App Store.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, toque em <b>+</b> → <b>Add from clipboard</b>.\n4. Puxe para baixo para atualizar e conecte.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Instale <b>v2rayNG</b> ou <b>Hiddify</b> pelo Google Play.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, toque em <b>+</b> → <b>Import from clipboard</b>.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Instale <b>Hiddify</b> ou <b>v2rayN</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Instale <b>Hiddify</b> ou <b>V2Box</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Instale <b>Hiddify</b> (AppImage) ou <b>Nekoray</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte."
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Transmissão",
       "attachInbound": "Anexar inbound ({{ .Count }})",
-      "attachDone": "✅ Concluído"
+      "attachDone": "✅ Concluído",
+      "getOneConfig": "🎯 Obter um",
+      "setupGuide": "📖 Guia de instalação",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Transmissão iniciada.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Guia de instalação"
     },
     "inline": {
       "noneTitle": "Nothing found",
