@@ -1091,7 +1091,8 @@
       "assignHostGroups": "تعيين مجموعات المضيفين",
       "hostGroupsFor": "مجموعات المضيفين لـ {name}",
       "hostGroups": "مجموعات المضيفين",
-      "hostsEmptyMeansLegacy": "اتركه فارغًا لاستخدام السلوك القديم مع جميع المضيفين"
+      "hostsEmptyMeansLegacy": "اتركه فارغًا لاستخدام السلوك القديم مع جميع المضيفين",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "إضافة نود",

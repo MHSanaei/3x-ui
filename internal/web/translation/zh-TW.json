@@ -1091,7 +1091,8 @@
       "assignHostGroups": "指派主機群組",
       "hostGroupsFor": "{name} 的主機群組",
       "hostGroups": "主機群組",
-      "hostsEmptyMeansLegacy": "留空以使用舊版的全部主機行為"
+      "hostsEmptyMeansLegacy": "留空以使用舊版的全部主機行為",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "新增節點",

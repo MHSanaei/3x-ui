@@ -1092,7 +1092,7 @@
       "hostGroupsFor": "Группы хостов для {name}",
       "hostGroups": "Группы хостов",
       "hostsEmptyMeansLegacy": "Оставьте пустым, чтобы использовать все хосты по старому поведению",
-      "missingHostGroup": "Группа HostGroup не найдена: {id}"
+      "missingHostGroup": "Группа хостов не найдена: {id}"
     },
     "nodes": {
       "addNode": "Добавить узел",

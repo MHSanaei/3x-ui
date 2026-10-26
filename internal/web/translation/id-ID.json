@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Tetapkan grup host",
       "hostGroupsFor": "Grup host untuk {name}",
       "hostGroups": "Grup host",
-      "hostsEmptyMeansLegacy": "Biarkan kosong untuk menggunakan perilaku lama dengan semua host"
+      "hostsEmptyMeansLegacy": "Biarkan kosong untuk menggunakan perilaku lama dengan semua host",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "Tambah Node",

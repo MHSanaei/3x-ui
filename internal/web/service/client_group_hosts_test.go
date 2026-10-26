@@ -319,3 +319,39 @@ func TestClientGroupHostAssignment_PersistsDerivedGroup(t *testing.T) {
 		t.Fatalf("clearing an assignment should not persist an empty derived group, got %d rows", count)
 	}
 }
+
+func TestInboundDeleteKeepsAssignedHostGroups(t *testing.T) {
+	seedClientGroupHostAssignmentDB(t)
+	db := database.GetDB()
+	inbound := &model.Inbound{Tag: "assigned-host", Enable: false, Port: 443, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	otherInbound := &model.Inbound{Tag: "other-host", Enable: false, Port: 8443, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	for _, ib := range []*model.Inbound{inbound, otherInbound} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create inbound: %v", err)
+		}
+	}
+	if err := db.Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "cdn-a"}).Error; err != nil {
+		t.Fatalf("assign HostGroup: %v", err)
+	}
+	if err := db.Create(&model.Host{InboundId: inbound.Id, GroupId: "cdn-a", Address: "a.example"}).Error; err != nil {
+		t.Fatalf("create Host: %v", err)
+	}
+
+	if _, err := (&InboundService{}).DelInbound(inbound.Id); err == nil {
+		t.Fatal("deleting the last inbound for an assigned HostGroup should be rejected")
+	}
+	var count int64
+	if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Count(&count).Error; err != nil {
+		t.Fatalf("check inbound after rejected delete: %v", err)
+	}
+	if count != 1 {
+		t.Fatal("inbound was deleted despite the assigned HostGroup guard")
+	}
+
+	if err := db.Create(&model.Host{InboundId: otherInbound.Id, GroupId: "cdn-a", Address: "b.example"}).Error; err != nil {
+		t.Fatalf("create second Host: %v", err)
+	}
+	if _, err := (&InboundService{}).DelInbound(inbound.Id); err != nil {
+		t.Fatalf("deleting one inbound should be allowed while HostGroup remains elsewhere: %v", err)
+	}
+}

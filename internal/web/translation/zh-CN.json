@@ -1091,7 +1091,8 @@
       "assignHostGroups": "分配主机组",
       "hostGroupsFor": "{name} 的主机组",
       "hostGroups": "主机组",
-      "hostsEmptyMeansLegacy": "留空以使用旧版的全部主机行为"
+      "hostsEmptyMeansLegacy": "留空以使用旧版的全部主机行为",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "添加节点",

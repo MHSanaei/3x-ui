@@ -1091,7 +1091,8 @@
       "assignHostGroups": "ホストグループを割り当て",
       "hostGroupsFor": "{name} のホストグループ",
       "hostGroups": "ホストグループ",
-      "hostsEmptyMeansLegacy": "空欄にすると従来どおりすべてのホストを使用します"
+      "hostsEmptyMeansLegacy": "空欄にすると従来どおりすべてのホストを使用します",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "ノードを追加",

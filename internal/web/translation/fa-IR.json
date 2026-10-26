@@ -1091,7 +1091,8 @@
       "assignHostGroups": "اختصاص گروه‌های میزبان",
       "hostGroupsFor": "گروه‌های میزبان برای {name}",
       "hostGroups": "گروه‌های میزبان",
-      "hostsEmptyMeansLegacy": "برای استفاده از رفتار قدیمی همه میزبان‌ها خالی بگذارید"
+      "hostsEmptyMeansLegacy": "برای استفاده از رفتار قدیمی همه میزبان‌ها خالی بگذارید",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "افزودن نود",

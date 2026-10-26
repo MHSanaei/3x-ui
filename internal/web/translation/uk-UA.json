@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Призначити групи хостів",
       "hostGroupsFor": "Групи хостів для {name}",
       "hostGroups": "Групи хостів",
-      "hostsEmptyMeansLegacy": "Залиште порожнім, щоб використовувати всі хости за старою логікою"
+      "hostsEmptyMeansLegacy": "Залиште порожнім, щоб використовувати всі хости за старою логікою",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "Додати вузол",

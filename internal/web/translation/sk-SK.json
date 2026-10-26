@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Priradiť skupiny hostiteľov",
       "hostGroupsFor": "Skupiny hostiteľov pre {name}",
       "hostGroups": "Skupiny hostiteľov",
-      "hostsEmptyMeansLegacy": "Nechajte prázdne, aby sa použilo pôvodné správanie so všetkými hostiteľmi"
+      "hostsEmptyMeansLegacy": "Nechajte prázdne, aby sa použilo pôvodné správanie so všetkými hostiteľmi",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "hosts": {
       "addHost": "Pridať adresu servera",

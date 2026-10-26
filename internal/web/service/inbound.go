@@ -1601,6 +1601,42 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	return inbound, needRestart, err
 }
 
+// ensureInboundDeleteKeepsAssignedHostGroups prevents deleting the last Hosts that
+// back a HostGroup assignment. Otherwise the clients' default would become stale.
+func ensureInboundDeleteKeepsAssignedHostGroups(tx *gorm.DB, inboundID int) error {
+	var groupIDs []string
+	if err := tx.Model(&model.Host{}).
+		Where("inbound_id = ?", inboundID).
+		Distinct().
+		Pluck("group_id", &groupIDs).Error; err != nil {
+		return err
+	}
+	for _, groupID := range groupIDs {
+		if groupID == "" {
+			continue
+		}
+		var remaining int64
+		if err := tx.Model(&model.Host{}).
+			Where("group_id = ? AND inbound_id <> ?", groupID, inboundID).
+			Count(&remaining).Error; err != nil {
+			return err
+		}
+		if remaining > 0 {
+			continue
+		}
+		var assigned int64
+		if err := tx.Model(&model.ClientGroupHost{}).
+			Where("host_group_id = ?", groupID).
+			Count(&assigned).Error; err != nil {
+			return err
+		}
+		if assigned > 0 {
+			return common.NewError("inbound contains a HostGroup assigned to client groups; remove the assignment before deleting the inbound")
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	defer InvalidateSubData()
 	needRestart, nodePush, err := s.delInbound(id)
@@ -1660,6 +1696,9 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 	}
 
 	if err := runSerializedTx(func(tx *gorm.DB) error {
+		if err := ensureInboundDeleteKeepsAssignedHostGroups(tx, id); err != nil {
+			return err
+		}
 		if err := s.clientService.DetachInbound(tx, id); err != nil {
 			return err
 		}

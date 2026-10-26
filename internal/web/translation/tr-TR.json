@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Host gruplarını ata",
       "hostGroupsFor": "{name} için host grupları",
       "hostGroups": "Host grupları",
-      "hostsEmptyMeansLegacy": "Tüm ana bilgisayarların eski davranışını kullanmak için boş bırakın"
+      "hostsEmptyMeansLegacy": "Tüm ana bilgisayarların eski davranışını kullanmak için boş bırakın",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "Düğüm Ekle",

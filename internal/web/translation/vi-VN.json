@@ -1091,7 +1091,8 @@
       "assignHostGroups": "Gán nhóm máy chủ",
       "hostGroupsFor": "Nhóm máy chủ cho {name}",
       "hostGroups": "Nhóm máy chủ",
-      "hostsEmptyMeansLegacy": "Để trống để dùng hành vi cũ với tất cả máy chủ"
+      "hostsEmptyMeansLegacy": "Để trống để dùng hành vi cũ với tất cả máy chủ",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "Thêm nút",
