@@ -432,7 +432,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
     "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
     "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
-    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"
+    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+    "via": "104.16.1.1",
+    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
   },
   "CleanIpCommandRequest": {
     "cdn": "cloudflare",

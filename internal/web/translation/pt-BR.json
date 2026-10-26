@@ -189,6 +189,7 @@
       "noDomain": "Este grupo de hosts não tem domínio (SNI, Host ou uma entrada de domínio); o teste completo precisa do domínio CDN.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, com Python instalado):",
+      "viaCmd": "Se o comando acima não baixar neste provedor (o domínio do painel está bloqueado), use estes: eles chegam ao painel pelo IP limpo {ip}. Só funciona se o domínio do painel estiver atrás da mesma CDN.",
       "expires": "Funciona até {time}",
       "waiting": "Aguardando um relatório… rode o comando com a VPN desligada. Esta página se atualiza sozinha.",
       "reportLine": "{org} · {ok} de {tested} funcionando · upload de {size} bytes",

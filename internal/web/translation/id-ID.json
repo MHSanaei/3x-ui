@@ -189,6 +189,7 @@
       "noDomain": "Grup host ini tidak punya domain (SNI, Host, atau entri domain); uji lengkap membutuhkan domain CDN.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, Python terpasang):",
+      "viaCmd": "Jika perintah di atas gagal diunduh di ISP ini (domain panel diblokir), gunakan ini: keduanya menjangkau panel melalui IP bersih {ip}. Hanya berfungsi jika domain panel berada di balik CDN yang sama.",
       "expires": "Berlaku hingga {time}",
       "waiting": "Menunggu laporan… jalankan perintah dengan VPN mati. Halaman ini diperbarui sendiri.",
       "reportLine": "{org} · {ok} dari {tested} berfungsi · unggahan {size} byte",

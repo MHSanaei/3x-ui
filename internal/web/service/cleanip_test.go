@@ -30,7 +30,7 @@ func newTestCommand(t *testing.T, req CleanIpCommandRequest) *CleanIpCommand {
 func TestCleanIpScriptFillsEveryPlaceholder(t *testing.T) {
 	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Path: "/ws", Ips: []string{"104.16.1.1"}})
 	var s CleanIpService
-	script, err := s.Script(cmd.Token, "https://panel.example.com/secret/cleanip/run/"+cmd.Token+"/report")
+	script, err := s.Script(cmd.Token, "https://panel.example.com/secret/cleanip/run/"+cmd.Token+"/report", "")
 	if err != nil {
 		t.Fatalf("Script: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestCleanIpExpiredCommandRefusesReports(t *testing.T) {
 	if _, err := s.AddReport(context.Background(), cmd.Token, []byte(`{}`), "127.0.0.1"); !errors.Is(err, errCleanIpExpired) {
 		t.Errorf("AddReport err = %v, want errCleanIpExpired", err)
 	}
-	if _, err := s.Script(cmd.Token, "https://p/r"); !errors.Is(err, errCleanIpExpired) {
+	if _, err := s.Script(cmd.Token, "https://p/r", ""); !errors.Is(err, errCleanIpExpired) {
 		t.Errorf("Script err = %v, want errCleanIpExpired", err)
 	}
 }
@@ -165,7 +165,7 @@ func TestCleanIpCommandSamplesTheChosenCdn(t *testing.T) {
 	script := func(cdn string) string {
 		t.Helper()
 		cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Cdn: cdn})
-		out, err := s.Script(cmd.Token, "https://p/r")
+		out, err := s.Script(cmd.Token, "https://p/r", "")
 		if err != nil {
 			t.Fatalf("Script(%q): %v", cdn, err)
 		}
@@ -213,7 +213,7 @@ func TestCleanIpScriptReadsTheDatacenterOfEveryCdnAndTestsPageIpsFirst(t *testin
 	py := pythonForTest(t)
 	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Cdn: "fastly", PerRange: 1, Ips: []string{"151.101.1.1", "151.101.2.2"}})
 	var s CleanIpService
-	script, err := s.Script(cmd.Token, "https://p/r")
+	script, err := s.Script(cmd.Token, "https://p/r", "")
 	if err != nil {
 		t.Fatalf("Script: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestCleanIpScriptCountsWhyIpsFail(t *testing.T) {
 	py := pythonForTest(t)
 	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com"})
 	var s CleanIpService
-	script, err := s.Script(cmd.Token, "https://p/r")
+	script, err := s.Script(cmd.Token, "https://p/r", "")
 	if err != nil {
 		t.Fatalf("Script: %v", err)
 	}
@@ -264,6 +264,70 @@ print(failure_summary())
 	}
 	if got := strings.TrimSpace(string(out)); got != "refused 1" {
 		t.Fatalf("failure_summary() = %q after one probe of a closed port; want \"refused 1\"", got)
+	}
+}
+
+// On an ISP that blocks the panel's domain the plain command dies in curl (seen on MCI);
+// the "via" command reaches the panel through the fastest clean IP instead.
+func TestCleanIpCommandViaTheFastestCleanIp(t *testing.T) {
+	var s CleanIpService
+	cmd, err := s.NewCommand(CleanIpCommandRequest{Host: "cdn.example.com", Ips: []string{"bad", "104.16.1.1", "104.16.2.2"}}, "https://ui.example.com/secret/")
+	if err != nil {
+		t.Fatalf("NewCommand: %v", err)
+	}
+	wantUnix := "curl -fsSL --resolve 'ui.example.com:443:104.16.1.1' '" + cmd.ScriptUrl + "?via=104.16.1.1' | python3 -"
+	wantWin := "curl.exe -fsSL --resolve 'ui.example.com:443:104.16.1.1' '" + cmd.ScriptUrl + "?via=104.16.1.1' | python -"
+	if cmd.Via != "104.16.1.1" || cmd.UnixVia != wantUnix || cmd.WindowsVia != wantWin {
+		t.Errorf("via = %q\nunix = %q\nwant %q\nwindows = %q\nwant %q", cmd.Via, cmd.UnixVia, wantUnix, cmd.WindowsVia, wantWin)
+	}
+
+	cmd, err = s.NewCommand(CleanIpCommandRequest{Host: "cdn.example.com", Ips: []string{"104.16.1.1"}}, "https://203.0.113.5:2053/secret/")
+	if err != nil || cmd.UnixVia != "" || cmd.WindowsVia != "" {
+		t.Errorf("panel opened by IP has no domain to pin: via commands %q / %q (err %v), want none", cmd.UnixVia, cmd.WindowsVia, err)
+	}
+	if cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com"}); cmd.UnixVia != "" {
+		t.Errorf("no clean IP found yet: via command %q, want none", cmd.UnixVia)
+	}
+	cmd, _ = s.NewCommand(CleanIpCommandRequest{Host: "cdn.example.com", Ips: []string{"104.16.1.1"}}, "https://ui.example.com:8443/")
+	if !strings.Contains(cmd.UnixVia, "--resolve 'ui.example.com:8443:104.16.1.1'") {
+		t.Errorf("non-443 panel port lost: %q", cmd.UnixVia)
+	}
+}
+
+// The script fetched through the IP must report through it too, and only to an IPv4 literal.
+func TestCleanIpScriptReportsThroughThePinnedIp(t *testing.T) {
+	py := pythonForTest(t)
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com"})
+	var s CleanIpService
+	if script, _ := s.Script(cmd.Token, "https://p/r", "1.2.3.4\"; import os"); !strings.Contains(script, `PANEL_VIA = ""`) {
+		t.Fatal("a via that is not an IPv4 address must be dropped")
+	}
+	script, err := s.Script(cmd.Token, "http://panel.invalid:{PORT}/r", "127.0.0.1")
+	if err != nil {
+		t.Fatalf("Script: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "clean.py")
+	harness := `import http.server, threading
+srv = http.server.HTTPServer(("127.0.0.1", 0), http.server.BaseHTTPRequestHandler)
+srv.RequestHandlerClass.do_POST = lambda self: (self.send_response(200), self.end_headers(), self.wfile.write(b'{"isp": "pinned"}'))
+srv.RequestHandlerClass.log_message = lambda *a: None
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+` + strings.Replace(strings.Replace(script, "{PORT}", `" + str(srv.server_port) + "`, 1), "if __name__ == \"__main__\":", "if False:", 1) + `
+pin_panel()
+print(send_report(b"{}"))
+`
+	if err := os.WriteFile(path, []byte(harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run := exec.Command(py, "-I", path)
+	// a system HTTP proxy on the test machine would take the request instead of the pin
+	run.Env = append(os.Environ(), "NO_PROXY=*", "no_proxy=*")
+	out, err := run.CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "pinned" {
+		t.Fatalf("report through 127.0.0.1 for panel.invalid returned %q; want the local server's \"pinned\"", got)
 	}
 }
 
@@ -296,7 +360,7 @@ func TestCleanIpCommandScansExactlyTheTickedRanges(t *testing.T) {
 		t.Errorf("default ranges must be the on groups only (has 104.16.0.0/13: %v, has opt-in %s: %v)",
 			slices.Contains(defaults, "104.16.0.0/13"), optIn, slices.Contains(defaults, optIn))
 	}
-	script, err := s.Script(newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{"151.101.0.0/16"}}).Token, "https://p/r")
+	script, err := s.Script(newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{"151.101.0.0/16"}}).Token, "https://p/r", "")
 	if err != nil || !strings.Contains(script, `RANGES = ["151.101.0.0/16"]`) {
 		t.Errorf("script must sample exactly the ticked ranges (err %v)", err)
 	}

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # 3x-ui clean IP test. Run it with the VPN OFF, on the internet (ISP) you want IPs for.
 # Standard library only (Python 3.8+). The panel fills in the settings below.
-import contextlib, ipaddress, json, os, random, re, socket, ssl, sys, threading, time, urllib.error, urllib.request
+import contextlib, ipaddress, json, os, random, re, socket, ssl, sys, threading, time, urllib.error, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HOST = __HOST__
 PATH = __PATH__
 REPORT = __REPORT__
+PANEL_VIA = __VIA__
 SIZE = __SIZE__
 PER_RANGE = __PER_RANGE__
 RANGES = __RANGES__
@@ -269,22 +270,38 @@ def main():
         print("  failed: " + failure_summary())
 
     body = json.dumps({"ips": found[:200], "tested": len(ips), "size": SIZE, "fragments": fragments}).encode()
+    pin_panel()
+    try:
+        isp = send_report(body)
+        print("\nSent to the panel (ISP: %s). Open the Clean IP scanner page to save." % isp)
+    except Exception as e:
+        print("\nCould not send the result to the panel (%s)." % e)
+
+
+def pin_panel():
+    """The command came through PANEL_VIA (curl --resolve): report through it too, as this
+    ISP may not resolve or route the panel's domain."""
+    if not PANEL_VIA:
+        return
+    host, resolve = urllib.parse.urlsplit(REPORT).hostname, socket.getaddrinfo
+    socket.getaddrinfo = lambda h, *a, **k: resolve(PANEL_VIA if h == host else h, *a, **k)
+
+
+def send_report(body):
+    """POSTs the result; returns the ISP name the panel saw it from."""
     req = urllib.request.Request(REPORT, data=body, method="POST",
                                  headers={"Content-Type": "application/json", "User-Agent": "3x-ui-clean-ip"})
-    for ctx in (ssl.create_default_context(), ssl._create_unverified_context()):
-        try:
-            with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
-                out = json.loads(r.read() or b"{}")
-            print("\nSent to the panel (ISP: %s). Open the Clean IP scanner page to save." % (out.get("isp") or "?"))
-            return
-        except urllib.error.URLError as e:
-            if isinstance(e.reason, ssl.SSLCertVerificationError):
-                continue  # a panel with a self-signed certificate
-            print("\nCould not send the result to the panel (%s)." % e)
-            return
-        except Exception as e:
-            print("\nCould not send the result to the panel (%s)." % e)
-            return
+    try:
+        return post_report(req, ssl.create_default_context())
+    except urllib.error.URLError as e:
+        if not isinstance(e.reason, ssl.SSLCertVerificationError):
+            raise
+        return post_report(req, ssl._create_unverified_context())  # a panel with a self-signed certificate
+
+
+def post_report(req, ctx):
+    with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
+        return json.loads(r.read() or b"{}").get("isp") or "?"
 
 
 if __name__ == "__main__":

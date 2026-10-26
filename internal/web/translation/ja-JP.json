@@ -189,6 +189,7 @@
       "noDomain": "このホストグループにはドメイン（SNI、Host、またはドメインのエントリ）がありません。完全なテストには CDN ドメインが必要です。",
       "unixCmd": "Linux / macOS / Android（Termux）：",
       "windowsCmd": "Windows（PowerShell、Python インストール済み）：",
+      "viaCmd": "このISPで上のコマンドがダウンロードできない場合（パネルのドメインがブロックされている場合）は、こちらを使ってください。クリーンIP {ip} 経由でパネルに接続します。パネルのドメインが同じCDNの背後にある場合にのみ機能します。",
       "expires": "{time} まで有効",
       "waiting": "レポートを待っています… VPN をオフにしてコマンドを実行してください。このページは自動で更新されます。",
       "reportLine": "{org} · {tested} 件中 {ok} 件動作 · {size} バイトのアップロード",

@@ -106,7 +106,7 @@ func NewCleanIpRunController(g *gin.RouterGroup) *CleanIpRunController {
 
 func (a *CleanIpRunController) script(c *gin.Context) {
 	token := c.Param("token")
-	script, err := a.cleanIpService.Script(token, panelBaseURL(c)+"cleanip/run/"+token+"/report")
+	script, err := a.cleanIpService.Script(token, panelBaseURL(c)+"cleanip/run/"+token+"/report", c.Query("via"))
 	if err != nil {
 		script = "print('This command has expired: make a new one on the Clean IP scanner page.')\n"
 	}

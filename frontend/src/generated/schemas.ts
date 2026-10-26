@@ -1737,8 +1737,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
         "type": "string"
       },
+      "unixVia": {
+        "example": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+        "type": "string"
+      },
+      "via": {
+        "description": "Via, UnixVia, WindowsVia reach the panel's domain through the fastest page IP, for an\nISP that blocks the domain itself; empty without a page IP or for a panel opened by IP.",
+        "example": "104.16.1.1",
+        "type": "string"
+      },
       "windows": {
         "example": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+        "type": "string"
+      },
+      "windowsVia": {
+        "example": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -",
         "type": "string"
       }
     },
@@ -1747,7 +1760,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "scriptUrl",
       "token",
       "unix",
-      "windows"
+      "unixVia",
+      "via",
+      "windows",
+      "windowsVia"
     ],
     "type": "object"
   },

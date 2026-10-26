@@ -189,6 +189,7 @@
       "noDomain": "Nhóm host này không có tên miền (SNI, Host hoặc mục tên miền); bài kiểm tra đầy đủ cần tên miền CDN.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, đã cài Python):",
+      "viaCmd": "Nếu lệnh ở trên không tải được trên nhà mạng này (tên miền của bảng điều khiển bị chặn), hãy dùng các lệnh này: chúng kết nối tới bảng điều khiển qua IP sạch {ip}. Chỉ hoạt động khi tên miền của bảng điều khiển nằm sau cùng CDN.",
       "expires": "Có hiệu lực đến {time}",
       "waiting": "Đang chờ báo cáo… hãy chạy lệnh khi đã tắt VPN. Trang này tự cập nhật.",
       "reportLine": "{org} · {ok}/{tested} hoạt động · tải lên {size} byte",

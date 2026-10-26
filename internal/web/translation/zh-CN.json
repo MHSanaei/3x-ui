@@ -189,6 +189,7 @@
       "noDomain": "此主机组没有域名（SNI、Host 或域名条目）；完整测试需要 CDN 域名。",
       "unixCmd": "Linux / macOS / Android（Termux）：",
       "windowsCmd": "Windows（PowerShell，已安装 Python）：",
+      "viaCmd": "如果上面的命令在此运营商下无法下载（面板域名被封锁），请使用下面的命令：它们通过干净 IP {ip} 连接面板。仅当面板域名位于同一 CDN 之后时有效。",
       "expires": "有效期至 {time}",
       "waiting": "等待报告… 请在关闭 VPN 的情况下运行命令。此页面会自动更新。",
       "reportLine": "{org} · {tested} 个中 {ok} 个可用 · 上传 {size} 字节",

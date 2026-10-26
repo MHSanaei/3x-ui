@@ -9,6 +9,9 @@ export interface CleanIpCommand {
   expiresAt: number;
   unix: string;
   windows: string;
+  via: string;
+  unixVia: string;
+  windowsVia: string;
 }
 
 export interface CleanIpFragment extends FragmentSetting {
@@ -116,6 +119,24 @@ export default function FragmentStep({
           <Typography.Paragraph copyable className="clean-ip-mono clean-ip-code">
             {command.windows}
           </Typography.Paragraph>
+          {command.unixVia && (
+            <>
+              <Alert
+                className="clean-ip-note"
+                type="info"
+                showIcon
+                title={t('pages.cleanIp.viaCmd', { ip: command.via })}
+              />
+              <Typography.Text type="secondary">{t('pages.cleanIp.unixCmd')}</Typography.Text>
+              <Typography.Paragraph copyable className="clean-ip-mono clean-ip-code">
+                {command.unixVia}
+              </Typography.Paragraph>
+              <Typography.Text type="secondary">{t('pages.cleanIp.windowsCmd')}</Typography.Text>
+              <Typography.Paragraph copyable className="clean-ip-mono clean-ip-code">
+                {command.windowsVia}
+              </Typography.Paragraph>
+            </>
+          )}
           <Typography.Text type="secondary">
             {t('pages.cleanIp.expires', {
               time: new Date(command.expiresAt * 1000).toLocaleString(),

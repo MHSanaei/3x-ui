@@ -189,6 +189,7 @@
       "noDomain": "Bu host grubunun alan adı yok (SNI, Host veya alan adı girdisi); tam test CDN alan adına ihtiyaç duyar.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, Python yüklü):",
+      "viaCmd": "Yukarıdaki komut bu ISS'de indirilemiyorsa (panelin alan adı engellenmişse) bunları kullanın: panele temiz IP {ip} üzerinden bağlanırlar. Yalnızca panelin alan adı aynı CDN'in arkasındaysa çalışır.",
       "expires": "{time} tarihine kadar geçerli",
       "waiting": "Rapor bekleniyor… komutu VPN kapalıyken çalıştırın. Bu sayfa kendiliğinden güncellenir.",
       "reportLine": "{org} · {tested} içinden {ok} çalışıyor · {size} bayt yükleme",

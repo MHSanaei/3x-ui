@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -59,6 +60,11 @@ type CleanIpCommand struct {
 	ScriptUrl string `json:"scriptUrl" example:"https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py"`
 	Unix      string `json:"unix" example:"curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -"`
 	Windows   string `json:"windows" example:"irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"`
+	// Via, UnixVia, WindowsVia reach the panel's domain through the fastest page IP, for an
+	// ISP that blocks the domain itself; empty without a page IP or for a panel opened by IP.
+	Via        string `json:"via" example:"104.16.1.1"`
+	UnixVia    string `json:"unixVia" example:"curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -"`
+	WindowsVia string `json:"windowsVia" example:"curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"`
 }
 
 type CleanIpHit struct {
@@ -169,13 +175,34 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	cleanIpJobsMu.Unlock()
 
 	scriptURL := baseURL + "cleanip/run/" + token + "/script.py"
-	return &CleanIpCommand{
+	cmd := &CleanIpCommand{
 		Token:     token,
 		ExpiresAt: expires.Unix(),
 		ScriptUrl: scriptURL,
 		Unix:      "curl -fsSL '" + scriptURL + "' | python3 -",
 		Windows:   "irm '" + scriptURL + "' | python -",
-	}, nil
+	}
+	if hostPort, ok := panelHostPort(baseURL); ok && len(req.Ips) > 0 {
+		cmd.Via = req.Ips[0]
+		args := "-fsSL --resolve '" + hostPort + ":" + cmd.Via + "' '" + scriptURL + "?via=" + cmd.Via + "'"
+		cmd.UnixVia = "curl " + args + " | python3 -"
+		cmd.WindowsVia = "curl.exe " + args + " | python -"
+	}
+	return cmd, nil
+}
+
+// panelHostPort is the panel's "domain:port" for curl --resolve; a panel opened by IP has
+// no domain an ISP could block, so it is not pinned.
+func panelHostPort(baseURL string) (string, bool) {
+	u, err := url.Parse(baseURL)
+	if err != nil || u.Hostname() == "" || net.ParseIP(u.Hostname()) != nil {
+		return "", false
+	}
+	port := u.Port()
+	if port == "" {
+		port = map[string]string{"http": "80", "https": "443"}[u.Scheme]
+	}
+	return u.Hostname() + ":" + port, port != ""
 }
 
 // cleanIpJobFor needs cleanIpJobsMu held.
@@ -232,7 +259,9 @@ func (s *CleanIpService) Cdns() []CleanIpCdn {
 	return cleanIpCdns
 }
 
-func (s *CleanIpService) Script(token, reportURL string) (string, error) {
+// via is the IP the command was fetched through (?via=); the script reports through it too.
+func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
+	via, _ = validIPv4(via)
 	cleanIpJobsMu.Lock()
 	job, err := cleanIpJobFor(token)
 	var req CleanIpCommandRequest
@@ -247,6 +276,7 @@ func (s *CleanIpService) Script(token, reportURL string) (string, error) {
 		"__HOST__", pyLiteral(req.Host),
 		"__PATH__", pyLiteral(req.Path),
 		"__REPORT__", pyLiteral(reportURL),
+		"__VIA__", pyLiteral(via),
 		"__SIZE__", strconv.Itoa(req.Size),
 		"__PER_RANGE__", strconv.Itoa(req.PerRange),
 		"__RANGES__", pyLiteral(req.Ranges),

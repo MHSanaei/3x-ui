@@ -425,7 +425,10 @@ export interface CleanIpCommand {
   scriptUrl: string;
   token: string;
   unix: string;
+  unixVia: string;
+  via: string;
   windows: string;
+  windowsVia: string;
 }
 
 export interface CleanIpCommandRequest {

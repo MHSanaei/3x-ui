@@ -450,7 +450,10 @@ export const CleanIpCommandSchema = z.object({
   scriptUrl: z.string(),
   token: z.string(),
   unix: z.string(),
+  unixVia: z.string(),
+  via: z.string(),
   windows: z.string(),
+  windowsVia: z.string(),
 });
 export type CleanIpCommand = z.infer<typeof CleanIpCommandSchema>;
 

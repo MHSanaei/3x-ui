@@ -189,6 +189,7 @@
       "noDomain": "此主機群組沒有網域（SNI、Host 或網域項目）；完整測試需要 CDN 網域。",
       "unixCmd": "Linux / macOS / Android（Termux）：",
       "windowsCmd": "Windows（PowerShell，已安裝 Python）：",
+      "viaCmd": "如果上面的指令在此電信業者下無法下載（面板網域遭封鎖），請使用下面的指令：它們透過乾淨 IP {ip} 連線到面板。僅當面板網域位於同一 CDN 之後時有效。",
       "expires": "有效至 {time}",
       "waiting": "等待報告… 請在關閉 VPN 的情況下執行指令。此頁面會自動更新。",
       "reportLine": "{org} · {tested} 個中 {ok} 個可用 · 上傳 {size} 位元組",

@@ -189,6 +189,7 @@
       "noDomain": "This host group has no domain (SNI, Host or a domain entry); the full test needs the CDN domain.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, Python installed):",
+      "viaCmd": "If the command above does not download on this ISP (the panel's domain is blocked), use these: they reach the panel through the clean IP {ip}. This works only when the panel's domain is behind the same CDN.",
       "expires": "Works until {time}",
       "waiting": "Waiting for a report… run the command with the VPN off. This page updates by itself.",
       "reportLine": "{org} · {ok} of {tested} working · {size}-byte upload",

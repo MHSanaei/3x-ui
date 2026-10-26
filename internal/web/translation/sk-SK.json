@@ -189,6 +189,7 @@
       "noDomain": "Táto skupina hostiteľov nemá doménu (SNI, Host ani doménový záznam); úplný test potrebuje CDN doménu.",
       "unixCmd": "Linux / macOS / Android (Termux):",
       "windowsCmd": "Windows (PowerShell, nainštalovaný Python):",
+      "viaCmd": "Ak sa príkaz vyššie u tohto poskytovateľa nestiahne (doména panela je blokovaná), použite tieto: k panelu sa pripoja cez čistú IP {ip}. Funguje to len vtedy, ak je doména panela za tou istou CDN.",
       "expires": "Platí do {time}",
       "waiting": "Čaká sa na správu… spustite príkaz s vypnutou VPN. Stránka sa aktualizuje sama.",
       "reportLine": "{org} · funkčných {ok} z {tested} · odoslaných {size} bajtov",
