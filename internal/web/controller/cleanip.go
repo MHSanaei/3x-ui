@@ -28,12 +28,12 @@ func (a *CleanIpController) initRouter(g *gin.RouterGroup) {
 	g.POST("/verify", a.verify)
 }
 
-// network reports the ISP of whoever opened the page: the scan runs in their
-// browser, so that is the ISP its IPs are good for.
 func (a *CleanIpController) cdns(c *gin.Context) {
 	jsonObj(c, a.cleanIpService.Cdns(), nil)
 }
 
+// network reports the ISP of whoever opened the page: the scan runs in their
+// browser, so that is the ISP its IPs are good for.
 func (a *CleanIpController) network(c *gin.Context) {
 	visitor := service.CleanIpVisitorIp(getRemoteIp(c), c.GetHeader("CF-Connecting-IP"))
 	network, err := a.cleanIpService.LookupNetwork(c.Request.Context(), visitor)

@@ -211,8 +211,13 @@
       "verdictOk": "sirve ✓",
       "verdictRestricted": "restringida ✗",
       "verdictUnreachable": "desconocido",
+      "verdictSkipped": "no es un borde de la CDN",
+      "verdictLimited": "límite alcanzado",
       "checkSaved": "Comprobar IP guardadas",
       "checkedSaved": "El servidor comprobó {count} IP: {bad} restringidas",
+      "serverCheckSelected": "Comprobar {count} desde el servidor",
+      "serverCheckConfirm": "El servidor del panel se conectará a {count} IP en el puerto 443. Algunos proveedores de hosting consideran muchas conexiones salientes como un escaneo, así que el servidor comprueba como máximo 50 IP a la vez y 300 por hora.",
+      "reportOtherIsp": "Este resultado vino de {isp}, no de la red de este navegador: se guarda para {isp} y se omiten las IP del escaneo rápido de este navegador.",
       "removeRestricted": "Quitar {count} restringidas",
       "removeRestrictedConfirm": "¿Quitar las {count} IP restringidas de este grupo de hosts y sus grupos de proveedor? Cloudflare se niega a servir el dominio en ellas (error 1034).",
       "removedRestricted": "Se quitaron {count} IP restringidas",
@@ -220,7 +225,8 @@
         "network": "No se pudo detectar la red",
         "command": "No se pudo crear el comando",
         "expired": "Este comando ha caducado; crea uno nuevo.",
-        "verify": "No se pudieron comprobar las IP desde el servidor"
+        "verify": "No se pudieron comprobar las IP desde el servidor",
+        "verifyLimited": "Se alcanzó el límite por hora de comprobaciones del servidor: comprueba el resto más tarde."
       }
     },
     "login": {

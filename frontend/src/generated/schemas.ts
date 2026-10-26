@@ -1982,7 +1982,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "type": "object"
   },
   "CleanIpVerdict": {
-    "description": "CleanIpVerdict is what the panel's server saw on one IP: ok, restricted (Cloudflare refuses\nto serve the domain there, error 1xxx such as 1034) or unreachable from the server.",
+    "description": "CleanIpVerdict is what the server saw on one IP: ok, restricted (Cloudflare error 1xxx such as\n1034), unreachable, skipped (not one of the CDN's edges, never contacted) or limited (budget spent).",
     "properties": {
       "ip": {
         "example": "104.16.1.1",
@@ -2001,6 +2001,10 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "CleanIpVerifyRequest": {
     "properties": {
+      "cdn": {
+        "example": "cloudflare",
+        "type": "string"
+      },
       "host": {
         "example": "cdn.example.com",
         "type": "string"
@@ -2016,6 +2020,7 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "cdn",
       "host",
       "ips"
     ],

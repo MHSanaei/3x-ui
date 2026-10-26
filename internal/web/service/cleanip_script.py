@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # 3x-ui clean IP test. Run it with the VPN OFF, on the internet (ISP) you want IPs for.
 # Standard library only (Python 3.8+). The panel fills in the settings below.
-import contextlib, ipaddress, json, os, random, re, socket, ssl, sys, threading, time, urllib.error, urllib.parse, urllib.request
+import contextlib, ipaddress, json, os, random, re, socket, ssl, sys, threading, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HOST = __HOST__
@@ -227,6 +227,13 @@ def run(jobs, label):
     return out
 
 
+def fragment_sample(found, ips):
+    """Up to FRAG_SAMPLE IPs: the page's and this run's working ones first, then random targets."""
+    sample = list(dict.fromkeys(FRAG_IPS + [r["ip"] for r in found]))[:FRAG_SAMPLE]
+    rest = [ip for ip in ips if ip not in sample]
+    return sample + random.sample(rest, min(len(rest), FRAG_SAMPLE - len(sample)))
+
+
 def main():
     print("3x-ui clean IP test via %s (%d-byte upload)" % (HOST, SIZE))
     print("Keep the VPN OFF: the test is for the internet this device is on.\n")
@@ -244,9 +251,7 @@ def main():
     FAILS.clear()
 
     # Fragment: IPs that answer at all (the page's quick test, then this test's), else random.
-    sample = list(dict.fromkeys(FRAG_IPS + [r["ip"] for r in found]))[:FRAG_SAMPLE]
-    if len(sample) < FRAG_SAMPLE:
-        sample += random.sample([ip for ip in ips if ip not in sample], FRAG_SAMPLE - len(sample))
+    sample = fragment_sample(found, ips)
     configs = [None] + FRAGMENTS
     jobs = [(ip, cfg) for _ in range(FRAG_TRIES) for cfg in configs for ip in sample]
     print("\nFragment test: %d settings and none, on %d IPs, %d times each" % (len(FRAGMENTS), len(sample), FRAG_TRIES))
@@ -291,12 +296,7 @@ def send_report(body):
     """POSTs the result; returns the ISP name the panel saw it from."""
     req = urllib.request.Request(REPORT, data=body, method="POST",
                                  headers={"Content-Type": "application/json", "User-Agent": "3x-ui-clean-ip"})
-    try:
-        return post_report(req, ssl.create_default_context())
-    except urllib.error.URLError as e:
-        if not isinstance(e.reason, ssl.SSLCertVerificationError):
-            raise
-        return post_report(req, ssl._create_unverified_context())  # a panel with a self-signed certificate
+    return post_report(req, ssl_context())
 
 
 def post_report(req, ctx):

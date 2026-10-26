@@ -211,8 +211,13 @@
       "verdictOk": "atende ✓",
       "verdictRestricted": "restrito ✗",
       "verdictUnreachable": "desconhecido",
+      "verdictSkipped": "não é borda da CDN",
+      "verdictLimited": "limite atingido",
       "checkSaved": "Verificar IPs salvos",
       "checkedSaved": "O servidor verificou {count} IPs: {bad} restritos",
+      "serverCheckSelected": "Verificar {count} pelo servidor",
+      "serverCheckConfirm": "O servidor do painel vai se conectar a {count} IPs na porta 443. Alguns provedores de hospedagem tratam muitas conexões de saída como varredura, então o servidor verifica no máximo 50 IPs por vez e 300 por hora.",
+      "reportOtherIsp": "Este resultado veio de {isp}, não da internet deste navegador: ele é salvo para {isp}, e os IPs da varredura rápida deste navegador ficam de fora.",
       "removeRestricted": "Remover {count} restritos",
       "removeRestrictedConfirm": "Remover os {count} IPs restritos deste grupo de hosts e dos grupos de operadora dele? A Cloudflare se recusa a servir o domínio neles (erro 1034).",
       "removedRestricted": "{count} IPs restritos removidos",
@@ -220,7 +225,8 @@
         "network": "Não foi possível detectar a rede",
         "command": "Não foi possível gerar o comando",
         "expired": "Este comando expirou; gere um novo.",
-        "verify": "Não foi possível verificar os IPs pelo servidor"
+        "verify": "Não foi possível verificar os IPs pelo servidor",
+        "verifyLimited": "O limite por hora de verificações do servidor foi atingido: verifique o resto mais tarde."
       }
     },
     "login": {

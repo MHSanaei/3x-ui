@@ -518,6 +518,7 @@ export const CleanIpVerdictSchema = z.object({
 export type CleanIpVerdict = z.infer<typeof CleanIpVerdictSchema>;
 
 export const CleanIpVerifyRequestSchema = z.object({
+  cdn: z.string(),
   host: z.string(),
   ips: z.array(z.string()),
 });

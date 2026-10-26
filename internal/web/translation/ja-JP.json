@@ -211,8 +211,13 @@
       "verdictOk": "配信可 ✓",
       "verdictRestricted": "制限あり ✗",
       "verdictUnreachable": "不明",
+      "verdictSkipped": "CDNのエッジではない",
+      "verdictLimited": "上限到達",
       "checkSaved": "保存済み IP をチェック",
       "checkedSaved": "サーバーが {count} 件の IP をチェック：制限あり {bad} 件",
+      "serverCheckSelected": "サーバーから{count}件を確認",
+      "serverCheckConfirm": "パネルのサーバーがポート443で{count}個のIPに接続します。多数の外向き接続をスキャンとみなすホスティング事業者もあるため、サーバーの確認は1回最大50件、1時間300件までです。",
+      "reportOtherIsp": "この結果はこのブラウザーの回線ではなく{isp}から届きました。{isp}用に保存され、このブラウザーのクイックスキャンのIPは除外されます。",
       "removeRestricted": "制限ありの {count} 件を削除",
       "removeRestrictedConfirm": "制限ありの {count} 件の IP をこのホストグループとその ISP グループから削除しますか？ Cloudflare はそれらの IP でこのドメインの配信を拒否します（エラー 1034）。",
       "removedRestricted": "制限ありの IP を {count} 件削除しました",
@@ -220,7 +225,8 @@
         "network": "ネットワークを検出できませんでした",
         "command": "コマンドを作成できませんでした",
         "expired": "このコマンドは期限切れです。新しく作成してください。",
-        "verify": "サーバーから IP をチェックできませんでした"
+        "verify": "サーバーから IP をチェックできませんでした",
+        "verifyLimited": "サーバーのIP確認の1時間あたりの上限に達しました。残りは後で確認してください。"
       }
     },
     "login": {

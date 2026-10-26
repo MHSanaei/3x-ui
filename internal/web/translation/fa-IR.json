@@ -211,8 +211,13 @@
       "verdictOk": "سرو می‌کند ✓",
       "verdictRestricted": "محدود ✗",
       "verdictUnreachable": "نامعلوم",
+      "verdictSkipped": "لبهٔ CDN نیست",
+      "verdictLimited": "سقف پر شد",
       "checkSaved": "بررسی IPهای ذخیره‌شده",
       "checkedSaved": "{count} IP از سمت سرور بررسی شد: {bad} محدود",
+      "serverCheckSelected": "بررسی {count} آی‌پی از سرور",
+      "serverCheckConfirm": "سرور پنل به {count} آی‌پی روی پورت 443 وصل می‌شود. برخی هاستینگ‌ها اتصال‌های خروجی زیاد را اسکن حساب می‌کنند، پس سرور هر بار حداکثر 50 و در ساعت 300 آی‌پی را بررسی می‌کند.",
+      "reportOtherIsp": "این نتیجه از {isp} آمده، نه اینترنتی که این مرورگر رویش است: برای {isp} ذخیره می‌شود و آی‌پی‌های اسکن سریع این مرورگر کنار گذاشته می‌شوند.",
       "removeRestricted": "حذف {count} IP محدود",
       "removeRestrictedConfirm": "{count} IP محدود از این Host group و گروه‌های اپراتورش حذف شوند؟ Cloudflare روی آن‌ها دامنه را سرو نمی‌کند (خطای 1034).",
       "removedRestricted": "{count} IP محدود حذف شد",
@@ -220,7 +225,8 @@
         "network": "شبکه تشخیص داده نشد",
         "command": "دستور ساخته نشد",
         "expired": "این دستور منقضی شده؛ یک دستور تازه بسازید.",
-        "verify": "IPها از سمت سرور بررسی نشدند"
+        "verify": "IPها از سمت سرور بررسی نشدند",
+        "verifyLimited": "سقف ساعتی بررسی آی‌پی در سرور پر شده است: بقیه را بعداً بررسی کنید."
       }
     },
     "login": {

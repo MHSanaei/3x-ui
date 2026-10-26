@@ -211,8 +211,13 @@
       "verdictOk": "可服務 ✓",
       "verdictRestricted": "受限 ✗",
       "verdictUnreachable": "未知",
+      "verdictSkipped": "不是 CDN 邊緣節點",
+      "verdictLimited": "已達上限",
       "checkSaved": "檢查已儲存的 IP",
       "checkedSaved": "伺服器檢查了 {count} 個 IP：{bad} 個受限",
+      "serverCheckSelected": "從伺服器檢查 {count} 個",
+      "serverCheckConfirm": "面板伺服器將透過 443 連接埠連線 {count} 個 IP。部分主機商會把大量對外連線視為掃描，因此伺服器每次最多檢查 50 個 IP，每小時最多 300 個。",
+      "reportOtherIsp": "此結果來自 {isp}，而不是此瀏覽器所在的網路：它會儲存給 {isp}，此瀏覽器快速掃描的 IP 不計入。",
       "removeRestricted": "移除 {count} 個受限 IP",
       "removeRestrictedConfirm": "從此主機群組及其業者群組中移除 {count} 個受限 IP？Cloudflare 拒絕在這些 IP 上為該網域提供服務（錯誤 1034）。",
       "removedRestricted": "已移除 {count} 個受限 IP",
@@ -220,7 +225,8 @@
         "network": "無法偵測網路",
         "command": "無法產生指令",
         "expired": "此指令已過期；請重新產生。",
-        "verify": "無法從伺服器檢查 IP"
+        "verify": "無法從伺服器檢查 IP",
+        "verifyLimited": "伺服器每小時的 IP 檢查上限已到：請稍後再檢查其餘的。"
       }
     },
     "login": {

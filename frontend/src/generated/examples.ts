@@ -511,6 +511,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "status": "ok"
   },
   "CleanIpVerifyRequest": {
+    "cdn": "cloudflare",
     "host": "cdn.example.com",
     "ips": [
       "104.16.1.1"

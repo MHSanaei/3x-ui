@@ -35,7 +35,7 @@ var (
 	errCleanIpExpired    = errors.New("clean ip: command expired")
 
 	cleanIpHostRe  = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$`)
-	cleanIpPathRe  = regexp.MustCompile(`^/[A-Za-z0-9._~!$&()*+,;=:@%/-]{0,255}$`)
+	cleanIpPathRe  = regexp.MustCompile(`^/[A-Za-z0-9._~!$&()*+,;=:@%/?-]{0,255}$`)
 	cleanIpRangeRe = regexp.MustCompile(`^\d{1,5}-\d{1,5}$`)
 	cleanIpColoRe  = regexp.MustCompile(`^[A-Z]{0,8}$`)
 
@@ -219,7 +219,6 @@ func pyLiteral(v any) string {
 	return string(b)
 }
 
-// Script is the job's test with its values written in as JSON, which Python reads as literals.
 // cleanIpCdnRanges is a CDN's default selection: its groups that are on.
 func cleanIpCdnRanges(id string) []string {
 	for _, cdn := range cleanIpCdns {
@@ -259,6 +258,7 @@ func (s *CleanIpService) Cdns() []CleanIpCdn {
 	return cleanIpCdns
 }
 
+// Script is the job's test with its values written in as JSON, which Python reads as literals.
 // via is the IP the command was fetched through (?via=); the script reports through it too.
 func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
 	via, _ = validIPv4(via)

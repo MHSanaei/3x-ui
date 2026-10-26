@@ -211,8 +211,13 @@
       "verdictOk": "hizmet veriyor ✓",
       "verdictRestricted": "kısıtlı ✗",
       "verdictUnreachable": "bilinmiyor",
+      "verdictSkipped": "CDN ucu değil",
+      "verdictLimited": "sınıra ulaşıldı",
       "checkSaved": "Kayıtlı IP'leri kontrol et",
       "checkedSaved": "Sunucu {count} IP'yi kontrol etti: {bad} kısıtlı",
+      "serverCheckSelected": "Sunucudan {count} IP denetle",
+      "serverCheckConfirm": "Panelin sunucusu 443 numaralı bağlantı noktasından {count} IP'ye bağlanacak. Bazı barındırma sağlayıcıları çok sayıda giden bağlantıyı tarama sayar; bu yüzden sunucu bir seferde en fazla 50, saatte 300 IP denetler.",
+      "reportOtherIsp": "Bu sonuç bu tarayıcının internetinden değil, {isp} üzerinden geldi: {isp} için kaydedilir ve bu tarayıcının hızlı tarama IP'leri dışarıda bırakılır.",
       "removeRestricted": "{count} kısıtlıyı kaldır",
       "removeRestrictedConfirm": "{count} kısıtlı IP bu host grubundan ve operatör gruplarından kaldırılsın mı? Cloudflare bunlarda alan adına hizmet vermeyi reddediyor (hata 1034).",
       "removedRestricted": "{count} kısıtlı IP kaldırıldı",
@@ -220,7 +225,8 @@
         "network": "Ağ algılanamadı",
         "command": "Komut oluşturulamadı",
         "expired": "Bu komutun süresi doldu; yeni bir tane oluşturun.",
-        "verify": "IP'ler sunucudan kontrol edilemedi"
+        "verify": "IP'ler sunucudan kontrol edilemedi",
+        "verifyLimited": "Sunucunun saatlik IP denetim sınırına ulaşıldı: kalanları sonra denetleyin."
       }
     },
     "login": {

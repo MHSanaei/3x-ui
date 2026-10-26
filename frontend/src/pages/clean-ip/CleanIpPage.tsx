@@ -62,16 +62,12 @@ import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } fr
 import { CLOUDFLARE_ASNS, StepTitle, fetchCdns, fetchNetwork } from './common';
 import { coloPlace, flagOf } from './colos';
 import RangePicker from './RangePicker';
+import { reportFromOtherIsp, resultRows, saveIsp, type IpRow } from './report';
 import './CleanIpPage.css';
 
-interface IpRow {
-  ip: string;
-  ms: number;
-  test: 'upload' | 'quick' | 'failed';
-  colo: string;
-}
-
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
+// the server checks at most this many per request (cleanIpVerifyMax)
+const VERIFY_MAX = 50;
 const TICKED_KEY = 'cleanIp.tickedRanges';
 
 function readTickedRanges(): Record<string, string[]> {
@@ -93,6 +89,8 @@ function VerdictTag({ status }: { status?: string }) {
   if (status === 'restricted')
     return <Tag color="error">{t('pages.cleanIp.verdictRestricted')}</Tag>;
   if (status === 'unreachable') return <Tag>{t('pages.cleanIp.verdictUnreachable')}</Tag>;
+  if (status === 'skipped') return <Tag>{t('pages.cleanIp.verdictSkipped')}</Tag>;
+  if (status === 'limited') return <Tag color="warning">{t('pages.cleanIp.verdictLimited')}</Tag>;
   return <Typography.Text type="secondary">—</Typography.Text>;
 }
 
@@ -121,7 +119,6 @@ export default function CleanIpPage() {
   const network = useQuery({ queryKey: ['cleanip', 'network'], queryFn: fetchNetwork });
   const net = network.data;
   const [ispTyped, setIsp] = useState<string | null>(null);
-  const isp = (ispTyped ?? net?.isp ?? '').trim();
   const viaCloudflare = !!net && CLOUDFLARE_ASNS.has(net.asn);
 
   // 2. the CDN domain: a host group and the domain its configs present to Cloudflare
@@ -166,6 +163,9 @@ export default function CleanIpPage() {
     },
   });
   const report = reports.data?.length ? reports.data[reports.data.length - 1] : undefined;
+  const browserAsn = net?.asn ?? 0;
+  const otherIspReport = reportFromOtherIsp(report, browserAsn);
+  const isp = saveIsp({ browserIsp: net?.isp ?? '', browserAsn, report, typedIsp: ispTyped });
   // null = no fragment; undefined = the group's current fragment stays as it is
   const [fragPick, setFragPick] = useState<{ at: number; key: string } | null>(null);
   const suggestedKey = useMemo(() => {
@@ -214,18 +214,10 @@ export default function CleanIpPage() {
   const [listText, setListText] = useState('');
   const [picked, setPicked] = useState<string[] | null>(null);
 
-  const rows = useMemo<IpRow[]>(() => {
-    const out = new Map<string, IpRow>();
-    for (const h of report?.ips ?? [])
-      out.set(h.ip, { ip: h.ip, ms: h.ms, test: 'upload', colo: h.colo });
-    // a quick-scan hit the command tested but did not report answered TLS yet carried no upload
-    const sent = new Set(report ? sentIps : []);
-    for (const h of hits)
-      if (!out.has(h.ip))
-        out.set(h.ip, { ...h, test: sent.has(h.ip) ? 'failed' : 'quick', colo: '' });
-    const rank = { upload: 0, quick: 1, failed: 2 };
-    return [...out.values()].sort((a, b) => rank[a.test] - rank[b.test] || a.ms - b.ms);
-  }, [report, hits, sentIps]);
+  const rows = useMemo(
+    () => resultRows(report, hits, sentIps, browserAsn),
+    [report, hits, sentIps, browserAsn],
+  );
   const placeOf = useCallback(
     (colo: string) => coloPlace(colo, i18n.language || 'en'),
     [i18n.language],
@@ -246,16 +238,23 @@ export default function CleanIpPage() {
   // What the panel's server saw on each IP: the browser only sees TLS, which every edge answers.
   const [verdicts, setVerdicts] = useState<Record<string, string>>({});
   const [verifying, setVerifying] = useState(false);
+  const verifyAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => verifyAbort.current?.abort(), []);
+  // Only on the admin's request, a short list at a time: many outgoing connections from the
+  // panel's server can read as scanning to its hosting provider.
   const verifyIps = useCallback(
     async (ips: string[]) => {
       if (!domain || !ips.length) return {};
+      const abort = new AbortController();
+      verifyAbort.current = abort;
       setVerifying(true);
       try {
         const msg = await HttpUtil.post(
           '/panel/api/cleanip/verify',
-          { host: domain, ips },
-          JSON_HEADERS,
+          { host: domain, cdn: cdnId, ips: ips.slice(0, VERIFY_MAX) },
+          { ...JSON_HEADERS, signal: abort.signal, silent: true },
         );
+        if (abort.signal.aborted) return {};
         if (!msg?.success) {
           messageApi.error(msg?.msg || t('pages.cleanIp.toasts.verify'));
           return {};
@@ -264,12 +263,15 @@ export default function CleanIpPage() {
         for (const v of (msg.obj as { ip: string; status: string }[] | null) ?? [])
           got[v.ip] = v.status;
         setVerdicts((prev) => ({ ...prev, ...got }));
+        if (Object.values(got).includes('limited'))
+          messageApi.warning(t('pages.cleanIp.toasts.verifyLimited'));
         return got;
       } finally {
+        if (verifyAbort.current === abort) verifyAbort.current = null;
         setVerifying(false);
       }
     },
-    [domain, messageApi, t],
+    [domain, cdnId, messageApi, t],
   );
   const selected =
     picked ??
@@ -307,9 +309,8 @@ export default function CleanIpPage() {
       };
       await Promise.all(Array.from({ length: parallel }, worker));
       setRunning(false);
-      await verifyIps(found.map((h) => h.ip));
     },
-    [hits, timeoutMs, parallel, verifyIps],
+    [hits, timeoutMs, parallel],
   );
   const startScan = useCallback(() => {
     const targets =
@@ -380,12 +381,19 @@ export default function CleanIpPage() {
       ),
     [savedGroups, verdicts],
   );
+  const savedIps = useMemo(
+    () =>
+      [...new Set(savedGroups.flatMap((g) => g.hosts.map(hostAddress)))]
+        .filter(isIpv4)
+        .slice(0, VERIFY_MAX),
+    [savedGroups],
+  );
   const checkSaved = useCallback(async () => {
-    const ips = [...new Set(savedGroups.flatMap((g) => g.hosts.map(hostAddress)))].filter(isIpv4);
-    const got = await verifyIps(ips);
+    const got = await verifyIps(savedIps);
     const bad = Object.values(got).filter((v) => v === 'restricted').length;
-    messageApi.info(t('pages.cleanIp.checkedSaved', { count: ips.length, bad }));
-  }, [savedGroups, verifyIps, messageApi, t]);
+    const count = Object.keys(got).length;
+    if (count) messageApi.info(t('pages.cleanIp.checkedSaved', { count, bad }));
+  }, [savedIps, verifyIps, messageApi, t]);
   const removeRestricted = useCallback(async () => {
     setSaving(true);
     try {
@@ -883,6 +891,16 @@ export default function CleanIpPage() {
                           <b className="clean-ip-mono">{fragmentLabel(fragment)}</b>
                         </div>
                       </div>
+                      {otherIspReport && report && (
+                        <Alert
+                          className="clean-ip-note"
+                          type="info"
+                          showIcon
+                          title={t('pages.cleanIp.reportOtherIsp', {
+                            isp: report.network.isp || report.network.org || '?',
+                          })}
+                        />
+                      )}
                       <div className="clean-ip-actions clean-ip-save">
                         <Button
                           type="primary"
@@ -893,6 +911,24 @@ export default function CleanIpPage() {
                         >
                           {t('pages.cleanIp.saveFor', { count: selected.length, isp: isp || '?' })}
                         </Button>
+                        <Popconfirm
+                          title={t('pages.cleanIp.serverCheckConfirm', {
+                            count: Math.min(selected.length, VERIFY_MAX),
+                          })}
+                          okText={t('pages.cleanIp.serverCheck')}
+                          cancelText={t('cancel')}
+                          disabled={!selected.length || verifying}
+                          onConfirm={() => void verifyIps(selected)}
+                        >
+                          <Button disabled={!selected.length} loading={verifying}>
+                            {t('pages.cleanIp.serverCheckSelected', { count: selected.length })}
+                          </Button>
+                        </Popconfirm>
+                        {verifying && (
+                          <Button onClick={() => verifyAbort.current?.abort()}>
+                            {t('cancel')}
+                          </Button>
+                        )}
                       </div>
                       {!namesShowHost && (
                         <Alert
@@ -906,9 +942,17 @@ export default function CleanIpPage() {
                         <Typography.Title level={5} className="clean-ip-step-text">
                           {t('pages.cleanIp.ispGroups')}
                         </Typography.Title>
-                        <Button size="small" loading={verifying} onClick={checkSaved}>
-                          {t('pages.cleanIp.checkSaved')}
-                        </Button>
+                        <Popconfirm
+                          title={t('pages.cleanIp.serverCheckConfirm', { count: savedIps.length })}
+                          okText={t('pages.cleanIp.serverCheck')}
+                          cancelText={t('cancel')}
+                          disabled={!savedIps.length || verifying}
+                          onConfirm={() => void checkSaved()}
+                        >
+                          <Button size="small" loading={verifying} disabled={!savedIps.length}>
+                            {t('pages.cleanIp.checkSaved')}
+                          </Button>
+                        </Popconfirm>
                         {restrictedSaved.length > 0 && (
                           <Popconfirm
                             title={t('pages.cleanIp.removeRestrictedConfirm', {

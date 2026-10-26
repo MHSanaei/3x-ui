@@ -211,8 +211,13 @@
       "verdictOk": "可服务 ✓",
       "verdictRestricted": "受限 ✗",
       "verdictUnreachable": "未知",
+      "verdictSkipped": "不是 CDN 边缘节点",
+      "verdictLimited": "已达上限",
       "checkSaved": "检查已保存的 IP",
       "checkedSaved": "服务器检查了 {count} 个 IP：{bad} 个受限",
+      "serverCheckSelected": "从服务器检查 {count} 个",
+      "serverCheckConfirm": "面板服务器将通过 443 端口连接 {count} 个 IP。部分主机商会把大量出站连接视为扫描，因此服务器每次最多检查 50 个 IP，每小时最多 300 个。",
+      "reportOtherIsp": "此结果来自 {isp}，而不是此浏览器所在的网络：它会保存给 {isp}，此浏览器快速扫描的 IP 不计入。",
       "removeRestricted": "移除 {count} 个受限 IP",
       "removeRestrictedConfirm": "从此主机组及其运营商组中移除 {count} 个受限 IP？Cloudflare 拒绝在这些 IP 上为该域名提供服务（错误 1034）。",
       "removedRestricted": "已移除 {count} 个受限 IP",
@@ -220,7 +225,8 @@
         "network": "无法检测网络",
         "command": "无法生成命令",
         "expired": "此命令已过期；请重新生成。",
-        "verify": "无法从服务器检查 IP"
+        "verify": "无法从服务器检查 IP",
+        "verifyLimited": "服务器每小时的 IP 检查上限已到：请稍后再检查其余的。"
       }
     },
     "login": {

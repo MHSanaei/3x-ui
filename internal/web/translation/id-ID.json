@@ -211,8 +211,13 @@
       "verdictOk": "melayani ✓",
       "verdictRestricted": "dibatasi ✗",
       "verdictUnreachable": "tidak diketahui",
+      "verdictSkipped": "bukan edge CDN",
+      "verdictLimited": "batas tercapai",
       "checkSaved": "Periksa IP tersimpan",
       "checkedSaved": "Server memeriksa {count} IP: {bad} dibatasi",
+      "serverCheckSelected": "Periksa {count} dari server",
+      "serverCheckConfirm": "Server panel akan terhubung ke {count} IP di port 443. Beberapa penyedia hosting menganggap banyak koneksi keluar sebagai pemindaian, jadi server memeriksa paling banyak 50 IP sekaligus dan 300 per jam.",
+      "reportOtherIsp": "Hasil ini berasal dari {isp}, bukan jaringan browser ini: disimpan untuk {isp}, dan IP pindaian cepat browser ini tidak diikutkan.",
       "removeRestricted": "Hapus {count} yang dibatasi",
       "removeRestrictedConfirm": "Hapus {count} IP yang dibatasi dari grup host ini dan grup ISP-nya? Cloudflare menolak melayani domain di IP tersebut (error 1034).",
       "removedRestricted": "{count} IP yang dibatasi dihapus",
@@ -220,7 +225,8 @@
         "network": "Tidak dapat mendeteksi jaringan",
         "command": "Tidak dapat membuat perintah",
         "expired": "Perintah ini sudah kedaluwarsa; buat yang baru.",
-        "verify": "Tidak dapat memeriksa IP dari server"
+        "verify": "Tidak dapat memeriksa IP dari server",
+        "verifyLimited": "Batas per jam pemeriksaan IP di server tercapai: periksa sisanya nanti."
       }
     },
     "login": {

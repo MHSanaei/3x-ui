@@ -211,8 +211,13 @@
       "verdictOk": "obsluhuje ✓",
       "verdictRestricted": "obmedzená ✗",
       "verdictUnreachable": "neznáme",
+      "verdictSkipped": "nie je okraj CDN",
+      "verdictLimited": "limit dosiahnutý",
       "checkSaved": "Skontrolovať uložené IP",
       "checkedSaved": "Server skontroloval {count} IP: obmedzených {bad}",
+      "serverCheckSelected": "Overiť {count} zo servera",
+      "serverCheckConfirm": "Server panela sa pripojí k {count} IP na porte 443. Niektorí poskytovatelia hostingu považujú veľa odchádzajúcich spojení za skenovanie, preto server overí najviac 50 IP naraz a 300 za hodinu.",
+      "reportOtherIsp": "Tento výsledok prišiel z {isp}, nie zo siete tohto prehliadača: uloží sa pre {isp} a IP z rýchleho skenu tohto prehliadača sa vynechajú.",
       "removeRestricted": "Odstrániť obmedzené ({count})",
       "removeRestrictedConfirm": "Odstrániť {count} obmedzených IP z tejto skupiny hostiteľov a jej skupín poskytovateľov? Cloudflare na nich odmieta obsluhovať doménu (chyba 1034).",
       "removedRestricted": "Odstránených obmedzených IP: {count}",
@@ -220,7 +225,8 @@
         "network": "Sieť sa nepodarilo zistiť",
         "command": "Príkaz sa nepodarilo vytvoriť",
         "expired": "Platnosť príkazu vypršala; vytvorte nový.",
-        "verify": "IP sa nepodarilo skontrolovať zo servera"
+        "verify": "IP sa nepodarilo skontrolovať zo servera",
+        "verifyLimited": "Hodinový limit overení IP na serveri je vyčerpaný: zvyšok overte neskôr."
       }
     },
     "login": {

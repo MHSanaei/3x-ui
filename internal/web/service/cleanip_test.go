@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -363,5 +366,76 @@ func TestCleanIpCommandScansExactlyTheTickedRanges(t *testing.T) {
 	script, err := s.Script(newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Ranges: []string{"151.101.0.0/16"}}).Token, "https://p/r", "")
 	if err != nil || !strings.Contains(script, `RANGES = ["151.101.0.0/16"]`) {
 		t.Errorf("script must sample exactly the ticked ranges (err %v)", err)
+	}
+}
+
+// WebSocket early data rides in the path's query (/ws?ed=2048); such a group must still get
+// the full test, and its upload must hit that exact path.
+func TestCleanIpCommandKeepsAPathWithAQuery(t *testing.T) {
+	var s CleanIpService
+	cmd := newTestCommand(t, CleanIpCommandRequest{Host: "cdn.example.com", Path: "/ws?ed=2048"})
+	script, err := s.Script(cmd.Token, "https://p/r", "")
+	if err != nil || !strings.Contains(script, `PATH = "/ws?ed=2048"`) {
+		t.Fatalf("script for /ws?ed=2048 (err %v) lacks the path", err)
+	}
+	if _, err := s.NewCommand(CleanIpCommandRequest{Host: "cdn.example.com", Path: "/ws\r\nX: y"}, "https://p/"); !errors.Is(err, errCleanIpBadRequest) {
+		t.Errorf("a path with CRLF would split the upload request: err = %v, want errCleanIpBadRequest", err)
+	}
+}
+
+// writeScriptHarness writes the job's script with main() disabled plus tail, for python to run.
+func writeScriptHarness(t *testing.T, req CleanIpCommandRequest, reportURL, tail string) string {
+	t.Helper()
+	var s CleanIpService
+	script, err := s.Script(newTestCommand(t, req).Token, reportURL, "")
+	if err != nil {
+		t.Fatalf("Script: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "clean.py")
+	harness := strings.Replace(script, "if __name__ == \"__main__\":", "if False:", 1) + tail
+	if err := os.WriteFile(path, []byte(harness), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// A run with fewer than five target IPs crashed in random.sample before it could report.
+func TestCleanIpScriptFragmentSampleWithFewIps(t *testing.T) {
+	py := pythonForTest(t)
+	path := writeScriptHarness(t, CleanIpCommandRequest{Host: "cdn.example.com"}, "https://p/r", `
+print(sorted(fragment_sample([], ["104.16.1.1", "104.16.1.2"])))
+`)
+	out, err := exec.Command(py, "-I", path).CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "['104.16.1.1', '104.16.1.2']" {
+		t.Fatalf("fragment_sample of two IPs = %s; want both", got)
+	}
+}
+
+// The report carries the job's token: it must not go to whoever intercepts TLS on the ISP.
+func TestCleanIpScriptRefusesAnUntrustedPanelCertificate(t *testing.T) {
+	py := pythonForTest(t)
+	var hits atomic.Int32
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits.Add(1)
+		_, _ = w.Write([]byte(`{"isp": "intercepted"}`))
+	}))
+	defer srv.Close()
+	path := writeScriptHarness(t, CleanIpCommandRequest{Host: "cdn.example.com"}, srv.URL+"/r", `
+try:
+    print(send_report(b"{}"))
+except Exception:
+    print("refused")
+`)
+	run := exec.Command(py, "-I", path)
+	run.Env = append(os.Environ(), "NO_PROXY=*", "no_proxy=*")
+	out, err := run.CombinedOutput()
+	if err != nil {
+		t.Fatalf("python: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "refused" || hits.Load() != 0 {
+		t.Fatalf("report to a self-signed panel printed %q with %d requests served; want refused, none", got, hits.Load())
 	}
 }

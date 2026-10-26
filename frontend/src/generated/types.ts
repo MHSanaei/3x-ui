@@ -485,6 +485,7 @@ export interface CleanIpVerdict {
 }
 
 export interface CleanIpVerifyRequest {
+  cdn: string;
   host: string;
   ips: string[];
 }

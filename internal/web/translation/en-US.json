@@ -211,8 +211,13 @@
       "verdictOk": "serves ✓",
       "verdictRestricted": "restricted ✗",
       "verdictUnreachable": "unknown",
+      "verdictSkipped": "not a CDN edge",
+      "verdictLimited": "limit reached",
       "checkSaved": "Check saved IPs",
       "checkedSaved": "Checked {count} IPs from the server: {bad} restricted",
+      "serverCheckSelected": "Check {count} from the server",
+      "serverCheckConfirm": "The panel's server will connect to {count} IPs on port 443. Some hosting providers treat many outgoing connections as scanning, so the server checks at most 50 IPs at a time and 300 an hour.",
+      "reportOtherIsp": "This result came from {isp}, not the internet this browser is on: it is saved for {isp}, and this browser's quick-scan IPs are left out.",
       "removeRestricted": "Remove {count} restricted",
       "removeRestrictedConfirm": "Remove the {count} restricted IPs from this host group and its ISP groups? Cloudflare refuses to serve the domain on them (error 1034).",
       "removedRestricted": "Removed {count} restricted IPs",
@@ -220,7 +225,8 @@
         "network": "Could not detect the network",
         "command": "Could not make the command",
         "expired": "This command has expired; make a new one.",
-        "verify": "Could not check the IPs from the server"
+        "verify": "Could not check the IPs from the server",
+        "verifyLimited": "The server's hourly limit for IP checks is reached: try the rest later."
       }
     },
     "login": {

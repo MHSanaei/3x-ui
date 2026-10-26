@@ -211,8 +211,13 @@
       "verdictOk": "phục vụ ✓",
       "verdictRestricted": "bị hạn chế ✗",
       "verdictUnreachable": "không rõ",
+      "verdictSkipped": "không phải biên CDN",
+      "verdictLimited": "đã đạt giới hạn",
       "checkSaved": "Kiểm tra IP đã lưu",
       "checkedSaved": "Máy chủ đã kiểm tra {count} IP: {bad} bị hạn chế",
+      "serverCheckSelected": "Kiểm tra {count} từ máy chủ",
+      "serverCheckConfirm": "Máy chủ của bảng điều khiển sẽ kết nối tới {count} IP qua cổng 443. Một số nhà cung cấp hosting coi nhiều kết nối đi là quét, nên máy chủ chỉ kiểm tra tối đa 50 IP mỗi lần và 300 IP mỗi giờ.",
+      "reportOtherIsp": "Kết quả này đến từ {isp}, không phải mạng của trình duyệt này: nó được lưu cho {isp}, và các IP quét nhanh của trình duyệt này bị bỏ qua.",
       "removeRestricted": "Gỡ {count} IP bị hạn chế",
       "removeRestrictedConfirm": "Gỡ {count} IP bị hạn chế khỏi nhóm host này và các nhóm nhà mạng của nó? Cloudflare từ chối phục vụ tên miền trên các IP đó (lỗi 1034).",
       "removedRestricted": "Đã gỡ {count} IP bị hạn chế",
@@ -220,7 +225,8 @@
         "network": "Không phát hiện được mạng",
         "command": "Không tạo được lệnh",
         "expired": "Lệnh này đã hết hạn; hãy tạo lệnh mới.",
-        "verify": "Không kiểm tra được IP từ máy chủ"
+        "verify": "Không kiểm tra được IP từ máy chủ",
+        "verifyLimited": "Đã đạt giới hạn kiểm tra IP mỗi giờ của máy chủ: hãy kiểm tra phần còn lại sau."
       }
     },
     "login": {

@@ -16,11 +16,7 @@ type CleanIpCdn struct {
 // lists are on by default, an AS's whole announced space is opt-in. Cloudflare is the default.
 var cleanIpCdns = []CleanIpCdn{
 	{Id: "cloudflare", Name: "Cloudflare", Groups: []CleanIpRangeGroup{
-		{Id: "official", On: true, Ranges: []string{
-			"173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18", "108.162.192.0/18",
-			"190.93.240.0/20", "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
-			"104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
-		}},
+		{Id: "official", On: true, Ranges: cleanIpCloudflareRanges},
 		{Id: "popular", On: true, Ranges: []string{
 			"185.16.110.0/24", "45.85.118.0/23", "185.193.28.0/22", "185.148.104.0/22", "170.114.45.0/24", "8.6.112.0/24",
 			"8.6.144.0/23", "8.9.231.0/24", "5.10.214.0/23", "141.193.213.0/24", "23.227.38.0/23", "66.235.200.0/24",
