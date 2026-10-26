@@ -297,6 +297,13 @@ func TestSUBControllerRateLimitCoversAllRoutes(t *testing.T) {
 
 	paths := []string{"/sub/abc", "/sub/abc/hwid-status", "/json/abc", "/clash/abc", "/clash-legacy/abc", "/mihomo/abc"}
 	router := limited(t, true)
+	// With limit=1 the very first request legitimately consumes the slot;
+	// prime the limiter once, then every route must reject the same client.
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sub/prime", nil))
+	if w.Code == http.StatusTooManyRequests {
+		t.Fatal("priming request was rejected; the limiter must allow under the limit")
+	}
 	for _, path := range paths {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
