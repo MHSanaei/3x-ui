@@ -285,17 +285,17 @@ type inboundApplyOutcome struct {
 	err         error
 }
 
-// BulkAdjustResult is returned by BulkAdjust to report how many clients were
-// successfully updated and which were skipped (typically because the field
-// being adjusted was unlimited for that client) or failed.
+// BulkAdjustResult reports changed clients and per-client skip reasons.
+// ExternalLinks contains row counts only for append requests.
 type BulkAdjustResult struct {
-	Adjusted int                `json:"adjusted"`
-	Skipped  []BulkAdjustReport `json:"skipped,omitempty"`
+	Adjusted      int                      `json:"adjusted" example:"2"`
+	Skipped       []BulkAdjustReport       `json:"skipped,omitempty" example:"[]"`
+	ExternalLinks *BulkExternalLinksResult `json:"externalLinks,omitempty"`
 }
 
 type BulkAdjustReport struct {
-	Email  string `json:"email"`
-	Reason string `json:"reason"`
+	Email  string `json:"email" example:"carol"`
+	Reason string `json:"reason" example:"client not found"`
 }
 
 type bulkAdjustEntry struct {

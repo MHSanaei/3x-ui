@@ -414,6 +414,23 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface BulkAdjustReport {
+  email: string;
+  reason: string;
+}
+
+export interface BulkAdjustResult {
+  adjusted: number;
+  externalLinks?: BulkExternalLinksResult | null;
+  skipped?: BulkAdjustReport[];
+}
+
+export interface BulkExternalLinksResult {
+  added: number;
+  errors: number;
+  skipped: number;
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
@@ -580,6 +597,15 @@ export interface ClientsSummary {
   online: string[];
   onlineCount: number;
   total: number;
+}
+
+export interface ExternalLinkInput {
+  enable?: boolean | null;
+  expiryTime?: number;
+  kind?: string;
+  namePrefix?: string;
+  remark?: string;
+  value: string;
 }
 
 export interface FallbackParentInfo {

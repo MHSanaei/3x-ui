@@ -1390,10 +1390,48 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkAdjust',
         summary:
-          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Returns the adjusted count and per-email skip reasons.',
-        body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200,\n  "flow": "xtls-rprx-vision",\n  "limitHwid": 2,\n  "adTag": "0123456789abcdef0123456789abcdef"\n}',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "adjusted": 2,\n    "skipped": [\n      { "email": "carol", "reason": "unlimited expiry" }\n    ]\n  }\n}',
+          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.',
+        requestSchema: {
+          type: 'object',
+          required: ['emails'],
+          properties: {
+            emails: { type: 'array', items: { type: 'string' }, minItems: 1 },
+            addDays: { type: 'integer' },
+            addBytes: { type: 'integer' },
+            flow: { type: 'string' },
+            limitHwid: { type: 'integer', minimum: 0 },
+            adTag: { type: 'string' },
+            externalLinks: {
+              type: 'array',
+              minItems: 1,
+              items: { $ref: '#/components/schemas/ExternalLinkInput' },
+            },
+          },
+        },
+        body: JSON.stringify(
+          {
+            emails: ['alice', 'bob'],
+            externalLinks: [
+              {
+                kind: 'link',
+                value: 'vless://uuid@example.com:443',
+                remark: 'Backup',
+                enable: true,
+                expiryTime: 0,
+              },
+              {
+                kind: 'subscription',
+                value: 'https://provider.example/sub',
+                namePrefix: '[provider] ',
+                enable: true,
+                expiryTime: 0,
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+        responseSchema: 'BulkAdjustResult',
       },
       {
         method: 'POST',

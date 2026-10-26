@@ -1694,6 +1694,73 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "BulkAdjustReport": {
+    "properties": {
+      "email": {
+        "example": "carol",
+        "type": "string"
+      },
+      "reason": {
+        "example": "client not found",
+        "type": "string"
+      }
+    },
+    "required": [
+      "email",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "BulkAdjustResult": {
+    "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+    "properties": {
+      "adjusted": {
+        "example": 2,
+        "type": "integer"
+      },
+      "externalLinks": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BulkExternalLinksResult"
+          }
+        ],
+        "nullable": true
+      },
+      "skipped": {
+        "example": [],
+        "items": {
+          "$ref": "#/components/schemas/BulkAdjustReport"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "adjusted"
+    ],
+    "type": "object"
+  },
+  "BulkExternalLinksResult": {
+    "properties": {
+      "added": {
+        "example": 4,
+        "type": "integer"
+      },
+      "errors": {
+        "example": 0,
+        "type": "integer"
+      },
+      "skipped": {
+        "example": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "added",
+      "errors",
+      "skipped"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -2498,6 +2565,40 @@ export const SCHEMAS: Record<string, unknown> = {
       "online",
       "onlineCount",
       "total"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkInput": {
+    "description": "ExternalLinkInput is one row from the client form's Links tab.",
+    "properties": {
+      "enable": {
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "kind": {
+        "example": "link",
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "example": "Backup",
+        "type": "string"
+      },
+      "value": {
+        "example": "vless://uuid@example.com:443",
+        "type": "string"
+      }
+    },
+    "required": [
+      "value"
     ],
     "type": "object"
   },

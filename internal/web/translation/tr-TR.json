@@ -1018,7 +1018,8 @@
         "delDepleted": "{count} tükenmiş kullanıcı silindi",
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
-        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı",
+        "bulkLinksAppended": "{clients} istemci güncellendi: {added} eklendi, {skipped} tekrar atlandı, {errors} istemci bulunamadı."
       },
       "renewMax": "En fazla yenileme",
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
@@ -1046,7 +1047,13 @@
       "renewsUsed": "Kullanılan yenileme",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
       "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
-      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "bulkAdjustSettings": "Sınırlar ve ayarlar",
+      "bulkAppendLinks": "Harici bağlantılar ekle",
+      "bulkAppendLinksHint": "Seçilen tüm istemcilere eklenir. Mevcut girdiler ve ayarları korunur; aynı tür ve değere sahip tekrarlar atlanır. Diğer ayarlamaları ayrı uygulayın.",
+      "bulkAppendLinksRequired": "En az bir harici bağlantı veya abonelik ekleyin.",
+      "externalLinkInvalid": "Desteklenen bir paylaşım bağlantısı girin.",
+      "externalSubscriptionInvalid": "Bir http(s) abonelik URL’si girin."
     },
     "groups": {
       "name": "İsim",
