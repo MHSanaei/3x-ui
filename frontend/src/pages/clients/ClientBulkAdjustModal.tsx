@@ -66,6 +66,7 @@ export default function ClientBulkAdjustModal({
   }, [open, methods]);
 
   async function handleOk() {
+    if (mode === 'links') await methods.trigger('externalLinks');
     const values = methods.getValues();
     const validated =
       mode === 'links'

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -10,15 +11,23 @@ import (
 
 func TestBulkAppendExternalLinks_PostgresCommitFailureAndConcurrentRetries(t *testing.T) {
 	db := durablePostgresDB(t)
-	emails := []string{"bulk-append-a@pg", "bulk-append-b@pg"}
+	emails := make([]string, sqlInChunk+1)
+	clients := make([]model.ClientRecord, len(emails))
+	for i := range clients {
+		emails[i] = fmt.Sprintf("bulk-append-%04d@pg", i)
+		clients[i].Email = emails[i]
+	}
 	cleanup := func() {
-		_ = db.Exec("DELETE FROM client_external_links WHERE client_id IN (SELECT id FROM client_records WHERE email IN ?)", emails).Error
-		_ = db.Where("email IN ?", emails).Delete(&model.ClientRecord{}).Error
+		if err := db.Exec("DELETE FROM client_external_links WHERE client_id IN (SELECT id FROM clients WHERE email IN ?)", emails).Error; err != nil {
+			t.Errorf("clean external links: %v", err)
+		}
+		if err := db.Where("email IN ?", emails).Delete(&model.ClientRecord{}).Error; err != nil {
+			t.Errorf("clean clients: %v", err)
+		}
 	}
 	cleanup()
 	t.Cleanup(cleanup)
-	clients := []model.ClientRecord{{Email: emails[0]}, {Email: emails[1]}}
-	if err := db.Create(&clients).Error; err != nil {
+	if err := db.CreateInBatches(&clients, sqlInChunk).Error; err != nil {
 		t.Fatal(err)
 	}
 	results := make(chan BulkAdjustResult, 2)
@@ -44,19 +53,19 @@ func TestBulkAppendExternalLinks_PostgresCommitFailureAndConcurrentRetries(t *te
 		added += result.ExternalLinks.Added
 		skipped += result.ExternalLinks.Skipped
 	}
-	if added != 2 || skipped != 2 {
-		t.Fatalf("concurrent append: added=%d skipped=%d, want 2/2", added, skipped)
+	if added != len(clients) || skipped != len(clients) {
+		t.Fatalf("concurrent append: added=%d skipped=%d, want %d/%d", added, skipped, len(clients), len(clients))
 	}
 	installDeferredCommitFailure(t, db, "create", "bulk:external_link_commit_failure", "client_external_links", "bulk_link_parent", "bulk_link_child")
-	result, err := (&ClientService{}).BulkAppendExternalLinks(emails, []ExternalLinkInput{{Kind: "link", Value: "trojan://pw@example.com:443"}})
+	result, err := (&ClientService{}).BulkAppendExternalLinks(emails[:1], []ExternalLinkInput{{Kind: "link", Value: "trojan://pw@example.com:443"}})
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "foreign key") || result.Adjusted != 0 || result.ExternalLinks.Added != 0 {
 		t.Fatalf("commit result/error = %+v/%v, want zero committed rows and deferred foreign-key failure", result, err)
 	}
 	var rows []model.ClientExternalLink
-	if err := db.Where("client_id IN ?", []int{clients[0].Id, clients[1].Id}).Order("client_id").Find(&rows).Error; err != nil {
+	if err := db.Where("client_id IN (SELECT id FROM clients WHERE email IN ?)", emails).Order("client_id").Find(&rows).Error; err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 2 || rows[0].Kind != "subscription" || rows[1].Kind != "subscription" {
+	if len(rows) != len(clients) || rows[0].Kind != "subscription" || rows[len(rows)-1].Kind != "subscription" {
 		t.Fatalf("rollback changed existing links: %+v", rows)
 	}
 }

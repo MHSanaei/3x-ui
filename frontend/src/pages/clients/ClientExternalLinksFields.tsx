@@ -79,7 +79,7 @@ export default function ClientExternalLinksFields({
                       </div>
                       <FormField
                         name={`externalLinks.${index}.value`}
-                        noStyle
+                        style={{ flex: 1, minWidth: 0, marginBottom: 0 }}
                         rules={{
                           validate: rhfZodValidate(
                             kind === 'link'

@@ -2,6 +2,8 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 
 import ClientBulkAdjustModal from '@/pages/clients/ClientBulkAdjustModal';
+import ClientFormModal from '@/pages/clients/ClientFormModal';
+import type { ClientRecord } from '@/schemas/client';
 import { renderWithProviders } from './test-utils';
 
 async function submit() {
@@ -36,7 +38,12 @@ it('appends both link types with metadata and reports duplicates without sending
     target: { value: 'ftp://invalid.example/sub' },
   });
   await submit();
-  await waitFor(() => expect(screen.getByText('Enter an http(s) subscription URL.')).toBeTruthy());
+  await waitFor(() =>
+    expect(
+      screen.getByPlaceholderText('https://provider.example/sub/…').closest('.ant-form-item')
+        ?.textContent,
+    ).toContain('Enter an http(s) subscription URL.'),
+  );
   expect(onSubmit).not.toHaveBeenCalled();
   fireEvent.change(screen.getByPlaceholderText('https://provider.example/sub/…'), {
     target: { value: ' https://provider.example/sub ' },
@@ -91,7 +98,15 @@ it('preserves existing quota adjustment submission and keeps a failed append ope
     { target: { value: 'not-a-link' } },
   );
   await submit();
-  await waitFor(() => expect(screen.getByText('Enter a supported share link.')).toBeTruthy());
+  await waitFor(() =>
+    expect(
+      screen
+        .getByPlaceholderText(
+          'vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://',
+        )
+        .closest('.ant-form-item')?.textContent,
+    ).toContain('Enter a supported share link.'),
+  );
   expect(onSubmit).toHaveBeenCalledTimes(1);
   fireEvent.change(
     screen.getByPlaceholderText(
@@ -102,4 +117,64 @@ it('preserves existing quota adjustment submission and keeps a failed append ope
   await submit();
   await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
   expect(onOpenChange).not.toHaveBeenCalled();
+});
+
+it('opens the existing client Links tab and blocks all writes for an invalid entry', async () => {
+  const save = vi.fn().mockResolvedValue(null);
+  renderWithProviders(
+    <ClientFormModal
+      open
+      mode="edit"
+      client={{ email: 'editor', uuid: 'uuid', subId: 'editor', enable: true } as ClientRecord}
+      inbounds={[]}
+      attachedExternalLinks={[
+        {
+          id: 1,
+          kind: 'link',
+          value: 'invalid-link',
+          remark: 'keep',
+          enable: true,
+          expiryTime: 0,
+          namePrefix: '',
+          lastFetchAt: 0,
+          lastFetchError: '',
+        },
+      ]}
+      save={save}
+      onOpenChange={() => {}}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(
+      screen
+        .getByPlaceholderText(
+          'vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://',
+        )
+        .closest('.ant-form-item')?.textContent,
+    ).toContain('Enter a supported share link.'),
+  );
+  expect(save).not.toHaveBeenCalled();
+  fireEvent.change(
+    screen.getByPlaceholderText(
+      'vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://',
+    ),
+    { target: { value: 'trojan://pw@example.com:443' } },
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  expect(save.mock.calls[0][1]).toEqual(
+    expect.objectContaining({
+      externalLinks: [
+        {
+          kind: 'link',
+          value: 'trojan://pw@example.com:443',
+          remark: 'keep',
+          enable: true,
+          expiryTime: 0,
+          namePrefix: '',
+        },
+      ],
+    }),
+  );
 });

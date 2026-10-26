@@ -215,3 +215,36 @@ func TestBulkAppendExternalLinksBatchesReadsAndConcurrentRetries(t *testing.T) {
 		t.Fatalf("concurrent results: added=%d skipped=%d, want 60/60", added, skipped)
 	}
 }
+
+func TestBulkAppendExternalLinksCrossesClientQueryChunks(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	clients := make([]model.ClientRecord, sqlInChunk+1)
+	emails := make([]string, len(clients))
+	for i := range clients {
+		emails[i] = fmt.Sprintf("chunk-client-%04d", i)
+		clients[i].Email = emails[i]
+	}
+	if err := db.CreateInBatches(&clients, sqlInChunk).Error; err != nil {
+		t.Fatal(err)
+	}
+	queries := 0
+	if err := db.Callback().Query().After("gorm:query").Register("count_chunk_link_reads", func(_ *gorm.DB) { queries++ }); err != nil {
+		t.Fatal(err)
+	}
+	result, err := (&ClientService{}).BulkAppendExternalLinks(emails, []ExternalLinkInput{{Kind: "subscription", Value: "https://provider.example/sub"}})
+	if err := db.Callback().Query().Remove("count_chunk_link_reads"); err != nil {
+		t.Fatal(err)
+	}
+	want := BulkAdjustResult{Adjusted: len(clients), ExternalLinks: &BulkExternalLinksResult{Added: len(clients)}}
+	if err != nil || !reflect.DeepEqual(result, want) || queries != 4 {
+		t.Fatalf("chunked result/error/reads = %+v/%v/%d, want %+v and 4 reads", result, err, queries, want)
+	}
+	var rows []model.ClientExternalLink
+	if err := db.Order("client_id").Find(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != len(clients) || rows[len(rows)-1].ClientId != clients[len(clients)-1].Id {
+		t.Fatalf("chunked rows = %d, last = %+v, want links for every selected client", len(rows), rows[len(rows)-1])
+	}
+}

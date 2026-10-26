@@ -22,13 +22,13 @@ import {
 import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { FormProvider, useForm, useWatch, type FieldPath } from 'react-hook-form';
 
 import { HttpUtil, IntlUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
-import type { ExternalLinkRow } from '@/schemas/external-link';
+import { ExternalLinksFormSchema, type ExternalLinkRow } from '@/schemas/external-link';
 import ClientExternalLinksFields from './ClientExternalLinksFields';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
@@ -272,6 +272,7 @@ export default function ClientFormModal({
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
 
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
   const [resetting, setResetting] = useState(false);
   const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
@@ -672,7 +673,19 @@ export default function ClientFormModal({
   }
 
   async function onSubmit() {
+    await methods.trigger('externalLinks');
     const values = methods.getValues();
+    const externalValidation = ExternalLinksFormSchema.safeParse(values);
+    if (!externalValidation.success) {
+      for (const issue of externalValidation.error.issues) {
+        methods.setError(issue.path.join('.') as FieldPath<Values>, {
+          type: 'validate',
+          message: issue.message,
+        });
+      }
+      setActiveTab('links');
+      return;
+    }
     const unchangedLegacyKeepAlive =
       isEdit &&
       typeof client?.keepAlive === 'number' &&
@@ -865,6 +878,7 @@ export default function ClientFormModal({
           body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' },
         }}
         onCancel={close}
+        afterClose={() => setActiveTab('basic')}
         footer={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isEdit && resetTraffic && (
@@ -898,7 +912,8 @@ export default function ClientFormModal({
         <FormProvider {...methods}>
           <Form layout="vertical">
             <Tabs
-              defaultActiveKey="basic"
+              activeKey={activeTab}
+              onChange={setActiveTab}
               items={[
                 {
                   key: 'basic',
