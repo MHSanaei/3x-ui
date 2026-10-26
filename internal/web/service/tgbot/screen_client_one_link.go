@@ -7,29 +7,46 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// A share link ends in "#remark", which is the name the client app will show,
-// so it is the label a customer recognises when picking one of several.
-func linkLabel(link string, index int) string {
+// The link's remark is the name the client app will show, so it is the label a
+// customer recognises when picking one of several.
+func linkLabel(shareLink string, index int) string {
 	fallback := fmt.Sprintf("Link %d", index+1)
-	if scheme, _, found := strings.Cut(link, "://"); found && scheme != "" {
+	if scheme, _, found := strings.Cut(shareLink, "://"); found && scheme != "" {
 		fallback = fmt.Sprintf("%d. %s", index+1, strings.ToUpper(scheme))
 	}
-	hash := strings.LastIndex(link, "#")
-	if hash < 0 || hash+1 >= len(link) {
-		return fallback
-	}
-	remark := strings.TrimSpace(link[hash+1:])
-	if decoded, err := url.QueryUnescape(remark); err == nil {
-		remark = strings.TrimSpace(decoded)
-	}
+	remark := linkRemark(shareLink)
 	if remark == "" {
 		return fallback
 	}
 	return fmt.Sprintf("%d. %s", index+1, remark)
+}
+
+// VMess keeps its remark as "ps" inside the base64 JSON; every other scheme
+// carries it as the "#remark" fragment.
+func linkRemark(shareLink string) string {
+	if strings.HasPrefix(shareLink, "vmess://") {
+		parsed, err := link.ParseLink(shareLink)
+		if err != nil {
+			return ""
+		}
+		tag, _ := parsed.Outbound["tag"].(string)
+		return strings.TrimSpace(tag)
+	}
+	hash := strings.LastIndex(shareLink, "#")
+	if hash < 0 || hash+1 >= len(shareLink) {
+		return ""
+	}
+	remark := strings.TrimSpace(shareLink[hash+1:])
+	if decoded, err := url.QueryUnescape(remark); err == nil {
+		remark = strings.TrimSpace(decoded)
+	}
+	return remark
 }
 
 // splitEmailIndex reads link_one's "<email> <index>". The index is cut from the
