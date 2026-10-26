@@ -1232,10 +1232,10 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	// "hide" is how any recipient puts a message away: it carries no target of its
-	// own (it is the message it sits on), so it is safe for anyone to reach.
-	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
-		"client_individual_links", "client_qr_links":
+	// "hide" and the pager act on the message they sit on and name no client, so
+	// they are safe for anyone to reach.
+	case "home", "hide", cbPageNext, cbPagePrev, cbPageNone, "client_traffic", "client_commands",
+		"client_sub_links", "client_individual_links", "client_qr_links":
 		return true
 	}
 	_, _, ok := splitClientLinkCallback(data)

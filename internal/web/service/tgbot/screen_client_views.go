@@ -137,19 +137,6 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 	})
 }
 
-// ownSubscriptionOnly reports whether the screen is the client's own single
-// subscription, where admin-only controls must stay off (reached via "Links").
-func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
-	if checkAdmin(chatID) {
-		return false
-	}
-	traffics, err := t.inboundService.GetClientTrafficTgBot(chatID)
-	if err != nil {
-		return false
-	}
-	return len(traffics) == 1 && traffics[0].Email == email
-}
-
 // screenClientLinks draws the subscription and the links of a client.
 func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	subURL, subJSON, err := t.buildSubscriptionURLs(email)
@@ -167,9 +154,9 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email))),
 	}
-	// A client looking at its own subscription has nothing behind the admin's
-	// card: it only repeats the usage already on its home screen.
-	if !t.ownSubscriptionOnly(chatID, email) {
+	// The card is admin-only: a customer's gate drops it, so offering it to one,
+	// even one holding several configs, would be a button that does nothing.
+	if checkAdmin(chatID) {
 		rows = append(rows, tu.InlineKeyboardRow(
 			t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))))
 	}

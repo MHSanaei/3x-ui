@@ -899,6 +899,50 @@ func TestLinksScreenHidesTheClientCardFromItsOwner(t *testing.T) {
 	}
 }
 
+// A customer holding two configs was still offered the card, which their gate
+// then drops, so the button did nothing; an admin keeps it.
+func TestLinksScreenHidesTheClientCardFromAMultiConfigCustomer(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t, 1)
+	seedClientForTgUser(t, 4646, "first@x")
+	seedClientForTgUser(t, 4646, "second@x")
+
+	linksMarkup := func(chatID int64) string {
+		t.Helper()
+		tb.screenClientLinks(chatID, "first@x")
+		sc, ok := tb.screens().get(chatID)
+		if !ok {
+			t.Fatal("no screen was tracked")
+		}
+		markup, _ := json.Marshal(sc.markup)
+		return string(markup)
+	}
+	if markup := linksMarkup(4646); strings.Contains(markup, "client_get_usage") {
+		t.Errorf("a customer with two configs is offered the admin's client card: %s", markup)
+	}
+	if markup := linksMarkup(1); !strings.Contains(markup, "client_get_usage") {
+		t.Errorf("the admin lost the client card: %s", markup)
+	}
+}
+
+// A customer's long screen pages like an admin's, but the gate refused the
+// pager buttons, so page two was out of a customer's reach.
+func TestCustomerTurnsThePageOfALongScreen(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	tb.renderScreen(4242, tb.newScreen("links", strings.Repeat("line of text\n", 300)))
+
+	tapClientLinks(t, tb, 4242, cbPageNext)
+
+	sc, ok := tb.screens().get(4242)
+	if !ok || sc.page != 1 {
+		t.Fatalf("the customer's tap did not turn the page: %v", methods(calls()))
+	}
+	if countMethod(calls(), "answerCallbackQuery") != 1 {
+		t.Errorf("the pager tap was not answered, so its button keeps spinning: %v", methods(calls()))
+	}
+}
+
 // 4. The QR screen carries every code the subscription has, as one picture.
 func TestQRScreenCarriesEveryCodeOnOnePicture(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
