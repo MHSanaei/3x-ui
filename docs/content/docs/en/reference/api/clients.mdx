@@ -568,6 +568,14 @@ _openapi:
           email lookup. Requires an admin token or a panel login session.
         heading: fetch-clients-by-subscription-id
       - content: >-
+          Optional client.awgPing = {enabled, allow: IPv4/CIDR[], deny:
+          IPv4/CIDR[]} grants embedded AWG IPv4 Echo independently of TCP/UDP
+          routing. Defaults disabled; empty allow denies all; deny wins. Omitted
+          on update preserves, explicit empty lists clear. Lists have at most
+          256 entries each. Kernel mode and nodes without awg-ping4 support
+          reject enabling.
+
+
           Fields the server fills in when they are omitted — a valid value sent
           by the caller is never overwritten. Re-adding an email that already
           exists, with its stored `subId`, reuses the stored `id`, `password`,
