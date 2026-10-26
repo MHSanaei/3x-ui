@@ -227,18 +227,18 @@ func (s *InboundService) upsertNodeBaseline(tx *gorm.DB, nodeID int, email strin
 
 // mergeNodeClientTraffic folds one node-reported client into its central row.
 // While frozen (a push pending or just landed) only the counters may move.
-func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs xray.ClientTraffic, canon nodeTrafficCounter, frozen bool, deltaUp, deltaDown, now int64) error {
+func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs, next xray.ClientTraffic, canon nodeTrafficCounter, frozen bool, deltaUp, deltaDown, now int64) error {
 	if frozen {
 		return tx.Exec(
 			fmt.Sprintf(
 				`UPDATE client_traffics
-				 SET up = %s, down = %s, last_online = %s
+				 SET up = %s, down = %s, last_online = %s, depleted_at = ?
 				 WHERE email = ?`,
 				database.ClampedAddExpr("up"),
 				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
 			),
-			deltaUp, deltaDown, cs.LastOnline, cs.Email,
+			deltaUp, deltaDown, cs.LastOnline, next.DepletedAt, cs.Email,
 		).Error
 	}
 	return tx.Exec(
@@ -246,7 +246,8 @@ func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs xray.ClientTraff
 			`UPDATE client_traffics
 			 SET up = %s, down = %s, enable = %s, total = ?,
 			     expiry_time = %s,
-			     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s
+			     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s,
+			     depleted_at = ?
 			 WHERE email = ?`,
 			database.ClampedAddExpr("up"),
 			database.ClampedAddExpr("down"),
@@ -258,7 +259,7 @@ func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs xray.ClientTraff
 		cs.Enable, now, deltaUp, deltaDown, canon.Up, canon.Down,
 		cs.Total,
 		cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
-		cs.LastOnline, cs.Email,
+		cs.LastOnline, next.DepletedAt, cs.Email,
 	).Error
 }
 
@@ -597,7 +598,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		if err := db.Model(xray.ClientTraffic{}).
 			Where("inbound_id IN ?", ids).
-			Find(&centralClientStats).Error; err != nil {
+			Scopes(WithClientDepletion).Find(&centralClientStats).Error; err != nil {
 			return false, err
 		}
 	}
@@ -673,6 +674,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	// The stored row of every reported email, wherever it is homed, so the merge
 	// can skip a write that would leave it unchanged. Homed rows share centralCS's pointer.
+	depletionMutations := make([]string, 0)
 	statByEmail := make(map[string]*xray.ClientTraffic, len(snapEmailsAll))
 	if len(snapEmailsAll) > 0 {
 		snapEmailList := make([]string, 0, len(snapEmailsAll))
@@ -681,7 +683,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		for _, batch := range chunkStrings(snapEmailList, sqliteMaxVars) {
 			var found []xray.ClientTraffic
-			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&found).Error; err != nil {
+			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Scopes(WithClientDepletion).Find(&found).Error; err != nil {
 				return false, err
 			}
 			for i := range found {
@@ -701,6 +703,27 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			tx.Rollback()
 		}
 	}()
+	if !lifecycleFrozen {
+		var limitChanges []string
+		for _, ib := range snap.Inbounds {
+			if ib == nil {
+				continue
+			}
+			attached, known := snapshotAttachedEmails(ib.Settings)
+			for _, cs := range ib.ClientStats {
+				if _, present := attached[strings.ToLower(cs.Email)]; known && !present {
+					continue
+				}
+				row := statByEmail[cs.Email]
+				if _, owed := owedResets[cs.Email]; !owed && row != nil && row.DepletedAt > 0 && row.Total != cs.Total {
+					limitChanges = append(limitChanges, cs.Email)
+				}
+			}
+		}
+		if err := prepareClientDepletionMutation(tx, limitChanges); err != nil {
+			return false, err
+		}
+	}
 
 	structuralChange := false
 	lifecycleLifted := false
@@ -1096,6 +1119,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					Down:         seedDown,
 					LastOnline:   cs.LastOnline,
 				}
+				if !clientFrozen {
+					acceptNodeDepletion(row, cs, canon.Up+canon.Down, now)
+				}
 				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
 					Create(row).Error; err != nil {
 					return false, err
@@ -1136,19 +1162,27 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 			if renewed {
+				renewedTraffic := cs
+				renewedTraffic.Up, renewedTraffic.Down = canon.Up, canon.Down
+				renewedTraffic.DepletedAt = 0
+				if cs.ExpiryTime <= now {
+					renewedTraffic.DepletedAt = existing.DepletedAt
+				}
+				acceptNodeDepletion(&renewedTraffic, cs, canon.Up+canon.Down, now)
 				// A renewal starts a fresh quota window: adopt the node's counters
 				// and enable state, drop stale pushes (mirrors autoRenewClients).
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = ?, down = ?, enable = ?, total = ?,
-						     expiry_time = ?, reset = ?, reset_day = ?, reset_weekday = ?, reset_count = ?, last_online = %s
+						     expiry_time = ?, reset = ?, reset_day = ?, reset_weekday = ?, reset_count = ?, last_online = %s,
+						     depleted_at = ?
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
 					),
 					canon.Up, canon.Down, cs.Enable, cs.Total,
 					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday, cs.ResetCount,
-					cs.LastOnline, cs.Email,
+					cs.LastOnline, renewedTraffic.DepletedAt, cs.Email,
 				).Error; err != nil {
 					return false, err
 				}
@@ -1165,6 +1199,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.ResetWeekday = cs.ResetWeekday
 				existing.ResetCount = cs.ResetCount
 				existing.LastOnline = max(existing.LastOnline, cs.LastOnline)
+				existing.DepletedAt = renewedTraffic.DepletedAt
+				depletionMutations = append(depletionMutations, cs.Email)
 				structuralChange = true
 			} else {
 				// The row as the UPDATE below would leave it, computed from its
@@ -1175,6 +1211,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				next.Down = clampTrafficCounter(row.Down + deltaDown)
 				next.LastOnline = max(row.LastOnline, cs.LastOnline)
 				if !clientFrozen {
+					acceptNodeDepletion(&next, cs, canon.Up+canon.Down, now)
 					if !cs.Enable && !nodeDisableIsStale(row, canon.Up+canon.Down, now, deltaUp, deltaDown) {
 						next.Enable = false
 					}
@@ -1185,9 +1222,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				// A multi-attached client is reported once per inbound and an idle one
 				// every tick: rewriting an unchanged row only holds its lock longer.
 				if next != *row {
-					if err := s.mergeNodeClientTraffic(tx, cs, canon, clientFrozen, deltaUp, deltaDown, now); err != nil {
+					if err := s.mergeNodeClientTraffic(tx, cs, next, canon, clientFrozen, deltaUp, deltaDown, now); err != nil {
 						return false, err
 					}
+					depletionMutations = append(depletionMutations, cs.Email)
 					*row = next
 				}
 			}
@@ -1436,6 +1474,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		logger.Warning("setRemoteTraffic: lift activated expiries failed:", err)
 	}
 
+	if err := clearRecoveredDepletion(tx, depletionMutations); err != nil {
+		return false, err
+	}
 	if err := tx.Commit().Error; err != nil {
 		return false, err
 	}

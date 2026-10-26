@@ -72,6 +72,9 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 		}
 
 		return db.Transaction(func(tx *gorm.DB) error {
+			if err := clearRecoveredDepletion(tx, known); err != nil {
+				return err
+			}
 			for _, batch := range chunkGlobalRows(rows, 200) {
 				if err := tx.Clauses(clause.OnConflict{
 					Columns:   []clause.Column{{Name: "master_guid"}, {Name: "email"}},
@@ -89,7 +92,7 @@ func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray
 					return err
 				}
 			}
-			return nil
+			return clearRecoveredDepletion(tx, known)
 		})
 	})
 }

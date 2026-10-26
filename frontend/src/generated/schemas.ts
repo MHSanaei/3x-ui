@@ -1884,6 +1884,118 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "ClientDetail": {
+    "properties": {
+      "client": {
+        "$ref": "#/components/schemas/ClientRecord"
+      },
+      "depletedAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "depletedReason": {
+        "type": "string"
+      },
+      "externalLinks": {
+        "example": [],
+        "items": {
+          "$ref": "#/components/schemas/ClientExternalLink"
+        },
+        "type": "array"
+      },
+      "inboundIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "tunnelAllowedIPs": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "usedTraffic": {
+        "example": 3145728,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "client",
+      "depletedAt",
+      "depletedReason",
+      "externalLinks",
+      "inboundIds",
+      "tunnelAllowedIPs",
+      "usedTraffic"
+    ],
+    "type": "object"
+  },
+  "ClientExternalLink": {
+    "description": "ClientExternalLink is a per-client entry surfaced in the client's\nsubscription. Two kinds:\n- \"link\": a single third-party share link (vless://, vmess://, trojan://,\nss://, hysteria2://, wireguard://). Emitted verbatim in raw subs; parsed\ninto an outbound/proxy for JSON and Clash.\n- \"subscription\": a remote subscription URL. The panel fetches it (cached),\ndecodes its links, and merges them into the client's subscription.",
+    "properties": {
+      "clientId": {
+        "type": "integer"
+      },
+      "createdAt": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "enable": {
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "type": "integer"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "lastFetchAt": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastFetchError": {
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "sortIndex": {
+        "type": "integer"
+      },
+      "value": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "clientId",
+      "createdAt",
+      "expiryTime",
+      "id",
+      "kind",
+      "lastFetchAt",
+      "lastFetchError",
+      "namePrefix",
+      "remark",
+      "sortIndex",
+      "value"
+    ],
+    "type": "object"
+  },
   "ClientInbound": {
     "properties": {
       "clientId": {
@@ -2327,6 +2439,14 @@ export const SCHEMAS: Record<string, unknown> = {
   "ClientTraffic": {
     "description": "ClientTraffic represents traffic statistics and limits for a specific client.\nIt tracks upload/download usage, expiry times, and online status for inbound clients.",
     "properties": {
+      "depletedAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "depletedReason": {
+        "type": "string"
+      },
       "down": {
         "example": 2097152,
         "format": "int64",
@@ -2407,6 +2527,8 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "depletedAt",
+      "depletedReason",
       "down",
       "email",
       "enable",

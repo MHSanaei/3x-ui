@@ -90,7 +90,7 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 		var loadErr error
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
 			var page []xray.ClientTraffic
-			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			if err := db.Model(xray.ClientTraffic{}).Scopes(WithClientDepletion).Where("email IN ?", batch).Find(&page).Error; err != nil {
 				loadErr = err
 				break
 			}
@@ -368,7 +368,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).Where("id = ?", trafficId).Find(&traffics).Error
+	err = db.Model(xray.ClientTraffic{}).Scopes(WithClientDepletion).Where("id = ?", trafficId).Find(&traffics).Error
 	if err != nil {
 		logger.Warningf("Error retrieving ClientTraffic with trafficId %d: %v", trafficId, err)
 		return nil, nil, err
@@ -396,7 +396,7 @@ func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xr
 func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
+	err = db.Model(xray.ClientTraffic{}).Scopes(WithClientDepletion).Where("email = ?", email).Find(&traffics).Error
 	if err != nil {
 		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, nil, err

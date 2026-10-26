@@ -24,6 +24,16 @@ type ClientWithAttachments struct {
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
 }
 
+type ClientDetail struct {
+	Client           model.ClientRecord         `json:"client"`
+	InboundIds       []int                      `json:"inboundIds" example:"[1,2]"`
+	ExternalLinks    []model.ClientExternalLink `json:"externalLinks" example:"[]"`
+	UsedTraffic      int64                      `json:"usedTraffic" example:"3145728"`
+	TunnelAllowedIPs map[int]string             `json:"tunnelAllowedIPs"`
+	DepletedAt       int64                      `json:"depletedAt" example:"0"`
+	DepletedReason   string                     `json:"depletedReason" example:""`
+}
+
 // MarshalJSON is required because model.ClientRecord defines its own
 // MarshalJSON. Go promotes the embedded method to the outer struct, so without
 // this the encoder would call ClientRecord.MarshalJSON for the whole value and

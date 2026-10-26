@@ -123,12 +123,22 @@ jobs:
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence)$' -count=1 -v | tee /tmp/postgres-schema.log
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestClientDepletionMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence)$' -count=1 -v | tee /tmp/postgres-schema.log
           # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
-          if [ "$passed" -lt 6 ]; then
-            echo "expected at least 6 passing PostgreSQL schema tests, got $passed" >&2
+          if [ "$passed" -lt 7 ]; then
+            echo "expected at least 7 passing PostgreSQL schema tests, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL client depletion lifecycle
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientDepletionPostgres$' -count=1 -v | tee /tmp/postgres-depletion.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-depletion.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected passing PostgreSQL depletion coverage, got $passed" >&2
             exit 1
           fi
 

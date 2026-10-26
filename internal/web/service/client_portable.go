@@ -266,6 +266,7 @@ func applyPortableTraffic(tx *gorm.DB, inboundSvc *InboundService, item ClientCr
 		"reset_count":    item.Traffic.ResetCount,
 		"last_online":    item.Traffic.LastOnline,
 		"last_sub_fetch": item.Traffic.LastSubFetch,
+		"depleted_at":    0,
 	}).Error
 }
 

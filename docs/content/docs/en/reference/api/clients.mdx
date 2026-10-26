@@ -25,9 +25,9 @@ _openapi:
         edit/info modal.'
       url: '#filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-the-count-fields-are-exact-while-the-email-arrays-beside-them-stop-at-200-entries-so-the-payload-does-not-grow-with-the-panel-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal'
     - depth: 2
-      title: Fetch one client by email, including the inbound IDs and external config
-        IDs it is attached to.
-      url: '#fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to'
+      title: Fetch one client by email, including attachments, used traffic, and
+        read-only depletion metadata.
+      url: '#fetch-one-client-by-email-including-attachments-used-traffic-and-read-only-depletion-metadata'
     - depth: 2
       title: Fetch clients by subscription ID.
       url: '#fetch-clients-by-subscription-id'
@@ -319,9 +319,9 @@ _openapi:
           capped at 200; fetch /get/:email to obtain the full per-client payload
           for an edit/info modal.'
         id: filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-the-count-fields-are-exact-while-the-email-arrays-beside-them-stop-at-200-entries-so-the-payload-does-not-grow-with-the-panel-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
-      - content: Fetch one client by email, including the inbound IDs and external
-          config IDs it is attached to.
-        id: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+      - content: Fetch one client by email, including attachments, used traffic, and
+          read-only depletion metadata.
+        id: fetch-one-client-by-email-including-attachments-used-traffic-and-read-only-depletion-metadata
       - content: Fetch clients by subscription ID.
         id: fetch-clients-by-subscription-id
       - content: Fetch clients by Telegram user ID. Returns an array since multiple
@@ -560,6 +560,17 @@ _openapi:
           tunnel) contribute nothing.'
         id: return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
     contents:
+      - content: 'depletedAt is a read-only Unix timestamp in milliseconds; 0 means no
+          current event or unknown history. depletedReason is computed from
+          current enforcement accounting on every read: "traffic", "expiry",
+          "both", or "" when neither limit blocks the client. A current reason
+          is available even when the historical timestamp is unknown. Traffic
+          exhaustion records the detection time (normally the five-second
+          traffic job); expiry records the exact configured boundary when it
+          establishes the first event. The timestamp persists through partial
+          recovery and clears only after both quota and expiry allow the client
+          again. Existing client and attachment fields are unchanged.'
+        heading: fetch-one-client-by-email-including-attachments-used-traffic-and-read-only-depletion-metadata
       - content: Matches the exact subscription ID and orders results by client ID.
           Returns an array of the same payloads as GET /clients/get/:email,
           since multiple clients can share a subscription ID. Includes disabled,

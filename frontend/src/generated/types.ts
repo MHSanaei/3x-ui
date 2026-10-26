@@ -450,6 +450,31 @@ export interface Client {
   updated_at?: number;
 }
 
+export interface ClientDetail {
+  client: ClientRecord;
+  depletedAt: number;
+  depletedReason: string;
+  externalLinks: ClientExternalLink[];
+  inboundIds: number[];
+  tunnelAllowedIPs: Record<number, string>;
+  usedTraffic: number;
+}
+
+export interface ClientExternalLink {
+  clientId: number;
+  createdAt: number;
+  enable?: boolean | null;
+  expiryTime: number;
+  id: number;
+  kind: string;
+  lastFetchAt: number;
+  lastFetchError: string;
+  namePrefix: string;
+  remark: string;
+  sortIndex: number;
+  value: string;
+}
+
 export interface ClientInbound {
   clientId: number;
   createdAt: number;
@@ -550,6 +575,8 @@ export interface ClientSlim {
 }
 
 export interface ClientTraffic {
+  depletedAt: number;
+  depletedReason: string;
   down: number;
   email: string;
   enable: boolean;

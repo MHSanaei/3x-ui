@@ -128,7 +128,7 @@ func (a *ClientController) listPaged(c *gin.Context) {
 	jsonObj(c, resp, nil)
 }
 
-func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, error) {
+func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (*service.ClientDetail, error) {
 	inboundIds, err := a.clientService.GetInboundIdsForRecord(rec.Id)
 	if err != nil {
 		return nil, err
@@ -143,19 +143,24 @@ func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, e
 	}
 	rec.Flow = flow
 	var usedTraffic int64
+	var depletedAt int64
+	var depletedReason string
 	if t, tErr := a.inboundService.GetClientTrafficByEmail(rec.Email); tErr == nil && t != nil {
 		usedTraffic = t.Up + t.Down
+		depletedAt, depletedReason = t.DepletedAt, t.DepletedReason
 	}
 	tunnelAllowedIPs, err := a.clientService.TunnelAllowedIPsByInbound(&a.inboundService, rec.Email, inboundIds)
 	if err != nil {
 		return nil, err
 	}
-	return gin.H{
-		"client":           rec,
-		"inboundIds":       inboundIds,
-		"externalLinks":    externalLinks,
-		"usedTraffic":      usedTraffic,
-		"tunnelAllowedIPs": tunnelAllowedIPs,
+	return &service.ClientDetail{
+		Client:           *rec,
+		InboundIds:       inboundIds,
+		ExternalLinks:    externalLinks,
+		UsedTraffic:      usedTraffic,
+		TunnelAllowedIPs: tunnelAllowedIPs,
+		DepletedAt:       depletedAt,
+		DepletedReason:   depletedReason,
 	}, nil
 }
 
@@ -183,7 +188,7 @@ func (a *ClientController) getBySubId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
+	results := make([]*service.ClientDetail, 0, len(records))
 	for _, rec := range records {
 		payload, err := a.buildClientPayload(rec)
 		if err != nil {
@@ -207,7 +212,7 @@ func (a *ClientController) getByTgId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
+	results := make([]*service.ClientDetail, 0, len(records))
 	for _, rec := range records {
 		payload, err := a.buildClientPayload(rec)
 		if err != nil {

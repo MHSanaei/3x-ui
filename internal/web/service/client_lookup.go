@@ -214,7 +214,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		var stats []xray.ClientTraffic
 		for _, batch := range chunkStrings(emails, sqlInChunk) {
 			var batchStats []xray.ClientTraffic
-			if err := db.Where("email IN ?", batch).Find(&batchStats).Error; err != nil {
+			if err := db.Scopes(WithClientDepletion).Where("email IN ?", batch).Find(&batchStats).Error; err != nil {
 				return nil, err
 			}
 			stats = append(stats, batchStats...)

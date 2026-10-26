@@ -192,7 +192,7 @@ func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats", WithClientDepletion).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats", WithClientDepletion).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -552,7 +552,7 @@ func inboundMtprotoDomain(protocol string, settings string) string {
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats", WithClientDepletion).Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -1515,6 +1515,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			statEmails[inbound.ClientStats[i].Email] = true
 			inbound.ClientStats[i].Id = 0
 			inbound.ClientStats[i].InboundId = inbound.Id
+			inbound.ClientStats[i].DepletedAt, inbound.ClientStats[i].DepletedReason = 0, ""
 			if err := tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "email"}},
 				DoNothing: true,
@@ -1578,6 +1579,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					}
 				}
 			}
+		}
+		if err := populateClientDepletion(tx, inbound.ClientStats, clients); err != nil {
+			return err
 		}
 		if markDirty && inbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
@@ -1776,7 +1780,7 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}
-	err := db.Model(model.Inbound{}).Preload("ClientStats").First(inbound, id).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats", WithClientDepletion).First(inbound, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -2290,6 +2294,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 			return err
 		}
+		if err := populateClientDepletion(tx, inbound.ClientStats, newClients); err != nil {
+			return err
+		}
 		if oldInbound.NodeID != nil {
 			if err := (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID); err != nil {
 				return err
@@ -2602,7 +2609,7 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Preload("ClientStats", WithClientDepletion).Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}

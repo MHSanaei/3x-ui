@@ -38,32 +38,37 @@ func globalTrafficFreshSince(now time.Time) int64 {
 	return now.Add(-globalTrafficFreshWindow).UnixMilli()
 }
 
-// depletedClientsCond matches clients that exhausted their quota or expired.
-// Besides the local counters it also trips on the cross-panel usage a master
-// pushed into client_global_traffics — that's what lets a node cut a client
-// whose combined usage exceeds the quota even though the local share doesn't.
-// Only rows a master refreshed recently count (placeholders: now, freshSince).
-const depletedClientsCond = `((total > 0 AND up + down >= total)
-	OR (expiry_time > 0 AND expiry_time <= ?)
-	OR (total > 0 AND EXISTS (
+// Cross-panel enforcement considers each master's fresh aggregate independently.
+// The placeholder is freshSince; the enclosing expiry predicate supplies now first.
+const clientQuotaDepletedCond = `(` + clientLocalQuotaDepletedCond + ` OR (total > 0 AND EXISTS (
 		SELECT 1 FROM client_global_traffics g
 		WHERE g.email = client_traffics.email
 			AND g.updated_at >= ?
-			AND g.up + g.down >= client_traffics.total
+			AND CAST(g.up AS NUMERIC) + g.down >= client_traffics.total
 	)))`
 
-// depletedClientsCondLocal is depletedClientsCond without the cross-panel
-// client_global_traffics check. The EXISTS branch is a correlated subquery that
-// turns every traffic poll into a full client_traffics scan; on a panel no
-// master pushes to (the common case) client_global_traffics is empty, so the
-// branch can never match and is pure CPU cost (#5392). Placeholders: now.
-const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
-	OR (expiry_time > 0 AND expiry_time <= ?))`
+const clientExpiryDepletedCond = `(expiry_time > 0 AND expiry_time <= ?)`
+
+const depletedClientsCond = "(" + clientExpiryDepletedCond + " OR " + clientQuotaDepletedCond + ")"
+
+// NUMERIC prevents overflow when two individually valid BIGINT counters are added.
+const clientLocalQuotaDepletedCond = `(total > 0 AND CAST(up AS NUMERIC) + down >= total)`
+
+// Panels without fresh masters avoid the correlated global probe (#5392).
+// The local fast path shares quota arithmetic and expiry boundaries with the full predicate.
+const depletedClientsCondLocal = "(" + clientLocalQuotaDepletedCond + " OR " + clientExpiryDepletedCond + ")"
+
+const manuallyDisabledClientCond = `EXISTS (
+	SELECT 1 FROM clients c WHERE c.email = client_traffics.email AND c.enable = FALSE
+)`
 
 // depletedCond includes cross-panel quota usage only while a master's row is fresh.
 // Without fresh global rows, the local-only predicate avoids a correlated EXISTS scan.
 func depletedCond(tx *gorm.DB) (string, []any) {
-	now := tx.NowFunc()
+	return depletedCondAt(tx, tx.NowFunc())
+}
+
+func depletedCondAt(tx *gorm.DB, now time.Time) (string, []any) {
 	freshSince := globalTrafficFreshSince(now)
 	var probe int64
 	err := tx.Model(&model.ClientGlobalTraffic{}).
@@ -76,8 +81,9 @@ func depletedCond(tx *gorm.DB) (string, []any) {
 }
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
-	now := time.Now().UnixMilli()
-	cond, condArgs := depletedCond(tx)
+	detected := tx.NowFunc()
+	now := detected.UnixMilli()
+	cond, condArgs := depletedCondAt(tx, detected)
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
@@ -157,10 +163,16 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 	}
 	slices.Sort(ids)
 	var count int64
+	depletionAt := currentDepletionTimestamp(detected)
 	for _, batch := range chunkInts(ids, sqlInChunk) {
 		result := tx.Model(xray.ClientTraffic{}).
 			Where("id IN ? AND enable = ?", batch, true).
-			Update("enable", false)
+			Updates(map[string]any{
+				"enable": false,
+				"depleted_at": gorm.Expr(`CASE WHEN (`+depletionAt.SQL+`) > 0 THEN depleted_at
+					WHEN `+manuallyDisabledClientCond+` THEN 0
+					WHEN expiry_time > 0 AND expiry_time <= ? THEN expiry_time ELSE ? END`, append(depletionAt.Vars, now, now)...),
+			})
 		if result.Error != nil {
 			return false, count, nil, result.Error
 		}

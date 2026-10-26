@@ -454,6 +454,70 @@ export const EXAMPLES: Record<string, unknown> = {
     "trafficResetDay": 1,
     "updated_at": 0
   },
+  "ClientDetail": {
+    "client": {
+      "adTag": "",
+      "allowedIPs": "",
+      "auth": "",
+      "clientHostRuleIds": [
+        1,
+        2
+      ],
+      "comment": "",
+      "createdAt": 0,
+      "email": "",
+      "enable": false,
+      "expiryTime": 0,
+      "flow": "",
+      "forwardedPorts": "",
+      "group": "",
+      "id": 0,
+      "keepAlive": 0,
+      "limitHwid": 0,
+      "limitIp": 0,
+      "password": "",
+      "preSharedKey": "",
+      "privateKey": "",
+      "publicKey": "",
+      "reset": 0,
+      "resetDay": 0,
+      "resetMax": 0,
+      "resetWeekday": 0,
+      "reverse": null,
+      "secret": "",
+      "security": "",
+      "subId": "",
+      "tgId": 0,
+      "totalGB": 0,
+      "trafficReset": "",
+      "trafficResetDay": 0,
+      "updatedAt": 0,
+      "uuid": ""
+    },
+    "depletedAt": 0,
+    "depletedReason": "",
+    "externalLinks": [],
+    "inboundIds": [
+      1,
+      2
+    ],
+    "tunnelAllowedIPs": {},
+    "usedTraffic": 3145728
+  },
+  "ClientExternalLink": {
+    "clientId": 0,
+    "createdAt": 0,
+    "enable": null,
+    "expiryTime": 0,
+    "id": 0,
+    "kind": "",
+    "lastFetchAt": 0,
+    "lastFetchError": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "value": ""
+  },
   "ClientInbound": {
     "clientId": 0,
     "createdAt": 0,
@@ -594,6 +658,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "updatedAt": 1735100000000
   },
   "ClientTraffic": {
+    "depletedAt": 0,
+    "depletedReason": "",
     "down": 2097152,
     "email": "user1",
     "enable": true,
@@ -802,6 +868,8 @@ export const EXAMPLES: Record<string, unknown> = {
   "Inbound": {
     "clientStats": [
       {
+        "depletedAt": 0,
+        "depletedReason": "",
         "down": 2097152,
         "email": "user1",
         "enable": true,

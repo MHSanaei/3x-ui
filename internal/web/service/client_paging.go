@@ -481,7 +481,7 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(emails))
 	if len(emails) > 0 {
 		var stats []xray.ClientTraffic
-		if err := q.db.Where("email IN ?", emails).Find(&stats).Error; err != nil {
+		if err := q.db.Scopes(WithClientDepletion).Where("email IN ?", emails).Find(&stats).Error; err != nil {
 			return nil, err
 		}
 		overlayGlobalTrafficValues(q.db, stats)

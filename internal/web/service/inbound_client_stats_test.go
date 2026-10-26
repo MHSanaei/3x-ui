@@ -164,6 +164,7 @@ func TestEnrichClientStatsPreservesSiblingTrafficAndClientOrder(t *testing.T) {
 		(&InboundService{}).enrichClientStats(db, inbounds)
 	}
 	wantFirst := rows[0]
+	wantFirst.DepletedReason = "expiry"
 	wantFirst.UUID = "uuid-FIRST"
 	wantFirst.SubId = "sub-FIRST"
 	wantSecond := rows[1]

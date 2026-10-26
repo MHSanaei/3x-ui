@@ -1142,12 +1142,13 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/get/:email',
         summary:
-          'Fetch one client by email, including the inbound IDs and external config IDs it is attached to.',
+          'Fetch one client by email, including attachments, used traffic, and read-only depletion metadata.',
+        description:
+          'depletedAt is a read-only Unix timestamp in milliseconds; 0 means no current event or unknown history. depletedReason is computed from current enforcement accounting on every read: "traffic", "expiry", "both", or "" when neither limit blocks the client. A current reason is available even when the historical timestamp is unknown. Traffic exhaustion records the detection time (normally the five-second traffic job); expiry records the exact configured boundary when it establishes the first event. The timestamp persists through partial recovery and clears only after both quota and expiry allow the client again. Existing client and attachment fields are unchanged.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
+        responseSchema: 'ClientDetail',
       },
       {
         method: 'GET',
@@ -1163,20 +1164,9 @@ export const sections: readonly Section[] = [
             desc: 'Exact subscription ID (URL-encoded).',
           },
         ],
-        responseObjectSchema: {
-          type: 'array',
-          nullable: true,
-          items: {
-            type: 'object',
-            properties: {
-              client: { $ref: '#/components/schemas/ClientRecord' },
-              inboundIds: { type: 'array', items: { type: 'integer' } },
-              externalLinks: { type: 'array', items: { type: 'object' } },
-              usedTraffic: { type: 'integer', format: 'int64' },
-              tunnelAllowedIPs: { type: 'object', additionalProperties: { type: 'string' } },
-            },
-          },
-        },
+        responseSchema: 'ClientDetail',
+        responseSchemaArray: true,
+        responseSchemaArrayNullable: true,
       },
       {
         method: 'GET',
@@ -1186,8 +1176,8 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'tgId', in: 'path', type: 'integer', desc: 'Telegram user ID (numeric).' },
         ],
-        response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "client": { "id": 1, "email": "alice@example.com", ... },\n      "inboundIds": [3, 5],\n      "externalLinks": [],\n      "usedTraffic": 1048576\n    }\n  ]\n}',
+        responseSchema: 'ClientDetail',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',

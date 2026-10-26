@@ -78,6 +78,9 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 	err = submitTrafficWrite(func() error {
 		db := database.GetDB()
 		return db.Transaction(func(tx *gorm.DB) error {
+			if err := prepareClientDepletionMutation(tx, cleanEmails); err != nil {
+				return err
+			}
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, cleanEmails); err != nil {
 				return err
 			}
@@ -91,6 +94,9 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 				affected += int(res.RowsAffected)
 			}
 			if err := clearGlobalTraffic(tx, cleanEmails...); err != nil {
+				return err
+			}
+			if err := clearRecoveredDepletion(tx, cleanEmails); err != nil {
 				return err
 			}
 			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
@@ -175,6 +181,9 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string
 			return nil
 		}
 		reset = resetEmails
+		if err := prepareClientDepletionMutation(tx, resetEmails); err != nil {
+			return err
+		}
 
 		var qErr error
 		if restore, qErr = quotaDisabledEmails(tx, resetEmails); qErr != nil {
@@ -194,6 +203,9 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string
 		}
 
 		if err := clearGlobalTraffic(tx, resetEmails...); err != nil {
+			return err
+		}
+		if err := clearRecoveredDepletion(tx, resetEmails); err != nil {
 			return err
 		}
 
@@ -230,6 +242,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 	var restore []string
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
+			if err := recoveredDepletionRows(tx).Update("depleted_at", 0).Error; err != nil {
+				return err
+			}
 			var qErr error
 			if restore, qErr = quotaDisabledEmails(tx, nil); qErr != nil {
 				return qErr
@@ -242,6 +257,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			}
 			affected = res.RowsAffected
 			if err := tx.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+				return err
+			}
+			if err := recoveredDepletionRows(tx).Update("depleted_at", 0).Error; err != nil {
 				return err
 			}
 			if err := tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error; err != nil {

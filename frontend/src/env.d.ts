@@ -11,6 +11,8 @@ interface SubPageData {
   totalByte?: string | number;
   expire?: string | number;
   lastOnline?: string | number;
+  depletedAt?: number;
+  depletedReason?: '' | 'traffic' | 'expiry' | 'both';
   subUrl?: string;
   subJsonUrl?: string;
   subClashUrl?: string;

@@ -545,7 +545,15 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			updates["total"] = entry.newTotal
 		}
 		if len(updates) > 0 {
-			if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
+			if err := runSerializedTx(func(tx *gorm.DB) error {
+				if err := prepareClientDepletionMutation(tx, []string{email}); err != nil {
+					return err
+				}
+				if err := tx.Model(xray.ClientTraffic{}).Where("email = ?", email).Updates(updates).Error; err != nil {
+					return err
+				}
+				return clearRecoveredDepletion(tx, []string{email})
+			}); err != nil {
 				if _, already := skippedReasons[email]; !already {
 					skippedReasons[email] = err.Error()
 				}

@@ -587,7 +587,11 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		uniqueEmails = append(uniqueEmails, e)
 	}
 	slices.Sort(uniqueEmails)
-	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
+	var depletionEmails []string
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("sub_id = ?", subId).Pluck("email", &depletionEmails).Error; err != nil {
+		return nil, nil, 0, traffic, err
+	}
+	traffic, lastOnline := s.aggregateTrafficByEmails(uniqueEmails, depletionEmails)
 	traffic.Enable = hasEnabledClient
 
 	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
@@ -650,19 +654,61 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 // SubClashService.GetClash, and SubJsonService.GetJson to keep the
 // sub-info header consistent across all three formats.
 func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraffic, int64) {
+	return s.aggregateTrafficByEmails(emails, emails)
+}
+
+func (s *SubService) aggregateTrafficByEmails(emails, depletionEmails []string) (xray.ClientTraffic, int64) {
 	var agg xray.ClientTraffic
 	var lastOnline int64
-	if len(emails) == 0 {
+	if len(emails) == 0 && len(depletionEmails) == 0 {
 		return agg, 0
 	}
 	db := database.GetDB()
-	var rows []xray.ClientTraffic
-	if err := db.
-		Model(&xray.ClientTraffic{}).
-		Where("email IN ?", emails).
-		Find(&rows).Error; err != nil {
-		logger.Warning("SubService - AggregateTrafficByEmails: load by email:", err)
+	queryEmails := append(append([]string{}, emails...), depletionEmails...)
+	rows, err := service.ClientDepletionsByEmails(db, queryEmails)
+	if err != nil {
+		logger.Warning("SubService - AggregateTrafficByEmails: load traffic:", err)
 		return agg, 0
+	}
+	trafficMembers := make(map[string]bool, len(emails))
+	for _, email := range emails {
+		trafficMembers[email] = true
+	}
+	members := make(map[string]bool, len(depletionEmails))
+	for _, email := range depletionEmails {
+		members[email] = true
+	}
+	seen, allKnown, allDepleted := 0, true, true
+	trafficCause, expiryCause := false, false
+	for _, ct := range rows {
+		if !members[ct.Email] {
+			continue
+		}
+		seen++
+		if ct.DepletedReason == "" {
+			allDepleted = false
+		}
+		if ct.DepletedAt == 0 {
+			allKnown = false
+		}
+		trafficCause = trafficCause || ct.DepletedReason == "traffic" || ct.DepletedReason == "both"
+		expiryCause = expiryCause || ct.DepletedReason == "expiry" || ct.DepletedReason == "both"
+		agg.DepletedAt = max(agg.DepletedAt, ct.DepletedAt)
+	}
+	if seen != len(members) || !allDepleted {
+		agg.DepletedAt = 0
+	} else {
+		if !allKnown {
+			agg.DepletedAt = 0
+		}
+		switch {
+		case trafficCause && expiryCause:
+			agg.DepletedReason = "both"
+		case trafficCause:
+			agg.DepletedReason = "traffic"
+		case expiryCause:
+			agg.DepletedReason = "expiry"
+		}
 	}
 
 	// total/expiry are configured limits owned by the clients table, not the
@@ -682,6 +728,9 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 	now := time.Now().UnixMilli()
 	first := true
 	for _, ct := range rows {
+		if !trafficMembers[ct.Email] {
+			continue
+		}
 		if ct.LastOnline > lastOnline {
 			lastOnline = ct.LastOnline
 		}
@@ -3243,30 +3292,32 @@ func searchHost(headers any) string {
 // PageData is a view model for subpage.html
 // PageData contains data for rendering the subscription information page.
 type PageData struct {
-	Host          string
-	BasePath      string
-	SId           string
-	Enabled       bool
-	IsOnline      bool
-	Download      string
-	Upload        string
-	Total         string
-	Used          string
-	Remained      string
-	Expire        int64
-	LastOnline    int64
-	Datepicker    string
-	DownloadByte  int64
-	UploadByte    int64
-	TotalByte     int64
-	SubUrl        string
-	SubJsonUrl    string
-	SubClashUrl   string
-	SubTitle      string
-	SubSupportUrl string
-	SubAnnounce   string
-	Result        []string
-	Emails        []string
+	Host           string
+	BasePath       string
+	SId            string
+	Enabled        bool
+	IsOnline       bool
+	Download       string
+	Upload         string
+	Total          string
+	Used           string
+	Remained       string
+	Expire         int64
+	LastOnline     int64
+	DepletedAt     int64
+	DepletedReason string
+	Datepicker     string
+	DownloadByte   int64
+	UploadByte     int64
+	TotalByte      int64
+	SubUrl         string
+	SubJsonUrl     string
+	SubClashUrl    string
+	SubTitle       string
+	SubSupportUrl  string
+	SubAnnounce    string
+	Result         []string
+	Emails         []string
 }
 
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
@@ -3414,29 +3465,31 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 	}
 
 	return PageData{
-		Host:          hostHeader,
-		BasePath:      basePath,
-		SId:           subId,
-		Enabled:       traffic.Enable,
-		IsOnline:      subIsOnline(emails, s.inboundService.GetOnlineClients()),
-		Download:      download,
-		Upload:        upload,
-		Total:         total,
-		Used:          used,
-		Remained:      remained,
-		Expire:        traffic.ExpiryTime / 1000,
-		LastOnline:    lastOnline,
-		Datepicker:    datepicker,
-		DownloadByte:  traffic.Down,
-		UploadByte:    traffic.Up,
-		TotalByte:     traffic.Total,
-		SubUrl:        subURL,
-		SubJsonUrl:    subJsonURL,
-		SubClashUrl:   subClashURL,
-		SubTitle:      subTitle,
-		SubSupportUrl: subSupportUrl,
-		Result:        pageLinks,
-		Emails:        pageEmails,
+		Host:           hostHeader,
+		BasePath:       basePath,
+		SId:            subId,
+		Enabled:        traffic.Enable,
+		IsOnline:       subIsOnline(emails, s.inboundService.GetOnlineClients()),
+		Download:       download,
+		Upload:         upload,
+		Total:          total,
+		Used:           used,
+		Remained:       remained,
+		Expire:         traffic.ExpiryTime / 1000,
+		LastOnline:     lastOnline,
+		DepletedAt:     traffic.DepletedAt,
+		DepletedReason: traffic.DepletedReason,
+		Datepicker:     datepicker,
+		DownloadByte:   traffic.Down,
+		UploadByte:     traffic.Up,
+		TotalByte:      traffic.Total,
+		SubUrl:         subURL,
+		SubJsonUrl:     subJsonURL,
+		SubClashUrl:    subClashURL,
+		SubTitle:       subTitle,
+		SubSupportUrl:  subSupportUrl,
+		Result:         pageLinks,
+		Emails:         pageEmails,
 	}
 }
 

@@ -1910,6 +1910,118 @@
         ],
         "type": "object"
       },
+      "ClientDetail": {
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ClientRecord"
+          },
+          "depletedAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "depletedReason": {
+            "type": "string"
+          },
+          "externalLinks": {
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/ClientExternalLink"
+            },
+            "type": "array"
+          },
+          "inboundIds": {
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tunnelAllowedIPs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "usedTraffic": {
+            "example": 3145728,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "client",
+          "depletedAt",
+          "depletedReason",
+          "externalLinks",
+          "inboundIds",
+          "tunnelAllowedIPs",
+          "usedTraffic"
+        ],
+        "type": "object"
+      },
+      "ClientExternalLink": {
+        "description": "ClientExternalLink is a per-client entry surfaced in the client's\nsubscription. Two kinds:\n- \"link\": a single third-party share link (vless://, vmess://, trojan://,\nss://, hysteria2://, wireguard://). Emitted verbatim in raw subs; parsed\ninto an outbound/proxy for JSON and Clash.\n- \"subscription\": a remote subscription URL. The panel fetches it (cached),\ndecodes its links, and merges them into the client's subscription.",
+        "properties": {
+          "clientId": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "enable": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lastFetchAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastFetchError": {
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "sortIndex": {
+            "type": "integer"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "createdAt",
+          "expiryTime",
+          "id",
+          "kind",
+          "lastFetchAt",
+          "lastFetchError",
+          "namePrefix",
+          "remark",
+          "sortIndex",
+          "value"
+        ],
+        "type": "object"
+      },
       "ClientInbound": {
         "properties": {
           "clientId": {
@@ -2353,6 +2465,14 @@
       "ClientTraffic": {
         "description": "ClientTraffic represents traffic statistics and limits for a specific client.\nIt tracks upload/download usage, expiry times, and online status for inbound clients.",
         "properties": {
+          "depletedAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "depletedReason": {
+            "type": "string"
+          },
           "down": {
             "example": 2097152,
             "format": "int64",
@@ -2433,6 +2553,8 @@
           }
         },
         "required": [
+          "depletedAt",
+          "depletedReason",
           "down",
           "email",
           "enable",
@@ -5351,6 +5473,8 @@
                     {
                       "clientStats": [
                         {
+                          "depletedAt": 0,
+                          "depletedReason": "",
                           "down": 2097152,
                           "email": "user1",
                           "enable": true,
@@ -8687,8 +8811,9 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Fetch one client by email, including the inbound IDs and external config IDs it is attached to.",
+        "summary": "Fetch one client by email, including attachments, used traffic, and read-only depletion metadata.",
         "operationId": "get_panel_api_clients_get_email",
+        "description": "depletedAt is a read-only Unix timestamp in milliseconds; 0 means no current event or unknown history. depletedReason is computed from current enforcement accounting on every read: \"traffic\", \"expiry\", \"both\", or \"\" when neither limit blocks the client. A current reason is available even when the historical timestamp is unknown. Traffic exhaustion records the detection time (normally the five-second traffic job); expiry records the exact configured boundary when it establishes the first event. The timestamp persists through partial recovery and clears only after both quota and expiry allow the client again. Existing client and attachment fields are unchanged.",
         "parameters": [
           {
             "name": "email",
@@ -8714,7 +8839,62 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientDetail"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "client": {
+                      "adTag": "",
+                      "allowedIPs": "",
+                      "auth": "",
+                      "clientHostRuleIds": [
+                        1,
+                        2
+                      ],
+                      "comment": "",
+                      "createdAt": 0,
+                      "email": "",
+                      "enable": false,
+                      "expiryTime": 0,
+                      "flow": "",
+                      "forwardedPorts": "",
+                      "group": "",
+                      "id": 0,
+                      "keepAlive": 0,
+                      "limitHwid": 0,
+                      "limitIp": 0,
+                      "password": "",
+                      "preSharedKey": "",
+                      "privateKey": "",
+                      "publicKey": "",
+                      "reset": 0,
+                      "resetDay": 0,
+                      "resetMax": 0,
+                      "resetWeekday": 0,
+                      "reverse": null,
+                      "secret": "",
+                      "security": "",
+                      "subId": "",
+                      "tgId": 0,
+                      "totalGB": 0,
+                      "trafficReset": "",
+                      "trafficResetDay": 0,
+                      "updatedAt": 0,
+                      "uuid": ""
+                    },
+                    "depletedAt": 0,
+                    "depletedReason": "",
+                    "externalLinks": [],
+                    "inboundIds": [
+                      1,
+                      2
+                    ],
+                    "tunnelAllowedIPs": {},
+                    "usedTraffic": 3145728
                   }
                 }
               }
@@ -8760,37 +8940,65 @@
                       "type": "array",
                       "nullable": true,
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "client": {
-                            "$ref": "#/components/schemas/ClientRecord"
-                          },
-                          "inboundIds": {
-                            "type": "array",
-                            "items": {
-                              "type": "integer"
-                            }
-                          },
-                          "externalLinks": {
-                            "type": "array",
-                            "items": {
-                              "type": "object"
-                            }
-                          },
-                          "usedTraffic": {
-                            "type": "integer",
-                            "format": "int64"
-                          },
-                          "tunnelAllowedIPs": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "string"
-                            }
-                          }
-                        }
+                        "$ref": "#/components/schemas/ClientDetail"
                       }
                     }
                   }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "client": {
+                        "adTag": "",
+                        "allowedIPs": "",
+                        "auth": "",
+                        "clientHostRuleIds": [
+                          1,
+                          2
+                        ],
+                        "comment": "",
+                        "createdAt": 0,
+                        "email": "",
+                        "enable": false,
+                        "expiryTime": 0,
+                        "flow": "",
+                        "forwardedPorts": "",
+                        "group": "",
+                        "id": 0,
+                        "keepAlive": 0,
+                        "limitHwid": 0,
+                        "limitIp": 0,
+                        "password": "",
+                        "preSharedKey": "",
+                        "privateKey": "",
+                        "publicKey": "",
+                        "reset": 0,
+                        "resetDay": 0,
+                        "resetMax": 0,
+                        "resetWeekday": 0,
+                        "reverse": null,
+                        "secret": "",
+                        "security": "",
+                        "subId": "",
+                        "tgId": 0,
+                        "totalGB": 0,
+                        "trafficReset": "",
+                        "trafficResetDay": 0,
+                        "updatedAt": 0,
+                        "uuid": ""
+                      },
+                      "depletedAt": 0,
+                      "depletedReason": "",
+                      "externalLinks": [],
+                      "inboundIds": [
+                        1,
+                        2
+                      ],
+                      "tunnelAllowedIPs": {},
+                      "usedTraffic": 3145728
+                    }
+                  ]
                 }
               }
             }
@@ -8830,8 +9038,68 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ClientDetail"
+                      }
+                    }
                   }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "client": {
+                        "adTag": "",
+                        "allowedIPs": "",
+                        "auth": "",
+                        "clientHostRuleIds": [
+                          1,
+                          2
+                        ],
+                        "comment": "",
+                        "createdAt": 0,
+                        "email": "",
+                        "enable": false,
+                        "expiryTime": 0,
+                        "flow": "",
+                        "forwardedPorts": "",
+                        "group": "",
+                        "id": 0,
+                        "keepAlive": 0,
+                        "limitHwid": 0,
+                        "limitIp": 0,
+                        "password": "",
+                        "preSharedKey": "",
+                        "privateKey": "",
+                        "publicKey": "",
+                        "reset": 0,
+                        "resetDay": 0,
+                        "resetMax": 0,
+                        "resetWeekday": 0,
+                        "reverse": null,
+                        "secret": "",
+                        "security": "",
+                        "subId": "",
+                        "tgId": 0,
+                        "totalGB": 0,
+                        "trafficReset": "",
+                        "trafficResetDay": 0,
+                        "updatedAt": 0,
+                        "uuid": ""
+                      },
+                      "depletedAt": 0,
+                      "depletedReason": "",
+                      "externalLinks": [],
+                      "inboundIds": [
+                        1,
+                        2
+                      ],
+                      "tunnelAllowedIPs": {},
+                      "usedTraffic": 3145728
+                    }
+                  ]
                 }
               }
             }
@@ -11060,6 +11328,8 @@
                 "example": {
                   "success": true,
                   "obj": {
+                    "depletedAt": 0,
+                    "depletedReason": "",
                     "down": 2097152,
                     "email": "user1",
                     "enable": true,
@@ -16634,6 +16904,8 @@
                 ],
                 "clientTraffics": [
                   {
+                    "depletedAt": 0,
+                    "depletedReason": "",
                     "down": 2097152,
                     "email": "user1",
                     "enable": true,
@@ -16717,6 +16989,8 @@
                 "snapshot": true,
                 "clients": [
                   {
+                    "depletedAt": 0,
+                    "depletedReason": "",
                     "down": 2097152,
                     "email": "user1",
                     "enable": true,
@@ -16764,6 +17038,8 @@
                 {
                   "clientStats": [
                     {
+                      "depletedAt": 0,
+                      "depletedReason": "",
                       "down": 2097152,
                       "email": "user1",
                       "enable": true,

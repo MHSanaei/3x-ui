@@ -42,7 +42,7 @@ func TestCopyAllModelsIntoSQLite(t *testing.T) {
 	if err := src.Create(&model.Inbound{UserId: 1, Remark: "in", Port: 443, Protocol: "vless", Tag: "inbound-443"}).Error; err != nil {
 		t.Fatalf("seed inbound: %v", err)
 	}
-	if err := src.Create(&xray.ClientTraffic{InboundId: 1, Email: "a@b.c", Enable: true, Up: 10, Down: 20}).Error; err != nil {
+	if err := src.Create(&xray.ClientTraffic{InboundId: 1, Email: "a@b.c", Enable: true, Up: 10, Down: 20, DepletedAt: 1700000000000, DepletedReason: "expiry"}).Error; err != nil {
 		t.Fatalf("seed traffic: %v", err)
 	}
 
@@ -77,7 +77,7 @@ func TestCopyAllModelsIntoSQLite(t *testing.T) {
 	if err := dst.Where("email = ?", "a@b.c").First(&ct).Error; err != nil {
 		t.Fatalf("read back traffic: %v", err)
 	}
-	if ct.Up != 10 || ct.Down != 20 || !ct.Enable {
+	if ct.Up != 10 || ct.Down != 20 || !ct.Enable || ct.DepletedAt != 1700000000000 || ct.DepletedReason != "" {
 		t.Errorf("traffic mismatch: %+v", ct)
 	}
 }

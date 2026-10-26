@@ -29,7 +29,7 @@ func seedLatchedNodeClient(t *testing.T, svc *InboundService) (*gorm.DB, *model.
 	db := initTrafficTestDB(t)
 	createNodeInboundWithClient(t, db, 1, "n1-in", 41901, "reset-lost")
 	syncNodeWithSettings(t, svc, 1, "n1-in", resetLostOn, xray.ClientTraffic{Email: "reset-lost", Up: 10, Down: 10, Total: 100, Enable: true})
-	syncNodeWithSettings(t, svc, 1, "n1-in", resetLostOff, xray.ClientTraffic{Email: "reset-lost", Up: 60, Down: 60, Total: 100, Enable: false})
+	syncNodeWithSettings(t, svc, 1, "n1-in", resetLostOff, xray.ClientTraffic{Email: "reset-lost", Up: 60, Down: 60, Total: 100, Enable: false, DepletedAt: time.Now().Add(-time.Hour).UnixMilli()})
 	if got := readTraffic(t, db, "reset-lost"); got.Enable {
 		t.Fatal("setup: the depleted client should be latched off")
 	}
@@ -71,9 +71,13 @@ func TestNodeResetNotDeliveredDoesNotRedisableClient(t *testing.T) {
 			if err := reset.run(svc, ib); err != nil {
 				t.Fatalf("reset: %v", err)
 			}
-			syncNodeWithSettings(t, svc, 1, "n1-in", resetLostOff, xray.ClientTraffic{Email: "reset-lost", Up: 60, Down: 60, Total: 100, Enable: false})
+			syncNodeWithSettings(t, svc, 1, "n1-in", resetLostOff, xray.ClientTraffic{
+				Email: "reset-lost", Up: 60, Down: 60, Total: 100, Enable: false,
+				DepletedAt: time.Now().Add(-time.Hour).UnixMilli(), DepletedReason: "traffic",
+			})
 			got := readTraffic(t, db, "reset-lost")
-			if !got.Enable || got.Up+got.Down != 0 {
+			assertDepletion(t, db, "reset-lost", 0, "")
+			if !got.Enable || got.Up+got.Down != 0 || got.DepletedAt != 0 {
 				t.Fatalf("after reset: enable=%v used=%d, want enabled at 0 — the undelivered reset re-disabled it", got.Enable, got.Up+got.Down)
 			}
 		})

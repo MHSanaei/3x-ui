@@ -18,6 +18,8 @@ export const ClientTrafficSchema = z.object({
   enable: z.boolean().optional(),
   lastOnline: z.number().optional(),
   lastSubFetch: z.number().optional(),
+  depletedAt: z.number().int().nonnegative().optional(),
+  depletedReason: z.enum(['', 'traffic', 'expiry', 'both']).optional(),
   resetMax: z.number().optional(),
   resetCount: z.number().optional(),
 });
@@ -212,6 +214,8 @@ export const ExternalLinkListSchema = z
 // protocol's real, distinct address instead of one ambiguous shared field.
 export const ClientHydrateSchema = z.object({
   client: ClientRecordSchema,
+  depletedAt: ClientTrafficSchema.shape.depletedAt,
+  depletedReason: ClientTrafficSchema.shape.depletedReason,
   inboundIds: nullableNumberArray,
   externalLinks: ExternalLinkListSchema.optional(),
   tunnelAllowedIPs: z.record(z.number().int(), z.string()).optional(),

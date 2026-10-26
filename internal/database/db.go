@@ -98,6 +98,35 @@ func migrateClientTrafficLastSubFetchColumn() error {
 	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
 }
 
+func migrateClientTrafficDepletionColumns() error {
+	if !db.Migrator().HasTable(&xray.ClientTraffic{}) {
+		return nil
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if !tx.Migrator().HasColumn(&xray.ClientTraffic{}, "DepletedAt") {
+			return tx.Migrator().AddColumn(&xray.ClientTraffic{}, "DepletedAt")
+		}
+		if err := tx.Model(&xray.ClientTraffic{}).Where("depleted_at IS NULL").Update("depleted_at", 0).Error; err != nil {
+			return err
+		}
+		columns, err := tx.Migrator().ColumnTypes(&xray.ClientTraffic{})
+		if err != nil {
+			return err
+		}
+		for _, column := range columns {
+			if column.Name() != "depleted_at" {
+				continue
+			}
+			nullable, known := column.Nullable()
+			value, hasDefault := column.DefaultValue()
+			if !known || nullable || !hasDefault || value != "0" {
+				return tx.Migrator().AlterColumn(&xray.ClientTraffic{}, "DepletedAt")
+			}
+		}
+		return nil
+	})
+}
+
 func migrateOutboundSubscriptionUserAgentColumn() error {
 	migrator := db.Migrator()
 	if !migrator.HasTable(&model.OutboundSubscription{}) || migrator.HasColumn(&model.OutboundSubscription{}, "user_agent") {
@@ -123,6 +152,9 @@ func migrateClientKeepAliveRangeColumn() error {
 }
 
 func initModels() error {
+	if err := migrateClientTrafficDepletionColumns(); err != nil {
+		return err
+	}
 	if err := migrateClientKeepAliveRangeColumn(); err != nil {
 		return err
 	}
@@ -234,6 +266,9 @@ func postgresModelSettled(mdl any) bool {
 		return false
 	}
 	for _, dbName := range stmt.Schema.DBNames {
+		if stmt.Schema.FieldsByDBName[dbName].IgnoreMigration {
+			continue
+		}
 		if !migrator.HasColumn(mdl, dbName) {
 			return false
 		}

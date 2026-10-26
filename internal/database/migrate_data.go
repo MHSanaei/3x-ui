@@ -221,7 +221,12 @@ func copyTable(src, dst *gorm.DB, mdl any) (int, error) {
 	}
 	order := strings.Join(stmt.Schema.PrimaryFieldDBNames, ", ")
 	table := stmt.Schema.Table
-	columns := stmt.Schema.DBNames
+	columns := make([]string, 0, len(stmt.Schema.DBNames))
+	for _, name := range stmt.Schema.DBNames {
+		if !stmt.Schema.FieldsByDBName[name].IgnoreMigration {
+			columns = append(columns, name)
+		}
+	}
 
 	ctx := context.Background()
 	total := 0

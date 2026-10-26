@@ -475,6 +475,33 @@ export const ClientSchema = z.object({
 });
 export type Client = z.infer<typeof ClientSchema>;
 
+export const ClientDetailSchema = z.object({
+  client: z.lazy(() => ClientRecordSchema),
+  depletedAt: z.number().int(),
+  depletedReason: z.string(),
+  externalLinks: z.array(z.lazy(() => ClientExternalLinkSchema)),
+  inboundIds: z.array(z.number().int()),
+  tunnelAllowedIPs: z.record(z.number().int(), z.string()),
+  usedTraffic: z.number().int(),
+});
+export type ClientDetail = z.infer<typeof ClientDetailSchema>;
+
+export const ClientExternalLinkSchema = z.object({
+  clientId: z.number().int(),
+  createdAt: z.number().int(),
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int(),
+  id: z.number().int(),
+  kind: z.string(),
+  lastFetchAt: z.number().int(),
+  lastFetchError: z.string(),
+  namePrefix: z.string(),
+  remark: z.string(),
+  sortIndex: z.number().int(),
+  value: z.string(),
+});
+export type ClientExternalLink = z.infer<typeof ClientExternalLinkSchema>;
+
 export const ClientInboundSchema = z.object({
   clientId: z.number().int(),
   createdAt: z.number().int(),
@@ -582,6 +609,8 @@ export const ClientSlimSchema = z.object({
 export type ClientSlim = z.infer<typeof ClientSlimSchema>;
 
 export const ClientTrafficSchema = z.object({
+  depletedAt: z.number().int(),
+  depletedReason: z.string(),
   down: z.number().int(),
   email: z.string(),
   enable: z.boolean(),
