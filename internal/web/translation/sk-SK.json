@@ -1088,8 +1088,8 @@
       "removeFromGroupTitle": "Odobrať klientov zo skupiny „{name}“",
       "removeFromGroupDesc": "Vyberte členov, ktorých chcete odobrať zo skupiny. Samotní klienti zostanú zachovaní. Na ich úplné odstránenie použite akciu „Odstrániť klientov v skupine“.",
       "removeFromGroupResult": "Odobraté zo skupiny {name}: {count}.",
-      "assignHostGroups": "Priradiť skupiny hostiteľov",
-      "hostGroupsFor": "Skupiny hostiteľov pre {name}",
+      "assignHostGroups": "Priradiť hostiteľov",
+      "hostGroupsFor": "Priradiť hostiteľov skupine {name}",
       "hostGroups": "Skupiny hostiteľov",
       "hostsEmptyMeansLegacy": "Nechajte prázdne, aby sa použilo pôvodné správanie so všetkými hostiteľmi",
       "missingHostGroup": "Missing HostGroup: {id}"

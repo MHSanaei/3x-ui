@@ -1088,8 +1088,8 @@
       "removeFromGroupTitle": "إزالة عملاء من المجموعة «{name}»",
       "removeFromGroupDesc": "اختر الأعضاء لإزالتهم من هذه المجموعة. يُحفظ العملاء (استخدم «حذف عملاء المجموعة» للإزالة الكاملة).",
       "removeFromGroupResult": "تمت إزالة {count} عميل من {name}.",
-      "assignHostGroups": "تعيين مجموعات المضيفين",
-      "hostGroupsFor": "مجموعات المضيفين لـ {name}",
+      "assignHostGroups": "تعيين المضيفين",
+      "hostGroupsFor": "تعيين المضيفين للمجموعة {name}",
       "hostGroups": "مجموعات المضيفين",
       "hostsEmptyMeansLegacy": "اتركه فارغًا لاستخدام السلوك القديم مع جميع المضيفين",
       "missingHostGroup": "Missing HostGroup: {id}"

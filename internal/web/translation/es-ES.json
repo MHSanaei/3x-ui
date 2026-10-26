@@ -1088,8 +1088,8 @@
       "removeFromGroupTitle": "Quitar clientes del grupo «{name}»",
       "removeFromGroupDesc": "Selecciona miembros para quitar de este grupo. Los clientes se conservan (usa «Eliminar clientes del grupo» para eliminarlos por completo).",
       "removeFromGroupResult": "Quitados {count} cliente(s) de {name}.",
-      "assignHostGroups": "Asignar grupos de hosts",
-      "hostGroupsFor": "Grupos de hosts para {name}",
+      "assignHostGroups": "Asignar hosts",
+      "hostGroupsFor": "Asignar hosts al grupo {name}",
       "hostGroups": "Grupos de hosts",
       "hostsEmptyMeansLegacy": "Déjelo vacío para usar el comportamiento anterior con todos los hosts",
       "missingHostGroup": "Missing HostGroup: {id}"
