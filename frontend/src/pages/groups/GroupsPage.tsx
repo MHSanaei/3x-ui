@@ -574,7 +574,7 @@ export default function GroupsPage() {
       ),
     },
     {
-      title: t('pages.groups.hostGroups'),
+      title: t('menu.hosts'),
       key: 'assignedHostGroups',
       render: (_value, row) => {
         const labels = assignedHostLabels(row.name);
