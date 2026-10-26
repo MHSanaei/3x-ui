@@ -1180,7 +1180,7 @@
       "tlsPin": "Sertifikayı Sabitle (SHA-256)",
       "tlsSkip": "Doğrulamayı Atla",
       "tlsMtls": "Karşılıklı TLS (istemci sertifikası)",
-      "mtlsFormHint": "Bu düğüm, paneli bir istemci sertifikasıyla doğrular. Düğüm mTLS bölümünden bu panelin CA’sını düğüme kopyalayın, güvenilen CA’sını ayarlayın ve ardından düğümü yeniden başlatın.",
+      "mtlsFormHint": "Bu düğüm, paneli bir istemci sertifikasıyla doğrular. Düğüm mTLS bölümünden bu panelin CA’sını düğüme kopyalayın, güvenilen CA’sını ayarlayın ve ardından düğümü yeniden başlatın. Bu düğümün panelini buradan güncellemek için yine de node-admin kapsamlı bir API belirteci gerekir.",
       "mtls": {
         "title": "Düğüm mTLS",
         "intro": "Karşılıklı TLS, düğümler arası çağrılarda API belirtecinin yanına bir istemci sertifikası faktörü ekler. İsteğe bağlıdır: yalnızca belirteçle kimlik doğrulamayı sürdürmek için boş bırakın.",

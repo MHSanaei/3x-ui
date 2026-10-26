@@ -1180,7 +1180,7 @@
       "tlsPin": "Pin sertifikat (SHA-256)",
       "tlsSkip": "Lewati verifikasi",
       "tlsMtls": "TLS mutual (sertifikat klien)",
-      "mtlsFormHint": "Node ini mengautentikasi panel dengan sertifikat klien. Salin CA panel ini dari bagian mTLS Node ke node, atur CA tepercayanya, lalu mulai ulang.",
+      "mtlsFormHint": "Node ini mengautentikasi panel dengan sertifikat klien. Salin CA panel ini dari bagian mTLS Node ke node, atur CA tepercayanya, lalu mulai ulang. Memperbarui panel node ini dari sini tetap memerlukan token API dengan cakupan node-admin.",
       "mtls": {
         "title": "mTLS Node",
         "intro": "TLS mutual menambahkan faktor sertifikat klien di atas token API untuk panggilan antar-node. Bersifat opsional: biarkan kosong untuk tetap menggunakan autentikasi token saja.",
