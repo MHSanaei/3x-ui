@@ -63,6 +63,12 @@ file locations when it can answer in one hop.
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.
+  - `mcp/` — MCP server at `POST /panel/api/mcp` (official go-sdk, stateless).
+    Tools never call services: each re-enters the router via `dispatcher.call`
+    with the caller's credentials, so auth, scopes and `runtime.Runtime` apply.
+    One file per toolset (`tools_<set>.go`, `?toolsets=` filter); every tool
+    needs a `toolCase`, or `TestToolsHitDocumentedRoutes` fails. Niche routes
+    stay reachable through `call_api` instead of getting their own tool.
   - `locale/` + `translation/` — i18n, 14 embedded locale JSON files.
 - `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
