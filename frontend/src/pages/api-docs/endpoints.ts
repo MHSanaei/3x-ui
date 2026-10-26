@@ -1950,6 +1950,31 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'mcp',
+    title: 'MCP',
+    description:
+      'Model Context Protocol endpoint for AI agents (Claude, Cursor, VS Code). Point an MCP client at this URL with an admin Bearer token; restricted token scopes are refused.',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/panel/api/mcp',
+        summary:
+          'Stateless streamable-HTTP MCP endpoint (JSON-RPC 2.0). Exposes panel tools for inbounds, clients, server, Xray, nodes, hosts and settings; each tool call runs the matching /panel/api route with the caller’s credentials.',
+        params: [
+          {
+            name: 'toolsets',
+            in: 'query',
+            type: 'string',
+            optional: true,
+            desc: 'Comma-separated tool groups to expose: inbounds, clients, server, panel. Omit for all. call_api and get_openapi_spec are always included.',
+          },
+        ],
+        body: '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "tools/list"\n}',
+      },
+    ],
+  },
+
+  {
     id: 'settings',
     title: 'Settings',
     description:

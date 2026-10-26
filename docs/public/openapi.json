@@ -5047,6 +5047,10 @@
       "description": "Operations that interact with the configured Telegram bot."
     },
     {
+      "name": "MCP",
+      "description": "Model Context Protocol endpoint for AI agents (Claude, Cursor, VS Code). Point an MCP client at this URL with an admin Bearer token; restricted token scopes are refused."
+    },
+    {
       "name": "Settings",
       "description": "Panel configuration and user credentials. All endpoints live under /panel/api/setting and require a logged-in session or Bearer token."
     },
@@ -13197,6 +13201,62 @@
         ],
         "summary": "Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.",
         "operationId": "post_panel_api_backuptotgbot",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/mcp": {
+      "post": {
+        "tags": [
+          "MCP"
+        ],
+        "summary": "Stateless streamable-HTTP MCP endpoint (JSON-RPC 2.0). Exposes panel tools for inbounds, clients, server, Xray, nodes, hosts and settings; each tool call runs the matching /panel/api route with the caller’s credentials.",
+        "operationId": "post_panel_api_mcp",
+        "parameters": [
+          {
+            "name": "toolsets",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated tool groups to expose: inbounds, clients, server, panel. Omit for all. call_api and get_openapi_spec are always included.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/list"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
