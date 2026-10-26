@@ -819,14 +819,34 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	return needRestart, nil, nil
 }
 
-func (s *InboundService) ResetAllTraffics() error {
+// ResetAllTraffics zeroes every inbound's counters and brings back the
+// inbounds a traffic cap switched off: their cap no longer applies, and
+// leaving them off would keep every client on them dead.
+func (s *InboundService) ResetAllTraffics() (bool, error) {
+	var restore []int
 	err := submitTrafficWrite(func() error {
+		db := database.GetDB()
+		var err error
+		restore, err = quotaDisabledInboundIDs(db, time.Now().UnixMilli())
+		if err != nil {
+			return err
+		}
 		return s.resetAllTrafficsLocked()
 	})
-	if err == nil {
-		s.propagateResetAllTrafficsToNodes()
+	if err != nil {
+		return false, err
 	}
-	return err
+	needRestart := false
+	for _, id := range restore {
+		nr, err := s.SetInboundEnable(id, true)
+		if err != nil {
+			logger.Warning("ResetAllTraffics: re-enable quota-disabled inbound", id, "failed:", err)
+			continue
+		}
+		needRestart = needRestart || nr
+	}
+	s.propagateResetAllTrafficsToNodes()
+	return needRestart, nil
 }
 
 func (s *InboundService) resetAllTrafficsLocked() error {
@@ -865,23 +885,37 @@ func (s *InboundService) propagateResetAllTrafficsToNodes() {
 	})
 }
 
-func (s *InboundService) ResetInboundTraffic(id int) error {
+// ResetInboundTraffic zeroes one inbound's counters and brings it back when
+// its own traffic cap was what switched it off.
+func (s *InboundService) ResetInboundTraffic(id int) (bool, error) {
 	var inbound *model.Inbound
+	var quotaOff bool
 	if err := submitTrafficWrite(func() error {
 		db := database.GetDB()
-		if err := db.Model(model.Inbound{}).
-			Where("id = ?", id).
+		var err error
+		quotaOff, err = quotaDisabledInbound(db, id, time.Now().UnixMilli())
+		if err != nil {
+			return err
+		}
+		if err := db.Model(model.Inbound{}).Where("id = ?", id).
 			Updates(map[string]any{"up": 0, "down": 0}).Error; err != nil {
 			return err
 		}
-		var err error
 		inbound, err = s.GetInbound(id)
 		if err != nil {
 			return err
 		}
 		return nil
 	}); err != nil {
-		return err
+		return false, err
+	}
+	needRestart := false
+	if quotaOff {
+		nr, err := s.SetInboundEnable(id, true)
+		if err != nil {
+			logger.Warning("ResetInboundTraffic: re-enable quota-disabled inbound", id, "failed:", err)
+		}
+		needRestart = needRestart || nr
 	}
 	if inbound != nil && inbound.NodeID != nil {
 		if rt, rterr := s.runtimeFor(inbound); rterr == nil {
@@ -892,7 +926,7 @@ func (s *InboundService) ResetInboundTraffic(id int) error {
 			logger.Warning("ResetInboundTraffic: runtime lookup failed:", rterr)
 		}
 	}
-	return nil
+	return needRestart, nil
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
