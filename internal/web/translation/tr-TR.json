@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON abonelik",
       "qrLegendLink": "{{ .Code }}. Uygulama bağlantısı {{ .App }}",
       "backupFailed": "Veritabanı okunamadı; yedek gönderilmedi.",
-      "privateOnly": "🤖 Bu bot yalnızca özel sohbette çalışır. Lütfen doğrudan mesajda açın."
+      "privateOnly": "🤖 Bu bot yalnızca özel sohbette çalışır. Lütfen doğrudan mesajda açın.",
+      "chooseOneConfig": "👇 Hangi yapılandırmayı istiyorsunuz?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Kurulum rehberi</b>\nKurmak istediğiniz cihazı seçin.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. App Store'dan <b>Streisand</b> veya <b>V2Box</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada <b>+</b> → <b>Add from clipboard</b> dokunun.\n4. Güncellemek için aşağı çekin, sonra bağlanın.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Google Play'den <b>v2rayNG</b> veya <b>Hiddify</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada <b>+</b> → <b>Import from clipboard</b> dokunun.\n4. Aboneliği yenileyin, bir sunucu seçip bağlanın.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. <b>Hiddify</b> veya <b>v2rayN</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın.",
+      "guideMacos": "💻 <b>macOS</b>\n1. <b>Hiddify</b> veya <b>V2Box</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. <b>Hiddify</b> (AppImage) veya <b>Nekoray</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Yayın",
       "attachInbound": "Inbound ekle ({{ .Count }})",
-      "attachDone": "✅ Tamam"
+      "attachDone": "✅ Tamam",
+      "getOneConfig": "🎯 Birini al",
+      "setupGuide": "📖 Kurulum rehberi",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Toplu gönderim başladı.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Kurulum rehberi"
     },
     "inline": {
       "noneTitle": "Nothing found",

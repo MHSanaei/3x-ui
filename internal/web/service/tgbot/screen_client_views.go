@@ -137,19 +137,6 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 	})
 }
 
-// ownSubscriptionOnly reports whether the screen is the client's own single
-// subscription, where admin-only controls must stay off (reached via "Links").
-func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
-	if checkAdmin(chatID) {
-		return false
-	}
-	traffics, err := t.inboundService.GetClientTrafficTgBot(chatID)
-	if err != nil {
-		return false
-	}
-	return len(traffics) == 1 && traffics[0].Email == email
-}
-
 // screenClientLinks draws the subscription and the links of a client.
 func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	subURL, subJSON, err := t.buildSubscriptionURLs(email)
@@ -157,7 +144,7 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
 		return
 	}
-	body := t.clientScreenBody(email, "")
+	body := t.clientHeader(email)
 	body += t.I18nBot("tgbot.messages.subURL", "URL=="+html.EscapeString(subURL))
 	if subJSON != "" {
 		body += t.I18nBot("tgbot.messages.jsonURL", "URL=="+html.EscapeString(subJSON))
@@ -165,11 +152,14 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	body += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email))),
+		tu.InlineKeyboardRow(
+			t.btn("tgbot.buttons.getOneConfig", t.encodeQuery("client_one_link "+email)),
+			t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email)),
+		),
 	}
-	// A client looking at its own subscription has nothing behind the admin's
-	// card: it only repeats the usage already on its home screen.
-	if !t.ownSubscriptionOnly(chatID, email) {
+	// The card is admin-only: a customer's gate drops it, so offering it to one,
+	// even one holding several configs, would be a button that does nothing.
+	if checkAdmin(chatID) {
 		rows = append(rows, tu.InlineKeyboardRow(
 			t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))))
 	}
@@ -191,7 +181,8 @@ func (t *Tgbot) screenIndividualLinks(chatID int64, email string) {
 		return
 	}
 	var body strings.Builder
-	body.WriteString(t.clientScreenBody(email, t.I18nBot("tgbot.buttons.individualLinks")))
+	body.WriteString(t.clientHeader(email))
+	body.WriteString(html.EscapeString(t.I18nBot("tgbot.buttons.individualLinks")) + "\n\n")
 	for _, link := range links {
 		body.WriteString("<code>" + html.EscapeString(link) + "</code>\n")
 	}
@@ -379,5 +370,7 @@ func (t *Tgbot) openClientAction(chatID int64, action, email string) {
 		t.screenIndividualLinks(chatID, email)
 	case "client_qr_links":
 		t.screenClientQR(chatID, email)
+	case "client_one_link":
+		t.screenOneLinkPicker(chatID, email)
 	}
 }

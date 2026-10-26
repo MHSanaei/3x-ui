@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON 訂閱",
       "qrLegendLink": "{{ .Code }}. 應用程式連結 {{ .App }}",
       "backupFailed": "無法讀取資料庫，未傳送備份。",
-      "privateOnly": "🤖 此機器人僅在私聊中運作。請在私訊中開啟它。"
+      "privateOnly": "🤖 此機器人僅在私聊中運作。請在私訊中開啟它。",
+      "chooseOneConfig": "👇 你需要哪個設定？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>使用指南</b>\n請選擇您要設定的裝置。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. 從 App Store 安裝 <b>Streisand</b> 或 <b>V2Box</b>。\n2. 在本機器人中開啟訂閱連結頁面，複製您的訂閱網址。\n3. 在應用程式中點擊 <b>+</b> → <b>Add from clipboard</b>。\n4. 下拉更新，然後連線。",
+      "guideAndroid": "🤖 <b>Android</b>\n1. 從 Google Play 安裝 <b>v2rayNG</b> 或 <b>Hiddify</b>。\n2. 在本機器人中開啟訂閱連結頁面，複製您的訂閱網址。\n3. 在應用程式中點擊 <b>+</b> → <b>Import from clipboard</b>。\n4. 更新訂閱，選擇伺服器並連線。",
+      "guideWindows": "🪟 <b>Windows</b>\n1. 安裝 <b>Hiddify</b> 或 <b>v2rayN</b>。\n2. 在本機器人中開啟訂閱連結頁面，複製您的訂閱網址。\n3. 在應用程式中新增訂閱並貼上網址。\n4. 更新訂閱，選擇伺服器並連線。",
+      "guideMacos": "💻 <b>macOS</b>\n1. 安裝 <b>Hiddify</b> 或 <b>V2Box</b>。\n2. 在本機器人中開啟訂閱連結頁面，複製您的訂閱網址。\n3. 在應用程式中新增訂閱並貼上網址。\n4. 更新訂閱，選擇伺服器並連線。",
+      "guideLinux": "🐧 <b>Linux</b>\n1. 安裝 <b>Hiddify</b>（AppImage）或 <b>Nekoray</b>。\n2. 在本機器人中開啟訂閱連結頁面，複製您的訂閱網址。\n3. 在應用程式中新增訂閱並貼上網址。\n4. 更新訂閱，選擇伺服器並連線。"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 廣播",
       "attachInbound": "關聯入站 ({{ .Count }})",
-      "attachDone": "✅ 完成"
+      "attachDone": "✅ 完成",
+      "getOneConfig": "🎯 獲取單個",
+      "setupGuide": "📖 使用指南",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 群發已開始。",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "使用指南"
     },
     "inline": {
       "noneTitle": "Nothing found",

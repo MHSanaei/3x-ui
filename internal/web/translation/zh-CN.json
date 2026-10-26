@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON 订阅",
       "qrLegendLink": "{{ .Code }}. 应用链接 {{ .App }}",
       "backupFailed": "无法读取数据库，未发送备份。",
-      "privateOnly": "🤖 此机器人仅在私聊中工作。请在私信中打开它。"
+      "privateOnly": "🤖 此机器人仅在私聊中工作。请在私信中打开它。",
+      "chooseOneConfig": "👇 你需要哪个配置？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>使用指南</b>\n请选择您要配置的设备。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. 从 App Store 安装 <b>Streisand</b> 或 <b>V2Box</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中点击 <b>+</b> → <b>Add from clipboard</b>。\n4. 下拉更新，然后连接。",
+      "guideAndroid": "🤖 <b>安卓</b>\n1. 从 Google Play 安装 <b>v2rayNG</b> 或 <b>Hiddify</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中点击 <b>+</b> → <b>Import from clipboard</b>。\n4. 更新订阅，选择服务器并连接。",
+      "guideWindows": "🪟 <b>Windows</b>\n1. 安装 <b>Hiddify</b> 或 <b>v2rayN</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。",
+      "guideMacos": "💻 <b>macOS</b>\n1. 安装 <b>Hiddify</b> 或 <b>V2Box</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。",
+      "guideLinux": "🐧 <b>Linux</b>\n1. 安装 <b>Hiddify</b>（AppImage）或 <b>Nekoray</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 广播",
       "attachInbound": "关联入站 ({{ .Count }})",
-      "attachDone": "✅ 完成"
+      "attachDone": "✅ 完成",
+      "getOneConfig": "🎯 获取单个",
+      "setupGuide": "📖 使用指南",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 安卓",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 群发已开始。",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "使用指南"
     },
     "inline": {
       "noneTitle": "Nothing found",

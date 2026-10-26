@@ -48,16 +48,23 @@ func (t *Tgbot) screenClientHome(chatID, userID int64) {
 	// one row each. Either way this is the client's top level, so no back button.
 	var rows [][]telego.InlineKeyboardButton
 	if len(traffics) == 1 {
-		rows = append(rows, tu.InlineKeyboardRow(
-			t.btn("tgbot.buttons.links", "client_sub_links"),
-			t.btn("tgbot.buttons.qrCode", "client_qr_links"),
-		))
+		rows = append(rows,
+			tu.InlineKeyboardRow(
+				t.btn("tgbot.buttons.links", "client_sub_links"),
+				t.btn("tgbot.buttons.qrCode", "client_qr_links"),
+			),
+			tu.InlineKeyboardRow(
+				t.btn("tgbot.buttons.getOneConfig", "client_one_link"),
+				t.btn("tgbot.buttons.setupGuide", cbClientGuide),
+			),
+		)
 	} else {
 		for _, traffic := range traffics {
 			rows = append(rows, tu.InlineKeyboardRow(
 				t.btn2(traffic.Email, t.encodeQuery("client_sub_links "+traffic.Email)),
 			))
 		}
+		rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.setupGuide", cbClientGuide)))
 	}
 	t.renderScreen(chatID, t.rootScreen("main", body.String(), rows...))
 }

@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. Predplatné JSON",
       "qrLegendLink": "{{ .Code }}. Odkaz pre aplikáciu {{ .App }}",
       "backupFailed": "Databázu sa nepodarilo prečítať; záloha nebola odoslaná.",
-      "privateOnly": "🤖 Tento bot funguje len v súkromnom chate. Otvorte ho, prosím, v priamej správe."
+      "privateOnly": "🤖 Tento bot funguje len v súkromnom chate. Otvorte ho, prosím, v priamej správe.",
+      "chooseOneConfig": "👇 Ktorú konfiguráciu chcete?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Návod na nastavenie</b>\nVyberte zariadenie, ktoré chcete nastaviť.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Z App Store si nainštalujte <b>Streisand</b> alebo <b>V2Box</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii ťuknite na <b>+</b> → <b>Add from clipboard</b>.\n4. Potiahnutím nadol aktualizujte a pripojte sa.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Z Google Play si nainštalujte <b>v2rayNG</b> alebo <b>Hiddify</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii ťuknite na <b>+</b> → <b>Import from clipboard</b>.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Nainštalujte si <b>Hiddify</b> alebo <b>v2rayN</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Nainštalujte si <b>Hiddify</b> alebo <b>V2Box</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Nainštalujte si <b>Hiddify</b> (AppImage) alebo <b>Nekoray</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa."
     },
     "buttons": {
       "closeKeyboard": "❌ Zavrieť klávesnicu",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR kód",
       "broadcast": "📢 Hromadná správa",
       "attachInbound": "Pripojiť inbound ({{ .Count }})",
-      "attachDone": "✅ Hotovo"
+      "attachDone": "✅ Hotovo",
+      "getOneConfig": "🎯 Získať jeden",
+      "setupGuide": "📖 Návod na nastavenie",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Hromadné odosielanie sa začalo.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Dochádza",
       "commands": "Príkazy",
-      "broadcast": "Hromadná správa"
+      "broadcast": "Hromadná správa",
+      "guide": "Návod na nastavenie"
     },
     "inline": {
       "noneTitle": "Nič sa nenašlo",

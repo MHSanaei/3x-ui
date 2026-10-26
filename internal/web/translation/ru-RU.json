@@ -2630,7 +2630,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON-подписка",
       "qrLegendLink": "{{ .Code }}. Ссылка для приложения {{ .App }}",
       "backupFailed": "Не удалось прочитать базу данных; бэкап не отправлен.",
-      "privateOnly": "🤖 Бот работает только в личных сообщениях. Открой его в личке."
+      "privateOnly": "🤖 Бот работает только в личных сообщениях. Открой его в личке.",
+      "chooseOneConfig": "👇 Какой конфиг вам нужен?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Инструкция по настройке</b>\nВыберите устройство.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Установите <b>Streisand</b> или <b>V2Box</b> из App Store.\n2. Откройте страницу ссылок подписки в этом боте и скопируйте свою ссылку.\n3. В приложении нажмите <b>+</b> → <b>Add from clipboard</b>.\n4. Потяните вниз для обновления и подключайтесь.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Установите <b>v2rayNG</b> или <b>Hiddify</b> из Google Play.\n2. Откройте страницу ссылок подписки в этом боте и скопируйте свою ссылку.\n3. В приложении нажмите <b>+</b> → <b>Import from clipboard</b>.\n4. Обновите подписку, выберите сервер и подключитесь.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Установите <b>Hiddify</b> или <b>v2rayN</b>.\n2. Откройте страницу ссылок подписки в этом боте и скопируйте свою ссылку.\n3. В приложении добавьте подписку и вставьте ссылку.\n4. Обновите подписку, выберите сервер и подключитесь.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Установите <b>Hiddify</b> или <b>V2Box</b>.\n2. Откройте страницу ссылок подписки в этом боте и скопируйте свою ссылку.\n3. В приложении добавьте подписку и вставьте ссылку.\n4. Обновите подписку, выберите сервер и подключитесь.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Установите <b>Hiddify</b> (AppImage) или <b>Nekoray</b>.\n2. Откройте страницу ссылок подписки в этом боте и скопируйте свою ссылку.\n3. В приложении добавьте подписку и вставьте ссылку.\n4. Обновите подписку, выберите сервер и подключитесь."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрыть клавиатуру",
@@ -2690,7 +2698,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Рассылка",
       "attachInbound": "Привязать инбаунд ({{ .Count }})",
-      "attachDone": "✅ Готово"
+      "attachDone": "✅ Готово",
+      "getOneConfig": "🎯 Получить один",
+      "setupGuide": "📖 Инструкция",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Рассылка запущена.",
@@ -2734,7 +2749,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Инструкция"
     },
     "inline": {
       "noneTitle": "Nothing found",
