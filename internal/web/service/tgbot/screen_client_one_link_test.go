@@ -17,6 +17,11 @@ import (
 // real link provider, so the subscription yields one share link per inbound.
 func seedLinkedClient(t *testing.T, tgID int64, email string, remarks ...string) {
 	t.Helper()
+	seedLinkedClientOn(t, model.VLESS, tgID, email, remarks...)
+}
+
+func seedLinkedClientOn(t *testing.T, protocol model.Protocol, tgID int64, email string, remarks ...string) {
+	t.Helper()
 	service.RegisterSubLinkProvider(sub.NewLinkProvider())
 	t.Cleanup(func() { service.RegisterSubLinkProvider(nil) })
 	origHost := hostname
@@ -32,7 +37,7 @@ func seedLinkedClient(t *testing.T, tgID int64, email string, remarks ...string)
 	for i, remark := range remarks {
 		ib := &model.Inbound{
 			UserId: 1, Tag: fmt.Sprintf("one-%d", i), Enable: true, Listen: "203.0.113.5", Port: 4430 + i,
-			Protocol: model.VLESS, Remark: remark,
+			Protocol: protocol, Remark: remark,
 			Settings: fmt.Sprintf(`{"clients":[{"id":%q,"email":%q,"tgId":%d,"subId":%q,"enable":true}],"decryption":"none"}`,
 				uuid, email, tgID, rec.SubID),
 		}
@@ -145,6 +150,32 @@ func TestGetOneOffersEachLinkAndShowsTheChosenOne(t *testing.T) {
 	}
 	if sc.qrPicture == nil || !strings.Contains(sc.body, "Beta") {
 		t.Errorf("the chosen link is not on the screen: body %q", sc.body)
+	}
+}
+
+// VMess keeps its remark inside the base64 body, not after "#", so a picker that
+// read only fragments listed every VMess inbound as the same "VMESS".
+func TestGetOneNamesVMessLinksByTheirRemark(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedLinkedClientOn(t, model.VMESS, 4242, "vm@x", "Alpha", "Beta")
+
+	tapClientLinks(t, tb, 4242, "client_one_link vm@x")
+	sc, ok := tb.screens().get(4242)
+	if !ok {
+		t.Fatal("the picker was not drawn")
+	}
+	var labels []string
+	for _, row := range sc.markup.InlineKeyboard {
+		for _, button := range row {
+			if strings.HasPrefix(button.CallbackData, "link_one vm@x ") {
+				labels = append(labels, button.Text)
+			}
+		}
+	}
+	if len(labels) != 2 || !strings.Contains(labels[0], "Alpha") || !strings.Contains(labels[1], "Beta") {
+		t.Fatalf("picker offers %q, want Alpha then Beta", labels)
 	}
 }
 
