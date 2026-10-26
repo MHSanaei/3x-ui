@@ -243,7 +243,12 @@ func (s *RealityWatchService) Tick(ctx context.Context) {
 			continue
 		}
 		rs, ok := realityOf(ib)
-		if !ok {
+		if !ok || localRealityTarget(rs.Target) {
+			continue
+		}
+		res := realityWatchProbe(&s.serverService, rs.Target, firstString(rs.ServerNames), rs.Xver)
+		// a domain that resolves into a private network: the SSRF guard blocked it, nothing failed
+		if res.PrivateTarget {
 			continue
 		}
 		state := realityWatchStates[id]
@@ -251,7 +256,6 @@ func (s *RealityWatchService) Tick(ctx context.Context) {
 			state = &realityWatchState{}
 			realityWatchStates[id] = state
 		}
-		res := realityWatchProbe(&s.serverService, rs.Target, firstString(rs.ServerNames), rs.Xver)
 		state.checkedAt, state.ok, state.reason = time.Now(), res.Feasible, res.Reason
 		if res.Feasible {
 			state.fails = 0
@@ -274,6 +278,27 @@ func (s *RealityWatchService) Tick(ctx context.Context) {
 		state.events[len(state.events)-1].Reason = res.Reason
 		state.fails = 0
 	}
+}
+
+// localRealityTarget is a target on this machine or the LAN: a bare port, a unix socket, or
+// a private / loopback address. The admin fronts REALITY with it on purpose; never replace it.
+func localRealityTarget(target string) bool {
+	t := strings.TrimSpace(target)
+	if t == "" || strings.HasPrefix(t, "/") || strings.HasPrefix(t, "@") {
+		return true
+	}
+	if _, err := strconv.Atoi(t); err == nil {
+		return true
+	}
+	host := t
+	if h, _, err := net.SplitHostPort(t); err == nil {
+		host = h
+	}
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(strings.Trim(host, "[]"))
+	return ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsUnspecified())
 }
 
 func firstString(list []string) string {

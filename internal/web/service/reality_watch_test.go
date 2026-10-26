@@ -219,3 +219,35 @@ func TestRealityWatchSaveConfigNormalizesSpares(t *testing.T) {
 		t.Errorf("watch on a TLS inbound: err = %v, want errRealityWatchNotReality", err)
 	}
 }
+
+// A target on this machine or the LAN (a local web server fronting REALITY, a bare port, a
+// unix socket) is blocked by the probe's SSRF guard; that is not a failure to act on.
+func TestRealityWatchLeavesLocalTargetsAlone(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, map[string]bool{"b.example:443": true}, map[string]bool{"b.example:443": true})
+	prev := realityWatchProbe
+	realityWatchProbe = func(s *ServerService, target, sni string, xver int) *RealityScanResult {
+		if target == "local.example:443" {
+			return &RealityScanResult{Target: target, PrivateTarget: true, Reason: "connection failed: private address blocked"}
+		}
+		return prev(s, target, sni, xver)
+	}
+	s := &RealityWatchService{}
+	var ids []int
+	for i, target := range []string{"127.0.0.1:8443", "8443", "/run/web.sock", "local.example:443"} {
+		ib := realityInbound(t, 4440+i, target, "a.example")
+		if err := s.SaveConfig(ib.Id, RealityWatchEntry{Auto: true, Spares: []string{"b.example:443"}}); err != nil {
+			t.Fatalf("SaveConfig(%s): %v", target, err)
+		}
+		ids = append(ids, ib.Id)
+	}
+	for range 4 {
+		s.Tick(context.Background())
+	}
+	for _, id := range ids {
+		target, _ := realityTargetOf(t, id)
+		if target == "b.example:443" || s.Status(id).Fails != 0 {
+			t.Errorf("local target %s: switched or counted as failing (fails %d)", target, s.Status(id).Fails)
+		}
+	}
+}

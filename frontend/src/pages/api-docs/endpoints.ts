@@ -1939,7 +1939,7 @@ export const sections: readonly Section[] = [
     id: 'reality-watch',
     title: 'REALITY watch',
     description:
-      'Spare targets per REALITY inbound. Every 10 minutes the panel checks each watched target from this server; after 3 failed checks in a row, an inbound with auto switch on moves to the first spare that passes the same check and a real REALITY connection through a throwaway Xray server and client. Inbounds on nodes are not checked.',
+      'Spare targets per REALITY inbound. Every 10 minutes the panel checks each watched target from this server; after 3 failed checks in a row, an inbound with auto switch on moves to the first spare that passes the same check and a real REALITY connection through a throwaway Xray server and client. Inbounds on nodes, and targets on this machine or the LAN (a bare port, a unix socket, a private address), are not checked.',
     endpoints: [
       {
         method: 'GET',
