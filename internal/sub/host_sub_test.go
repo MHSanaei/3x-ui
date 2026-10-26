@@ -2008,7 +2008,6 @@ func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 	}
 }
 
-
 // A client-group HostGroup assignment limits subscriptions when the client has no explicit host rule.
 func TestSub_ClientGroupHostAssignment_RestrictsHosts(t *testing.T) {
 	seedSubDB(t)
@@ -2146,4 +2145,3 @@ func TestSub_ClientGroupHostAssignment_CachesHostsPerInbound(t *testing.T) {
 		t.Fatal("second client group lookup should reuse the cached host row for this inbound")
 	}
 }
-

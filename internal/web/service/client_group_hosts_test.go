@@ -319,4 +319,3 @@ func TestClientGroupHostAssignment_PersistsDerivedGroup(t *testing.T) {
 		t.Fatalf("clearing an assignment should not persist an empty derived group, got %d rows", count)
 	}
 }
-

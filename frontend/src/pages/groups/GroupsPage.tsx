@@ -365,9 +365,10 @@ export default function GroupsPage() {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
         return;
       }
+      const assignedIds = msg.obj;
       setGroupForAction(g);
-      setHostAssignmentIds(msg.obj);
-      setGroupHostAssignments((current) => ({ ...current, [g.name]: msg.obj }));
+      setHostAssignmentIds(assignedIds);
+      setGroupHostAssignments((current) => ({ ...current, [g.name]: assignedIds }));
       setHostAssignmentOpen(true);
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
@@ -775,6 +776,7 @@ export default function GroupsPage() {
             </div>
           ) : null}
           <Select
+            aria-label={t('pages.groups.hostGroups')}
             mode="multiple"
             allowClear
             loading={hostsLoading}

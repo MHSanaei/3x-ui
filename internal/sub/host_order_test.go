@@ -336,4 +336,3 @@ func TestSub_ClientGroupHostAssignment_RespectsHostOrderFormats(t *testing.T) {
 		}
 	}
 }
-
