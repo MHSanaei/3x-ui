@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Bu sunucudan oku",
       "detected": "Bu makinedeki StormDNS sunucusu okundu; kontrol edip kaydedin",
+      "notInstalled": "Bu sunucuda {dir} içinde kurulu bir StormDNS sunucusu yok. StormDNS sunucusunu buraya kurup bölgesini (NS kaydı) bu sunucuya devredin ve yeniden okuyun ya da başka yerde çalışan bir sunucuyu alan adı ve anahtarıyla elle ekleyin.",
       "stormDir": "StormDNS sunucu klasörü",
       "intro": "DNS tüneli, internet kesildiğinde ama operatörün DNS'i hâlâ yanıt verdiğinde çalışmaya devam eder. Kullanıcılar WhiteDNS (StormDNS motoru) gibi bir uygulamayla veya bir dnstt istemcisiyle bağlanır; panel sunucu profillerini dağıtmak için saklar ve her ağda tüneli geçiren DNS çözümleyicilerini bulur.",
       "servers": "Tünel sunucuları",

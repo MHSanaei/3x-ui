@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Baca dari server ini",
       "detected": "Server StormDNS di mesin ini sudah dibaca; periksa lalu simpan",
+      "notInstalled": "Tidak ada server StormDNS yang terpasang di {dir} pada server ini. Pasang server StormDNS di sini dan delegasikan zonanya (record NS) ke server ini, lalu baca lagi, atau tambahkan secara manual server yang berjalan di tempat lain dengan domain dan kuncinya.",
       "stormDir": "Folder server StormDNS",
       "intro": "Tunnel DNS tetap berfungsi saat internet diputus tetapi DNS ISP masih menjawab. Pengguna terhubung dengan aplikasi seperti WhiteDNS (mesin StormDNS) atau klien dnstt; panel menyimpan profil server untuk dibagikan dan mencari resolver DNS yang meloloskan tunnel di setiap jaringan.",
       "servers": "Server tunnel",

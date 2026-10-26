@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
@@ -28,7 +29,7 @@ var dnsTunnelScript string
 
 var (
 	errDnsTunnelBadProfile = errors.New("dns tunnel: bad profile")
-	errDnsTunnelNoServer   = errors.New("dns tunnel: no StormDNS server config in that folder")
+	errDnsTunnelBadDir     = errors.New("dns tunnel: the StormDNS folder must be an absolute path")
 
 	dnsTunnelKeyRe  = regexp.MustCompile(`^[A-Za-z0-9+/=_-]{16,128}$`)
 	dnsTunnelNameRe = regexp.MustCompile(`^[\p{L}\p{N} ._()·-]{1,40}$`)
@@ -112,15 +113,19 @@ func (s *DnsTunnelService) SaveProfiles(profiles []DnsTunnelProfile) error {
 }
 
 // DetectStormDns reads the StormDNS server installed in dir (server_config.toml and its key
-// file) so the admin never copies the key by hand; one profile per served domain.
+// file) so the admin never copies the key by hand; one profile per served domain. An empty
+// list means no StormDNS server is installed there, which the page explains.
 func (s *DnsTunnelService) DetectStormDns(dir string) ([]DnsTunnelProfile, error) {
 	if !filepath.IsAbs(dir) {
-		return nil, errDnsTunnelNoServer
+		return nil, errDnsTunnelBadDir
 	}
 	dir = filepath.Clean(dir)
 	raw, err := os.ReadFile(filepath.Join(dir, "server_config.toml"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return []DnsTunnelProfile{}, nil
+	}
 	if err != nil {
-		return nil, errDnsTunnelNoServer
+		return nil, err
 	}
 	conf := map[string]string{}
 	for _, line := range strings.Split(string(raw), "\n") {

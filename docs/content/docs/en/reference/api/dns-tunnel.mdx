@@ -17,8 +17,9 @@ _openapi:
       url: '#replace-the-list-of-dns-tunnel-servers-up-to-20'
     - depth: 2
       title: Read the StormDNS server installed on this server (its server_config.toml
-        and key file) as one profile per served domain.
-      url: '#read-the-stormdns-server-installed-on-this-server-its-server_configtoml-and-key-file-as-one-profile-per-served-domain'
+        and key file) as one profile per served domain. An empty list means no
+        StormDNS server is installed in that folder.
+      url: '#read-the-stormdns-server-installed-on-this-server-its-server_configtoml-and-key-file-as-one-profile-per-served-domain-an-empty-list-means-no-stormdns-server-is-installed-in-that-folder'
     - depth: 2
       title: Make a one-day command that tests which DNS resolvers reach the tunnel
         zone from the device it runs on (its own resolvers, the given list and
@@ -36,8 +37,9 @@ _openapi:
       - content: Replace the list of DNS tunnel servers (up to 20).
         id: replace-the-list-of-dns-tunnel-servers-up-to-20
       - content: Read the StormDNS server installed on this server (its
-          server_config.toml and key file) as one profile per served domain.
-        id: read-the-stormdns-server-installed-on-this-server-its-server_configtoml-and-key-file-as-one-profile-per-served-domain
+          server_config.toml and key file) as one profile per served domain. An
+          empty list means no StormDNS server is installed in that folder.
+        id: read-the-stormdns-server-installed-on-this-server-its-server_configtoml-and-key-file-as-one-profile-per-served-domain-an-empty-list-means-no-stormdns-server-is-installed-in-that-folder
       - content: Make a one-day command that tests which DNS resolvers reach the tunnel
           zone from the device it runs on (its own resolvers, the given list and
           well-known public ones).

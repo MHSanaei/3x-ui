@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "从本服务器读取",
       "detected": "已读取本机的 StormDNS 服务器；请检查后保存",
+      "notInstalled": "此服务器的 {dir} 中没有安装 StormDNS 服务器。请在此安装 StormDNS 服务器并将其区域（NS 记录）委派到此服务器，然后重新读取；或手动添加在别处运行的服务器及其域名和密钥。",
       "stormDir": "StormDNS 服务器目录",
       "intro": "当互联网被切断但运营商的 DNS 仍有响应时，DNS 隧道依然可用。用户通过 WhiteDNS（StormDNS 引擎）等应用或 dnstt 客户端连接；面板保存服务器配置以便分发，并找出在各个网络上能让隧道通过的 DNS 解析器。",
       "servers": "隧道服务器",

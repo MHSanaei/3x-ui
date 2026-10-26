@@ -133,6 +133,7 @@
     "dnsTunnel": {
       "detect": "Leer de este servidor",
       "detected": "Se leyó el servidor StormDNS de esta máquina; revisa y guarda",
+      "notInstalled": "No hay ningún servidor StormDNS instalado en {dir} en este servidor. Instala aquí el servidor StormDNS y delega su zona (registro NS) a este servidor, luego vuelve a leerlo, o añade a mano un servidor que funcione en otro lugar con su dominio y su clave.",
       "stormDir": "Carpeta del servidor StormDNS",
       "intro": "Un túnel DNS sigue funcionando cuando se corta internet pero el DNS del proveedor aún responde. Los usuarios se conectan con una app como WhiteDNS (motor StormDNS) o un cliente dnstt; el panel guarda los perfiles de servidor para repartirlos y encuentra los resolvers DNS que dejan pasar el túnel en cada red.",
       "servers": "Servidores de túnel",

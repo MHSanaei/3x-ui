@@ -133,16 +133,21 @@ export default function DnsTunnelPage() {
   }, [profiles, saved, messageApi, t]);
   const [stormDir, setStormDir] = useState('/opt/stormdns');
   const [detecting, setDetecting] = useState(false);
+  const [notInstalledIn, setNotInstalledIn] = useState('');
   const detect = useCallback(async () => {
     setDetecting(true);
+    setNotInstalledIn('');
     try {
       const msg = await HttpUtil.get(
         '/panel/api/dnstunnel/detect',
         { dir: stormDir },
         { silent: true },
       );
-      if (msg?.success) {
-        setDraft(mergeDetected(profiles, (msg.obj as DnsTunnelProfile[] | null) ?? []));
+      const found = (msg?.obj as DnsTunnelProfile[] | null) ?? [];
+      if (msg?.success && found.length === 0) {
+        setNotInstalledIn(stormDir);
+      } else if (msg?.success) {
+        setDraft(mergeDetected(profiles, found));
         messageApi.success(t('pages.dnsTunnel.detected'));
       } else {
         messageApi.error(msg?.msg || t('pages.dnsTunnel.toasts.detect'));
@@ -385,6 +390,16 @@ export default function DnsTunnelPage() {
                       </Button>
                     </div>
                   </div>
+                  {notInstalledIn && (
+                    <Alert
+                      className="clean-ip-note"
+                      type="warning"
+                      showIcon
+                      closable
+                      onClose={() => setNotInstalledIn('')}
+                      title={t('pages.dnsTunnel.notInstalled', { dir: notInstalledIn })}
+                    />
+                  )}
                 </Card>
               </Col>
 
