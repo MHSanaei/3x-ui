@@ -154,6 +154,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		if err != nil || subRateLimit < 1 {
 			subRateLimit = subRateLimitDefaultPerMinute
 		}
+		subRateLimit = min(subRateLimit, subRateLimitMaxPerMinute)
 		subRateLimiterInst = newSubRateLimiter(subRateLimit, subRateLimitWindow)
 		subRateResolver = newClientIPResolver(s.settingService)
 	}

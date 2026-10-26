@@ -22,6 +22,10 @@ const (
 	// subRateLimitDefaultPerMinute is the fallback per-client limit when the
 	// stored setting is unreadable or zero.
 	subRateLimitDefaultPerMinute = 60
+	// subRateLimitMaxPerMinute clamps the stored limit on the read path: the
+	// entity validation only guards writes through the panel API, and a
+	// hand-edited DB row must not scale one bucket to unbounded memory.
+	subRateLimitMaxPerMinute = 1000
 	// subRateLimitWindow is the fixed window one subRateLimiter counts over.
 	subRateLimitWindow = time.Minute
 	// subRateLimitMaxKeys bounds tracked client buckets. Each bucket holds at
@@ -285,6 +289,10 @@ func extractIP(value string) (netip.Addr, bool) {
 	return netip.Addr{}, false
 }
 
+// loopbackIPResolver is the shared fallback when a guard is built without a
+// resolver: trust loopback only, never widen it.
+var loopbackIPResolver = newLoopbackIPResolver()
+
 // subRateLimitGuard rejects requests over the per-client subscription limit
 // with 429 and a Retry-After hint. A nil limiter disables the guard: direct
 // NewSUBController users (tests, embedders) keep the historical behavior.
@@ -296,7 +304,7 @@ func subRateLimitGuard(limiter *subRateLimiter, resolver *clientIPResolver) gin.
 		}
 		resolverForGuard := resolver
 		if resolverForGuard == nil {
-			resolverForGuard = newLoopbackIPResolver()
+			resolverForGuard = loopbackIPResolver
 		}
 		ip := resolverForGuard.resolve(c.Request.RemoteAddr, c.GetHeader("X-Forwarded-For"), c.GetHeader("X-Real-IP"))
 		if retryAfter, ok := limiter.allow(ip); !ok {
