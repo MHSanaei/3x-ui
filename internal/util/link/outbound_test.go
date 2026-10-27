@@ -24,6 +24,33 @@ func TestParseVmessLink(t *testing.T) {
 	}
 }
 
+func TestParseVmessLinkBase64Alphabets(t *testing.T) {
+	raw := []byte(`{"v":"2","ps":"a?>","add":"1.2.3.4","port":443,"id":"uuid","net":"ws","path":"/?","tls":"tls"}`)
+	if padded := base64.URLEncoding.EncodeToString(raw); !strings.ContainsAny(padded, "-_") || !strings.HasSuffix(padded, "=") {
+		t.Fatalf("test object must encode to URL-safe characters with padding, got %s", padded)
+	}
+	cases := []struct {
+		name string
+		b64  string
+	}{
+		{"standard", base64.StdEncoding.EncodeToString(raw)},
+		{"standard unpadded", base64.RawStdEncoding.EncodeToString(raw)},
+		{"url-safe", base64.URLEncoding.EncodeToString(raw)},
+		{"url-safe unpadded", base64.RawURLEncoding.EncodeToString(raw)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			res, err := ParseLink("vmess://" + c.b64)
+			if err != nil {
+				t.Fatalf("parse %s: %v", c.b64, err)
+			}
+			if res.Outbound["tag"] != "a?>" {
+				t.Errorf("tag = %v, want %q", res.Outbound["tag"], "a?>")
+			}
+		})
+	}
+}
+
 func TestLinkIdentityKeepsTLSServerName(t *testing.T) {
 	a, errA := ParseLink("vless://uuid@1.2.3.4:443?type=ws&security=tls&sni=a.example.com#node")
 	b, errB := ParseLink("vless://uuid@1.2.3.4:443?type=ws&security=tls&sni=b.example.com#node")

@@ -141,17 +141,13 @@ func ParseLink(link string) (*ParseResult, error) {
 
 func parseVmess(link string) (*ParseResult, error) {
 	b64 := strings.TrimPrefix(link, "vmess://")
-	// vmess:// base64(json)
-	raw, err := base64.StdEncoding.DecodeString(padBase64(b64))
-	if err != nil {
-		// Some providers use raw URL-safe
-		raw, err = base64.RawURLEncoding.DecodeString(b64)
-	}
+	// vmess:// base64(json), standard or URL-safe, padded or not
+	raw, err := base64DecodeFlexible(b64)
 	if err != nil {
 		return nil, fmt.Errorf("vmess decode: %w", err)
 	}
 	var j map[string]any
-	if err := json.Unmarshal(raw, &j); err != nil {
+	if err := json.Unmarshal([]byte(raw), &j); err != nil {
 		return nil, fmt.Errorf("vmess json: %w", err)
 	}
 
