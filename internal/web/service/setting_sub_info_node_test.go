@@ -11,15 +11,15 @@ func TestSubHostSortModePersistsAndRejectsInvalidValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.SubHostSortMode != "inbound-first" {
+	if settings.SubHostSortMode != "hosts-first" {
 		t.Fatalf("default = %q", settings.SubHostSortMode)
 	}
-	settings.SubHostSortMode = "hosts-first"
+	settings.SubHostSortMode = "inbound-first"
 	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
 		t.Fatal(err)
 	}
 	reloaded, err := s.GetAllSetting()
-	if err != nil || reloaded.SubHostSortMode != "hosts-first" {
+	if err != nil || reloaded.SubHostSortMode != "inbound-first" {
 		t.Fatalf("reloaded mode = %+v, err=%v", reloaded, err)
 	}
 	settings.SubHostSortMode = "invalid"
@@ -27,8 +27,33 @@ func TestSubHostSortModePersistsAndRejectsInvalidValues(t *testing.T) {
 		t.Fatalf("invalid mode error = %v", err)
 	}
 	mode, err := s.GetSubHostSortMode()
-	if err != nil || mode != "hosts-first" {
+	if err != nil || mode != "inbound-first" {
 		t.Fatalf("invalid save changed mode: %q, %v", mode, err)
+	}
+}
+
+func TestSubHostSortModeOmittedOnSaveUsesHostsOrder(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	settings, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings.SubHostSortMode = ""
+	settings.SubTitle = "Updated subscription"
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.SubHostSortMode != "hosts-first" || reloaded.SubTitle != "Updated subscription" {
+		t.Fatalf("saved mode = %q, title = %q", reloaded.SubHostSortMode, reloaded.SubTitle)
+	}
+	mode, err := s.GetSubHostSortMode()
+	if err != nil || mode != "hosts-first" {
+		t.Fatalf("subscription mode = %q, err=%v", mode, err)
 	}
 }
 

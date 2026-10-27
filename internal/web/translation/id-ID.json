@@ -667,7 +667,7 @@
         "shareAddr": "Alamat berbagi kustom",
         "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
         "subSortIndex": "Urutan dalam langganan",
-        "subSortIndexHelp": "Posisi tautan inbound ini dalam keluaran langganan (halaman langganan dan aplikasi klien). Nilai lebih kecil tampil lebih dulu; nilai sama mempertahankan urutan pembuatan. Tidak memengaruhi daftar inbound di panel.",
+        "subSortIndexHelp": "Dalam mode Urutan inbound, nilai lebih kecil menempatkan inbound ini lebih awal. Dalam mode Urutan host, Host diutamakan; nilai ini mengurutkan inbound dalam grup Host yang sama dan inbound tanpa Host yang berlaku. Tidak memengaruhi daftar inbound di panel.",
         "excludeFromSub": "Kecualikan dari langganan",
         "excludeFromSubHelp": "Sembunyikan tautan inbound ini dari keluaran langganan sambil tetap menjaga inbound tetap aktif dan beroperasi.",
         "disableFlow": "Nonaktifkan flow XTLS",
@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Privasi grup aktif",
       "tgPrivacyOnDesc": "Bot ini hanya menjawab di obrolan pribadi, jadi grup sengaja diabaikan. Privasi grup hanya menentukan apakah bot boleh membaca pesan grup, yang tidak digunakan.",
       "subHostSortMode": "Urutan node langganan",
-      "subHostSortInbound": "Urutan inbound (bawaan)",
-      "subHostSortHosts": "Urutan host",
+      "subHostSortInbound": "Urutan inbound",
+      "subHostSortHosts": "Urutan host (bawaan)",
       "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
     },
     "xray": {
