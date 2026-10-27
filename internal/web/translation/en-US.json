@@ -1958,8 +1958,8 @@
       "tgPrivacyOn": "Group Privacy is on",
       "tgPrivacyOnDesc": "This bot answers in private chat only, so groups are ignored on purpose. Group Privacy only decides whether the bot may read group messages, which it does not use.",
       "subHostSortMode": "Subscription Node Ordering",
-      "subHostSortInbound": "Inbound order (default)",
-      "subHostSortHosts": "Hosts order",
+      "subHostSortInbound": "Inbound order",
+      "subHostSortHosts": "Hosts order (default)",
       "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
     },
     "xray": {

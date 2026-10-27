@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "群组隐私已开启",
       "tgPrivacyOnDesc": "此机器人只在私聊中回复，因此会刻意忽略群组。群组隐私仅决定机器人能否读取群消息，而它并不使用该权限。",
       "subHostSortMode": "订阅节点排序",
-      "subHostSortInbound": "入站顺序（默认）",
-      "subHostSortHosts": "主机顺序",
+      "subHostSortInbound": "入站顺序",
+      "subHostSortHosts": "主机顺序（默认）",
       "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
     },
     "xray": {

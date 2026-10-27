@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "グループプライバシーが有効です",
       "tgPrivacyOnDesc": "このボットは個人チャットでのみ応答するため、グループは意図的に無視します。グループプライバシーはボットがグループメッセージを読めるかどうかを決めるだけで、実際には使用しません。",
       "subHostSortMode": "サブスクリプションのノード順序",
-      "subHostSortInbound": "インバウンド順（既定）",
-      "subHostSortHosts": "ホスト順",
+      "subHostSortInbound": "インバウンド順",
+      "subHostSortHosts": "ホスト順（既定）",
       "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。"
     },
     "xray": {

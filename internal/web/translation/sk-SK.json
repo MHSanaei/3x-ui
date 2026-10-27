@@ -1958,8 +1958,8 @@
       "tgPrivacyOn": "Group Privacy je zapnuté",
       "tgPrivacyOnDesc": "Tento bot odpovedá len v súkromnom chate, takže skupiny zámerne ignoruje. Group Privacy určuje len to, či bot smie čítať správy v skupinách, čo nepoužíva.",
       "subHostSortMode": "Poradie uzlov v predplatnom",
-      "subHostSortInbound": "Poradie inboundov (predvolené)",
-      "subHostSortHosts": "Poradie hostiteľov",
+      "subHostSortInbound": "Poradie inboundov",
+      "subHostSortHosts": "Poradie hostiteľov (predvolené)",
       "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
     },
     "xray": {

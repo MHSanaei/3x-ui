@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Grup gizliliği açık",
       "tgPrivacyOnDesc": "Bu bot yalnızca özel sohbette yanıt verir, bu yüzden grupları bilerek yok sayar. Grup gizliliği yalnızca botun grup mesajlarını okuyup okuyamayacağını belirler; bot bunu kullanmaz.",
       "subHostSortMode": "Abonelik düğümü sıralaması",
-      "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
-      "subHostSortHosts": "Ana bilgisayar sırası",
+      "subHostSortInbound": "Gelen bağlantı sırası",
+      "subHostSortHosts": "Ana bilgisayar sırası (varsayılan)",
       "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
     },
     "xray": {

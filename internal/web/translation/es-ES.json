@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "La privacidad de grupos está activada",
       "tgPrivacyOnDesc": "Este bot responde solo en el chat privado, así que ignora los grupos a propósito. La privacidad de grupos solo decide si el bot puede leer los mensajes del grupo, cosa que no usa.",
       "subHostSortMode": "Orden de nodos de suscripción",
-      "subHostSortInbound": "Orden de entradas (predeterminado)",
-      "subHostSortHosts": "Orden de hosts",
+      "subHostSortInbound": "Orden de entradas",
+      "subHostSortHosts": "Orden de hosts (predeterminado)",
       "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden."
     },
     "xray": {

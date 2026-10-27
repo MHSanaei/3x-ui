@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "群組隱私已開啟",
       "tgPrivacyOnDesc": "此機器人只在私聊中回覆，因此會刻意忽略群組。群組隱私僅決定機器人能否讀取群組訊息，而它並不使用該權限。",
       "subHostSortMode": "訂閱節點排序",
-      "subHostSortInbound": "入站順序（預設）",
-      "subHostSortHosts": "主機順序",
+      "subHostSortInbound": "入站順序",
+      "subHostSortHosts": "主機順序（預設）",
       "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。"
     },
     "xray": {

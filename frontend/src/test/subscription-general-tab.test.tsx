@@ -37,26 +37,26 @@ function LocationProbe() {
 }
 
 describe('SubscriptionGeneralTab', () => {
-  it('selects and reloads the saved subscription node ordering mode', () => {
+  it('defaults to Hosts order and preserves a saved Inbound order selection', () => {
     const updateSetting = vi.fn();
     const { unmount } = renderWithProviders(
       <MemoryRouter>
         <SubscriptionGeneralTab allSetting={new AllSetting()} updateSetting={updateSetting} />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Inbound order (default)')).toBeTruthy();
-    chooseSelectOption('sub-host-sort-mode', 'Hosts order');
-    expect(updateSetting).toHaveBeenCalledWith({ subHostSortMode: 'hosts-first' });
+    expect(screen.getByText('Hosts order (default)')).toBeTruthy();
+    chooseSelectOption('sub-host-sort-mode', 'Inbound order');
+    expect(updateSetting).toHaveBeenCalledWith({ subHostSortMode: 'inbound-first' });
     unmount();
     renderWithProviders(
       <MemoryRouter>
         <SubscriptionGeneralTab
-          allSetting={new AllSetting({ subHostSortMode: 'hosts-first' })}
+          allSetting={new AllSetting({ subHostSortMode: 'inbound-first' })}
           updateSetting={updateSetting}
         />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Hosts order')).toBeTruthy();
+    expect(screen.getByText('Inbound order')).toBeTruthy();
   });
   it('switches profile modes without losing the custom URL and warns only for the built-in page', () => {
     const storedUrl = 'https://example.com/profile/{{SUB_ID}}';

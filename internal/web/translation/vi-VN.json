@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Quyền riêng tư nhóm đang bật",
       "tgPrivacyOnDesc": "Bot này chỉ trả lời trong trò chuyện riêng, nên nhóm bị bỏ qua có chủ đích. Quyền riêng tư nhóm chỉ quyết định bot có được đọc tin nhắn nhóm hay không, và bot không dùng đến.",
       "subHostSortMode": "Thứ tự nút đăng ký",
-      "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
-      "subHostSortHosts": "Thứ tự máy chủ",
+      "subHostSortInbound": "Thứ tự kết nối vào",
+      "subHostSortHosts": "Thứ tự máy chủ (mặc định)",
       "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
     },
     "xray": {

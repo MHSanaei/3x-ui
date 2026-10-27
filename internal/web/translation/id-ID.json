@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Privasi grup aktif",
       "tgPrivacyOnDesc": "Bot ini hanya menjawab di obrolan pribadi, jadi grup sengaja diabaikan. Privasi grup hanya menentukan apakah bot boleh membaca pesan grup, yang tidak digunakan.",
       "subHostSortMode": "Urutan node langganan",
-      "subHostSortInbound": "Urutan inbound (bawaan)",
-      "subHostSortHosts": "Urutan host",
+      "subHostSortInbound": "Urutan inbound",
+      "subHostSortHosts": "Urutan host (bawaan)",
       "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
     },
     "xray": {

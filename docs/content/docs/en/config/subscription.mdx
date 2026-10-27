@@ -51,7 +51,7 @@ The **format is chosen by path**, each with its own enable toggle:
 | **Clash for Windows (legacy)** | `/clash-legacy/` | `subClashEnable` | YAML limited to proxy types, transports, and ciphers supported by the legacy Clash core. |
 
 Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, MTProto, TUIC, or Hysteria2**
-appear in a subscription, ordered by their sub-sort index by default (TUIC and AmneziaWG are included in raw links and Clash/Mihomo profiles, but omitted from JSON endpoints; MTProto is included in raw links). Requesting `subPath`
+appear in a subscription, following the Hosts page order by default (TUIC and AmneziaWG are included in raw links and Clash/Mihomo profiles, but omitted from JSON endpoints; MTProto is included in raw links). Requesting `subPath`
 with an `Accept: text/html` header (or `?html=1`) returns a human-readable info
 page instead of the raw body.
 
@@ -77,14 +77,22 @@ Windows users must use `/clash-legacy/<sub-id>` for a compatible profile.
 ### Subscription node ordering
 
 In **Settings → Subscription → Panel settings**, select **Subscription Node Ordering**
-(`subHostSortMode`). **Inbound order (default)** preserves the existing subscription
+(`subHostSortMode`). **Inbound order** (`inbound-first`) preserves the subscription
 sort index, then inbound ID, with each inbound's Hosts ordered inside that block.
 
-**Hosts order** (`hosts-first`) uses the global order on **Hosts**, including Host
+**Hosts order (default)** (`hosts-first`) uses the global order on **Hosts**, including Host
 groups attached to different inbounds. Drag a group's grip above or below another
 row to save its position, or use the existing Up/Down buttons. A failed save restores
 the previous displayed order. The next subscription fetch uses the saved order;
 no inbound edit or Xray restart is needed.
+
+New installations and panels without a saved ordering mode use **Hosts order**.
+Existing saved choices are preserved on upgrade, including **Inbound order**.
+When a settings update omits the mode or sends an empty value, **Hosts order** is used.
+
+![Subscription Node Ordering defaults to Hosts order](/images/subscription-node-order-default.png)
+
+This screenshot renders the subscription settings tab with default settings.
 
 For example, these rows start with Host A (Inbound #5) above Host B (Inbound #20):
 
