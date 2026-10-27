@@ -39,6 +39,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserAttr": "",
     "ldapUserFilter": "",
     "ldapVlessField": "",
+    "networkTrafficInterface": "eth0",
+    "networkTrafficMode": "legacy",
     "nodeDownThreshold": 1,
     "outboundDownThreshold": 1,
     "pageSize": 0,
@@ -229,6 +231,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserAttr": "",
     "ldapUserFilter": "",
     "ldapVlessField": "",
+    "networkTrafficInterface": "eth0",
+    "networkTrafficMode": "legacy",
     "nodeDownThreshold": 1,
     "outboundDownThreshold": 1,
     "pageSize": 0,
@@ -915,6 +919,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "obj": null,
     "success": false
   },
+  "NetworkInterfaceOption": {
+    "name": "eth0",
+    "up": true
+  },
+  "NetworkInterfacesResponse": {
+    "automatic": "eth0",
+    "automaticError": "",
+    "interfaces": [
+      {
+        "name": "eth0",
+        "up": true
+      }
+    ]
+  },
+  "NetworkTrafficSelection": {
+    "available": true,
+    "error": "",
+    "mode": "manual",
+    "name": "eth0"
+  },
   "NewUUIDResponse": {
     "uuid": "550e8400-e29b-41d4-a716-446655440000"
   },
@@ -1185,6 +1209,36 @@ export const EXAMPLES: Record<string, unknown> = {
         "until": "2026-11-01T00:00:00Z"
       }
     ]
+  },
+  "Status": {
+    "amneziawg": null,
+    "appStats": null,
+    "cpu": 0,
+    "cpuCores": 0,
+    "cpuSpeedMhz": 0,
+    "disk": null,
+    "diskIO": null,
+    "diskTraffic": null,
+    "loads": [
+      0
+    ],
+    "logicalPro": 0,
+    "mem": null,
+    "netIO": null,
+    "netTraffic": null,
+    "networkInterface": null,
+    "panelGuid": "",
+    "panelVersion": "",
+    "publicIP": null,
+    "resourceScope": "",
+    "swap": null,
+    "tcpCount": 0,
+    "udpCount": 0,
+    "unavailableMetrics": [
+      ""
+    ],
+    "uptime": 0,
+    "xray": null
   },
   "SubBalancer": {
     "createdAt": 1710000000000,

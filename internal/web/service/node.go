@@ -1016,8 +1016,12 @@ func (s *NodeService) UpdateHeartbeat(id int, p HeartbeatPatch) error {
 			nodeMetrics.append(nodeMetricKey(id, "cpu"), now, p.CpuPct)
 		}
 		nodeMetrics.append(nodeMetricKey(id, "mem"), now, p.MemPct)
-		nodeMetrics.append(nodeMetricKey(id, "netUp"), now, float64(p.NetUp))
-		nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
+		if !slices.Contains(p.UnavailableMetrics, "netUp") {
+			nodeMetrics.append(nodeMetricKey(id, "netUp"), now, float64(p.NetUp))
+		}
+		if !slices.Contains(p.UnavailableMetrics, "netDown") {
+			nodeMetrics.append(nodeMetricKey(id, "netDown"), now, float64(p.NetDown))
+		}
 	}
 	return nil
 }

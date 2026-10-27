@@ -135,6 +135,33 @@ func TestProbeKeepsMetricAvailability(t *testing.T) {
 	}
 }
 
+func TestNodeHeartbeatSkipsUnavailableNetworkHistory(t *testing.T) {
+	body := `{"success":true,"obj":{"unavailableMetrics":["netUp","netDown"],"netIO":{"up":0,"down":0}}}`
+	svc, n, setBody := availabilityNodeFixture(t, body)
+	for _, available := range []bool{false, true} {
+		if available {
+			setBody(`{"success":true,"obj":{"netIO":{"up":0,"down":0}}}`)
+		}
+		patch, err := svc.Probe(context.Background(), n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		patch.Status = "online"
+		if err := svc.UpdateHeartbeat(n.Id, patch); err != nil {
+			t.Fatal(err)
+		}
+		for _, metric := range []string{"netUp", "netDown"} {
+			points := nodeMetrics.aggregate(nodeMetricKey(n.Id, metric), 2, 60)
+			if !available && len(points) != 0 {
+				t.Fatalf("unavailable %s history=%v", metric, points)
+			}
+			if available && (len(points) != 1 || points[0]["v"] != float64(0)) {
+				t.Fatalf("valid zero %s history=%v", metric, points)
+			}
+		}
+	}
+}
+
 func TestUpdateHeartbeatKeepsUnavailableCPUOutOfHistory(t *testing.T) {
 	svc, n, setBody := availabilityNodeFixture(t, unavailableStatusBody)
 	patch, err := svc.Probe(context.Background(), n)

@@ -110,6 +110,9 @@ func (s *DiscordService) BuildReport(ctx context.Context, server ServerProvider,
 		"Down=="+common.FormatTraffic(int64(status.NetTraffic.Recv)),
 		"Total=="+common.FormatTraffic(int64(status.NetTraffic.Sent+status.NetTraffic.Recv)),
 	)
+	if !status.MetricAvailable("netTraffic") {
+		trafficStr = tr("pages.settings.networkTrafficUnavailable")
+	}
 	load1, load2, load3 := 0.0, 0.0, 0.0
 	if len(status.Loads) > 0 {
 		load1 = status.Loads[0]

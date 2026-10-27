@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, theme } from 'antd';
+import { Alert, Card, theme } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 
 import { SizeFormatter } from '@/utils';
@@ -27,6 +27,7 @@ export default function ThroughputCard({
   const { token } = theme.useToken();
   const accent = token.colorPrimary;
   const downColor = token.colorTextTertiary;
+  const available = status.metricAvailable('netTraffic');
 
   const referenceLines = useMemo(
     () => [
@@ -38,6 +39,19 @@ export default function ThroughputCard({
 
   return (
     <Card hoverable styles={{ body: { padding: 0 } }}>
+      {!available && (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('pages.settings.networkTrafficUnavailable')}
+          description={status.networkInterface?.error}
+        />
+      )}
+      {status.networkInterface?.name && available && (
+        <div className="ov-sub" style={{ padding: '8px 16px 0' }}>
+          {status.networkInterface.name}
+        </div>
+      )}
       <div className="ov-wide-head">
         <div>
           <div className="ov-kicker">{t('pages.index.overallSpeed')}</div>
@@ -49,20 +63,24 @@ export default function ThroughputCard({
           <div className="ov-legend-label">
             <ArrowUpOutlined aria-hidden style={{ color: accent }} />
             {t('pages.index.upload')}
-            <span className="ov-legend-num">{SizeFormatter.speedFormat(status.netIO.up)}</span>
+            <span className="ov-legend-num">
+              {available ? SizeFormatter.speedFormat(status.netIO.up) : '—'}
+            </span>
           </div>
           <div className="ov-legend-label">
             <ArrowDownOutlined aria-hidden style={{ color: downColor }} />
             {t('pages.index.download')}
-            <span className="ov-legend-num">{SizeFormatter.speedFormat(status.netIO.down)}</span>
+            <span className="ov-legend-num">
+              {available ? SizeFormatter.speedFormat(status.netIO.down) : '—'}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="ov-wide-chart">
         <Sparkline
-          data={up}
-          data2={down}
+          data={available ? up : []}
+          data2={available ? down : []}
           labels={labels}
           height={isMobile ? 140 : 186}
           strokeWidth={1.75}
@@ -82,12 +100,16 @@ export default function ThroughputCard({
       <div className="ov-wide-foot">
         <div>
           <div className="ov-kicker">{t('pages.index.sent')}</div>
-          <div className="ov-foot-value">{SizeFormatter.sizeFormat(status.netTraffic.sent)}</div>
+          <div className="ov-foot-value">
+            {available ? SizeFormatter.sizeFormat(status.netTraffic.sent) : '—'}
+          </div>
         </div>
         <span className="ov-foot-sep" />
         <div>
           <div className="ov-kicker">{t('pages.index.received')}</div>
-          <div className="ov-foot-value">{SizeFormatter.sizeFormat(status.netTraffic.recv)}</div>
+          <div className="ov-foot-value">
+            {available ? SizeFormatter.sizeFormat(status.netTraffic.recv) : '—'}
+          </div>
         </div>
         <span className="ov-foot-sep" />
         <div>

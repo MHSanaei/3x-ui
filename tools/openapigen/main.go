@@ -95,6 +95,10 @@ func run(root, outDir string) error {
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
+				"NetworkInterfaceOption",
+				"NetworkInterfacesResponse",
+				"NetworkTrafficSelection",
+				"Status",
 				"HappLinkResult",
 				"ClientSlim",
 				"ClientRenewalPreviewRequest",
@@ -115,6 +119,7 @@ func run(root, outDir string) error {
 				"PeerActivity",
 				"HwidSlotStatus",
 			),
+			AliasAllow: setOf("ProcessState"),
 		},
 		{
 			Path:        resolveRel(root, "internal/web/service/panel"),

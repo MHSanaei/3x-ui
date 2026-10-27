@@ -24,6 +24,60 @@ type mockXrayRestart struct {
 	err       error
 }
 
+func TestGatewayStatusDistinguishesUnavailableTrafficFromMeasuredZero(t *testing.T) {
+	settings := setupTestDB(t)
+	_ = settings.SetDiscordLang("en-US")
+	_ = settings.SetDiscordBotToken("network-status-test")
+	_ = settings.SetDiscordChannelId("local-test-channel")
+	sent := make(chan MessagePayload, 1)
+	rest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload MessagePayload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sent <- payload
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"local-message"}`))
+	}))
+	t.Cleanup(rest.Close)
+	discord := NewDiscordService(settings)
+	discord.SetBaseURL(rest.URL)
+	discord.SetHTTPClient(rest.Client())
+	provider := &mockServerProvider{}
+	gateway := NewGatewayClient(discord, settings, provider, nil, nil)
+	for _, tc := range []struct {
+		name        string
+		unavailable []string
+		want        string
+	}{
+		{"unavailable", []string{"netTraffic"}, "The selected network interface is unavailable. Choose an available interface or another monitoring mode."},
+		{"measured zero", nil, "0.00B"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			provider.status = &service.Status{UnavailableMetrics: tc.unavailable}
+			gateway.sendStatus(context.Background())
+			select {
+			case payload := <-sent:
+				if len(payload.Embeds) != 1 {
+					t.Fatalf("status embeds=%d", len(payload.Embeds))
+				}
+				fields := make(map[string]string)
+				for _, field := range payload.Embeds[0].Fields {
+					fields[field.Name] = field.Value
+				}
+				for _, name := range []string{"Sent", "Received"} {
+					if fields[name] != tc.want {
+						t.Fatalf("%s=%q, want %q", name, fields[name], tc.want)
+					}
+				}
+			default:
+				t.Fatal("status message was not sent")
+			}
+		})
+	}
+}
+
 func (m *mockXrayRestart) RestartXray(force bool) error {
 	m.restarted = true
 	return m.err
