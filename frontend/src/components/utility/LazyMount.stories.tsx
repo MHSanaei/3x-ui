@@ -1,6 +1,7 @@
 import { lazy, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Alert, Button, Card, Skeleton, Space, Switch, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Layout, Modal, Skeleton, Space, Switch, Tag, Typography } from 'antd';
+import { expect, userEvent, within } from 'storybook/test';
 
 import LazyMount from './LazyMount';
 
@@ -21,7 +22,10 @@ const meta = {
     when: {
       description: 'Children mount the first time this becomes true and stay mounted afterwards.',
     },
-    fallback: { description: 'Suspense fallback shown while a React.lazy child is still loading.' },
+    fallback: {
+      description:
+        'Suspense fallback shown while a React.lazy child is loading. The default fullscreen spinner does not occupy space in the surrounding layout; custom fallbacks render as supplied.',
+    },
     children: { description: 'Content to mount on demand, typically a lazily imported modal.' },
   },
 } satisfies Meta<typeof LazyMount>;
@@ -143,5 +147,55 @@ export const MountedImmediately: Story = {
         style={{ maxWidth: 480 }}
       />
     ),
+  },
+};
+
+function LazyModalInLayoutDemo() {
+  const [open, setOpen] = useState(false);
+  const [SlowModal] = useState(() =>
+    lazy(
+      () =>
+        new Promise<{ default: typeof Modal }>((resolve) => {
+          setTimeout(() => resolve({ default: Modal }), 1200);
+        }),
+    ),
+  );
+  return (
+    <Layout hasSider style={{ minHeight: 240 }}>
+      <Layout.Sider width={96} style={{ color: '#fff' }}>
+        Navigation
+      </Layout.Sider>
+      <Layout.Content data-testid="lazy-modal-content" style={{ padding: 16 }}>
+        <Button onClick={() => setOpen(true)}>Open lazy dialog</Button>
+        <Typography.Paragraph>
+          The content width stays fixed while the dialog loads.
+        </Typography.Paragraph>
+      </Layout.Content>
+      <LazyMount when={open}>
+        <SlowModal title="Lazy dialog" open={open} onCancel={() => setOpen(false)} footer={null}>
+          Dialog loaded without resizing the page.
+        </SlowModal>
+      </LazyMount>
+    </Layout>
+  );
+}
+
+export const LazyModalInLayout: Story = {
+  args: placeholderArgs,
+  render: () => <LazyModalInLayoutDemo />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const content = canvas.getByTestId('lazy-modal-content');
+    const width = content.getBoundingClientRect().width;
+    await userEvent.click(canvas.getByRole('button', { name: 'Open lazy dialog' }));
+    const widths: number[] = [];
+    for (let frame = 0; frame < 12; frame++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      widths.push(content.getBoundingClientRect().width);
+    }
+    expect(Math.min(...widths)).toBeCloseTo(width, 1);
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('dialog', { name: 'Lazy dialog' }, { timeout: 5000 });
+    await userEvent.click(page.getByRole('button', { name: 'Close' }));
   },
 };
