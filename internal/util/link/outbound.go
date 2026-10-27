@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"net"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -594,7 +595,7 @@ func parseWireguard(link string) (*ParseResult, error) {
 	portStr := u.Port()
 	endpoint := host
 	if portStr != "" {
-		endpoint = host + ":" + portStr
+		endpoint = net.JoinHostPort(host, portStr)
 	}
 
 	addrRaw := firstParam(params, "address", "ip")
