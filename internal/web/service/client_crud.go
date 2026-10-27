@@ -754,6 +754,16 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.Secret = existing.Secret
 	}
 
+	// A client the quota loop switched off comes back on its own when this
+	// update restores a usable window — the expiry lands in the future and/or
+	// the quota lands above the current usage. Without this a renewal saved
+	// from the editor (or the API) leaves the client disabled and the operator
+	// has to flip the switch by hand; mirrors the re-enable BulkAdjust applies
+	// on a renewal (#5619).
+	if !updated.Enable && s.renewalReenables(existing.Email, updated.TotalGB, updated.ExpiryTime) {
+		updated.Enable = true
+	}
+
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -896,6 +906,17 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"traffic_reset_day":    merged.TrafficResetDay,
 			}).Error; err != nil {
 			return needRestart, err
+		}
+		// The inbound path re-asserts the enforcement row's off switch through
+		// UpdateClientStat; with no inbound left this branch is the only
+		// writer, so a re-enabled client would keep its stale off flag and the
+		// next quota tick could read it as still switched off.
+		if merged.Enable {
+			if err := database.GetDB().Model(xray.ClientTraffic{}).
+				Where("email = ?", existing.Email).
+				UpdateColumn("enable", true).Error; err != nil {
+				return needRestart, err
+			}
 		}
 	}
 
