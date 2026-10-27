@@ -65,6 +65,7 @@ type RealityWatchStatus struct {
 	Ok        bool                `json:"ok" example:"true"`
 	Fails     int                 `json:"fails" example:"0"`
 	Reason    string              `json:"reason" example:""`
+	LatencyMs int                 `json:"latencyMs" example:"180"`
 	Events    []RealityWatchEvent `json:"events"`
 }
 
@@ -73,6 +74,7 @@ type realityWatchState struct {
 	ok        bool
 	fails     int
 	reason    string
+	latencyMs int
 	events    []RealityWatchEvent
 }
 
@@ -211,7 +213,7 @@ func (s *RealityWatchService) statusLocked(inboundId int, entry RealityWatchEntr
 		}
 	}
 	if state := realityWatchStates[inboundId]; state != nil {
-		st.Ok, st.Fails, st.Reason = state.ok, state.fails, state.reason
+		st.Ok, st.Fails, st.Reason, st.LatencyMs = state.ok, state.fails, state.reason, state.latencyMs
 		if !state.checkedAt.IsZero() {
 			st.CheckedAt = state.checkedAt.Unix()
 		}
@@ -256,7 +258,7 @@ func (s *RealityWatchService) Tick(ctx context.Context) {
 			state = &realityWatchState{}
 			realityWatchStates[id] = state
 		}
-		state.checkedAt, state.ok, state.reason = time.Now(), res.Feasible, res.Reason
+		state.checkedAt, state.ok, state.reason, state.latencyMs = time.Now(), res.Feasible, res.Reason, res.LatencyMs
 		if res.Feasible {
 			state.fails = 0
 			continue

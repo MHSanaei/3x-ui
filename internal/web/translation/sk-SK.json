@@ -802,6 +802,7 @@
         "testOk": "funguje",
         "testFailed": "zlyhal",
         "test": "Test",
+        "testAll": "Otestovať všetky",
         "switchNow": "Prepnúť naň teraz",
         "findSpares": "Nájsť záložné",
         "save": "Uložiť záložné",

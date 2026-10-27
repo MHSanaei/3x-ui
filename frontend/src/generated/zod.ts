@@ -1094,6 +1094,7 @@ export const RealityWatchStatusSchema = z.object({
   events: z.array(z.lazy(() => RealityWatchEventSchema)),
   fails: z.number().int(),
   inboundId: z.number().int(),
+  latencyMs: z.number().int(),
   ok: z.boolean(),
   reason: z.string(),
   spares: z.array(z.string()),

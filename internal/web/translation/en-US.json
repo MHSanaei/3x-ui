@@ -802,6 +802,7 @@
         "testOk": "works",
         "testFailed": "fails",
         "test": "Test",
+        "testAll": "Test all",
         "switchNow": "Switch to this now",
         "findSpares": "Find spares",
         "save": "Save spares",

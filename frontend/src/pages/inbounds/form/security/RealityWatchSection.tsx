@@ -85,8 +85,8 @@ export default function RealityWatchSection({
     }
   };
 
-  const test = async (target: string) => {
-    setBusy('test:' + target);
+  const test = async (target: string, inBatch = false) => {
+    if (!inBatch) setBusy('test:' + target);
     try {
       const msg = await HttpUtil.post<RealityScanResult>(
         '/panel/api/realityWatch/test',
@@ -96,7 +96,7 @@ export default function RealityWatchSection({
       if (msg?.success && msg.obj) setTests((prev) => ({ ...prev, [target]: msg.obj! }));
       else message?.error(msg?.msg || t('pages.inbounds.realityWatch.toasts.failed'));
     } finally {
-      setBusy('');
+      if (!inBatch) setBusy('');
     }
   };
 
@@ -152,6 +152,9 @@ export default function RealityWatchSection({
       <Form.Item label={t('pages.inbounds.realityWatch.status')}>
         <Space wrap>
           {statusTag}
+          {status?.checkedAt && status.ok && status.latencyMs > 0 ? (
+            <Typography.Text>{status.latencyMs} ms</Typography.Text>
+          ) : null}
           {status?.checkedAt ? (
             <Typography.Text type="secondary">
               {dayjs.unix(status.checkedAt).format('YYYY-MM-DD HH:mm')}
@@ -172,7 +175,11 @@ export default function RealityWatchSection({
           }}
         />
       </Form.Item>
-      <Form.Item label={t('pages.inbounds.realityWatch.spares')}>
+      <Form.Item
+        label={t('pages.inbounds.realityWatch.spares')}
+        labelCol={{ span: 24 }}
+        wrapperCol={{ span: 24 }}
+      >
         <Space direction="vertical" style={{ width: '100%' }}>
           <Table
             size="small"
@@ -184,17 +191,21 @@ export default function RealityWatchSection({
               { title: t('pages.inbounds.form.target'), render: (_, r: string) => r },
               {
                 title: t('pages.inbounds.realityWatch.realTest'),
-                width: 150,
+                width: 190,
                 render: (_, r: string) => {
                   const res = tests[r];
                   return res ? (
                     <Tag color={res.feasible ? 'success' : 'error'} title={res.reason}>
                       {res.feasible
-                        ? t('pages.inbounds.realityWatch.testOk')
+                        ? `${t('pages.inbounds.realityWatch.testOk')}${res.latencyMs > 0 ? ` · ${res.latencyMs} ms` : ''}`
                         : t('pages.inbounds.realityWatch.testFailed')}
                     </Tag>
                   ) : (
-                    <Button size="small" loading={busy === 'test:' + r} onClick={() => test(r)}>
+                    <Button
+                      size="small"
+                      loading={busy === 'test:' + r || (busy === 'testAll' && !tests[r])}
+                      onClick={() => test(r)}
+                    >
                       {t('pages.inbounds.realityWatch.test')}
                     </Button>
                   );
@@ -235,6 +246,21 @@ export default function RealityWatchSection({
               onClick={() => setScannerOpen(true)}
             >
               {t('pages.inbounds.realityWatch.findSpares')}
+            </Button>
+            <Button
+              disabled={!spares.length || busy !== ''}
+              loading={busy === 'testAll'}
+              onClick={async () => {
+                setBusy('testAll');
+                setTests({});
+                try {
+                  for (const r of spares) await test(r, true);
+                } finally {
+                  setBusy('');
+                }
+              }}
+            >
+              {t('pages.inbounds.realityWatch.testAll')}
             </Button>
             <Button type="primary" disabled={!dirty} loading={busy === 'save'} onClick={save}>
               {t('pages.inbounds.realityWatch.save')}

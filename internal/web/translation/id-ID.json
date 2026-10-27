@@ -802,6 +802,7 @@
         "testOk": "berhasil",
         "testFailed": "gagal",
         "test": "Tes",
+        "testAll": "Tes semua",
         "switchNow": "Ganti ke ini sekarang",
         "findSpares": "Cari cadangan",
         "save": "Simpan cadangan",

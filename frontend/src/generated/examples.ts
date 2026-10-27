@@ -1133,6 +1133,7 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "fails": 0,
     "inboundId": 3,
+    "latencyMs": 180,
     "ok": true,
     "reason": "",
     "spares": [

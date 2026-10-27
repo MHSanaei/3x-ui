@@ -802,6 +802,7 @@
         "testOk": "成功",
         "testFailed": "失敗",
         "test": "テスト",
+        "testAll": "すべてテスト",
         "switchNow": "今すぐこれに切り替え",
         "findSpares": "予備を探す",
         "save": "予備を保存",

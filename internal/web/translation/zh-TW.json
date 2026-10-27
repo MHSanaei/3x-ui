@@ -802,6 +802,7 @@
         "testOk": "可用",
         "testFailed": "不可用",
         "test": "測試",
+        "testAll": "全部測試",
         "switchNow": "立即切換到此",
         "findSpares": "尋找備用",
         "save": "儲存備用",

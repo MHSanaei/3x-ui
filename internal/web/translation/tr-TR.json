@@ -802,6 +802,7 @@
         "testOk": "çalışıyor",
         "testFailed": "çalışmıyor",
         "test": "Test et",
+        "testAll": "Hepsini test et",
         "switchNow": "Şimdi buna geç",
         "findSpares": "Yedek bul",
         "save": "Yedekleri kaydet",

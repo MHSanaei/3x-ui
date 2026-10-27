@@ -4572,6 +4572,10 @@
             "example": 3,
             "type": "integer"
           },
+          "latencyMs": {
+            "example": 180,
+            "type": "integer"
+          },
           "ok": {
             "example": true,
             "type": "boolean"
@@ -4599,6 +4603,7 @@
           "events",
           "fails",
           "inboundId",
+          "latencyMs",
           "ok",
           "reason",
           "spares",
@@ -13350,6 +13355,7 @@
                       ],
                       "fails": 0,
                       "inboundId": 3,
+                      "latencyMs": 180,
                       "ok": true,
                       "reason": "",
                       "spares": [
@@ -13417,6 +13423,7 @@
                     ],
                     "fails": 0,
                     "inboundId": 3,
+                    "latencyMs": 180,
                     "ok": true,
                     "reason": "",
                     "spares": [
@@ -13499,6 +13506,7 @@
                     ],
                     "fails": 0,
                     "inboundId": 3,
+                    "latencyMs": 180,
                     "ok": true,
                     "reason": "",
                     "spares": [

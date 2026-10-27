@@ -802,6 +802,7 @@
         "testOk": "funciona",
         "testFailed": "falha",
         "test": "Testar",
+        "testAll": "Testar todos",
         "switchNow": "Trocar para este agora",
         "findSpares": "Buscar reservas",
         "save": "Salvar reservas",
