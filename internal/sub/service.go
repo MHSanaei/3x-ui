@@ -779,15 +779,16 @@ func (s *SubService) loadInboundsBySubId(subId string) ([]*model.Inbound, error)
 	return inbounds, nil
 }
 
-// subscriptionSettings is an inbound's settings for a subscription body: WireGuard and AmneziaWG
-// keep their peers, every other protocol gets the shared copy without the clients array.
+// subscriptionSettings retains clients for WireGuard, AmneziaWG and TUIC, whose links need
+// settings-owned peer keys or credentials, including legacy TUIC UUIDs.
 func (s *SubService) subscriptionSettings(inbound *model.Inbound) (string, error) {
 	load := func() (string, error) {
 		var settings string
 		err := database.GetDB().Model(&model.Inbound{}).Select("settings").Where("id = ?", inbound.Id).Row().Scan(&settings)
 		return settings, err
 	}
-	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+	switch inbound.Protocol {
+	case model.WireGuard, model.AmneziaWG, model.TUIC:
 		return load()
 	}
 	return s.settingsCache.settingsFor(inbound.Id, load)
