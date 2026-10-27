@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "Quitados {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar panel",
+      "restartConfirmTitle": "¿Reiniciar {name}?",
+      "restartXrayContent": "Se interrumpirán las conexiones Xray activas de este nodo.",
+      "restartPanelContent": "El panel y los servicios de suscripción del nodo se reiniciarán y podrían dejar de estar disponibles temporalmente. Requiere un token API node-admin o admin en el nodo.",
       "addNode": "Agregar nodo",
       "editNode": "Editar nodo",
       "totalNodes": "Total de nodos",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Detenido"
       },
       "toasts": {
+        "xrayRestarted": "Xray se ha reiniciado en el nodo.",
+        "panelRestartAccepted": "Solicitud de reinicio del panel aceptada. El nodo podría no estar disponible temporalmente.",
         "list": "Error al cargar los nodos",
         "obtain": "Error al cargar el nodo",
         "add": "Agregar nodo",

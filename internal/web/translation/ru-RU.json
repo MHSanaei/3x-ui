@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "Удалено {count} клиент(ов) из {name}."
     },
     "nodes": {
+      "restartXray": "Перезапустить Xray",
+      "restartPanel": "Перезапустить панель",
+      "restartConfirmTitle": "Перезапустить {name}?",
+      "restartXrayContent": "Активные соединения Xray на этом узле будут прерваны.",
+      "restartPanelContent": "Панель узла и службы подписки будут перезапущены и могут быть временно недоступны. Требуется API-токен node-admin или admin на узле.",
       "addNode": "Добавить узел",
       "editNode": "Изменить узел",
       "totalNodes": "Всего узлов",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Остановлен"
       },
       "toasts": {
+        "xrayRestarted": "Xray на узле перезапущен.",
+        "panelRestartAccepted": "Запрос на перезапуск панели принят. Узел может быть временно недоступен.",
         "list": "Не удалось загрузить узлы",
         "obtain": "Не удалось загрузить узел",
         "add": "Добавить узел",

@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
     },
     "nodes": {
+      "restartXray": "Xray yeniden başlat",
+      "restartPanel": "Paneli yeniden başlat",
+      "restartConfirmTitle": "{name} yeniden başlatılsın mı?",
+      "restartXrayContent": "Bu düğümdeki etkin Xray bağlantıları kesilecektir.",
+      "restartPanelContent": "Düğüm paneli ve abonelik hizmetleri yeniden başlatılacak ve geçici olarak kullanılamayabilir. Düğümde node-admin veya admin API belirteci gerekir.",
       "addNode": "Düğüm Ekle",
       "editNode": "Düğümü Düzenle",
       "totalNodes": "Toplam Düğüm",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Durduruldu"
       },
       "toasts": {
+        "xrayRestarted": "Düğümde Xray yeniden başlatıldı.",
+        "panelRestartAccepted": "Panel yeniden başlatma isteği kabul edildi. Düğüm geçici olarak kullanılamayabilir.",
         "list": "Düğümler yüklenemedi",
         "obtain": "Düğüm yüklenemedi",
         "add": "Düğüm ekle",

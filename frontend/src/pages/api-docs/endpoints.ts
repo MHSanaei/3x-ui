@@ -1806,6 +1806,20 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/nodes/restartXray/:id',
+        summary:
+          'Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/restartPanel/:id',
+        summary:
+          'Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/nodes/updatePanel',
         summary:
           'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set "dev": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.',

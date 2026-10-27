@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。"
     },
     "nodes": {
+      "restartXray": "重启 Xray",
+      "restartPanel": "重启面板",
+      "restartConfirmTitle": "重启 {name}？",
+      "restartXrayContent": "此节点上活跃的 Xray 连接将会中断。",
+      "restartPanelContent": "节点面板和订阅服务将重启，并可能暂时不可用。需要节点上的 node-admin 或 admin API 令牌。",
       "addNode": "添加节点",
       "editNode": "编辑节点",
       "totalNodes": "节点总数",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "已停止"
       },
       "toasts": {
+        "xrayRestarted": "已重启节点上的 Xray。",
+        "panelRestartAccepted": "已接受面板重启请求。节点可能暂时不可用。",
         "list": "加载节点失败",
         "obtain": "加载节点失败",
         "add": "添加节点",

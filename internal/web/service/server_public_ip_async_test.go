@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+
+	"github.com/shirou/gopsutil/v4/load"
 )
 
 // A box with no IPv6 route spends 3s per lookup service, and a status sample
@@ -284,6 +286,8 @@ func TestPublicIPRefreshIsSingleFlightAndKeepsCachedReadsAvailable(t *testing.T)
 }
 
 func TestPublicIPStatusUsesRefreshedAddressWithoutBlocking(t *testing.T) {
+	// Windows starts a process-wide sampler; it must outlive the virtual clock.
+	_, _ = load.Avg()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))

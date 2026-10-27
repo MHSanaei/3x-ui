@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "{count} کاربر از {name} حذف شد."
     },
     "nodes": {
+      "restartXray": "راه‌اندازی مجدد Xray",
+      "restartPanel": "راه‌اندازی مجدد پنل",
+      "restartConfirmTitle": "راه‌اندازی مجدد {name}؟",
+      "restartXrayContent": "اتصال‌های فعال Xray روی این نود قطع می‌شوند.",
+      "restartPanelContent": "پنل و سرویس اشتراک نود مجدداً راه‌اندازی می‌شوند و ممکن است موقتاً در دسترس نباشند. توکن API نود باید دسترسی node-admin یا admin داشته باشد.",
       "addNode": "افزودن نود",
       "editNode": "ویرایش نود",
       "totalNodes": "کل نودها",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "متوقف"
       },
       "toasts": {
+        "xrayRestarted": "Xray روی نود مجدداً راه‌اندازی شد.",
+        "panelRestartAccepted": "درخواست راه‌اندازی مجدد پنل پذیرفته شد. نود ممکن است موقتاً در دسترس نباشد.",
         "list": "بارگذاری نودها ناموفق",
         "obtain": "بارگذاری نود ناموفق",
         "add": "افزودن نود",
