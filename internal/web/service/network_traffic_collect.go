@@ -80,13 +80,18 @@ func validateNetworkTrafficSettings(settings *entity.AllSetting) error {
 	if name != "" && (utf8.RuneCountInString(name) > 255 || !utf8.ValidString(name) || strings.ContainsFunc(name, unicode.IsControl)) {
 		return fmt.Errorf("network traffic interface name is invalid")
 	}
-	if settings.NetworkTrafficMode == "manual" {
-		if name == "" {
-			return fmt.Errorf("network traffic interface is required in manual mode")
-		}
-		if _, err := stdnet.InterfaceByName(name); err != nil {
-			return fmt.Errorf("network traffic interface %q is unavailable: %w", name, err)
-		}
+	if settings.NetworkTrafficMode == "manual" && name == "" {
+		return fmt.Errorf("network traffic interface is required in manual mode")
+	}
+	return nil
+}
+
+func validateNetworkTrafficInterfaceChange(settings *entity.AllSetting, previous networkTrafficConfig) error {
+	if settings.NetworkTrafficMode != "manual" || (previous.mode == "manual" && previous.iface == settings.NetworkTrafficInterface) {
+		return nil
+	}
+	if _, err := stdnet.InterfaceByName(settings.NetworkTrafficInterface); err != nil {
+		return fmt.Errorf("network traffic interface %q is unavailable: %w", settings.NetworkTrafficInterface, err)
 	}
 	return nil
 }

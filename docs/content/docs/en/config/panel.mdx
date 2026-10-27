@@ -74,7 +74,9 @@ Xray client quotas, client billing counters, or inbound traffic accounting.
   destination-specific route selection are outside this primary-route heuristic.
 - **Manual** lists interfaces dynamically and counts only the exact selected name.
   Explicit selections bypass the legacy virtual-interface exclusions. The backend
-  validates that the selected interface exists when settings are saved.
+  validates that a newly selected interface exists when settings are saved.
+  An unchanged saved selection may remain unavailable, so unrelated settings can
+  still be edited while the interface is absent.
 
 ![Manual network traffic interface selection](/images/network-traffic-interface.png)
 

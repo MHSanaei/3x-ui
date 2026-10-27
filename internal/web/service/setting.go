@@ -1716,8 +1716,18 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 			return err
 		}
 		byKey := make(map[string]*model.Setting, len(existing))
+		currentTraffic := networkTrafficConfig{}
 		for _, st := range existing {
 			byKey[st.Key] = st
+			switch st.Key {
+			case "networkTrafficMode":
+				currentTraffic.mode = st.Value
+			case "networkTrafficInterface":
+				currentTraffic.iface = st.Value
+			}
+		}
+		if err := validateNetworkTrafficInterfaceChange(allSetting, currentTraffic); err != nil {
+			return err
 		}
 		for _, field := range fields {
 			key := field.Tag.Get("json")

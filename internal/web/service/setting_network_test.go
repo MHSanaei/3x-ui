@@ -156,3 +156,40 @@ func TestOmittedNetworkSettingsPreserveConcurrentSelection(t *testing.T) {
 		t.Fatalf("concurrent selection lost: mode=%q interface=%q title=%q", reloaded.NetworkTrafficMode, reloaded.NetworkTrafficInterface, reloaded.SubTitle)
 	}
 }
+
+func TestUnchangedMissingTrafficInterfaceDoesNotBlockOtherSettings(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	for key, value := range map[string]string{"networkTrafficMode": "manual", "networkTrafficInterface": "removed-6906"} {
+		if err := s.saveSetting(key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	settings, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings.SubTitle = "Unrelated settings remain editable"
+	if err := s.UpdateAllSetting(settings, SecretClears{}); err != nil {
+		t.Fatalf("unchanged missing interface blocked unrelated update: %v", err)
+	}
+	reloaded, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.NetworkTrafficMode != "manual" || reloaded.NetworkTrafficInterface != "removed-6906" || reloaded.SubTitle != settings.SubTitle {
+		t.Fatalf("saved settings: mode=%q interface=%q title=%q", reloaded.NetworkTrafficMode, reloaded.NetworkTrafficInterface, reloaded.SubTitle)
+	}
+	reloaded.NetworkTrafficInterface = "another-missing-6906"
+	reloaded.SubTitle = "Invalid selection must not be saved"
+	if err := s.UpdateAllSetting(reloaded, SecretClears{}); err == nil || !strings.Contains(err.Error(), "unavailable") {
+		t.Fatalf("changed missing interface accepted: %v", err)
+	}
+	persisted, err := s.GetAllSetting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persisted.NetworkTrafficInterface != "removed-6906" || persisted.SubTitle != settings.SubTitle {
+		t.Fatalf("invalid selection changed settings: interface=%q title=%q", persisted.NetworkTrafficInterface, persisted.SubTitle)
+	}
+}
