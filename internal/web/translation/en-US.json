@@ -1211,6 +1211,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1280,6 +1285,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",

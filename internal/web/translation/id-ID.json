@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "{count} klien dihapus dari {name}."
     },
     "nodes": {
+      "restartXray": "Mulai ulang Xray",
+      "restartPanel": "Mulai ulang panel",
+      "restartConfirmTitle": "Mulai ulang {name}?",
+      "restartXrayContent": "Koneksi Xray aktif pada node ini akan terputus.",
+      "restartPanelContent": "Panel node dan layanan langganan akan dimulai ulang dan mungkin tidak tersedia sementara. Memerlukan token API node-admin atau admin pada node.",
       "addNode": "Tambah Node",
       "editNode": "Edit node",
       "totalNodes": "Total Node",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Berhenti"
       },
       "toasts": {
+        "xrayRestarted": "Xray pada node telah dimulai ulang.",
+        "panelRestartAccepted": "Permintaan mulai ulang panel diterima. Node mungkin tidak tersedia sementara.",
         "list": "Gagal memuat node",
         "obtain": "Gagal memuat node",
         "add": "Tambah node",

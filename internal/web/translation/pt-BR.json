@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "Removidos {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar painel",
+      "restartConfirmTitle": "Reiniciar {name}?",
+      "restartXrayContent": "As conexões Xray ativas neste nó serão interrompidas.",
+      "restartPanelContent": "O painel e os serviços de assinatura do nó serão reiniciados e poderão ficar indisponíveis temporariamente. Requer um token de API node-admin ou admin no nó.",
       "addNode": "Adicionar nó",
       "editNode": "Editar nó",
       "totalNodes": "Total de nós",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Parado"
       },
       "toasts": {
+        "xrayRestarted": "Xray reiniciado no nó.",
+        "panelRestartAccepted": "Solicitação de reinício do painel aceita. O nó poderá ficar indisponível temporariamente.",
         "list": "Falha ao carregar os nós",
         "obtain": "Falha ao carregar o nó",
         "add": "Adicionar nó",

@@ -1211,6 +1211,11 @@
       "dragToReorder": "Presunutím zmeníte poradie {name}"
     },
     "nodes": {
+      "restartXray": "Reštartovať Xray",
+      "restartPanel": "Reštartovať panel",
+      "restartConfirmTitle": "Reštartovať {name}?",
+      "restartXrayContent": "Aktívne spojenia Xray na tomto uzle sa prerušia.",
+      "restartPanelContent": "Panel uzla a služby odberov sa reštartujú a môžu byť dočasne nedostupné. Vyžaduje sa API token node-admin alebo admin na uzle.",
       "addNode": "Pridať server",
       "editNode": "Upraviť server",
       "totalNodes": "Počet serverov",
@@ -1280,6 +1285,8 @@
         "xrayStopped": "Zastavený"
       },
       "toasts": {
+        "xrayRestarted": "Xray na uzle bol reštartovaný.",
+        "panelRestartAccepted": "Žiadosť o reštart panela bola prijatá. Uzol môže byť dočasne nedostupný.",
         "list": "Nepodarilo sa načítať servery",
         "obtain": "Nepodarilo sa načítať server",
         "add": "Pridať server",

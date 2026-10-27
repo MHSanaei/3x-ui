@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Dropdown, Modal, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { BadgeProps } from 'antd';
@@ -15,6 +15,7 @@ import {
   InfoCircleOutlined,
   MoreOutlined,
   PlusOutlined,
+  ReloadOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
@@ -42,7 +43,11 @@ interface NodeListProps {
   onToggleEnable: (node: NodeRecord, next: boolean) => void;
   onUpdateNode: (node: NodeRecord) => void;
   onUpdateSelected: () => void;
+  onRestart: (node: NodeRecord, target: 'xray' | 'panel') => void;
+  restartingIds?: ReadonlySet<number>;
 }
+
+const noRestarts: ReadonlySet<number> = new Set();
 
 function isUpdateEligible(n: NodeRecord): boolean {
   return !!n.enable && n.status === 'online';
@@ -180,6 +185,8 @@ export default function NodeList({
   onToggleEnable,
   onUpdateNode,
   onUpdateSelected,
+  onRestart,
+  restartingIds = noRestarts,
 }: NodeListProps) {
   const { t } = useTranslation();
   const relativeTime = useRelativeTime();
@@ -187,6 +194,18 @@ export default function NodeList({
   const [showAddress, setShowAddress] = useState(false);
   const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const restartItems = useCallback(
+    (node: NodeRecord) =>
+      (['xray', 'panel'] as const).map((target) => ({
+        key: `restart-${target}`,
+        icon: <ReloadOutlined aria-hidden />,
+        label: t(`pages.nodes.${target === 'xray' ? 'restartXray' : 'restartPanel'}`),
+        disabled: !node.enable || !!node.transitive || restartingIds.has(node.id),
+        onClick: () => onRestart(node, target),
+      })),
+    [t, onRestart, restartingIds],
+  );
 
   // Map a node GUID to its display name so a transitive sub-node can show which
   // parent it is reached through (#4983).
@@ -292,6 +311,14 @@ export default function NodeList({
                   onClick={() => onEdit(record)}
                 />
               </Tooltip>
+              <Dropdown trigger={['click']} menu={{ items: restartItems(record) }}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined aria-hidden />}
+                  aria-label={t('more')}
+                />
+              </Dropdown>
               <Tooltip title={t('delete')}>
                 <Button
                   type="text"
@@ -536,6 +563,7 @@ export default function NodeList({
       onEdit,
       onDelete,
       onUpdateNode,
+      restartItems,
       nameByGuid,
     ],
   );
@@ -666,6 +694,7 @@ export default function NodeList({
                           placement="bottomRight"
                           menu={{
                             items: [
+                              ...restartItems(record),
                               {
                                 key: 'probe',
                                 label: (

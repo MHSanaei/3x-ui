@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "Đã xóa {count} client khỏi {name}."
     },
     "nodes": {
+      "restartXray": "Khởi động lại Xray",
+      "restartPanel": "Khởi động lại bảng điều khiển",
+      "restartConfirmTitle": "Khởi động lại {name}?",
+      "restartXrayContent": "Các kết nối Xray đang hoạt động trên nút này sẽ bị ngắt.",
+      "restartPanelContent": "Bảng điều khiển và dịch vụ đăng ký của nút sẽ khởi động lại và có thể tạm thời không khả dụng. Yêu cầu mã API node-admin hoặc admin trên nút.",
       "addNode": "Thêm nút",
       "editNode": "Sửa node",
       "totalNodes": "Tổng số nút",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "Đã dừng"
       },
       "toasts": {
+        "xrayRestarted": "Đã khởi động lại Xray trên nút.",
+        "panelRestartAccepted": "Đã chấp nhận yêu cầu khởi động lại bảng điều khiển. Nút có thể tạm thời không khả dụng.",
         "list": "Không tải được danh sách nút",
         "obtain": "Không tải được nút",
         "add": "Thêm nút",

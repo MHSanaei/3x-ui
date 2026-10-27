@@ -49,7 +49,7 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 		}
 	}
 	// Verified mTLS keeps its historical node-sync identity. Only an explicit
-	// node-admin bearer elevates it to software-update authority.
+	// node-admin bearer elevates it to panel-administration authority.
 	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
 		scope := model.ApiScopeNodeSync
 		if matchedScope == model.ApiScopeNodeAdmin {
@@ -125,7 +125,8 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 }
 
 var nodeAdminScopeAllow = map[string]map[string]struct{}{
-	"/server/updatePanel": {http.MethodPost: {}},
+	"/server/updatePanel":   {http.MethodPost: {}},
+	"/setting/restartPanel": {http.MethodPost: {}},
 }
 
 func scopeAllows(allow map[string]map[string]struct{}, path, method string) bool {

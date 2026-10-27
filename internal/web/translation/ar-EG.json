@@ -1090,6 +1090,11 @@
       "removeFromGroupResult": "تمت إزالة {count} عميل من {name}."
     },
     "nodes": {
+      "restartXray": "إعادة تشغيل Xray",
+      "restartPanel": "إعادة تشغيل اللوحة",
+      "restartConfirmTitle": "إعادة تشغيل {name}؟",
+      "restartXrayContent": "سيتم قطع اتصالات Xray النشطة على هذه العقدة.",
+      "restartPanelContent": "ستتم إعادة تشغيل لوحة العقدة وخدمات الاشتراك وقد تتوقف مؤقتًا. يتطلب رمز API بصلاحية node-admin أو admin على العقدة.",
       "addNode": "إضافة نود",
       "editNode": "تحرير العقدة",
       "totalNodes": "إجمالي النودز",
@@ -1159,6 +1164,8 @@
         "xrayStopped": "متوقف"
       },
       "toasts": {
+        "xrayRestarted": "تمت إعادة تشغيل Xray على العقدة.",
+        "panelRestartAccepted": "تم قبول طلب إعادة تشغيل اللوحة. قد تتوقف العقدة مؤقتًا.",
         "list": "فشل تحميل النودز",
         "obtain": "فشل تحميل النود",
         "add": "إضافة نود",
