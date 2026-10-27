@@ -28,7 +28,9 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	var disabledNodeIDs []int
 	var remotePlans []trafficInboundUpdatePlan
 	var renewed []string
-	err = submitTrafficWrite(func() error {
+	// The periodic poll takes the background lane: an operator's save or reset
+	// queued while a poll runs must not sit behind the next merge batch.
+	err = submitTrafficWriteBackground(func() error {
 		var inner error
 		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, renewed, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
 		return inner
@@ -713,6 +715,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	needRestart := false
 	var reenablePlan *trafficLocalApplyPlan
 	var reenableNodeID *int
+	// The stored entry read off and this reset flips it back on: the quota
+	// loop's switch-off is undone in the same transaction as the zeroing.
+	flipStoredEntry := false
 
 	traffic, err := s.GetClientTrafficByEmail(clientEmail)
 	if err != nil {
@@ -729,33 +734,35 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			return false, nil, err
 		}
 		for _, client := range clients {
-			if client.Email == clientEmail && client.Enable {
-				cipher := ""
-				if string(inbound.Protocol) == "shadowsocks" {
-					var oldSettings map[string]any
-					err = json.Unmarshal([]byte(inbound.Settings), &oldSettings)
-					if err != nil {
-						return false, nil, err
-					}
-					cipher, _ = oldSettings["method"].(string)
-				}
-				clientMap := map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"auth":     client.Auth,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
-					"reverse":  client.Reverse,
-				}
-				if inbound.NodeID != nil {
-					reenableNodeID = inbound.NodeID
-				} else {
-					reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
-				}
-				break
+			if client.Email != clientEmail {
+				continue
 			}
+			flipStoredEntry = !client.Enable
+			cipher := ""
+			if string(inbound.Protocol) == "shadowsocks" {
+				var oldSettings map[string]any
+				err = json.Unmarshal([]byte(inbound.Settings), &oldSettings)
+				if err != nil {
+					return false, nil, err
+				}
+				cipher, _ = oldSettings["method"].(string)
+			}
+			clientMap := map[string]any{
+				"email":    client.Email,
+				"id":       client.ID,
+				"auth":     client.Auth,
+				"security": client.Security,
+				"flow":     client.Flow,
+				"password": client.Password,
+				"cipher":   cipher,
+				"reverse":  client.Reverse,
+			}
+			if inbound.NodeID != nil {
+				reenableNodeID = inbound.NodeID
+			} else {
+				reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
+			}
+			break
 		}
 	}
 
@@ -790,6 +797,19 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			Update("last_traffic_reset_time", now).Error; err != nil {
 			return err
 		}
+		if flipStoredEntry {
+			// A reset is a clean-slate renewal: the entry the quota loop
+			// switched off (or the operator did, before the counters were
+			// zero) reads enabled again — in the stored settings a restart
+			// regenerates from, and in the shared record, in one commit.
+			if err := s.markClientEnabledInSettings(tx, id, clientEmail); err != nil {
+				return err
+			}
+			if err := tx.Model(&model.ClientRecord{}).Where("email = ?", clientEmail).
+				Updates(map[string]any{"enable": true, "updated_at": now}).Error; err != nil {
+				return err
+			}
+		}
 		if reenableNodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *reenableNodeID)
 		}
@@ -799,6 +819,11 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		return nil
 	}); err != nil {
 		return false, nil, err
+	}
+	if flipStoredEntry {
+		// The entry left the subscription in its disabled state; a just
+		// re-enabled client must not keep missing from it.
+		InvalidateSubData()
 	}
 
 	if reenablePlan != nil {

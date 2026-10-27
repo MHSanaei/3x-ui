@@ -67,7 +67,7 @@ func requireResetSurvivesTick(t *testing.T, reset func() error) {
 		tickDone <- err
 	}()
 	deadline := time.Now().Add(5 * time.Second)
-	for len(twQueue) < 2 && time.Now().Before(deadline) {
+	for trafficWriterQueueLen() < 2 && time.Now().Before(deadline) {
 		time.Sleep(time.Millisecond)
 	}
 	close(release)

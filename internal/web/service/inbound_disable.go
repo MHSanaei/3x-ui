@@ -235,6 +235,50 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	return &snapshot, &ib, nil
 }
 
+// markClientEnabledInSettings is the re-enable twin of markClientsDisabledInSettings:
+// it flips the stored entry of one email back on in the inbound's settings JSON, so
+// a quota-disabled client that a reset brings back reads enabled in the config an xray
+// restart regenerates and in the subscription, not just in the running core.
+func (s *InboundService) markClientEnabledInSettings(tx *gorm.DB, inboundID int, email string) error {
+	var ib model.Inbound
+	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).First(&ib).Error; err != nil {
+		return err
+	}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+		return err
+	}
+	clients, _ := settings["clients"].([]any)
+	now := time.Now().Unix() * 1000
+	mutated := false
+	for i := range clients {
+		entry, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if e, _ := entry["email"].(string); e != email {
+			continue
+		}
+		if cur, _ := entry["enable"].(bool); cur {
+			continue
+		}
+		entry["enable"] = true
+		entry["updated_at"] = now
+		clients[i] = entry
+		mutated = true
+	}
+	if !mutated {
+		return nil
+	}
+	settings["clients"] = clients
+	bs, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	return tx.Model(&model.Inbound{}).Where("id = ?", inboundID).
+		Update("settings", string(bs)).Error
+}
+
 // trafficDisabledEmails reports which emails have a switched-off stats row. The
 // table is email-keyed and its inbound_id goes stale, so never filter on it.
 func trafficDisabledEmails(db *gorm.DB, emails []string) (map[string]struct{}, error) {

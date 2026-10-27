@@ -26,11 +26,12 @@ type trafficWriteRequest struct {
 type serializedTxContextKey struct{}
 
 var (
-	twMu     sync.Mutex
-	twQueue  chan *trafficWriteRequest
-	twCtx    context.Context
-	twCancel context.CancelFunc
-	twDone   chan struct{}
+	twMu         sync.Mutex
+	twAdminQueue chan *trafficWriteRequest
+	twBgQueue    chan *trafficWriteRequest
+	twCtx        context.Context
+	twCancel     context.CancelFunc
+	twDone       chan struct{}
 )
 
 // StartTrafficWriter spins up the serial writer goroutine. Safe to call again
@@ -53,16 +54,18 @@ func StartTrafficWriter() {
 		}
 	}
 
-	queue := make(chan *trafficWriteRequest, trafficWriterQueueSize)
+	adminQueue := make(chan *trafficWriteRequest, trafficWriterQueueSize)
+	bgQueue := make(chan *trafficWriteRequest, trafficWriterQueueSize)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 
-	twQueue = queue
+	twAdminQueue = adminQueue
+	twBgQueue = bgQueue
 	twCtx = ctx
 	twCancel = cancel
 	twDone = done
 
-	go runTrafficWriter(ctx, queue, done)
+	go runTrafficWriter(ctx, adminQueue, bgQueue, done)
 }
 
 // StopTrafficWriter cancels the writer context and waits for the goroutine to
@@ -89,27 +92,66 @@ func StopTrafficWriter() {
 }
 
 func clearTrafficWriterState() {
-	twQueue = nil
+	twAdminQueue = nil
+	twBgQueue = nil
 	twCtx = nil
 	twCancel = nil
 	twDone = nil
 }
 
-func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done chan struct{}) {
+// trafficWriterQueueLen is the test's view of both lanes' pending requests.
+func trafficWriterQueueLen() int {
+	twMu.Lock()
+	defer twMu.Unlock()
+	return len(twAdminQueue) + len(twBgQueue)
+}
+
+// runTrafficWriter serves both lanes on one goroutine, so no two writes ever
+// run side by side — the ordering that kept the traffic poll and client
+// mutations from deadlocking Postgres (c5d31de4e). The admin lane is
+// non-blockingly preferred on every iteration, so a queued panel-initiated
+// client mutation no longer waits behind the periodic traffic poll and node
+// sync merges that keep arriving every 5s (#6035): those run only when no
+// admin write is waiting. Within each lane the order stays FIFO.
+func runTrafficWriter(ctx context.Context, adminQueue, bgQueue chan *trafficWriteRequest, done chan struct{}) {
 	defer close(done)
 	for {
 		select {
-		case req := <-queue:
+		case req := <-adminQueue:
 			req.done <- safeApply(req.apply)
 		case <-ctx.Done():
-			for {
-				select {
-				case req := <-queue:
-					req.done <- safeApply(req.apply)
-				default:
-					return
-				}
+			drainTrafficWriter(adminQueue, bgQueue)
+			return
+		default:
+			select {
+			case req := <-adminQueue:
+				req.done <- safeApply(req.apply)
+			case req := <-bgQueue:
+				req.done <- safeApply(req.apply)
+			case <-ctx.Done():
+				drainTrafficWriter(adminQueue, bgQueue)
+				return
 			}
+		}
+	}
+}
+
+// drainTrafficWriter finishes the requests already queued on shutdown, as the
+// single-queue writer used to; admin work goes first, then the background.
+// Each lane's select stays non-blocking: a lane that is empty when the drain
+// reaches it is empty for good, and blocking would hold the stop path.
+func drainTrafficWriter(adminQueue, bgQueue chan *trafficWriteRequest) {
+	for {
+		select {
+		case req := <-adminQueue:
+			req.done <- safeApply(req.apply)
+		default:
+		}
+		select {
+		case req := <-bgQueue:
+			req.done <- safeApply(req.apply)
+		default:
+			return
 		}
 	}
 }
@@ -167,13 +209,31 @@ func safeApply(fn func() error) (err error) {
 	return fn()
 }
 
+// submitTrafficWrite runs fn on the serial writer's admin lane, ahead of any
+// queued periodic work (the traffic poll, the node sync merges).
 func submitTrafficWrite(fn func() error) error {
+	return submitTrafficWriteLane(fn, false)
+}
+
+// submitTrafficWriteBackground runs fn on the serial writer's periodic lane:
+// the @every 5s traffic poll and the per-node snapshot merges. It is served
+// only when no admin-lane write is queued, so an operator's save or reset
+// never waits behind a batch of node merges, while both lanes still run one
+// at a time and the poll never races a client mutation.
+func submitTrafficWriteBackground(fn func() error) error {
+	return submitTrafficWriteLane(fn, true)
+}
+
+func submitTrafficWriteLane(fn func() error, background bool) error {
 	req := &trafficWriteRequest{apply: fn, done: make(chan error, 1)}
 
 	twMu.Lock()
-	queue := twQueue
+	queue := twAdminQueue
 	ctx := twCtx
 	done := twDone
+	if background {
+		queue = twBgQueue
+	}
 	if queue == nil || ctx == nil || done == nil {
 		twMu.Unlock()
 		return safeApply(fn)
