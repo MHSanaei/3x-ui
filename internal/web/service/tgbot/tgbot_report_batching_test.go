@@ -288,9 +288,10 @@ func TestNotifyExhaustedLooksUpEachIDOnce(t *testing.T) {
 	}
 }
 
-func TestServerUsageInfoShowsUnavailableUptime(t *testing.T) {
+func TestServerUsageInfoShowsUnavailableMetrics(t *testing.T) {
 	bundle := i18n.NewBundle(language.English)
 	_ = bundle.AddMessages(language.English, &i18n.Message{ID: "tgbot.messages.serverUpTime", Other: "Uptime: {{.UpTime}} {{.Unit}}\n"}, &i18n.Message{ID: "tgbot.days", Other: "days"})
+	_ = bundle.AddMessages(language.English, &i18n.Message{ID: "tgbot.messages.traffic", Other: "Traffic: {{.Total}}\n"}, &i18n.Message{ID: "pages.settings.networkTrafficUnavailable", Other: "NETWORK UNAVAILABLE"})
 	oldLocale := locale.LocalizerBot
 	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en")
 	t.Cleanup(func() { locale.LocalizerBot = oldLocale })
@@ -308,20 +309,22 @@ func TestServerUsageInfoShowsUnavailableUptime(t *testing.T) {
 		serverStatsCache.data, serverStatsCache.timestamp = oldStats, oldStatsTime
 		serverStatsCache.mutex.Unlock()
 	})
-	for _, unavailable := range []bool{true, false} {
-		t.Run(map[bool]string{true: "unavailable", false: "valid zero"}[unavailable], func(t *testing.T) {
+	for _, tc := range []struct{ name, metric, want string }{
+		{"unavailable uptime", "uptime", "Uptime: —"},
+		{"valid uptime zero", "", "Uptime: 0 days"},
+		{"unavailable traffic", "netTraffic", "NETWORK UNAVAILABLE"},
+		{"valid traffic zero", "", "Traffic: 0.00B"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			bot := &Tgbot{}
 			status := &service.Status{Loads: []float64{0, 0, 0}}
-			if unavailable {
-				status.UnavailableMetrics = []string{"uptime"}
+			if tc.metric != "" {
+				status.UnavailableMetrics = []string{tc.metric}
 			}
 			bot.setCachedStatus(status)
 			bot.setCachedServerStats("")
 			info := bot.prepareServerUsageInfo()
-			want := "Uptime: 0 days"
-			if unavailable {
-				want = "Uptime: —"
-			}
+			want := tc.want
 			if !strings.Contains(info, want) {
 				t.Fatalf("report did not contain %q: %s", want, info)
 			}

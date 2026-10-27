@@ -2,6 +2,7 @@ export const keys = {
   sponsors: () => ['sponsors'] as const,
   server: {
     status: () => ['server', 'status'] as const,
+    networkInterfaces: () => ['server', 'networkInterfaces'] as const,
     fail2banStatus: () => ['server', 'fail2banStatus'] as const,
   },
   nodes: {

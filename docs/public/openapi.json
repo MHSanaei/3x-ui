@@ -152,6 +152,19 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
+            "type": "string"
+          },
           "nodeDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -648,6 +661,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
@@ -941,6 +956,19 @@
             "type": "string"
           },
           "ldapVlessField": {
+            "type": "string"
+          },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
             "type": "string"
           },
           "nodeDownThreshold": {
@@ -1447,6 +1475,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
@@ -3608,6 +3638,72 @@
         ],
         "type": "object"
       },
+      "NetworkInterfaceOption": {
+        "properties": {
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "up": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "up"
+        ],
+        "type": "object"
+      },
+      "NetworkInterfacesResponse": {
+        "properties": {
+          "automatic": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "automaticError": {
+            "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterfaceOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "automatic",
+          "automaticError",
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "NetworkTrafficSelection": {
+        "properties": {
+          "available": {
+            "example": true,
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "mode": {
+            "example": "manual",
+            "type": "string"
+          },
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "error",
+          "mode",
+          "name"
+        ],
+        "type": "object"
+      },
       "NewUUIDResponse": {
         "properties": {
           "uuid": {
@@ -4744,6 +4840,99 @@
         },
         "required": [
           "sponsors"
+        ],
+        "type": "object"
+      },
+      "Status": {
+        "description": "Status represents comprehensive system and application status information.\nIt includes CPU, memory, disk, network statistics, and Xray process status.",
+        "properties": {
+          "amneziawg": {
+            "description": "AmneziaWG gates the overview's AmneziaWG log view: Configured stays true\nwhile an inbound exists but its embedded interface isn't up yet, which\nis exactly when that view's event lines are worth reading."
+          },
+          "appStats": {},
+          "cpu": {
+            "type": "number"
+          },
+          "cpuCores": {
+            "type": "integer"
+          },
+          "cpuSpeedMhz": {
+            "type": "number"
+          },
+          "disk": {},
+          "diskIO": {},
+          "diskTraffic": {},
+          "loads": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "logicalPro": {
+            "type": "integer"
+          },
+          "mem": {},
+          "netIO": {},
+          "netTraffic": {},
+          "networkInterface": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NetworkTrafficSelection"
+              }
+            ],
+            "nullable": true
+          },
+          "panelGuid": {
+            "type": "string"
+          },
+          "panelVersion": {
+            "type": "string"
+          },
+          "publicIP": {},
+          "resourceScope": {
+            "type": "string"
+          },
+          "swap": {},
+          "tcpCount": {
+            "type": "integer"
+          },
+          "udpCount": {
+            "type": "integer"
+          },
+          "unavailableMetrics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uptime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "xray": {}
+        },
+        "required": [
+          "amneziawg",
+          "appStats",
+          "cpu",
+          "cpuCores",
+          "cpuSpeedMhz",
+          "disk",
+          "diskIO",
+          "diskTraffic",
+          "loads",
+          "logicalPro",
+          "mem",
+          "netIO",
+          "netTraffic",
+          "panelGuid",
+          "panelVersion",
+          "publicIP",
+          "swap",
+          "tcpCount",
+          "udpCount",
+          "uptime",
+          "xray"
         ],
         "type": "object"
       },
@@ -6458,39 +6647,42 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/Status"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "cpu": 12.5,
-                    "mem": {
-                      "current": 2147483648,
-                      "total": 8589934592
-                    },
-                    "swap": {
-                      "current": 0,
-                      "total": 4294967296
-                    },
-                    "disk": {
-                      "current": 53687091200,
-                      "total": 268435456000
-                    },
-                    "netIO": {
-                      "up": 1073741824,
-                      "down": 2147483648
-                    },
-                    "xray": {
-                      "state": "running",
-                      "version": "v25.10.31"
-                    },
-                    "tcpCount": 42,
-                    "load": {
-                      "load1": 0.5,
-                      "load5": 0.3,
-                      "load15": 0.2
-                    }
+                    "amneziawg": null,
+                    "appStats": null,
+                    "cpu": 0,
+                    "cpuCores": 0,
+                    "cpuSpeedMhz": 0,
+                    "disk": null,
+                    "diskIO": null,
+                    "diskTraffic": null,
+                    "loads": [
+                      0
+                    ],
+                    "logicalPro": 0,
+                    "mem": null,
+                    "netIO": null,
+                    "netTraffic": null,
+                    "networkInterface": null,
+                    "panelGuid": "",
+                    "panelVersion": "",
+                    "publicIP": null,
+                    "resourceScope": "",
+                    "swap": null,
+                    "tcpCount": 0,
+                    "udpCount": 0,
+                    "unavailableMetrics": [
+                      ""
+                    ],
+                    "uptime": 0,
+                    "xray": null
                   }
                 }
               }
@@ -6530,6 +6722,51 @@
                     "installed": true,
                     "usable": true,
                     "windows": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/networkInterfaces": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.",
+        "operationId": "get_panel_api_server_networkInterfaces",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/NetworkInterfacesResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "automatic": "eth0",
+                    "automaticError": "",
+                    "interfaces": [
+                      {
+                        "name": "eth0",
+                        "up": true
+                      }
+                    ]
                   }
                 }
               }
@@ -7860,7 +8097,7 @@
                   "keepHostSettings": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Keep this machine's addresses, certificates and node identity. Default true."
+                    "description": "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true."
                   }
                 },
                 "required": [

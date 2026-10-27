@@ -126,6 +126,19 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "networkTrafficInterface": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "networkTrafficMode": {
+        "enum": [
+          "legacy",
+          "auto",
+          "manual"
+        ],
+        "example": "legacy",
+        "type": "string"
+      },
       "nodeDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -622,6 +635,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "networkTrafficInterface",
+      "networkTrafficMode",
       "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
@@ -915,6 +930,19 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "ldapVlessField": {
+        "type": "string"
+      },
+      "networkTrafficInterface": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "networkTrafficMode": {
+        "enum": [
+          "legacy",
+          "auto",
+          "manual"
+        ],
+        "example": "legacy",
         "type": "string"
       },
       "nodeDownThreshold": {
@@ -1421,6 +1449,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "networkTrafficInterface",
+      "networkTrafficMode",
       "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
@@ -3582,6 +3612,72 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "NetworkInterfaceOption": {
+    "properties": {
+      "name": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "up": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "name",
+      "up"
+    ],
+    "type": "object"
+  },
+  "NetworkInterfacesResponse": {
+    "properties": {
+      "automatic": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "automaticError": {
+        "type": "string"
+      },
+      "interfaces": {
+        "items": {
+          "$ref": "#/components/schemas/NetworkInterfaceOption"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "automatic",
+      "automaticError",
+      "interfaces"
+    ],
+    "type": "object"
+  },
+  "NetworkTrafficSelection": {
+    "properties": {
+      "available": {
+        "example": true,
+        "type": "boolean"
+      },
+      "error": {
+        "type": "string"
+      },
+      "mode": {
+        "example": "manual",
+        "type": "string"
+      },
+      "name": {
+        "example": "eth0",
+        "type": "string"
+      }
+    },
+    "required": [
+      "available",
+      "error",
+      "mode",
+      "name"
+    ],
+    "type": "object"
+  },
   "NewUUIDResponse": {
     "properties": {
       "uuid": {
@@ -4718,6 +4814,99 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "sponsors"
+    ],
+    "type": "object"
+  },
+  "Status": {
+    "description": "Status represents comprehensive system and application status information.\nIt includes CPU, memory, disk, network statistics, and Xray process status.",
+    "properties": {
+      "amneziawg": {
+        "description": "AmneziaWG gates the overview's AmneziaWG log view: Configured stays true\nwhile an inbound exists but its embedded interface isn't up yet, which\nis exactly when that view's event lines are worth reading."
+      },
+      "appStats": {},
+      "cpu": {
+        "type": "number"
+      },
+      "cpuCores": {
+        "type": "integer"
+      },
+      "cpuSpeedMhz": {
+        "type": "number"
+      },
+      "disk": {},
+      "diskIO": {},
+      "diskTraffic": {},
+      "loads": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "logicalPro": {
+        "type": "integer"
+      },
+      "mem": {},
+      "netIO": {},
+      "netTraffic": {},
+      "networkInterface": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NetworkTrafficSelection"
+          }
+        ],
+        "nullable": true
+      },
+      "panelGuid": {
+        "type": "string"
+      },
+      "panelVersion": {
+        "type": "string"
+      },
+      "publicIP": {},
+      "resourceScope": {
+        "type": "string"
+      },
+      "swap": {},
+      "tcpCount": {
+        "type": "integer"
+      },
+      "udpCount": {
+        "type": "integer"
+      },
+      "unavailableMetrics": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "uptime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "xray": {}
+    },
+    "required": [
+      "amneziawg",
+      "appStats",
+      "cpu",
+      "cpuCores",
+      "cpuSpeedMhz",
+      "disk",
+      "diskIO",
+      "diskTraffic",
+      "loads",
+      "logicalPro",
+      "mem",
+      "netIO",
+      "netTraffic",
+      "panelGuid",
+      "panelVersion",
+      "publicIP",
+      "swap",
+      "tcpCount",
+      "udpCount",
+      "uptime",
+      "xray"
     ],
     "type": "object"
   },

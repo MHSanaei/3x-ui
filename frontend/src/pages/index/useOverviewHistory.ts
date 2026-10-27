@@ -163,10 +163,9 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
       for (const key of SERIES_KEYS) {
         const scoped = key === 'cpu' || key === 'swap';
         const previous = scoped && scopeChanged ? [] : prev.series[key];
-        next.series[key] =
-          !scoped || status.metricAvailable(key)
-            ? tailWindow(previous.concat(point[key]))
-            : previous;
+        next.series[key] = status.metricAvailable(key)
+          ? tailWindow(previous.concat(point[key]))
+          : previous;
       }
       return next;
     });
