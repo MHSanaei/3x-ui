@@ -301,7 +301,8 @@ ip_ssl_issue_and_install() (
     umask 077
     mkdir -p "$cert_dir" || return 1
     stage=$(mktemp -d "$cert_dir/.xui-install.XXXXXX") || return 1
-    # shellcheck disable=SC2329
+    # Invoked indirectly by the EXIT trap; older ShellCheck reports SC2317.
+    # shellcheck disable=SC2317,SC2329
     ip_ssl_install_cleanup() {
         restored=1
         if ((attempted && !installed)); then

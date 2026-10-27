@@ -12,9 +12,9 @@ source /dev/stdin < <(awk '/^# BEGIN GENERATED IP SSL HELPERS/ {block=1;next} /^
 source_function "$ROOT/install.sh" prompt_or_default
 source_function "$ROOT/install.sh" prompt_and_setup_ssl
 # Invoked by the real installer function loaded above, before the failure stubs.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 setup_ip_certificate() { captured="${2:-}"; called=1; }
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 systemctl() { stopped=1; }
 export NONINTERACTIVE=1 XUI_SSL_MODE=ip XUI_SSL_IPV6='not:ipv6'
 called=0; stopped=0
