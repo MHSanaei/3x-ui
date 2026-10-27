@@ -718,7 +718,7 @@
         "shareAddr": "Endereço de compartilhamento personalizado",
         "shareAddrHelp": "Usado apenas quando a estratégia de endereço de compartilhamento é Personalizada. Informe um host ou IP sem esquema nem porta.",
         "subSortIndex": "Ordem na assinatura",
-        "subSortIndexHelp": "Posição dos links desta entrada na saída da assinatura (página de assinatura e aplicativos cliente). Valores menores vêm primeiro; valores iguais mantêm a ordem de criação. Não afeta a lista de entradas do painel.",
+        "subSortIndexHelp": "No modo Ordem das entradas, valores menores colocam esta entrada antes. No modo Ordem dos hosts, os hosts têm prioridade; este valor ordena entradas do mesmo grupo de hosts e entradas sem hosts aplicáveis. Não afeta a lista de entradas do painel.",
         "excludeFromSub": "Excluir das assinaturas",
         "excludeFromSubHelp": "Oculta os links deste inbound na saída de assinatura, mantendo o inbound habilitado e operacional.",
         "disableFlow": "Desativar o flow XTLS",
@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "A privacidade em grupos está ativada",
       "tgPrivacyOnDesc": "Este bot responde apenas no chat privado, então ignora os grupos de propósito. A privacidade em grupos só decide se o bot pode ler mensagens do grupo, o que ele não usa.",
       "subHostSortMode": "Ordem dos nós da assinatura",
-      "subHostSortInbound": "Ordem das entradas (padrão)",
-      "subHostSortHosts": "Ordem dos hosts",
+      "subHostSortInbound": "Ordem das entradas",
+      "subHostSortHosts": "Ordem dos hosts (padrão)",
       "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação."
     },
     "xray": {

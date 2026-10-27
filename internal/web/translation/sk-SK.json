@@ -720,7 +720,7 @@
         "shareAddr": "Vlastná adresa pre odkazy",
         "shareAddrHelp": "Použije sa iba pri voľbe Vlastné. Zadajte názov hostiteľa alebo IP bez protokolu a portu.",
         "subSortIndex": "Poradie v odbere konfigurácií",
-        "subSortIndexHelp": "Poradie odkazov tohto vstupu v odbere (klientska stránka a aplikácie). Nižšie hodnoty sa zobrazia skôr. Pri rovnakých hodnotách sa zachová poradie vytvorenia. Zoznam vstupov v paneli sa nemení.",
+        "subSortIndexHelp": "V režime poradia inboundov nižšie hodnoty posunú tento inbound dopredu. V režime poradia hostiteľov majú prednosť hostitelia; táto hodnota zoradí inboundy v rovnakej skupine hostiteľov a inboundy bez príslušných hostiteľov. Zoznam inboundov v paneli sa nemení.",
         "excludeFromSub": "Vynechať z odberu konfigurácií",
         "excludeFromSubHelp": "Skryť odkazy tohto vstupu v odbere konfigurácií. Vstup zostane zapnutý a funkčný.",
         "disableFlow": "Vypnúť režim XTLS flow",
@@ -1958,8 +1958,8 @@
       "tgPrivacyOn": "Group Privacy je zapnuté",
       "tgPrivacyOnDesc": "Tento bot odpovedá len v súkromnom chate, takže skupiny zámerne ignoruje. Group Privacy určuje len to, či bot smie čítať správy v skupinách, čo nepoužíva.",
       "subHostSortMode": "Poradie uzlov v predplatnom",
-      "subHostSortInbound": "Poradie inboundov (predvolené)",
-      "subHostSortHosts": "Poradie hostiteľov",
+      "subHostSortInbound": "Poradie inboundov",
+      "subHostSortHosts": "Poradie hostiteľov (predvolené)",
       "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
     },
     "xray": {

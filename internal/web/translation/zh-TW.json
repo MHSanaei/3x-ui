@@ -718,7 +718,7 @@
         "shareAddr": "自訂分享地址",
         "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
         "subSortIndex": "訂閱排序",
-        "subSortIndexHelp": "此入站的連結在訂閱輸出（訂閱頁面和客戶端應用）中的位置。數值越小越靠前；數值相同時保持建立順序。不影響面板中的入站清單。",
+        "subSortIndexHelp": "在入站順序模式下，數值越小，此入站越靠前。在主機順序模式下，主機優先；此數值用於排列同一主機群組中的入站和沒有適用主機的入站。不影響面板中的入站清單。",
         "excludeFromSub": "從訂閱中排除",
         "excludeFromSubHelp": "從訂閱輸出中隱藏此入站的連結，同時保持入站啟用並繼續運作。",
         "disableFlow": "停用 XTLS flow",
@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "群組隱私已開啟",
       "tgPrivacyOnDesc": "此機器人只在私聊中回覆，因此會刻意忽略群組。群組隱私僅決定機器人能否讀取群組訊息，而它並不使用該權限。",
       "subHostSortMode": "訂閱節點排序",
-      "subHostSortInbound": "入站順序（預設）",
-      "subHostSortHosts": "主機順序",
+      "subHostSortInbound": "入站順序",
+      "subHostSortHosts": "主機順序（預設）",
       "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。"
     },
     "xray": {

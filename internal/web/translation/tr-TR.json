@@ -667,7 +667,7 @@
         "shareAddr": "Özel paylaşım adresi",
         "shareAddrHelp": "Yalnızca paylaşım adresi stratejisi Özel olduğunda kullanılır. Şema veya port olmadan bir ana makine ya da IP girin.",
         "subSortIndex": "Abonelikte sıralama",
-        "subSortIndexHelp": "Bu gelen bağlantının linklerinin abonelik çıktısındaki (abonelik sayfası ve istemci uygulamaları) konumu. Küçük değerler önce gelir; eşit değerlerde oluşturulma sırası korunur. Paneldeki gelen bağlantı listesini etkilemez.",
+        "subSortIndexHelp": "Gelen bağlantı sırası modunda küçük değerler bu gelen bağlantıyı öne alır. Ana bilgisayar sırası modunda ana bilgisayarlar önceliklidir; bu değer aynı ana bilgisayar grubundaki gelen bağlantıları ve uygun ana bilgisayarı olmayan gelen bağlantıları sıralar. Paneldeki gelen bağlantı listesini etkilemez.",
         "excludeFromSub": "Aboneliklerden hariç tut",
         "excludeFromSubHelp": "Bu inbound bağlantılarını abonelik çıktısından gizler; inbound etkin ve çalışır durumda kalır.",
         "disableFlow": "XTLS akışını devre dışı bırak",
@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Grup gizliliği açık",
       "tgPrivacyOnDesc": "Bu bot yalnızca özel sohbette yanıt verir, bu yüzden grupları bilerek yok sayar. Grup gizliliği yalnızca botun grup mesajlarını okuyup okuyamayacağını belirler; bot bunu kullanmaz.",
       "subHostSortMode": "Abonelik düğümü sıralaması",
-      "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
-      "subHostSortHosts": "Ana bilgisayar sırası",
+      "subHostSortInbound": "Gelen bağlantı sırası",
+      "subHostSortHosts": "Ana bilgisayar sırası (varsayılan)",
       "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
     },
     "xray": {

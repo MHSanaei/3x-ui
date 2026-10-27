@@ -718,7 +718,7 @@
         "shareAddr": "Địa chỉ chia sẻ tùy chỉnh",
         "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
         "subSortIndex": "Thứ tự trong gói đăng ký",
-        "subSortIndexHelp": "Vị trí liên kết của inbound này trong nội dung gói đăng ký (trang đăng ký và ứng dụng khách). Giá trị nhỏ hơn xếp trước; giá trị bằng nhau giữ thứ tự tạo. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
+        "subSortIndexHelp": "Trong chế độ Thứ tự kết nối vào, giá trị nhỏ hơn đặt inbound này lên trước. Trong chế độ Thứ tự máy chủ, máy chủ được ưu tiên; giá trị này sắp xếp các inbound trong cùng nhóm máy chủ và các inbound không có máy chủ phù hợp. Không ảnh hưởng đến danh sách inbound trong bảng điều khiển.",
         "excludeFromSub": "Loại khỏi subscription",
         "excludeFromSubHelp": "Ẩn liên kết inbound này khỏi đầu ra subscription nhưng vẫn giữ inbound được bật và hoạt động.",
         "disableFlow": "Tắt luồng XTLS",
@@ -1837,8 +1837,8 @@
       "tgPrivacyOn": "Quyền riêng tư nhóm đang bật",
       "tgPrivacyOnDesc": "Bot này chỉ trả lời trong trò chuyện riêng, nên nhóm bị bỏ qua có chủ đích. Quyền riêng tư nhóm chỉ quyết định bot có được đọc tin nhắn nhóm hay không, và bot không dùng đến.",
       "subHostSortMode": "Thứ tự nút đăng ký",
-      "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
-      "subHostSortHosts": "Thứ tự máy chủ",
+      "subHostSortInbound": "Thứ tự kết nối vào",
+      "subHostSortHosts": "Thứ tự máy chủ (mặc định)",
       "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
     },
     "xray": {

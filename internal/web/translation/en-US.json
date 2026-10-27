@@ -720,7 +720,7 @@
         "shareAddr": "Custom share address",
         "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
         "subSortIndex": "Subscription sort order",
-        "subSortIndexHelp": "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list.",
+        "subSortIndexHelp": "Lower values put this inbound earlier in Inbound order mode. In Hosts order mode, Hosts take priority; this value sorts inbounds within the same Host group and inbounds without applicable Hosts. Does not affect the panel inbound list.",
         "excludeFromSub": "Exclude from subscriptions",
         "excludeFromSubHelp": "Hide this inbound's links from subscription output while keeping the inbound enabled and operational.",
         "disableFlow": "Disable XTLS flow",
@@ -1958,8 +1958,8 @@
       "tgPrivacyOn": "Group Privacy is on",
       "tgPrivacyOnDesc": "This bot answers in private chat only, so groups are ignored on purpose. Group Privacy only decides whether the bot may read group messages, which it does not use.",
       "subHostSortMode": "Subscription Node Ordering",
-      "subHostSortInbound": "Inbound order (default)",
-      "subHostSortHosts": "Hosts order",
+      "subHostSortInbound": "Inbound order",
+      "subHostSortHosts": "Hosts order (default)",
       "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
     },
     "xray": {
