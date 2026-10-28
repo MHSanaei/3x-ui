@@ -1278,6 +1278,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	defer InvalidateSubData()
 	inbound.Id = 0
+	if err := normalizeVlessFallbacks(inbound); err != nil {
+		return nil, false, err
+	}
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -1999,6 +2002,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Restore the stored NodeID before any host-scoped check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	if err := normalizeVlessFallbacks(inbound); err != nil {
+		return nil, false, err
+	}
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -2057,6 +2063,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 		// On the clients actually saved: a protocol switch keeps the stored ones.
 		if err := s.validateUpdatedInboundClients(inbound, stored); err != nil {
+			return err
+		}
+		if err := validateVlessManagedFallbacks(tx, inbound); err != nil {
 			return err
 		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)
@@ -2366,12 +2375,18 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 	}
 
 	built := *inbound
+	if err := normalizeVlessFallbacks(&built); err != nil {
+		return nil, err
+	}
+	if err := validateVlessManagedFallbacks(tx, &built); err != nil {
+		return nil, err
+	}
 	settings := map[string]any{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
 		return nil, err
 	}
 
-	if !inboundCanHostFallbacks(inbound) {
+	if !inboundCanHostFallbacks(&built) {
 		return &built, nil
 	}
 	fallbacks, err := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)

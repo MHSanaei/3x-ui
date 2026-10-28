@@ -311,7 +311,9 @@
         "pickInbound": "Vyberte vstup",
         "matchAny": "ľubovoľné",
         "destPlaceholder": "automaticky (adresa:port vnoreného vstupu)",
-        "needsTls": "Náhradné ciele sú dostupné po výbere TLS alebo Reality na karte Bezpečnosť (iba VLESS/Trojan cez RAW)."
+        "needsTls": "Náhradné ciele sú dostupné po výbere TLS alebo Reality na karte Bezpečnosť (iba VLESS/Trojan cez RAW).",
+        "decryptionConflict": "Fallback nemožno použiť s aktívnym serverovým dešifrovaním VLESS. Pred jeho zapnutím odstráňte a uložte pravidlá fallback alebo vypnite dešifrovanie.",
+        "saveFailed": "Pravidlá fallback sa nepodarilo načítať alebo uložiť. Koncept zostáva otvorený; skontrolujte chybu a skúste to znova."
       },
       "protocol": "Protokol",
       "port": "Port",

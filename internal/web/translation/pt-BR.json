@@ -311,7 +311,9 @@
         "pickInbound": "Escolha um inbound",
         "matchAny": "qualquer",
         "destPlaceholder": "automático (listen:porta do filho)",
-        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW)."
+        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW).",
+        "decryptionConflict": "Fallbacks não são compatíveis com a descriptografia VLESS ativa no servidor. Remova e salve as regras antes de ativá-la ou desative a descriptografia.",
+        "saveFailed": "Não foi possível carregar ou salvar as regras de fallback. O rascunho continua aberto; verifique o erro e tente novamente."
       },
       "protocol": "Protocolo",
       "port": "Porta",

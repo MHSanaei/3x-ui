@@ -311,7 +311,9 @@
         "pickInbound": "اختر inbound",
         "matchAny": "أي",
         "destPlaceholder": "تلقائي (listen:port للفرع)",
-        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW).",
+        "decryptionConflict": "لا يمكن استخدام fallbacks مع فك تشفير VLESS النشط على الخادم. احذف قواعد fallback واحفظها قبل تفعيل فك التشفير، أو عطّل فك التشفير.",
+        "saveFailed": "تعذر تحميل قواعد fallback أو حفظها. بقيت المسودة مفتوحة؛ أعد المحاولة بعد مراجعة الخطأ."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",

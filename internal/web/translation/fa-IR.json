@@ -311,7 +311,9 @@
         "pickInbound": "یک اینباند انتخاب کنید",
         "matchAny": "همه",
         "destPlaceholder": "خودکار (listen:port فرزند)",
-        "needsTls": "فال‌بک‌ها پس از انتخاب TLS یا Reality در برگه‌ی امنیت در دسترس می‌شوند (فقط VLESS/Trojan روی RAW)."
+        "needsTls": "فال‌بک‌ها پس از انتخاب TLS یا Reality در برگه‌ی امنیت در دسترس می‌شوند (فقط VLESS/Trojan روی RAW).",
+        "decryptionConflict": "Fallback با decryption فعال VLESS سازگار نیست. پیش از فعال‌کردن decryption، قوانین fallback را حذف و ذخیره کنید یا decryption را غیرفعال کنید.",
+        "saveFailed": "بارگیری یا ذخیره قوانین fallback انجام نشد. تغییرات فرم حفظ شده‌اند؛ پس از بررسی خطا دوباره تلاش کنید."
       },
       "protocol": "پروتکل",
       "port": "پورت",

@@ -71,12 +71,12 @@ jobs:
       - name: PostgreSQL durable-first tests
         run: |
           set -o pipefail
-          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$' -count=1 -v | tee /tmp/postgres-durable-first.log
+          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$|^TestVlessManagedFallbackConflictPostgres$' -count=1 -v | tee /tmp/postgres-durable-first.log
           # Count passes rather than assert no SKIP: a renamed or deleted test
           # prints "no tests to run" and exits 0, leaving the step green for nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-durable-first.log || true)
-          if [ "$passed" -lt 4 ]; then
-            echo "expected at least 4 passing durable-first tests, got $passed" >&2
+          if [ "$passed" -lt 5 ]; then
+            echo "expected at least 5 passing durable-first tests, got $passed" >&2
             exit 1
           fi
 

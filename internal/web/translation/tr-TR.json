@@ -311,7 +311,9 @@
         "pickInbound": "Bir Gelen Bağlantı Seç",
         "matchAny": "herhangi",
         "destPlaceholder": "otomatik (child listen:port)",
-        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan)."
+        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan).",
+        "decryptionConflict": "Fallback, etkin sunucu tarafı VLESS şifre çözme ile kullanılamaz. Şifre çözmeyi etkinleştirmeden önce fallback kurallarını silip kaydedin veya şifre çözmeyi kapatın.",
+        "saveFailed": "Fallback kuralları yüklenemedi veya kaydedilemedi. Taslak açık kaldı; hatayı kontrol edip tekrar deneyin."
       },
       "protocol": "Protokol",
       "port": "Port",
