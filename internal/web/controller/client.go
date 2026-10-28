@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -128,35 +130,39 @@ func (a *ClientController) listPaged(c *gin.Context) {
 	jsonObj(c, resp, nil)
 }
 
-func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, error) {
+func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (*ClientPayload, *xray.ClientTraffic, error) {
 	inboundIds, err := a.clientService.GetInboundIdsForRecord(rec.Id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	externalLinks, err := a.clientService.GetExternalLinksForRecord(rec.Id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	flow, err := a.clientService.EffectiveFlow(nil, rec.Id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	rec.Flow = flow
 	var usedTraffic int64
-	if t, tErr := a.inboundService.GetClientTrafficByEmail(rec.Email); tErr == nil && t != nil {
-		usedTraffic = t.Up + t.Down
+	traffic, trafficErr := a.inboundService.GetClientTrafficByEmail(rec.Email)
+	if trafficErr != nil {
+		traffic = nil
+	}
+	if traffic != nil {
+		usedTraffic = traffic.Up + traffic.Down
 	}
 	tunnelAllowedIPs, err := a.clientService.TunnelAllowedIPsByInbound(&a.inboundService, rec.Email, inboundIds)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return gin.H{
-		"client":           rec,
-		"inboundIds":       inboundIds,
-		"externalLinks":    externalLinks,
-		"usedTraffic":      usedTraffic,
-		"tunnelAllowedIPs": tunnelAllowedIPs,
-	}, nil
+	return &ClientPayload{
+		Client:           rec,
+		InboundIds:       inboundIds,
+		ExternalLinks:    externalLinks,
+		UsedTraffic:      usedTraffic,
+		TunnelAllowedIPs: tunnelAllowedIPs,
+	}, traffic, nil
 }
 
 func (a *ClientController) get(c *gin.Context) {
@@ -166,12 +172,17 @@ func (a *ClientController) get(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	payload, err := a.buildClientPayload(rec)
+	payload, traffic, err := a.buildClientPayload(rec)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	jsonObj(c, payload, nil)
+	detail := ClientDetail{ClientPayload: *payload}
+	if traffic != nil {
+		detail.UsedTraffic = effectiveTrafficUsed(traffic.Up, traffic.Down)
+		detail.DepletedAt, detail.DepletedReason = deriveClientDepletion(traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime, traffic.LastOnline, time.Now().UnixMilli())
+	}
+	jsonObj(c, detail, nil)
 }
 
 func (a *ClientController) getBySubId(c *gin.Context) {
@@ -183,9 +194,9 @@ func (a *ClientController) getBySubId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
+	results := make([]*ClientPayload, 0, len(records))
 	for _, rec := range records {
-		payload, err := a.buildClientPayload(rec)
+		payload, _, err := a.buildClientPayload(rec)
 		if err != nil {
 			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 			return
@@ -207,9 +218,9 @@ func (a *ClientController) getByTgId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
+	results := make([]*ClientPayload, 0, len(records))
 	for _, rec := range records {
-		payload, err := a.buildClientPayload(rec)
+		payload, _, err := a.buildClientPayload(rec)
 		if err != nil {
 			jsonMsg(c, I18nWeb(c, "get"), err)
 			return
@@ -669,7 +680,12 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
 		return
 	}
-	jsonObj(c, traffic, nil)
+	if traffic == nil {
+		jsonObj(c, nil, nil)
+		return
+	}
+	at, reason := deriveClientDepletion(traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime, traffic.LastOnline, time.Now().UnixMilli())
+	jsonObj(c, ClientTrafficDetail{ClientTraffic: *traffic, DepletedAt: at, DepletedReason: reason}, nil)
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {

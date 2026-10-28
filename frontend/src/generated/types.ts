@@ -450,6 +450,31 @@ export interface Client {
   updated_at?: number;
 }
 
+export interface ClientDetail {
+  client?: ClientRecord | null;
+  depletedAt: number;
+  depletedReason: string;
+  externalLinks: ClientExternalLink[];
+  inboundIds: number[];
+  tunnelAllowedIPs: Record<number, string>;
+  usedTraffic: number;
+}
+
+export interface ClientExternalLink {
+  clientId: number;
+  createdAt: number;
+  enable?: boolean | null;
+  expiryTime: number;
+  id: number;
+  kind: string;
+  lastFetchAt: number;
+  lastFetchError: string;
+  namePrefix: string;
+  remark: string;
+  sortIndex: number;
+  value: string;
+}
+
 export interface ClientInbound {
   clientId: number;
   createdAt: number;
@@ -465,6 +490,14 @@ export interface ClientPageResponse {
   pageSize: number;
   summary: ClientsSummary;
   total: number;
+}
+
+export interface ClientPayload {
+  client?: ClientRecord | null;
+  externalLinks: ClientExternalLink[];
+  inboundIds: number[];
+  tunnelAllowedIPs: Record<number, string>;
+  usedTraffic: number;
 }
 
 export interface ClientRecord {
@@ -550,6 +583,28 @@ export interface ClientSlim {
 }
 
 export interface ClientTraffic {
+  down: number;
+  email: string;
+  enable: boolean;
+  expiryTime: number;
+  id: number;
+  inboundId: number;
+  lastOnline: number;
+  lastSubFetch: number;
+  reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
+  resetWeekday: number;
+  subId: string;
+  total: number;
+  up: number;
+  uuid: string;
+}
+
+export interface ClientTrafficDetail {
+  depletedAt: number;
+  depletedReason: string;
   down: number;
   email: string;
   enable: boolean;

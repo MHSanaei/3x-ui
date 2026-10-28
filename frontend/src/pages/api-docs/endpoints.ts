@@ -65,6 +65,9 @@ export interface Section {
   endpoints: Endpoint[];
 }
 
+const clientDepletionDescription =
+  'Read-only depletedAt (Unix milliseconds) and depletedReason ("", "traffic", "expiry", "both") are derived from current effective global-aware usage and limits, regardless of enable state. They are not stored or historical audit data. Traffic exhaustion uses lastOnline as an approximate beginning; expiry alone uses the exact expiryTime boundary. When both limits are exceeded, depletedAt is the earlier of lastOnline and expiryTime if lastOnline is positive, otherwise expiryTime. Traffic-only depletion with unknown lastOnline returns 0; no depletion returns 0 and an empty reason. Zero/negative expiry is not an absolute deadline, and a nonpositive quota is unlimited. Existing global report freshness and per-direction maxima apply; overlapping sources are never added together. Global reports have no authoritative exhaustion timestamp. Resets, renewals and limit edits affect the next read without cleanup. These fields are exclusive to the two single-email detail and traffic endpoints.';
+
 // /inbounds/update replaces the whole row, so it takes the same payload as /add.
 const inboundBody =
   '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}';
@@ -1143,18 +1146,18 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/get/:email',
         summary:
           'Fetch one client by email, including the inbound IDs and external config IDs it is attached to.',
+        description: clientDepletionDescription,
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
         ],
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
+        responseSchema: 'ClientDetail',
       },
       {
         method: 'GET',
         path: '/panel/api/clients/get/subId/:subId',
         summary: 'Fetch clients by subscription ID.',
         description:
-          'Matches the exact subscription ID and orders results by client ID. Returns an array of the same payloads as GET /clients/get/:email, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.',
+          'Matches the exact subscription ID and orders results by client ID. Returns an array of base client payloads without per-email depletion metadata, since multiple clients can share a subscription ID. Includes disabled, expired and unattached clients. An unknown ID returns HTTP 200 with success:false, obj:null and a record-not-found message, matching the email lookup. Requires an admin token or a panel login session.',
         params: [
           {
             name: 'subId',
@@ -1645,6 +1648,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/traffic/:email',
         summary: 'Traffic counters for a client identified by email.',
+        description: clientDepletionDescription,
         params: [
           {
             name: 'email',
@@ -1653,7 +1657,7 @@ export const sections: readonly Section[] = [
             desc: 'Client email (unique across the panel).',
           },
         ],
-        responseSchema: 'ClientTraffic',
+        responseSchema: 'ClientTrafficDetail',
       },
       {
         method: 'GET',

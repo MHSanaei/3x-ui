@@ -1884,6 +1884,117 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "ClientDetail": {
+    "properties": {
+      "client": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ClientRecord"
+          }
+        ],
+        "nullable": true
+      },
+      "depletedAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "depletedReason": {
+        "type": "string"
+      },
+      "externalLinks": {
+        "items": {
+          "$ref": "#/components/schemas/ClientExternalLink"
+        },
+        "type": "array"
+      },
+      "inboundIds": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "tunnelAllowedIPs": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "usedTraffic": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "depletedAt",
+      "depletedReason",
+      "externalLinks",
+      "inboundIds",
+      "tunnelAllowedIPs",
+      "usedTraffic"
+    ],
+    "type": "object"
+  },
+  "ClientExternalLink": {
+    "description": "ClientExternalLink is a per-client entry surfaced in the client's\nsubscription. Two kinds:\n- \"link\": a single third-party share link (vless://, vmess://, trojan://,\nss://, hysteria2://, wireguard://). Emitted verbatim in raw subs; parsed\ninto an outbound/proxy for JSON and Clash.\n- \"subscription\": a remote subscription URL. The panel fetches it (cached),\ndecodes its links, and merges them into the client's subscription.",
+    "properties": {
+      "clientId": {
+        "type": "integer"
+      },
+      "createdAt": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "enable": {
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "type": "integer"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "lastFetchAt": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastFetchError": {
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "sortIndex": {
+        "type": "integer"
+      },
+      "value": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "clientId",
+      "createdAt",
+      "expiryTime",
+      "id",
+      "kind",
+      "lastFetchAt",
+      "lastFetchError",
+      "namePrefix",
+      "remark",
+      "sortIndex",
+      "value"
+    ],
+    "type": "object"
+  },
   "ClientInbound": {
     "properties": {
       "clientId": {
@@ -1955,6 +2066,48 @@ export const SCHEMAS: Record<string, unknown> = {
       "pageSize",
       "summary",
       "total"
+    ],
+    "type": "object"
+  },
+  "ClientPayload": {
+    "properties": {
+      "client": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ClientRecord"
+          }
+        ],
+        "nullable": true
+      },
+      "externalLinks": {
+        "items": {
+          "$ref": "#/components/schemas/ClientExternalLink"
+        },
+        "type": "array"
+      },
+      "inboundIds": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "tunnelAllowedIPs": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "usedTraffic": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "externalLinks",
+      "inboundIds",
+      "tunnelAllowedIPs",
+      "usedTraffic"
     ],
     "type": "object"
   },
@@ -2407,6 +2560,118 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
+      "down",
+      "email",
+      "enable",
+      "expiryTime",
+      "id",
+      "inboundId",
+      "lastOnline",
+      "lastSubFetch",
+      "reset",
+      "resetCount",
+      "resetDay",
+      "resetMax",
+      "resetWeekday",
+      "subId",
+      "total",
+      "up",
+      "uuid"
+    ],
+    "type": "object"
+  },
+  "ClientTrafficDetail": {
+    "properties": {
+      "depletedAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "depletedReason": {
+        "type": "string"
+      },
+      "down": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "user1",
+        "type": "string"
+      },
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 1735689600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "example": 14825,
+        "type": "integer"
+      },
+      "inboundId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "lastOnline": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastSubFetch": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "reset": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetCount": {
+        "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetDay": {
+        "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 disables monthly renewal.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetMax": {
+        "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetWeekday": {
+        "description": "ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.",
+        "example": 0,
+        "type": "integer"
+      },
+      "subId": {
+        "example": "i7tvdpeffi0hvvf1",
+        "type": "string"
+      },
+      "total": {
+        "example": 10737418240,
+        "format": "int64",
+        "type": "integer"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "uuid": {
+        "example": "e18c9a96-71bf-48d4-933f-8b9a46d4290c",
+        "type": "string"
+      }
+    },
+    "required": [
+      "depletedAt",
+      "depletedReason",
       "down",
       "email",
       "enable",
