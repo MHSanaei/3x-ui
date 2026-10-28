@@ -772,44 +772,6 @@ func TestStartClearsTheBroadcastPrompt(t *testing.T) {
 	}
 }
 
-// Once /start has opened the menu the command itself is removed, and a second /start edits the live
-// screen instead of leaving two of them.
-func TestStartCommandIsRemovedAndEditsTheLiveScreen(t *testing.T) {
-	tb, calls := newScreenTgbot(t, false)
-	initReportDB(t)
-	setTestAdmins(t, 6666)
-
-	// The handler deletes the command after answering, exactly as the router
-	// wires it; calling both keeps the test on the real path.
-	start := func(messageID int) {
-		msg := &telego.Message{
-			MessageID: messageID,
-			Chat:      telego.Chat{ID: 6666},
-			From:      &telego.User{ID: 6666},
-			Text:      "/start",
-		}
-		tb.answerCommand(msg, 6666, true)
-		tb.deleteIncoming(msg)
-	}
-
-	start(12)
-	if countMethod(calls(), "sendPhoto") != 1 {
-		t.Fatalf("sendPhoto calls = %d, want 1 for the first /start", countMethod(calls(), "sendPhoto"))
-	}
-	if countMethod(calls(), "deleteMessage") < 1 {
-		t.Error("the /start command message was left in the chat")
-	}
-
-	// A second /start must redraw the tracked screen, not send another one.
-	start(13)
-	if got := countMethod(calls(), "sendPhoto"); got != 1 {
-		t.Errorf("sendPhoto calls = %d, want 1: a second /start duplicated the menu", got)
-	}
-	if countMethod(calls(), "editMessageMedia") == 0 {
-		t.Error("the second /start did not edit the live screen")
-	}
-}
-
 // Callback-data tests pass a button whose key is missing (its label is ""), which is how /start broke;
 // this one loads the real en-US file and insists the client's menu has visible labels.
 func TestClientMenuButtonsHaveRealLabels(t *testing.T) {

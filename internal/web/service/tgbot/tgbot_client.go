@@ -365,7 +365,7 @@ func (t *Tgbot) clientOwnedByTgUser(tgUserID int64, email string) bool {
 }
 
 // getClientUsage retrieves and sends client usage information to the chat.
-func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
+func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, delivery screenDelivery, email ...string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {
 		logger.Warning(err)
@@ -382,7 +382,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 	// A client sees only its own card, and never the admin keyboard: every button
 	// on it (reset traffic, limits, IP limit, enable/disable) acts on an account.
 	if t.levelOf(tgUserID) != levelAdmin {
-		t.screenClientHome(chatId, tgUserID)
+		t.screenClientHome(chatId, tgUserID, delivery)
 		return
 	}
 
@@ -415,7 +415,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 	} else if len(traffics) > 0 {
 		rows = t.clientRows(traffics[0].Email)
 	}
-	t.renderScreen(chatId, t.newScreen("client", output, rows...))
+	t.renderScreen(chatId, t.newScreen("client", output, rows...), delivery)
 }
 
 // getCommonClientButtons returns the shared inline keyboard rows for the
