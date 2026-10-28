@@ -4,9 +4,10 @@ import { Alert, Button, Divider, Form, Space, Switch, Table, Tag, Typography } f
 import type { MessageInstance } from 'antd/es/message/interface';
 import { DeleteOutlined, SearchOutlined, SwapOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useWatch } from 'react-hook-form';
 
 import { HttpUtil } from '@/utils';
-import type { RealityScanResult, RealityWatchStatus } from '@/generated/types';
+import type { RealityScanResult, RealityWatchEntry, RealityWatchStatus } from '@/generated/types';
 import RealityTargetScannerModal from './RealityTargetScannerModal';
 import { REALITY_WATCH_MAX_SPARES, addSpare } from './realityWatch';
 
@@ -19,6 +20,8 @@ interface Props {
   onNode: boolean;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   message?: MessageInstance;
+  // a new inbound has no id yet: its spares go to the form and are saved after the create
+  onDraftChange?: (entry: RealityWatchEntry) => void;
 }
 
 export default function RealityWatchSection({
@@ -26,6 +29,7 @@ export default function RealityWatchSection({
   onNode,
   scanRealityCandidates,
   message,
+  onDraftChange,
 }: Props) {
   const { t } = useTranslation();
   const uid = useId();
@@ -36,6 +40,13 @@ export default function RealityWatchSection({
   const [busy, setBusy] = useState('');
   const [tests, setTests] = useState<Record<string, RealityScanResult>>({});
   const [scannerOpen, setScannerOpen] = useState(false);
+  const formTarget = useWatch({ name: 'streamSettings.realitySettings.target' }) as unknown;
+  const isDraft = !inboundId;
+  const currentTarget = isDraft
+    ? typeof formTarget === 'string'
+      ? formTarget
+      : ''
+    : (status?.target ?? '');
 
   const show = useCallback((st: RealityWatchStatus) => {
     setStatus(st);
@@ -57,16 +68,9 @@ export default function RealityWatchSection({
     });
   }, [inboundId, show]);
 
-  if (!inboundId) {
-    return (
-      <>
-        <Divider>{t('pages.inbounds.realityWatch.title')}</Divider>
-        <Typography.Paragraph type="secondary">
-          {t('pages.inbounds.realityWatch.saveFirst')}
-        </Typography.Paragraph>
-      </>
-    );
-  }
+  useEffect(() => {
+    if (isDraft) onDraftChange?.({ auto, spares });
+  }, [isDraft, auto, spares, onDraftChange]);
 
   const save = async () => {
     setBusy('save');
@@ -140,6 +144,7 @@ export default function RealityWatchSection({
       <Divider>{t('pages.inbounds.realityWatch.title')}</Divider>
       <Typography.Paragraph type="secondary">
         {t('pages.inbounds.realityWatch.hint', { limit: FAIL_LIMIT })}
+        {isDraft && ` ${t('pages.inbounds.realityWatch.savedWithInbound')}`}
       </Typography.Paragraph>
       {onNode && (
         <Alert
@@ -149,22 +154,24 @@ export default function RealityWatchSection({
           title={t('pages.inbounds.realityWatch.onNode')}
         />
       )}
-      <Form.Item label={t('pages.inbounds.realityWatch.status')}>
-        <Space wrap>
-          {statusTag}
-          {status?.checkedAt && status.ok && status.latencyMs > 0 ? (
-            <Typography.Text>{status.latencyMs} ms</Typography.Text>
-          ) : null}
-          {status?.checkedAt ? (
-            <Typography.Text type="secondary">
-              {dayjs.unix(status.checkedAt).format('YYYY-MM-DD HH:mm')}
-            </Typography.Text>
-          ) : null}
-          {failing && status.reason ? (
-            <Typography.Text type="secondary">{status.reason}</Typography.Text>
-          ) : null}
-        </Space>
-      </Form.Item>
+      {!isDraft && (
+        <Form.Item label={t('pages.inbounds.realityWatch.status')}>
+          <Space wrap>
+            {statusTag}
+            {status?.checkedAt && status.ok && status.latencyMs > 0 ? (
+              <Typography.Text>{status.latencyMs} ms</Typography.Text>
+            ) : null}
+            {status?.checkedAt ? (
+              <Typography.Text type="secondary">
+                {dayjs.unix(status.checkedAt).format('YYYY-MM-DD HH:mm')}
+              </Typography.Text>
+            ) : null}
+            {failing && status.reason ? (
+              <Typography.Text type="secondary">{status.reason}</Typography.Text>
+            ) : null}
+          </Space>
+        </Form.Item>
+      )}
       <Form.Item label={t('pages.inbounds.realityWatch.auto')} htmlFor={`${uid}-auto`}>
         <Switch
           id={`${uid}-auto`}
@@ -215,15 +222,17 @@ export default function RealityWatchSection({
                 width: 96,
                 render: (_, r: string) => (
                   <Space size={4}>
-                    <Button
-                      size="small"
-                      icon={<SwapOutlined aria-hidden />}
-                      aria-label={t('pages.inbounds.realityWatch.switchNow')}
-                      title={t('pages.inbounds.realityWatch.switchNow')}
-                      loading={busy === 'switch:' + r}
-                      disabled={dirty || onNode}
-                      onClick={() => switchTo(r)}
-                    />
+                    {!isDraft && (
+                      <Button
+                        size="small"
+                        icon={<SwapOutlined aria-hidden />}
+                        aria-label={t('pages.inbounds.realityWatch.switchNow')}
+                        title={t('pages.inbounds.realityWatch.switchNow')}
+                        loading={busy === 'switch:' + r}
+                        disabled={dirty || onNode}
+                        onClick={() => switchTo(r)}
+                      />
+                    )}
                     <Button
                       size="small"
                       danger
@@ -262,9 +271,11 @@ export default function RealityWatchSection({
             >
               {t('pages.inbounds.realityWatch.testAll')}
             </Button>
-            <Button type="primary" disabled={!dirty} loading={busy === 'save'} onClick={save}>
-              {t('pages.inbounds.realityWatch.save')}
-            </Button>
+            {!isDraft && (
+              <Button type="primary" disabled={!dirty} loading={busy === 'save'} onClick={save}>
+                {t('pages.inbounds.realityWatch.save')}
+              </Button>
+            )}
           </Space>
         </Space>
       </Form.Item>
@@ -287,7 +298,7 @@ export default function RealityWatchSection({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => {
-          setSpares((prev) => addSpare(prev, r.target, status?.target ?? ''));
+          setSpares((prev) => addSpare(prev, r.target, currentTarget));
           setDirty(true);
         }}
       />

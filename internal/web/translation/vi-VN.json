@@ -788,7 +788,7 @@
       "advancedTitle": "Cài đặt nâng cao",
       "realityWatch": {
         "title": "Giữ REALITY hoạt động",
-        "saveFirst": "Hãy lưu inbound trước, sau đó đặt các mục tiêu dự phòng ở đây.",
+        "savedWithInbound": "Chúng được lưu cùng với inbound.",
         "hint": "Cứ 10 phút máy chủ này kiểm tra mục tiêu. Sau {limit} lần kiểm tra thất bại liên tiếp, inbound chuyển sang mục tiêu dự phòng đầu tiên vượt qua cùng phép kiểm tra và một kết nối REALITY thật qua một Xray tạm thời. Chỉ mục tiêu và SNI thay đổi; client nhận SNI mới ở lần cập nhật gói đăng ký kế tiếp.",
         "onNode": "Inbound này chạy trên một node nên máy chủ này không kiểm tra; bạn vẫn có thể chuyển thủ công.",
         "status": "Trạng thái",

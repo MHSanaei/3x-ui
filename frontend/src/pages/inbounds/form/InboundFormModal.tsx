@@ -6,7 +6,7 @@ import { Alert, Form, Input, InputNumber, Modal, Radio, Select, Switch, Tabs, me
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
-import type { RealityScanResult } from '@/generated/types';
+import type { RealityScanResult, RealityWatchEntry } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -288,6 +288,7 @@ export default function InboundFormModal({
   const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
+  const realityWatchDraft = useRef<RealityWatchEntry | null>(null);
   const currentTagInput = (): InboundTagInput => ({
     port: typeof wPort === 'number' ? wPort : 0,
     nodeId: typeof wNodeId === 'number' ? wNodeId : null,
@@ -437,6 +438,7 @@ export default function InboundFormModal({
         ? withoutClients(rawInboundToFormValues(dbInbound))
         : buildAddModeValues();
     methods.reset(initial);
+    realityWatchDraft.current = null;
     setScanResult(null);
     setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
@@ -582,10 +584,20 @@ export default function InboundFormModal({
           : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
-        if (isFallbackHost) {
-          const obj = msg.obj as { id?: number; Id?: number } | null;
-          const masterId = mode === 'edit' ? dbInbound!.id : (obj?.id ?? obj?.Id ?? 0);
-          if (masterId) await saveFallbacks(masterId);
+        const obj = msg.obj as { id?: number; Id?: number } | null;
+        const savedId = mode === 'edit' ? dbInbound!.id : (obj?.id ?? obj?.Id ?? 0);
+        if (isFallbackHost && savedId) await saveFallbacks(savedId);
+        const watch = realityWatchDraft.current;
+        if (
+          mode === 'add' &&
+          savedId &&
+          parsed.data.streamSettings?.security === 'reality' &&
+          watch &&
+          (watch.auto || watch.spares.length)
+        ) {
+          await HttpUtil.post(`/panel/api/realityWatch/save/${savedId}`, watch, {
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
         onSaved();
         onClose();
@@ -1031,6 +1043,9 @@ export default function InboundFormModal({
           inboundId={mode === 'edit' && dbInbound ? dbInbound.id : null}
           onNode={typeof dbInbound?.nodeId === 'number'}
           messageApi={messageApi}
+          onWatchDraftChange={(entry) => {
+            realityWatchDraft.current = entry;
+          }}
         />
       )}
     </>

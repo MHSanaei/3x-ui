@@ -788,7 +788,7 @@
       "advancedTitle": "進階設定",
       "realityWatch": {
         "title": "保持 REALITY 可用",
-        "saveFirst": "請先儲存入站，然後在這裡設定備用目標。",
+        "savedWithInbound": "它們會隨入站一起儲存。",
         "hint": "本伺服器每 10 分鐘檢查一次目標。連續 {limit} 次檢查失敗後，入站會切換到第一個通過同樣檢查並經臨時 Xray 完成真實 REALITY 連線的備用目標。只改變目標與 SNI；用戶端會在下次更新訂閱時取得新的 SNI。",
         "onNode": "此入站執行在節點上，本伺服器不會檢查它；仍可手動切換。",
         "status": "狀態",

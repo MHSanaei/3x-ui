@@ -788,7 +788,7 @@
       "advancedTitle": "Pengaturan Lanjutan",
       "realityWatch": {
         "title": "Jaga REALITY tetap jalan",
-        "saveFirst": "Simpan inbound dulu, lalu atur target cadangan di sini.",
+        "savedWithInbound": "Semua ini disimpan bersama inbound.",
         "hint": "Setiap 10 menit server ini memeriksa target. Setelah {limit} pemeriksaan gagal berturut-turut, inbound pindah ke cadangan pertama yang lolos pemeriksaan yang sama dan koneksi REALITY sungguhan melalui Xray sementara. Hanya target dan SNI yang berubah; klien mendapat SNI baru pada pembaruan langganan berikutnya.",
         "onNode": "Inbound ini berjalan di node, jadi server ini tidak memeriksanya; Anda tetap bisa mengganti secara manual.",
         "status": "Status",
