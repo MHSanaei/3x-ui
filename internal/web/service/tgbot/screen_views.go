@@ -314,25 +314,47 @@ func (t *Tgbot) sendNoticeReturningID(chatID int64, text string) int {
 	return sent.MessageID
 }
 
-// sendBanLogsFile delivers the banned-IP log as a notice with a hide button.
+// sendBanLogsFile delivers previous and current banned-IP logs with hide buttons.
 func (t *Tgbot) sendBanLogsFile(chatID int64) {
-	file, err := os.Open(xray.GetIPLimitBannedPrevLogPath())
-	if err != nil {
+	bot := liveBot()
+	if bot == nil {
+		return
+	}
+	hasLogs := false
+	for _, path := range []string{xray.GetIPLimitBannedPrevLogPath(), xray.GetIPLimitBannedLogPath()} {
+		// Scope cleanup to each file so neither the handle nor the timeout lives
+		// through the next upload.
+		func() {
+			file, err := os.Open(path)
+			if err != nil {
+				logger.Warning("Failed to open the ban log:", path, "-", err)
+				return
+			}
+			defer file.Close()
+			info, err := file.Stat()
+			if err != nil {
+				logger.Warning("Failed to stat the ban log:", path, "-", err)
+				return
+			}
+			if !info.Mode().IsRegular() || info.Size() == 0 {
+				logger.Warning("Ban log is empty or not a regular file, not uploading:", path)
+				return
+			}
+			// An upload failure does not mean the log was empty or missing.
+			hasLogs = true
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			_, err = bot.SendDocument(ctx, &telego.SendDocumentParams{
+				ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID),
+				Document:    tu.File(file),
+				ReplyMarkup: t.hideButton(),
+			})
+			if err != nil {
+				logger.Warning("Failed to upload the ban log:", path, "-", err)
+			}
+		}()
+	}
+	if !hasLogs {
 		t.sendNotice(chatID, t.I18nBot("tgbot.noResult"))
-		return
-	}
-	defer file.Close()
-	if liveBot() == nil {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	_, err = liveBot().SendDocument(ctx, &telego.SendDocumentParams{
-		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID),
-		Document:    tu.File(file),
-		ReplyMarkup: t.hideButton(),
-	})
-	if err != nil {
-		logger.Warning("Failed to upload the ban log:", err)
 	}
 }
