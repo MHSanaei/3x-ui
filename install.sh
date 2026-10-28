@@ -80,17 +80,85 @@ acme_listen_flag() {
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
-        ss -ltn 2> /dev/null | awk -v p=":${port}$" '$4 ~ p {exit 0} END {exit 1}'
+        ss -ltn 2> /dev/null | awk -v p=":${port}$" '$4 ~ p {found = 1} END {exit !found}'
         return
     fi
     if command -v netstat > /dev/null 2>&1; then
-        netstat -lnt 2> /dev/null | awk -v p=":${port} " '$4 ~ p {exit 0} END {exit 1}'
+        netstat -lnt 2> /dev/null | awk -v p=":${port}$" '$4 ~ p {found = 1} END {exit !found}'
         return
     fi
     if command -v lsof > /dev/null 2>&1; then
         lsof -nP -iTCP:${port} -sTCP:LISTEN > /dev/null 2>&1 && return 0
     fi
     return 1
+}
+
+normalize_panel_port() {
+    local port="$1"
+    [[ "$port" =~ ^[0-9]+$ ]] || return 1
+    # Strip leading zeros before bounding the length and doing arithmetic:
+    # Bash and the Go flag parser otherwise interpret leading zeros as octal.
+    port="${port#"${port%%[!0]*}"}"
+    [[ -n "$port" && ${#port} -le 5 ]] || return 1
+    ((10#$port <= 65535)) || return 1
+    printf '%s\n' "$port"
+}
+
+# Print only the selected decimal port to stdout; prompts/notices use stderr.
+select_panel_port() {
+    local confirm=n port attempt
+    if [[ "$NONINTERACTIVE" == 1 ]]; then
+        [[ -z "${XUI_PANEL_PORT+x}" ]] || confirm=y
+    else
+        while true; do
+            if ! IFS= read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/N]: " confirm; then
+                echo 'Cannot read the panel port confirmation; aborting.' >&2
+                return 1
+            fi
+            confirm="${confirm#"${confirm%%[![:space:]]*}"}"
+            confirm="${confirm%"${confirm##*[![:space:]]}"}"
+            case "${confirm,,}" in
+                y | yes) break ;;
+                n | no | '') confirm=n; break ;;
+                *) echo 'Please answer yes or no (Enter defaults to No).' >&2 ;;
+            esac
+        done
+    fi
+
+    if [[ "$confirm" == n ]]; then
+        for ((attempt = 0; attempt < 100; attempt++)); do
+            if ! port=$(shuf -i 1024-62000 -n 1); then
+                echo 'Failed to generate a random panel port.' >&2
+                return 1
+            fi
+            if port=$(normalize_panel_port "$port") && ! is_port_in_use "$port"; then
+                echo "Generated random port: $port" >&2
+                printf '%s\n' "$port"
+                return 0
+            fi
+        done
+        echo 'Could not find an available random panel port; aborting.' >&2
+        return 1
+    fi
+
+    while true; do
+        if [[ "$NONINTERACTIVE" == 1 ]]; then
+            port="$XUI_PANEL_PORT"
+        elif ! read -rp 'Please set up the panel port: ' port; then
+            echo 'Cannot read the custom panel port; aborting.' >&2
+            return 1
+        fi
+        if ! port=$(normalize_panel_port "$port"); then
+            echo 'Invalid port. Enter a number between 1 and 65535.' >&2
+        elif is_port_in_use "$port"; then
+            echo "Port $port is already in use. Choose another panel port." >&2
+        else
+            echo "Your Panel Port is: $port" >&2
+            printf '%s\n' "$port"
+            return 0
+        fi
+        [[ "$NONINTERACTIVE" != 1 ]] || return 1
+    done
 }
 
 install_base() {
@@ -1255,26 +1323,20 @@ EOF
                 fi
             fi
 
-            if [[ "$NONINTERACTIVE" == "1" ]]; then
-                if [[ -n "${XUI_PANEL_PORT:-}" ]]; then
-                    config_port="${XUI_PANEL_PORT}"
-                    echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
-                else
-                    config_port=$(shuf -i 1024-62000 -n 1)
-                    echo -e "${yellow}Generated random port: ${config_port}${plain}"
-                fi
-            else
-                read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/n]: " config_confirm
-                if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-                    read -rp "Please set up the panel port: " config_port
-                    echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
-                else
-                    config_port=$(shuf -i 1024-62000 -n 1)
-                    echo -e "${yellow}Generated random port: ${config_port}${plain}"
-                fi
-            fi
+            config_port=$(select_panel_port) || exit 1
 
-            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
+            local settings_output settings_status=0
+            settings_output=$("${xui_folder}/x-ui" setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}" 2>&1) || settings_status=$?
+            printf '%s\n' "$settings_output"
+            # Released CLIs may print a settings/database error and still exit 0.
+            # Require all three existing success messages before claiming success.
+            if [[ "$settings_status" != 0 ]] ||
+                ! grep -Fxq "Port set successfully: ${config_port}" <<< "$settings_output" ||
+                ! grep -Fxq 'Username and password updated successfully' <<< "$settings_output" ||
+                ! grep -Fxq 'Base URI path set successfully' <<< "$settings_output"; then
+                echo 'Failed to configure panel settings; installation aborted.' >&2
+                exit 1
+            fi
 
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
