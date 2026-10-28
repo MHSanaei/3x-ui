@@ -2099,9 +2099,9 @@ func (s *ServerService) importPostgresDB(file multipart.File, keepHostSettings b
 	case importKindPgDump:
 		return s.restorePostgresDump(file, keepHostSettings)
 	case importKindSQLiteDB:
-		return s.migrateSQLiteIntoPostgres(file, false)
+		return s.migrateSQLiteIntoPostgres(file, false, keepHostSettings)
 	case importKindSQLiteDump:
-		return s.migrateSQLiteIntoPostgres(file, true)
+		return s.migrateSQLiteIntoPostgres(file, true, keepHostSettings)
 	default:
 		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) from this panel's Back Up, a SQLite database (.db), or a SQLite migration dump")
 	}
@@ -2183,7 +2183,7 @@ func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSetting
 	return nil
 }
 
-func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump bool) error {
+func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump, keepHostSettings bool) error {
 	tempDir, err := os.MkdirTemp("", "x-ui-pg-migrate-*")
 	if err != nil {
 		return common.NewErrorf("Error creating temporary folder: %v", err)
@@ -2224,6 +2224,11 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
 	}
 
+	var keptSettings hostBoundSnapshot
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
+	}
+
 	if errClose := database.CloseDB(); errClose != nil {
 		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
 	}
@@ -2232,6 +2237,9 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	if migrateErr == nil {
+		restoreHostBoundSettings(keptSettings)
 	}
 	s.inboundService.MigrateDB()
 
