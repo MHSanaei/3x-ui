@@ -130,9 +130,9 @@ func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButt
 	return &screen{kind: kind, header: header, body: body, pages: pages, rows: rows, pageMax: len(pages)}
 }
 
-// renderScreen is the single entry point for drawing a screen: EDIT first, and
-// replace (send then delete) only when the edit is genuinely impossible.
-func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
+// renderScreen is the single entry point for drawing a screen: edit callbacks
+// in place, while typed commands may request a fresh message.
+func (t *Tgbot) renderScreen(chatID int64, sc *screen, fresh ...bool) {
 	if sc == nil || liveBot() == nil {
 		return
 	}
@@ -150,11 +150,16 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	}
 	sc.markup = tu.InlineKeyboard(rows...)
 
-	if prev, ok := t.screens().get(chatID); ok && prev.msgID != 0 {
-		if t.editScreen(chatID, prev, sc) {
-			sc.msgID = prev.msgID
-			t.screens().put(chatID, sc)
-			return
+	// Typed commands can arrive after a user clears their chat history. Telegram
+	// may still let us edit the old message, even though the user can no longer
+	// see it, so command screens must be sent as a fresh message.
+	if len(fresh) == 0 || !fresh[0] {
+		if prev, ok := t.screens().get(chatID); ok && prev.msgID != 0 {
+			if t.editScreen(chatID, prev, sc) {
+				sc.msgID = prev.msgID
+				t.screens().put(chatID, sc)
+				return
+			}
 		}
 	}
 	t.replaceScreen(chatID, sc)
