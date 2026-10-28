@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/mymmrac/telego"
@@ -81,13 +82,50 @@ func TestTypedCommandsSendFreshScreensEvenWhenOldEditsSucceed(t *testing.T) {
 	}
 }
 
+func TestReplacedCommandMenuLosesKeyboardWhenDeletionFails(t *testing.T) {
+	for _, cleanupFails := range []bool{false, true} {
+		t.Run(map[bool]string{false: "keyboard retired", true: "cleanup also unavailable"}[cleanupFails], func(t *testing.T) {
+			replies := map[string]any{
+				"deleteMessage":          map[string]any{"ok": false, "error_code": 400, "description": "Bad Request: message can't be deleted"},
+				"editMessageReplyMarkup": map[string]any{"ok": true, "result": map[string]any{"message_id": 333, "date": 0, "chat": map[string]any{"id": 500, "type": "private"}}},
+			}
+			if cleanupFails {
+				replies["editMessageReplyMarkup"] = map[string]any{"ok": false, "error_code": 400, "description": "Bad Request: message to edit not found"}
+			}
+			server, calls := recordingServer(t, false, replies)
+			swapTestBot(t, server.URL)
+			t.Cleanup(server.Close)
+			tb := initReportDB(t)
+			setTestAdmins(t, 1)
+			tb.resolveScreenArt()
+			tb.renderScreen(500, tb.newScreen("main", "old menu", tb.homeRows()...))
+			previous, _ := tb.screens().get(500)
+			before := len(calls())
+			tb.answerCommand(&telego.Message{MessageID: 9999, Chat: telego.Chat{ID: 500, Type: "private"}, From: &telego.User{ID: 1}, Text: "/start"}, 500, true)
+			got := calls()[before:]
+			if !reflect.DeepEqual(methods(got), []string{"sendPhoto", "deleteMessage", "editMessageReplyMarkup"}) {
+				t.Fatalf("retire undeletable menu after new send: %v", methods(got))
+			}
+			markup, _ := got[2].Payload["reply_markup"].(map[string]any)
+			if got[2].Payload["chat_id"] != float64(500) || got[2].Payload["message_id"] != float64(previous.msgID) || !reflect.DeepEqual(markup["inline_keyboard"], []any{}) {
+				t.Fatalf("only old menu's keyboard must be removed: %+v", got[2].Payload)
+			}
+			current, ok := tb.screens().get(500)
+			if !ok || current.msgID == previous.msgID || current.msgID == 0 {
+				t.Fatalf("cleanup failure discarded the new menu: %+v", current)
+			}
+		})
+	}
+}
+
 func TestFailedCommandScreenSendKeepsPreviousMenu(t *testing.T) {
 	photo := map[string]any{"file_id": "avatar", "file_unique_id": "u", "width": 1, "height": 1}
 	server, count := staleButtonServer(t, map[string]any{
-		"getMe":                map[string]any{"ok": true, "result": map[string]any{"id": 42, "is_bot": true, "first_name": "bot", "username": "bot"}},
-		"getUserProfilePhotos": map[string]any{"ok": true, "result": map[string]any{"total_count": 1, "photos": [][]any{{photo}}}},
-		"sendPhoto":            map[string]any{"ok": false, "error_code": 503, "description": "Service Unavailable"},
-		"editMessageMedia":     map[string]any{"ok": true, "result": map[string]any{"message_id": 333, "date": 0, "chat": map[string]any{"id": 500, "type": "private"}}},
+		"getMe":                  map[string]any{"ok": true, "result": map[string]any{"id": 42, "is_bot": true, "first_name": "bot", "username": "bot"}},
+		"getUserProfilePhotos":   map[string]any{"ok": true, "result": map[string]any{"total_count": 1, "photos": [][]any{{photo}}}},
+		"sendPhoto":              map[string]any{"ok": false, "error_code": 503, "description": "Service Unavailable"},
+		"editMessageMedia":       map[string]any{"ok": true, "result": map[string]any{"message_id": 333, "date": 0, "chat": map[string]any{"id": 500, "type": "private"}}},
+		"editMessageReplyMarkup": map[string]any{"ok": true, "result": map[string]any{"message_id": 333, "date": 0, "chat": map[string]any{"id": 500, "type": "private"}}},
 	})
 	swapTestBot(t, server.URL)
 	t.Cleanup(server.Close)
@@ -98,7 +136,7 @@ func TestFailedCommandScreenSendKeepsPreviousMenu(t *testing.T) {
 	tb.screens().put(500, previous)
 	tb.answerCommand(&telego.Message{MessageID: 444, Chat: telego.Chat{ID: 500, Type: "private"}, From: &telego.User{ID: 1}, Text: "/start"}, 500, true)
 	current, ok := tb.screens().get(500)
-	if count("sendPhoto") != 1 || count("editMessageMedia") != 0 || count("deleteMessage") != 0 || !ok || current != previous {
-		t.Fatalf("failed send must preserve the previous menu: sends=%d edits=%d deletes=%d current=%+v", count("sendPhoto"), count("editMessageMedia"), count("deleteMessage"), current)
+	if count("sendPhoto") != 1 || count("editMessageMedia") != 0 || count("deleteMessage") != 0 || count("editMessageReplyMarkup") != 0 || !ok || current != previous {
+		t.Fatalf("failed send must preserve the previous menu: sends=%d edits=%d deletes=%d keyboardEdits=%d current=%+v", count("sendPhoto"), count("editMessageMedia"), count("deleteMessage"), count("editMessageReplyMarkup"), current)
 	}
 }

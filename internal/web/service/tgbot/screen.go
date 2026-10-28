@@ -286,8 +286,10 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 		logger.Warning("Failed to send a screen:", err)
 		return 0
 	}
-	if hadPrev && prev.msgID != 0 {
-		t.deleteOwnMessage(chatID, prev.msgID)
+	if hadPrev && prev.msgID != 0 && !t.deleteOwnMessage(chatID, prev.msgID) {
+		t.editMessageCallbackTgBot(chatID, prev.msgID, &telego.InlineKeyboardMarkup{
+			InlineKeyboard: [][]telego.InlineKeyboardButton{},
+		})
 	}
 	sc.msgID = sent.MessageID
 	// Telegram hands back the file_id of the uploaded tile: remembering it keeps
@@ -417,17 +419,20 @@ func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
 	t.deleteOwnMessage(chatID, messageID)
 }
 
-// deleteOwnMessage removes one of our messages without surfacing a failure: the
-// user may have deleted it, and Telegram refuses past 48 hours.
-func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
-	if msgID == 0 || liveBot() == nil {
-		return
+// deleteOwnMessage reports whether a message was removed. Failures are expected
+// when it is already gone or outside Telegram's deletion window.
+func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) bool {
+	b := liveBot()
+	if msgID == 0 || b == nil {
+		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := liveBot().DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
+	if err := b.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
 		logger.Debug("Cannot delete a bot message:", err)
+		return false
 	}
+	return true
 }
 
 // hideButton is the keyboard of a non-screen message: one tap clears it.
