@@ -170,7 +170,7 @@
       "empty": "動作する IP はまだありません",
       "ip": "IP",
       "latency": "遅延",
-      "noGroups": "ホストグループがまだありません。先にホストページで CDN インバウンド用に作成してください。",
+      "noGroups": "ホストグループまたは CDN インバウンド（WebSocket、HTTPUpgrade、XHTTP、gRPC）がまだありません。先に作成してください。",
       "group": "ホストグループ",
       "port": "ポート",
       "saveFor": "{isp} 用に {count} 件の IP を保存",
@@ -227,7 +227,9 @@
         "expired": "このコマンドは期限切れです。新しく作成してください。",
         "verify": "サーバーから IP をチェックできませんでした",
         "verifyLimited": "サーバーのIP確認の1時間あたりの上限に達しました。残りは後で確認してください。"
-      }
+      },
+      "newHostFor": "{name}（新しいホスト）",
+      "saveTo": "保存先"
     },
     "login": {
       "hello": "こんにちは",

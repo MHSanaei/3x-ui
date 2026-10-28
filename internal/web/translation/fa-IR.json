@@ -170,7 +170,7 @@
       "empty": "هنوز IP سالمی پیدا نشده",
       "ip": "IP",
       "latency": "تأخیر",
-      "noGroups": "هنوز Host group ندارید. اول در صفحهٔ Hosts برای inbound پشت CDN یکی بسازید.",
+      "noGroups": "هنوز هیچ گروه هاست یا اینباند CDN (WebSocket، HTTPUpgrade، XHTTP، gRPC) ندارید. اول یکی بسازید.",
       "group": "Host group",
       "port": "پورت",
       "saveFor": "ذخیرهٔ {count} IP برای {isp}",
@@ -227,7 +227,9 @@
         "expired": "این دستور منقضی شده؛ یک دستور تازه بسازید.",
         "verify": "IPها از سمت سرور بررسی نشدند",
         "verifyLimited": "سقف ساعتی بررسی آی‌پی در سرور پر شده است: بقیه را بعداً بررسی کنید."
-      }
+      },
+      "newHostFor": "{name} (هاست جدید)",
+      "saveTo": "ذخیره در"
     },
     "login": {
       "hello": "سلام",

@@ -170,7 +170,7 @@
       "empty": "尚無可用 IP",
       "ip": "IP",
       "latency": "延遲",
-      "noGroups": "尚無主機群組。請先在主機頁面為你的 CDN 入站建立一個。",
+      "noGroups": "還沒有主機群組或 CDN 入站（WebSocket、HTTPUpgrade、XHTTP、gRPC）。請先建立一個。",
       "group": "主機群組",
       "port": "連接埠",
       "saveFor": "為 {isp} 儲存 {count} 個 IP",
@@ -227,7 +227,9 @@
         "expired": "此指令已過期；請重新產生。",
         "verify": "無法從伺服器檢查 IP",
         "verifyLimited": "伺服器每小時的 IP 檢查上限已到：請稍後再檢查其餘的。"
-      }
+      },
+      "newHostFor": "{name}（新主機）",
+      "saveTo": "儲存到"
     },
     "login": {
       "hello": "你好",

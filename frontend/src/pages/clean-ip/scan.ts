@@ -1,4 +1,5 @@
 import type { HostRecord } from '@/schemas/api/host';
+import type { InboundOption } from '@/schemas/client';
 
 import { coloPlace } from './colos';
 
@@ -207,4 +208,78 @@ export function withFragment(finalMask: string | undefined, frag: FragmentSettin
 export function groupPayload(group: HostRecord, remark: string, hosts: string[]) {
   const { groupId: _groupId, sortOrder: _sortOrder, ...fields } = group;
   return { ...fields, remark, hosts };
+}
+
+const INBOUND_TARGET = 'inbound:';
+// transports a CDN can carry; raw TCP / REALITY inbounds cannot sit behind one
+const CDN_NETWORKS = new Set(['ws', 'httpupgrade', 'xhttp', 'splithttp', 'grpc']);
+
+// Inbounds no host group serves yet, as unsaved groups: saving the scan creates their host.
+export function inboundTargets(options: InboundOption[], all: HostRecord[]): HostRecord[] {
+  const served = new Set(all.flatMap((g) => g.inboundIds));
+  return options
+    .filter((o) => CDN_NETWORKS.has(o.network ?? '') && !served.has(o.id))
+    .map((o) => ({
+      groupId: `${INBOUND_TARGET}${o.id}`,
+      inboundIds: [o.id],
+      hosts: [],
+      remark: o.remark || `#${o.id}`,
+      port: 443,
+      security: 'tls',
+    }));
+}
+
+// The domain an inbound's clients present: transport host, Host header, then TLS server name.
+export function inboundDomain(streamSettings: unknown): string {
+  let s: Record<string, unknown> = {};
+  try {
+    const parsed: unknown =
+      typeof streamSettings === 'string' ? JSON.parse(streamSettings) : streamSettings;
+    if (parsed && typeof parsed === 'object') s = parsed as Record<string, unknown>;
+  } catch {
+    return '';
+  }
+  const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  const transport = obj(s[`${str(s.network)}Settings`]);
+  const headers = obj(transport.headers);
+  return (
+    str(transport.host) ||
+    str(headers.Host) ||
+    str(headers.host) ||
+    str(obj(s.tlsSettings).serverName)
+  );
+}
+
+export function isInboundTarget(group: HostRecord): boolean {
+  return group.groupId.startsWith(INBOUND_TARGET);
+}
+
+export type SaveTo = 'same' | 'isp';
+
+// Where the picked IPs go: the chosen host itself, or its "<remark> · <ISP>" group.
+export function planSave(o: {
+  group: HostRecord;
+  ispGroups: Map<string, HostRecord>;
+  isp: string;
+  to: SaveTo;
+  entries: string[];
+  domain: string;
+  fragment: FragmentSetting | null | undefined;
+}) {
+  const target =
+    o.to === 'isp' ? o.ispGroups.get(o.isp) : isInboundTarget(o.group) ? undefined : o.group;
+  const remark =
+    o.to === 'isp'
+      ? `${o.group.remark ?? ''}${ISP_SEP}${o.isp}`.slice(0, 256)
+      : (o.group.remark ?? '');
+  const values = groupPayload(target ?? o.group, remark, o.entries);
+  values.isDisabled = false;
+  if (o.fragment !== undefined) values.finalMask = withFragment(values.finalMask, o.fragment);
+  // the IPs only work with the domain they were tested under as SNI
+  if (!values.sni && !values.snis?.length && !values.keepSniBlank && o.domain) {
+    values.sni = o.domain;
+    values.snis = [o.domain];
+  }
+  return { groupId: target?.groupId, remark, values };
 }

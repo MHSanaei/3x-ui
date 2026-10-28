@@ -170,7 +170,7 @@
       "empty": "Chưa có IP hoạt động",
       "ip": "IP",
       "latency": "Độ trễ",
-      "noGroups": "Chưa có nhóm host. Hãy tạo một nhóm trên trang Hosts cho inbound CDN của bạn trước.",
+      "noGroups": "Chưa có nhóm host hoặc inbound CDN (WebSocket, HTTPUpgrade, XHTTP, gRPC). Hãy tạo một cái trước.",
       "group": "Nhóm host",
       "port": "Cổng",
       "saveFor": "Lưu {count} IP cho {isp}",
@@ -227,7 +227,9 @@
         "expired": "Lệnh này đã hết hạn; hãy tạo lệnh mới.",
         "verify": "Không kiểm tra được IP từ máy chủ",
         "verifyLimited": "Đã đạt giới hạn kiểm tra IP mỗi giờ của máy chủ: hãy kiểm tra phần còn lại sau."
-      }
+      },
+      "newHostFor": "{name} (host mới)",
+      "saveTo": "Lưu vào"
     },
     "login": {
       "hello": "Xin chào",

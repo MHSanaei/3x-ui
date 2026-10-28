@@ -170,7 +170,7 @@
       "empty": "Zatiaľ žiadna funkčná IP",
       "ip": "IP",
       "latency": "Odozva",
-      "noGroups": "Zatiaľ žiadna skupina hostiteľov. Najprv ju vytvorte na stránke Hostitelia pre svoj CDN inbound.",
+      "noGroups": "Zatiaľ nie je skupina hostiteľov ani CDN inbound (WebSocket, HTTPUpgrade, XHTTP, gRPC). Najprv ho pridajte.",
       "group": "Skupina hostiteľov",
       "port": "Port",
       "saveFor": "Uložiť {count} IP pre {isp}",
@@ -227,7 +227,9 @@
         "expired": "Platnosť príkazu vypršala; vytvorte nový.",
         "verify": "IP sa nepodarilo skontrolovať zo servera",
         "verifyLimited": "Hodinový limit overení IP na serveri je vyčerpaný: zvyšok overte neskôr."
-      }
+      },
+      "newHostFor": "{name} (nový hostiteľ)",
+      "saveTo": "Uložiť do"
     },
     "login": {
       "hello": "Dobrý deň",

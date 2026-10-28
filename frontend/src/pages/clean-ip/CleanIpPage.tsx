@@ -13,6 +13,7 @@ import {
   Layout,
   Popconfirm,
   Progress,
+  Radio,
   Row,
   Segmented,
   Select,
@@ -36,6 +37,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
 import { useHostMutations } from '@/api/queries/useHostMutations';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import AppSidebar from '@/layouts/AppSidebar';
 import { HttpUtil } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -45,21 +47,24 @@ import {
   groupDomain,
   groupPayload,
   hostAddress,
+  inboundTargets,
+  isInboundTarget,
   ispGroupsOf,
   joinHost,
   defaultSelection,
   mainGroups,
   nearbyIps,
   parseTargets,
+  planSave,
   probeIp,
   resultsCsv,
   scanRanges,
   scanTargets,
-  withFragment,
   type FragmentSetting,
+  type SaveTo,
 } from './scan';
 import FragmentStep, { fragmentKey, type CleanIpCommand, type CleanIpReport } from './FragmentStep';
-import { CLOUDFLARE_ASNS, StepTitle, fetchCdns, fetchNetwork } from './common';
+import { CLOUDFLARE_ASNS, StepTitle, fetchCdns, fetchInboundDomain, fetchNetwork } from './common';
 import { coloPlace, flagOf } from './colos';
 import RangePicker from './RangePicker';
 import { reportFromOtherIsp, resultRows, saveIsp, type IpRow } from './report';
@@ -77,6 +82,14 @@ function readTickedRanges(): Record<string, string[]> {
   } catch {
     return {};
   }
+}
+
+// The admin's pick per host group; by default the ISP's own host when it already has one.
+function useSaveTo(groupId: string | undefined, ispHasHost: boolean) {
+  const [choice, setChoice] = useState<{ groupId?: string; to: SaveTo } | null>(null);
+  const saveTo: SaveTo =
+    choice && choice.groupId === groupId ? choice.to : ispHasHost ? 'isp' : 'same';
+  return [saveTo, (to: SaveTo) => setChoice({ groupId, to })] as const;
 }
 
 function isIpv4(value: string): boolean {
@@ -124,10 +137,20 @@ export default function CleanIpPage() {
   // 2. the CDN domain: a host group and the domain its configs present to Cloudflare
   const { hosts, refetch: refetchHosts } = useHostsQuery();
   const { bulkCreate, update, remove } = useHostMutations();
-  const groups = useMemo(() => mainGroups(hosts), [hosts]);
+  const inboundOptions = useInboundOptions();
+  const groups = useMemo(
+    () => [...mainGroups(hosts), ...inboundTargets(inboundOptions.data ?? [], hosts)],
+    [hosts, inboundOptions.data],
+  );
   const [pickedGroupId, setGroupId] = useState<string>();
   const group = groups.find((g) => g.groupId === pickedGroupId) ?? groups[0];
   const groupId = group?.groupId;
+  const newHostInboundId = group && isInboundTarget(group) ? group.inboundIds[0] : 0;
+  const newHostDomain = useQuery({
+    queryKey: ['cleanip', 'inboundDomain', newHostInboundId],
+    enabled: newHostInboundId > 0,
+    queryFn: () => fetchInboundDomain(newHostInboundId),
+  });
   const ispGroups = useMemo(
     () => (group ? ispGroupsOf(group, hosts) : new Map<string, HostRecord>()),
     [group, hosts],
@@ -139,7 +162,7 @@ export default function CleanIpPage() {
     domainTyped && domainTyped.groupId === groupId
       ? domainTyped.domain
       : group
-        ? groupDomain(group)
+        ? groupDomain(group) || (newHostInboundId ? (newHostDomain.data ?? '') : '')
         : '';
   const { allSetting } = useAllSettings();
   const namesShowHost = String(allSetting.remarkTemplate ?? '').includes('{{HOST}}');
@@ -310,7 +333,7 @@ export default function CleanIpPage() {
       await Promise.all(Array.from({ length: parallel }, worker));
       setRunning(false);
     },
-    [hits, timeoutMs, parallel],
+    [hits, timeoutMs, parallel, setPicked],
   );
   const startScan = useCallback(() => {
     const targets =
@@ -358,7 +381,11 @@ export default function CleanIpPage() {
 
   // 5. save for the ISP
   const [saving, setSaving] = useState(false);
-  const targetName = group ? `${group.remark ?? ''}${ISP_SEP}${isp || '?'}` : '';
+  const [saveTo, setSaveTo] = useSaveTo(groupId, !!isp && ispGroups.has(isp));
+  const ispName = group ? `${group.remark ?? ''}${ISP_SEP}${isp || '?'}` : '';
+  const groupLabel = (g: HostRecord) =>
+    isInboundTarget(g) ? t('pages.cleanIp.newHostFor', { name: g.remark }) : g.remark;
+  const targetName = saveTo === 'isp' ? ispName : group ? groupLabel(group) : '';
   const fragmentLabel = (f: FragmentSetting | null | undefined) =>
     f === undefined
       ? t('pages.cleanIp.keepFragment')
@@ -436,18 +463,22 @@ export default function CleanIpPage() {
       messageApi.warning(t('pages.cleanIp.needIps'));
       return;
     }
-    const remark = `${group.remark ?? ''}${ISP_SEP}${isp}`.slice(0, 256);
     const entries = selected.map((ip) => joinHost(ip, port));
-    const existing = ispGroups.get(isp);
-    const payload = groupPayload(existing ?? group, remark, entries);
-    if (fragment !== undefined) payload.finalMask = withFragment(payload.finalMask, fragment);
+    const plan = planSave({ group, ispGroups, isp, to: saveTo, entries, domain, fragment });
     setSaving(true);
     try {
-      const values = payload as unknown as BulkAddHostValues;
-      const msg = existing ? await update(existing.groupId, values) : await bulkCreate(values);
+      const values = plan.values as unknown as BulkAddHostValues;
+      const msg = plan.groupId ? await update(plan.groupId, values) : await bulkCreate(values);
       if (msg?.success) {
-        messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: remark }));
-        await refetchHosts();
+        messageApi.success(t('pages.cleanIp.saved', { count: entries.length, name: plan.remark }));
+        const fresh = (await refetchHosts()).data ?? [];
+        // the new host of a bare inbound takes its placeholder's place in the list
+        if (isInboundTarget(group) && saveTo === 'same') {
+          const made = fresh.find(
+            (g) => g.remark === plan.remark && g.inboundIds.includes(group.inboundIds[0]),
+          );
+          setGroupId(made?.groupId);
+        }
       } else {
         messageApi.error(msg?.msg || t('somethingWentWrong'));
       }
@@ -460,6 +491,8 @@ export default function CleanIpPage() {
     selected,
     port,
     ispGroups,
+    saveTo,
+    domain,
     fragment,
     update,
     bulkCreate,
@@ -586,7 +619,10 @@ export default function CleanIpPage() {
                           <Select
                             value={groupId}
                             onChange={setGroupId}
-                            options={groups.map((g) => ({ value: g.groupId, label: g.remark }))}
+                            options={groups.map((g) => ({
+                              value: g.groupId,
+                              label: groupLabel(g),
+                            }))}
                           />
                         </label>
                         <label className="clean-ip-field">
@@ -875,6 +911,17 @@ export default function CleanIpPage() {
                     <Alert type="info" showIcon title={t('pages.cleanIp.noGroups')} />
                   ) : (
                     <>
+                      <div className="clean-ip-field clean-ip-save-to">
+                        <span>{t('pages.cleanIp.saveTo')}</span>
+                        <Radio.Group
+                          value={saveTo}
+                          onChange={(e) => setSaveTo(e.target.value as SaveTo)}
+                          options={[
+                            { value: 'same', label: groupLabel(group) },
+                            { value: 'isp', label: ispName },
+                          ]}
+                        />
+                      </div>
                       <div className="clean-ip-summary">
                         <div>
                           <span>{t('pages.cleanIp.summaryGroup')}</span>

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { HttpUtil } from '@/utils';
 
-import type { CleanIpCdn } from './scan';
+import { inboundDomain, type CleanIpCdn } from './scan';
 
 export type { CleanIpCdn };
 
@@ -27,6 +27,15 @@ export async function fetchNetwork(): Promise<CleanIpNetwork> {
   const msg = await HttpUtil.get('/panel/api/cleanip/network', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'network');
   return msg.obj as CleanIpNetwork;
+}
+
+// The domain a host made for this inbound should use as SNI ('' when it has none).
+export async function fetchInboundDomain(inboundId: number): Promise<string> {
+  const msg = await HttpUtil.get(`/panel/api/inbounds/get/${inboundId}`, undefined, {
+    silent: true,
+  });
+  const obj = msg?.success ? (msg.obj as { streamSettings?: unknown } | null) : null;
+  return inboundDomain(obj?.streamSettings);
 }
 
 export function StepTitle({

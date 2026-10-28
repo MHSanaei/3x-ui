@@ -189,6 +189,10 @@
   display: block;
 }
 
+.clean-ip-save-to {
+  margin-bottom: 16px;
+}
+
 .clean-ip-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

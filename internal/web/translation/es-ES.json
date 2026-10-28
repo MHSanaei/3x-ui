@@ -170,7 +170,7 @@
       "empty": "Aún no hay IP que funcione",
       "ip": "IP",
       "latency": "Latencia",
-      "noGroups": "Aún no hay grupo de hosts. Crea uno en la página Hosts para tu inbound CDN primero.",
+      "noGroups": "Aún no hay grupo de hosts ni entrada CDN (WebSocket, HTTPUpgrade, XHTTP, gRPC). Crea uno primero.",
       "group": "Grupo de hosts",
       "port": "Puerto",
       "saveFor": "Guardar {count} IP para {isp}",
@@ -227,7 +227,9 @@
         "expired": "Este comando ha caducado; crea uno nuevo.",
         "verify": "No se pudieron comprobar las IP desde el servidor",
         "verifyLimited": "Se alcanzó el límite por hora de comprobaciones del servidor: comprueba el resto más tarde."
-      }
+      },
+      "newHostFor": "{name} (host nuevo)",
+      "saveTo": "Guardar en"
     },
     "login": {
       "hello": "Hola",

@@ -170,7 +170,7 @@
       "empty": "Henüz çalışan IP yok",
       "ip": "IP",
       "latency": "Gecikme",
-      "noGroups": "Henüz host grubu yok. Önce Hostlar sayfasında CDN inbound'unuz için bir tane oluşturun.",
+      "noGroups": "Henüz host grubu veya CDN inbound'u (WebSocket, HTTPUpgrade, XHTTP, gRPC) yok. Önce bir tane ekleyin.",
       "group": "Host grubu",
       "port": "Port",
       "saveFor": "{isp} için {count} IP kaydet",
@@ -227,7 +227,9 @@
         "expired": "Bu komutun süresi doldu; yeni bir tane oluşturun.",
         "verify": "IP'ler sunucudan kontrol edilemedi",
         "verifyLimited": "Sunucunun saatlik IP denetim sınırına ulaşıldı: kalanları sonra denetleyin."
-      }
+      },
+      "newHostFor": "{name} (yeni host)",
+      "saveTo": "Şuraya kaydet"
     },
     "login": {
       "hello": "Merhaba",

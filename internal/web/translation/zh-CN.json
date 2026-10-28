@@ -170,7 +170,7 @@
       "empty": "暂无可用 IP",
       "ip": "IP",
       "latency": "延迟",
-      "noGroups": "暂无主机组。请先在主机页面为你的 CDN 入站创建一个。",
+      "noGroups": "还没有主机组或 CDN 入站（WebSocket、HTTPUpgrade、XHTTP、gRPC）。请先创建一个。",
       "group": "主机组",
       "port": "端口",
       "saveFor": "为 {isp} 保存 {count} 个 IP",
@@ -227,7 +227,9 @@
         "expired": "此命令已过期；请重新生成。",
         "verify": "无法从服务器检查 IP",
         "verifyLimited": "服务器每小时的 IP 检查上限已到：请稍后再检查其余的。"
-      }
+      },
+      "newHostFor": "{name}（新主机）",
+      "saveTo": "保存到"
     },
     "login": {
       "hello": "你好",

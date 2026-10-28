@@ -170,7 +170,7 @@
       "empty": "No working IP yet",
       "ip": "IP",
       "latency": "Latency",
-      "noGroups": "No host group yet. Make one on the Hosts page for your CDN inbound first.",
+      "noGroups": "No host group or CDN inbound (WebSocket, HTTPUpgrade, XHTTP, gRPC) yet. Add one first.",
       "group": "Host group",
       "port": "Port",
       "saveFor": "Save {count} IPs for {isp}",
@@ -227,7 +227,9 @@
         "expired": "This command has expired; make a new one.",
         "verify": "Could not check the IPs from the server",
         "verifyLimited": "The server's hourly limit for IP checks is reached: try the rest later."
-      }
+      },
+      "newHostFor": "{name} (new host)",
+      "saveTo": "Save into"
     },
     "login": {
       "hello": "Hello",
