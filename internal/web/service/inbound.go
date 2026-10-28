@@ -529,6 +529,8 @@ func inboundTuicServer(protocol string, settings string) *tuic.TuicServerSetting
 		AuthenticationTimeout: inst.AuthenticationTimeout,
 		MaxUdpRelayPacketSize: inst.MaxUdpRelayPacketSize,
 		SNI:                   inst.SNI,
+		DisableSNI:            inst.DisableSNI,
+		DisableSNIInURI:       inst.DisableSNIInURI,
 	}
 }
 

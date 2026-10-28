@@ -982,6 +982,13 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 		params["udp_relay_mode"] = inst.UDPRelayMode
 	}
 	params["allow_insecure"] = "0"
+	params["zero_rtt_handshake"] = "0"
+	if inst.ZeroRTTHandshake {
+		params["zero_rtt_handshake"] = "1"
+	}
+	if inst.DisableSNI && inst.DisableSNIInURI {
+		params["disable_sni"] = "1"
+	}
 
 	stream := unmarshalStreamSettings(inbound.StreamSettings)
 	externalProxies, _ := stream["externalProxy"].([]any)

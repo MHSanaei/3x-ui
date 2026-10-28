@@ -2267,6 +2267,10 @@
         "maxUdpRelayPacketSize": "Макс. размер пакета UDP",
         "sni": "SNI",
         "sniHint": "Имя сервера для TLS в клиентском профиле.",
+        "disableSni": "Не отправлять SNI",
+        "disableSniHint": "Mihomo: нужны ядро ≥1.19.29 и YAML. Старые ядра не проверяют сертификат.",
+        "disableSniInUri": "Не отправлять SNI в ссылках (sing-box)",
+        "disableSniInUriWarning": "Mihomo отключает проверку сертификата при импорте таких ссылок. Используйте YAML.",
         "sniRequired": "Укажите домен для автозаполнения."
       },
       "tun": {

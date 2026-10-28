@@ -2267,6 +2267,10 @@
         "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
         "sni": "SNI",
         "sniHint": "نام سرور TLS در پروفایل کلاینت.",
+        "disableSni": "غیرفعال کردن SNI",
+        "disableSniHint": "Mihomo: از هستهٔ ≥1.19.29 و YAML استفاده کنید. هسته‌های قدیمی گواهی را بررسی نمی‌کنند.",
+        "disableSniInUri": "غیرفعال کردن SNI در پیوندها (فقط sing-box)",
+        "disableSniInUriWarning": "Mihomo هنگام وارد کردن این پیوندها بررسی گواهی را غیرفعال می‌کند. از YAML استفاده کنید.",
         "sniRequired": "برای تکمیل خودکار مسیرهای گواهی، دامنه را وارد کنید."
       },
       "tun": {

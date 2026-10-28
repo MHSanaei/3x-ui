@@ -1112,6 +1112,8 @@ export interface TuicServerSettings {
   authentication_timeout: number;
   certificate: string;
   congestion_control: string;
+  disable_sni: boolean;
+  disable_sni_in_uri: boolean;
   log_level: string;
   max_idle_time: number;
   max_udp_relay_packet_size: number;

@@ -27,6 +27,36 @@ const inbound: InboundOption = {
 };
 
 describe('buildTuicClientConfig', () => {
+  it('verifies the dial hostname when SNI is disabled and no name is configured', () => {
+    const cfg = buildTuicClientConfig(
+      client,
+      {
+        ...inbound,
+        tuicServer: { ...inbound.tuicServer, sni: '', disable_sni: true },
+      },
+      'server.example.com',
+    );
+    expect(cfg).toContain('disable-sni: true');
+    expect(cfg).toContain('name-cert-verify: server.example.com');
+    expect(cfg).not.toContain('skip-cert-verify: true');
+  });
+
+  it('preserves an explicit insecure Host without forcing certificate verification', () => {
+    const cfg = buildTuicClientConfig(
+      client,
+      {
+        ...inbound,
+        tuicServer: { ...inbound.tuicServer, disable_sni: true },
+      },
+      'server.example.com',
+      '',
+      { dest: 'edge.example', port: 443, remark: 'Edge', allowInsecure: true },
+    );
+    expect(cfg).toContain('disable-sni: true');
+    expect(cfg).toContain('skip-cert-verify: true');
+    expect(cfg).not.toContain('name-cert-verify:');
+  });
+
   it('builds valid YAML proxy entry from tuicServer option', () => {
     const cfg = buildTuicClientConfig(client, inbound, 'server.example.com', '');
     expect(cfg).toContain('type: tuic');

@@ -2388,6 +2388,10 @@
         "maxUdpRelayPacketSize": "Max UDP Packet Size",
         "sni": "SNI",
         "sniHint": "TLS server name in the client profile.",
+        "disableSni": "Disable SNI",
+        "disableSniHint": "Mihomo: use core ≥1.19.29 and YAML. Older cores skip certificate verification.",
+        "disableSniInUri": "Disable SNI in links (sing-box only)",
+        "disableSniInUriWarning": "Mihomo disables certificate verification when importing these links. Use YAML instead.",
         "sniRequired": "Enter a domain to auto-fill certificate paths."
       },
       "tun": {

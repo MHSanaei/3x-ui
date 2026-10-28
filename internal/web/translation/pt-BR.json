@@ -2267,6 +2267,10 @@
         "maxUdpRelayPacketSize": "Tamanho máx. do pacote UDP",
         "sni": "SNI",
         "sniHint": "Nome do servidor TLS no perfil do cliente.",
+        "disableSni": "Desativar SNI",
+        "disableSniHint": "Mihomo: use núcleo ≥1.19.29 e YAML. Núcleos antigos não verificam o certificado.",
+        "disableSniInUri": "Desativar SNI nos links (apenas sing-box)",
+        "disableSniInUriWarning": "Mihomo desativa a verificação do certificado ao importar estes links. Use YAML.",
         "sniRequired": "Informe um domínio para preencher os caminhos do certificado."
       },
       "tun": {

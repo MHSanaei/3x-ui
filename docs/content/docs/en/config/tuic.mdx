@@ -49,7 +49,7 @@ Provide the certificate file path and private key file path (or paste their cont
 <Step>
 ### Configure QUIC options
 
-The panel fills recommended defaults (`bbr`, `h3`, `native` UDP relay). Adjust timeouts or enable **Zero-RTT Handshake** if desired.
+The panel fills recommended defaults (`bbr`, `h3`, `native` UDP relay). **Zero-RTT Handshake** defaults to enabled; existing saved values are preserved. Adjust it or the timeouts as needed.
 </Step>
 
 <Step>
@@ -93,11 +93,25 @@ proxies:
 
 ### Share link format
 
-TUIC share links use standard URI formatting:
+TUIC share links use URI formatting, with client-specific query extensions:
 
 ```text
-tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.example.com&udp_relay_mode=native&allow_insecure=0#Remark
+tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.example.com&udp_relay_mode=native&allow_insecure=0&zero_rtt_handshake=1#Remark
 ```
+
+### Disable SNI and export 0-RTT
+
+**Disable SNI** is a client-profile option, off by default. It adds `disable-sni: true` to Clash/Mihomo YAML exports. Keep the **SNI** field set to the certificate name: sing-box can verify that name without sending it in ClientHello. The panel does not enable `allow_insecure` or `skip-cert-verify` when disabling SNI.
+
+**Disable SNI in links (sing-box only)** separately controls `disable_sni=1` in share links, QR codes and raw subscriptions. It requires **Disable SNI** to be enabled and is off by default, including for existing settings without `disable_sni_in_uri`. Leave it off for shared subscriptions or unknown clients: Mihomo URI importers disable certificate verification when importing this parameter, even on new cores and even with `allow_insecure=0`. Enable it only for compatible sing-box clients such as NekoBox Android. When it is off, URI profiles keep SNI enabled; YAML still follows the main **Disable SNI** switch.
+
+Mihomo's TUIC client clears ordinary certificate verification when SNI is disabled. The panel's YAML therefore also sets `name-cert-verify` to the configured SNI or endpoint hostname, unless the Host explicitly allows insecure connections. **This requires Mihomo v1.19.29 or newer and the YAML export.** Older cores silently ignore `name-cert-verify` and connect without certificate verification when SNI is disabled. Update the client core before enabling this option. The checked Mihomo URI importer cannot carry this verification override.
+
+This option avoids sending the server name, which can help on networks filtering that name. The server IP remains visible. A gateway that selects a certificate or backend using SNI may require it to stay enabled. The native TUIC listener accepts both forms.
+
+The existing 0-RTT choice is exported as `zero_rtt_handshake=1` or `0` in links and `reduce-rtt: true` or `false` in YAML. There is no universal TUIC URI standard: the checked NekoBox Android, Mihomo and Passwall URI importers do not read the 0-RTT extension. NekoBox Android does read both options from Clash YAML/subscriptions; use that format to transfer both settings.
+
+See [sing-box TLS](https://sing-box.sagernet.org/configuration/shared/tls/), [Mihomo TUIC](https://wiki.metacubex.one/en/config/proxies/tuic/) and the [NekoBox URI importer](https://github.com/MatsuriDayo/NekoBoxForAndroid/blob/main/app/src/main/java/io/nekohasekai/sagernet/fmt/tuic/TuicFmt.kt). The panel's JSON subscription is Xray-oriented and continues to omit TUIC; it is not a sing-box JSON export.
 
 ## Architecture & Features
 
