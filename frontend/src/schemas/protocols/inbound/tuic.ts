@@ -52,6 +52,7 @@ export const TuicServerSchema = z.object({
   max_udp_relay_packet_size: clearedToDefault(maxUdpRelayPacketSize.default(1500)),
   sni: z.string().default(''),
   disable_sni: z.boolean().default(false),
+  disable_sni_in_uri: z.boolean().default(false),
 });
 export type TuicServer = z.infer<typeof TuicServerSchema>;
 
@@ -72,6 +73,7 @@ const TuicSettingsObject = z.object({
   ),
   sni: z.string().optional(),
   disable_sni: z.boolean().optional(),
+  disable_sni_in_uri: z.boolean().optional(),
   clients: z.array(TuicClientSchema).default([]),
 });
 export const TuicInboundSettingsSchema = z.preprocess((value) => {

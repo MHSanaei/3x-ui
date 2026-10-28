@@ -986,7 +986,7 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if inst.ZeroRTTHandshake {
 		params["zero_rtt_handshake"] = "1"
 	}
-	if inst.DisableSNI {
+	if inst.DisableSNI && inst.DisableSNIInURI {
 		params["disable_sni"] = "1"
 	}
 

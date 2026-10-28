@@ -2269,6 +2269,8 @@
         "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
         "disableSni": "تعطيل SNI",
         "disableSniHint": "Mihomo: استخدم نواة ≥1.19.29 وYAML. الأنوية الأقدم لا تتحقق من الشهادة.",
+        "disableSniInUri": "تعطيل SNI في الروابط (sing-box فقط)",
+        "disableSniInUriWarning": "يعطّل Mihomo التحقق من الشهادة عند استيراد هذه الروابط. استخدم YAML بدلاً منها.",
         "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       },
       "tun": {

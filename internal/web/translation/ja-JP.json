@@ -2269,6 +2269,8 @@
         "sniHint": "クライアント設定の TLS サーバー名。",
         "disableSni": "SNIを送信しない",
         "disableSniHint": "Mihomo：コア≥1.19.29とYAMLを使用してください。古いコアは証明書を検証しません。",
+        "disableSniInUri": "リンクでSNIを無効化（sing-boxのみ）",
+        "disableSniInUriWarning": "Mihomoはこのリンクのインポート時に証明書検証を無効にします。YAMLを使用してください。",
         "sniRequired": "証明書パスの自動入力にはドメインを指定してください。"
       },
       "tun": {

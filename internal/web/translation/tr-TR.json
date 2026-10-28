@@ -2269,6 +2269,8 @@
         "sniHint": "İstemci profilindeki TLS sunucu adı.",
         "disableSni": "SNI gönderme",
         "disableSniHint": "Mihomo: ≥1.19.29 çekirdeği ve YAML kullanın. Eski çekirdekler sertifikayı doğrulamaz.",
+        "disableSniInUri": "Bağlantılarda SNI kapalı (yalnızca sing-box)",
+        "disableSniInUriWarning": "Mihomo bu bağlantıları içe aktarırken sertifika doğrulamasını kapatır. YAML kullanın.",
         "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       },
       "tun": {

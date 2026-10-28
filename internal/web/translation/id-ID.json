@@ -2269,6 +2269,8 @@
         "sniHint": "Nama server TLS dalam profil klien.",
         "disableSni": "Nonaktifkan SNI",
         "disableSniHint": "Mihomo: gunakan core ≥1.19.29 dan YAML. Core lama tidak memverifikasi sertifikat.",
+        "disableSniInUri": "Nonaktifkan SNI di tautan (hanya sing-box)",
+        "disableSniInUriWarning": "Mihomo menonaktifkan verifikasi sertifikat saat mengimpor tautan ini. Gunakan YAML.",
         "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {

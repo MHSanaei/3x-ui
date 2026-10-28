@@ -1186,6 +1186,7 @@ export const TuicServerSettingsSchema = z.object({
   certificate: z.string(),
   congestion_control: z.string(),
   disable_sni: z.boolean(),
+  disable_sni_in_uri: z.boolean(),
   log_level: z.string(),
   max_idle_time: z.number().int(),
   max_udp_relay_packet_size: z.number().int(),

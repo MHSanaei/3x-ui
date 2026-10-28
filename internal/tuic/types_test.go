@@ -128,6 +128,8 @@ func TestFingerprints(t *testing.T) {
 	profileOnlyChange.CongestionControl = "new_reno"
 	profileOnlyChange.UDPRelayMode = "quic"
 	profileOnlyChange.SNI = "client-profile.example"
+	profileOnlyChange.DisableSNI = true
+	profileOnlyChange.DisableSNIInURI = true
 	if inst1.StructuralFingerprint() != profileOnlyChange.StructuralFingerprint() {
 		t.Fatal("client-profile defaults must not restart the native TUIC listener")
 	}

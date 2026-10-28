@@ -4896,6 +4896,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "disable_sni": {
         "type": "boolean"
       },
+      "disable_sni_in_uri": {
+        "type": "boolean"
+      },
       "log_level": {
         "type": "string"
       },
@@ -4924,6 +4927,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "certificate",
       "congestion_control",
       "disable_sni",
+      "disable_sni_in_uri",
       "log_level",
       "max_idle_time",
       "max_udp_relay_packet_size",

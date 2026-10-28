@@ -989,7 +989,7 @@ export function genTuicLink(input: GenTuicLinkInput): string {
     (server.udp_relay_mode as string) || (rawSettings.udp_relay_mode as string) || 'native';
   url.searchParams.set('udp_relay_mode', udpRelay);
   url.searchParams.set('zero_rtt_handshake', (server.zero_rtt_handshake ?? true) ? '1' : '0');
-  if (server.disable_sni === true) {
+  if (server.disable_sni === true && server.disable_sni_in_uri === true) {
     url.searchParams.set('disable_sni', '1');
   }
 

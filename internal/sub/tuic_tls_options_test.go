@@ -11,11 +11,16 @@ func TestTuicTLSOptionsReachLinksAndClash(t *testing.T) {
 	for _, tc := range []struct {
 		name, settings, zeroRTT string
 		disableSNI              bool
+		disableSNIInURI         bool
 	}{
-		{"defaults", `"server":{"sni":"cert.example"}`, "1", false},
-		{"nested", `"server":{"sni":"cert.example","disable_sni":true,"zero_rtt_handshake":false}`, "0", true},
-		{"legacy", `"sni":"cert.example","disable_sni":true,"zero_rtt_handshake":false`, "0", true},
-		{"nested false overrides legacy", `"sni":"cert.example","disable_sni":true,"zero_rtt_handshake":false,"server":{"disable_sni":false,"zero_rtt_handshake":true}`, "1", false},
+		{"defaults", `"server":{"sni":"cert.example"}`, "1", false, false},
+		{"nested without URI opt-in", `"server":{"sni":"cert.example","disable_sni":true,"zero_rtt_handshake":false}`, "0", true, false},
+		{"legacy without URI opt-in", `"sni":"cert.example","disable_sni":true,"zero_rtt_handshake":false`, "0", true, false},
+		{"nested URI opt-in", `"server":{"disable_sni":true,"disable_sni_in_uri":true}`, "1", true, true},
+		{"legacy URI opt-in", `"disable_sni":true,"disable_sni_in_uri":true`, "1", true, true},
+		{"nested URI false overrides legacy", `"disable_sni":true,"disable_sni_in_uri":true,"server":{"disable_sni_in_uri":false}`, "1", true, false},
+		{"URI opt-in without SNI suppression", `"server":{"disable_sni":false,"disable_sni_in_uri":true}`, "1", false, false},
+		{"nested false overrides legacy", `"sni":"cert.example","disable_sni":true,"disable_sni_in_uri":true,"zero_rtt_handshake":false,"server":{"disable_sni":false,"zero_rtt_handshake":true}`, "1", false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			inbound := &model.Inbound{
@@ -29,10 +34,10 @@ func TestTuicTLSOptionsReachLinksAndClash(t *testing.T) {
 				t.Fatal(err)
 			}
 			query := link.Query()
-			if query.Get("zero_rtt_handshake") != tc.zeroRTT || (query.Get("disable_sni") == "1") != tc.disableSNI {
+			if query.Get("zero_rtt_handshake") != tc.zeroRTT || (query.Get("disable_sni") == "1") != tc.disableSNIInURI {
 				t.Fatalf("client TLS options lost in link: %s", link)
 			}
-			if !tc.disableSNI && query.Has("disable_sni") {
+			if !tc.disableSNIInURI && query.Has("disable_sni") {
 				t.Fatalf("disabled option should remain absent for existing clients: %s", link)
 			}
 			if query.Get("sni") != "verify.example" || query.Get("allow_insecure") != "0" {

@@ -2390,6 +2390,8 @@
         "sniHint": "Názov servera TLS v klientskom profile.",
         "disableSni": "Vypnúť SNI",
         "disableSniHint": "Mihomo: použite jadro ≥1.19.29 a YAML. Staršie jadrá neoverujú certifikát.",
+        "disableSniInUri": "Vypnúť SNI v odkazoch (iba sing-box)",
+        "disableSniInUriWarning": "Mihomo pri importe týchto odkazov vypína overovanie certifikátu. Použite YAML.",
         "sniRequired": "Zadajte doménu na automatické doplnenie ciest k certifikátom."
       },
       "tun": {

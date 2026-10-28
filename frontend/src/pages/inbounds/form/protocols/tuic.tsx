@@ -11,6 +11,7 @@ import {
   Select,
   Space,
   Switch,
+  Typography,
   message,
 } from 'antd';
 import { CloudDownloadOutlined, SyncOutlined } from '@ant-design/icons';
@@ -27,6 +28,7 @@ export default function TuicFields() {
   const [loadingPanelCert, setLoadingPanelCert] = useState(false);
 
   const sni = (useWatch({ control, name: 'settings.server.sni' }) ?? '') as string;
+  const disableSni = useWatch({ control, name: 'settings.server.disable_sni' }) === true;
   const certificate = (useWatch({ control, name: 'settings.server.certificate' }) ?? '') as string;
   const privateKey = (useWatch({ control, name: 'settings.server.private_key' }) ?? '') as string;
   const nodeId = useWatch({ control, name: 'nodeId' }) as number | null | undefined;
@@ -244,6 +246,25 @@ export default function TuicFields() {
         valueProp="checked"
       >
         <Switch aria-label={t('pages.xray.tuic.disableSni')} />
+      </FormField>
+
+      <FormField
+        name={['settings', 'server', 'disable_sni_in_uri']}
+        label={t('pages.xray.tuic.disableSniInUri')}
+        valueProp="checked"
+        extra={
+          disableSni && (
+            <Typography.Text type="warning" id={`${uid}-uri-warning`}>
+              {t('pages.xray.tuic.disableSniInUriWarning')}
+            </Typography.Text>
+          )
+        }
+      >
+        <Switch
+          disabled={!disableSni}
+          aria-label={t('pages.xray.tuic.disableSniInUri')}
+          aria-describedby={disableSni ? `${uid}-uri-warning` : undefined}
+        />
       </FormField>
 
       <FormField

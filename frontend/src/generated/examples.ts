@@ -1226,6 +1226,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "certificate": "",
     "congestion_control": "",
     "disable_sni": false,
+    "disable_sni_in_uri": false,
     "log_level": "",
     "max_idle_time": 0,
     "max_udp_relay_packet_size": 0,

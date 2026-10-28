@@ -26,6 +26,7 @@ type TuicServerSettings struct {
 	MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 	SNI                   string   `json:"sni,omitempty"`
 	DisableSNI            bool     `json:"disable_sni"`
+	DisableSNIInURI       bool     `json:"disable_sni_in_uri"`
 }
 
 type TuicClientSettings struct {
@@ -52,6 +53,7 @@ type Instance struct {
 	MaxUdpRelayPacketSize int
 	SNI                   string // Exported to client links; it doesn't change the native listener certificate.
 	DisableSNI            bool   // Client profile only; the listener accepts clients with and without SNI.
+	DisableSNIInURI       bool
 	Clients               []TuicClientSettings
 }
 
@@ -124,6 +126,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 		SNI                   string   `json:"sni"`
 		DisableSNI            *bool    `json:"disable_sni"`
+		DisableSNIInURI       *bool    `json:"disable_sni_in_uri"`
 		Server                *struct {
 			Certificate           string   `json:"certificate"`
 			PrivateKey            string   `json:"private_key"`
@@ -137,6 +140,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 			MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 			SNI                   string   `json:"sni"`
 			DisableSNI            *bool    `json:"disable_sni"`
+			DisableSNIInURI       *bool    `json:"disable_sni_in_uri"`
 		} `json:"server"`
 		Clients []struct {
 			TrafficID  int    `json:"traffic_id"`
@@ -171,6 +175,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 	maxPacketSize := parsed.MaxUdpRelayPacketSize
 	sni := parsed.SNI
 	disableSNI := parsed.DisableSNI != nil && *parsed.DisableSNI
+	disableSNIInURI := parsed.DisableSNIInURI != nil && *parsed.DisableSNIInURI
 
 	if parsed.Server != nil {
 		if parsed.Server.Certificate != "" {
@@ -208,6 +213,9 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		}
 		if parsed.Server.DisableSNI != nil {
 			disableSNI = *parsed.Server.DisableSNI
+		}
+		if parsed.Server.DisableSNIInURI != nil {
+			disableSNIInURI = *parsed.Server.DisableSNIInURI
 		}
 	}
 
@@ -274,6 +282,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		MaxUdpRelayPacketSize: maxPacketSize,
 		SNI:                   sni,
 		DisableSNI:            disableSNI,
+		DisableSNIInURI:       disableSNIInURI,
 		Clients:               clients,
 	}, true
 }

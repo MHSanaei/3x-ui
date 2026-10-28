@@ -11,28 +11,64 @@ const client = { id: 1, email: 'user@test', uuid, password: 'secret', inboundIds
 
 describe('TUIC client TLS options', () => {
   it.each([
-    { name: 'defaults', settings: {}, zeroRTT: '1', disableSni: false },
+    { name: 'defaults', settings: {}, zeroRTT: '1', disableSni: false, disableSniInUri: false },
     {
       name: 'nested',
       settings: { server: { disable_sni: true, zero_rtt_handshake: false } },
       zeroRTT: '0',
       disableSni: true,
+      disableSniInUri: false,
     },
     {
       name: 'legacy',
       settings: { disable_sni: true, zero_rtt_handshake: false },
       zeroRTT: '0',
       disableSni: true,
+      disableSniInUri: false,
+    },
+    {
+      name: 'nested URI opt-in',
+      settings: { server: { disable_sni: true, disable_sni_in_uri: true } },
+      zeroRTT: '1',
+      disableSni: true,
+      disableSniInUri: true,
+    },
+    {
+      name: 'legacy URI opt-in',
+      settings: { disable_sni: true, disable_sni_in_uri: true },
+      zeroRTT: '1',
+      disableSni: true,
+      disableSniInUri: true,
+    },
+    {
+      name: 'nested URI false overrides legacy',
+      settings: {
+        disable_sni: true,
+        disable_sni_in_uri: true,
+        server: { disable_sni_in_uri: false },
+      },
+      zeroRTT: '1',
+      disableSni: true,
+      disableSniInUri: false,
+    },
+    {
+      name: 'URI opt-in without SNI suppression',
+      settings: { server: { disable_sni: false, disable_sni_in_uri: true } },
+      zeroRTT: '1',
+      disableSni: false,
+      disableSniInUri: false,
     },
     {
       name: 'nested false overrides legacy',
       settings: {
         disable_sni: true,
+        disable_sni_in_uri: true,
         zero_rtt_handshake: false,
         server: { disable_sni: false, zero_rtt_handshake: true },
       },
       zeroRTT: '1',
       disableSni: false,
+      disableSniInUri: false,
     },
   ])('preserves $name through form save, link and YAML export', (tc) => {
     const raw = { id: 1, protocol: 'tuic', port: 8443, settings: tc.settings };
@@ -59,7 +95,7 @@ describe('TUIC client TLS options', () => {
       }),
     );
     expect(link.searchParams.get('zero_rtt_handshake')).toBe(tc.zeroRTT);
-    expect(link.searchParams.get('disable_sni')).toBe(tc.disableSni ? '1' : null);
+    expect(link.searchParams.get('disable_sni')).toBe(tc.disableSniInUri ? '1' : null);
     expect(link.searchParams.get('sni')).toBe('verify.example');
     expect(link.searchParams.get('allow_insecure')).toBe('0');
 

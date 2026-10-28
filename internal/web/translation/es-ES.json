@@ -2269,6 +2269,8 @@
         "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
         "disableSni": "Desactivar SNI",
         "disableSniHint": "Mihomo: usa núcleo ≥1.19.29 y YAML. Los núcleos anteriores no verifican el certificado.",
+        "disableSniInUri": "Desactivar SNI en enlaces (solo sing-box)",
+        "disableSniInUriWarning": "Mihomo desactiva la verificación del certificado al importar estos enlaces. Usa YAML.",
         "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       },
       "tun": {
