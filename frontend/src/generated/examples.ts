@@ -454,6 +454,46 @@ export const EXAMPLES: Record<string, unknown> = {
     "trafficResetDay": 1,
     "updated_at": 0
   },
+  "ClientDetail": {
+    "client": null,
+    "depletedAt": 0,
+    "depletedReason": "",
+    "externalLinks": [
+      {
+        "clientId": 0,
+        "createdAt": 0,
+        "enable": null,
+        "expiryTime": 0,
+        "id": 0,
+        "kind": "",
+        "lastFetchAt": 0,
+        "lastFetchError": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "value": ""
+      }
+    ],
+    "inboundIds": [
+      0
+    ],
+    "tunnelAllowedIPs": {},
+    "usedTraffic": 0
+  },
+  "ClientExternalLink": {
+    "clientId": 0,
+    "createdAt": 0,
+    "enable": null,
+    "expiryTime": 0,
+    "id": 0,
+    "kind": "",
+    "lastFetchAt": 0,
+    "lastFetchError": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "value": ""
+  },
   "ClientInbound": {
     "clientId": 0,
     "createdAt": 0,
@@ -509,6 +549,30 @@ export const EXAMPLES: Record<string, unknown> = {
       "total": 2000
     },
     "total": 2000
+  },
+  "ClientPayload": {
+    "client": null,
+    "externalLinks": [
+      {
+        "clientId": 0,
+        "createdAt": 0,
+        "enable": null,
+        "expiryTime": 0,
+        "id": 0,
+        "kind": "",
+        "lastFetchAt": 0,
+        "lastFetchError": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "value": ""
+      }
+    ],
+    "inboundIds": [
+      0
+    ],
+    "tunnelAllowedIPs": {},
+    "usedTraffic": 0
   },
   "ClientRecord": {
     "adTag": "",
@@ -594,6 +658,27 @@ export const EXAMPLES: Record<string, unknown> = {
     "updatedAt": 1735100000000
   },
   "ClientTraffic": {
+    "down": 2097152,
+    "email": "user1",
+    "enable": true,
+    "expiryTime": 1735689600000,
+    "id": 14825,
+    "inboundId": 1,
+    "lastOnline": 1735680000000,
+    "lastSubFetch": 1735680000000,
+    "reset": 0,
+    "resetCount": 0,
+    "resetDay": 0,
+    "resetMax": 0,
+    "resetWeekday": 0,
+    "subId": "i7tvdpeffi0hvvf1",
+    "total": 10737418240,
+    "up": 1048576,
+    "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+  },
+  "ClientTrafficDetail": {
+    "depletedAt": 0,
+    "depletedReason": "",
     "down": 2097152,
     "email": "user1",
     "enable": true,
