@@ -271,13 +271,13 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			return
 		}
 		t.clearBroadcastPrompt(messageActor(*message))
-		t.screenHome(chatId, message.From.ID)
+		t.screenHome(chatId, message.From.ID, true)
 		return
 	case "status":
 		// The full server screen carries the host addresses and versions, so it
 		// stays admin-only; a client asking for status gets liveness alone.
 		if isAdmin {
-			t.screenServer(chatId)
+			t.screenServer(chatId, true)
 			return
 		}
 		t.sendNotice(chatId, t.I18nBot("tgbot.commands.statusOk"))
@@ -288,12 +288,12 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	case "usage":
 		if len(commandArgs) > 0 {
 			if isAdmin {
-				t.searchClientScreen(chatId, commandArgs[0])
+				t.searchClientScreen(chatId, commandArgs[0], true)
 			} else {
-				t.getClientUsage(chatId, message.From.ID, commandArgs[0])
+				t.getClientUsageWithRenderMode(chatId, message.From.ID, true, commandArgs[0])
 			}
 		} else {
-			t.getClientUsage(chatId, message.From.ID)
+			t.getClientUsageWithRenderMode(chatId, message.From.ID, true)
 		}
 		return
 	case "inbound":
@@ -324,7 +324,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		}
 	case "clearall":
 		if isAdmin {
-			t.renderScreen(chatId, t.resetAllConfirm())
+			t.renderScreen(chatId, t.resetAllConfirm(), true)
 			return
 		}
 		handleUnknownCommand()
