@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Yük ortalaması",
+      "loadWindow": "{minutes} dk",
+      "loadHelp": "Yük ortalaması, 1, 5 ve 15 dakika boyunca çalışabilir veya kesilemez beklemedeki görevlerin ortalama sayısıdır. Kullanılabilir mantıksal CPU sayısıyla karşılaştırmak sistem baskısını belirlemeye yardımcı olur. CPU kullanım yüzdesi değildir.",
+      "loadScopeMismatch": "Yük ve CPU kapasitesinin kapsamları farklı olabilir; ham değerler uyarı renkleri olmadan gösterilir.",
+      "loadCapacityUnknown": "Kullanılabilir mantıksal CPU kapasitesi bilinmiyor; ham değerler uyarı renkleri olmadan gösterilir.",
+      "loadSeverity": {
+        "healthy": "Normal",
+        "increasing": "Artıyor",
+        "elevated": "Yüksek",
+        "nearCapacity": "Kapasiteye yakın",
+        "aboveCapacity": "Kapasitenin üzerinde",
+        "unavailable": "Kullanılamıyor"
+      },
       "cpu": "CPU",
       "swap": "Takas",
       "storage": "Depolama",

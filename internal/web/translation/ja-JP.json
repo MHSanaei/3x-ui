@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "ロードアベレージ",
+      "loadWindow": "{minutes}分",
+      "loadHelp": "ロードアベレージは、1・5・15分間の実行可能なタスクと割り込み不可能な待機タスクの平均数です。利用可能な論理CPU数との比較はシステムの負荷把握に役立ちます。CPU使用率ではありません。",
+      "loadScopeMismatch": "負荷とCPU容量の対象範囲が異なる可能性があるため、生の値を警告色なしで表示します。",
+      "loadCapacityUnknown": "利用可能な論理CPU容量が不明なため、生の値を警告色なしで表示します。",
+      "loadSeverity": {
+        "healthy": "正常",
+        "increasing": "増加中",
+        "elevated": "高め",
+        "nearCapacity": "容量に近い",
+        "aboveCapacity": "容量超過",
+        "unavailable": "取得不可"
+      },
       "cpu": "CPU",
       "swap": "スワップ",
       "storage": "ストレージ",

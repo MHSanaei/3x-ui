@@ -271,6 +271,73 @@
   margin-top: 6px;
 }
 
+.ov-load {
+  padding: 12px var(--ov-pad) 0;
+}
+
+.ov-load-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ov-load-indicator {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.ov-load-help {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ant-color-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  cursor: help;
+}
+
+.ov-load-help:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.ov-load-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 0;
+}
+
+.ov-load-reading {
+  min-inline-size: 0;
+  border-block-end: 2px solid var(--load-color);
+  padding-block-end: 4px;
+  overflow-wrap: anywhere;
+}
+
+.ov-load-reading dt {
+  color: var(--ant-color-text-secondary);
+  font-size: 11px;
+}
+
+.ov-load-reading dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  color: color-mix(in srgb, var(--load-color) 55%, var(--ant-color-text));
+}
+
+.ov-load-reading[data-severity='unavailable'] dd {
+  color: var(--ant-color-text-secondary);
+}
+
 /* — throughput + connections — */
 
 .ov-mid {

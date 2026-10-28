@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "平均負載",
+      "loadWindow": "{minutes}分鐘",
+      "loadHelp": "平均負載是過去1、5和15分鐘內可執行或處於不可中斷等待狀態的工作平均數量。與可用邏輯CPU數量比較有助於識別系統壓力。它不是CPU使用率。",
+      "loadScopeMismatch": "負載與CPU容量可能屬於不同範圍，因此僅顯示原始值，不使用嚴重程度色彩。",
+      "loadCapacityUnknown": "可用邏輯CPU容量未知，因此僅顯示原始值，不使用嚴重程度色彩。",
+      "loadSeverity": {
+        "healthy": "正常",
+        "increasing": "正在增加",
+        "elevated": "較高",
+        "nearCapacity": "接近容量",
+        "aboveCapacity": "超過容量",
+        "unavailable": "無法取得"
+      },
       "cpu": "CPU",
       "swap": "交換空間",
       "storage": "儲存",

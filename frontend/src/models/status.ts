@@ -67,13 +67,15 @@ export interface AmneziaWGInfo {
   running: boolean;
 }
 
-interface StatusInput extends Pick<ParsedStatusInput, 'resourceScope' | 'unavailableMetrics'> {
+interface StatusInput extends Pick<
+  ParsedStatusInput,
+  'resourceScope' | 'unavailableMetrics' | 'loads'
+> {
   cpu?: number;
   cpuCores?: number;
   logicalPro?: number;
   cpuSpeedMhz?: number;
   disk?: { current?: number; total?: number };
-  loads?: number[];
   mem?: { current?: number; total?: number };
   netIO?: NetIO;
   netTraffic?: NetTraffic;
@@ -101,7 +103,7 @@ export class Status {
   logicalPro = 0;
   cpuSpeedMhz = 0;
   disk: CurTotal = new CurTotal(0, 0);
-  loads: number[] = [0, 0, 0];
+  loads: number[] = [];
   mem: CurTotal = new CurTotal(0, 0);
   netIO: NetIO = { up: 0, down: 0 };
   netTraffic: NetTraffic = { sent: 0, recv: 0 };
@@ -125,7 +127,7 @@ export class Status {
     this.logicalPro = data.logicalPro ?? 0;
     this.cpuSpeedMhz = data.cpuSpeedMhz ?? 0;
     this.disk = new CurTotal(data.disk?.current ?? 0, data.disk?.total ?? 0);
-    this.loads = (data.loads || [0, 0, 0]).map((v) => NumberFormatter.toFixed(v, 2));
+    this.loads = data.loads?.slice() ?? [];
     this.mem = new CurTotal(data.mem?.current ?? 0, data.mem?.total ?? 0);
     this.netIO = data.netIO ?? this.netIO;
     this.netTraffic = data.netTraffic ?? this.netTraffic;
