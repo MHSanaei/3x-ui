@@ -9,6 +9,8 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
   push:
     branches:
@@ -20,6 +22,8 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
 
 permissions:
@@ -314,8 +318,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck
         run: |
-          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh
+          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh deploy/test/installer-panel-port.sh
           shellcheck --severity=error install.sh update.sh x-ui.sh
+      - name: Installer panel port regression tests
+        run: bash deploy/test/installer-panel-port.sh
 
   frontend:
     runs-on: ubuntu-latest
