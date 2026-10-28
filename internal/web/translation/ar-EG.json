@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
         "disableSni": "تعطيل SNI",
-        "disableSniHint": "استخدم Clash YAML للحفاظ على التحقق من الشهادة في Mihomo.",
+        "disableSniHint": "Mihomo: استخدم نواة ≥1.19.29 وYAML. الأنوية الأقدم لا تتحقق من الشهادة.",
         "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       },
       "tun": {

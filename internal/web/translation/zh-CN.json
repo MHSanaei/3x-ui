@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "客户端配置中的 TLS 服务器名称。",
         "disableSni": "禁用 SNI",
-        "disableSniHint": "请使用 Clash YAML，以保留 Mihomo 的证书验证。",
+        "disableSniHint": "Mihomo：请使用 ≥1.19.29 的内核和 YAML。旧版内核不验证证书。",
         "sniRequired": "请输入域名以自动填充证书路径。"
       },
       "tun": {

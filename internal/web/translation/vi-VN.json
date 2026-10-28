@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "Tên máy chủ TLS trong cấu hình máy khách.",
         "disableSni": "Tắt SNI",
-        "disableSniHint": "Dùng Clash YAML để giữ xác minh chứng chỉ trong Mihomo.",
+        "disableSniHint": "Mihomo: dùng lõi ≥1.19.29 và YAML. Lõi cũ không xác minh chứng chỉ.",
         "sniRequired": "Nhập tên miền để tự điền đường dẫn chứng chỉ."
       },
       "tun": {

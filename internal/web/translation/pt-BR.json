@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "Nome do servidor TLS no perfil do cliente.",
         "disableSni": "Desativar SNI",
-        "disableSniHint": "Use Clash YAML para manter a verificação do certificado no Mihomo.",
+        "disableSniHint": "Mihomo: use núcleo ≥1.19.29 e YAML. Núcleos antigos não verificam o certificado.",
         "sniRequired": "Informe um domínio para preencher os caminhos do certificado."
       },
       "tun": {

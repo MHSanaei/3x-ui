@@ -2389,7 +2389,7 @@
         "sni": "SNI",
         "sniHint": "TLS server name in the client profile.",
         "disableSni": "Disable SNI",
-        "disableSniHint": "Use Clash YAML to preserve certificate verification in Mihomo.",
+        "disableSniHint": "Mihomo: use core ≥1.19.29 and YAML. Older cores skip certificate verification.",
         "sniRequired": "Enter a domain to auto-fill certificate paths."
       },
       "tun": {

@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "用戶端設定檔中的 TLS 伺服器名稱。",
         "disableSni": "停用 SNI",
-        "disableSniHint": "請使用 Clash YAML，以保留 Mihomo 的憑證驗證。",
+        "disableSniHint": "Mihomo：請使用 ≥1.19.29 的核心和 YAML。舊版核心不驗證憑證。",
         "sniRequired": "請輸入網域以自動填入憑證路徑。"
       },
       "tun": {

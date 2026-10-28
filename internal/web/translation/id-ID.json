@@ -2268,7 +2268,7 @@
         "sni": "SNI",
         "sniHint": "Nama server TLS dalam profil klien.",
         "disableSni": "Nonaktifkan SNI",
-        "disableSniHint": "Gunakan Clash YAML agar verifikasi sertifikat tetap aktif di Mihomo.",
+        "disableSniHint": "Mihomo: gunakan core ≥1.19.29 dan YAML. Core lama tidak memverifikasi sertifikat.",
         "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {
