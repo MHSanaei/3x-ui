@@ -16,8 +16,15 @@ import (
 // error, so a screen pages its body instead of risking a lost render.
 const botCaptionLimit = 1024
 
-// screen is the bot's only chat surface: one photo message whose caption and
-// keyboard are edited on every action, so a chat never grows a second menu.
+type screenDelivery uint8
+
+const (
+	screenEditOrReplace screenDelivery = iota
+	screenSendNew
+)
+
+// screen is the bot's chat surface: callbacks edit its caption and keyboard,
+// while typed commands replace it with a newly sent menu.
 type screen struct {
 	msgID int
 	kind  string
@@ -130,9 +137,9 @@ func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButt
 	return &screen{kind: kind, header: header, body: body, pages: pages, rows: rows, pageMax: len(pages)}
 }
 
-// renderScreen is the single entry point for drawing a screen: EDIT first, and
-// replace (send then delete) only when the edit is genuinely impossible.
-func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
+// renderScreen edits the current menu unless a command requests a new message.
+// A typed command must not depend on the old message still being visible.
+func (t *Tgbot) renderScreen(chatID int64, sc *screen, delivery ...screenDelivery) {
 	if sc == nil || liveBot() == nil {
 		return
 	}
@@ -150,7 +157,8 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	}
 	sc.markup = tu.InlineKeyboard(rows...)
 
-	if prev, ok := t.screens().get(chatID); ok && prev.msgID != 0 {
+	sendNew := len(delivery) > 0 && delivery[0] == screenSendNew
+	if prev, ok := t.screens().get(chatID); !sendNew && ok && prev.msgID != 0 {
 		if t.editScreen(chatID, prev, sc) {
 			sc.msgID = prev.msgID
 			t.screens().put(chatID, sc)
@@ -278,8 +286,10 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 		logger.Warning("Failed to send a screen:", err)
 		return 0
 	}
-	if hadPrev && prev.msgID != 0 {
-		t.deleteOwnMessage(chatID, prev.msgID)
+	if hadPrev && prev.msgID != 0 && !t.deleteOwnMessage(chatID, prev.msgID) {
+		t.editMessageCallbackTgBot(chatID, prev.msgID, &telego.InlineKeyboardMarkup{
+			InlineKeyboard: [][]telego.InlineKeyboardButton{},
+		})
 	}
 	sc.msgID = sent.MessageID
 	// Telegram hands back the file_id of the uploaded tile: remembering it keeps
@@ -409,17 +419,20 @@ func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
 	t.deleteOwnMessage(chatID, messageID)
 }
 
-// deleteOwnMessage removes one of our messages without surfacing a failure: the
-// user may have deleted it, and Telegram refuses past 48 hours.
-func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
-	if msgID == 0 || liveBot() == nil {
-		return
+// deleteOwnMessage reports whether a message was removed. Failures are expected
+// when it is already gone or outside Telegram's deletion window.
+func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) bool {
+	b := liveBot()
+	if msgID == 0 || b == nil {
+		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := liveBot().DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
+	if err := b.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
 		logger.Debug("Cannot delete a bot message:", err)
+		return false
 	}
+	return true
 }
 
 // hideButton is the keyboard of a non-screen message: one tap clears it.
