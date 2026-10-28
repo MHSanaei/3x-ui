@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Priemerná záťaž",
+      "loadWindow": "{minutes} min",
+      "loadHelp": "Priemerná záťaž je priemerný počet pripravených úloh a úloh v neprerušiteľnom čakaní za 1, 5 a 15 minút. Porovnanie s dostupnými logickými CPU pomáha odhaliť tlak na systém. Nejde o využitie CPU.",
+      "loadScopeMismatch": "Záťaž a kapacita CPU môžu mať odlišný rozsah; surové hodnoty sa zobrazujú bez výstražných farieb.",
+      "loadCapacityUnknown": "Kapacita dostupných logických CPU nie je známa; surové hodnoty sa zobrazujú bez výstražných farieb.",
+      "loadSeverity": {
+        "healthy": "Normálna",
+        "increasing": "Rastúca",
+        "elevated": "Zvýšená",
+        "nearCapacity": "Blízko kapacity",
+        "aboveCapacity": "Nad kapacitou",
+        "unavailable": "Nedostupné"
+      },
       "cpu": "CPU",
       "swap": "Swap",
       "storage": "Úložisko",

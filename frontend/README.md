@@ -83,6 +83,24 @@ does not use Cache Storage, does not intercept requests, and does not provide
 offline access; panel authentication, API calls, and WebSocket traffic remain
 normal network requests.
 
+## Overview load averages
+
+The CPU tile keeps its utilization percentage, recent average/peak and sparkline,
+and shows raw 1-, 5- and 15-minute load averages from the existing status feed.
+Load is a task count, not a utilization percentage. Each value has its own
+capacity color; the small marker follows the one-minute reading. Dividing by
+available logical CPUs gives green through 0.50, a green-to-yellow gradient to
+0.70, yellow-to-orange to 0.85, orange through exactly 1.00, and red above 1.00.
+Only display formatting rounds the raw measurements to two decimal places.
+
+Missing or invalid readings show a neutral dash. LXC/container or unknown CPU
+scope, unknown capacity, and host CPU counts that differ from the process's
+available CPUs keep valid raw load values neutral, with an explanatory tooltip.
+The existing `unavailableMetrics` metadata uses `loadCapacity` for the latter
+case; it does not mark the load readings themselves unavailable. Older status
+responses without scope metadata retain the existing host-scope assumption.
+No additional polling, endpoint, setting or database change is needed.
+
 ## Layout
 
 ```

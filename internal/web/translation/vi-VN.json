@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Tải trung bình",
+      "loadWindow": "{minutes} phút",
+      "loadHelp": "Tải trung bình là số tác vụ trung bình có thể chạy hoặc chờ không thể ngắt trong 1, 5 và 15 phút. So sánh với số CPU logic khả dụng giúp xác định áp lực hệ thống. Đây không phải phần trăm sử dụng CPU.",
+      "loadScopeMismatch": "Tải và dung lượng CPU có thể thuộc các phạm vi khác nhau; giá trị gốc được hiển thị không kèm màu cảnh báo.",
+      "loadCapacityUnknown": "Không rõ dung lượng CPU logic khả dụng; giá trị gốc được hiển thị không kèm màu cảnh báo.",
+      "loadSeverity": {
+        "healthy": "Bình thường",
+        "increasing": "Đang tăng",
+        "elevated": "Cao",
+        "nearCapacity": "Gần giới hạn",
+        "aboveCapacity": "Vượt giới hạn",
+        "unavailable": "Không khả dụng"
+      },
       "cpu": "CPU",
       "swap": "Swap",
       "storage": "Lưu trữ",

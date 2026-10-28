@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Load Average",
+      "loadWindow": "{minutes}m",
+      "loadHelp": "Load Average is the average number of runnable or uninterruptible tasks over 1, 5 and 15 minutes. Comparing it with available logical CPUs can help identify system pressure. It is not CPU utilization.",
+      "loadScopeMismatch": "Load and CPU capacity may have different scopes; raw values are shown without severity colors.",
+      "loadCapacityUnknown": "Available logical CPU capacity is unknown; raw values are shown without severity colors.",
+      "loadSeverity": {
+        "healthy": "Healthy",
+        "increasing": "Increasing",
+        "elevated": "Elevated",
+        "nearCapacity": "Near capacity",
+        "aboveCapacity": "Above capacity",
+        "unavailable": "Unavailable"
+      },
       "cpu": "CPU",
       "swap": "Swap",
       "storage": "Storage",

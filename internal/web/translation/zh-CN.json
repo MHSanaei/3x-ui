@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "平均负载",
+      "loadWindow": "{minutes}分钟",
+      "loadHelp": "平均负载是过去1、5和15分钟内可运行或处于不可中断等待状态的任务平均数量。与可用逻辑CPU数量比较有助于识别系统压力。它不是CPU使用率。",
+      "loadScopeMismatch": "负载与CPU容量可能属于不同范围，因此仅显示原始值，不使用严重程度颜色。",
+      "loadCapacityUnknown": "可用逻辑CPU容量未知，因此仅显示原始值，不使用严重程度颜色。",
+      "loadSeverity": {
+        "healthy": "正常",
+        "increasing": "正在增加",
+        "elevated": "较高",
+        "nearCapacity": "接近容量",
+        "aboveCapacity": "超过容量",
+        "unavailable": "不可用"
+      },
       "cpu": "CPU",
       "swap": "交换空间",
       "storage": "存储",

@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Carga media",
+      "loadWindow": "{minutes} min",
+      "loadHelp": "La carga media es el número medio de tareas ejecutables o en espera ininterrumpible durante 1, 5 y 15 minutos. Compararla con las CPU lógicas disponibles ayuda a identificar la presión del sistema. No es el uso de CPU.",
+      "loadScopeMismatch": "La carga y la capacidad de CPU pueden tener ámbitos distintos; se muestran valores sin colores de gravedad.",
+      "loadCapacityUnknown": "Se desconoce la capacidad de CPU lógicas disponible; se muestran valores sin colores de gravedad.",
+      "loadSeverity": {
+        "healthy": "Normal",
+        "increasing": "En aumento",
+        "elevated": "Elevada",
+        "nearCapacity": "Cerca de la capacidad",
+        "aboveCapacity": "Por encima de la capacidad",
+        "unavailable": "No disponible"
+      },
       "cpu": "CPU",
       "swap": "Swap",
       "storage": "Almacenamiento",

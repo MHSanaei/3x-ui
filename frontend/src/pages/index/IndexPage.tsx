@@ -26,6 +26,7 @@ import SponsorSlot from '@/components/sponsor/SponsorSlot';
 import { setMessageInstance } from '@/utils/messageBus';
 import OverviewActionBar from './OverviewActionBar';
 import VitalTile from './VitalTile';
+import LoadAverage from './LoadAverage';
 import ThroughputCard from './ThroughputCard';
 import ConnectionsCard from './ConnectionsCard';
 import SystemStrip from './SystemStrip';
@@ -230,6 +231,7 @@ export default function IndexPage() {
                       icon={<DashboardOutlined aria-hidden />}
                       label={t('pages.index.cpu')}
                       available={status.metricAvailable('cpu')}
+                      extraContent={<LoadAverage status={status} />}
                       percent={status.cpu.percent}
                       statusColor={status.cpu.color}
                       detail={

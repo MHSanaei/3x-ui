@@ -141,6 +141,19 @@
       }
     },
     "index": {
+      "loadAverage": "Rata-rata beban",
+      "loadWindow": "{minutes} mnt",
+      "loadHelp": "Rata-rata beban adalah rata-rata jumlah tugas siap jalan atau menunggu tanpa interupsi selama 1, 5, dan 15 menit. Perbandingan dengan CPU logis yang tersedia membantu mengenali tekanan sistem. Ini bukan penggunaan CPU.",
+      "loadScopeMismatch": "Beban dan kapasitas CPU mungkin memiliki cakupan berbeda; nilai mentah ditampilkan tanpa warna tingkat beban.",
+      "loadCapacityUnknown": "Kapasitas CPU logis yang tersedia tidak diketahui; nilai mentah ditampilkan tanpa warna tingkat beban.",
+      "loadSeverity": {
+        "healthy": "Normal",
+        "increasing": "Meningkat",
+        "elevated": "Tinggi",
+        "nearCapacity": "Mendekati kapasitas",
+        "aboveCapacity": "Melebihi kapasitas",
+        "unavailable": "Tidak tersedia"
+      },
       "cpu": "CPU",
       "swap": "Swap",
       "storage": "Penyimpanan",

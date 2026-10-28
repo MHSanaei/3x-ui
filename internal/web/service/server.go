@@ -588,6 +588,10 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		}
 
 		status.LogicalPro = runtime.NumCPU()
+		// Host load must not be normalized by an affinity-limited CPU count.
+		if hostCPUs, err := cpu.Counts(true); err != nil || hostCPUs <= 0 || hostCPUs != status.LogicalPro {
+			status.UnavailableMetrics = append(status.UnavailableMetrics, "loadCapacity")
+		}
 
 		if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
 			s.lastCpuInfoAttempt = time.Now()

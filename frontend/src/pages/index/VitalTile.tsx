@@ -12,6 +12,7 @@ interface VitalTileProps {
   percent: number;
   statusColor: string;
   detail: string;
+  extraContent?: ReactNode;
   footLeft: string;
   footRight: string;
   data: number[];
@@ -25,6 +26,7 @@ export default function VitalTile({
   percent,
   statusColor,
   detail,
+  extraContent,
   footLeft,
   footRight,
   data,
@@ -51,6 +53,8 @@ export default function VitalTile({
       </div>
 
       <div className="ov-tile-detail">{available ? detail : '—'}</div>
+
+      {extraContent}
 
       <div className="ov-tile-foot">
         <span>{available ? footLeft : '—'}</span>
