@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
         "sni": "SNI",
         "sniHint": "İstemci profilindeki TLS sunucu adı.",
+        "disableSni": "SNI gönderme",
+        "disableSniHint": "Mihomo sertifika doğrulamasını korumak için Clash YAML kullanın.",
         "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       },
       "tun": {

@@ -48,7 +48,7 @@ icon: Zap
 <Step>
 ### Настройте параметры QUIC
 
-Панель автоматически подставляет рекомендованные настройки (`bbr`, `h3`, `native`). При необходимости настройте таймауты или включите **Zero-RTT Handshake**.
+Панель автоматически подставляет рекомендованные настройки (`bbr`, `h3`, `native`). **Zero-RTT Handshake** по умолчанию включён; сохранённые значения не меняются. При необходимости измените его или таймауты.
 </Step>
 
 <Step>
@@ -95,8 +95,20 @@ proxies:
 Ссылки TUIC используют стандартный формат URI:
 
 ```text
-tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.example.com&udp_relay_mode=native&allow_insecure=0#Remark
+tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.example.com&udp_relay_mode=native&allow_insecure=0&zero_rtt_handshake=1#Remark
 ```
+
+### Отключение SNI и экспорт 0-RTT
+
+**Не отправлять SNI** — параметр клиентского профиля, по умолчанию выключенный. При включении в ссылку добавляется `disable_sni=1`, а в Clash/Mihomo YAML — `disable-sni: true`. В поле **SNI** оставьте имя из сертификата: sing-box умеет проверять его, не отправляя в ClientHello. Панель не включает `allow_insecure` или `skip-cert-verify` при отключении SNI.
+
+TUIC-клиент Mihomo отключает обычную проверку сертификата вместе с SNI. Поэтому панель дополнительно записывает в YAML `name-cert-verify` с именем из SNI или адресом подключения, если Host явно не разрешает небезопасное соединение. Для Mihomo используйте YAML: проверенный импортёр URI не переносит эту настройку проверки сертификата.
+
+Отключение скрывает передаваемое имя сервера и может помочь при фильтрации по этому имени. IP сервера остаётся видимым. Если шлюз выбирает сертификат или backend по SNI, его отключение может нарушить подключение. Нативный TUIC listener принимает клиентов с SNI и без него.
+
+Выбранное значение 0-RTT передаётся как `zero_rtt_handshake=1` или `0` в ссылках и `reduce-rtt: true` или `false` в YAML. Единого стандарта TUIC URI нет: проверенные импортёры NekoBox Android, Mihomo и Passwall не читают параметр 0-RTT из ссылки. NekoBox Android читает оба переключателя из Clash YAML/подписки; используйте этот формат для передачи обеих настроек.
+
+Источники: [TLS sing-box](https://sing-box.sagernet.org/configuration/shared/tls/), [TUIC Mihomo](https://wiki.metacubex.one/ru/config/proxies/tuic/) и [импортёр URI NekoBox](https://github.com/MatsuriDayo/NekoBoxForAndroid/blob/main/app/src/main/java/io/nekohasekai/sagernet/fmt/tuic/TuicFmt.kt). JSON-подписка панели предназначена для Xray и по-прежнему пропускает TUIC; это не экспорт sing-box JSON.
 
 ## Архитектура и возможности
 

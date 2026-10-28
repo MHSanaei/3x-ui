@@ -25,6 +25,7 @@ type TuicServerSettings struct {
 	AuthenticationTimeout int      `json:"authentication_timeout"`
 	MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 	SNI                   string   `json:"sni,omitempty"`
+	DisableSNI            bool     `json:"disable_sni"`
 }
 
 type TuicClientSettings struct {
@@ -50,6 +51,7 @@ type Instance struct {
 	AuthenticationTimeout int
 	MaxUdpRelayPacketSize int
 	SNI                   string // Exported to client links; it doesn't change the native listener certificate.
+	DisableSNI            bool   // Client profile only; the listener accepts clients with and without SNI.
 	Clients               []TuicClientSettings
 }
 
@@ -121,6 +123,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		AuthenticationTimeout int      `json:"authentication_timeout"`
 		MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 		SNI                   string   `json:"sni"`
+		DisableSNI            *bool    `json:"disable_sni"`
 		Server                *struct {
 			Certificate           string   `json:"certificate"`
 			PrivateKey            string   `json:"private_key"`
@@ -133,6 +136,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 			AuthenticationTimeout int      `json:"authentication_timeout"`
 			MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 			SNI                   string   `json:"sni"`
+			DisableSNI            *bool    `json:"disable_sni"`
 		} `json:"server"`
 		Clients []struct {
 			TrafficID  int    `json:"traffic_id"`
@@ -166,6 +170,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 	authTimeout := parsed.AuthenticationTimeout
 	maxPacketSize := parsed.MaxUdpRelayPacketSize
 	sni := parsed.SNI
+	disableSNI := parsed.DisableSNI != nil && *parsed.DisableSNI
 
 	if parsed.Server != nil {
 		if parsed.Server.Certificate != "" {
@@ -200,6 +205,9 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		}
 		if parsed.Server.SNI != "" {
 			sni = parsed.Server.SNI
+		}
+		if parsed.Server.DisableSNI != nil {
+			disableSNI = *parsed.Server.DisableSNI
 		}
 	}
 
@@ -265,6 +273,7 @@ func instanceFromInbound(ib *model.Inbound, includeDisabled bool) (Instance, boo
 		AuthenticationTimeout: authTimeout,
 		MaxUdpRelayPacketSize: maxPacketSize,
 		SNI:                   sni,
+		DisableSNI:            disableSNI,
 		Clients:               clients,
 	}, true
 }

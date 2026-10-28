@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
         "sni": "SNI",
         "sniHint": "Ім’я сервера для TLS у профілі клієнта.",
+        "disableSni": "Не надсилати SNI",
+        "disableSniHint": "Для Mihomo використовуйте YAML із перевіркою імені сертифіката.",
         "sniRequired": "Укажіть домен для автозаповнення."
       },
       "tun": {

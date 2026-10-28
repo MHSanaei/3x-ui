@@ -112,6 +112,7 @@ export const TuicServerOptionSchema = z
     alpn: z.array(z.string()).optional(),
     udp_relay_mode: z.string().optional(),
     zero_rtt_handshake: z.boolean().optional(),
+    disable_sni: z.boolean().optional(),
     log_level: z.string().optional(),
     max_idle_time: z.number().optional(),
     authentication_timeout: z.number().optional(),

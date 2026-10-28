@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
         "sni": "SNI",
         "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
+        "disableSni": "تعطيل SNI",
+        "disableSniHint": "استخدم Clash YAML للحفاظ على التحقق من الشهادة في Mihomo.",
         "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       },
       "tun": {

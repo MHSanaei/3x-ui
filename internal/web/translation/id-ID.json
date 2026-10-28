@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
         "sni": "SNI",
         "sniHint": "Nama server TLS dalam profil klien.",
+        "disableSni": "Nonaktifkan SNI",
+        "disableSniHint": "Gunakan Clash YAML agar verifikasi sertifikat tetap aktif di Mihomo.",
         "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {

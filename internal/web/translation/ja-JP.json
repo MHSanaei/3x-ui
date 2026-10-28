@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
         "sni": "SNI",
         "sniHint": "クライアント設定の TLS サーバー名。",
+        "disableSni": "SNIを送信しない",
+        "disableSniHint": "Mihomoの証明書検証を維持するにはClash YAMLを使用してください。",
         "sniRequired": "証明書パスの自動入力にはドメインを指定してください。"
       },
       "tun": {

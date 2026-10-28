@@ -2388,6 +2388,8 @@
         "maxUdpRelayPacketSize": "Max UDP Packet Size",
         "sni": "SNI",
         "sniHint": "TLS server name in the client profile.",
+        "disableSni": "Disable SNI",
+        "disableSniHint": "Use Clash YAML to preserve certificate verification in Mihomo.",
         "sniRequired": "Enter a domain to auto-fill certificate paths."
       },
       "tun": {

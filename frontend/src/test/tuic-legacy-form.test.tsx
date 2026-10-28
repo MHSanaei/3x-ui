@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { describe, expect, it } from 'vitest';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
-import { render, act } from '@testing-library/react';
+import { render, act, fireEvent, screen } from '@testing-library/react';
 import { Form } from 'antd';
 import TuicFields from '@/pages/inbounds/form/protocols/tuic';
 import { rawInboundToFormValues, formValuesToWirePayload } from '@/lib/xray/inbound-form-adapter';
@@ -37,6 +37,23 @@ function Harness() {
 }
 
 describe('TUIC legacy edit and raw profile precedence', () => {
+  it('saves the SNI switch without losing the verification name or the 0-RTT choice', () => {
+    render(<Harness />);
+    const toggle = screen.getByRole('switch', { name: 'Disable SNI' });
+    fireEvent.click(toggle);
+    const saved = JSON.parse(
+      formValuesToWirePayload(InboundFormSchema.parse(methods.getValues())).settings,
+    );
+    expect(saved.server.disable_sni).toBe(true);
+    expect(saved.server.sni).toBe('old.example');
+    expect(saved.server.zero_rtt_handshake).toBe(false);
+    fireEvent.click(toggle);
+    const disabled = JSON.parse(
+      formValuesToWirePayload(InboundFormSchema.parse(methods.getValues())).settings,
+    );
+    expect(disabled.server.disable_sni).toBe(false);
+    expect(disabled.server.sni).toBe('old.example');
+  });
   it('mounting old flat settings must display current certificate', () => {
     render(<Harness />);
     const displayed = Array.from(document.querySelectorAll('input')).map((x) => x.value);

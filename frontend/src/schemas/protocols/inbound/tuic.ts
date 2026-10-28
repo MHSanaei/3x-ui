@@ -51,6 +51,7 @@ export const TuicServerSchema = z.object({
   authentication_timeout: clearedToDefault(z.number().int().min(1).default(3)),
   max_udp_relay_packet_size: clearedToDefault(maxUdpRelayPacketSize.default(1500)),
   sni: z.string().default(''),
+  disable_sni: z.boolean().default(false),
 });
 export type TuicServer = z.infer<typeof TuicServerSchema>;
 
@@ -70,6 +71,7 @@ const TuicSettingsObject = z.object({
     optionalClearedInt(z.number().int().min(1).max(65245)),
   ),
   sni: z.string().optional(),
+  disable_sni: z.boolean().optional(),
   clients: z.array(TuicClientSchema).default([]),
 });
 export const TuicInboundSettingsSchema = z.preprocess((value) => {

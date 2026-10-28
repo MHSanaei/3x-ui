@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
         "sni": "SNI",
         "sniHint": "Tên máy chủ TLS trong cấu hình máy khách.",
+        "disableSni": "Tắt SNI",
+        "disableSniHint": "Dùng Clash YAML để giữ xác minh chứng chỉ trong Mihomo.",
         "sniRequired": "Nhập tên miền để tự điền đường dẫn chứng chỉ."
       },
       "tun": {

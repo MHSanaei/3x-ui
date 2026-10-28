@@ -2267,6 +2267,8 @@
         "maxUdpRelayPacketSize": "最大 UDP 封包大小",
         "sni": "SNI",
         "sniHint": "用戶端設定檔中的 TLS 伺服器名稱。",
+        "disableSni": "停用 SNI",
+        "disableSniHint": "請使用 Clash YAML，以保留 Mihomo 的憑證驗證。",
         "sniRequired": "請輸入網域以自動填入憑證路徑。"
       },
       "tun": {

@@ -2388,6 +2388,8 @@
         "maxUdpRelayPacketSize": "Najväčšia veľkosť paketu UDP",
         "sni": "SNI",
         "sniHint": "Názov servera TLS v klientskom profile.",
+        "disableSni": "Vypnúť SNI",
+        "disableSniHint": "V Mihomo použite Clash YAML na zachovanie overovania certifikátu.",
         "sniRequired": "Zadajte doménu na automatické doplnenie ciest k certifikátom."
       },
       "tun": {

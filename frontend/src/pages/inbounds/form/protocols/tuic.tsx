@@ -238,6 +238,15 @@ export default function TuicFields() {
       </Form.Item>
 
       <FormField
+        name={['settings', 'server', 'disable_sni']}
+        label={t('pages.xray.tuic.disableSni')}
+        tooltip={t('pages.xray.tuic.disableSniHint')}
+        valueProp="checked"
+      >
+        <Switch aria-label={t('pages.xray.tuic.disableSni')} />
+      </FormField>
+
+      <FormField
         name={['settings', 'server', 'udp_relay_mode']}
         label={t('pages.xray.tuic.udpRelayMode')}
         tooltip={t('pages.xray.tuic.udpRelayModeHint')}

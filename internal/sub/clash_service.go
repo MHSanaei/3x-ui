@@ -756,6 +756,9 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 		"udp-relay-mode":        inst.UDPRelayMode,
 		"reduce-rtt":            inst.ZeroRTTHandshake,
 	}
+	if inst.DisableSNI {
+		proxy["disable-sni"] = true
+	}
 	if len(inst.ALPN) > 0 {
 		proxy["alpn"] = inst.ALPN
 	}
@@ -770,6 +773,17 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 	}
 	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
 		proxy["skip-cert-verify"] = true
+	}
+	if inst.DisableSNI && proxy["skip-cert-verify"] != true {
+		verifyName, _ := proxy["sni"].(string)
+		if verifyName == "" {
+			verifyName, _ = ep["dest"].(string)
+		}
+		if verifyName == "" {
+			verifyName = server
+		}
+		// Mihomo clears its built-in verifier with disable-sni; preserve it explicitly.
+		proxy["name-cert-verify"] = verifyName
 	}
 	return proxy
 }
