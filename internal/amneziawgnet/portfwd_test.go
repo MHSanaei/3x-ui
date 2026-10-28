@@ -138,15 +138,43 @@ func dialLoopback(t *testing.T, network string, port int) {
 	conn.Close()
 }
 
+// Reserve an OS-selected port on both protocols instead of assuming a fixed
+// port is unused by other tests or the runner's outgoing connections.
+func reservePortForwardTestPort(t *testing.T) (net.Listener, net.PacketConn) {
+	t.Helper()
+	for range 100 {
+		tcp, err := net.Listen("tcp4", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		udp, err := net.ListenPacket("udp4", tcp.Addr().String())
+		if err != nil {
+			tcp.Close()
+			continue
+		}
+		t.Cleanup(func() {
+			tcp.Close()
+			udp.Close()
+		})
+		return tcp, udp
+	}
+	t.Fatal("could not reserve a loopback port for both TCP and UDP")
+	return nil, nil
+}
+
 func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 	gs := newTestStack(t, "10.211.0.1")
 	set := NewPortForwardSet(gs, 501)
+	t.Cleanup(set.Close)
 
-	const port = 58910
+	tcp, udp := reservePortForwardTestPort(t)
+	port := tcp.Addr().(*net.TCPAddr).Port
 	inst := amneziawg.Instance{Peers: []amneziawg.Peer{
 		peerWithPortsAndIPs("a@x", fmt.Sprintf("%d", port), "10.211.0.2/32"),
 	}}
 
+	tcp.Close()
+	udp.Close()
 	set.Reconcile(inst)
 	set.mu.Lock()
 	n := len(set.listeners)
@@ -178,7 +206,8 @@ func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 	if n != 0 {
 		t.Fatalf("listeners after removal Reconcile = %d, want 0", n)
 	}
-	if _, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second); err == nil {
+	if conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second); err == nil {
+		conn.Close()
 		t.Error("port still accepting connections after the listener should have closed")
 	}
 }
@@ -186,14 +215,12 @@ func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 	gs := newTestStack(t, "10.211.1.1")
 	set := NewPortForwardSet(gs, 502)
+	t.Cleanup(set.Close)
 
-	const collidingPort = 58911
-	const okPort = 58912
-	blocker, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", collidingPort))
-	if err != nil {
-		t.Fatalf("pre-bind test port: %v", err)
-	}
-	defer blocker.Close()
+	blocker, collidingUDP := reservePortForwardTestPort(t)
+	collidingPort := blocker.Addr().(*net.TCPAddr).Port
+	tcp, udp := reservePortForwardTestPort(t)
+	okPort := tcp.Addr().(*net.TCPAddr).Port
 
 	inst := amneziawg.Instance{Peers: []amneziawg.Peer{
 		peerWithPortsAndIPs("a@x", fmt.Sprintf("%d,%d", collidingPort, okPort), "10.211.1.2/32"),
@@ -202,6 +229,9 @@ func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 	// Must not panic despite one of the two ports being unbindable, and the
 	// other port (and its UDP counterpart on the colliding port) must still
 	// open normally.
+	collidingUDP.Close() // Keep only the deliberate TCP conflict open.
+	tcp.Close()
+	udp.Close()
 	set.Reconcile(inst)
 	set.mu.Lock()
 	n := len(set.listeners)
@@ -218,8 +248,6 @@ func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 		t.Error("UDP listener on the colliding port's own number should still open (TCP and UDP binds are independent)")
 	}
 	dialLoopback(t, "tcp", okPort)
-
-	set.Close()
 }
 
 // --- Real round trip: a genuine amneziawg-go client handshakes against a
