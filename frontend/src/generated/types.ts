@@ -414,6 +414,82 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface CleanIpCdn {
+  groups: CleanIpRangeGroup[];
+  id: string;
+  name: string;
+}
+
+export interface CleanIpCommand {
+  expiresAt: number;
+  scriptUrl: string;
+  token: string;
+  unix: string;
+  unixVia: string;
+  via: string;
+  windows: string;
+  windowsVia: string;
+}
+
+export interface CleanIpCommandRequest {
+  cdn: string;
+  host: string;
+  ips: string[];
+  path: string;
+  perRange: number;
+  ranges: string[];
+  size: number;
+}
+
+export interface CleanIpFragment {
+  delay: string;
+  length: string;
+  ms: number;
+  n: number;
+  ok: number;
+  packets: string;
+}
+
+export interface CleanIpHit {
+  colo: string;
+  ip: string;
+  ms: number;
+}
+
+export interface CleanIpNetwork {
+  asn: number;
+  country: string;
+  ip: string;
+  isp: string;
+  org: string;
+}
+
+export interface CleanIpRangeGroup {
+  id: string;
+  on: boolean;
+  ranges: string[];
+}
+
+export interface CleanIpReport {
+  at: number;
+  fragments: CleanIpFragment[];
+  ips: CleanIpHit[];
+  network: CleanIpNetwork;
+  size: number;
+  tested: number;
+}
+
+export interface CleanIpVerdict {
+  ip: string;
+  status: string;
+}
+
+export interface CleanIpVerifyRequest {
+  cdn: string;
+  host: string;
+  ips: string[];
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
@@ -580,6 +656,34 @@ export interface ClientsSummary {
   online: string[];
   onlineCount: number;
   total: number;
+}
+
+export interface DnsResolverReport {
+  at: number;
+  network: CleanIpNetwork;
+  results: DnsResolverResult[];
+  zone: string;
+}
+
+export interface DnsResolverResult {
+  ip: string;
+  maxName: number;
+  ms: number;
+  name: string;
+  status: string;
+}
+
+export interface DnsTunnelCommandRequest {
+  resolvers: string[];
+  zone: string;
+}
+
+export interface DnsTunnelProfile {
+  domain: string;
+  engine: string;
+  key: string;
+  method: number;
+  name: string;
 }
 
 export interface FallbackParentInfo {

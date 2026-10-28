@@ -1720,6 +1720,338 @@
         ],
         "type": "object"
       },
+      "CleanIpCdn": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/CleanIpRangeGroup"
+            },
+            "type": "array"
+          },
+          "id": {
+            "example": "cloudflare",
+            "type": "string"
+          },
+          "name": {
+            "example": "Cloudflare",
+            "type": "string"
+          }
+        },
+        "required": [
+          "groups",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "CleanIpCommand": {
+        "properties": {
+          "expiresAt": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "scriptUrl": {
+            "example": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+            "type": "string"
+          },
+          "token": {
+            "example": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+            "type": "string"
+          },
+          "unix": {
+            "example": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+            "type": "string"
+          },
+          "unixVia": {
+            "example": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+            "type": "string"
+          },
+          "via": {
+            "description": "Via, UnixVia, WindowsVia reach the panel's domain through the fastest page IP, for an\nISP that blocks the domain itself; empty without a page IP or for a panel opened by IP.",
+            "example": "104.16.1.1",
+            "type": "string"
+          },
+          "windows": {
+            "example": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+            "type": "string"
+          },
+          "windowsVia": {
+            "example": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "scriptUrl",
+          "token",
+          "unix",
+          "unixVia",
+          "via",
+          "windows",
+          "windowsVia"
+        ],
+        "type": "object"
+      },
+      "CleanIpCommandRequest": {
+        "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
+        "properties": {
+          "cdn": {
+            "example": "cloudflare",
+            "type": "string"
+          },
+          "host": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "ips": {
+            "example": [
+              "104.16.1.1"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "path": {
+            "example": "/",
+            "type": "string"
+          },
+          "perRange": {
+            "example": 8,
+            "type": "integer"
+          },
+          "ranges": {
+            "example": [
+              "104.16.0.0/13"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "size": {
+            "example": 5000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cdn",
+          "host",
+          "ips",
+          "path",
+          "perRange",
+          "ranges",
+          "size"
+        ],
+        "type": "object"
+      },
+      "CleanIpFragment": {
+        "description": "CleanIpFragment is one fragment setting the test tried; an empty Packets is the run\nwithout a fragment, to compare against.",
+        "properties": {
+          "delay": {
+            "example": "1-2",
+            "type": "string"
+          },
+          "length": {
+            "example": "10-20",
+            "type": "string"
+          },
+          "ms": {
+            "example": 700,
+            "type": "integer"
+          },
+          "n": {
+            "example": 10,
+            "type": "integer"
+          },
+          "ok": {
+            "example": 9,
+            "type": "integer"
+          },
+          "packets": {
+            "example": "tlshello",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delay",
+          "length",
+          "ms",
+          "n",
+          "ok",
+          "packets"
+        ],
+        "type": "object"
+      },
+      "CleanIpHit": {
+        "properties": {
+          "colo": {
+            "example": "FRA",
+            "type": "string"
+          },
+          "ip": {
+            "example": "104.16.1.1",
+            "type": "string"
+          },
+          "ms": {
+            "example": 410,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "colo",
+          "ip",
+          "ms"
+        ],
+        "type": "object"
+      },
+      "CleanIpNetwork": {
+        "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
+        "properties": {
+          "asn": {
+            "example": 197207,
+            "type": "integer"
+          },
+          "country": {
+            "example": "IR",
+            "type": "string"
+          },
+          "ip": {
+            "example": "5.160.10.20",
+            "type": "string"
+          },
+          "isp": {
+            "example": "MCI",
+            "type": "string"
+          },
+          "org": {
+            "example": "Mobile Communication Company of Iran PLC",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asn",
+          "country",
+          "ip",
+          "isp",
+          "org"
+        ],
+        "type": "object"
+      },
+      "CleanIpRangeGroup": {
+        "properties": {
+          "id": {
+            "example": "official",
+            "type": "string"
+          },
+          "on": {
+            "example": true,
+            "type": "boolean"
+          },
+          "ranges": {
+            "example": [
+              "104.16.0.0/13"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "on",
+          "ranges"
+        ],
+        "type": "object"
+      },
+      "CleanIpReport": {
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/CleanIpFragment"
+            },
+            "type": "array"
+          },
+          "ips": {
+            "items": {
+              "$ref": "#/components/schemas/CleanIpHit"
+            },
+            "type": "array"
+          },
+          "network": {
+            "$ref": "#/components/schemas/CleanIpNetwork"
+          },
+          "size": {
+            "example": 5000,
+            "type": "integer"
+          },
+          "tested": {
+            "example": 120,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "fragments",
+          "ips",
+          "network",
+          "size",
+          "tested"
+        ],
+        "type": "object"
+      },
+      "CleanIpVerdict": {
+        "description": "CleanIpVerdict is what the server saw on one IP: ok, restricted (Cloudflare error 1xxx such as\n1034), unreachable, skipped (not one of the CDN's edges, never contacted) or limited (budget spent).",
+        "properties": {
+          "ip": {
+            "example": "104.16.1.1",
+            "type": "string"
+          },
+          "status": {
+            "example": "ok",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ip",
+          "status"
+        ],
+        "type": "object"
+      },
+      "CleanIpVerifyRequest": {
+        "properties": {
+          "cdn": {
+            "example": "cloudflare",
+            "type": "string"
+          },
+          "host": {
+            "example": "cdn.example.com",
+            "type": "string"
+          },
+          "ips": {
+            "example": [
+              "104.16.1.1"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "cdn",
+          "host",
+          "ips"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -2524,6 +2856,123 @@
           "online",
           "onlineCount",
           "total"
+        ],
+        "type": "object"
+      },
+      "DnsResolverReport": {
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "network": {
+            "$ref": "#/components/schemas/CleanIpNetwork"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DnsResolverResult"
+            },
+            "type": "array"
+          },
+          "zone": {
+            "example": "t.example.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "network",
+          "results",
+          "zone"
+        ],
+        "type": "object"
+      },
+      "DnsResolverResult": {
+        "description": "DnsResolverResult is one resolver as the test saw it; MaxName is the longest query name it\ncarried to the server (StormDNS packs its upload there), 0 when not measured.",
+        "properties": {
+          "ip": {
+            "example": "178.22.122.100",
+            "type": "string"
+          },
+          "maxName": {
+            "example": 253,
+            "type": "integer"
+          },
+          "ms": {
+            "example": 120,
+            "type": "integer"
+          },
+          "name": {
+            "example": "Shecan",
+            "type": "string"
+          },
+          "status": {
+            "example": "ok",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ip",
+          "maxName",
+          "ms",
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DnsTunnelCommandRequest": {
+        "properties": {
+          "resolvers": {
+            "example": [
+              "178.22.122.100"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "zone": {
+            "example": "t.example.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resolvers",
+          "zone"
+        ],
+        "type": "object"
+      },
+      "DnsTunnelProfile": {
+        "description": "DnsTunnelProfile is one tunnel server users connect to: engine stormdns (WhiteDNS,\nMasterDNS-compatible apps) or dnstt, its delegated domain and its key.",
+        "properties": {
+          "domain": {
+            "example": "st.t.example.com",
+            "type": "string"
+          },
+          "engine": {
+            "example": "stormdns",
+            "type": "string"
+          },
+          "key": {
+            "example": "93d3404c6701dc9dea2d1ff3282ab88b",
+            "type": "string"
+          },
+          "method": {
+            "example": 1,
+            "type": "integer"
+          },
+          "name": {
+            "example": "Iran",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "engine",
+          "key",
+          "method",
+          "name"
         ],
         "type": "object"
       },
@@ -5041,6 +5490,14 @@
     {
       "name": "Hosts",
       "description": "Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts."
+    },
+    {
+      "name": "Clean IP Scanner",
+      "description": "The clean IP scanner tests Cloudflare IPs from the browser of whoever opens it; these endpoints tell it which ISP that is."
+    },
+    {
+      "name": "DNS Tunnel",
+      "description": "DNS tunnels (StormDNS for WhiteDNS-style apps, dnstt) for internet shutdowns: the profiles users import and a resolver test run on a device on the ISP."
     },
     {
       "name": "Backup",
@@ -13183,6 +13640,590 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/network": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The network (AS number, organization, country and short ISP name such as MCI or MTN) of the caller's IP address. Private addresses come back with only the IP.",
+        "operationId": "get_panel_api_cleanip_network",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpNetwork"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "asn": 197207,
+                    "country": "IR",
+                    "ip": "5.160.10.20",
+                    "isp": "MCI",
+                    "org": "Mobile Communication Company of Iran PLC"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/cdns": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The CDNs the scanner can search (Cloudflare, Fastly, Gcore, CloudFront) with the edge ranges it samples for each.",
+        "operationId": "get_panel_api_cleanip_cdns",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpCdn"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "groups": [
+                        {
+                          "id": "official",
+                          "on": true,
+                          "ranges": [
+                            "104.16.0.0/13"
+                          ]
+                        }
+                      ],
+                      "id": "cloudflare",
+                      "name": "Cloudflare"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/command": {
+      "post": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "Make a one-day command for the full test (an upload, then 26 fragment settings), to run on a device on the ISP to test. Its script reports back to the panel with the token alone.",
+        "operationId": "post_panel_api_cleanip_command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "host": "cdn.example.com",
+                "path": "/",
+                "size": 5000,
+                "perRange": 8,
+                "ips": [
+                  "104.16.1.1"
+                ],
+                "cdn": "cloudflare"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpCommand"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "expiresAt": 1793000000,
+                    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+                    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+                    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+                    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+                    "via": "104.16.1.1",
+                    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+                    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/command/{token}": {
+      "get": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "The reports the runs of a command sent back so far, oldest first.",
+        "operationId": "get_panel_api_cleanip_command_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "The command token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpReport"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "at": 1793000000,
+                      "fragments": [
+                        {
+                          "delay": "1-2",
+                          "length": "10-20",
+                          "ms": 700,
+                          "n": 10,
+                          "ok": 9,
+                          "packets": "tlshello"
+                        }
+                      ],
+                      "ips": [
+                        {
+                          "colo": "FRA",
+                          "ip": "104.16.1.1",
+                          "ms": 410
+                        }
+                      ],
+                      "network": {
+                        "asn": 197207,
+                        "country": "IR",
+                        "ip": "5.160.10.20",
+                        "isp": "MCI",
+                        "org": "Mobile Communication Company of Iran PLC"
+                      },
+                      "size": 5000,
+                      "tested": 120
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/cleanip/verify": {
+      "post": {
+        "tags": [
+          "Clean IP Scanner"
+        ],
+        "summary": "Check from the panel's server that each IP really serves the domain: ok, restricted (Cloudflare refuses it there, error 1xxx such as 1034) or unreachable from the server. Up to 200 IPs.",
+        "operationId": "post_panel_api_cleanip_verify",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "host": "cdn.example.com",
+                "ips": [
+                  "104.16.1.1"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CleanIpVerdict"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "ip": "104.16.1.1",
+                      "status": "ok"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/profiles": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "The DNS tunnel servers users connect to (engine, domain, key, encryption method).",
+        "operationId": "get_panel_api_dnstunnel_profiles",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsTunnelProfile"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "domain": "st.t.example.com",
+                      "engine": "stormdns",
+                      "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                      "method": 1,
+                      "name": "Iran"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Replace the list of DNS tunnel servers (up to 20).",
+        "operationId": "post_panel_api_dnstunnel_profiles",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": [
+                {
+                  "name": "Iran",
+                  "engine": "stormdns",
+                  "domain": "st.t.example.com",
+                  "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                  "method": 1
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/detect": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Read the StormDNS server installed on this server (its server_config.toml and key file) as one profile per served domain. An empty list means no StormDNS server is installed in that folder.",
+        "operationId": "get_panel_api_dnstunnel_detect",
+        "parameters": [
+          {
+            "name": "dir",
+            "in": "query",
+            "required": false,
+            "description": "The StormDNS server folder (default /opt/stormdns).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsTunnelProfile"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "domain": "st.t.example.com",
+                      "engine": "stormdns",
+                      "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+                      "method": 1,
+                      "name": "Iran"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/command": {
+      "post": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "Make a one-day command that tests which DNS resolvers reach the tunnel zone from the device it runs on (its own resolvers, the given list and well-known public ones).",
+        "operationId": "post_panel_api_dnstunnel_command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "zone": "t.example.com",
+                "resolvers": [
+                  "178.22.122.100"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/CleanIpCommand"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "expiresAt": 1793000000,
+                    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+                    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+                    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+                    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+                    "via": "104.16.1.1",
+                    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+                    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/dnstunnel/command/{token}": {
+      "get": {
+        "tags": [
+          "DNS Tunnel"
+        ],
+        "summary": "The resolver reports the runs of a command sent back so far, oldest first.",
+        "operationId": "get_panel_api_dnstunnel_command_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "The command token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DnsResolverReport"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "at": 1793000000,
+                      "network": {
+                        "asn": 197207,
+                        "country": "IR",
+                        "ip": "5.160.10.20",
+                        "isp": "MCI",
+                        "org": "Mobile Communication Company of Iran PLC"
+                      },
+                      "results": [
+                        {
+                          "ip": "178.22.122.100",
+                          "maxName": 253,
+                          "ms": 120,
+                          "name": "Shecan",
+                          "status": "ok"
+                        }
+                      ],
+                      "zone": "t.example.com"
+                    }
+                  ]
                 }
               }
             }

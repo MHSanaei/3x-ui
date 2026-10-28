@@ -414,6 +414,109 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "CleanIpCdn": {
+    "groups": [
+      {
+        "id": "official",
+        "on": true,
+        "ranges": [
+          "104.16.0.0/13"
+        ]
+      }
+    ],
+    "id": "cloudflare",
+    "name": "Cloudflare"
+  },
+  "CleanIpCommand": {
+    "expiresAt": 1793000000,
+    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+    "via": "104.16.1.1",
+    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
+  },
+  "CleanIpCommandRequest": {
+    "cdn": "cloudflare",
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ],
+    "path": "/",
+    "perRange": 8,
+    "ranges": [
+      "104.16.0.0/13"
+    ],
+    "size": 5000
+  },
+  "CleanIpFragment": {
+    "delay": "1-2",
+    "length": "10-20",
+    "ms": 700,
+    "n": 10,
+    "ok": 9,
+    "packets": "tlshello"
+  },
+  "CleanIpHit": {
+    "colo": "FRA",
+    "ip": "104.16.1.1",
+    "ms": 410
+  },
+  "CleanIpNetwork": {
+    "asn": 197207,
+    "country": "IR",
+    "ip": "5.160.10.20",
+    "isp": "MCI",
+    "org": "Mobile Communication Company of Iran PLC"
+  },
+  "CleanIpRangeGroup": {
+    "id": "official",
+    "on": true,
+    "ranges": [
+      "104.16.0.0/13"
+    ]
+  },
+  "CleanIpReport": {
+    "at": 1793000000,
+    "fragments": [
+      {
+        "delay": "1-2",
+        "length": "10-20",
+        "ms": 700,
+        "n": 10,
+        "ok": 9,
+        "packets": "tlshello"
+      }
+    ],
+    "ips": [
+      {
+        "colo": "FRA",
+        "ip": "104.16.1.1",
+        "ms": 410
+      }
+    ],
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.160.10.20",
+      "isp": "MCI",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "size": 5000,
+    "tested": 120
+  },
+  "CleanIpVerdict": {
+    "ip": "104.16.1.1",
+    "status": "ok"
+  },
+  "CleanIpVerifyRequest": {
+    "cdn": "cloudflare",
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ]
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
@@ -627,6 +730,46 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "onlineCount": 1,
     "total": 2000
+  },
+  "DnsResolverReport": {
+    "at": 1793000000,
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.160.10.20",
+      "isp": "MCI",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "results": [
+      {
+        "ip": "178.22.122.100",
+        "maxName": 253,
+        "ms": 120,
+        "name": "Shecan",
+        "status": "ok"
+      }
+    ],
+    "zone": "t.example.com"
+  },
+  "DnsResolverResult": {
+    "ip": "178.22.122.100",
+    "maxName": 253,
+    "ms": 120,
+    "name": "Shecan",
+    "status": "ok"
+  },
+  "DnsTunnelCommandRequest": {
+    "resolvers": [
+      "178.22.122.100"
+    ],
+    "zone": "t.example.com"
+  },
+  "DnsTunnelProfile": {
+    "domain": "st.t.example.com",
+    "engine": "stormdns",
+    "key": "93d3404c6701dc9dea2d1ff3282ab88b",
+    "method": 1,
+    "name": "Iran"
   },
   "FallbackParentInfo": {
     "masterId": 0,

@@ -438,6 +438,92 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const CleanIpCdnSchema = z.object({
+  groups: z.array(z.lazy(() => CleanIpRangeGroupSchema)),
+  id: z.string(),
+  name: z.string(),
+});
+export type CleanIpCdn = z.infer<typeof CleanIpCdnSchema>;
+
+export const CleanIpCommandSchema = z.object({
+  expiresAt: z.number().int(),
+  scriptUrl: z.string(),
+  token: z.string(),
+  unix: z.string(),
+  unixVia: z.string(),
+  via: z.string(),
+  windows: z.string(),
+  windowsVia: z.string(),
+});
+export type CleanIpCommand = z.infer<typeof CleanIpCommandSchema>;
+
+export const CleanIpCommandRequestSchema = z.object({
+  cdn: z.string(),
+  host: z.string(),
+  ips: z.array(z.string()),
+  path: z.string(),
+  perRange: z.number().int(),
+  ranges: z.array(z.string()),
+  size: z.number().int(),
+});
+export type CleanIpCommandRequest = z.infer<typeof CleanIpCommandRequestSchema>;
+
+export const CleanIpFragmentSchema = z.object({
+  delay: z.string(),
+  length: z.string(),
+  ms: z.number().int(),
+  n: z.number().int(),
+  ok: z.number().int(),
+  packets: z.string(),
+});
+export type CleanIpFragment = z.infer<typeof CleanIpFragmentSchema>;
+
+export const CleanIpHitSchema = z.object({
+  colo: z.string(),
+  ip: z.string(),
+  ms: z.number().int(),
+});
+export type CleanIpHit = z.infer<typeof CleanIpHitSchema>;
+
+export const CleanIpNetworkSchema = z.object({
+  asn: z.number().int(),
+  country: z.string(),
+  ip: z.string(),
+  isp: z.string(),
+  org: z.string(),
+});
+export type CleanIpNetwork = z.infer<typeof CleanIpNetworkSchema>;
+
+export const CleanIpRangeGroupSchema = z.object({
+  id: z.string(),
+  on: z.boolean(),
+  ranges: z.array(z.string()),
+});
+export type CleanIpRangeGroup = z.infer<typeof CleanIpRangeGroupSchema>;
+
+export const CleanIpReportSchema = z.object({
+  at: z.number().int(),
+  fragments: z.array(z.lazy(() => CleanIpFragmentSchema)),
+  ips: z.array(z.lazy(() => CleanIpHitSchema)),
+  network: z.lazy(() => CleanIpNetworkSchema),
+  size: z.number().int(),
+  tested: z.number().int(),
+});
+export type CleanIpReport = z.infer<typeof CleanIpReportSchema>;
+
+export const CleanIpVerdictSchema = z.object({
+  ip: z.string(),
+  status: z.string(),
+});
+export type CleanIpVerdict = z.infer<typeof CleanIpVerdictSchema>;
+
+export const CleanIpVerifyRequestSchema = z.object({
+  cdn: z.string(),
+  host: z.string(),
+  ips: z.array(z.string()),
+});
+export type CleanIpVerifyRequest = z.infer<typeof CleanIpVerifyRequestSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
@@ -615,6 +701,38 @@ export const ClientsSummarySchema = z.object({
   total: z.number().int(),
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
+
+export const DnsResolverReportSchema = z.object({
+  at: z.number().int(),
+  network: z.lazy(() => CleanIpNetworkSchema),
+  results: z.array(z.lazy(() => DnsResolverResultSchema)),
+  zone: z.string(),
+});
+export type DnsResolverReport = z.infer<typeof DnsResolverReportSchema>;
+
+export const DnsResolverResultSchema = z.object({
+  ip: z.string(),
+  maxName: z.number().int(),
+  ms: z.number().int(),
+  name: z.string(),
+  status: z.string(),
+});
+export type DnsResolverResult = z.infer<typeof DnsResolverResultSchema>;
+
+export const DnsTunnelCommandRequestSchema = z.object({
+  resolvers: z.array(z.string()),
+  zone: z.string(),
+});
+export type DnsTunnelCommandRequest = z.infer<typeof DnsTunnelCommandRequestSchema>;
+
+export const DnsTunnelProfileSchema = z.object({
+  domain: z.string(),
+  engine: z.string(),
+  key: z.string(),
+  method: z.number().int(),
+  name: z.string(),
+});
+export type DnsTunnelProfile = z.infer<typeof DnsTunnelProfileSchema>;
 
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),

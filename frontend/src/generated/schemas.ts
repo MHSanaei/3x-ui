@@ -1694,6 +1694,338 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "CleanIpCdn": {
+    "properties": {
+      "groups": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpRangeGroup"
+        },
+        "type": "array"
+      },
+      "id": {
+        "example": "cloudflare",
+        "type": "string"
+      },
+      "name": {
+        "example": "Cloudflare",
+        "type": "string"
+      }
+    },
+    "required": [
+      "groups",
+      "id",
+      "name"
+    ],
+    "type": "object"
+  },
+  "CleanIpCommand": {
+    "properties": {
+      "expiresAt": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "scriptUrl": {
+        "example": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+        "type": "string"
+      },
+      "token": {
+        "example": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+        "type": "string"
+      },
+      "unix": {
+        "example": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
+        "type": "string"
+      },
+      "unixVia": {
+        "example": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+        "type": "string"
+      },
+      "via": {
+        "description": "Via, UnixVia, WindowsVia reach the panel's domain through the fastest page IP, for an\nISP that blocks the domain itself; empty without a page IP or for a panel opened by IP.",
+        "example": "104.16.1.1",
+        "type": "string"
+      },
+      "windows": {
+        "example": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
+        "type": "string"
+      },
+      "windowsVia": {
+        "example": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -",
+        "type": "string"
+      }
+    },
+    "required": [
+      "expiresAt",
+      "scriptUrl",
+      "token",
+      "unix",
+      "unixVia",
+      "via",
+      "windows",
+      "windowsVia"
+    ],
+    "type": "object"
+  },
+  "CleanIpCommandRequest": {
+    "description": "CleanIpCommandRequest is what the full test runs with: the CDN domain as SNI, the path\nit uploads to, and the IPs the page already found (they seed the fragment test).",
+    "properties": {
+      "cdn": {
+        "example": "cloudflare",
+        "type": "string"
+      },
+      "host": {
+        "example": "cdn.example.com",
+        "type": "string"
+      },
+      "ips": {
+        "example": [
+          "104.16.1.1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "path": {
+        "example": "/",
+        "type": "string"
+      },
+      "perRange": {
+        "example": 8,
+        "type": "integer"
+      },
+      "ranges": {
+        "example": [
+          "104.16.0.0/13"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "size": {
+        "example": 5000,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "cdn",
+      "host",
+      "ips",
+      "path",
+      "perRange",
+      "ranges",
+      "size"
+    ],
+    "type": "object"
+  },
+  "CleanIpFragment": {
+    "description": "CleanIpFragment is one fragment setting the test tried; an empty Packets is the run\nwithout a fragment, to compare against.",
+    "properties": {
+      "delay": {
+        "example": "1-2",
+        "type": "string"
+      },
+      "length": {
+        "example": "10-20",
+        "type": "string"
+      },
+      "ms": {
+        "example": 700,
+        "type": "integer"
+      },
+      "n": {
+        "example": 10,
+        "type": "integer"
+      },
+      "ok": {
+        "example": 9,
+        "type": "integer"
+      },
+      "packets": {
+        "example": "tlshello",
+        "type": "string"
+      }
+    },
+    "required": [
+      "delay",
+      "length",
+      "ms",
+      "n",
+      "ok",
+      "packets"
+    ],
+    "type": "object"
+  },
+  "CleanIpHit": {
+    "properties": {
+      "colo": {
+        "example": "FRA",
+        "type": "string"
+      },
+      "ip": {
+        "example": "104.16.1.1",
+        "type": "string"
+      },
+      "ms": {
+        "example": 410,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "colo",
+      "ip",
+      "ms"
+    ],
+    "type": "object"
+  },
+  "CleanIpNetwork": {
+    "description": "CleanIpNetwork is the network (ISP) a panel visitor is on. The clean IP\nscanner runs in that visitor's browser, so its result belongs to this ISP.",
+    "properties": {
+      "asn": {
+        "example": 197207,
+        "type": "integer"
+      },
+      "country": {
+        "example": "IR",
+        "type": "string"
+      },
+      "ip": {
+        "example": "5.160.10.20",
+        "type": "string"
+      },
+      "isp": {
+        "example": "MCI",
+        "type": "string"
+      },
+      "org": {
+        "example": "Mobile Communication Company of Iran PLC",
+        "type": "string"
+      }
+    },
+    "required": [
+      "asn",
+      "country",
+      "ip",
+      "isp",
+      "org"
+    ],
+    "type": "object"
+  },
+  "CleanIpRangeGroup": {
+    "properties": {
+      "id": {
+        "example": "official",
+        "type": "string"
+      },
+      "on": {
+        "example": true,
+        "type": "boolean"
+      },
+      "ranges": {
+        "example": [
+          "104.16.0.0/13"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "on",
+      "ranges"
+    ],
+    "type": "object"
+  },
+  "CleanIpReport": {
+    "properties": {
+      "at": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "fragments": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpFragment"
+        },
+        "type": "array"
+      },
+      "ips": {
+        "items": {
+          "$ref": "#/components/schemas/CleanIpHit"
+        },
+        "type": "array"
+      },
+      "network": {
+        "$ref": "#/components/schemas/CleanIpNetwork"
+      },
+      "size": {
+        "example": 5000,
+        "type": "integer"
+      },
+      "tested": {
+        "example": 120,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "at",
+      "fragments",
+      "ips",
+      "network",
+      "size",
+      "tested"
+    ],
+    "type": "object"
+  },
+  "CleanIpVerdict": {
+    "description": "CleanIpVerdict is what the server saw on one IP: ok, restricted (Cloudflare error 1xxx such as\n1034), unreachable, skipped (not one of the CDN's edges, never contacted) or limited (budget spent).",
+    "properties": {
+      "ip": {
+        "example": "104.16.1.1",
+        "type": "string"
+      },
+      "status": {
+        "example": "ok",
+        "type": "string"
+      }
+    },
+    "required": [
+      "ip",
+      "status"
+    ],
+    "type": "object"
+  },
+  "CleanIpVerifyRequest": {
+    "properties": {
+      "cdn": {
+        "example": "cloudflare",
+        "type": "string"
+      },
+      "host": {
+        "example": "cdn.example.com",
+        "type": "string"
+      },
+      "ips": {
+        "example": [
+          "104.16.1.1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "cdn",
+      "host",
+      "ips"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -2498,6 +2830,123 @@ export const SCHEMAS: Record<string, unknown> = {
       "online",
       "onlineCount",
       "total"
+    ],
+    "type": "object"
+  },
+  "DnsResolverReport": {
+    "properties": {
+      "at": {
+        "example": 1793000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "network": {
+        "$ref": "#/components/schemas/CleanIpNetwork"
+      },
+      "results": {
+        "items": {
+          "$ref": "#/components/schemas/DnsResolverResult"
+        },
+        "type": "array"
+      },
+      "zone": {
+        "example": "t.example.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "at",
+      "network",
+      "results",
+      "zone"
+    ],
+    "type": "object"
+  },
+  "DnsResolverResult": {
+    "description": "DnsResolverResult is one resolver as the test saw it; MaxName is the longest query name it\ncarried to the server (StormDNS packs its upload there), 0 when not measured.",
+    "properties": {
+      "ip": {
+        "example": "178.22.122.100",
+        "type": "string"
+      },
+      "maxName": {
+        "example": 253,
+        "type": "integer"
+      },
+      "ms": {
+        "example": 120,
+        "type": "integer"
+      },
+      "name": {
+        "example": "Shecan",
+        "type": "string"
+      },
+      "status": {
+        "example": "ok",
+        "type": "string"
+      }
+    },
+    "required": [
+      "ip",
+      "maxName",
+      "ms",
+      "name",
+      "status"
+    ],
+    "type": "object"
+  },
+  "DnsTunnelCommandRequest": {
+    "properties": {
+      "resolvers": {
+        "example": [
+          "178.22.122.100"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "zone": {
+        "example": "t.example.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "resolvers",
+      "zone"
+    ],
+    "type": "object"
+  },
+  "DnsTunnelProfile": {
+    "description": "DnsTunnelProfile is one tunnel server users connect to: engine stormdns (WhiteDNS,\nMasterDNS-compatible apps) or dnstt, its delegated domain and its key.",
+    "properties": {
+      "domain": {
+        "example": "st.t.example.com",
+        "type": "string"
+      },
+      "engine": {
+        "example": "stormdns",
+        "type": "string"
+      },
+      "key": {
+        "example": "93d3404c6701dc9dea2d1ff3282ab88b",
+        "type": "string"
+      },
+      "method": {
+        "example": 1,
+        "type": "integer"
+      },
+      "name": {
+        "example": "Iran",
+        "type": "string"
+      }
+    },
+    "required": [
+      "domain",
+      "engine",
+      "key",
+      "method",
+      "name"
     ],
     "type": "object"
   },
