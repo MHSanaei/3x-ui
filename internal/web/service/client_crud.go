@@ -754,6 +754,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.Secret = existing.Secret
 	}
 
+	// A client the quota loop switched off comes back on when this update
+	// restores a usable window, as BulkAdjust already does on a renewal (#5619).
+	if !updated.Enable && s.renewalReenables(existing.Email, updated.TotalGB, updated.ExpiryTime) {
+		updated.Enable = true
+	}
+
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -896,6 +902,15 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"traffic_reset_day":    merged.TrafficResetDay,
 			}).Error; err != nil {
 			return needRestart, err
+		}
+		// No inbound left, so UpdateClientStat never runs; re-assert the
+		// enforcement row's off switch here or a re-enabled client stays off.
+		if merged.Enable {
+			if err := database.GetDB().Model(xray.ClientTraffic{}).
+				Where("email = ?", existing.Email).
+				UpdateColumn("enable", true).Error; err != nil {
+				return needRestart, err
+			}
 		}
 	}
 

@@ -391,7 +391,9 @@ func (s *InboundService) SnapshotHasUnadoptedInbounds(nodeID int, snap *runtime.
 // config push just landed, whose snapshot may still predate it (#6228).
 func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool) (bool, error) {
 	var structuralChange bool
-	err := submitTrafficWrite(func() error {
+	// Node merges take the background lane: a per-client mutation the operator
+	// is waiting on must not queue behind the next batch of 5s snapshots.
+	err := submitTrafficWriteBackground(func() error {
 		var inner error
 		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty, justPushed)
 		return inner
