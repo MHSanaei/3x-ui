@@ -10,6 +10,8 @@ import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBInbound[]) {
   const fallbackKeyRef = useRef(0);
   const [fallbacks, setFallbacks] = useState<FallbackRow[]>([]);
+  const [hasStoredFallbacks, setHasStoredFallbacks] = useState(false);
+  const [fallbacksLoaded, setFallbacksLoaded] = useState(false);
 
   const fallbackChildOptions = (dbInbounds || [])
     .filter((ib) => ib.id !== dbInbound?.id)
@@ -19,7 +21,10 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     }));
 
   const loadFallbacks = async (masterId: number | null) => {
+    setFallbacksLoaded(false);
+    setHasStoredFallbacks(false);
     if (!masterId) {
+      setFallbacksLoaded(true);
       setFallbacks([]);
       return;
     }
@@ -28,6 +33,8 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       setFallbacks([]);
       return;
     }
+    setFallbacksLoaded(true);
+    setHasStoredFallbacks(msg.obj.length > 0);
     setFallbacks(
       (
         msg.obj as {
@@ -68,6 +75,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     const msg = await HttpUtil.post(`/panel/api/inbounds/${masterId}/fallbacks`, payload, {
       headers: { 'Content-Type': 'application/json' },
     });
+    if (msg?.success) setHasStoredFallbacks(payload.fallbacks.length > 0);
     return !!msg?.success;
   };
 
@@ -181,6 +189,8 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
 
   return {
     fallbacks,
+    hasStoredFallbacks,
+    fallbacksLoaded,
     fallbackChildOptions,
     loadFallbacks,
     saveFallbacks,

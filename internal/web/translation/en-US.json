@@ -311,7 +311,9 @@
         "pickInbound": "Pick an inbound",
         "matchAny": "any",
         "destPlaceholder": "auto (child listen:port)",
-        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only).",
+        "decryptionConflict": "VLESS fallbacks cannot be used with active server decryption. Remove and save fallback rules before enabling VLESS decryption, or disable decryption.",
+        "saveFailed": "Could not load or save fallback rules. Your draft remains open; retry after checking the error."
       },
       "protocol": "Protocol",
       "port": "Port",

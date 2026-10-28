@@ -214,6 +214,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if inbound.Protocol == model.MTProto || inbound.Protocol == model.AmneziaWG || inbound.Protocol == model.TUIC {
 			continue
 		}
+		if err := normalizeVlessFallbacks(inbound); err != nil {
+			return nil, err
+		}
+		if err := validateVlessManagedFallbacks(nil, inbound); err != nil {
+			return nil, err
+		}
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
 		flowAllowed := !inbound.DisableFlow &&
@@ -1489,6 +1495,9 @@ func (s *XrayService) RestartXray(isForce bool) error {
 
 	xrayConfig, err := s.GetXrayConfig()
 	if err != nil {
+		if process := currentXrayProcess(); process != nil && process.IsRunning() {
+			xrayState.holdBack(fmt.Sprintf("config refused: %v", err))
+		}
 		return err
 	}
 

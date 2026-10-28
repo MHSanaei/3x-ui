@@ -311,7 +311,9 @@
         "pickInbound": "Pilih inbound",
         "matchAny": "apa pun",
         "destPlaceholder": "otomatis (listen:port child)",
-        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW).",
+        "decryptionConflict": "Fallback tidak dapat digunakan dengan dekripsi VLESS server yang aktif. Hapus dan simpan aturan fallback sebelum mengaktifkan dekripsi, atau nonaktifkan dekripsi.",
+        "saveFailed": "Aturan fallback gagal dimuat atau disimpan. Draf tetap terbuka; periksa kesalahan lalu coba lagi."
       },
       "protocol": "Protokol",
       "port": "Port",

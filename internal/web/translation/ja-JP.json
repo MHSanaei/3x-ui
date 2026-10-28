@@ -311,7 +311,9 @@
         "pickInbound": "インバウンドを選択",
         "matchAny": "任意",
         "destPlaceholder": "自動（子の listen:port）",
-        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。",
+        "decryptionConflict": "VLESS のサーバー復号が有効な場合、フォールバックは使用できません。復号を有効にする前にフォールバックルールを削除して保存するか、復号を無効にしてください。",
+        "saveFailed": "フォールバックルールを読み込みまたは保存できませんでした。下書きは開いたままです。エラーを確認して再試行してください。"
       },
       "protocol": "プロトコル",
       "port": "ポート",

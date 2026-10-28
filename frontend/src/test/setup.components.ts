@@ -109,6 +109,9 @@ import { HttpUtil, Msg } from '@/utils';
 vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: {} } as any);
 // Array-returning endpoints must resolve to [] so Zod list schemas validate.
 vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string) => {
-  const isList = url.includes('/panel/api/inbounds/options') || url.includes('/panel/api/hosts/');
+  const isList =
+    url.includes('/panel/api/inbounds/options') ||
+    url.includes('/panel/api/hosts/') ||
+    url.endsWith('/fallbacks');
   return new Msg(true, '', isList ? [] : {});
 });

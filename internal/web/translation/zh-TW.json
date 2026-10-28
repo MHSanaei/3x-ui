@@ -311,7 +311,9 @@
         "pickInbound": "選擇一個入站",
         "matchAny": "任何",
         "destPlaceholder": "自動（子入站 listen:port）",
-        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。",
+        "decryptionConflict": "VLESS 伺服器端解密啟用時無法使用回落。請先刪除並儲存回落規則再啟用解密，或關閉解密。",
+        "saveFailed": "無法載入或儲存回落規則。草稿保持開啟；請檢查錯誤後重試。"
       },
       "protocol": "協議",
       "port": "連接埠",

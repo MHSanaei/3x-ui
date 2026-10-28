@@ -5650,7 +5650,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).",
+        "summary": "Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy). VLESS empty fallback arrays are normalized away; nonempty fallbacks cannot be combined with active server decryption.",
         "operationId": "post_panel_api_inbounds_add",
         "requestBody": {
           "required": true,
@@ -5674,8 +5674,7 @@
                       "email": "user1"
                     }
                   ],
-                  "decryption": "none",
-                  "fallbacks": []
+                  "decryption": "none"
                 },
                 "streamSettings": {
                   "network": "tcp",
@@ -5846,7 +5845,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Replace an inbound’s configuration. Body shape mirrors /add, but the inbound keeps its stored client list and enable flag: settings.clients and enable in the body are ignored. Manage clients through the /panel/api/clients endpoints and toggle the inbound with /setEnable.",
+        "summary": "Replace an inbound’s configuration. Body shape mirrors /add, but the inbound keeps its stored client list and enable flag: settings.clients and enable in the body are ignored. Manage clients through the /panel/api/clients endpoints and toggle the inbound with /setEnable. Remove effective fallback rules before enabling VLESS server decryption.",
         "operationId": "post_panel_api_inbounds_update_id",
         "parameters": [
           {
@@ -5881,8 +5880,7 @@
                       "email": "user1"
                     }
                   ],
-                  "decryption": "none",
-                  "fallbacks": []
+                  "decryption": "none"
                 },
                 "streamSettings": {
                   "network": "tcp",
@@ -6157,7 +6155,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Bulk-import an inbound from a JSON blob (e.g. one exported via the UI). The body uses form encoding with a single \"data\" field.",
+        "summary": "Bulk-import an inbound from a JSON blob (e.g. one exported via the UI). The body uses form encoding with a single \"data\" field. VLESS fallback validation is identical to /add.",
         "operationId": "post_panel_api_inbounds_import",
         "requestBody": {
           "required": true,
@@ -6331,7 +6329,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.",
+        "summary": "Replace the entire fallback list for a master inbound. Body is JSON. Nonempty lists require TCP with TLS/REALITY and no active VLESS server decryption. An empty list can remove rules even from an incompatible inbound. Triggers an Xray restart.",
         "operationId": "post_panel_api_inbounds_id_fallbacks",
         "parameters": [
           {

@@ -311,7 +311,9 @@
         "pickInbound": "Chọn một inbound",
         "matchAny": "bất kỳ",
         "destPlaceholder": "tự động (listen:port của child)",
-        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW)."
+        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW).",
+        "decryptionConflict": "Không thể dùng fallback khi bật giải mã VLESS phía máy chủ. Hãy xóa và lưu các quy tắc fallback trước khi bật giải mã, hoặc tắt giải mã.",
+        "saveFailed": "Không thể tải hoặc lưu quy tắc fallback. Bản nháp vẫn mở; hãy kiểm tra lỗi rồi thử lại."
       },
       "protocol": "Giao thức",
       "port": "Cổng",
