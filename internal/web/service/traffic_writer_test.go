@@ -220,8 +220,7 @@ func waitForQueuedWrite() bool {
 }
 
 // A write the operator is waiting on must not queue behind the periodic work
-// (the traffic poll, the node snapshot merges) that keeps arriving every 5s
-// (#6035): with both lanes filled, the admin lane runs first.
+// that keeps arriving every 5s (#6035): with both lanes filled, admin runs first.
 func TestTrafficWriterAdminLanePreemptsBackgroundQueue(t *testing.T) {
 	resetTrafficWriterForTest(t)
 
@@ -272,6 +271,44 @@ func TestTrafficWriterAdminLanePreemptsBackgroundQueue(t *testing.T) {
 	}
 	if err := <-bgDone; err != nil {
 		t.Fatalf("background write: %v", err)
+	}
+}
+
+// A stop must drain every queued write on both lanes, not one per lane: a
+// submitter blocked behind two queued writes must not read "stopped".
+func TestTrafficWriterStopDrainsEveryQueuedWrite(t *testing.T) {
+	resetTrafficWriterForTest(t)
+
+	StartTrafficWriter()
+	parkStarted := make(chan struct{})
+	releasePark := make(chan struct{})
+	go func() {
+		_ = submitTrafficWrite(func() error {
+			close(parkStarted)
+			<-releasePark
+			return nil
+		})
+	}()
+	waitTrafficWriterSignal(t, parkStarted, "parking write did not start")
+
+	results := make(chan error, 3)
+	go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	go func() { results <- submitTrafficWriteBackground(func() error { return nil }) }()
+	deadline := time.Now().Add(time.Second)
+	for trafficWriterQueueLen() < 3 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if trafficWriterQueueLen() < 3 {
+		t.Fatal("queued writes did not all reach the lanes")
+	}
+
+	close(releasePark)
+	StopTrafficWriter()
+	for range 3 {
+		if err := waitTrafficWriterErr(t, results); err != nil {
+			t.Fatalf("a queued write was dropped on stop: %v", err)
+		}
 	}
 }
 

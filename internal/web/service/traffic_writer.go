@@ -106,13 +106,8 @@ func trafficWriterQueueLen() int {
 	return len(twAdminQueue) + len(twBgQueue)
 }
 
-// runTrafficWriter serves both lanes on one goroutine, so no two writes ever
-// run side by side — the ordering that kept the traffic poll and client
-// mutations from deadlocking Postgres (c5d31de4e). The admin lane is
-// non-blockingly preferred on every iteration, so a queued panel-initiated
-// client mutation no longer waits behind the periodic traffic poll and node
-// sync merges that keep arriving every 5s (#6035): those run only when no
-// admin write is waiting. Within each lane the order stays FIFO.
+// One goroutine serves both lanes (no two writes side by side — the Postgres
+// deadlock guard c5d31de4e; the admin lane is preferred over the 5s poll and node merges, #6035).
 func runTrafficWriter(ctx context.Context, adminQueue, bgQueue chan *trafficWriteRequest, done chan struct{}) {
 	defer close(done)
 	for {
@@ -136,21 +131,24 @@ func runTrafficWriter(ctx context.Context, adminQueue, bgQueue chan *trafficWrit
 	}
 }
 
-// drainTrafficWriter finishes the requests already queued on shutdown, as the
-// single-queue writer used to; admin work goes first, then the background.
-// Each lane's select stays non-blocking: a lane that is empty when the drain
-// reaches it is empty for good, and blocking would hold the stop path.
+// drainTrafficWriter finishes every request already queued on shutdown, as the
+// single-queue writer used to: both lanes drain until empty, so no write is dropped.
 func drainTrafficWriter(adminQueue, bgQueue chan *trafficWriteRequest) {
 	for {
+		drained := false
 		select {
 		case req := <-adminQueue:
 			req.done <- safeApply(req.apply)
+			drained = true
 		default:
 		}
 		select {
 		case req := <-bgQueue:
 			req.done <- safeApply(req.apply)
+			drained = true
 		default:
+		}
+		if !drained {
 			return
 		}
 	}
@@ -215,11 +213,8 @@ func submitTrafficWrite(fn func() error) error {
 	return submitTrafficWriteLane(fn, false)
 }
 
-// submitTrafficWriteBackground runs fn on the serial writer's periodic lane:
-// the @every 5s traffic poll and the per-node snapshot merges. It is served
-// only when no admin-lane write is queued, so an operator's save or reset
-// never waits behind a batch of node merges, while both lanes still run one
-// at a time and the poll never races a client mutation.
+// submitTrafficWriteBackground runs fn on the periodic lane (the 5s traffic poll
+// and node snapshot merges), served only when no admin-lane write is queued.
 func submitTrafficWriteBackground(fn func() error) error {
 	return submitTrafficWriteLane(fn, true)
 }

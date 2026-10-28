@@ -12,9 +12,8 @@ import (
 // renewalReenableDay keeps the seeds one day past (or before) their boundary.
 const renewalReenableDay = int64(24 * 60 * 60 * 1000)
 
-// seedRenewableDepletedClient seeds a local inbound whose client the quota
-// enforcement loop switched off: record off, inbound JSON off, and the
-// traffic row off and depleted on the given dimension (0 = unlimited side).
+// seedRenewableDepletedClient seeds a local inbound whose client the quota loop
+// switched off: record off, inbound JSON off, and the traffic row off and depleted.
 func seedRenewableDepletedClient(t *testing.T, svc *ClientService, port int, email string, total, expiry, up, down int64) *model.Inbound {
 	t.Helper()
 	ib := seedLocalDisabledClient(t, svc, port, "", email, total, expiry, up, down)
@@ -249,5 +248,38 @@ func TestResetClientTrafficLimitByEmail_ReenablesDepletedClient(t *testing.T) {
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, true)
 	if got := trafficOf(t, email).Total; got != 1<<30 {
 		t.Fatalf("%s: total = %d, want %d", email, got, 1<<30)
+	}
+}
+
+// A client living on several inbounds must come back on every one of them,
+// not only the inbound whose reset ran first.
+func TestResetTrafficByEmail_ReenablesEveryInboundOfTheClient(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	now := time.Now().UnixMilli()
+	email := "renew-multi@x"
+	c := model.Client{
+		Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email,
+		Enable: false, ExpiryTime: now - 2*renewalReenableDay,
+	}
+	ibA := mkInbound(t, 53201, model.VLESS, clientsSettings(t, []model.Client{c}))
+	ibB := mkInbound(t, 53202, model.VLESS, clientsSettings(t, []model.Client{c}))
+	for _, ib := range []*model.Inbound{ibA, ibB} {
+		if err := svc.SyncInbound(nil, ib.Id, []model.Client{c}); err != nil {
+			t.Fatalf("SyncInbound %d: %v", ib.Id, err)
+		}
+	}
+	mkTraffic(t, ibA.Id, email, 0, 0, 0, now-2*renewalReenableDay, false)
+	forceRecordDisabled(t, svc, email)
+
+	if _, err := svc.ResetTrafficByEmail(inboundSvc, email); err != nil {
+		t.Fatalf("ResetTrafficByEmail: %v", err)
+	}
+	assertEnableEverywhere(t, svc, inboundSvc, ibA.Id, email, true)
+	assertEnableEverywhere(t, svc, inboundSvc, ibB.Id, email, true)
+	if got := trafficOf(t, email); !got.Enable || got.Up+got.Down != 0 {
+		t.Fatalf("%s: traffic row enable=%v used=%d, want enabled at 0", email, got.Enable, got.Up+got.Down)
 	}
 }

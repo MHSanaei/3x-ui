@@ -8,20 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// renewalReenables reports whether the client identified by email was switched
-// off by the quota enforcement loop and would come back within its limits once
-// newTotal and newExpiry are in effect. It is the single-client twin of the
-// set-difference re-enable that BulkAdjust applies on a renewal (#5619); the
-// client editor's save (/clients/update) and the single-field renewal setters
-// are the renewal paths that still left a renewed client disabled, forcing the
-// operator to flip the enable switch by hand.
-//
-// The check reads as disabled-by-quota only when the enforcement row itself
-// carries the off switch AND matches the production depletion predicate, so a
-// client the operator switched off by hand (or that is simply under quota) is
-// never resurrected. The post-update side is projected from the values this
-// renewal writes — the traffic row's up/down counters are untouched by an
-// update, so only total and expiry move.
+// renewalReenables reports whether the quota loop switched the client off and
+// this renewal (newTotal/newExpiry, usage unchanged) clears the depletion (#5619).
 func (s *ClientService) renewalReenables(email string, newTotal, newExpiry int64) bool {
 	db := database.GetDB()
 	var traffic xray.ClientTraffic
@@ -32,19 +20,16 @@ func (s *ClientService) renewalReenables(email string, newTotal, newExpiry int64
 		return false
 	}
 
-	// Was it the quota loop that switched it off, under the same predicate
-	// (including a fresh cross-panel push) the loop itself uses?
 	cond, condArgs := depletedCond(db)
 	var wasDepleted int64
 	if err := db.Model(xray.ClientTraffic{}).
 		Where(cond+" AND email = ?", append(append([]any{}, condArgs...), email)...).
 		Count(&wasDepleted).Error; err != nil || wasDepleted == 0 {
-		return false // disabled by hand, not by the quota loop
+		return false // off for another reason than depletion: the operator's off stands
 	}
 
-	// Does this renewal clear the depletion? The local branches against the
-	// projected row values, then the cross-panel branch the loop would apply
-	// to the projected total.
+	// Project the post-renewal row: total/expiry move, up/down and a fresh
+	// cross-panel push can still deplete it.
 	now := time.Now().UnixMilli()
 	used := traffic.Up + traffic.Down
 	if newTotal > 0 && used >= newTotal {
@@ -64,9 +49,8 @@ func (s *ClientService) renewalReenables(email string, newTotal, newExpiry int64
 	return true
 }
 
-// storedTrafficLimits reads a client's enforcement row; the second result is
-// false when the client has no row, in which case no quota state can be
-// projected for it.
+// storedTrafficLimits reads a client's enforcement row; ok is false when the
+// client has no row, in which case no quota state can be projected for it.
 func storedTrafficLimits(email string) (total, expiry int64, ok bool) {
 	var row xray.ClientTraffic
 	if err := database.GetDB().Where("email = ?", email).First(&row).Error; err != nil {

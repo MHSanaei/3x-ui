@@ -235,10 +235,8 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	return &snapshot, &ib, nil
 }
 
-// markClientEnabledInSettings is the re-enable twin of markClientsDisabledInSettings:
-// it flips the stored entry of one email back on in the inbound's settings JSON, so
-// a quota-disabled client that a reset brings back reads enabled in the config an xray
-// restart regenerates and in the subscription, not just in the running core.
+// markClientEnabledInSettings is the re-enable twin of
+// markClientsDisabledInSettings: flip one email's stored entry back on.
 func (s *InboundService) markClientEnabledInSettings(tx *gorm.DB, inboundID int, email string) error {
 	var ib model.Inbound
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).First(&ib).Error; err != nil {

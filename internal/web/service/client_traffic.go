@@ -47,12 +47,9 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 	// Enable only once the counters are zero: a still-depleted client enabled
 	// first is switched off again by the next traffic tick.
 	if !rec.Enable {
-		// The per-inbound reset transactions already flip their stored entry
-		// and the shared record back on when they re-enabled the client, so a
-		// second full update — one more serialized write, JSON rewrite and
-		// runtime add per inbound — only still has to run when the resets
-		// left the record off (an inbound-less client, or a record the
-		// inbounds did not host).
+		// The reset transactions already flip the record back on when they
+		// re-enabled the client; the follow-up update only still has to
+		// run when they left it off (an inbound-less client, or unhosted).
 		fresh, fErr := s.GetRecordByEmail(nil, email)
 		if fErr == nil && !fresh.Enable {
 			updated := fresh.ToClient()

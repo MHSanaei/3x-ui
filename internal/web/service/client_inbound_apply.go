@@ -1531,10 +1531,8 @@ func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, cl
 	})
 }
 
-// renewalReenableFor projects the post-renewal limits of a single-field
-// renewal: the field being written takes the new value, the other side keeps
-// the stored limit, and a client with no enforcement row can never be
-// quota-disabled, so it never re-enables.
+// renewalReenableFor projects the post-renewal limits for a single-field
+// renewal (nil side keeps the stored limit; no row means no quota state).
 func (s *ClientService) renewalReenableFor(email string, setExpiry *int64, setTotal *int64) bool {
 	total, expiry, ok := storedTrafficLimits(email)
 	if !ok {

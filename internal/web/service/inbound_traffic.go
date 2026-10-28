@@ -715,54 +715,58 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	needRestart := false
 	var reenablePlan *trafficLocalApplyPlan
 	var reenableNodeID *int
-	// The stored entry read off and this reset flips it back on: the quota
-	// loop's switch-off is undone in the same transaction as the zeroing.
+	// This inbound's stored entry read off and this reset flips it back on,
+	// in the same transaction as the zeroing.
 	flipStoredEntry := false
 
 	traffic, err := s.GetClientTrafficByEmail(clientEmail)
 	if err != nil {
 		return false, nil, err
 	}
-
-	if !traffic.Enable {
-		inbound, err := s.GetInbound(id)
-		if err != nil {
-			return false, nil, err
-		}
-		clients, err := s.GetClients(inbound)
-		if err != nil {
-			return false, nil, err
-		}
-		for _, client := range clients {
-			if client.Email != clientEmail {
-				continue
-			}
-			flipStoredEntry = !client.Enable
-			cipher := ""
-			if string(inbound.Protocol) == "shadowsocks" {
-				var oldSettings map[string]any
-				err = json.Unmarshal([]byte(inbound.Settings), &oldSettings)
-				if err != nil {
-					return false, nil, err
-				}
-				cipher, _ = oldSettings["method"].(string)
-			}
-			clientMap := map[string]any{
-				"email":    client.Email,
-				"id":       client.ID,
-				"auth":     client.Auth,
-				"security": client.Security,
-				"flow":     client.Flow,
-				"password": client.Password,
-				"cipher":   cipher,
-				"reverse":  client.Reverse,
-			}
-			if inbound.NodeID != nil {
-				reenableNodeID = inbound.NodeID
-			} else {
-				reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
-			}
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return false, nil, err
+	}
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return false, nil, err
+	}
+	// The flip is decided per stored entry, not the shared row: the first
+	// inbound's reset turns that row back on, so a row-keyed check would leave
+	// a sibling's off entry stale. Also plan the re-add when the entry reads
+	// on but the row is off (drift: the running core has dropped the user).
+	entry := (*model.Client)(nil)
+	for i := range clients {
+		if clients[i].Email == clientEmail {
+			entry = &clients[i]
 			break
+		}
+	}
+	if entry != nil && (!entry.Enable || !traffic.Enable) {
+		flipStoredEntry = true
+		cipher := ""
+		if string(inbound.Protocol) == "shadowsocks" {
+			var oldSettings map[string]any
+			err = json.Unmarshal([]byte(inbound.Settings), &oldSettings)
+			if err != nil {
+				return false, nil, err
+			}
+			cipher, _ = oldSettings["method"].(string)
+		}
+		clientMap := map[string]any{
+			"email":    entry.Email,
+			"id":       entry.ID,
+			"auth":     entry.Auth,
+			"security": entry.Security,
+			"flow":     entry.Flow,
+			"password": entry.Password,
+			"cipher":   cipher,
+			"reverse":  entry.Reverse,
+		}
+		if inbound.NodeID != nil {
+			reenableNodeID = inbound.NodeID
+		} else {
+			reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
 		}
 	}
 
@@ -772,10 +776,6 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
-	inbound, err := s.GetInbound(id)
-	if err != nil {
-		return false, nil, err
-	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
 			return err
@@ -798,10 +798,8 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			return err
 		}
 		if flipStoredEntry {
-			// A reset is a clean-slate renewal: the entry the quota loop
-			// switched off (or the operator did, before the counters were
-			// zero) reads enabled again — in the stored settings a restart
-			// regenerates from, and in the shared record, in one commit.
+			// A reset is a clean-slate renewal: flip the entry the loop or
+			// operator switched off back on, in settings and record, atomically.
 			if err := s.markClientEnabledInSettings(tx, id, clientEmail); err != nil {
 				return err
 			}
@@ -813,7 +811,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		if reenableNodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *reenableNodeID)
 		}
-		if inbound != nil && inbound.NodeID != nil {
+		if inbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *inbound.NodeID)
 		}
 		return nil
@@ -838,10 +836,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		}
 	}
 
-	if inbound != nil {
-		return needRestart, inbound.NodeID, nil
-	}
-	return needRestart, nil, nil
+	return needRestart, inbound.NodeID, nil
 }
 
 func (s *InboundService) ResetAllTraffics() error {
