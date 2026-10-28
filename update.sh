@@ -73,6 +73,9 @@ if _command_exists curl; then
 else
     _fail "ERROR: Command 'curl' not found."
 fi
+# The panel sets XUI_UPDATE_PROXY to its egress bridge's socks5h URL for the GitHub downloads.
+# The IP lookups use plain curl so they still report this server's own address.
+[[ -n "${XUI_UPDATE_PROXY}" ]] && curl_bin="${curl_bin} --proxy ${XUI_UPDATE_PROXY}"
 
 # Check OS and set release variable
 if [[ -f /etc/os-release ]]; then
@@ -524,17 +527,15 @@ update_x-ui() {
         fi
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    # x-ui.sh, x-ui.rc and the unit files must come from the same release as
-    # the binary; only the rolling dev build tracks main.
+    # x-ui.rc and the unit files must come from the binary's own release; only the
+    # rolling dev build tracks main. x-ui.sh ships in the archive and needs no GitHub check.
     script_ref="${tag_version}"
     if [[ "${tag_version}" == "dev-latest" ]]; then
         script_ref="main"
     fi
     # The unit files are only fetched when the release tarball lacks them, so
     # they are checked at that point instead of here.
-    local required_files=("x-ui.sh")
-    [[ $release == "alpine" ]] && required_files+=("x-ui.rc")
-    require_repo_files "${script_ref}" "${required_files[@]}"
+    [[ $release == "alpine" ]] && require_repo_files "${script_ref}" "x-ui.rc"
     ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
     if [[ $? -ne 0 ]]; then
         _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
@@ -564,6 +565,23 @@ update_x-ui() {
     else
         rm -f "${archive}.sha256" "${archive}"
         _fail "ERROR: Failed to download the checksum for x-ui-linux-$(arch).tar.gz (HTTP ${sidecar_code})"
+    fi
+
+    # Download everything before x-ui stops, because its Xray and any panel egress bridge
+    # stop with it. Alpine's init script is the only file the archive lacks.
+    if [[ $release == "alpine" ]]; then
+        echo -e "${green}Downloading startup unit x-ui.rc...${plain}"
+        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
+        rm -f "${xui_rc_temp}"
+        ${curl_bin} -fLRo "${xui_rc_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.rc" > /dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            rm -f "${xui_rc_temp}" "${archive}"
+            _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
+        fi
+        if [[ ! -s "${xui_rc_temp}" ]]; then
+            rm -f "${xui_rc_temp}" "${archive}"
+            _fail "ERROR: Downloaded startup unit x-ui.rc is empty, please be sure that your server can access GitHub"
+        fi
     fi
 
     if [[ -e ${xui_folder}/ ]]; then
@@ -650,20 +668,10 @@ update_x-ui() {
         chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
     fi
 
-    echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
+    # The archive's x-ui.sh is built from the same commit as the binary.
+    echo -e "${green}Installing x-ui.sh script...${plain}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
-    rm -f "${xui_script_temp}"
-    ${curl_bin} -fLRo "${xui_script_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.sh" > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        rm -f "${xui_script_temp}"
-        _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
-    fi
-    if [[ ! -s "${xui_script_temp}" ]]; then
-        rm -f "${xui_script_temp}"
-        _fail "ERROR: Downloaded x-ui.sh script is empty, please be sure that your server can access GitHub"
-    fi
-    mv -f "${xui_script_temp}" /usr/bin/x-ui
-    if [[ $? -ne 0 ]]; then
+    if ! cp -f x-ui.sh "${xui_script_temp}" || ! mv -f "${xui_script_temp}" /usr/bin/x-ui; then
         rm -f "${xui_script_temp}"
         _fail "ERROR: Failed to install x-ui.sh script"
     fi
@@ -686,18 +694,7 @@ update_x-ui() {
     "${xui_folder}/x-ui" migrate
 
     if [[ $release == "alpine" ]]; then
-        echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
-        rm -f "${xui_rc_temp}"
-        ${curl_bin} -fLRo "${xui_rc_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.rc" > /dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            rm -f "${xui_rc_temp}"
-            _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
-        fi
-        if [[ ! -s "${xui_rc_temp}" ]]; then
-            rm -f "${xui_rc_temp}"
-            _fail "ERROR: Downloaded startup unit x-ui.rc is empty, please be sure that your server can access GitHub"
-        fi
+        echo -e "${green}Installing startup unit x-ui.rc...${plain}"
         mv -f "${xui_rc_temp}" /etc/init.d/x-ui
         if [[ $? -ne 0 ]]; then
             rm -f "${xui_rc_temp}"
