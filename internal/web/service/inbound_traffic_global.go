@@ -109,16 +109,25 @@ func chunkGlobalRows(rows []model.ClientGlobalTraffic, size int) [][]model.Clien
 // overlayGlobalTraffic applies each direction's largest fresh per-master value for display.
 // Stored local counters remain untouched; stale masters cannot inflate usage (#6113).
 func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
+	if err := overlayGlobalTrafficChecked(db, rows); err != nil {
+		logger.Warning("overlayGlobalTraffic:", err)
+	}
+}
+
+func overlayGlobalTrafficChecked(db *gorm.DB, rows []*xray.ClientTraffic) error {
 	if len(rows) == 0 {
-		return
+		return nil
 	}
 	freshSince := globalTrafficFreshSince(db.NowFunc())
 	// Cheap short-circuit for the common case (a panel no master pushes to).
 	var probe int64
 	if err := db.Model(&model.ClientGlobalTraffic{}).
 		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error; err != nil || probe == 0 {
-		return
+		Limit(1).Count(&probe).Error; err != nil {
+		return err
+	}
+	if probe == 0 {
+		return nil
 	}
 
 	emails := make([]string, 0, len(rows))
@@ -136,8 +145,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var globals []model.ClientGlobalTraffic
 		if err := db.Where("email IN ? AND updated_at >= ?", batch, freshSince).Find(&globals).Error; err != nil {
-			logger.Warning("overlayGlobalTraffic:", err)
-			return
+			return err
 		}
 		for i := range globals {
 			for _, r := range byEmail[strings.ToLower(globals[i].Email)] {
@@ -150,6 +158,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 			}
 		}
 	}
+	return nil
 }
 
 // overlayGlobalTrafficValues is overlayGlobalTraffic for value slices.

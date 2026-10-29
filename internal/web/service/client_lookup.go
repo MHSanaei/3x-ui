@@ -104,6 +104,22 @@ func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int,
 	return ids, nil
 }
 
+func (s *ClientService) GetAttachedInbounds(tx *gorm.DB, email string) ([]*model.Inbound, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	var rows []*model.Inbound
+	err := tx.Model(&model.Inbound{}).
+		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email = ?", email).Order("inbounds.id ASC").Find(&rows).Error
+	return rows, err
+}
+
+func (s *ClientService) GetAttachedInboundLabels(email string) ([]*model.Inbound, error) {
+	return s.GetAttachedInbounds(database.GetDB().Select("inbounds.id", "inbounds.remark", "inbounds.protocol"), email)
+}
+
 // sub_id carries a plain index, not a unique one: one subscription can cover
 // several clients, so callers acting on a subId must handle all of them.
 func (s *ClientService) GetRecordsBySubID(subId string) ([]*model.ClientRecord, error) {

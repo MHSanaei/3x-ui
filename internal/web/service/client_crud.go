@@ -259,29 +259,11 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if getErr != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, getErr)
 		}
-		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
+		add, err := s.prepareClientAdd(&client, inbound)
+		if err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
-		clientForInbound := client
-		if ips, ok := client.AllowedIPsByInbound[ibId]; ok {
-			clientForInbound.AllowedIPs = ips
-		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
-			// The shared AllowedIPs value (e.g. from a single-field legacy
-			// caller) came from a different subnet than this inbound's own --
-			// clear it so defaultAmneziaWGClients allocates a fresh, correct
-			// address for THIS inbound instead of persisting an unroutable
-			// peer. Same reasoning as addressesFitAmneziaWGInbound's own doc
-			// comment on the Attach path.
-			clientForInbound.AllowedIPs = nil
-		}
-		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
-			return false, fmt.Errorf("inbound %d: %w", ibId, err)
-		}
-		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})
-		if mErr != nil {
-			return false, fmt.Errorf("inbound %d: %w", ibId, mErr)
-		}
-		adds = append(adds, &model.Inbound{Id: ibId, Settings: string(settingsPayload)})
+		adds = append(adds, add)
 	}
 	needRestart, fanoutErr := s.fanoutInboundClientAdds(inboundSvc, adds)
 	if fanoutErr != nil {
@@ -298,6 +280,27 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
+}
+
+func (s *ClientService) prepareClientAdd(client *model.Client, inbound *model.Inbound) (*model.Inbound, error) {
+	if err := s.fillProtocolDefaults(client, inbound); err != nil {
+		return nil, err
+	}
+	perInbound := *client
+	if ips, ok := client.AllowedIPsByInbound[inbound.Id]; ok {
+		perInbound.AllowedIPs = ips
+	} else if !addressesFitAmneziaWGInbound(perInbound.AllowedIPs, inbound) {
+		// Each tunnel allocates addresses from its own subnet.
+		perInbound.AllowedIPs = nil
+	}
+	if err := validateAmneziaWGClientWrite(inbound, []model.Client{perInbound}); err != nil {
+		return nil, err
+	}
+	settings, err := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(perInbound, inbound)}})
+	if err != nil {
+		return nil, err
+	}
+	return &model.Inbound{Id: inbound.Id, Settings: string(settings)}, nil
 }
 
 // inboundFanoutConcurrency caps how many inbounds one client op applies at

@@ -560,6 +560,35 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+func (s *InboundService) GetInboundLabelsByIDs(ids []int) ([]*model.Inbound, error) {
+	var rows []*model.Inbound
+	for _, batch := range chunkInts(ids, sqlInChunk) {
+		var page []*model.Inbound
+		if err := database.GetDB().Select("id", "remark", "protocol").Where("id IN ?", batch).Find(&page).Error; err != nil {
+			return nil, err
+		}
+		rows = append(rows, page...)
+	}
+	return rows, nil
+}
+
+func (s *InboundService) GetClientInboundLabelPage(page int) ([]*model.Inbound, bool, error) {
+	const size = 20
+	if page < 0 || page > int(^uint(0)>>1)/size {
+		return nil, false, common.NewError("invalid inbound page")
+	}
+	var rows []*model.Inbound
+	err := database.GetDB().Select("id", "remark", "protocol").Where("protocol IN ?", model.ClientProtocols()).Order("id ASC").Offset(page * size).Limit(size + 1).Find(&rows).Error
+	if err != nil {
+		return nil, false, err
+	}
+	more := len(rows) > size
+	if more {
+		rows = rows[:size]
+	}
+	return rows, more, nil
+}
+
 func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound

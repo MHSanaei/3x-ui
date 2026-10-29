@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -27,7 +28,7 @@ var (
 	inboundMutationLocks   = map[int]*sync.Mutex{}
 )
 
-func lockInbound(inboundId int) *sync.Mutex {
+func inboundMutex(inboundId int) *sync.Mutex {
 	inboundMutationLocksMu.Lock()
 	m, ok := inboundMutationLocks[inboundId]
 	if !ok {
@@ -35,8 +36,34 @@ func lockInbound(inboundId int) *sync.Mutex {
 		inboundMutationLocks[inboundId] = m
 	}
 	inboundMutationLocksMu.Unlock()
+	return m
+}
+
+func lockInbound(inboundId int) *sync.Mutex {
+	m := inboundMutex(inboundId)
 	m.Lock()
 	return m
+}
+
+func lockMutexContext(ctx context.Context, m *sync.Mutex) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if m.TryLock() {
+		return nil
+	}
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if m.TryLock() {
+				return nil
+			}
+		}
+	}
 }
 
 func compactOrphans(db *gorm.DB, clients []any) []any {
@@ -252,8 +279,8 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 	if settings == "" || len(trafficByEmail) == 0 {
 		return settings, false
 	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+	parsed, err := decodeInboundSettingsObject(settings)
+	if err != nil {
 		return settings, false
 	}
 	clients, _ := parsed["clients"].([]any)
@@ -331,7 +358,10 @@ func settingsClientAbsoluteExpiries(settings string) map[string]int64 {
 }
 
 func jsonClientInt64(v any) (int64, bool) {
-	// json.Unmarshal into map[string]any yields float64 for numbers.
+	if number, ok := v.(json.Number); ok {
+		n, err := number.Int64()
+		return n, err == nil
+	}
 	n, ok := v.(float64)
 	if !ok {
 		return 0, false
