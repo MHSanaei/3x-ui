@@ -48,30 +48,30 @@ Measured on 2026-10-29, Linux/amd64 Docker, Go 1.27.3, `GOMAXPROCS=4`, SQLite an
 ### Fetch plus merge latency (eight inbounds, two peers)
 
 | Database | Clients | Scenario | p50 legacy / v1 (ms) | p95 legacy / v1 (ms) | p50 speedup |
-|---|---:|---|---:|---:|---:|
-| sqlite | 1,000 | idle | 201.71 / 49.80 | 210.79 / 55.12 | 4.05x |
-| sqlite | 1,000 | counters | 209.02 / 62.74 | 219.26 / 66.83 | 3.33x |
-| sqlite | 10,000 | idle | 1841.66 / 422.04 | 2633.93 / 436.44 | 4.36x |
-| sqlite | 10,000 | counters | 2533.78 / 453.55 | 3601.30 / 553.41 | 5.59x |
-| sqlite | 20,000 | idle | 3660.05 / 859.34 | 3887.16 / 893.04 | 4.26x |
-| sqlite | 20,000 | counters | 3642.94 / 881.21 | 3797.47 / 922.19 | 4.13x |
-| postgres | 1,000 | idle | 427.13 / 66.03 | 445.92 / 80.03 | 6.47x |
-| postgres | 1,000 | counters | 476.94 / 113.21 | 483.74 / 132.35 | 4.21x |
-| postgres | 10,000 | idle | 2125.99 / 541.65 | 2210.80 / 569.30 | 3.93x |
-| postgres | 10,000 | counters | 2168.30 / 585.50 | 2254.90 / 620.23 | 3.70x |
-| postgres | 20,000 | idle | 4434.61 / 1026.38 | 5106.25 / 1050.07 | 4.32x |
-| postgres | 20,000 | counters | 4433.07 / 1092.56 | 4523.11 / 1172.83 | 4.06x |
+| -------- | ------: | -------- | -------------------: | -------------------: | ----------: |
+| sqlite   |   1,000 | idle     |       201.71 / 49.80 |       210.79 / 55.12 |       4.05x |
+| sqlite   |   1,000 | counters |       209.02 / 62.74 |       219.26 / 66.83 |       3.33x |
+| sqlite   |  10,000 | idle     |     1841.66 / 422.04 |     2633.93 / 436.44 |       4.36x |
+| sqlite   |  10,000 | counters |     2533.78 / 453.55 |     3601.30 / 553.41 |       5.59x |
+| sqlite   |  20,000 | idle     |     3660.05 / 859.34 |     3887.16 / 893.04 |       4.26x |
+| sqlite   |  20,000 | counters |     3642.94 / 881.21 |     3797.47 / 922.19 |       4.13x |
+| postgres |   1,000 | idle     |       427.13 / 66.03 |       445.92 / 80.03 |       6.47x |
+| postgres |   1,000 | counters |      476.94 / 113.21 |      483.74 / 132.35 |       4.21x |
+| postgres |  10,000 | idle     |     2125.99 / 541.65 |     2210.80 / 569.30 |       3.93x |
+| postgres |  10,000 | counters |     2168.30 / 585.50 |     2254.90 / 620.23 |       3.70x |
+| postgres |  20,000 | idle     |    4434.61 / 1026.38 |    5106.25 / 1050.07 |       4.32x |
+| postgres |  20,000 | counters |    4433.07 / 1092.56 |    4523.11 / 1172.83 |       4.06x |
 
 ### Work per cycle (20,000 clients, eight inbounds, two peers)
 
 Values are legacy / v1. SQL and SELECT-row totals combine both roles. MiB uses 1,048,576 bytes.
 
-| Database | Scenario | SQL calls | Rows read | Wire MiB | Allocated MiB | Allocation count | PostgreSQL execution ms |
-|---|---|---:|---:|---:|---:|---:|---:|
-| sqlite | idle | 738 / 98 | 1,180,936 / 420,056 | 43.87 / 9.13 | 2775.46 / 675.77 | 24,632,741 / 6,228,450 | n/a |
-| sqlite | counters | 1138 / 498 | 1,180,936 / 420,056 | 43.87 / 9.14 | 2783.63 / 676.66 | 24,667,281 / 6,262,611 | n/a |
-| postgres | idle | 738 / 98 | 1,180,936 / 420,056 | 43.87 / 9.13 | 2955.94 / 688.62 | 25,547,955 / 6,305,494 | 1497.56 / 371.15 |
-| postgres | counters | 1138 / 498 | 1,180,936 / 420,056 | 43.87 / 9.14 | 2947.64 / 692.61 | 25,587,681 / 6,344,891 | 1352.26 / 387.31 |
+| Database | Scenario |  SQL calls |           Rows read |     Wire MiB |    Allocated MiB |       Allocation count | PostgreSQL execution ms |
+| -------- | -------- | ---------: | ------------------: | -----------: | ---------------: | ---------------------: | ----------------------: |
+| sqlite   | idle     |   738 / 98 | 1,180,936 / 420,056 | 43.87 / 9.13 | 2775.46 / 675.77 | 24,632,741 / 6,228,450 |                     n/a |
+| sqlite   | counters | 1138 / 498 | 1,180,936 / 420,056 | 43.87 / 9.14 | 2783.63 / 676.66 | 24,667,281 / 6,262,611 |                     n/a |
+| postgres | idle     |   738 / 98 | 1,180,936 / 420,056 | 43.87 / 9.13 | 2955.94 / 688.62 | 25,547,955 / 6,305,494 |        1497.56 / 371.15 |
+| postgres | counters | 1138 / 498 | 1,180,936 / 420,056 | 43.87 / 9.14 | 2947.64 / 692.61 | 25,587,681 / 6,344,891 |        1352.26 / 387.31 |
 
 Every v1 steady-state case reported **zero full catalog fetches and zero structural polls** across its twelve measured cycles. Each add/remove/config event refreshed every affected peer immediately (one full fetch per peer). Those events intentionally retain full reconciliation cost.
 
@@ -80,27 +80,26 @@ Every v1 steady-state case reported **zero full catalog fetches and zero structu
 Encoding/decoding figures exclude the master merge and HTTP envelope.
 
 | Database | Inbounds | Encode legacy / v1 (ms) | Decode legacy / v1 (ms) |
-|---|---:|---:|---:|
-| sqlite | 1 | 80.83 / 20.78 | 61.52 / 26.81 |
-| sqlite | 8 | 139.23 / 21.66 | 118.13 / 27.60 |
-| postgres | 1 | 80.02 / 21.21 | 60.10 / 25.94 |
-| postgres | 8 | 138.85 / 20.73 | 120.17 / 26.76 |
+| -------- | -------: | ----------------------: | ----------------------: |
+| sqlite   |        1 |           80.83 / 20.78 |           61.52 / 26.81 |
+| sqlite   |        8 |          139.23 / 21.66 |          118.13 / 27.60 |
+| postgres |        1 |           80.02 / 21.21 |           60.10 / 25.94 |
+| postgres |        8 |          138.85 / 20.73 |          120.17 / 26.76 |
 
 ### CPU profiles (20,000 clients, eight inbounds, two peers)
 
 Total sampled Go-process CPU for twelve cycles, including explicit GC, excludes PostgreSQL server CPU.
 
 | Database | Scenario | Legacy CPU seconds | v1 CPU seconds |
-|---|---|---:|---:|
-| sqlite | idle | 56.94 | 14.34 |
-| sqlite | counters | 56.38 | 14.64 |
-| postgres | idle | 55.20 | 14.49 |
-| postgres | counters | 55.23 | 15.25 |
+| -------- | -------- | -----------------: | -------------: |
+| sqlite   | idle     |              56.94 |          14.34 |
+| sqlite   | counters |              56.38 |          14.64 |
+| postgres | idle     |              55.20 |          14.49 |
+| postgres | counters |              55.23 |          15.25 |
 
 The SQLite idle profile reduced `runtime.cgocall` cumulative samples from 11.88s to 3.32s, alongside lower JSON scanning/copying and GC work. Counter scan/conversion and raw transport remain visible in the optimized profile; this is reduced work, not elimination of traffic processing.
 
 Raw results: [SQLite cycles](cycles-sqlite.csv), [PostgreSQL cycles](cycles-postgres.csv), [SQLite events](events-sqlite.csv), [PostgreSQL events](events-postgres.csv), [SQLite JSON projection](projections-sqlite.csv), [PostgreSQL JSON projection](projections-postgres.csv), [CPU samples](cpu-profiles.csv). All one-inbound/one-peer results are included there.
-
 
 ## Reproduction
 
@@ -119,24 +118,24 @@ Omit `XUI_SNAPSHOT_PG_STATS` when the optional extension is unavailable; its met
 
 ## Validation
 
-| Check | Actual result |
-|---|---|
-| `make verify` | PASS: generation freshness, Go/frontend lint, typecheck, complete Go tests, 2,023 frontend tests in 215 files, panel build, Storybook build and matching docs OpenAPI. |
-| `go test -race -shuffle=on -count=1 -timeout 25m ./internal/web/... ./internal/database/...` | PASS; service 234.102s, database 84.520s; no race reports. |
-| PostgreSQL regression gate | Six top-level tests PASS, including both trigger dialects and the real PostgreSQL storage/merge/reopen/cancellation cases; no skipped PostgreSQL cell. |
-| `TestMasterNodeContract` | PASS with real production router for admin and node-sync; negotiated v1 exercised repeatedly. Controller tests additionally cover node-admin acceptance, monitor denial, unauthenticated denial and verified mTLS scope. |
-| `XUI_NODE_E2E_OLD_BINARY=... make node-e2e` | PASS, 442.272s, no skips: ordinary sync/scopes/offline/filter/reset/shared-IP cases, all four old/new pairs, new/new node and master restarts, three-panel global-heartbeat/quota chain (276.52s). |
-| Thirty-second `FuzzParseLink` | PASS, 504,158 executions. |
-| Thirty-second `FuzzDecodeCertPin` | PASS, 366,154 executions. |
-| `make vulncheck` | PASS: zero reachable/imported-package vulnerabilities; three findings only in required modules whose affected code is not called. |
-| `actionlint` | PASS for the updated CI workflow. |
-| OpenAPI compatibility comparison | No existing path/component changed; one route and five schemas added. |
-| Both complete scale ladders and JSON projection ladders | PASS; all result CSVs above are from the final minimal DTO. |
+| Check                                                                                        | Actual result                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `make verify`                                                                                | PASS: generation freshness, Go/frontend lint, typecheck, complete Go tests, 2,023 frontend tests in 215 files, panel build, Storybook build and matching docs OpenAPI.                                                   |
+| `go test -race -shuffle=on -count=1 -timeout 25m ./internal/web/... ./internal/database/...` | PASS; service 234.102s, database 84.520s; no race reports.                                                                                                                                                               |
+| PostgreSQL regression gate                                                                   | Six top-level tests PASS, including both trigger dialects and the real PostgreSQL storage/merge/reopen/cancellation cases; no skipped PostgreSQL cell.                                                                   |
+| `TestMasterNodeContract`                                                                     | PASS with real production router for admin and node-sync; negotiated v1 exercised repeatedly. Controller tests additionally cover node-admin acceptance, monitor denial, unauthenticated denial and verified mTLS scope. |
+| `XUI_NODE_E2E_OLD_BINARY=... make node-e2e`                                                  | PASS, 442.272s, no skips: ordinary sync/scopes/offline/filter/reset/shared-IP cases, all four old/new pairs, new/new node and master restarts, three-panel global-heartbeat/quota chain (276.52s).                       |
+| Thirty-second `FuzzParseLink`                                                                | PASS, 504,158 executions.                                                                                                                                                                                                |
+| Thirty-second `FuzzDecodeCertPin`                                                            | PASS, 366,154 executions.                                                                                                                                                                                                |
+| `make vulncheck`                                                                             | PASS: zero reachable/imported-package vulnerabilities; three findings only in required modules whose affected code is not called.                                                                                        |
+| Docs site checks                                                                             | PASS: formatter, lint, typecheck, 112 tests and production build.                                                                                                                                                        |
+| `actionlint`                                                                                 | PASS for the updated CI workflow.                                                                                                                                                                                        |
+| OpenAPI compatibility comparison                                                             | No existing path/component changed; one route and five schemas added.                                                                                                                                                    |
+| Both complete scale ladders and JSON projection ladders                                      | PASS; all result CSVs above are from the final minimal DTO.                                                                                                                                                              |
 
 The old matrix binary was built from exact upstream commit `c621ba9014a6aa21fd7c9ecf45655e44e24ebf13`; the new binary includes this change. The normal harness initializes temporary databases, which also exercises old-process compatibility with the migrated schema. CI fetches/builds that pinned baseline and provides `XUI_NODE_E2E_OLD_BINARY`; no optional matrix cell is silently omitted in CI.
 
 A rehearsal hit Go's default ten-minute benchmark timeout; the full measured sweeps above passed with explicit limits. The first observer-based E2E run exposed a test-proxy bug reading gzip as JSON. The inspector was corrected to decode for inspection while forwarding original bytes, then the entire E2E suite passed. Those failed rehearsals are not counted as successful checks.
-
 
 Focused regressions were observed failing without their protections: redundant settings reads/reconciliation, SQLite writer reservation, missing legacy tokens, database-reopen history and truncated unchanged counters. Tests also cover direct/canonical/lifecycle edits, detach, no-op/timestamp writes, rollback, cancellation, empty/full/unchanged catalogs, authorization, unsupported endpoints, shared backfills and exact deltas across repeated/lower counters.
 
