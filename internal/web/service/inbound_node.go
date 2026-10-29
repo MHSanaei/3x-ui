@@ -1263,7 +1263,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			if protected != adoptedSettings {
 				adoptedSettings = protected
-				lifecycleLifted = true
+				// Let an acknowledged push settle before accepting node metadata;
+				// requeueing it here would prevent node-side deletion from converging.
+				if !justPushed {
+					lifecycleLifted = true
+				}
 			}
 		}
 		lifted, liftChanged := liftClientLifecycleInSettings(adoptedSettings, centralCSByEmail)
