@@ -187,7 +187,7 @@ func (t *Tgbot) depleteReport() string {
 	body += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(disabledClients))
 	body += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(exhaustedClients))
 	if clientLines.Len() > 0 {
-		body += "\n" + html.EscapeString(clientLines.String())
+		body += "\n" + clientLines.String()
 	}
 	body += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	return body
@@ -235,7 +235,7 @@ func (t *Tgbot) screenReport(chatID int64) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.refresh", cbReport)),
 		t.backRow(),
 	}
-	t.renderScreen(chatID, t.newScreen("reports", html.EscapeString(report.String()), rows...))
+	t.renderScreen(chatID, t.newScreen("reports", report.String(), rows...))
 }
 
 // screenCommands explains the classic commands; kept because muscle memory is
@@ -245,7 +245,11 @@ func (t *Tgbot) screenCommands(chatID int64, isAdmin bool) {
 	if isAdmin {
 		key = "tgbot.commands.helpAdminCommands"
 	}
-	t.renderScreen(chatID, t.newScreen("commands", t.I18nBot(key), t.backRow()))
+	body := t.I18nBot(key)
+	if isAdmin {
+		body += "\n\n" + t.I18nBot("tgbot.messages.workflowUsage")
+	}
+	t.renderScreen(chatID, t.newScreen("commands", body, t.backRow()))
 }
 
 // sendBackupScreen delivers the backup and summary as ONE message (file plus

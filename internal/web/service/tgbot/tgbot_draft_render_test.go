@@ -3,6 +3,8 @@ package tgbot
 import (
 	"encoding/json"
 	"html"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,6 +22,7 @@ const clientDraftTestChatID = -9001
 // Regression test: the draft is sent with ParseMode HTML, so Markdown markers
 // were rendered literally and an unescaped value could break the whole message.
 func TestClientDraftMessageRendersHTML(t *testing.T) {
+	localizeWithRealBundle(t)
 	draft := addClientDrafts.forActor(chatUser{chatID: clientDraftTestChatID, userID: 1})
 	t.Cleanup(func() { addClientDrafts.reset(chatUser{chatID: clientDraftTestChatID, userID: 1}) })
 
@@ -51,6 +54,14 @@ func draftLocalizer(t *testing.T, msgs ...*i18n.Message) {
 	t.Helper()
 	bundle := i18n.NewBundle(language.MustParse("en-US"))
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+	path := filepath.Join(repoRootForTest(t), "internal/web/translation/en-US.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bundle.ParseMessageFileBytes(data, path); err != nil {
+		t.Fatal(err)
+	}
 	_ = bundle.AddMessages(language.MustParse("en-US"), msgs...)
 	orig := locale.LocalizerBot
 	t.Cleanup(func() { locale.LocalizerBot = orig })

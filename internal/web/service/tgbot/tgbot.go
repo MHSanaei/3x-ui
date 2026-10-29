@@ -80,6 +80,9 @@ func liveBot() *telego.Bot {
 // filled per-inbound on submit, so only the universal fields live here.
 type clientDraft struct {
 	sync.Mutex
+	plan               *service.ClientPlan
+	planSession        string
+	attachPage         int
 	receiverInboundID  int
 	receiverInboundIDs []int
 	email              string

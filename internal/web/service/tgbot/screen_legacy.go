@@ -119,7 +119,18 @@ func (t *Tgbot) searchClientScreen(chatID int64, email string) {
 		return
 	}
 	body := t.clientInfoMsg(traffic, true, true, true, true, true, true)
-	t.renderScreen(chatID, t.newScreen("client", body, t.clientRows(email)...))
+	t.renderScreen(chatID, t.newScreen("client", body, t.clientCardRows(chatID, email)...))
+}
+
+func (t *Tgbot) clientCardRows(chatID int64, email string) [][]telego.InlineKeyboardButton {
+	rows := t.clientRows(email)
+	if !checkAdmin(chatID) {
+		return rows
+	}
+	return append([][]telego.InlineKeyboardButton{
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.shareExport", t.encodeQuery("client_export_menu "+email))),
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.renewClient", t.encodeQuery("admin_renew "+email))),
+	}, rows...)
 }
 
 // clientRows is the client card's keyboard, in one place so every entry point
