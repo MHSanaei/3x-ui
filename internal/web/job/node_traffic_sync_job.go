@@ -97,6 +97,9 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 	j.inboundService.RetainSyncedNodeOnlineClients(nodes)
+	if err := j.inboundService.RetainNodeSnapshotCaches(nodes); err != nil {
+		logger.Warning("node traffic sync: prune snapshot caches failed:", err)
+	}
 	if len(nodes) == 0 {
 		return
 	}

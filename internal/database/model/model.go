@@ -50,6 +50,7 @@ type User struct {
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
+	SnapshotRevision     string               `json:"-" gorm:"->;not null;default:''"`
 	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
 	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
 	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
@@ -977,6 +978,7 @@ type Client struct {
 }
 
 type ClientRecord struct {
+	SnapshotRevision  string         `json:"-" gorm:"->;not null;default:''"`
 	Id                int            `json:"id" gorm:"primaryKey;autoIncrement"`
 	Email             string         `json:"email" gorm:"uniqueIndex;not null"`
 	SubID             string         `json:"subId" gorm:"index;column:sub_id"`

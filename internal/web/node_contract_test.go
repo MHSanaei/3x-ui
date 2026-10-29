@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -268,8 +269,16 @@ func TestMasterNodeContract(t *testing.T) {
 					}
 				}},
 				{"FetchTrafficSnapshot reads every part of the snapshot", []string{"FetchTrafficSnapshot"}, func() error {
-					_, err := master.FetchTrafficSnapshot(ctx)
-					return err
+					for i := range 3 {
+						snapshot, err := master.FetchTrafficSnapshot(ctx)
+						if err != nil {
+							return err
+						}
+						if i > 0 && snapshot.StructuralRevision == "" {
+							return fmt.Errorf("node did not negotiate compact snapshots")
+						}
+					}
+					return nil
 				}, nil},
 				{"PushGlobalClientTraffics is accepted", []string{"PushGlobalClientTraffics"}, func() error {
 					return master.PushGlobalClientTraffics(ctx, "master-guid", []*xray.ClientTraffic{{Email: "c0", Up: 1, Down: 2}})

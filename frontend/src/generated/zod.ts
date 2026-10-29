@@ -6,6 +6,9 @@ export type BlockerCode = z.infer<typeof BlockerCodeSchema>;
 export const GeoKindSchema = z.string();
 export type GeoKind = z.infer<typeof GeoKindSchema>;
 
+export const MasterClientCertProviderSchema = z.unknown();
+export type MasterClientCertProvider = z.infer<typeof MasterClientCertProviderSchema>;
+
 export const OnlineAPISupportSchema = z.number().int();
 export type OnlineAPISupport = z.infer<typeof OnlineAPISupportSchema>;
 
@@ -930,6 +933,31 @@ export const NodeSchema = z.object({
 });
 export type Node = z.infer<typeof NodeSchema>;
 
+export const NodeClientTrafficSchema = z.object({
+  down: z.number().int(),
+  email: z.string(),
+  enable: z.boolean(),
+  expiryTime: z.number().int(),
+  id: z.number().int(),
+  inboundId: z.number().int(),
+  lastOnline: z.number().int(),
+  reset: z.number().int(),
+  resetCount: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
+  total: z.number().int(),
+  up: z.number().int(),
+});
+export type NodeClientTraffic = z.infer<typeof NodeClientTrafficSchema>;
+
+export const NodeInboundTrafficSchema = z.object({
+  down: z.number().int(),
+  id: z.number().int(),
+  up: z.number().int(),
+});
+export type NodeInboundTraffic = z.infer<typeof NodeInboundTrafficSchema>;
+
 export const NodeMutationRequestSchema = z.object({
   address: z.string(),
   allowPrivateAddress: z.boolean(),
@@ -949,6 +977,31 @@ export const NodeMutationRequestSchema = z.object({
   tlsVerifyMode: z.enum(['verify', 'skip', 'pin', 'mtls']),
 });
 export type NodeMutationRequest = z.infer<typeof NodeMutationRequestSchema>;
+
+export const NodeSnapshotAttachmentSchema = z.object({
+  email: z.string(),
+  inboundId: z.number().int(),
+});
+export type NodeSnapshotAttachment = z.infer<typeof NodeSnapshotAttachmentSchema>;
+
+export const NodeSnapshotStructureSchema = z.object({
+  attachments: z.array(z.lazy(() => NodeSnapshotAttachmentSchema)),
+  inbounds: z.array(z.lazy(() => InboundSchema).nullable()),
+});
+export type NodeSnapshotStructure = z.infer<typeof NodeSnapshotStructureSchema>;
+
+export const NodeTrafficSnapshotV1Schema = z.object({
+  activeInboundTree: z.record(z.string(), z.array(z.string())),
+  clients: z.array(z.lazy(() => NodeClientTrafficSchema)),
+  inboundTraffic: z.array(z.lazy(() => NodeInboundTrafficSchema)),
+  lastOnlineMap: z.record(z.string(), z.number().int()),
+  onlineEmails: z.array(z.string()),
+  onlineTree: z.record(z.string(), z.array(z.string())),
+  revision: z.string(),
+  structure: z.lazy(() => NodeSnapshotStructureSchema).nullable().optional(),
+  version: z.number().int(),
+});
+export type NodeTrafficSnapshotV1 = z.infer<typeof NodeTrafficSnapshotV1Schema>;
 
 export const NodeViewSchema = z.object({
   activeCount: z.number().int(),

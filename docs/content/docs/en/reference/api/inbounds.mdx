@@ -17,6 +17,13 @@ _openapi:
         accepted on write.
       url: '#list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write'
     - depth: 2
+      title: 'Internal node sync v1: complete raw local counters and online state on
+        every poll. Send the last validated revision to omit unchanged
+        structure. Omitted structure requires a matching cached catalog; a
+        present structure with empty arrays is authoritative. Uses admin,
+        node-admin or node-sync authorization.'
+      url: '#internal-node-sync-v1-complete-raw-local-counters-and-online-state-on-every-poll-send-the-last-validated-revision-to-omit-unchanged-structure-omitted-structure-requires-a-matching-cached-catalog-a-present-structure-with-empty-arrays-is-authoritative-uses-admin-node-admin-or-node-sync-authorization'
+    - depth: 2
       title: Same shape as /list but with settings.clients[] stripped down to {email,
         enable, comment} and ClientStats not enriched with UUID/SubId. Use this
         for list pages; fetch /get/:id when you need the full per-client payload
@@ -123,6 +130,12 @@ _openapi:
           legacy callers that send them back as JSON-encoded strings are still
           accepted on write.
         id: list-every-inbound-owned-by-the-authenticated-user-including-each-inbounds-clientstats-traffic-counters-settings-streamsettings-and-sniffing-are-returned-as-nested-json-objects-no-escaped-strings-legacy-callers-that-send-them-back-as-json-encoded-strings-are-still-accepted-on-write
+      - content: 'Internal node sync v1: complete raw local counters and online state on
+          every poll. Send the last validated revision to omit unchanged
+          structure. Omitted structure requires a matching cached catalog; a
+          present structure with empty arrays is authoritative. Uses admin,
+          node-admin or node-sync authorization.'
+        id: internal-node-sync-v1-complete-raw-local-counters-and-online-state-on-every-poll-send-the-last-validated-revision-to-omit-unchanged-structure-omitted-structure-requires-a-matching-cached-catalog-a-present-structure-with-empty-arrays-is-authoritative-uses-admin-node-admin-or-node-sync-authorization
       - content: Same shape as /list but with settings.clients[] stripped down to
           {email, enable, comment} and ClientStats not enriched with UUID/SubId.
           Use this for list pages; fetch /get/:id when you need the full
@@ -214,7 +227,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/amneziawgKernelReadiness","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/trafficSnapshot","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/amneziawgKernelReadiness","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
     </>
   );
 }

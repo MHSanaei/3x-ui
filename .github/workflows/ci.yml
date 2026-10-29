@@ -110,6 +110,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL node snapshot regressions
+        run: |
+          set -o pipefail
+          go test -p=1 ./internal/database ./internal/web/service -run '^(TestSnapshotRevisionsDirectWritesAndRollback|TestNodeSnapshotUnchangedAvoidsSettingsAndDetectsDirectEdits|TestNodeSnapshotMergeSkipsUnchangedStructureAndPreservesDeltas|TestNodeSnapshotReadDoesNotHoldTrafficWriter|TestNodeSnapshotCanceledReadReleasesConnection|TestNodeSnapshotReopenInvalidatesCatalog)$' -count=1 -v | tee /tmp/postgres-node-snapshot.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-node-snapshot.log || true)
+          if [ "$passed" -ne 6 ]; then
+            echo "expected 6 passing node snapshot tests, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL deferred-commit test
         run: |
           set -o pipefail
@@ -253,6 +263,14 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Build legacy node protocol baseline
+        run: |
+          baseline_ref=c621ba9014a6aa21fd7c9ecf45655e44e24ebf13
+          git fetch --no-tags --depth=1 origin "$baseline_ref"
+          baseline_src=$(mktemp -d)
+          git archive "$baseline_ref" Makefile go.mod go.sum main.go internal scripts/install-amneziawg-kernel.sh | tar -x -C "$baseline_src"
+          (cd "$baseline_src" && make dist-stub && go build -o "$RUNNER_TEMP/x-ui-node-baseline" .)
+          echo "XUI_NODE_E2E_OLD_BINARY=$RUNNER_TEMP/x-ui-node-baseline" >> "$GITHUB_ENV"
       - name: Master + node end to end
         run: |
           set -o pipefail
