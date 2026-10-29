@@ -1,0 +1,890 @@
+PostgreSQL 18.6 EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) evidence
+Node fields below are transcribed from the complete JSON plans. Buffers are cumulative per node; do not sum parent and child hits.
+Unabridged JSON can be reproduced by the opt-in harness. No planner switches or new indexes.
+
+=== postgres-1000-empty-current.json ===
+Planning Time: 0.042 ms; Execution Time: 0.053 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.048..0.048 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-1000-empty-legacy.json ===
+Planning Time: 0.028 ms; Execution Time: 0.054 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.049..0.049 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-1000-fresh-current.json ===
+Planning Time: 0.156 ms; Execution Time: 0.316 ms
+Seq Scan client_traffics client_traffics
+  cost=73.35..119.35 estimated_rows=520 width=132 actual_rows=0 loops=1 actual_ms=0.301..0.302 hits=51 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 1000
+  Hash Join    SubPlan 1
+    cost=26.5..72.83 estimated_rows=210 width=8 actual_rows=0 loops=1 actual_ms=0.248..0.248 hits=30 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 700
+    Seq Scan client_traffics c
+      cost=0..33.5 estimated_rows=900 width=43 actual_rows=900 loops=1 actual_ms=0.001..0.054 hits=21 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 100
+    Hash
+      cost=17.75..17.75 estimated_rows=700 width=43 actual_rows=700 loops=1 actual_ms=0.112..0.112 hits=9 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 63
+      Seq Scan client_global_traffics g
+        cost=0..17.75 estimated_rows=700 width=43 actual_rows=700 loops=1 actual_ms=0.001..0.041 hits=9 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-1000-fresh-legacy.json ===
+Planning Time: 0.069 ms; Execution Time: 1.392 ms
+Seq Scan client_traffics client_traffics
+  cost=0..8346 estimated_rows=492 width=132 actual_rows=0 loops=1 actual_ms=1.381..1.381 hits=1921 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 1000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.28..8.3 estimated_rows=1 width=0 actual_rows=0 loops=700 actual_ms=0.002..0.002 hits=1900 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 700
+
+=== postgres-1000-local-only-current.json ===
+Planning Time: 0.027 ms; Execution Time: 0.052 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.048..0.048 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-1000-local-only-legacy.json ===
+Planning Time: 0.035 ms; Execution Time: 0.058 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.051..0.051 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-1000-mixed-current.json ===
+Planning Time: 0.148 ms; Execution Time: 0.337 ms
+Seq Scan client_traffics client_traffics
+  cost=73.35..119.35 estimated_rows=521 width=132 actual_rows=15 loops=1 actual_ms=0.004..0.322 hits=51 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 985
+  Hash Join    SubPlan 1
+    cost=26.5..72.83 estimated_rows=210 width=8 actual_rows=10 loops=1 actual_ms=0.121..0.255 hits=30 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 690
+    Seq Scan client_traffics c
+      cost=0..33.5 estimated_rows=900 width=43 actual_rows=900 loops=1 actual_ms=0.001..0.054 hits=21 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 100
+    Hash
+      cost=17.75..17.75 estimated_rows=700 width=43 actual_rows=700 loops=1 actual_ms=0.117..0.117 hits=9 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 63
+      Seq Scan client_global_traffics g
+        cost=0..17.75 estimated_rows=700 width=43 actual_rows=700 loops=1 actual_ms=0.002..0.042 hits=9 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-1000-mixed-legacy.json ===
+Planning Time: 0.06 ms; Execution Time: 1.402 ms
+Seq Scan client_traffics client_traffics
+  cost=0..8346 estimated_rows=494 width=132 actual_rows=15 loops=1 actual_ms=0.004..1.392 hits=1891 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 985
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.28..8.3 estimated_rows=1 width=0 actual_rows=0.01 loops=690 actual_ms=0.002..0.002 hits=1870 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 690
+
+=== postgres-1000-multi-master-current.json ===
+Planning Time: 0.197 ms; Execution Time: 0.466 ms
+Seq Scan client_traffics client_traffics
+  cost=101.72..147.72 estimated_rows=520 width=132 actual_rows=0 loops=1 actual_ms=0.451..0.452 hits=68 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 1000
+  Hash Join    SubPlan 1
+    cost=44.75..100.67 estimated_rows=420 width=8 actual_rows=0 loops=1 actual_ms=0.397..0.398 hits=47 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (g.email = c.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 1400
+    Seq Scan client_global_traffics g
+      cost=0..52.25 estimated_rows=1400 width=43 actual_rows=1400 loops=1 actual_ms=0.001..0.101 hits=26 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 700
+    Hash
+      cost=33.5..33.5 estimated_rows=900 width=43 actual_rows=900 loops=1 actual_ms=0.158..0.158 hits=21 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 79
+      Seq Scan client_traffics c
+        cost=0..33.5 estimated_rows=900 width=43 actual_rows=900 loops=1 actual_ms=0.001..0.059 hits=21 reads=0 temp_read=0 temp_written=0
+        Filter: (total > 0)
+        Rows Removed by Filter: 100
+
+=== postgres-1000-multi-master-legacy.json ===
+Planning Time: 0.055 ms; Execution Time: 1.464 ms
+Seq Scan client_traffics client_traffics
+  cost=0..8401 estimated_rows=492 width=132 actual_rows=0 loops=1 actual_ms=1.455..1.455 hits=1921 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 1000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.28..8.36 estimated_rows=1 width=0 actual_rows=0 loops=700 actual_ms=0.002..0.002 hits=1900 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 2
+    Index Searches: 700
+
+=== postgres-1000-stale-current.json ===
+Planning Time: 0.039 ms; Execution Time: 0.058 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.052..0.052 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-1000-stale-legacy.json ===
+Planning Time: 0.032 ms; Execution Time: 0.056 ms
+Seq Scan client_traffics client_traffics
+  cost=0..43.5 estimated_rows=240 width=132 actual_rows=0 loops=1 actual_ms=0.05..0.05 hits=21 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 1000
+
+=== postgres-10000-empty-current.json ===
+Planning Time: 0.057 ms; Execution Time: 0.516 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.504..0.505 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-10000-empty-legacy.json ===
+Planning Time: 0.054 ms; Execution Time: 0.505 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.493..0.494 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-10000-fresh-current.json ===
+Planning Time: 0.185 ms; Execution Time: 3.161 ms
+Seq Scan client_traffics client_traffics
+  cost=725.5..1180.5 estimated_rows=5200 width=132 actual_rows=0 loops=1 actual_ms=3.135..3.137 hits=497 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 10000
+  Hash Join    SubPlan 1
+    cost=262..720.25 estimated_rows=2100 width=8 actual_rows=0 loops=1 actual_ms=2.635..2.636 hits=292 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 7000
+    Seq Scan client_traffics c
+      cost=0..330 estimated_rows=9000 width=43 actual_rows=9000 loops=1 actual_ms=0.001..0.561 hits=205 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 1000
+    Hash
+      cost=174.5..174.5 estimated_rows=7000 width=43 actual_rows=7000 loops=1 actual_ms=1.128..1.129 hits=87 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 611
+      Seq Scan client_global_traffics g
+        cost=0..174.5 estimated_rows=7000 width=43 actual_rows=7000 loops=1 actual_ms=0.002..0.417 hits=87 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-10000-fresh-legacy.json ===
+Planning Time: 0.098 ms; Execution Time: 17.243 ms
+Seq Scan client_traffics client_traffics
+  cost=0..83530 estimated_rows=4920 width=132 actual_rows=0 loops=1 actual_ms=17.223..17.224 hits=19205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 10000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.28..8.31 estimated_rows=1 width=0 actual_rows=0 loops=7000 actual_ms=0.002..0.002 hits=19000 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 7000
+
+=== postgres-10000-local-only-current.json ===
+Planning Time: 0.066 ms; Execution Time: 0.54 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.526..0.527 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-10000-local-only-legacy.json ===
+Planning Time: 0.037 ms; Execution Time: 0.485 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.475..0.476 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-10000-mixed-current.json ===
+Planning Time: 0.154 ms; Execution Time: 3.266 ms
+Seq Scan client_traffics client_traffics
+  cost=725.5..1180.5 estimated_rows=5214 width=132 actual_rows=150 loops=1 actual_ms=0.005..3.239 hits=497 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 9850
+  Hash Join    SubPlan 1
+    cost=262..720.25 estimated_rows=2100 width=8 actual_rows=100 loops=1 actual_ms=1.123..2.601 hits=292 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 6900
+    Seq Scan client_traffics c
+      cost=0..330 estimated_rows=9000 width=43 actual_rows=9000 loops=1 actual_ms=0.001..0.599 hits=205 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 1000
+    Hash
+      cost=174.5..174.5 estimated_rows=7000 width=43 actual_rows=7000 loops=1 actual_ms=1.116..1.116 hits=87 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 611
+      Seq Scan client_global_traffics g
+        cost=0..174.5 estimated_rows=7000 width=43 actual_rows=7000 loops=1 actual_ms=0.002..0.409 hits=87 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-10000-mixed-legacy.json ===
+Planning Time: 0.091 ms; Execution Time: 17.951 ms
+Seq Scan client_traffics client_traffics
+  cost=0..83530 estimated_rows=4935 width=132 actual_rows=150 loops=1 actual_ms=0.008..17.924 hits=18905 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 9850
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.28..8.31 estimated_rows=1 width=0 actual_rows=0.01 loops=6900 actual_ms=0.002..0.002 hits=18700 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 6900
+
+=== postgres-10000-multi-master-current.json ===
+Planning Time: 0.245 ms; Execution Time: 4.695 ms
+Seq Scan client_traffics client_traffics
+  cost=1012.25..1467.25 estimated_rows=5200 width=132 actual_rows=0 loops=1 actual_ms=4.669..4.671 hits=670 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 10000
+  Hash Join    SubPlan 1
+    cost=442.5..1001.75 estimated_rows=4200 width=8 actual_rows=0 loops=1 actual_ms=4.104..4.106 hits=465 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (g.email = c.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 14000
+    Seq Scan client_global_traffics g
+      cost=0..522.5 estimated_rows=14000 width=43 actual_rows=14000 loops=1 actual_ms=0.002..1.083 hits=260 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 7000
+    Hash
+      cost=330..330 estimated_rows=9000 width=43 actual_rows=9000 loops=1 actual_ms=1.638..1.639 hits=205 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 832
+      Seq Scan client_traffics c
+        cost=0..330 estimated_rows=9000 width=43 actual_rows=9000 loops=1 actual_ms=0.002..0.702 hits=205 reads=0 temp_read=0 temp_written=0
+        Filter: (total > 0)
+        Rows Removed by Filter: 1000
+
+=== postgres-10000-multi-master-legacy.json ===
+Planning Time: 0.106 ms; Execution Time: 17.712 ms
+Seq Scan client_traffics client_traffics
+  cost=0..84080 estimated_rows=4920 width=132 actual_rows=0 loops=1 actual_ms=17.691..17.692 hits=19205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 10000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.29..8.36 estimated_rows=1 width=0 actual_rows=0 loops=7000 actual_ms=0.002..0.002 hits=19000 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 2
+    Index Searches: 7000
+
+=== postgres-10000-stale-current.json ===
+Planning Time: 0.062 ms; Execution Time: 0.568 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.556..0.556 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-10000-stale-legacy.json ===
+Planning Time: 0.061 ms; Execution Time: 0.536 ms
+Seq Scan client_traffics client_traffics
+  cost=0..430 estimated_rows=2400 width=132 actual_rows=0 loops=1 actual_ms=0.522..0.523 hits=205 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 10000
+
+=== postgres-20000-empty-current.json ===
+Planning Time: 0.034 ms; Execution Time: 0.948 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=0.939..0.94 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-20000-empty-legacy.json ===
+Planning Time: 0.038 ms; Execution Time: 1.579 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=1.569..1.569 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-20000-fresh-current.json ===
+Planning Time: 0.213 ms; Execution Time: 6.912 ms
+Seq Scan client_traffics client_traffics
+  cost=1449..2358 estimated_rows=10400 width=132 actual_rows=0 loops=1 actual_ms=6.879..6.881 hits=991 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 20000
+  Hash Join    SubPlan 1
+    cost=523..1438.5 estimated_rows=4200 width=8 actual_rows=0 loops=1 actual_ms=5.413..5.415 hits=582 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 14000
+    Seq Scan client_traffics c
+      cost=0..659 estimated_rows=18000 width=43 actual_rows=18000 loops=1 actual_ms=0.001..1.281 hits=409 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 2000
+    Hash
+      cost=348..348 estimated_rows=14000 width=43 actual_rows=14000 loops=1 actual_ms=2.265..2.266 hits=173 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 1222
+      Seq Scan client_global_traffics g
+        cost=0..348 estimated_rows=14000 width=43 actual_rows=14000 loops=1 actual_ms=0.003..0.839 hits=173 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-20000-fresh-legacy.json ===
+Planning Time: 0.098 ms; Execution Time: 40.451 ms
+JIT: {"Functions":8,"Options":{"Inlining":false,"Optimization":false,"Expressions":true,"Deforming":true},"Timing":{"Generation":{"Deform":0.148,"Total":0.533},"Inlining":0,"Optimization":0.206,"Emission":2.929,"Total":3.668}}
+Seq Scan client_traffics client_traffics
+  cost=0..167109 estimated_rows=9840 width=132 actual_rows=0 loops=1 actual_ms=39.831..39.832 hits=38409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 20000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.29..8.31 estimated_rows=1 width=0 actual_rows=0 loops=14000 actual_ms=0.002..0.002 hits=38000 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 14000
+
+=== postgres-20000-local-only-current.json ===
+Planning Time: 0.033 ms; Execution Time: 0.963 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=0.956..0.956 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-20000-local-only-legacy.json ===
+Planning Time: 0.042 ms; Execution Time: 0.941 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=0.931..0.932 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-20000-mixed-current.json ===
+Planning Time: 0.367 ms; Execution Time: 8.021 ms
+Seq Scan client_traffics client_traffics
+  cost=1449..2358 estimated_rows=10428 width=132 actual_rows=300 loops=1 actual_ms=0.01..7.976 hits=991 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 19700
+  Hash Join    SubPlan 1
+    cost=523..1438.5 estimated_rows=4200 width=8 actual_rows=200 loops=1 actual_ms=2.789..6.546 hits=582 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (c.email = g.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 13800
+    Seq Scan client_traffics c
+      cost=0..659 estimated_rows=18000 width=43 actual_rows=18000 loops=1 actual_ms=0.001..1.346 hits=409 reads=0 temp_read=0 temp_written=0
+      Filter: (total > 0)
+      Rows Removed by Filter: 2000
+    Hash
+      cost=348..348 estimated_rows=14000 width=43 actual_rows=14000 loops=1 actual_ms=2.773..2.773 hits=173 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 1222
+      Seq Scan client_global_traffics g
+        cost=0..348 estimated_rows=14000 width=43 actual_rows=14000 loops=1 actual_ms=0.003..1.118 hits=173 reads=0 temp_read=0 temp_written=0
+        Filter: (updated_at >= '1793188800000'::bigint)
+        Rows Removed by Filter: 0
+
+=== postgres-20000-mixed-legacy.json ===
+Planning Time: 0.13 ms; Execution Time: 38.485 ms
+JIT: {"Functions":8,"Options":{"Inlining":false,"Optimization":false,"Expressions":true,"Deforming":true},"Timing":{"Generation":{"Deform":0.143,"Total":0.419},"Inlining":0,"Optimization":0.215,"Emission":2.981,"Total":3.615}}
+Seq Scan client_traffics client_traffics
+  cost=0..167109 estimated_rows=9871 width=132 actual_rows=300 loops=1 actual_ms=3.203..37.958 hits=37809 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 19700
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.29..8.31 estimated_rows=1 width=0 actual_rows=0.01 loops=13800 actual_ms=0.002..0.002 hits=37400 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 1
+    Index Searches: 13800
+
+=== postgres-20000-multi-master-current.json ===
+Planning Time: 0.188 ms; Execution Time: 10.188 ms
+Seq Scan client_traffics client_traffics
+  cost=2022.67..2931.67 estimated_rows=10400 width=132 actual_rows=0 loops=1 actual_ms=10.151..10.153 hits=1337 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR (ANY (id = (hashed SubPlan 1).col1))))
+  Rows Removed by Filter: 20000
+  Hash Join    SubPlan 1
+    cost=884..2001.63 estimated_rows=8415 width=8 actual_rows=0 loops=1 actual_ms=9.046..9.048 hits=928 reads=0 temp_read=0 temp_written=0
+    Join Type: Inner
+    Hash Cond: (g.email = c.email)
+    Join Filter: ((g.up + g.down) >= c.total)
+    Rows Removed by Join Filter: 28000
+    Seq Scan client_global_traffics g
+      cost=0..1044 estimated_rows=28050 width=43 actual_rows=28000 loops=1 actual_ms=0.002..2.326 hits=519 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 14000
+    Hash
+      cost=659..659 estimated_rows=18000 width=43 actual_rows=18000 loops=1 actual_ms=3.624..3.625 hits=409 reads=0 temp_read=0 temp_written=0
+      Hash Batches: 1
+      Peak Memory Usage: 1663
+      Seq Scan client_traffics c
+        cost=0..659 estimated_rows=18000 width=43 actual_rows=18000 loops=1 actual_ms=0.001..1.478 hits=409 reads=0 temp_read=0 temp_written=0
+        Filter: (total > 0)
+        Rows Removed by Filter: 2000
+
+=== postgres-20000-multi-master-legacy.json ===
+Planning Time: 0.104 ms; Execution Time: 43.374 ms
+JIT: {"Functions":8,"Options":{"Inlining":false,"Optimization":false,"Expressions":true,"Deforming":true},"Timing":{"Generation":{"Deform":0.148,"Total":0.397},"Inlining":0,"Optimization":0.215,"Emission":3.299,"Total":3.911}}
+Seq Scan client_traffics client_traffics
+  cost=0..168209 estimated_rows=9840 width=132 actual_rows=0 loops=1 actual_ms=42.892..42.893 hits=38409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint)) OR ((total > 0) AND EXISTS(SubPlan 1))))
+  Rows Removed by Filter: 20000
+  Index Scan client_global_traffics g idx_client_global_email SubPlan 1
+    cost=0.29..8.37 estimated_rows=1 width=0 actual_rows=0 loops=14000 actual_ms=0.003..0.003 hits=38000 reads=0 temp_read=0 temp_written=0
+    Filter: ((updated_at >= '1793188800000'::bigint) AND ((up + down) >= client_traffics.total))
+    Index Cond: (email = client_traffics.email)
+    Rows Removed by Filter: 2
+    Index Searches: 14000
+
+=== postgres-20000-stale-current.json ===
+Planning Time: 0.061 ms; Execution Time: 1.221 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=1.208..1.209 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-20000-stale-legacy.json ===
+Planning Time: 0.063 ms; Execution Time: 1.178 ms
+Seq Scan client_traffics client_traffics
+  cost=0..859 estimated_rows=4800 width=132 actual_rows=0 loops=1 actual_ms=1.164..1.164 hits=409 reads=0 temp_read=0 temp_written=0
+  Filter: (enable AND (((total > 0) AND ((up + down) >= total)) OR ((expiry_time > 0) AND (expiry_time <= '1793275200000'::bigint))))
+  Rows Removed by Filter: 20000
+
+=== postgres-probe-1000-empty-count.json ===
+Planning Time: 0.046 ms; Execution Time: 0.011 ms
+Limit
+  cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=0 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.002..0.003 hits=0 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-1000-empty-exists.json ===
+Planning Time: 0.028 ms; Execution Time: 0.007 ms
+Result
+  cost=0..0.01 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.001 hits=0 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-1000-fresh-count.json ===
+Planning Time: 0.044 ms; Execution Time: 0.069 ms
+Limit
+  cost=19.5..19.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.062..0.062 hits=9 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=19.5..19.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.061..0.062 hits=9 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..17.75 estimated_rows=700 width=0 actual_rows=700 loops=1 actual_ms=0.003..0.038 hits=9 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-1000-fresh-exists.json ===
+Planning Time: 0.037 ms; Execution Time: 0.009 ms
+Result
+  cost=0.03..0.04 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.004..0.004 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..17.75 estimated_rows=700 width=0 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-1000-multi-master-count.json ===
+Planning Time: 0.023 ms; Execution Time: 0.144 ms
+Limit
+  cost=55.75..55.76 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.137..0.137 hits=26 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=55.75..55.76 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.137..0.137 hits=26 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..52.25 estimated_rows=1400 width=0 actual_rows=1400 loops=1 actual_ms=0.003..0.092 hits=26 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 700
+
+=== postgres-probe-1000-multi-master-exists.json ===
+Planning Time: 0.033 ms; Execution Time: 0.008 ms
+Result
+  cost=0.04..0.05 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..52.25 estimated_rows=1400 width=0 actual_rows=1 loops=1 actual_ms=0.002..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-1000-stale-count.json ===
+Planning Time: 0.025 ms; Execution Time: 0.031 ms
+Limit
+  cost=17.75..17.76 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.023..0.024 hits=9 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=17.75..17.76 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.023..0.023 hits=9 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..17.75 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.023..0.023 hits=9 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 700
+
+=== postgres-probe-1000-stale-exists.json ===
+Planning Time: 0.035 ms; Execution Time: 0.028 ms
+Result
+  cost=17.75..17.76 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.022..0.023 hits=9 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..17.75 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.022..0.022 hits=9 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 700
+
+=== postgres-probe-10000-empty-count.json ===
+Planning Time: 0.023 ms; Execution Time: 0.009 ms
+Limit
+  cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.002..0.003 hits=0 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.001 hits=0 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-10000-empty-exists.json ===
+Planning Time: 0.048 ms; Execution Time: 0.007 ms
+Result
+  cost=0..0.01 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.001 hits=0 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-10000-fresh-count.json ===
+Planning Time: 0.023 ms; Execution Time: 0.582 ms
+Limit
+  cost=192..192.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.572..0.573 hits=87 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=192..192.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.572..0.572 hits=87 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..174.5 estimated_rows=7000 width=0 actual_rows=7000 loops=1 actual_ms=0.003..0.356 hits=87 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-10000-fresh-exists.json ===
+Planning Time: 0.036 ms; Execution Time: 0.008 ms
+Result
+  cost=0.02..0.03 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..174.5 estimated_rows=7000 width=0 actual_rows=1 loops=1 actual_ms=0.002..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-10000-multi-master-count.json ===
+Planning Time: 0.021 ms; Execution Time: 1.344 ms
+Limit
+  cost=557.5..557.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=1.334..1.335 hits=260 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=557.5..557.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=1.334..1.334 hits=260 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..522.5 estimated_rows=14000 width=0 actual_rows=14000 loops=1 actual_ms=0.003..0.903 hits=260 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 7000
+
+=== postgres-probe-10000-multi-master-exists.json ===
+Planning Time: 0.042 ms; Execution Time: 0.008 ms
+Result
+  cost=0.04..0.05 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..522.5 estimated_rows=14000 width=0 actual_rows=1 loops=1 actual_ms=0.002..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-10000-stale-count.json ===
+Planning Time: 0.022 ms; Execution Time: 0.229 ms
+Limit
+  cost=174.5..174.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.221..0.221 hits=87 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=174.5..174.51 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.22..0.22 hits=87 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..174.5 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.219..0.219 hits=87 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 7000
+
+=== postgres-probe-10000-stale-exists.json ===
+Planning Time: 0.047 ms; Execution Time: 0.205 ms
+Result
+  cost=174.5..174.51 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.198..0.199 hits=87 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..174.5 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.198..0.198 hits=87 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 7000
+
+=== postgres-probe-20000-empty-count.json ===
+Planning Time: 0.027 ms; Execution Time: 0.008 ms
+Limit
+  cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=0..0.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.001 hits=0 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-20000-empty-exists.json ===
+Planning Time: 0.034 ms; Execution Time: 0.008 ms
+Result
+  cost=0..0.01 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.002..0.002 hits=0 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..0 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.001..0.001 hits=0 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-20000-fresh-count.json ===
+Planning Time: 0.025 ms; Execution Time: 1.221 ms
+Limit
+  cost=383..383.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=1.211..1.212 hits=173 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=383..383.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=1.21..1.21 hits=173 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..348 estimated_rows=14000 width=0 actual_rows=14000 loops=1 actual_ms=0.003..0.781 hits=173 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 0
+
+=== postgres-probe-20000-fresh-exists.json ===
+Planning Time: 0.066 ms; Execution Time: 0.011 ms
+Result
+  cost=0.02..0.03 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.004..0.004 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..348 estimated_rows=14000 width=0 actual_rows=1 loops=1 actual_ms=0.003..0.004 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-20000-multi-master-count.json ===
+Planning Time: 0.028 ms; Execution Time: 2.819 ms
+Limit
+  cost=1114.14..1114.15 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=2.809..2.809 hits=519 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=1114.14..1114.15 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=2.808..2.808 hits=519 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..1044 estimated_rows=28055 width=0 actual_rows=28000 loops=1 actual_ms=0.004..1.958 hits=519 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 14000
+
+=== postgres-probe-20000-multi-master-exists.json ===
+Planning Time: 0.037 ms; Execution Time: 0.009 ms
+Result
+  cost=0.04..0.05 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.004..0.004 hits=2 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..1044 estimated_rows=28055 width=0 actual_rows=1 loops=1 actual_ms=0.003..0.003 hits=2 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 0
+
+=== postgres-probe-20000-stale-count.json ===
+Planning Time: 0.027 ms; Execution Time: 0.402 ms
+Limit
+  cost=348..348.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.393..0.394 hits=173 reads=0 temp_read=0 temp_written=0
+  Aggregate
+    cost=348..348.01 estimated_rows=1 width=8 actual_rows=1 loops=1 actual_ms=0.393..0.393 hits=173 reads=0 temp_read=0 temp_written=0
+    Strategy: Plain
+    Seq Scan client_global_traffics client_global_traffics
+      cost=0..348 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.392..0.392 hits=173 reads=0 temp_read=0 temp_written=0
+      Filter: (updated_at >= '1793188800000'::bigint)
+      Rows Removed by Filter: 14000
+
+=== postgres-probe-20000-stale-exists.json ===
+Planning Time: 0.045 ms; Execution Time: 0.378 ms
+Result
+  cost=348..348.01 estimated_rows=1 width=1 actual_rows=1 loops=1 actual_ms=0.372..0.372 hits=173 reads=0 temp_read=0 temp_written=0
+  Seq Scan client_global_traffics client_global_traffics  InitPlan 1
+    cost=0..348 estimated_rows=1 width=0 actual_rows=0 loops=1 actual_ms=0.371..0.371 hits=173 reads=0 temp_read=0 temp_written=0
+    Filter: (updated_at >= '1793188800000'::bigint)
+    Rows Removed by Filter: 14000
+
+SQLite EXPLAIN QUERY PLAN (matched legacy/current, all sizes and scenarios)
+
+=== sqlite-1000-empty-current.json ===
+SCAN client_traffics
+
+=== sqlite-1000-empty-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-1000-fresh-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-1000-fresh-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-1000-local-only-current.json ===
+SCAN client_traffics
+
+=== sqlite-1000-local-only-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-1000-mixed-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-1000-mixed-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-1000-multi-master-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN c
+SEARCH g USING INDEX idx_client_global_email (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-1000-multi-master-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-1000-stale-current.json ===
+SCAN client_traffics
+
+=== sqlite-1000-stale-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-10000-empty-current.json ===
+SCAN client_traffics
+
+=== sqlite-10000-empty-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-10000-fresh-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-10000-fresh-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-10000-local-only-current.json ===
+SCAN client_traffics
+
+=== sqlite-10000-local-only-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-10000-mixed-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-10000-mixed-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-10000-multi-master-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN c
+SEARCH g USING INDEX idx_client_global_email (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-10000-multi-master-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-10000-stale-current.json ===
+SCAN client_traffics
+
+=== sqlite-10000-stale-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-20000-empty-current.json ===
+SCAN client_traffics
+
+=== sqlite-20000-empty-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-20000-fresh-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-20000-fresh-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-20000-local-only-current.json ===
+SCAN client_traffics
+
+=== sqlite-20000-local-only-legacy.json ===
+SCAN client_traffics
+
+=== sqlite-20000-mixed-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN g
+SEARCH c USING INDEX sqlite_autoindex_client_traffics_1 (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-20000-mixed-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-20000-multi-master-current.json ===
+SCAN client_traffics
+LIST SUBQUERY 1
+SCAN c
+SEARCH g USING INDEX idx_client_global_email (email=?)
+CREATE BLOOM FILTER
+
+=== sqlite-20000-multi-master-legacy.json ===
+SCAN client_traffics
+CORRELATED SCALAR SUBQUERY 1
+SEARCH g USING INDEX idx_client_global_email (email=?)
+
+=== sqlite-20000-stale-current.json ===
+SCAN client_traffics
+
+=== sqlite-20000-stale-legacy.json ===
+SCAN client_traffics

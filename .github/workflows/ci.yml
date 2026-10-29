@@ -110,6 +110,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL depletion query regressions
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestDepletionQuery(Semantics|FreshnessAndReset|ConcurrentCommit|Renewals)$' -count=1 -v | tee /tmp/postgres-depletion-query.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-depletion-query.log || true)
+          if [ "$passed" -ne 4 ]; then
+            echo "expected 4 passing PostgreSQL depletion tests, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL deferred-commit test
         run: |
           set -o pipefail

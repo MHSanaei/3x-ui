@@ -43,6 +43,7 @@ func globalTrafficFreshSince(now time.Time) int64 {
 // pushed into client_global_traffics — that's what lets a node cut a client
 // whose combined usage exceeds the quota even though the local share doesn't.
 // Only rows a master refreshed recently count (placeholders: now, freshSince).
+// Keep indexed per-email lookups for narrowly scoped callers (bulk adjustments).
 const depletedClientsCond = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?)
 	OR (total > 0 AND EXISTS (
@@ -52,32 +53,42 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 			AND g.up + g.down >= client_traffics.total
 	)))`
 
+// depletedClientsScanCond serves the recurring scan of all enabled clients.
+// Build the global candidate IDs once rather than doing an indexed lookup for
+// each enabled traffic row inside OR EXISTS. IN also deduplicates masters without
+// summing their usage or multiplying the rows disabled by the caller.
+const depletedClientsScanCond = `((total > 0 AND up + down >= total)
+	OR (expiry_time > 0 AND expiry_time <= ?)
+	OR id IN (
+		SELECT c.id FROM client_traffics c
+		JOIN client_global_traffics g ON g.email = c.email
+		WHERE c.total > 0 AND g.updated_at >= ? AND g.up + g.down >= c.total
+	))`
+
 // depletedClientsCondLocal is depletedClientsCond without the cross-panel
-// client_global_traffics check. The EXISTS branch is a correlated subquery that
-// turns every traffic poll into a full client_traffics scan; on a panel no
-// master pushes to (the common case) client_global_traffics is empty, so the
-// branch can never match and is pure CPU cost (#5392). Placeholders: now.
+// client_global_traffics check. On a panel no master pushes to (the common case),
+// the global branch cannot match, so skip its work (#5392). Placeholders: now.
 const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
 
 // depletedCond includes cross-panel quota usage only while a master's row is fresh.
-// Without fresh global rows, the local-only predicate avoids a correlated EXISTS scan.
+// Without fresh global rows, the local-only predicate skips global lookups.
 func depletedCond(tx *gorm.DB) (string, []any) {
+	return depletedCondWithGlobal(tx, depletedClientsCond)
+}
+
+func depletedCondWithGlobal(tx *gorm.DB, globalCond string) (string, []any) {
 	now := tx.NowFunc()
 	freshSince := globalTrafficFreshSince(now)
-	var probe int64
-	err := tx.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error
-	if err == nil && probe > 0 {
-		return depletedClientsCond, []any{now.UnixMilli(), freshSince}
+	if hasFreshGlobalTraffic(tx, freshSince) {
+		return globalCond, []any{now.UnixMilli(), freshSince}
 	}
 	return depletedClientsCondLocal, []any{now.UnixMilli()}
 }
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
 	now := time.Now().UnixMilli()
-	cond, condArgs := depletedCond(tx)
+	cond, condArgs := depletedCondWithGlobal(tx, depletedClientsScanCond)
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
