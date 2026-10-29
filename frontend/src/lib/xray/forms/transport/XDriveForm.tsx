@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, InputNumber, Select, Typography } from 'antd';
@@ -83,7 +84,7 @@ export default function XDriveForm() {
   return (
     <>
       <FormField label={t('pages.inbounds.form.xdrive.service')} name={[...BASE, 'service']}>
-        <Select options={serviceOptions} />
+        <NativeSelect options={serviceOptions} />
       </FormField>
       <FormField
         label={t('pages.inbounds.form.xdrive.remoteFolder')}

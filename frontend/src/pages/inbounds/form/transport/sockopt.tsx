@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, InputNumber, Segmented, Select, Switch } from 'antd';
@@ -206,13 +207,13 @@ export default function SockoptForm({
             name={['streamSettings', 'sockopt', 'tcpcongestion']}
             label={t('pages.inbounds.form.tcpCongestion')}
           >
-            <Select
+            <NativeSelect
               style={{ width: '50%' }}
               options={Object.values(TCP_CONGESTION_OPTION).map((c) => ({ value: c, label: c }))}
             />
           </FormField>
           <FormField name={['streamSettings', 'sockopt', 'tproxy']} label="TProxy">
-            <Select
+            <NativeSelect
               style={{ width: '50%' }}
               options={[
                 { value: 'off', label: 'Off' },

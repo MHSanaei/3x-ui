@@ -1,8 +1,22 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useEffect, useRef, useState, useId } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import dayjs from 'dayjs';
-import { Alert, Form, Input, InputNumber, Modal, Radio, Select, Switch, Tabs, message } from 'antd';
+import {
+  Alert,
+  ConfigProvider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Radio,
+  Select,
+  Switch,
+  Tabs,
+  message,
+} from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
@@ -91,6 +105,28 @@ const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label:
 const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const SHARE_ADDR_HOSTNAME_RE =
   /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
+
+function inboundPopupContainer(trigger?: HTMLElement): HTMLElement {
+  return (
+    trigger?.closest<HTMLElement>('.ant-modal-body') ?? trigger?.parentElement ?? document.body
+  );
+}
+
+function loopInboundFocus(event: KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Tab') return;
+  const first = event.currentTarget.querySelector<HTMLButtonElement>(
+    '.ant-modal-close:not(:disabled)',
+  );
+  const last = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>(
+      '.ant-modal-footer button:not(:disabled)',
+    ),
+  ).at(-1);
+  if (first && last && event.target === (event.shiftKey ? first : last)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+}
 
 function isValidShareAddrInput(value: string): boolean {
   const v = value.trim();
@@ -642,7 +678,7 @@ export default function InboundFormModal({
       )}
 
       <FormField name="protocol" label={t('pages.inbounds.protocol')}>
-        <Select id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
+        <NativeSelect id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
       </FormField>
 
       <FormField
@@ -660,7 +696,7 @@ export default function InboundFormModal({
             label={t('pages.inbounds.form.shareAddrStrategy')}
             tooltip={t('pages.inbounds.form.shareAddrStrategyHelp')}
           >
-            <Select
+            <NativeSelect
               options={SHARE_ADDR_STRATEGIES.filter(
                 (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
               ).map((strategy) => ({
@@ -745,7 +781,7 @@ export default function InboundFormModal({
       </Form.Item>
 
       <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
-        <Select
+        <NativeSelect
           options={TRAFFIC_RESETS.map((r) => ({
             value: r,
             label: t(`pages.inbounds.periodicTrafficReset.${r}`),
@@ -913,7 +949,7 @@ export default function InboundFormModal({
     <>
       {hasSelectableTransport && (
         <Form.Item htmlFor={`${uid}-network`} label={t('transmission')}>
-          <Select
+          <NativeSelect
             id={`${uid}-network`}
             style={{ width: '75%' }}
             value={network}
@@ -989,8 +1025,11 @@ export default function InboundFormModal({
 
   const securityTab = (
     <>
-      <Form.Item label={t('pages.inbounds.securityTab')}>
+      <Form.Item
+        label={<span id={`${uid}-security-label`}>{t('pages.inbounds.securityTab')}</span>}
+      >
         <Radio.Group
+          aria-labelledby={`${uid}-security-label`}
           value={security}
           buttonStyle="solid"
           disabled={!tlsOk}
@@ -1129,7 +1168,7 @@ export default function InboundFormModal({
   const sniffingTab = <SniffingTab />;
 
   return (
-    <>
+    <ConfigProvider virtual={false} getPopupContainer={inboundPopupContainer}>
       {messageContextHolder}
       {modalContextHolder}
       <Modal
@@ -1143,6 +1182,11 @@ export default function InboundFormModal({
         onOk={submit}
         onCancel={onClose}
         destroyOnHidden
+        modalRender={(content) => (
+          <div role="presentation" onKeyDown={loopInboundFocus}>
+            {content}
+          </div>
+        )}
       >
         <FormProvider {...methods}>
           <Form
@@ -1226,6 +1270,6 @@ export default function InboundFormModal({
           </Form>
         </FormProvider>
       </Modal>
-    </>
+    </ConfigProvider>
   );
 }

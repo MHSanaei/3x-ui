@@ -350,6 +350,15 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
         working-directory: frontend
+      - name: Inbound keyboard and accessibility tree
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/vite preview --outDir storybook-static --host 127.0.0.1 --port 6006 > /tmp/inbound-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 45 -fsS http://127.0.0.1:6006/iframe.html > /dev/null
+          node tools/check-inbound-keyboard.mjs http://127.0.0.1:6006
       - name: Audit
         run: npm run audit
         working-directory: frontend
