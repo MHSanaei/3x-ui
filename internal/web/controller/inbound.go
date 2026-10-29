@@ -76,6 +76,7 @@ func (a *InboundController) inboundServiceFor(c *gin.Context) *service.InboundSe
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.getInbounds)
+	g.GET("/trafficSnapshot", a.getTrafficSnapshot)
 	g.GET("/list/slim", a.getInboundsSlim)
 	g.GET("/options", a.getInboundOptions)
 	g.GET("/allLinks", a.getAllInboundLinks)
@@ -511,4 +512,19 @@ func (a *InboundController) setFallbacks(c *gin.Context) {
 	}
 	a.xrayService.SetToNeedRestart()
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+}
+
+func (a *InboundController) getTrafficSnapshot(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	snapshot, err := a.inboundService.GetNodeTrafficSnapshot(c.Request.Context(), user.Id, c.Query("revision"))
+	if err != nil {
+		jsonObj(c, nil, err)
+		return
+	}
+	snapshot.OnlineTree = a.inboundService.GetOnlineClientsByGuid()
+	if len(snapshot.OnlineTree) == 0 {
+		snapshot.OnlineEmails = a.inboundService.GetOnlineClients()
+	}
+	snapshot.ActiveInboundTree = a.inboundService.GetActiveInboundsByGuid()
+	jsonObj(c, snapshot, nil)
 }

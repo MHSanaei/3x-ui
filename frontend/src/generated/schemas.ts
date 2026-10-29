@@ -3823,6 +3823,105 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "NodeClientTraffic": {
+    "properties": {
+      "down": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "user1",
+        "type": "string"
+      },
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 1735689600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "example": 14825,
+        "type": "integer"
+      },
+      "inboundId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "lastOnline": {
+        "example": 1735680000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "reset": {
+        "type": "integer"
+      },
+      "resetCount": {
+        "type": "integer"
+      },
+      "resetDay": {
+        "type": "integer"
+      },
+      "resetMax": {
+        "type": "integer"
+      },
+      "resetWeekday": {
+        "type": "integer"
+      },
+      "total": {
+        "example": 10737418240,
+        "format": "int64",
+        "type": "integer"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "down",
+      "email",
+      "enable",
+      "expiryTime",
+      "id",
+      "inboundId",
+      "lastOnline",
+      "reset",
+      "resetCount",
+      "resetDay",
+      "resetMax",
+      "resetWeekday",
+      "total",
+      "up"
+    ],
+    "type": "object"
+  },
+  "NodeInboundTraffic": {
+    "properties": {
+      "down": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "up": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "down",
+      "id",
+      "up"
+    ],
+    "type": "object"
+  },
   "NodeMutationRequest": {
     "description": "NodeMutationRequest is the node write/probe contract. ApiToken is accepted\nonly as input. On update, nil means keep the stored token; replacement and\nclearing are explicit and mutually exclusive.",
     "properties": {
@@ -3910,6 +4009,124 @@ export const SCHEMAS: Record<string, unknown> = {
       "remark",
       "scheme",
       "tlsVerifyMode"
+    ],
+    "type": "object"
+  },
+  "NodeSnapshotAttachment": {
+    "properties": {
+      "email": {
+        "example": "user1",
+        "type": "string"
+      },
+      "inboundId": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "email",
+      "inboundId"
+    ],
+    "type": "object"
+  },
+  "NodeSnapshotStructure": {
+    "properties": {
+      "attachments": {
+        "items": {
+          "$ref": "#/components/schemas/NodeSnapshotAttachment"
+        },
+        "type": "array"
+      },
+      "inbounds": {
+        "items": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/Inbound"
+            }
+          ],
+          "nullable": true
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "attachments",
+      "inbounds"
+    ],
+    "type": "object"
+  },
+  "NodeTrafficSnapshotV1": {
+    "description": "NodeTrafficSnapshotV1 carries complete counters every tick; only unchanged structure is omitted.",
+    "properties": {
+      "activeInboundTree": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": "object"
+      },
+      "clients": {
+        "items": {
+          "$ref": "#/components/schemas/NodeClientTraffic"
+        },
+        "type": "array"
+      },
+      "inboundTraffic": {
+        "items": {
+          "$ref": "#/components/schemas/NodeInboundTraffic"
+        },
+        "type": "array"
+      },
+      "lastOnlineMap": {
+        "additionalProperties": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "onlineEmails": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "onlineTree": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": "object"
+      },
+      "revision": {
+        "example": "0000000000000000000000000000000000000000000000000000000000000001",
+        "type": "string"
+      },
+      "structure": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NodeSnapshotStructure"
+          }
+        ],
+        "nullable": true
+      },
+      "version": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "activeInboundTree",
+      "clients",
+      "inboundTraffic",
+      "lastOnlineMap",
+      "onlineEmails",
+      "onlineTree",
+      "revision",
+      "version"
     ],
     "type": "object"
   },

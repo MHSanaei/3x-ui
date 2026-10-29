@@ -965,6 +965,27 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayState": "",
     "xrayVersion": "25.10.31"
   },
+  "NodeClientTraffic": {
+    "down": 2097152,
+    "email": "user1",
+    "enable": true,
+    "expiryTime": 1735689600000,
+    "id": 14825,
+    "inboundId": 1,
+    "lastOnline": 1735680000000,
+    "reset": 0,
+    "resetCount": 0,
+    "resetDay": 0,
+    "resetMax": 0,
+    "resetWeekday": 0,
+    "total": 10737418240,
+    "up": 1048576
+  },
+  "NodeInboundTraffic": {
+    "down": 0,
+    "id": 1,
+    "up": 0
+  },
   "NodeMutationRequest": {
     "address": "",
     "allowPrivateAddress": false,
@@ -984,6 +1005,57 @@ export const EXAMPLES: Record<string, unknown> = {
     "remark": "",
     "scheme": "http",
     "tlsVerifyMode": "verify"
+  },
+  "NodeSnapshotAttachment": {
+    "email": "user1",
+    "inboundId": 1
+  },
+  "NodeSnapshotStructure": {
+    "attachments": [
+      {
+        "email": "user1",
+        "inboundId": 1
+      }
+    ],
+    "inbounds": [
+      null
+    ]
+  },
+  "NodeTrafficSnapshotV1": {
+    "activeInboundTree": {},
+    "clients": [
+      {
+        "down": 2097152,
+        "email": "user1",
+        "enable": true,
+        "expiryTime": 1735689600000,
+        "id": 14825,
+        "inboundId": 1,
+        "lastOnline": 1735680000000,
+        "reset": 0,
+        "resetCount": 0,
+        "resetDay": 0,
+        "resetMax": 0,
+        "resetWeekday": 0,
+        "total": 10737418240,
+        "up": 1048576
+      }
+    ],
+    "inboundTraffic": [
+      {
+        "down": 0,
+        "id": 1,
+        "up": 0
+      }
+    ],
+    "lastOnlineMap": {},
+    "onlineEmails": [
+      ""
+    ],
+    "onlineTree": {},
+    "revision": "0000000000000000000000000000000000000000000000000000000000000001",
+    "structure": null,
+    "version": 1
   },
   "NodeView": {
     "activeCount": 20,

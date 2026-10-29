@@ -34,6 +34,7 @@ import (
 )
 
 type InboundService struct {
+	snapshotMerges  map[int]*nodeMergeCache
 	clientService   ClientService
 	fallbackService FallbackService
 	// FromNodeSync marks a master push: the row was validated where the operator
@@ -190,7 +191,15 @@ func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
 
 // GetInbounds retrieves all inbounds for a specific user with client stats.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
-	db := database.GetDB()
+	inbounds, err := s.getInboundsFromDB(database.GetDB(), userId)
+	if err != nil {
+		return nil, err
+	}
+	s.annotateLocalOriginGuid(inbounds)
+	return inbounds, nil
+}
+
+func (s *InboundService) getInboundsFromDB(db *gorm.DB, userId int) ([]*model.Inbound, error) {
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -198,7 +207,6 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	}
 	s.enrichClientStats(db, inbounds)
 	s.annotateFallbackParents(db, inbounds)
-	s.annotateLocalOriginGuid(inbounds)
 	return inbounds, nil
 }
 
