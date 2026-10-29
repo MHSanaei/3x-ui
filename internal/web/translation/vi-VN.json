@@ -125,7 +125,11 @@
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
     "unpinSidebar": "Bỏ ghim thanh bên",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeUltraDark": "Siêu tối",
+    "themeSystem": "Hệ thống"
   },
   "pages": {
     "login": {

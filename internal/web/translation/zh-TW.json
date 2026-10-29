@@ -125,7 +125,11 @@
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
     "unpinSidebar": "取消固定側邊欄",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "淺色",
+    "themeDark": "深色",
+    "themeUltraDark": "極致深色",
+    "themeSystem": "跟隨系統"
   },
   "pages": {
     "login": {

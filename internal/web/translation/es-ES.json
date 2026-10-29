@@ -125,7 +125,11 @@
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
     "unpinSidebar": "Desfijar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeUltraDark": "Ultra oscuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {

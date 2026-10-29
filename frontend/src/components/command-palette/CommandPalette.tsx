@@ -14,6 +14,7 @@ import {
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  DesktopOutlined,
   DiscordOutlined,
   ExportOutlined,
   FileTextOutlined,
@@ -36,7 +37,7 @@ import { ClipboardManager, HttpUtil, SizeFormatter } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { useAllSettings } from '@/api/queries/useAllSettings';
-import { useTheme } from '@/hooks/useTheme';
+import { themeModeKey, useTheme } from '@/hooks/useTheme';
 import { PANEL_ROUTES } from '@/routes/panelRoutes';
 import type { ClientRecord, InboundOption } from '@/schemas/client';
 import { commandPaletteStore, useCommandPalette } from './useCommandPalette';
@@ -90,7 +91,7 @@ export default function CommandPalette() {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const navigate = useNavigate();
-  const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
+  const { mode, isDark, isUltra, cycleTheme: advanceTheme, antdThemeConfig } = useTheme();
   const { isOpen, close } = useCommandPalette();
   const { allSetting } = useAllSettings();
   const { data: inbounds = [] } = useInboundOptions();
@@ -240,17 +241,9 @@ export default function CommandPalette() {
   }, [close, messageApi, t]);
 
   const cycleTheme = useCallback(() => {
-    if (!isDark) {
-      toggleTheme();
-      if (isUltra) toggleUltra();
-    } else if (!isUltra) {
-      toggleUltra();
-    } else {
-      toggleUltra();
-      toggleTheme();
-    }
+    advanceTheme();
     close();
-  }, [isDark, isUltra, toggleTheme, toggleUltra, close]);
+  }, [advanceTheme, close]);
 
   const trimmedQuery = query.trim();
   const isDebouncing = isOpen && trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
@@ -551,9 +544,16 @@ export default function CommandPalette() {
         id: 'act-cycle-theme',
         category: 'actions',
         title: t('menu.theme'),
-        subtitle: isUltra ? 'Ultra Dark' : isDark ? 'Dark' : 'Light',
-        keywords: ['theme', 'light', 'dark', 'ultra'],
-        icon: isDark ? <SunOutlined aria-hidden /> : <MoonOutlined aria-hidden />,
+        subtitle: t(themeModeKey(mode, isUltra)),
+        keywords: ['theme', 'light', 'dark', 'ultra', 'system', 'auto'],
+        icon:
+          mode === 'system' ? (
+            <DesktopOutlined aria-hidden />
+          ) : isDark ? (
+            <MoonOutlined aria-hidden />
+          ) : (
+            <SunOutlined aria-hidden />
+          ),
         action: cycleTheme,
       },
       {
@@ -589,6 +589,7 @@ export default function CommandPalette() {
     query,
     clientSearch,
     inbounds,
+    mode,
     isDark,
     isUltra,
     allSetting.subURI,

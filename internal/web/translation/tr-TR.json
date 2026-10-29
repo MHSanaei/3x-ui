@@ -125,7 +125,11 @@
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
     "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
-    "subFormats": "Abonelik Formatları"
+    "subFormats": "Abonelik Formatları",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeUltraDark": "Ultra koyu",
+    "themeSystem": "Sistem"
   },
   "pages": {
     "login": {

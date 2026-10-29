@@ -125,7 +125,11 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeUltraDark": "ウルトラダーク",
+    "themeSystem": "システム"
   },
   "pages": {
     "login": {
