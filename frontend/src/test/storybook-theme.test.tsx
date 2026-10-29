@@ -23,6 +23,9 @@ afterEach(() => {
   document.body.className = '';
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.style.colorScheme = '';
+  // The provider seeds itself from storage at mount, so a toggle in one test
+  // would otherwise be inherited by the next.
+  localStorage.clear();
 });
 
 // Without color-scheme the browser paints native scrollbars light inside dark

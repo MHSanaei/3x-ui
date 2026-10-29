@@ -125,7 +125,11 @@
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
     "unpinSidebar": "Odopnúť bočné menu",
-    "subFormats": "Formáty odberu"
+    "subFormats": "Formáty odberu",
+    "themeLight": "Svetlá",
+    "themeDark": "Tmavá",
+    "themeUltraDark": "Ultra tmavá",
+    "themeSystem": "Systém"
   },
   "pages": {
     "login": {

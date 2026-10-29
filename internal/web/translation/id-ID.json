@@ -125,7 +125,11 @@
     "openMenu": "Buka menu",
     "pinSidebar": "Sematkan bilah sisi",
     "unpinSidebar": "Lepas sematan bilah sisi",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "themeUltraDark": "Gelap Ultra",
+    "themeSystem": "Sistem"
   },
   "pages": {
     "login": {

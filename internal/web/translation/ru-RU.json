@@ -125,7 +125,11 @@
     "openMenu": "Открыть меню",
     "pinSidebar": "Закрепить боковую панель",
     "unpinSidebar": "Открепить боковую панель",
-    "subFormats": "Форматы подписки"
+    "subFormats": "Форматы подписки",
+    "themeLight": "Светлая",
+    "themeDark": "Тёмная",
+    "themeUltraDark": "Ультратёмная",
+    "themeSystem": "Системная"
   },
   "pages": {
     "login": {

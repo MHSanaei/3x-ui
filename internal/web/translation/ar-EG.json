@@ -125,7 +125,11 @@
     "openMenu": "فتح القائمة",
     "pinSidebar": "تثبيت الشريط الجانبي",
     "unpinSidebar": "إلغاء تثبيت الشريط الجانبي",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeUltraDark": "داكن فائق",
+    "themeSystem": "النظام"
   },
   "pages": {
     "login": {
