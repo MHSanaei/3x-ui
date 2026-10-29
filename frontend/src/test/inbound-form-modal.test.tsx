@@ -1,11 +1,12 @@
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { screen, act, render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { screen, act, render, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { AntdRootConfig } from '@/i18n/AntdRootConfig';
 import { HttpUtil } from '@/utils';
-import { Protocols } from '@/schemas/primitives';
+
 import {
   renderWithProviders,
   fieldLabels,
@@ -40,20 +41,8 @@ function renderModal() {
   );
 }
 
-// The protocol dropdown is virtualized, so jsdom renders only its first options; step
-// the active option by keyboard from the current protocol in the options' own order.
-function chooseVirtualizedProtocol(optionText: string) {
-  const input = document.getElementById('protocol') as HTMLElement;
-  const select = input.closest('.ant-select') as HTMLElement;
-  const current = (select.textContent ?? '').trim();
-  const order = Object.values(Protocols) as string[];
-  const steps = order.indexOf(optionText) - order.indexOf(current);
-  if (order.indexOf(optionText) < 0 || order.indexOf(current) < 0 || steps < 0) {
-    throw new Error(`cannot step from '${current}' to '${optionText}'`);
-  }
-  fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-  for (let i = 0; i < steps; i++) fireEvent.keyDown(input, { key: 'ArrowDown', keyCode: 40 });
-  fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+function chooseProtocol(optionText: string) {
+  chooseSelectOption('protocol', optionText);
 }
 
 function primaryButton(): HTMLElement {
@@ -114,12 +103,6 @@ function renderCloneLikeEdit(dbInbound: DBInbound) {
 }
 
 describe('InboundFormModal', () => {
-  it('renders add mode without crashing', () => {
-    renderModal();
-    expect(document.querySelector('.ant-modal')).toBeTruthy();
-    expect(fieldLabels().length).toBeGreaterThan(0);
-  });
-
   it('field structure differs per protocol (not a vacuous snapshot loop)', async () => {
     renderModal();
     const protocols = listSelectOptions('protocol');
@@ -142,9 +125,8 @@ describe('InboundFormModal', () => {
     expect(distinctShapes.size).toBeGreaterThan(1);
 
     // Spot-check a protocol-distinguishing field that must appear after the switch.
-    if (labelsByProto.shadowsocks) {
-      expect(labelsByProto.shadowsocks).toContain('Encryption method');
-    }
+    expect(labelsByProto.shadowsocks).toContain('Encryption method');
+    expect(labelsByProto.vless).not.toContain('Encryption method');
   }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
   it('preserves custom share address strategy when editing a local inbound', async () => {
@@ -240,27 +222,31 @@ describe('InboundFormModal', () => {
         await new Promise((r) => setTimeout(r, 0));
       });
     };
-    const strategyItem = (title: string) =>
-      document.querySelector(`.ant-select-content[title="${title}"]`);
+    const selectedStrategy = () =>
+      within(screen.getByRole('combobox', { name: 'Share address strategy' })).getByRole('option', {
+        selected: true,
+      }).textContent;
     const modal = (nodes: never[], fetched: boolean) => (
-      <ThemeProvider>
-        <InboundFormModal
-          open
-          mode="edit"
-          dbInbound={buildInbound()}
-          dbInbounds={[]}
-          availableNodes={nodes}
-          availableNodesFetched={fetched}
-          onClose={() => {}}
-          onSaved={() => {}}
-        />
-      </ThemeProvider>
+      <AntdRootConfig>
+        <ThemeProvider>
+          <InboundFormModal
+            open
+            mode="edit"
+            dbInbound={buildInbound()}
+            dbInbounds={[]}
+            availableNodes={nodes}
+            availableNodesFetched={fetched}
+            onClose={() => {}}
+            onSaved={() => {}}
+          />
+        </ThemeProvider>
+      </AntdRootConfig>
     );
 
     // Baseline: nodes already loaded, so the node option is offered and selected.
     render(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
+    expect(selectedStrategy()).toBe('Node address');
     cleanup();
 
     // Race: the modal mounts before /nodes/list resolves (empty placeholder),
@@ -270,8 +256,7 @@ describe('InboundFormModal', () => {
     await flush();
     rerender(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
-    expect(strategyItem('Inbound listen')).toBeFalsy();
+    expect(selectedStrategy()).toBe('Node address');
   });
 
   it('surfaces a Reality validation error and switches to its tab', async () => {
@@ -343,16 +328,9 @@ describe('InboundFormModal', () => {
     renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Stream' }));
-    const transmission = Array.from(document.querySelectorAll('.ant-form-item')).find(
-      (el) =>
-        el.querySelector('.ant-form-item-label label')?.textContent?.trim() === 'Transmission',
-    );
-    const select = transmission?.querySelector('.ant-select') as HTMLElement;
-    fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-    const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === 'XDRIVE',
-    ) as HTMLElement;
-    fireEvent.click(option);
+    const transport = screen.getByRole('combobox', { name: 'Transmission' });
+    const option = within(transport).getByRole('option', { name: 'XDRIVE' }) as HTMLOptionElement;
+    fireEvent.change(transport, { target: { value: option.value } });
     for (const [label, value] of [
       ['Remote folder', 'xray-tunnel'],
       ['Client ID', 'id.apps.googleusercontent.com'],
@@ -386,7 +364,7 @@ describe('InboundFormModal', () => {
     post.mockClear();
     renderModal();
 
-    chooseVirtualizedProtocol('masque');
+    chooseProtocol('masque');
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });

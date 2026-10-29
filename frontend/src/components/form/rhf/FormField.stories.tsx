@@ -221,6 +221,9 @@ export const ValidationErrors: Story = {
   play: async ({ canvas, userEvent }) => {
     const remarkError = await canvas.findByText('Remark is required');
     await waitFor(() => expect(remarkError).toBeVisible());
+    await expect(canvas.getByRole('textbox', { name: 'Remark' })).toHaveAccessibleDescription(
+      'Remark is required',
+    );
     await waitFor(() => expect(canvas.getByText('Port must be between 1 and 65535')).toBeVisible());
     await userEvent.type(canvas.getByPlaceholderText('vless-reality-443'), 'vless-reality-443');
     await userEvent.click(canvas.getByRole('button', { name: 'Validate' }));
