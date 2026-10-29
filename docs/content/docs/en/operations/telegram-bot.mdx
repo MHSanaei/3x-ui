@@ -53,8 +53,8 @@ panel:
 
 ## Commands
 
-These appear in the Telegram command menu: `/start`, `/help`, `/status`, `/id`.
-Additional commands:
+The Telegram command menu advertises `/start`; the remaining actions are
+available through buttons or the commands below.
 
 | Command            | Who    | Action                                                       |
 | ------------------ | ------ | ------------------------------------------------------------ |
@@ -65,6 +65,11 @@ Additional commands:
 | `/usage <arg>`     | both   | Admins search clients; users look up their own usage         |
 | `/inbound <remark>`| admin  | Show an inbound's details                                    |
 | `/restart`         | admin  | Restart Xray                                                 |
+| `/plans`           | admin  | Manage reusable client plans in a private chat              |
+| `/add ali A`       | admin  | Preview creation of `ali` using plan `A`                     |
+| `/renew ali A`     | admin  | Preview renewal using plan `A`                              |
+| `/renew ali 30gb 30d` | admin | Preview a replacement package with reset usage            |
+| `/renew ali 5gb 7d extend` | admin | Preview additional quota/time, preserving usage       |
 
 A user is a Telegram account linked to at least one client. Any other account
 can run only `/start` and `/id`; the bot ignores its other commands and
@@ -76,8 +81,134 @@ admins are notified when one runs out.
 
 Admins also get inline-button flows for server usage, sorted traffic reports,
 resetting traffic, DB backups, ban logs, listing inbounds/clients, online
-clients, "depleting soon", and a full **add-client** wizard. Regular users get
-buttons for their own usage, subscription links, individual links, and QR codes.
+clients, "depleting soon", and a full **add-client** wizard. The admin's
+**client card** carries the client's subscription link, individual links and QR
+code, so a config can be handed to a client who cannot reach Telegram yet.
+Regular users get buttons for their own usage, subscription links, individual
+links, and QR codes.
+
+![The admin's client card in the Telegram bot, with a Links and a QR code button](/images/tgbot-admin-client-card-after.png)
+
+![The subscription screen the admin opens from the client card](/images/tgbot-admin-subscription-links.png)
+
+## Share and export a client
+
+In a private chat with an authorized administrator, open the client's card and
+tap **Share / Export**. It offers:
+
+- **Complete client summary:** name, enabled status, quota, usage including fresh
+  global traffic, remaining quota, expiry and attached inbounds.
+- **Subscription URL only:** the existing primary subscription URL as copyable
+  text. An additional JSON URL action appears when JSON subscriptions are enabled.
+- **All configurations as TXT:** every link produced by the existing subscription
+  link service, one per line in a UTF-8 document. Unicode filenames are retained
+  while unsafe filename characters are removed. No fixed link-count cap is applied.
+- **Subscription URL + QR:** a single QR for the primary subscription URL with
+  that same URL in the caption. A URL exceeding the caption limit is sent in an
+  associated text message. Text exceeding the message limit is sent as a UTF-8
+  document; a URL beyond QR capacity produces an error rather than a truncated QR.
+
+The existing Links, individual-link and QR screens remain available, including
+the admin navigation restored by [PR #6986](https://github.com/MHSanaei/3x-ui/pull/6986).
+Admin exports recheck the Telegram sender and private-chat identity on every
+callback. They cannot be used from a group or public inline search. A regular
+user's existing self-service ownership checks remain in effect.
+
+## Reusable client plans
+
+Open **Clients → Client plans**, or send `/plans` in the administrator's private
+chat. Open a plan to create a client with it, edit it, or confirm its deletion.
+Use **New plan** to configure its name, traffic quota, duration, inbound selection,
+IP limit, initial enabled status, expiry start and renewal mode. The editor shares
+the existing client wizard's quota, duration, IP and attachment pickers.
+The inbound picker uses bounded pages of labels, without loading client
+configurations or traffic rows. Durations accept 0–36500 days and IP limits
+accept 0–9999; zero means unlimited.
+
+Plan names contain 1–32 letters, digits, hyphens or underscores, without spaces;
+lookup is case insensitive. Up to 100 plans can be stored. A zero quota or duration
+means unlimited. First-use plans retain the panel's negative-duration expiry
+representation; otherwise expiry starts when creation or replacement is confirmed.
+Each plan selects **replace** or **extend** renewal explicitly. Unsupported,
+deleted or incompatible inbound references are rejected again at execution.
+
+Plans contain reusable settings only. UUIDs, passwords, subscription IDs and
+Telegram bindings are generated or assigned through the existing client service,
+and are never stored in a preset. Concurrent edits use revisions so one admin
+cannot silently overwrite another admin's plan.
+
+## Confirmed creation and renewal
+
+Send `/add ali A`, or open plan **A → Create client with this plan** and enter
+`ali`. The bot validates the name and plan and shows a full confirmation preview.
+No client is created until **Confirm** is pressed. The existing multi-inbound
+client service generates fresh protocol credentials and attaches the selected
+inbounds. Cancelled operations do not create a client; a duplicate name is rejected.
+
+Open **Renew client** on a client's card, choose a plan or **Custom**, and review
+the preview. Custom input uses whole GB and days, such as `30gb 30d`:
+
+| Mode | Quota | Usage | Expiry |
+| --- | --- | --- | --- |
+| `/renew ali 30gb 30d` | Replace with 30 GiB | Reset | 30 days from confirmation |
+| `/renew ali 5gb 7d extend` | Add 5 GiB to a finite quota | Preserve | Add 7 days; use confirmation time if the old date has passed |
+| `/renew ali A` | Follow A's explicit renewal mode | Follow that mode | Follow A's duration and expiry policy |
+
+In extend mode an unlimited quota or expiry stays unlimited; adding zero leaves
+that dimension unchanged. A first-use expiry is extended as a negative duration,
+without starting its clock. In replace mode zero means a new unlimited dimension.
+Plan renewal applies quota, duration and mode; it preserves the client's existing
+IP limit, identifiers, subscription ID, Telegram binding, renewal schedules and
+inbound attachments. The plan's inbound selection and initial enabled flag apply
+to creation, not to reattaching or forcibly enabling an existing client.
+
+The preview shows old and proposed limits, global-aware consumption, whether
+consumption resets, expiry, enabled status and affected settings. Confirmation
+revalidates the client and plan. The quota, expiry, traffic reset, inbound settings,
+node reset outbox and receipt commit in one transaction through the traffic writer.
+Network/runtime calls run after commit with bounded contexts. Success is shown
+only after the required runtime calls and node reset acknowledgements succeed.
+On a synchronization error, retry the same confirmation: committed renewal changes
+and usage resets are not applied twice.
+External reset delivery retains the existing acknowledged-outbox semantics;
+the database transaction is not a distributed transaction with Xray or sidecars.
+
+A disabled, non-depleted client remains disabled. A currently exhausted client
+is enabled only after both quota and expiry permit it. The existing data model
+does not record why a client was disabled: deliberately disabling an already
+exhausted client is indistinguishable from automatic depletion. The preview makes
+the resulting status explicit and offers **Keep disabled after renewal** to
+preserve disabled status in that case. This choice also survives a restart.
+
+Confirmations expire after 20 minutes while pending. Receipts survive restarts
+and prevent replay; receipts older than 31 days are pruned in bounded batches as
+new operations are prepared. Stale client or plan versions require a new preview.
+Client creation inherits the existing service's per-inbound apply behavior. If it
+partly succeeds, the bot reports incomplete synchronization and retains the
+operation's identity for retry. An interrupted creation without a safely captured
+baseline requires reviewing the existing client instead of overwriting later edits.
+
+Plans and receipts use namespaced rows in the existing `settings` table. No table,
+column, migration, polling job or mandatory external service is added. Full database
+backups retain them; resetting all panel settings removes them. Portable client
+exports and existing HTTP APIs are unchanged. Global traffic resets follow the
+panel's existing reset and node acknowledgement rules; this does not add a new
+cross-panel quota-period protocol.
+
+Public settings reads select only their known setting keys, so workflow receipts
+are not materialized when opening the panel's settings page.
+
+## Online clients and attached inbounds
+
+The online list uses the union of local and remote-node client emails and displays
+each identity once. It does not infer an active inbound from an attachment: a
+configured, moved or deleted inbound does not prove where a connection is running.
+No per-client inbound lookup is needed to render this list. Actual per-connection
+inbound attribution remains [Issue #4778](https://github.com/MHSanaei/3x-ui/issues/4778).
+Deferred renewal after exhaustion in #6298 is separate from immediate, confirmed
+package renewal described above.
+
+![Recorded admin plan, renewal and export screen content from regression tests using fictional clients; long previews are combined across pages](/images/tgbot-admin-workflows-7010.png)
 
 ## Reports & alerts
 

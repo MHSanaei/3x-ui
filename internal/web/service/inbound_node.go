@@ -1253,13 +1253,29 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 	var perInboundOld []oldSet
 	syncFailedInbounds := map[int]struct{}{}
+	adoptedClientSettings := map[int]string{}
 	for _, p := range pendingAdopts {
-		lifted, liftChanged := liftClientLifecycleInSettings(p.wireSettings, centralCSByEmail)
 		adoptedSettings := p.wireSettings
+		if lifecycleFrozen || len(owedResets) > 0 {
+			protected, err := keepStoredClientsMatching(adoptedSettings, p.central.Settings, func(email string) bool { _, owed := owedResets[email]; return lifecycleFrozen || owed })
+			if err != nil {
+				return false, err
+			}
+			if protected != adoptedSettings {
+				adoptedSettings = protected
+				// Let an acknowledged push settle before accepting node metadata;
+				// requeueing it here would prevent node-side deletion from converging.
+				if !justPushed {
+					lifecycleLifted = true
+				}
+			}
+		}
+		lifted, liftChanged := liftClientLifecycleInSettings(adoptedSettings, centralCSByEmail)
 		if liftChanged {
 			adoptedSettings = lifted
 			lifecycleLifted = true
 		}
+		adoptedClientSettings[p.central.Id] = adoptedSettings
 		if p.central.Settings != adoptedSettings {
 			if err := tx.Model(model.Inbound{}).
 				Where("id = ?", p.central.Id).
@@ -1302,7 +1318,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			perInboundOld = append(perInboundOld, oldSet{inboundID: c.Id, emails: oldEmails})
 		}
 
-		clients, gcErr := s.GetClients(snapIb)
+		clientSnapshot := *snapIb
+		if settings, ok := adoptedClientSettings[c.Id]; ok {
+			clientSnapshot.Settings = settings
+		}
+		clients, gcErr := s.GetClients(&clientSnapshot)
 		if gcErr != nil {
 			logger.Warningf("setRemoteTraffic: parse clients for tag %q failed: %v", snapIb.Tag, gcErr)
 			continue

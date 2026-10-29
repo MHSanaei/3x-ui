@@ -2,7 +2,10 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"reflect"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
@@ -144,13 +147,77 @@ func mergeClientLists(base, ours, current []any) []any {
 // keepStoredClients puts the stored client list back into an inbound save's
 // payload: clients change through the client endpoints, never this form.
 func keepStoredClients(payload, stored string) string {
-	var payloadM, storedM map[string]any
-	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil {
+	kept, err := keepStoredClientsMatching(payload, stored, nil)
+	if err != nil {
 		return payload
 	}
+	return kept
+}
+
+func decodeInboundSettingsObject(raw string) (map[string]any, error) {
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.UseNumber()
+	var value map[string]any
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return nil, errors.New("unexpected trailing inbound settings JSON")
+		}
+		return nil, err
+	}
+	return value, nil
+}
+
+// A nil predicate restores the whole stored list; a predicate preserves matches
+// while still adopting newly reported clients.
+func keepStoredClientsMatching(payload, stored string, keep func(string) bool) (string, error) {
+	if payload == "" && keep != nil {
+		return stored, nil
+	}
+	if stored == "" && keep != nil {
+		return payload, nil
+	}
+	payloadM, err := decodeInboundSettingsObject(payload)
+	if err != nil {
+		return "", err
+	}
+	storedM, err := decodeInboundSettingsObject(stored)
+	if err != nil {
+		return "", err
+	}
+	if payloadM == nil {
+		if keep != nil {
+			return stored, nil
+		}
+		return payload, nil
+	}
 	storedClients, has := storedM["clients"]
+	if keep != nil {
+		storedList, _ := storedClients.([]any)
+		storedByEmail := indexClientsByEmail(storedList)
+		wireList, _ := payloadM["clients"].([]any)
+		merged := make([]any, 0, len(wireList)+len(storedList))
+		seen := map[string]bool{}
+		for _, entry := range wireList {
+			_, email := clientEntryEmail(entry)
+			if saved, ok := storedByEmail[email]; ok && keep(email) {
+				entry = saved
+			}
+			merged = append(merged, entry)
+			seen[email] = true
+		}
+		for _, entry := range storedList {
+			_, email := clientEntryEmail(entry)
+			if email != "" && !seen[email] && keep(email) {
+				merged = append(merged, entry)
+			}
+		}
+		storedClients, has = merged, true
+	}
 	if reflect.DeepEqual(payloadM["clients"], storedClients) {
-		return payload
+		return payload, nil
 	}
 	if has {
 		payloadM["clients"] = storedClients
@@ -159,7 +226,7 @@ func keepStoredClients(payload, stored string) string {
 	}
 	b, err := json.MarshalIndent(payloadM, "", "  ")
 	if err != nil {
-		return payload
+		return "", err
 	}
-	return string(b)
+	return string(b), nil
 }

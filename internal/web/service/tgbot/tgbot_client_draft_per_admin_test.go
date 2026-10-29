@@ -12,6 +12,7 @@ import (
 // Regression test: keying the add-client wizard by chat alone left the two
 // admins of a group chat filling in one client between them.
 func TestAddClientDraftIsPerAdminInGroupChat(t *testing.T) {
+	localizeWithRealBundle(t)
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	const (

@@ -622,22 +622,26 @@ func sheetBytesForTest(t *testing.T, file *telego.InputFile) []byte {
 // ord is rune to int, for the emoji range checks in the menu tests.
 func ord(ch rune) int { return int(ch) }
 
-// localizeWithRealBundle points the bot localizer at the shipped en-US file, so
+// localizeWithRealBundle loads a shipped locale, defaulting to en-US, so
 // a test sees the text a user would, not the bare key.
-func localizeWithRealBundle(t *testing.T) {
+func localizeWithRealBundle(t *testing.T, languages ...string) {
 	t.Helper()
-	path := filepath.Join(repoRootForTest(t), "internal/web/translation/en-US.json")
+	lang := "en-US"
+	if len(languages) > 0 {
+		lang = languages[0]
+	}
+	path := filepath.Join(repoRootForTest(t), "internal/web/translation/"+lang+".json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
 	}
-	bundle := i18n.NewBundle(language.MustParse("en-US"))
+	bundle := i18n.NewBundle(language.MustParse(lang))
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 	if _, err := bundle.ParseMessageFileBytes(data, path); err != nil {
 		t.Fatalf("parse %s: %v", path, err)
 	}
 	orig := locale.LocalizerBot
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
+	locale.LocalizerBot = i18n.NewLocalizer(bundle, lang)
 	t.Cleanup(func() { locale.LocalizerBot = orig })
 }
 

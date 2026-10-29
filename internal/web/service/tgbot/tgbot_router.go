@@ -156,6 +156,9 @@ func (t *Tgbot) OnReceive() {
 			userStateMgr.maybePrune(time.Hour)
 			actor := messageActor(message)
 			if userState, exists := userStateMgr.get(actor); exists {
+				if t.handleAdminWorkflowInput(&message, actor, userState) {
+					return nil
+				}
 				if userState == broadcastAwaitingText {
 					t.handleBroadcastInput(&message, actor)
 					return nil
@@ -164,6 +167,9 @@ func (t *Tgbot) OnReceive() {
 				draft := addClientDrafts.forActor(actor)
 				draft.Lock()
 				defer draft.Unlock()
+				if draft.plan != nil && !privateAdmin(message.Chat, actor.userID) {
+					return nil
+				}
 				switch userState {
 				case "awaiting_email":
 					if draft.email == strings.TrimSpace(message.Text) {
@@ -241,6 +247,9 @@ func (t *Tgbot) OnReceive() {
 
 // answerCommand processes incoming command messages from Telegram users.
 func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin bool) {
+	if t.handleAdminWorkflowCommand(message) {
+		return
+	}
 	// onlyMessage is deliberately unused: every command path either renders a
 	// screen or sends a notice, both of which carry their own keyboard.
 	msg := ""
@@ -361,6 +370,15 @@ func isCommandForBot(text string, username string) bool {
 
 // answerCallback processes callback queries from inline keyboards.
 func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
+	if t.handleClientExport(callbackQuery) {
+		return
+	}
+	if t.handleAdminWorkflowCallback(callbackQuery) {
+		return
+	}
+	if callbackQuery == nil || callbackQuery.Message == nil {
+		return
+	}
 	chatId := callbackQuery.Message.GetChat().ID
 	actor := callbackActor(callbackQuery)
 
@@ -371,6 +389,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		draft = addClientDrafts.forActor(actor)
 		draft.Lock()
 		defer draft.Unlock()
+		if draft.plan != nil && !privateAdmin(callbackQuery.Message.GetChat(), callbackQuery.From.ID) {
+			return
+		}
 	}
 
 	if isAdmin {
@@ -905,6 +926,21 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				draft.receiverInboundID = inboundIdInt
 				draft.receiverInboundIDs = []int{inboundIdInt}
 				t.addClient(callbackQuery.Message.GetChat().ID, draft, t.BuildClientDraftMessage(draft))
+			case "add_client_attach_page":
+				page, err := strconv.Atoi(dataArray[1])
+				if err != nil || page < 0 {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.workflowError"))
+					return
+				}
+				previousPage := draft.attachPage
+				draft.attachPage = page
+				picker, err := t.getInboundsAttachPicker(draft)
+				if err != nil {
+					draft.attachPage = previousPage
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.renderDraftPicker(chatId, draft, picker.InlineKeyboard)
 			case "add_client_toggle_attach":
 				inboundIdStr := dataArray[1]
 				inboundIdInt, err := strconv.Atoi(inboundIdStr)
@@ -1157,6 +1193,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 		t.addClient(chatId, draft, t.BuildClientDraftMessage(draft), callbackQuery.Message.GetMessageID())
 	case "add_client_submit_disable", "add_client_submit_enable":
+		if draft.plan != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
 		// Both submits land here and differ only in the enable flag; the data is
 		// short enough never to be hashed, so its raw form is the discriminator.
 		draft.enable = callbackQuery.Data == "add_client_submit_enable"

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net"
@@ -479,8 +480,12 @@ func (m *Manager) HasRunning() bool {
 }
 
 func (m *Manager) ResetQuota(email string) {
+	_ = m.ResetQuotaContext(context.Background(), email)
+}
+
+func (m *Manager) ResetQuotaContext(ctx context.Context, email string, inboundIDs ...int) error {
 	if email == "" {
-		return
+		return nil
 	}
 	type target struct {
 		port  int
@@ -488,30 +493,39 @@ func (m *Manager) ResetQuota(email string) {
 	}
 	m.mu.Lock()
 	targets := make([]target, 0, len(m.procs))
-	for _, cur := range m.procs {
+	for id, cur := range m.procs {
+		if len(inboundIDs) > 0 && !slices.Contains(inboundIDs, id) {
+			continue
+		}
 		if cur.proc != nil && cur.proc.IsRunning() {
 			targets = append(targets, target{cur.apiPort, cur.apiToken})
 		}
 	}
 	m.mu.Unlock()
+	var errs []error
 	for _, t := range targets {
-		resetQuota(t.port, t.token, email)
+		errs = append(errs, resetQuotaContext(ctx, t.port, t.token, email))
 	}
+	return errors.Join(errs...)
 }
 
-func resetQuota(port int, token, email string) {
+func resetQuotaContext(ctx context.Context, port int, token, email string) error {
 	client := http.Client{Timeout: 3 * time.Second}
 	endpoint := fmt.Sprintf("http://127.0.0.1:%d/secrets/%s/reset-quota", port, url.PathEscape(email))
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
 	if err != nil {
-		return
+		return err
 	}
 	authorize(req, token)
 	resp, err := client.Do(req)
 	if err != nil {
-		return
+		return err
 	}
 	_ = resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("MTProto quota reset returned HTTP %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // FreeLocalPort asks the OS for an unused loopback TCP port. It is used both

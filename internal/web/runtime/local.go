@@ -307,11 +307,20 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 	if !client.Enable {
 		return nil
 	}
+	user, err := localClientUser(ib, client)
+	if err != nil {
+		return err
+	}
+	return l.AddUser(ctx, ib, user)
+}
+
+func localClientUser(ib *model.Inbound, client model.Client) (map[string]any, error) {
 	user := map[string]any{
 		"email":        client.Email,
 		"id":           client.ID,
 		"security":     client.Security,
 		"flow":         client.Flow,
+		"reverse":      client.Reverse,
 		"auth":         client.Auth,
 		"password":     client.Password,
 		"publicKey":    client.PublicKey,
@@ -319,7 +328,16 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 		"preSharedKey": client.PreSharedKey,
 		"keepAlive":    wgKeepAlive(client.KeepAliveSeconds()),
 	}
-	return l.AddUser(ctx, ib, user)
+	if ib.Protocol == model.Shadowsocks {
+		var settings struct {
+			Method string `json:"method"`
+		}
+		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+			return nil, err
+		}
+		user["cipher"] = settings.Method
+	}
+	return user, nil
 }
 
 func (l *Local) DeleteUser(ctx context.Context, ib *model.Inbound, email string) error {
@@ -340,6 +358,14 @@ func (l *Local) DeleteClient(context.Context, string) error {
 }
 
 func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
+	var user map[string]any
+	if payload.Enable {
+		var err error
+		user, err = localClientUser(ib, payload)
+		if err != nil {
+			return err
+		}
+	}
 	if oldEmail != "" {
 		if err := l.RemoveUser(ctx, ib, oldEmail); err != nil && !strings.Contains(err.Error(), "not found") {
 			return err
@@ -347,18 +373,6 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 	}
 	if !payload.Enable {
 		return nil
-	}
-	user := map[string]any{
-		"email":        payload.Email,
-		"id":           payload.ID,
-		"security":     payload.Security,
-		"flow":         payload.Flow,
-		"auth":         payload.Auth,
-		"password":     payload.Password,
-		"publicKey":    payload.PublicKey,
-		"allowedIPs":   payload.AllowedIPs,
-		"preSharedKey": payload.PreSharedKey,
-		"keepAlive":    wgKeepAlive(payload.KeepAliveSeconds()),
 	}
 	return l.AddUser(ctx, ib, user)
 }

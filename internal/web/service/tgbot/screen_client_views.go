@@ -245,7 +245,7 @@ func (t *Tgbot) renderPickerOnClient(chatID int64, email string, picker [][]tele
 	}
 	rows := append([][]telego.InlineKeyboardButton{}, picker...)
 	rows = append(rows, t.backRow())
-	body := t.clientScreenBody(email, t.clientInfoMsg(traffic, true, true, true, true, true, false))
+	body := t.clientScreenBody(email, "") + t.clientInfoMsg(traffic, true, true, true, true, true, false) + "\n\n"
 	t.renderScreen(chatID, t.newScreen("client", body, rows...))
 }
 

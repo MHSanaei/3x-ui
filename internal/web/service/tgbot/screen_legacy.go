@@ -119,7 +119,18 @@ func (t *Tgbot) searchClientScreen(chatID int64, email string) {
 		return
 	}
 	body := t.clientInfoMsg(traffic, true, true, true, true, true, true)
-	t.renderScreen(chatID, t.newScreen("client", body, t.clientRows(email)...))
+	t.renderScreen(chatID, t.newScreen("client", body, t.clientCardRows(chatID, email)...))
+}
+
+func (t *Tgbot) clientCardRows(chatID int64, email string) [][]telego.InlineKeyboardButton {
+	rows := t.clientRows(email)
+	if !checkAdmin(chatID) {
+		return rows
+	}
+	return append([][]telego.InlineKeyboardButton{
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.shareExport", t.encodeQuery("client_export_menu "+email))),
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.renewClient", t.encodeQuery("admin_renew "+email))),
+	}, rows...)
 }
 
 // clientRows is the client card's keyboard, in one place so every entry point
@@ -139,6 +150,12 @@ func (t *Tgbot) clientRows(email string) [][]telego.InlineKeyboardButton {
 		tu.InlineKeyboardRow(
 			t.btn("tgbot.buttons.setTGUser", t.encodeQuery("tg_user "+email)),
 			t.btn("tgbot.buttons.inviteLink", t.encodeQuery("client_invite_link "+email)),
+		),
+		// An invite link needs the client to reach Telegram; a subscription URL
+		// and a QR code do not, so they are the admin's way to hand one over.
+		tu.InlineKeyboardRow(
+			t.btn("tgbot.buttons.links", t.encodeQuery("client_sub_links "+email)),
+			t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email)),
 		),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.toggle", t.encodeQuery("toggle_enable "+email))),
 		t.backRow(),
