@@ -1074,6 +1074,34 @@ export const RealityScanResultSchema = z.object({
 });
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
+export const RealityWatchEntrySchema = z.object({
+  auto: z.boolean(),
+  spares: z.array(z.string()),
+});
+export type RealityWatchEntry = z.infer<typeof RealityWatchEntrySchema>;
+
+export const RealityWatchEventSchema = z.object({
+  at: z.number().int(),
+  from: z.string(),
+  reason: z.string(),
+  to: z.string(),
+});
+export type RealityWatchEvent = z.infer<typeof RealityWatchEventSchema>;
+
+export const RealityWatchStatusSchema = z.object({
+  auto: z.boolean(),
+  checkedAt: z.number().int(),
+  events: z.array(z.lazy(() => RealityWatchEventSchema)),
+  fails: z.number().int(),
+  inboundId: z.number().int(),
+  latencyMs: z.number().int(),
+  ok: z.boolean(),
+  reason: z.string(),
+  spares: z.array(z.string()),
+  target: z.string(),
+});
+export type RealityWatchStatus = z.infer<typeof RealityWatchStatusSchema>;
+
 export const ServerSettingsSchema = z.object({
   contentPaddingAddition: z.string().optional(),
   disableCookies: z.boolean(),

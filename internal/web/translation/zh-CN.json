@@ -785,7 +785,37 @@
         "peerNumberConfig": "Peer {n} 配置"
       },
       "sniffingDestOverride": "目标覆盖",
-      "advancedTitle": "高级设置"
+      "advancedTitle": "高级设置",
+      "realityWatch": {
+        "title": "保持 REALITY 可用",
+        "savedWithInbound": "它们会随入站一起保存。",
+        "hint": "本服务器每 10 分钟检查一次目标。连续 {limit} 次检查失败后，入站会切换到第一个通过同样检查并经临时 Xray 完成真实 REALITY 连接的备用目标。只改变目标和 SNI；客户端会在下次更新订阅时获得新的 SNI。",
+        "onNode": "此入站运行在节点上，本服务器不会检查它；仍可手动切换。",
+        "status": "状态",
+        "notChecked": "尚未检查",
+        "failing": "失败（{fails}/{limit}）",
+        "working": "正常",
+        "auto": "自动替换",
+        "spares": "备用目标",
+        "noSpares": "还没有备用目标：用“查找备用”添加",
+        "realTest": "真实测试",
+        "testOk": "可用",
+        "testFailed": "不可用",
+        "test": "测试",
+        "testAll": "全部测试",
+        "switchNow": "立即切换到此",
+        "findSpares": "查找备用",
+        "save": "保存备用",
+        "history": "历史",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} 失效，且没有可用的备用目标",
+        "toasts": {
+          "saved": "备用目标已保存",
+          "failed": "无法保存备用目标",
+          "switchFailed": "无法切换：目标未通过检查或真实 REALITY 测试",
+          "switched": "已切换到 {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "基本",

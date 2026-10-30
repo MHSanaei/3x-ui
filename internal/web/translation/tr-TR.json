@@ -785,7 +785,37 @@
         "peerNumberConfig": "Peer {n} Yapılandırması"
       },
       "sniffingDestOverride": "Hedef geçersiz kılma",
-      "advancedTitle": "Gelişmiş Ayarlar"
+      "advancedTitle": "Gelişmiş Ayarlar",
+      "realityWatch": {
+        "title": "REALITY'yi çalışır tut",
+        "savedWithInbound": "Bunlar inbound ile birlikte kaydedilir.",
+        "hint": "Bu sunucu hedefi her 10 dakikada bir denetler. Art arda {limit} başarısız denetimden sonra inbound, aynı denetimi ve geçici bir Xray üzerinden gerçek bir REALITY bağlantısını geçen ilk yedeğe geçer. Yalnızca hedef ve SNI değişir; istemciler yeni SNI'yı bir sonraki abonelik güncellemesinde alır.",
+        "onNode": "Bu inbound bir düğümde çalışıyor, bu yüzden bu sunucu onu denetlemez; elle değiştirmek yine mümkün.",
+        "status": "Durum",
+        "notChecked": "henüz denetlenmedi",
+        "failing": "başarısız ({fails}/{limit})",
+        "working": "çalışıyor",
+        "auto": "Otomatik değiştir",
+        "spares": "Yedek hedefler",
+        "noSpares": "Henüz yedek yok: Yedek bul ile ekleyin",
+        "realTest": "Gerçek test",
+        "testOk": "çalışıyor",
+        "testFailed": "çalışmıyor",
+        "test": "Test et",
+        "testAll": "Hepsini test et",
+        "switchNow": "Şimdi buna geç",
+        "findSpares": "Yedek bul",
+        "save": "Yedekleri kaydet",
+        "history": "Geçmiş",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} çalışmadı ve hiçbir yedek çalışmadı",
+        "toasts": {
+          "saved": "Yedekler kaydedildi",
+          "failed": "Yedekler kaydedilemedi",
+          "switchFailed": "Geçilemedi: hedef denetimi veya gerçek REALITY testini geçemedi",
+          "switched": "{target} hedefine geçildi"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Temel",

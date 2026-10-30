@@ -4495,6 +4495,122 @@
         ],
         "type": "object"
       },
+      "RealityWatchEntry": {
+        "description": "RealityWatchEntry is what the admin sets per inbound: spare targets (host:port) in order\nof preference, and whether a dead target is replaced without asking.",
+        "properties": {
+          "auto": {
+            "example": true,
+            "type": "boolean"
+          },
+          "spares": {
+            "example": [
+              "www.example.com:443"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "auto",
+          "spares"
+        ],
+        "type": "object"
+      },
+      "RealityWatchEvent": {
+        "description": "RealityWatchEvent is one switch (To set) or a failed attempt to find a working spare.",
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "from": {
+            "example": "old.example.com:443",
+            "type": "string"
+          },
+          "reason": {
+            "example": "TLS handshake failed: EOF",
+            "type": "string"
+          },
+          "to": {
+            "example": "www.example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "from",
+          "reason",
+          "to"
+        ],
+        "type": "object"
+      },
+      "RealityWatchStatus": {
+        "properties": {
+          "auto": {
+            "example": true,
+            "type": "boolean"
+          },
+          "checkedAt": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/RealityWatchEvent"
+            },
+            "type": "array"
+          },
+          "fails": {
+            "example": 0,
+            "type": "integer"
+          },
+          "inboundId": {
+            "example": 3,
+            "type": "integer"
+          },
+          "latencyMs": {
+            "example": 180,
+            "type": "integer"
+          },
+          "ok": {
+            "example": true,
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "spares": {
+            "example": [
+              "www.example.com:443"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "target": {
+            "example": "old.example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auto",
+          "checkedAt",
+          "events",
+          "fails",
+          "inboundId",
+          "latencyMs",
+          "ok",
+          "reason",
+          "spares",
+          "target"
+        ],
+        "type": "object"
+      },
       "ServerSettings": {
         "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
         "properties": {
@@ -5041,6 +5157,10 @@
     {
       "name": "Hosts",
       "description": "Per-inbound override endpoints. Each enabled host renders one extra subscription link/proxy with its own address/port/TLS, superseding the legacy externalProxy array. All endpoints under /panel/api/hosts."
+    },
+    {
+      "name": "REALITY watch",
+      "description": "Spare targets per REALITY inbound. Every 10 minutes the panel checks each watched target from this server; after 3 failed checks in a row, an inbound with auto switch on moves to the first spare that passes the same check and a real REALITY connection through a throwaway Xray server and client. Inbounds on nodes, and targets on this machine or the LAN (a bare port, a unix socket, a private address), are not checked."
     },
     {
       "name": "Backup",
@@ -13182,6 +13302,355 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/realityWatch/list": {
+      "get": {
+        "tags": [
+          "REALITY watch"
+        ],
+        "summary": "Status of every watched inbound: current target, spares, last check and the switch history.",
+        "operationId": "get_panel_api_realityWatch_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RealityWatchStatus"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "auto": true,
+                      "checkedAt": 1793000000,
+                      "events": [
+                        {
+                          "at": 1793000000,
+                          "from": "old.example.com:443",
+                          "reason": "TLS handshake failed: EOF",
+                          "to": "www.example.com:443"
+                        }
+                      ],
+                      "fails": 0,
+                      "inboundId": 3,
+                      "latencyMs": 180,
+                      "ok": true,
+                      "reason": "",
+                      "spares": [
+                        "www.example.com:443"
+                      ],
+                      "target": "old.example.com:443"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/realityWatch/status/{id}": {
+      "get": {
+        "tags": [
+          "REALITY watch"
+        ],
+        "summary": "Status of one REALITY inbound.",
+        "operationId": "get_panel_api_realityWatch_status_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/RealityWatchStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "auto": true,
+                    "checkedAt": 1793000000,
+                    "events": [
+                      {
+                        "at": 1793000000,
+                        "from": "old.example.com:443",
+                        "reason": "TLS handshake failed: EOF",
+                        "to": "www.example.com:443"
+                      }
+                    ],
+                    "fails": 0,
+                    "inboundId": 3,
+                    "latencyMs": 180,
+                    "ok": true,
+                    "reason": "",
+                    "spares": [
+                      "www.example.com:443"
+                    ],
+                    "target": "old.example.com:443"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/realityWatch/save/{id}": {
+      "post": {
+        "tags": [
+          "REALITY watch"
+        ],
+        "summary": "Set the spare targets (host[:port], in order of preference, at most 10; the current target is dropped) and whether a dead target is replaced automatically.",
+        "operationId": "post_panel_api_realityWatch_save_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "auto": true,
+                "spares": [
+                  "www.example.com:443"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/RealityWatchStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "auto": true,
+                    "checkedAt": 1793000000,
+                    "events": [
+                      {
+                        "at": 1793000000,
+                        "from": "old.example.com:443",
+                        "reason": "TLS handshake failed: EOF",
+                        "to": "www.example.com:443"
+                      }
+                    ],
+                    "fails": 0,
+                    "inboundId": 3,
+                    "latencyMs": 180,
+                    "ok": true,
+                    "reason": "",
+                    "spares": [
+                      "www.example.com:443"
+                    ],
+                    "target": "old.example.com:443"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/realityWatch/switch/{id}": {
+      "post": {
+        "tags": [
+          "REALITY watch"
+        ],
+        "summary": "Move the inbound to this target now. Refused unless the target passes the server check and a real REALITY connection; only target and serverNames change.",
+        "operationId": "post_panel_api_realityWatch_switch_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "target": "www.example.com:443"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/RealityWatchEvent"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "at": 1793000000,
+                    "from": "old.example.com:443",
+                    "reason": "TLS handshake failed: EOF",
+                    "to": "www.example.com:443"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/realityWatch/test": {
+      "post": {
+        "tags": [
+          "REALITY watch"
+        ],
+        "summary": "Check a target from this server and through a real REALITY connection; feasible is false with a reason when either fails.",
+        "operationId": "post_panel_api_realityWatch_test",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "target": "www.example.com:443"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/RealityScanResult"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "alpn": "h2",
+                    "certChainBytes": 3427,
+                    "certChainValid": true,
+                    "certIssuer": "Google Trust Services",
+                    "certSubject": "cloudflare.com",
+                    "certValid": true,
+                    "curveID": "X25519",
+                    "feasible": true,
+                    "h2": true,
+                    "host": "www.cloudflare.com",
+                    "ip": "104.16.124.96",
+                    "latencyMs": 180,
+                    "notAfter": "2026-08-01T00:00:00Z",
+                    "port": 443,
+                    "privateTarget": false,
+                    "reason": "",
+                    "serverNames": [
+                      ""
+                    ],
+                    "target": "www.cloudflare.com:443",
+                    "tls13": true,
+                    "tlsVersion": "1.3",
+                    "x25519": true
                   }
                 }
               }

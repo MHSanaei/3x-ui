@@ -785,7 +785,37 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfigurácia peeru {n}"
       },
-      "sniffingDestOverride": "Prepísať cieľ"
+      "sniffingDestOverride": "Prepísať cieľ",
+      "realityWatch": {
+        "title": "Udržať REALITY v chode",
+        "savedWithInbound": "Uložia sa spolu s inboundom.",
+        "hint": "Tento server každých 10 minút kontroluje cieľ. Po {limit} neúspešných kontrolách za sebou sa inbound presunie na prvý záložný cieľ, ktorý prejde rovnakou kontrolou a skutočným spojením REALITY cez dočasný Xray. Mení sa len cieľ a SNI; klienti dostanú nové SNI pri ďalšej aktualizácii odberu.",
+        "onNode": "Tento inbound beží na uzle, preto ho tento server nekontroluje; ručne ho prepnúť stále môžete.",
+        "status": "Stav",
+        "notChecked": "zatiaľ nekontrolované",
+        "failing": "zlyháva ({fails} z {limit})",
+        "working": "funguje",
+        "auto": "Nahradiť automaticky",
+        "spares": "Záložné ciele",
+        "noSpares": "Zatiaľ žiadne záložné: pridajte cez Nájsť záložné",
+        "realTest": "Skutočný test",
+        "testOk": "funguje",
+        "testFailed": "zlyhal",
+        "test": "Test",
+        "testAll": "Otestovať všetky",
+        "switchNow": "Prepnúť naň teraz",
+        "findSpares": "Nájsť záložné",
+        "save": "Uložiť záložné",
+        "history": "História",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} zlyhal a žiadny záložný nefungoval",
+        "toasts": {
+          "saved": "Záložné uložené",
+          "failed": "Záložné sa nepodarilo uložiť",
+          "switchFailed": "Prepnutie zlyhalo: cieľ neprešiel kontrolou alebo skutočným testom REALITY",
+          "switched": "Prepnuté na {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Základné údaje",

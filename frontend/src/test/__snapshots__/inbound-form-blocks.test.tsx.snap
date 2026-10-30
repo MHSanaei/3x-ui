@@ -17,6 +17,8 @@ exports[`inbound security forms > RealityForm field structure is stable 1`] = `
   "mldsa65 Seed",
   "mldsa65 Verify",
   "Master Key Log",
+  "Replace automatically",
+  "Spare targets",
 ]
 `;
 

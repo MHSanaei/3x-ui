@@ -785,7 +785,37 @@
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
       "sniffingDestOverride": "Ghi đè đích",
-      "advancedTitle": "Cài đặt nâng cao"
+      "advancedTitle": "Cài đặt nâng cao",
+      "realityWatch": {
+        "title": "Giữ REALITY hoạt động",
+        "savedWithInbound": "Chúng được lưu cùng với inbound.",
+        "hint": "Cứ 10 phút máy chủ này kiểm tra mục tiêu. Sau {limit} lần kiểm tra thất bại liên tiếp, inbound chuyển sang mục tiêu dự phòng đầu tiên vượt qua cùng phép kiểm tra và một kết nối REALITY thật qua một Xray tạm thời. Chỉ mục tiêu và SNI thay đổi; client nhận SNI mới ở lần cập nhật gói đăng ký kế tiếp.",
+        "onNode": "Inbound này chạy trên một node nên máy chủ này không kiểm tra; bạn vẫn có thể chuyển thủ công.",
+        "status": "Trạng thái",
+        "notChecked": "chưa kiểm tra",
+        "failing": "lỗi ({fails}/{limit})",
+        "working": "hoạt động",
+        "auto": "Tự động thay thế",
+        "spares": "Mục tiêu dự phòng",
+        "noSpares": "Chưa có dự phòng: thêm bằng Tìm dự phòng",
+        "realTest": "Kiểm tra thật",
+        "testOk": "hoạt động",
+        "testFailed": "lỗi",
+        "test": "Kiểm tra",
+        "testAll": "Kiểm tra tất cả",
+        "switchNow": "Chuyển sang ngay",
+        "findSpares": "Tìm dự phòng",
+        "save": "Lưu dự phòng",
+        "history": "Lịch sử",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} lỗi và không dự phòng nào hoạt động",
+        "toasts": {
+          "saved": "Đã lưu dự phòng",
+          "failed": "Không lưu được dự phòng",
+          "switchFailed": "Không chuyển được: mục tiêu không qua phép kiểm tra hoặc kiểm tra REALITY thật",
+          "switched": "Đã chuyển sang {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Cơ bản",

@@ -785,7 +785,37 @@
         "peerNumberConfig": "Konfig Peer {n}"
       },
       "sniffingDestOverride": "Penggantian tujuan",
-      "advancedTitle": "Pengaturan Lanjutan"
+      "advancedTitle": "Pengaturan Lanjutan",
+      "realityWatch": {
+        "title": "Jaga REALITY tetap jalan",
+        "savedWithInbound": "Semua ini disimpan bersama inbound.",
+        "hint": "Setiap 10 menit server ini memeriksa target. Setelah {limit} pemeriksaan gagal berturut-turut, inbound pindah ke cadangan pertama yang lolos pemeriksaan yang sama dan koneksi REALITY sungguhan melalui Xray sementara. Hanya target dan SNI yang berubah; klien mendapat SNI baru pada pembaruan langganan berikutnya.",
+        "onNode": "Inbound ini berjalan di node, jadi server ini tidak memeriksanya; Anda tetap bisa mengganti secara manual.",
+        "status": "Status",
+        "notChecked": "belum diperiksa",
+        "failing": "gagal ({fails} dari {limit})",
+        "working": "berjalan",
+        "auto": "Ganti otomatis",
+        "spares": "Target cadangan",
+        "noSpares": "Belum ada cadangan: tambahkan dengan Cari cadangan",
+        "realTest": "Tes nyata",
+        "testOk": "berhasil",
+        "testFailed": "gagal",
+        "test": "Tes",
+        "testAll": "Tes semua",
+        "switchNow": "Ganti ke ini sekarang",
+        "findSpares": "Cari cadangan",
+        "save": "Simpan cadangan",
+        "history": "Riwayat",
+        "eventSwitched": "{from} → {to}",
+        "eventNoSpare": "{from} gagal dan tidak ada cadangan yang berhasil",
+        "toasts": {
+          "saved": "Cadangan disimpan",
+          "failed": "Tidak bisa menyimpan cadangan",
+          "switchFailed": "Tidak bisa mengganti: target gagal pemeriksaan atau tes REALITY nyata",
+          "switched": "Diganti ke {target}"
+        }
+      }
     },
     "clients": {
       "tabBasics": "Dasar",
