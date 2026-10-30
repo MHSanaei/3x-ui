@@ -41,11 +41,11 @@ func xrayRealityRealTest(ctx context.Context, target, sni string) error {
 	privKey := base64.RawURLEncoding.EncodeToString(priv.Bytes())
 	pubKey := base64.RawURLEncoding.EncodeToString(priv.PublicKey().Bytes())
 	id := uuid.NewString()
-	serverPort, err := realityTestPort()
+	serverPort, err := realityTestPort(ctx)
 	if err != nil {
 		return err
 	}
-	socksPort, err := realityTestPort()
+	socksPort, err := realityTestPort(ctx)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func xrayRealityRealTest(ctx context.Context, target, sni string) error {
 		defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
 	}
 	socks := "127.0.0.1:" + strconv.Itoa(socksPort)
-	for !portOpen(socks) {
+	for !portOpen(ctx, socks) {
 		select {
 		case <-ctx.Done():
 			return errors.New("throwaway xray did not start")
@@ -116,8 +116,8 @@ func xrayRealityRealTest(ctx context.Context, target, sni string) error {
 	return nil
 }
 
-func realityTestPort() (int, error) {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
+func realityTestPort(ctx context.Context) (int, error) {
+	l, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
 	}
@@ -125,8 +125,8 @@ func realityTestPort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-func portOpen(addr string) bool {
-	c, err := net.DialTimeout("tcp", addr, 200*time.Millisecond)
+func portOpen(ctx context.Context, addr string) bool {
+	c, err := (&net.Dialer{Timeout: 200 * time.Millisecond}).DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return false
 	}
