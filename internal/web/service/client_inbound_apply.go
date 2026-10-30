@@ -222,7 +222,7 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 				return e
 			}
 			if len(t.email) > 0 {
-				if e := inboundSvc.DelClientStat(tx, t.email); e != nil {
+				if e := inboundSvc.DelClientStat(tx, t.email, trafficWindowDelete); e != nil {
 					logger.Error("Delete stats Data Error")
 					return e
 				}
@@ -1021,7 +1021,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 						return sErr
 					}
 					if !stillUsed {
-						if e := inboundSvc.DelClientStat(tx, oldEmail); e != nil {
+						if e := inboundSvc.DelClientStat(tx, oldEmail, trafficWindowRename); e != nil {
 							return e
 						}
 						if e := inboundSvc.DelClientIPs(tx, oldEmail); e != nil {
@@ -1043,7 +1043,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				return sErr
 			}
 			if !stillUsed {
-				if e := inboundSvc.DelClientStat(tx, oldEmail); e != nil {
+				if e := inboundSvc.DelClientStat(tx, oldEmail, trafficWindowDelete); e != nil {
 					return e
 				}
 				if e := inboundSvc.DelClientIPs(tx, oldEmail); e != nil {
@@ -1065,8 +1065,23 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				return e
 			}
 			if renameTaken == 0 {
-				if e := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email).Error; e != nil {
+				res := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email)
+				if e := res.Error; e != nil {
 					return e
+				}
+				// RowsAffected is the duplicate fan-out guard: only the apply that
+				// actually renamed the record migrates the client's history.
+				if res.RowsAffected > 0 {
+					if e := migrateClientHistoryEmailTx(tx, oldEmail, clients[0].Email); e != nil {
+						return e
+					}
+					if e := logClientChangesTx(tx, []model.ClientChangeLog{{
+						Email: clients[0].Email, Field: "name",
+						OldValue: oldEmail, NewValue: clients[0].Email,
+						Source: clientChangeSourcePanel,
+					}}); e != nil {
+						return e
+					}
 				}
 			}
 		}
@@ -1252,7 +1267,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 			}
 		}
 		if delStat {
-			if e := inboundSvc.DelClientStat(tx, email); e != nil {
+			if e := inboundSvc.DelClientStat(tx, email, trafficWindowDelete); e != nil {
 				logger.Error("Delete stats Data Error")
 				return e
 			}
@@ -1421,6 +1436,7 @@ func (s *ClientService) ToggleClientEnableByEmail(inboundSvc *InboundService, cl
 	if err != nil {
 		return false, needRestart, err
 	}
+	logClientChange(clientEmail, "enable", fmt.Sprintf("%t", current), fmt.Sprintf("%t", target), clientChangeSourceTgbot)
 	return target, needRestart, nil
 }
 
@@ -1438,6 +1454,7 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 	if err != nil {
 		return false, needRestart, err
 	}
+	logClientChange(clientEmail, "enable", fmt.Sprintf("%t", current), fmt.Sprintf("%t", enable), clientChangeSourceTgbot)
 	return true, needRestart, nil
 }
 
@@ -1526,12 +1543,18 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 }
 
 func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
+		logClientChange(clientEmail, "limitIp", fmt.Sprintf("%d", rec.LimitIP), fmt.Sprintf("%d", count), clientChangeSourceTgbot)
+	}
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["limitIp"] = count
 	})
 }
 
 func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
+		logClientChange(clientEmail, "expiry", fmt.Sprintf("%d", rec.ExpiryTime), fmt.Sprintf("%d", expiry_time), clientChangeSourceTgbot)
+	}
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["expiryTime"] = expiry_time
 	})
@@ -1540,6 +1563,9 @@ func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService,
 func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundService, clientEmail string, totalGB int) (bool, error) {
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
+	}
+	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
+		logClientChange(clientEmail, "dataLimit", fmt.Sprintf("%d", rec.TotalGB), fmt.Sprintf("%d", int64(totalGB)*1024*1024*1024), clientChangeSourceTgbot)
 	}
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["totalGB"] = totalGB * 1024 * 1024 * 1024

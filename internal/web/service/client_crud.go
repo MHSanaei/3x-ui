@@ -852,10 +852,24 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	// UpdateInboundClient renames the record atomically with each inbound's
 	// settings JSON; this direct write only covers records with no inbound left.
 	if updated.Email != existing.Email {
-		if err := database.GetDB().Model(&model.ClientRecord{}).
+		res := database.GetDB().Model(&model.ClientRecord{}).
 			Where("id = ? AND email = ?", id, existing.Email).
-			Update("email", updated.Email).Error; err != nil {
-			return needRestart, err
+			Update("email", updated.Email)
+		if res.Error != nil {
+			return needRestart, res.Error
+		}
+		// RowsAffected is the "no inbound left" guard: with inbounds attached
+		// the fanout already renamed the record and migrated its history.
+		if res.RowsAffected > 0 {
+			if err := migrateClientHistoryEmailTx(database.GetDB(), existing.Email, updated.Email); err != nil {
+				return needRestart, err
+			}
+			if err := logClientChangesTx(database.GetDB(), []model.ClientChangeLog{{
+				Email: updated.Email, Field: "name",
+				OldValue: existing.Email, NewValue: updated.Email, Source: clientChangeSourcePanel,
+			}}); err != nil {
+				return needRestart, err
+			}
 		}
 	}
 
@@ -955,6 +969,20 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		Where("id = ?", id).
 		UpdateColumn("updated_at", time.Now().UnixMilli()).Error; err != nil {
 		return needRestart, err
+	}
+
+	// Record this save's client-info changes (the rename event is logged at
+	// the rename site above); a no-op save logs nothing.
+	newRec := updated.ToRecord()
+	newRec.LimitHwid = limitHwid
+	changes := diffClientChanges(existing, newRec)
+	for i := range changes {
+		changes[i].Source = clientChangeSourcePanel
+	}
+	if len(changes) > 0 {
+		if err := logClientChangesTx(database.GetDB(), changes); err != nil {
+			return needRestart, err
+		}
 	}
 	return needRestart, nil
 }

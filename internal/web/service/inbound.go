@@ -2516,7 +2516,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if stillUsed {
 			continue
 		}
-		if err := s.DelClientStat(tx, email); err != nil {
+		if err := s.DelClientStat(tx, email, trafficWindowDelete); err != nil {
 			return err
 		}
 		// Keep inbound_client_ips in sync when the inbound edit drops an

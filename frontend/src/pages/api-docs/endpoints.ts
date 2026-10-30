@@ -1657,6 +1657,22 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/usageHistory/:email',
+        summary:
+          "Usage and change history for one client, behind the edit modal's history button. lifetimeUp/lifetimeDown are all counters ever zeroed or dropped (a closed window row is archived on every reset, auto-renewal, rename and deletion) plus the client's live counters; currentUp/currentDown are the still-open window. windows lists the archived cycles (reason: reset | renew | deleted | renamed, newest first, capped at 2000 rows while the totals still count every row), nodes is the per-node upload/download accumulated since the last reset, changes is the metadata change log (one row per changed field — name, expiry, dataLimit, enable, renewal plan, limits — plus the rename and deletion events; newest first, capped at 500 rows). A renamed client keeps its history under the new email; a deleted one keeps its archived rows. Requires an admin token or a panel login session.",
+        params: [
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique across the panel).',
+          },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "email": "user1@example.com",\n    "lifetimeUp": 107374182400,\n    "lifetimeDown": 214748364800,\n    "currentUp": 1073741824,\n    "currentDown": 0,\n    "windows": [\n      { "id": 1, "email": "user1@example.com", "at": 1735689600000, "up": 107374182400, "down": 214748364800, "reason": "reset" }\n    ],\n    "nodes": [\n      { "nodeId": 1, "nodeName": "de-fra-1", "up": 5368709120, "down": 10737418240 }\n    ],\n    "changes": [\n      { "id": 1, "email": "user1@example.com", "at": 1735776000000, "field": "dataLimit", "oldValue": "10737418240", "newValue": "21474836480", "source": "panel" }\n    ]\n  }\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/subLinks/:subId',
         summary:
           'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',

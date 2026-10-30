@@ -87,6 +87,8 @@ func allModels() []any {
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
 		&model.TuicTrafficReceipt{},
+		&model.ClientTrafficWindow{},
+		&model.ClientChangeLog{},
 	}
 }
 
