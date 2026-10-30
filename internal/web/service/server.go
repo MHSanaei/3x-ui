@@ -873,34 +873,10 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 		return s.emaCPU, nil
 	}
 
-	// Compute busy and total deltas
-	// Note: Guest and GuestNice times are already included in User and Nice respectively,
-	// so we exclude them to avoid double-counting (Linux kernel accounting)
-	idleDelta := cur.Idle - s.lastCPUTimes.Idle
-	busyDelta := (cur.User - s.lastCPUTimes.User) +
-		(cur.System - s.lastCPUTimes.System) +
-		(cur.Nice - s.lastCPUTimes.Nice) +
-		(cur.Iowait - s.lastCPUTimes.Iowait) +
-		(cur.Irq - s.lastCPUTimes.Irq) +
-		(cur.Softirq - s.lastCPUTimes.Softirq) +
-		(cur.Steal - s.lastCPUTimes.Steal)
-
-	totalDelta := busyDelta + idleDelta
-
-	// Update last sample for next time
+	raw, ok := sys.CPUBusyPercent(s.lastCPUTimes, cur)
 	s.lastCPUTimes = cur
-
-	// Guard against division by zero or negative deltas (e.g., counter resets)
-	if totalDelta <= 0 {
+	if !ok {
 		return s.emaCPU, nil
-	}
-
-	raw := 100.0 * (busyDelta / totalDelta)
-	if raw < 0 {
-		raw = 0
-	}
-	if raw > 100 {
-		raw = 100
 	}
 
 	// Exponential moving average to smooth spikes
