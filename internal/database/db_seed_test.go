@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -374,5 +375,39 @@ func TestClientGroupNamesTrimmedOnUpgrade(t *testing.T) {
 	}
 	if len(groups) != 1 || groups[0] != "vip" {
 		t.Fatalf("groups after upgrade = %q, want [vip]", groups)
+	}
+}
+
+// Requests naming a subId no client owns stored HWID rows that nothing ever reads; the
+// upgrade drops them and keeps the rows of real subscriptions.
+func TestOwnerlessClientHwidsPurgedOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	if err := db.Create(&model.ClientRecord{Email: "a@x", SubID: "owned", Enable: true}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	for i, sub := range []string{"owned", "junk-1", "junk-2"} {
+		if err := db.Create(&model.ClientHwid{SubID: sub, HwidHash: fmt.Sprintf("h%d", i), FirstSeen: 1, LastSeen: 1}).Error; err != nil {
+			t.Fatalf("seed hwid %s: %v", sub, err)
+		}
+	}
+	if err := db.Where("seeder_name = ?", "OwnerlessClientHwidPurge").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	var subs []string
+	if err := db.Model(&model.ClientHwid{}).Pluck("sub_id", &subs).Error; err != nil {
+		t.Fatalf("read hwids: %v", err)
+	}
+	if len(subs) != 1 || subs[0] != "owned" {
+		t.Fatalf("hwid rows after upgrade = %q, want [owned]", subs)
 	}
 }
