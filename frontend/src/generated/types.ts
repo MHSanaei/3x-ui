@@ -450,11 +450,28 @@ export interface Client {
   updated_at?: number;
 }
 
+export interface ClientChangeLog {
+  at: number;
+  email: string;
+  field: string;
+  id: number;
+  newValue: string;
+  oldValue: string;
+  source: string;
+}
+
 export interface ClientInbound {
   clientId: number;
   createdAt: number;
   flowOverride: string;
   inboundId: number;
+}
+
+export interface ClientNodeUsage {
+  down: number;
+  nodeId: number;
+  nodeName: string;
+  up: number;
 }
 
 export interface ClientPageResponse {
@@ -567,6 +584,26 @@ export interface ClientTraffic {
   total: number;
   up: number;
   uuid: string;
+}
+
+export interface ClientTrafficWindow {
+  at: number;
+  down: number;
+  email: string;
+  id: number;
+  reason: string;
+  up: number;
+}
+
+export interface ClientUsageHistory {
+  changes: ClientChangeLog[];
+  currentDown: number;
+  currentUp: number;
+  email: string;
+  lifetimeDown: number;
+  lifetimeUp: number;
+  nodes: ClientNodeUsage[];
+  windows: ClientTrafficWindow[];
 }
 
 export interface ClientsSummary {

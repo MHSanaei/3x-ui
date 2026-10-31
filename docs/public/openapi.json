@@ -1910,6 +1910,52 @@
         ],
         "type": "object"
       },
+      "ClientChangeLog": {
+        "description": "ClientChangeLog records one metadata change to a client: one row per\nchanged field, newest read first in the client's usage history.",
+        "properties": {
+          "at": {
+            "example": 1735689600000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "example": "user1@example.com",
+            "type": "string"
+          },
+          "field": {
+            "example": "totalGB",
+            "type": "string"
+          },
+          "id": {
+            "example": 14825,
+            "format": "int64",
+            "type": "integer"
+          },
+          "newValue": {
+            "example": "20",
+            "type": "string"
+          },
+          "oldValue": {
+            "example": "10",
+            "type": "string"
+          },
+          "source": {
+            "description": "panel | tgbot | api | auto-renew",
+            "example": "panel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "email",
+          "field",
+          "id",
+          "newValue",
+          "oldValue",
+          "source"
+        ],
+        "type": "object"
+      },
       "ClientInbound": {
         "properties": {
           "clientId": {
@@ -1931,6 +1977,36 @@
           "createdAt",
           "flowOverride",
           "inboundId"
+        ],
+        "type": "object"
+      },
+      "ClientNodeUsage": {
+        "description": "ClientNodeUsage is one node's accumulated counters for a client since its\nlast reset, with the node's display name resolved for the panel.",
+        "properties": {
+          "down": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "nodeId": {
+            "example": 7,
+            "type": "integer"
+          },
+          "nodeName": {
+            "example": "de-fra-1",
+            "type": "string"
+          },
+          "up": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "down",
+          "nodeId",
+          "nodeName",
+          "up"
         ],
         "type": "object"
       },
@@ -2450,6 +2526,106 @@
           "total",
           "up",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ClientTrafficWindow": {
+        "description": "ClientTrafficWindow is one closed traffic window of a client: usage zeroed\nat a reset, auto-renewal, or deletion; lifetime = SUM(rows) + live counters.",
+        "properties": {
+          "at": {
+            "example": 1735689600000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "down": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "example": "user1@example.com",
+            "type": "string"
+          },
+          "id": {
+            "example": 14825,
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "example": "reset",
+            "type": "string"
+          },
+          "up": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "down",
+          "email",
+          "id",
+          "reason",
+          "up"
+        ],
+        "type": "object"
+      },
+      "ClientUsageHistory": {
+        "description": "ClientUsageHistory is the usage + change story behind the edit modal's\nhistory button: lifetime totals, closed windows, per-node counters, the log.",
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ClientChangeLog"
+            },
+            "type": "array"
+          },
+          "currentDown": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "currentUp": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "example": "user1@example.com",
+            "type": "string"
+          },
+          "lifetimeDown": {
+            "example": 21474836480,
+            "format": "int64",
+            "type": "integer"
+          },
+          "lifetimeUp": {
+            "example": 10737418240,
+            "format": "int64",
+            "type": "integer"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/ClientNodeUsage"
+            },
+            "type": "array"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/ClientTrafficWindow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "changes",
+          "currentDown",
+          "currentUp",
+          "email",
+          "lifetimeDown",
+          "lifetimeUp",
+          "nodes",
+          "windows"
         ],
         "type": "object"
       },
@@ -11077,6 +11253,88 @@
                     "total": 10737418240,
                     "up": 1048576,
                     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/usageHistory/{email}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Usage and change history for one client, behind the edit modal's history button. lifetimeUp/lifetimeDown are all counters ever zeroed or dropped (a closed window row is archived on every reset, auto-renewal, rename and deletion) plus the client's live counters; currentUp/currentDown are the still-open window. windows lists the archived cycles (reason: reset | renew | deleted | renamed, newest first, capped at 2000 rows while the totals still count every row), nodes is the per-node upload/download accumulated since the last reset, changes is the metadata change log (one row per changed field — name, expiry, dataLimit, enable, renewal plan, limits — plus the rename and deletion events; newest first, capped at 500 rows). A renamed client keeps its history under the new email; a deleted one keeps its archived rows. Requires an admin token or a panel login session.",
+        "operationId": "get_panel_api_clients_usageHistory_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique across the panel).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientUsageHistory"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "changes": [
+                      {
+                        "at": 1735689600000,
+                        "email": "user1@example.com",
+                        "field": "totalGB",
+                        "id": 14825,
+                        "newValue": "20",
+                        "oldValue": "10",
+                        "source": "panel"
+                      }
+                    ],
+                    "currentDown": 2097152,
+                    "currentUp": 1048576,
+                    "email": "user1@example.com",
+                    "lifetimeDown": 21474836480,
+                    "lifetimeUp": 10737418240,
+                    "nodes": [
+                      {
+                        "down": 2097152,
+                        "nodeId": 7,
+                        "nodeName": "de-fra-1",
+                        "up": 1048576
+                      }
+                    ],
+                    "windows": [
+                      {
+                        "at": 1735689600000,
+                        "down": 2097152,
+                        "email": "user1@example.com",
+                        "id": 14825,
+                        "reason": "reset",
+                        "up": 1048576
+                      }
+                    ]
                   }
                 }
               }

@@ -471,6 +471,8 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 		trafficWasEnabled[traffics[i].Email] = traffics[i].Enable
 	}
 	renewedEmails := make([]string, 0, len(traffics))
+	var renewedWindows []model.ClientTrafficWindow
+	var renewedChanges []model.ClientChangeLog
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
@@ -493,8 +495,14 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime, renewals := catchUpClientRenewal(traffic, now, renewLocation)
 			if renewals > 0 {
+				oldExpiry := traffic.ExpiryTime
 				traffic.ExpiryTime = newExpiryTime
 				traffic.ResetCount += renewals
+				renewedChanges = append(renewedChanges, model.ClientChangeLog{
+					Email: email, Field: "expiry",
+					OldValue: fmt.Sprintf("%d", oldExpiry), NewValue: fmt.Sprintf("%d", newExpiryTime),
+					Source: clientChangeSourceRenew,
+				})
 			}
 			c["expiryTime"] = traffic.ExpiryTime
 			if traffic.ExpiryTime <= now {
@@ -504,6 +512,9 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				continue
 			}
 			if renewals > 0 {
+				renewedWindows = append(renewedWindows, model.ClientTrafficWindow{
+					Email: email, Up: traffic.Up, Down: traffic.Down, Reason: trafficWindowRenew,
+				})
 				traffic.Down = 0
 				traffic.Up = 0
 				renewedEmails = append(renewedEmails, email)
@@ -549,6 +560,14 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 		if syncErr := s.clientService.SyncInbound(tx, ib.Id, cs); syncErr != nil {
 			logger.Warning("autoRenewClients sync clients: SyncInbound failed", syncErr)
 		}
+	}
+	// Archive the renewed clients' closed quota windows and their expiry
+	// change before the zeroed rows overwrite the live counters.
+	if err := archiveClosedWindowsTx(tx, renewedWindows); err != nil {
+		return false, 0, err
+	}
+	if err := logClientChangesTx(tx, renewedChanges); err != nil {
+		return false, 0, err
 	}
 	err = tx.Save(traffics).Error
 	if err != nil {
@@ -635,9 +654,23 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	return err
 }
 
-func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
+// DelClientStat removes a client's accounting rows; dropped counters are
+// archived first (deleted | renamed), and a deleted event is logged.
+func (s *InboundService) DelClientStat(tx *gorm.DB, email string, reason string) error {
 	if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{email}); err != nil {
 		return err
+	}
+	if reason == trafficWindowDelete || reason == trafficWindowRename {
+		if err := recordClosedWindowsTx(tx, []string{email}, reason); err != nil {
+			return err
+		}
+	}
+	if reason == trafficWindowDelete {
+		if err := logClientChangesTx(tx, []model.ClientChangeLog{{
+			Email: email, Field: "deleted", Source: clientChangeSourcePanel,
+		}}); err != nil {
+			return err
+		}
 	}
 	if err := tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error; err != nil {
 		return err
@@ -648,9 +681,23 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
 }
 
-func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) error {
+func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string, reason string) error {
 	if err := adjustGroupBaselinesForRemovedTraffic(tx, emails); err != nil {
 		return err
+	}
+	if reason == trafficWindowDelete || reason == trafficWindowRename {
+		if err := recordClosedWindowsTx(tx, emails, reason); err != nil {
+			return err
+		}
+	}
+	if reason == trafficWindowDelete {
+		var changes []model.ClientChangeLog
+		for _, email := range emails {
+			changes = append(changes, model.ClientChangeLog{Email: email, Field: "deleted", Source: clientChangeSourcePanel})
+		}
+		if err := logClientChangesTx(tx, changes); err != nil {
+			return err
+		}
 	}
 	const chunk = 400
 	for start := 0; start < len(emails); start += chunk {
@@ -673,6 +720,9 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+				return err
+			}
+			if err := recordClosedWindowsTx(tx, []string{clientEmail}, trafficWindowReset); err != nil {
 				return err
 			}
 			if err := clearGlobalTraffic(tx, clientEmail); err != nil {
@@ -771,6 +821,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
+			return err
+		}
+		if err := recordClosedWindowsTx(tx, []string{clientEmail}, trafficWindowReset); err != nil {
 			return err
 		}
 		if err := tx.Save(traffic).Error; err != nil {

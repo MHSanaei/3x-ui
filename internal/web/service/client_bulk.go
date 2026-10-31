@@ -818,6 +818,32 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
 			return err
 		}
+		// Log the expiry/total this save actually changed, per client found in
+		// the inbound's JSON; skipped emails were not touched.
+		var adjustChanges []model.ClientChangeLog
+		for email := range foundEmails {
+			entry := plan[email]
+			if entry.record == nil {
+				continue
+			}
+			if entry.applyExpiry && entry.record.ExpiryTime != entry.newExpiry {
+				adjustChanges = append(adjustChanges, model.ClientChangeLog{
+					Email: email, Field: "expiry",
+					OldValue: fmt.Sprintf("%d", entry.record.ExpiryTime), NewValue: fmt.Sprintf("%d", entry.newExpiry),
+					Source: clientChangeSourcePanel,
+				})
+			}
+			if entry.applyTotal && entry.record.TotalGB != entry.newTotal {
+				adjustChanges = append(adjustChanges, model.ClientChangeLog{
+					Email: email, Field: "dataLimit",
+					OldValue: fmt.Sprintf("%d", entry.record.TotalGB), NewValue: fmt.Sprintf("%d", entry.newTotal),
+					Source: clientChangeSourcePanel,
+				})
+			}
+		}
+		if e := logClientChangesTx(tx, adjustChanges); e != nil {
+			return e
+		}
 		if oldInbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
 		}
@@ -1000,6 +1026,30 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 				}
 			}
 			if !keepTraffic && len(successEmails) > 0 {
+				// Counters no per-inbound purge handled (shared or detached
+				// emails) survive to here: archive and log them before deleting.
+				if e := recordClosedWindowsTx(tx, successEmails, trafficWindowDelete); e != nil {
+					return e
+				}
+				survivors := make([]string, 0, len(successEmails))
+				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
+					var emails []string
+					if e := tx.Model(&xray.ClientTraffic{}).Where("email IN ?", batch).Pluck("email", &emails).Error; e != nil {
+						return e
+					}
+					survivors = append(survivors, emails...)
+				}
+				if len(survivors) > 0 {
+					changes := make([]model.ClientChangeLog, 0, len(survivors))
+					for _, email := range survivors {
+						changes = append(changes, model.ClientChangeLog{
+							Email: email, Field: "deleted", Source: clientChangeSourcePanel,
+						})
+					}
+					if e := logClientChangesTx(tx, changes); e != nil {
+						return e
+					}
+				}
 				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 					if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
 						return e
@@ -1167,7 +1217,7 @@ func (s *ClientService) bulkDelInboundClients(
 					logger.Error("Error in delete client IPs")
 					return e
 				}
-				if e := inboundSvc.delClientStatsByEmails(tx, purge); e != nil {
+				if e := inboundSvc.delClientStatsByEmails(tx, purge, trafficWindowDelete); e != nil {
 					logger.Error("Delete stats Data Error")
 					return e
 				}
@@ -1657,7 +1707,20 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 					return e
 				}
 			}
-			return nil
+			// Record only the switches that actually flipped, one row each.
+			var enableChanges []model.ClientChangeLog
+			for _, email := range successEmails {
+				rec := recordsByEmail[email]
+				if rec == nil || rec.Enable == enable {
+					continue
+				}
+				enableChanges = append(enableChanges, model.ClientChangeLog{
+					Email: email, Field: "enable",
+					OldValue: fmt.Sprintf("%t", rec.Enable), NewValue: fmt.Sprintf("%t", enable),
+					Source: clientChangeSourcePanel,
+				})
+			}
+			return logClientChangesTx(tx, enableChanges)
 		}); err != nil {
 			return result, needRestart, err
 		}

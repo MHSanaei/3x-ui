@@ -454,11 +454,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "trafficResetDay": 1,
     "updated_at": 0
   },
+  "ClientChangeLog": {
+    "at": 1735689600000,
+    "email": "user1@example.com",
+    "field": "totalGB",
+    "id": 14825,
+    "newValue": "20",
+    "oldValue": "10",
+    "source": "panel"
+  },
   "ClientInbound": {
     "clientId": 0,
     "createdAt": 0,
     "flowOverride": "",
     "inboundId": 0
+  },
+  "ClientNodeUsage": {
+    "down": 2097152,
+    "nodeId": 7,
+    "nodeName": "de-fra-1",
+    "up": 1048576
   },
   "ClientPageResponse": {
     "filtered": 47,
@@ -611,6 +626,50 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 10737418240,
     "up": 1048576,
     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+  },
+  "ClientTrafficWindow": {
+    "at": 1735689600000,
+    "down": 2097152,
+    "email": "user1@example.com",
+    "id": 14825,
+    "reason": "reset",
+    "up": 1048576
+  },
+  "ClientUsageHistory": {
+    "changes": [
+      {
+        "at": 1735689600000,
+        "email": "user1@example.com",
+        "field": "totalGB",
+        "id": 14825,
+        "newValue": "20",
+        "oldValue": "10",
+        "source": "panel"
+      }
+    ],
+    "currentDown": 2097152,
+    "currentUp": 1048576,
+    "email": "user1@example.com",
+    "lifetimeDown": 21474836480,
+    "lifetimeUp": 10737418240,
+    "nodes": [
+      {
+        "down": 2097152,
+        "nodeId": 7,
+        "nodeName": "de-fra-1",
+        "up": 1048576
+      }
+    ],
+    "windows": [
+      {
+        "at": 1735689600000,
+        "down": 2097152,
+        "email": "user1@example.com",
+        "id": 14825,
+        "reason": "reset",
+        "up": 1048576
+      }
+    ]
   },
   "ClientsSummary": {
     "active": 1850,

@@ -648,7 +648,7 @@ func TestDelClientStat_CleansNodeBaselines(t *testing.T) {
 		t.Fatalf("seed node baseline 2: %v", err)
 	}
 
-	if err := svc.DelClientStat(db, email); err != nil {
+	if err := svc.DelClientStat(db, email, trafficWindowDelete); err != nil {
 		t.Fatalf("DelClientStat: %v", err)
 	}
 

@@ -1884,6 +1884,52 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "ClientChangeLog": {
+    "description": "ClientChangeLog records one metadata change to a client: one row per\nchanged field, newest read first in the client's usage history.",
+    "properties": {
+      "at": {
+        "example": 1735689600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "user1@example.com",
+        "type": "string"
+      },
+      "field": {
+        "example": "totalGB",
+        "type": "string"
+      },
+      "id": {
+        "example": 14825,
+        "format": "int64",
+        "type": "integer"
+      },
+      "newValue": {
+        "example": "20",
+        "type": "string"
+      },
+      "oldValue": {
+        "example": "10",
+        "type": "string"
+      },
+      "source": {
+        "description": "panel | tgbot | api | auto-renew",
+        "example": "panel",
+        "type": "string"
+      }
+    },
+    "required": [
+      "at",
+      "email",
+      "field",
+      "id",
+      "newValue",
+      "oldValue",
+      "source"
+    ],
+    "type": "object"
+  },
   "ClientInbound": {
     "properties": {
       "clientId": {
@@ -1905,6 +1951,36 @@ export const SCHEMAS: Record<string, unknown> = {
       "createdAt",
       "flowOverride",
       "inboundId"
+    ],
+    "type": "object"
+  },
+  "ClientNodeUsage": {
+    "description": "ClientNodeUsage is one node's accumulated counters for a client since its\nlast reset, with the node's display name resolved for the panel.",
+    "properties": {
+      "down": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "nodeId": {
+        "example": 7,
+        "type": "integer"
+      },
+      "nodeName": {
+        "example": "de-fra-1",
+        "type": "string"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "down",
+      "nodeId",
+      "nodeName",
+      "up"
     ],
     "type": "object"
   },
@@ -2424,6 +2500,106 @@ export const SCHEMAS: Record<string, unknown> = {
       "total",
       "up",
       "uuid"
+    ],
+    "type": "object"
+  },
+  "ClientTrafficWindow": {
+    "description": "ClientTrafficWindow is one closed traffic window of a client: usage zeroed\nat a reset, auto-renewal, or deletion; lifetime = SUM(rows) + live counters.",
+    "properties": {
+      "at": {
+        "example": 1735689600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "down": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "user1@example.com",
+        "type": "string"
+      },
+      "id": {
+        "example": 14825,
+        "format": "int64",
+        "type": "integer"
+      },
+      "reason": {
+        "example": "reset",
+        "type": "string"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "at",
+      "down",
+      "email",
+      "id",
+      "reason",
+      "up"
+    ],
+    "type": "object"
+  },
+  "ClientUsageHistory": {
+    "description": "ClientUsageHistory is the usage + change story behind the edit modal's\nhistory button: lifetime totals, closed windows, per-node counters, the log.",
+    "properties": {
+      "changes": {
+        "items": {
+          "$ref": "#/components/schemas/ClientChangeLog"
+        },
+        "type": "array"
+      },
+      "currentDown": {
+        "example": 2097152,
+        "format": "int64",
+        "type": "integer"
+      },
+      "currentUp": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "user1@example.com",
+        "type": "string"
+      },
+      "lifetimeDown": {
+        "example": 21474836480,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lifetimeUp": {
+        "example": 10737418240,
+        "format": "int64",
+        "type": "integer"
+      },
+      "nodes": {
+        "items": {
+          "$ref": "#/components/schemas/ClientNodeUsage"
+        },
+        "type": "array"
+      },
+      "windows": {
+        "items": {
+          "$ref": "#/components/schemas/ClientTrafficWindow"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "changes",
+      "currentDown",
+      "currentUp",
+      "email",
+      "lifetimeDown",
+      "lifetimeUp",
+      "nodes",
+      "windows"
     ],
     "type": "object"
   },

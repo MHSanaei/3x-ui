@@ -81,6 +81,9 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, cleanEmails); err != nil {
 				return err
 			}
+			if err := recordClosedWindowsTx(tx, cleanEmails, trafficWindowReset); err != nil {
+				return err
+			}
 			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 				res := tx.Model(xray.ClientTraffic{}).
 					Where("email IN ?", batch).
@@ -185,6 +188,10 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []string
 			return err
 		}
 
+		if err := recordClosedWindowsTx(tx, resetEmails, trafficWindowReset); err != nil {
+			return err
+		}
+
 		result := tx.Model(xray.ClientTraffic{}).
 			Where("email IN ?", resetEmails).
 			Updates(map[string]any{"enable": true, "up": 0, "down": 0})
@@ -233,6 +240,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			var qErr error
 			if restore, qErr = quotaDisabledEmails(tx, nil); qErr != nil {
 				return qErr
+			}
+			if err := recordClosedWindowsAllTx(tx, trafficWindowReset); err != nil {
+				return err
 			}
 			res := tx.Model(&xray.ClientTraffic{}).
 				Where("1 = 1").
