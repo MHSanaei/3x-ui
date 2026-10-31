@@ -1533,8 +1533,9 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 
 	seen := make(map[string]struct{}, len(rows))
 	emails := make([]string, 0, len(rows))
+	// BulkDelete trims each email, so a padded usage row would resolve to the client it resembles.
 	for _, r := range rows {
-		if r.Email == "" {
+		if r.Email == "" || r.Email != strings.TrimSpace(r.Email) {
 			continue
 		}
 		if _, ok := seen[r.Email]; ok {
