@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -158,5 +159,57 @@ func TestSyncInboundStoresTrimmedEmail(t *testing.T) {
 	}
 	if links != 1 {
 		t.Fatalf("links after re-sync = %d, want 1", links)
+	}
+}
+
+// Only a master-created inbound not yet delivered is exempt from the sweep; otherwise a
+// node could report endless disabled inbounds that the master keeps forever.
+func TestDisabledInboundTheNodeReportedIsSwept(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	keep := snapshotWithClients(t, "keep", `{"clients":[]}`)
+	reported := &runtime.TrafficSnapshot{Inbounds: append(keep.Inbounds,
+		&model.Inbound{Tag: "junk", Port: 41003, Protocol: model.VLESS, Enable: false, Settings: `{"clients":[]}`})}
+	if _, err := svc.setRemoteTrafficLocked(1, reported, false, false); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+	nid := 1
+	if err := db.Create(&model.Inbound{UserId: 1, Tag: "undelivered", Port: 41004, Protocol: model.VLESS, NodeID: &nid, Settings: `{"clients":[]}`}).Error; err != nil {
+		t.Fatalf("create undelivered inbound: %v", err)
+	}
+	if err := db.Model(&model.Inbound{}).Where("tag = ?", "undelivered").Update("enable", false).Error; err != nil {
+		t.Fatalf("disable: %v", err)
+	}
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "keep", `{"clients":[]}`), false, false); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+	var tags []string
+	db.Model(&model.Inbound{}).Order("tag").Pluck("tag", &tags)
+	if !slices.Equal(tags, []string{"keep", "undelivered"}) {
+		t.Fatalf("inbounds after the node stopped reporting junk = %v, want [keep undelivered]", tags)
+	}
+}
+
+// A node listing one inbound many times made every pass repeat its whole client set;
+// the first entry for an inbound is merged and the repeats are dropped.
+func TestRepeatedSnapshotEntriesMergeTheInboundOnce(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
+		{Tag: "dup", Port: 41005, Protocol: model.VLESS, Enable: true, Remark: "first", Settings: `{"clients":[]}`},
+		{Tag: "dup", Port: 41005, Protocol: model.VLESS, Enable: true, Remark: "second", Settings: `{"clients":[]}`},
+	}}
+	for range 2 {
+		if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
+			t.Fatalf("sync: %v", err)
+		}
+		snap.Inbounds[1] = &model.Inbound{Tag: "dup", Port: 41005, Protocol: model.VLESS, Enable: true, Remark: "second", Settings: `{"clients":[]}`}
+	}
+	var remarks []string
+	db.Model(&model.Inbound{}).Where("tag = ?", "dup").Pluck("remark", &remarks)
+	if !slices.Equal(remarks, []string{"first"}) {
+		t.Fatalf("remarks = %v, want the first entry merged once", remarks)
 	}
 }

@@ -716,8 +716,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	newInboundIDs := make(map[int]struct{})
 
+	// Every pass below walks a central inbound's clients once per snapshot entry that
+	// resolves to it, so only the first such entry is merged; repeats are dropped.
+	mergedCentral := make(map[int]struct{}, len(central))
+
 	snapTags := make(map[string]struct{}, len(snap.Inbounds))
-	for _, snapIb := range snap.Inbounds {
+	for snapIdx, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
 		}
@@ -760,6 +764,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			default:
 				return false, fmt.Errorf("setRemoteTraffic: inbound %q has ambiguous compatible central aliases", snapIb.Tag)
 			}
+		}
+		if ok {
+			if _, merged := mergedCentral[c.Id]; merged {
+				snap.Inbounds[snapIdx] = nil
+				continue
+			}
+			mergedCentral[c.Id] = struct{}{}
 		}
 		if !ok {
 			if dirty {
@@ -839,6 +850,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 			newInboundIDs[newIb.Id] = struct{}{}
+			mergedCentral[newIb.Id] = struct{}{}
 			structuralChange = true
 			continue
 		}
@@ -929,9 +941,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if dirty {
 			continue
 		}
-		// A node inbound created disabled is never delivered, so its absence from
-		// the snapshot is ambiguous rather than evidence of a node-side delete.
-		if !c.Enable {
+		// A node inbound created disabled is never delivered, so its absence from the snapshot
+		// is ambiguous; a copy the node once reported (it has an origin) is not.
+		if !c.Enable && c.OriginNodeGuid == "" {
 			continue
 		}
 		if len(snapTags) == 0 {
