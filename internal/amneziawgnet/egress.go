@@ -218,6 +218,9 @@ func (s *socks5EgressServer) acceptLoop(ln net.Listener, closing chan struct{}) 
 			default:
 			}
 			logger.Warningf("amneziawgnet: egress accept: %v", err)
+			if !waitAcceptRetry(closing) {
+				return
+			}
 			continue
 		}
 		select {

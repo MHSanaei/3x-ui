@@ -270,6 +270,21 @@ func openPortForwardListener(gstack *stack.Stack, inboundID int, key portForward
 
 const portForwardDialTimeout = 10 * time.Second
 
+// acceptRetryDelay paces an accept loop's retries, so an error that lasts
+// (EMFILE, until descriptors free up) neither spins it nor floods the log.
+const acceptRetryDelay = 100 * time.Millisecond
+
+// waitAcceptRetry sleeps acceptRetryDelay after a failed Accept; false means
+// closing fired meanwhile and the loop should return instead of retrying.
+func waitAcceptRetry(closing <-chan struct{}) bool {
+	select {
+	case <-closing:
+		return false
+	case <-time.After(acceptRetryDelay):
+		return true
+	}
+}
+
 // tunnelNetwork returns the gVisor network protocol number matching addr's
 // address family, for dialing toward it inside the embedded stack.
 func tunnelNetwork(addr netip.Addr) tcpip.NetworkProtocolNumber {
@@ -325,7 +340,12 @@ func (l *tcpForwardListener) acceptLoop(gstack *stack.Stack, inboundID int, key 
 			default:
 			}
 			logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: accept tcp :%d: %v", inboundID, key.email, key.port, err)
-			return
+			// Keep accepting: returning would strand a bound socket nobody
+			// serves, under a key Reconcile still sees as open and never reopens.
+			if !waitAcceptRetry(l.closing) {
+				return
+			}
+			continue
 		}
 		go relayTCPForward(gstack, conn, inboundID, key, target)
 	}

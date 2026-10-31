@@ -2,11 +2,14 @@ package amneziawgnet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -220,6 +223,43 @@ func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 	dialLoopback(t, "tcp", okPort)
 
 	set.Close()
+}
+
+// failFirstAccept fails the first Accept the way the kernel does once the
+// process is at RLIMIT_NOFILE, then behaves like the listener it wraps.
+type failFirstAccept struct {
+	net.Listener
+	failed atomic.Bool
+}
+
+func (l *failFirstAccept) Accept() (net.Conn, error) {
+	if l.failed.CompareAndSwap(false, true) {
+		return nil, &net.OpError{Op: "accept", Net: "tcp", Addr: l.Addr(), Err: syscall.EMFILE}
+	}
+	return l.Listener.Accept()
+}
+
+func TestTCPForwardAcceptLoopSurvivesTransientError(t *testing.T) {
+	host, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	l := &tcpForwardListener{ln: &failFirstAccept{Listener: host}, closing: make(chan struct{})}
+	defer l.Close()
+	noTarget := func(string) (netip.Addr, bool) { return netip.Addr{}, false }
+	go l.acceptLoop(newTestStack(t, "10.211.4.1"), 505, portForwardKey{email: "a@x", proto: tcpForward}, noTarget)
+
+	conn, err := net.DialTimeout("tcp", host.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+	// relayTCPForward closes a connection it has no target for, so EOF proves
+	// the loop accepted it; a dead loop leaves it queued in the backlog.
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	if _, err := conn.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Fatalf("read after a transient accept error = %v, want io.EOF from an accepted connection", err)
+	}
 }
 
 // --- Real round trip: a genuine amneziawg-go client handshakes against a
