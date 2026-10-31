@@ -107,6 +107,56 @@ func TestEnsureFirstUserCreatesOneWorkingCredential(t *testing.T) {
 	}
 }
 
+// Old releases drew the cookie-signing secret from a clock-seeded math/rand, and a
+// stored value cannot tell its generator, so an upgrade must replace it exactly once.
+func TestSessionSecretRotatesOnceOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	reopen := func() []string {
+		t.Helper()
+		if err := CloseDB(); err != nil {
+			t.Fatalf("CloseDB: %v", err)
+		}
+		if err := InitDB(dbPath); err != nil {
+			t.Fatalf("reopen InitDB: %v", err)
+		}
+		var secrets []string
+		if err := db.Model(&model.Setting{}).Where("key = ?", "secret").Pluck("value", &secrets).Error; err != nil {
+			t.Fatalf("read secret: %v", err)
+		}
+		return secrets
+	}
+	storeSecret := func(value string) {
+		t.Helper()
+		if err := db.Where("key = ?", "secret").Delete(&model.Setting{}).Error; err != nil {
+			t.Fatalf("clear secret: %v", err)
+		}
+		if err := db.Create(&model.Setting{Key: "secret", Value: value}).Error; err != nil {
+			t.Fatalf("store secret: %v", err)
+		}
+	}
+
+	storeSecret("kept-on-a-fresh-install")
+	if got := reopen(); len(got) != 1 || got[0] != "kept-on-a-fresh-install" {
+		t.Fatalf("fresh install secret = %q after restart, want it kept", got)
+	}
+
+	storeSecret("rfBd56ti2SMtYvSgD5xAV0YU99zampta")
+	if err := db.Where("seeder_name = ?", "SessionSecretRotation").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if got := reopen(); len(got) != 0 {
+		t.Fatalf("secret = %q after upgrade, want the pre-upgrade secret dropped", got)
+	}
+	storeSecret("drawn-after-upgrade")
+	if got := reopen(); len(got) != 1 || got[0] != "drawn-after-upgrade" {
+		t.Fatalf("secret = %q, want the rotated secret kept so restarts do not log everyone out", got)
+	}
+}
+
 func TestSeedClientsFromInboundJSON_IsIdempotentAgainstExistingClients(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
