@@ -1359,7 +1359,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params,
 			security,
 			func(ep map[string]any, dest string, port int) string {
-				return fmt.Sprintf("vless://%s@%s", applyVlessRoute(uuid, hostVlessRoute(ep)), joinHostPort(dest, port))
+				return fmt.Sprintf("vless://%s@%s", encodeUserinfo(applyVlessRoute(uuid, hostVlessRoute(ep))), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.endpointRemark(inbound, email, ep, streamNetwork)
@@ -1367,7 +1367,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		)
 	}
 
-	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
+	link := fmt.Sprintf("vless://%s@%s", encodeUserinfo(uuid), joinHostPort(address, port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
@@ -1441,7 +1441,21 @@ func encodeUserinfo(s string) string {
 // callers don't have to normalize upstream.
 func joinHostPort(host string, port int) string {
 	host = strings.Trim(host, "[]")
-	return net.JoinHostPort(host, strconv.Itoa(port))
+	return net.JoinHostPort(escapeLinkHost(host), strconv.Itoa(port))
+}
+
+// escapeLinkHost percent-encodes whitespace, control characters and URI delimiters: a
+// node-reported address is never re-parsed, so a raw line break would end the link's line.
+func escapeLinkHost(host string) string {
+	var sb strings.Builder
+	for _, r := range host {
+		if r == ' ' || !strconv.IsPrint(r) || strings.ContainsRune("\"#/<>?@[\\]^`{|}", r) {
+			sb.WriteString(encodeURIComponent(string(r)))
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
