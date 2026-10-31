@@ -679,3 +679,16 @@ func TestBuildUAPIConfigClearedHeaderProtectionKeyIsSentAsZero(t *testing.T) {
 		t.Fatalf("a configured key must not be emitted as zero, got:\n%s", withKey)
 	}
 }
+
+// A row stored before the handshake bounds existed must fail its own device setup instead
+// of allocating without limit at the next handshake, which ended the whole panel.
+func TestBuildUAPIConfigRefusesAStoredUnboundedPreamble(t *testing.T) {
+	priv, _, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	inst := amneziawg.Instance{PrivateKey: priv, Obfuscation: amneziawg.Obfuscation31{Jc: 1 << 31, Jmin: 10, Jmax: 20}}
+	if _, err := buildUAPIConfig(inst, DeviceOptions{}); err == nil {
+		t.Fatal("a stored Jc of 2^31 reached the device")
+	}
+}
