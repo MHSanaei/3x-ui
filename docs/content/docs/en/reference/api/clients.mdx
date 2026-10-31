@@ -609,9 +609,11 @@ _openapi:
           different client of that same inbound holds, or `... used by a client
           on <inbound>` when the holder sits on another WireGuard or AmneziaWG
           inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides
-          with `10.0.0.5/32`; a `0.0.0.0/0` or `::/0` default route claims no
-          address. Allocation likewise skips every address inside a prefix
-          another client holds. The same validation runs on POST
+          with `10.0.0.5/32`; a `/0` entry collides with every address of its
+          family another client holds, and only a `0.0.0.0/0` or `::/0` default
+          route that is already stored (legacy peers) keeps nobody out.
+          Allocation likewise skips every address inside a prefix another client
+          holds. The same validation runs on POST
           /panel/api/clients/{email}/attach, where a client that already carries
           an address brings it along.
 

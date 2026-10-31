@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -391,5 +392,91 @@ func TestAllocateWireguardAddressSkipsAddressesInsideUsedPrefixes(t *testing.T) 
 	}
 	if got != "10.0.0.4/32" {
 		t.Fatalf("got %s, want 10.0.0.4/32: .2 and .3 are both inside the used 10.0.0.2/31", got)
+	}
+}
+
+// A /0 that is being written contains every other peer's address, and its host bits
+// are read back as the peer's own tunnel address (amneziawg.FirstIPv4). Only a stored
+// 0.0.0.0/0 or ::/0 keeps nobody out, as legacy peers carry it.
+func TestWireguardSlashZeroIsSubjectToTheOverlapGuard(t *testing.T) {
+	for _, tt := range []struct {
+		entry, used string
+		taken       bool
+	}{
+		{"10.8.1.2/0", "10.8.1.2/32", true},
+		{"10.8.1.3/0", "10.8.1.2/32", true},
+		{"0.0.0.0/0", "10.8.1.2/32", true},
+		{"::/0", "fd00::2/128", true},
+		{"fd00::2/0", "fd00::2/128", true},
+		{"::/0", "10.8.1.2/32", false},
+		{"10.8.1.2/32", "10.8.1.2/0", true},
+		{"fd00::2/128", "fd00::2/0", true},
+		{"10.8.1.2/32", "10.8.1.3/0", false},
+		{"10.8.1.2/32", "0.0.0.0/0", false},
+		{"0.0.0.0/0", "0.0.0.0/0", false},
+	} {
+		t.Run(tt.entry+" next to "+tt.used, func(t *testing.T) {
+			if _, taken := wireguardAllowedIPsOverlap([]string{tt.entry}, []string{tt.used}); (taken != "") != tt.taken {
+				t.Errorf("taken = %q, want a collision: %v", taken, tt.taken)
+			}
+		})
+	}
+
+	existing := []model.Client{{Email: "victim@wg", AllowedIPs: []string{"10.0.0.2/32"}}}
+	awgSettings := `{"server":{"subnetIp":"10.0.0.0","subnetCidr":24}}`
+	for _, entry := range []string{"10.0.0.2/0", "0.0.0.0/0"} {
+		clients := []model.Client{{Email: "other@wg", AllowedIPs: []string{entry}}}
+		err := defaultWireguardClients("", existing, clients, []any{map[string]any{}}, nil)
+		if err == nil || !strings.Contains(err.Error(), entry+" overlaps 10.0.0.2/32") {
+			t.Errorf("wireguard: %s next to 10.0.0.2/32: err = %v, want an overlap", entry, err)
+		}
+		err = defaultAmneziaWGClients(awgSettings, existing, clients, []any{map[string]any{}}, nil)
+		if err == nil || !strings.Contains(err.Error(), entry+" overlaps 10.0.0.2/32") {
+			t.Errorf("amneziawg: %s next to 10.0.0.2/32: err = %v, want an overlap", entry, err)
+		}
+	}
+
+	got, err := allocateWireguardAddress([]string{"10.0.0.2/0"}, "10.0.0.0/24", true)
+	if err != nil || got != "10.0.0.3/32" {
+		t.Errorf("allocated %q (%v) next to a stored 10.0.0.2/0, want 10.0.0.3/32", got, err)
+	}
+}
+
+// The edit form echoes what the client holds, so a legacy peer's default route has
+// to survive a save next to other clients; no edit may bring in a new one.
+func TestUpdateInboundClientKeepsButNeverAddsDefaultRoute(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "own-wg", "0.0.0.0", 51830, model.WireGuard, ``, `{"clients":[`+
+		`{"email":"legacy","subId":"s-legacy","enable":true,"publicKey":"QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=","allowedIPs":["0.0.0.0/0","::/0"]},`+
+		`{"email":"victim","subId":"s-victim","enable":true,"publicKey":"QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=","allowedIPs":["10.0.0.2/32"]},`+
+		`{"email":"other","subId":"s-other","enable":true,"publicKey":"Q0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0M=","allowedIPs":["10.0.0.3/32"]}]}`)
+	s, inboundSvc := &ClientService{}, &InboundService{}
+	var own model.Inbound
+	if err := database.GetDB().Where("tag = ?", "own-wg").First(&own).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	clients, err := inboundSvc.GetClients(&own)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	if err := s.SyncInbound(nil, own.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	save := func(email, allowedIPs string) error {
+		data := &model.Inbound{Id: own.Id, Settings: `{"clients":[{"email":"` + email + `","subId":"s-` + email + `","enable":true,"allowedIPs":` + allowedIPs + `}]}`}
+		_, err := s.UpdateInboundClient(inboundSvc, data, email)
+		return err
+	}
+
+	if err := save("legacy", `["0.0.0.0/0","::/0"]`); err != nil {
+		t.Errorf("saving the legacy peer as it is: %v", err)
+	}
+	for _, allowedIPs := range []string{`["0.0.0.0/0"]`, `["10.0.0.2/0"]`, `["10.0.0.3/32","0.0.0.0/0"]`} {
+		if err := save("other", allowedIPs); err == nil || !strings.Contains(err.Error(), "overlaps 10.0.0.2/32") {
+			t.Errorf("other saved with %s: err = %v, want an overlap with 10.0.0.2/32", allowedIPs, err)
+		}
+	}
+	if err := save("legacy", `["10.0.0.2/0","::/0"]`); err == nil || !strings.Contains(err.Error(), "10.0.0.2/0 overlaps 10.0.0.2/32") {
+		t.Errorf("the legacy peer took 10.0.0.2/0 next to 10.0.0.2/32: err = %v", err)
 	}
 }

@@ -833,7 +833,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					}
 					peers = append(peers, oldClients[i].AllowedIPs...)
 				}
-				if entry, taken := wireguardAllowedIPsOverlap(normalized, peers); taken != "" {
+				if entry, taken := wireguardAllowedIPsOverlap(withoutKeptDefaultRoutes(normalized, old.AllowedIPs), peers); taken != "" {
 					return false, common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by another client")
 				}
 				clients[0].AllowedIPs = normalized
