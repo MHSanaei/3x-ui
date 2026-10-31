@@ -713,6 +713,18 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 	return string(out)
 }
 
+// validateInboundBuildInput refuses what xray-core's in-process build would expand without
+// bound; certificate paths are checked only where this host is the one opening them.
+func validateInboundBuildInput(inbound *model.Inbound) error {
+	if err := xray.CheckStreamBuildCost([]byte(inbound.StreamSettings)); err != nil {
+		return err
+	}
+	if inbound.NodeID != nil {
+		return nil
+	}
+	return xray.CheckConfigCertFiles([]byte(inbound.StreamSettings))
+}
+
 // validateInboundTLSCertificates rejects incomplete TLS credentials before a save
 // can restart Xray. File paths belong to the node, so only presence is checked.
 func validateInboundTLSCertificates(streamSettings string) error {
@@ -1289,6 +1301,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := validateInboundTLSCertificates(inbound.StreamSettings); err != nil {
 			return inbound, false, err
 		}
+	}
+	if err := validateInboundBuildInput(inbound); err != nil {
+		return inbound, false, err
 	}
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
 		return inbound, false, err
@@ -2007,6 +2022,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
+	if err := validateInboundBuildInput(inbound); err != nil {
+		return inbound, false, err
+	}
 	// Grandfather a row that was already stored incomplete so it stays editable;
 	// only a save that breaks a previously valid TLS block is refused.
 	if !s.FromNodeSync {

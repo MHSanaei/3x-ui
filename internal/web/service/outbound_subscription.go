@@ -486,9 +486,14 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 	// persisted (filtered) list, so positions must be counted in that same list.
 	var dropped []string
 	ownPorts := xrayOwnPorts()
+	xmcBudget := maxSubscriptionXMCMasks
 	keptLinks, keptIdentities := parsed[:0], identities[:0]
 	for i, ob := range parsed {
-		if reason := internalDialTarget(map[string]any(ob), sub.AllowPrivate, ownPorts); reason != "" {
+		reason := internalDialTarget(map[string]any(ob), sub.AllowPrivate, ownPorts)
+		if reason == "" && !spendXMCBudget(map[string]any(ob), &xmcBudget) {
+			reason = fmt.Sprintf("the subscription uses more than %d xmc masks", maxSubscriptionXMCMasks)
+		}
+		if reason != "" {
 			logger.Warningf("outbound sub %d: dropping outbound %.64q: %s", sub.Id, ob["tag"], reason)
 			dropped = append(dropped, fmt.Sprintf("%.64s: %s", ob["tag"], reason))
 			continue
@@ -529,6 +534,27 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 			fmt.Sprintf("only the first %d links of the document are loaded", link.MaxSubscriptionOutbounds)
 	}
 	return fetched, nil
+}
+
+// maxSubscriptionXMCMasks bounds the RSA keys one subscription costs the core per build;
+// the masks can be spread over links, so a per-stream cap alone does not bound it.
+const maxSubscriptionXMCMasks = 64
+
+func spendXMCBudget(outbound any, budget *int) bool {
+	ob, ok := outbound.(map[string]any)
+	if !ok {
+		return true
+	}
+	stream, err := json.Marshal(ob["streamSettings"])
+	if err != nil {
+		return true
+	}
+	n := xray.CountXMCMasks(stream)
+	if n > *budget {
+		return false
+	}
+	*budget -= n
+	return true
 }
 
 // withoutRequestURL keeps only the host of the URL net/url and net/http quote in their
@@ -652,6 +678,7 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 	}
 	ownPorts := xrayOwnPorts()
 	for _, sub := range subs {
+		xmcBudget := maxSubscriptionXMCMasks
 		if strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
 			continue
 		}
@@ -663,6 +690,9 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 		// Rows stored before the fetch refused these, or while allowPrivate was on.
 		arr = slices.DeleteFunc(arr, func(ob any) bool {
 			reason := internalDialTarget(ob, sub.AllowPrivate, ownPorts)
+			if reason == "" && !spendXMCBudget(ob, &xmcBudget) {
+				reason = "over the subscription's xmc mask budget"
+			}
 			if reason != "" {
 				logger.Warningf("outbound sub %d: dropping a stored outbound: %s", sub.Id, reason)
 			}

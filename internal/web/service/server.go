@@ -2687,6 +2687,9 @@ func (s *ServerService) GetCertHash(certFile string, certContent string) ([]stri
 		if !ok {
 			return nil, common.NewError("certificate file is not referenced by any inbound or panel setting")
 		}
+		if err := xray.CheckCertFile(known); err != nil {
+			return nil, err
+		}
 		b, err := os.ReadFile(known)
 		if err != nil {
 			return nil, err
@@ -2760,6 +2763,10 @@ func (s *ServerService) knownCertFiles() []string {
 	}
 	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
 		for _, inbound := range inbounds {
+			// A node row's path names a file on the node's host, not on this one.
+			if inbound.NodeID != nil {
+				continue
+			}
 			files = collectCertFiles(inbound.StreamSettings, files)
 		}
 	}

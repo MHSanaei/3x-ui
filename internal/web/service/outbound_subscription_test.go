@@ -695,3 +695,25 @@ func TestOutboundSubscriptionCreateKeepsItDisabled(t *testing.T) {
 		t.Fatalf("stored enabled = %v (%v), want the subscription created disabled", stored.Enabled, err)
 	}
 }
+
+// The core derives an RSA key per xmc mask on every build, so the masks a document may
+// spread over its links are budgeted per subscription, before anything is built.
+func TestOutboundSubscriptionRefreshCapsXMCMasks(t *testing.T) {
+	setupSettingTestDB(t)
+	const xmc = `{"type":"xmc","settings":{"password":"p","profiles":[{"username":"abc","uuid":"00000000-0000-0000-0000-000000000000","texturesValue":"a","texturesSignature":"a"}]}}`
+	server := func(address string, masks ...string) string {
+		return "vless://00000000-0000-4000-8000-000000000000@" + address + ":443?security=tls&type=tcp&fm=" +
+			url.QueryEscape(`{"tcp":[`+strings.Join(masks, ",")+`]}`) + "#" + address + "\n"
+	}
+	four := []string{xmc, xmc, xmc, xmc}
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return server("1.1.1.1", slices.Repeat([]string{xmc}, 400)...) +
+			strings.Repeat(server("1.1.1.3", four...), maxSubscriptionXMCMasks/4) +
+			server("1.1.1.4", xmc) +
+			server("1.1.1.5", `{"type":"sudoku","settings":{"password":"p"}}`)
+	})
+	tags, byAddress := refreshOutboundTags(t, subID)
+	if _, plain := byAddress["1.1.1.5"]; len(tags) != maxSubscriptionXMCMasks/4+1 || len(byAddress) != 2 || !plain {
+		t.Fatalf("kept %d outbounds, tags by address = %v", len(tags), byAddress)
+	}
+}

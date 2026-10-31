@@ -150,3 +150,37 @@ func TestValidateOutboundConfig_RejectsLinksTheHandlerConstructorRefuses(t *test
 		})
 	}
 }
+
+// conf.Build() runs inside the panel; these values make it allocate or loop without
+// bound, so they must be refused before it, whoever supplied the outbound.
+func TestValidateOutboundConfig_RefusesWhatTheLoaderWouldExpandWithoutBound(t *testing.T) {
+	big := filepath.Join(t.TempDir(), "big.pem")
+	if err := os.WriteFile(big, make([]byte, maxCertFileBytes+1), 0o600); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	vless := func(stream string) string {
+		return `{"protocol": "vless", "settings": {"address": "1.2.3.4", "port": 443, "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "encryption": "none"}, "streamSettings": ` + stream + `}`
+	}
+	hop := `{"type": "udphop", "settings": {"mode": "intervalRemote", "remotePorts": "0-65535"}}`
+	masks := strings.TrimSuffix(strings.Repeat(`{"type": "noise"},`, maxStreamMasks+1), ",")
+	for name, tc := range map[string]struct{ outbound, wantErr string }{
+		"xhttp sessionIDLength in extra":  {vless(`{"network": "xhttp", "security": "tls", "xhttpSettings": {"extra": {"sessionIDTable": "abcdefgh", "sessionIDLength": "2147483647"}}}`), "sessionIDLength"},
+		"nested download sessionIDLength": {vless(`{"network": "xhttp", "security": "tls", "xhttpSettings": {"downloadSettings": {"network": "xhttp", "xhttpSettings": {"sessionIDTable": "ab", "sessionIDLength": "64-100000"}}}}`), "sessionIDLength"},
+		"udphop ports across masks":       {vless(`{"network": "tcp", "security": "tls", "finalmask": {"udp": [` + hop + `,` + hop + `]}}`), "udphop"},
+		"udphop bare port":                {vless(`{"network": "tcp", "security": "tls", "finalmask": {"UDP": [{"type": "UDPHOP", "settings": {"mode": "intervalRemote", "remotePorts": 4294967295}}]}}`), "udphop"},
+		"too many masks":                  {vless(`{"network": "tcp", "security": "tls", "finalmask": {"tcp": [` + masks + `]}}`), "masks"},
+		"certificate is a directory":      {vless(`{"network": "tcp", "security": "tls", "tlsSettings": {"certificates": [{"CertificateFile": "` + filepath.ToSlash(t.TempDir()) + `"}]}}`), "regular file"},
+		"oversized key file":              {vless(`{"network": "tcp", "security": "tls", "tlsSettings": {"certificates": [{"keyFile": "` + filepath.ToSlash(big) + `"}]}}`), "regular file"},
+	} {
+		if err := ValidateOutboundConfig([]byte(tc.outbound)); err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+			t.Errorf("%s: ValidateOutboundConfig = %v, want an error naming %q", name, err, tc.wantErr)
+		}
+	}
+}
+
+func TestCountXMCMasksFollowsTheStreamsTheCoreBuilds(t *testing.T) {
+	stream := `{"finalmask": {"tcp": [{"type": "XMC"}, {"type": "noise"}]}, "xhttpSettings": {"extra": {"downloadSettings": {"finalmask": {"tcp": [{"type": "xmc"}]}}}}}`
+	if got := CountXMCMasks([]byte(stream)); got != 2 {
+		t.Fatalf("CountXMCMasks = %d, want 2 (one top-level, one in the download stream inside extra)", got)
+	}
+}

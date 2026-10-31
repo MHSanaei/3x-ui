@@ -150,6 +150,9 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 		logger.Debug("Failed to unmarshal inbound:", err)
 		return err
 	}
+	if err := checkUntrustedBuildInput(conf.StreamSetting, inbound); err != nil {
+		return err
+	}
 	localizeNoiseScripts(conf.StreamSetting)
 	config, err := conf.Build()
 	if err != nil {
@@ -194,6 +197,9 @@ func ValidateOutboundConfig(outbound []byte) (err error) {
 
 	detour := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, detour); err != nil {
+		return err
+	}
+	if err := checkUntrustedBuildInput(detour.StreamSetting, outbound); err != nil {
 		return err
 	}
 	localizeNoiseScripts(detour.StreamSetting)
@@ -312,6 +318,9 @@ func (x *XrayAPI) AddOutbound(outbound []byte) error {
 	conf := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, conf); err != nil {
 		logger.Debug("Failed to unmarshal outbound:", err)
+		return err
+	}
+	if err := checkUntrustedBuildInput(conf.StreamSetting, outbound); err != nil {
 		return err
 	}
 	localizeNoiseScripts(conf.StreamSetting)

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -181,5 +182,36 @@ func TestUpdateInboundAllowsUntouchedLegacyTLSCertificates(t *testing.T) {
 				t.Fatalf("UpdateInbound: remark = %q, want %q", reloaded.Remark, "renamed")
 			}
 		})
+	}
+}
+
+// A push names any path on this host, and xray-core reads it whole in the panel process
+// (a device never ends, /dev/zero never stops growing), so it is refused before storing.
+func TestAddInboundRefusesACertificatePathThatIsNoRegularFile(t *testing.T) {
+	setupConflictDB(t)
+	mgr := useTestRuntimeManager(t)
+	fake := &fakeNodeRuntime{}
+	mgr.SetLocalRuntimeOverride(fake)
+
+	dir := filepath.ToSlash(t.TempDir())
+	inbound := &model.Inbound{
+		Tag:            "tls-device-44311",
+		Enable:         true,
+		Listen:         "0.0.0.0",
+		Port:           44311,
+		Protocol:       model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"` + dir + `","KeyFile":"` + dir + `"}]}}`,
+		Settings:       `{"clients":[]}`,
+	}
+	_, _, err := (&InboundService{FromNodeSync: true}).AddInbound(inbound)
+	if err == nil || !strings.Contains(err.Error(), "regular file") {
+		t.Fatalf("AddInbound = %v, want the certificate path refused", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("refused push stored %d row(s) (%v)", count, err)
+	}
+	if fake.addInbound.Load() != 0 {
+		t.Fatal("refused push reached the runtime")
 	}
 }
