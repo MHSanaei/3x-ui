@@ -105,8 +105,13 @@ export default function HostsPage() {
         okType: 'danger',
         cancelText: t('cancel'),
         onOk: async () => {
-          const msg = await remove(host.groupId);
-          if (msg?.success) messageApi.success(t('pages.hosts.toasts.delete'));
+          try {
+            const msg = await remove(host.groupId);
+            if (msg?.success) messageApi.success(t('pages.hosts.toasts.delete'));
+            else messageApi.error(msg?.msg || t('somethingWentWrong'));
+          } catch (error) {
+            messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
+          }
         },
       });
     },
@@ -150,10 +155,16 @@ export default function HostsPage() {
       okType: 'danger',
       cancelText: t('cancel'),
       onOk: async () => {
-        const msg = await bulkDel(selectedGroupIds);
-        if (msg?.success) {
-          messageApi.success(t('pages.hosts.toasts.delete'));
-          setSelectedGroupIds([]);
+        try {
+          const msg = await bulkDel(selectedGroupIds);
+          if (msg?.success) {
+            messageApi.success(t('pages.hosts.toasts.delete'));
+            setSelectedGroupIds([]);
+          } else {
+            messageApi.error(msg?.msg || t('somethingWentWrong'));
+          }
+        } catch (error) {
+          messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
         }
       },
     });

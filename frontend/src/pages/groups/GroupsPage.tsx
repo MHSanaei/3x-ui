@@ -12,6 +12,7 @@ import {
   Modal,
   Result,
   Row,
+  Select,
   Space,
   Spin,
   Statistic,
@@ -27,6 +28,7 @@ import {
   ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  GlobalOutlined,
   LinkOutlined,
   MoreOutlined,
   PieChartOutlined,
@@ -56,6 +58,7 @@ import {
   type GroupSummary,
 } from '@/schemas/client';
 import { parseMsg } from '@/utils/zodValidate';
+import { useHostsQuery } from '@/api/queries/useHostsQuery';
 
 const ClientRecordListSchema = z
   .array(ClientRecordSchema)
@@ -108,6 +111,20 @@ export default function GroupsPage() {
     queryFn: fetchGroups,
   });
   const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data]);
+  const { hosts, loading: hostsLoading, fetchError: hostsFetchError } = useHostsQuery();
+  const hostGroupOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const host of hosts) {
+      const id = host.groupId?.trim();
+      // Legacy hosts without a persisted group ID receive synthetic fallback IDs.
+      // They are not stable HostGroup identities, so they cannot be assigned here.
+      if (!id || id.startsWith('fallback_') || labels.has(id)) continue;
+      labels.set(id, host.remark || id);
+    }
+    return [...labels.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([value, label]) => ({ value, label }));
+  }, [hosts]);
   const loading = groupsQuery.isFetching;
   const fetched = groupsQuery.data !== undefined || groupsQuery.isError;
   const fetchError = groupsQuery.error ? (groupsQuery.error as Error).message : '';
@@ -161,6 +178,58 @@ export default function GroupsPage() {
   const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
   const [groupEmails, setGroupEmails] = useState<string[]>([]);
   const [groupForAction, setGroupForAction] = useState<GroupSummary | null>(null);
+  const [hostAssignmentOpen, setHostAssignmentOpen] = useState(false);
+  const [hostAssignmentIds, setHostAssignmentIds] = useState<string[]>([]);
+  const [groupHostAssignments, setGroupHostAssignments] = useState<Record<string, string[]>>({});
+  const hostAssignmentOptions = useMemo(() => {
+    if (hostsLoading || hostsFetchError) return hostGroupOptions;
+    const knownIds = new Set(hostGroupOptions.map(({ value }) => value));
+    const missingOptions = hostAssignmentIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => ({
+        value: id,
+        label: t('pages.groups.missingHostGroup', { id }),
+      }));
+    return [...hostGroupOptions, ...missingOptions];
+  }, [hostGroupOptions, hostAssignmentIds, hostsLoading, hostsFetchError, t]);
+  const hostAssignmentMut = useMutation({
+    mutationFn: ({ name, hostGroupIds }: { name: string; hostGroupIds: string[] }) =>
+      HttpUtil.post(
+        `/panel/api/clients/groups/${encodeURIComponent(name)}/hosts`,
+        { hostGroupIds },
+        JSON_HEADERS,
+      ),
+    onSuccess: (msg) => {
+      if (msg?.success) {
+        setHostAssignmentOpen(false);
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    },
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(
+      groups.map(async (group) => {
+        try {
+          const msg = await HttpUtil.get<string[]>(
+            `/panel/api/clients/groups/${encodeURIComponent(group.name)}/hosts`,
+            undefined,
+            { silent: true },
+          );
+          return [group.name, msg?.success && Array.isArray(msg.obj) ? msg.obj : []] as const;
+        } catch {
+          return [group.name, []] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (!cancelled) setGroupHostAssignments(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [groups]);
 
   const allClientsQuery = useQuery<ClientRecord[]>({
     queryKey: keys.clients.all(),
@@ -296,6 +365,45 @@ export default function GroupsPage() {
     setRemoveClientsOpen(true);
   }
 
+  async function openHostAssignmentsFor(g: GroupSummary) {
+    try {
+      const msg = await HttpUtil.get<string[]>(
+        `/panel/api/clients/groups/${encodeURIComponent(g.name)}/hosts`,
+        undefined,
+        { silent: true },
+      );
+      if (!msg?.success || !Array.isArray(msg.obj)) {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+        return;
+      }
+      const assignedIds = msg.obj;
+      setGroupForAction(g);
+      setHostAssignmentIds(assignedIds);
+      setGroupHostAssignments((current) => ({ ...current, [g.name]: assignedIds }));
+      setHostAssignmentOpen(true);
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
+    }
+  }
+
+  async function saveHostAssignments() {
+    if (!groupForAction) return;
+    const hostGroupIds = [...new Set(hostAssignmentIds.map((id) => id.trim()).filter(Boolean))];
+    try {
+      const msg = await hostAssignmentMut.mutateAsync({
+        name: groupForAction.name,
+        hostGroupIds,
+      });
+      if (msg?.success) {
+        const savedIds = Array.isArray(msg.obj) ? (msg.obj as string[]) : hostGroupIds;
+        setGroupHostAssignments((current) => ({ ...current, [groupForAction.name]: savedIds }));
+        setHostAssignmentIds(savedIds);
+      }
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
+    }
+  }
+
   function onDeleteClients(g: GroupSummary) {
     if (!g.clientCount) {
       messageApi.info(t('pages.groups.emptyForAction'));
@@ -352,6 +460,12 @@ export default function GroupsPage() {
 
   function rowActions(row: GroupSummary): MenuProps['items'] {
     return [
+      {
+        key: 'hostAssignments',
+        icon: <GlobalOutlined aria-hidden />,
+        label: t('pages.groups.assignHostGroups'),
+        onClick: () => openHostAssignmentsFor(row),
+      },
       {
         key: 'subLinks',
         icon: <LinkOutlined aria-hidden />,
@@ -412,6 +526,24 @@ export default function GroupsPage() {
     ];
   }
 
+  function assignedHostLabels(groupName: string) {
+    const assignedIds = groupHostAssignments[groupName] ?? [];
+    const labels = new Map<string, string>();
+    for (const host of hosts) {
+      if (assignedIds.includes(host.groupId) && !labels.has(host.groupId)) {
+        labels.set(host.groupId, host.remark || host.groupId);
+      }
+    }
+    return assignedIds.map((groupId) => ({
+      groupId,
+      label:
+        labels.get(groupId) ??
+        (hostsLoading || hostsFetchError
+          ? groupId
+          : t('pages.groups.missingHostGroup', { id: groupId })),
+    }));
+  }
+
   const columns: TableColumnsType<GroupSummary> = [
     {
       title: t('pages.clients.actions'),
@@ -440,6 +572,24 @@ export default function GroupsPage() {
           </Tooltip>
         </Space>
       ),
+    },
+    {
+      title: t('menu.hosts'),
+      key: 'assignedHostGroups',
+      render: (_value, row) => {
+        const labels = assignedHostLabels(row.name);
+        return labels.length > 0 ? (
+          <Space size={[4, 4]} wrap>
+            {labels.map(({ groupId, label }) => (
+              <Tag key={groupId} color="cyan" style={{ margin: 0 }}>
+                {label}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <span style={{ color: 'var(--ant-color-text-tertiary)' }}>—</span>
+        );
+      },
     },
     {
       title: t('pages.groups.name'),
@@ -618,6 +768,40 @@ export default function GroupsPage() {
               />
             </Form.Item>
           </Form>
+        </Modal>
+
+        <Modal
+          open={hostAssignmentOpen}
+          title={
+            groupForAction
+              ? t('pages.groups.hostGroupsFor', { name: groupForAction.name })
+              : t('pages.groups.hostGroups')
+          }
+          okText={t('save')}
+          cancelText={t('cancel')}
+          confirmLoading={hostAssignmentMut.isPending}
+          okButtonProps={{ disabled: hostsLoading || Boolean(hostsFetchError) }}
+          onCancel={() => setHostAssignmentOpen(false)}
+          onOk={saveHostAssignments}
+          destroyOnHidden
+        >
+          {hostsFetchError ? (
+            <div style={{ color: 'var(--ant-color-error)', marginBottom: 8 }}>
+              {t('somethingWentWrong')}: {hostsFetchError}
+            </div>
+          ) : null}
+          <Select
+            aria-label={t('pages.groups.hostGroups')}
+            mode="multiple"
+            allowClear
+            loading={hostsLoading}
+            disabled={Boolean(hostsFetchError)}
+            style={{ width: '100%' }}
+            value={hostAssignmentIds}
+            onChange={setHostAssignmentIds}
+            options={hostAssignmentOptions}
+            placeholder={t('pages.groups.hostsEmptyMeansLegacy')}
+          />
         </Modal>
 
         <Modal

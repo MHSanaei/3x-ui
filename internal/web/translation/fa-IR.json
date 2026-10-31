@@ -1087,7 +1087,12 @@
       "removeFromGroup": "حذف کاربران…",
       "removeFromGroupTitle": "حذف کاربران از گروه «{name}»",
       "removeFromGroupDesc": "اعضایی را برای حذف از این گروه انتخاب کنید. خود کاربران حفظ می‌شوند (برای حذف کامل از «حذف کاربران گروه» استفاده کنید).",
-      "removeFromGroupResult": "{count} کاربر از {name} حذف شد."
+      "removeFromGroupResult": "{count} کاربر از {name} حذف شد.",
+      "assignHostGroups": "اختصاص میزبان‌ها",
+      "hostGroupsFor": "اختصاص میزبان‌ها به گروه {name}",
+      "hostGroups": "گروه‌های میزبان",
+      "hostsEmptyMeansLegacy": "برای استفاده از رفتار قدیمی همه میزبان‌ها خالی بگذارید",
+      "missingHostGroup": "Missing HostGroup: {id}"
     },
     "nodes": {
       "addNode": "افزودن نود",

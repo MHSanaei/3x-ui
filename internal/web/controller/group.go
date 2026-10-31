@@ -23,12 +23,50 @@ func NewGroupController(g *gin.RouterGroup) *GroupController {
 func (a *GroupController) initRouter(g *gin.RouterGroup) {
 	g.GET("/groups", a.list)
 	g.GET("/groups/:name/emails", a.emails)
+	g.GET("/groups/:name/hosts", a.hosts)
+	g.POST("/groups/:name/hosts", a.setHosts)
 	g.POST("/groups/create", a.create)
 	g.POST("/groups/rename", a.rename)
 	g.POST("/groups/delete", a.delete)
 	g.POST("/groups/resetTraffic", a.resetTraffic)
 	g.POST("/groups/bulkAdd", a.bulkAdd)
 	g.POST("/groups/bulkRemove", a.bulkRemove)
+}
+
+type groupHostAssignmentRequest struct {
+	HostGroupIds *[]string `json:"hostGroupIds"`
+}
+
+func (a *GroupController) hosts(c *gin.Context) {
+	ids, err := (&service.ClientGroupHostAssignmentService{}).GetGroupIDs(c.Param("name"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, ids, nil)
+}
+
+func (a *GroupController) setHosts(c *gin.Context) {
+	var body groupHostAssignmentRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if body.HostGroupIds == nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("hostGroupIds is required"))
+		return
+	}
+	if err := (&service.ClientGroupHostAssignmentService{}).SetGroupIDs(c.Param("name"), *body.HostGroupIds); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	ids, err := (&service.ClientGroupHostAssignmentService{}).GetGroupIDs(c.Param("name"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, ids, nil)
+	notifyClientsChanged()
 }
 
 func (a *GroupController) list(c *gin.Context) {

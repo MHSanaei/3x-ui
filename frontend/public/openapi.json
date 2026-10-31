@@ -10302,6 +10302,139 @@
         }
       }
     },
+    "/panel/api/clients/groups/{name}/hosts": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return the HostGroup IDs assigned to the given client group. An empty array means no group default is configured and preserves the existing all-host subscription behavior.",
+        "operationId": "get_panel_api_clients_groups_name_hosts",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "cdn-a",
+                    "cdn-b"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace the HostGroup defaults for a client group. Assignments target stable HostGroup IDs and survive individual Host row edits or recreation. An empty array clears the assignment.",
+        "operationId": "post_panel_api_clients_groups_name_hosts",
+        "description": "If a group exists only as a current client label, a non-empty assignment promotes it to a persisted group so the defaults remain visible after its last member leaves. Clearing with an empty array does not create a group.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hostGroupIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "HostGroup IDs to assign. An empty array restores legacy all-host behavior."
+                  }
+                },
+                "required": [
+                  "hostGroupIds"
+                ]
+              },
+              "example": {
+                "hostGroupIds": [
+                  "cdn-a",
+                  "cdn-b"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "cdn-a",
+                    "cdn-b"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/groups/create": {
       "post": {
         "tags": [

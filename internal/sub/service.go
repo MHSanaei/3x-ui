@@ -84,6 +84,8 @@ type SubService struct {
 	hostGroupOrders map[string]hostEntryOrder
 	hostsFirst      bool
 	sharedGroupSni  map[string]string
+	// clientGroupHostAssignments caches group defaults for each client group within a request.
+	clientGroupHostAssignments map[string]clientGroupHostSelection
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -129,6 +131,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
+	s.clientGroupHostAssignments = nil
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()

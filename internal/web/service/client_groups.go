@@ -352,33 +352,61 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 
 func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
 	db := database.GetDB()
-	if newName == "" {
-		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
-			return 0, err
-		}
-	} else {
-		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
-			return 0, err
-		}
+	tx := db.Begin()
+	if tx.Error != nil {
+		return 0, tx.Error
 	}
-	var records []model.ClientRecord
-	if err := db.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+
+	rollback := func(err error) (int, error) {
+		_ = tx.Rollback().Error
 		return 0, err
 	}
+
+	// Update HostGroup defaults with client labels in the same transaction so a
+	// failed rename cannot leave them attached to a different group.
+	if newName == "" {
+		if err := tx.Where("group_name = ?", oldName).Delete(&model.ClientGroupHost{}).Error; err != nil {
+			return rollback(err)
+		}
+	} else {
+		if err := tx.Model(&model.ClientGroupHost{}).
+			Where("group_name = ?", oldName).
+			Update("group_name", newName).Error; err != nil {
+			return rollback(err)
+		}
+	}
+
+	if newName == "" {
+		if err := tx.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
+			return rollback(err)
+		}
+	} else {
+		if err := tx.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
+			return rollback(err)
+		}
+	}
+
+	var records []model.ClientRecord
+	if err := tx.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+		return rollback(err)
+	}
 	if len(records) == 0 {
+		if err := tx.Commit().Error; err != nil {
+			return 0, err
+		}
+		InvalidateSubData()
 		return 0, nil
 	}
+
 	affectedEmails := make([]string, 0, len(records))
 	for _, r := range records {
 		affectedEmails = append(affectedEmails, r.Email)
 	}
 
-	tx := db.Begin()
 	if err := tx.Model(&model.ClientRecord{}).
 		Where("group_name = ?", oldName).
 		UpdateColumn("group_name", newName).Error; err != nil {
-		tx.Rollback()
-		return 0, err
+		return rollback(err)
 	}
 
 	var inboundIDs []int
@@ -390,8 +418,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 			Where("clients.email IN ?", batch).
 			Distinct("client_inbounds.inbound_id").
 			Pluck("inbound_id", &ids).Error; err != nil {
-			tx.Rollback()
-			return 0, err
+			return rollback(err)
 		}
 		for _, id := range ids {
 			if _, ok := inboundIDSeen[id]; !ok {
@@ -404,8 +431,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 	for _, ibID := range inboundIDs {
 		var ib model.Inbound
 		if err := tx.First(&ib, ibID).Error; err != nil {
-			tx.Rollback()
-			return 0, err
+			return rollback(err)
 		}
 		var settings map[string]any
 		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
@@ -439,8 +465,7 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 			}
 			ib.Settings = string(newSettings)
 			if err := tx.Save(&ib).Error; err != nil {
-				tx.Rollback()
-				return 0, err
+				return rollback(err)
 			}
 		}
 	}
@@ -448,5 +473,6 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 	if err := tx.Commit().Error; err != nil {
 		return 0, err
 	}
+	InvalidateSubData()
 	return len(records), nil
 }

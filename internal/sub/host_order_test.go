@@ -35,6 +35,12 @@ func TestSubHosts_Postgres(t *testing.T) {
 		{"base64", TestSub_HostOrderBase64AndInfoNode},
 		{"balancer", TestSub_HostOrderBalancerSlots},
 		{"deleted binding", TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound},
+		{"client group host defaults", TestSub_ClientGroupHostAssignment_RestrictsHosts},
+		{"client binding overrides group default", TestSub_ClientGroupHostAssignment_ExplicitClientBindingWins},
+		{"unassigned group preserves legacy behavior", TestSub_ClientGroupHostAssignment_UnassignedGroupKeepsLegacyBehavior},
+		{"stale group assignment fails closed", TestSub_ClientGroupHostAssignment_FailsClosed},
+		{"client group hosts-first formats", TestSub_ClientGroupHostAssignment_RespectsHostOrderFormats},
+		{"client group host row cache", TestSub_ClientGroupHostAssignment_CachesHostsPerInbound},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			cleanup, err := testpg.IsolatePackage("host_order")
@@ -307,6 +313,26 @@ func TestSub_HostOrderRespectsClientHostBindings(t *testing.T) {
 	for _, format := range []string{"raw", "clash", "json"} {
 		if got := renderedHostAddresses(t, format, NewSubService("")); len(got) != 0 {
 			t.Fatalf("%s addresses = %v, want none for a binding whose hosts are gone", format, got)
+		}
+	}
+}
+
+// Group HostGroup defaults must constrain every subscription format when using hosts-first ordering.
+func TestSub_ClientGroupHostAssignment_RespectsHostOrderFormats(t *testing.T) {
+	seedSubDB(t)
+	setHostSortMode(t, "hosts-first")
+	ib := seedSubInbound(t, "order-sub", "bound", 46921, 0, wsTLSStream)
+	seedHost(t, &model.Host{GroupId: "a", InboundId: ib.Id, SortOrder: 0, Remark: "A", Address: "a.example.com"})
+	seedHost(t, &model.Host{GroupId: "b", InboundId: ib.Id, SortOrder: 1, Remark: "B", Address: "b.example.com"})
+
+	setSubClientGroup(t, ib, "bound@e", "staff")
+	if err := database.GetDB().Create(&model.ClientGroupHost{GroupName: "staff", HostGroupId: "b"}).Error; err != nil {
+		t.Fatalf("assign host group to client group: %v", err)
+	}
+
+	for _, format := range []string{"raw", "clash", "json"} {
+		if got := renderedHostAddresses(t, format, NewSubService("")); !reflect.DeepEqual(got, []string{"b.example.com"}) {
+			t.Fatalf("%s addresses = %v, want only the group's assigned host", format, got)
 		}
 	}
 }
