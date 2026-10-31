@@ -121,6 +121,7 @@
     "donate": "Bağış Yap",
     "sponsors": "Sponsorlar",
     "hosts": "Host'lar",
+    "logs": "Günlükler",
     "docs": "Belgeler",
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "0 ile 65535 arasında tek bir sayı girin"
       },
       "dragToReorder": "{name} öğesini yeniden sıralamak için sürükleyin"
+    },
+    "logs": {
+      "file": "Günlük dosyası",
+      "timeRange": "Zaman aralığı",
+      "level": "Seviye",
+      "autoRefresh": "Otomatik yenileme",
+      "autoRefreshOff": "Otomatik yenileme kapalı",
+      "autoRefreshEvery": "Her {seconds} sn",
+      "outbound": "Giden",
+      "truncated": "Satır kısaltıldı",
+      "noMatches": "Bu filtrelerle eşleşen satır yok",
+      "noFiles": "Günlük dosyası bulunamadı",
+      "noFilesHint": "Bu klasöre dosya yazıldığında günlükler burada görünür:",
+      "uncategorized": "Kategorisiz",
+      "noTimestamps": "Zaman damgası yok",
+      "clickHint": "Filtrelemek için grafikte bir noktaya veya listede bir satıra tıklayın.",
+      "scanStopped": "Analiz {scanned} sonrasında durdu: bu dosyanın geri kalanı dahil edilmedi.",
+      "readBudget": "{scanned} tarandı ancak bu sayfa dolmadı. Daha eski satırlar yine de eşleşebilir: aramaya devam etmek için eski satırları yükleyin.",
+      "lineCap": "En yeni {count} satır gösteriliyor. Daha eskilere ulaşmak için filtreleri daraltın.",
+      "loadOlder": "Eski satırları yükle",
+      "externalTitle": "Bazı Xray günlükleri günlük klasörünün dışında",
+      "externalDesc": "Bu sayfa yalnızca günlük klasörünü okur, bu nedenle bu günlükler gösterilmez. Birini eklemek için Xray yapılandırmasının log bölümünde yolunu değiştirin:",
+      "tabs": {
+        "overview": "Genel bakış",
+        "raw": "Ham günlükler"
+      },
+      "ranges": {
+        "all": "Tüm dosya",
+        "15m": "Son 15 dakika",
+        "1h": "Son 1 saat",
+        "6h": "Son 6 saat",
+        "24h": "Son 24 saat",
+        "7d": "Son 7 gün",
+        "custom": "Özel aralık"
+      },
+      "levels": {
+        "all": "Tümü",
+        "error": "Hata",
+        "warning": "Uyarı",
+        "info": "Bilgi",
+        "debug": "Hata ayıklama"
+      },
+      "fields": {
+        "query": "Tüm metinde ara",
+        "ip": "IP",
+        "country": "Ülke",
+        "user": "Kullanıcı",
+        "host": "Ana makine",
+        "inbound": "Gelen",
+        "protocol": "Protokol",
+        "status": "Durum veya mesaj"
+      },
+      "kinds": {
+        "access": "Erişim günlüğü",
+        "error": "Hata günlüğü"
+      },
+      "cards": {
+        "lines": "Satırlar",
+        "errors": "Hatalar",
+        "warnings": "Uyarılar",
+        "uniqueIps": "Benzersiz IP",
+        "uniqueUsers": "Benzersiz kullanıcı",
+        "range": "Kapsanan süre"
+      },
+      "charts": {
+        "volume": "Zamana göre günlük hacmi",
+        "problems": "Zamana göre hatalar ve uyarılar",
+        "topIps": "En çok görülen IP’ler",
+        "topUsers": "En çok görülen kullanıcılar",
+        "topHosts": "En çok görülen ana makineler",
+        "topErrorCategories": "Kategoriye göre hatalar ve uyarılar",
+        "topProtocols": "En çok görülen protokoller",
+        "topInbounds": "En çok görülen gelenler",
+        "topStatuses": "En çok görülen durumlar",
+        "countries": "Ülkeye göre istekler"
+      },
+      "columns": {
+        "time": "Zaman",
+        "message": "Mesaj"
+      },
+      "geoMissing": "geoip.dat, Xray klasöründe bulunamadığı için ülke verileri kullanılamıyor. Haritayı görmek için geo dosyalarını güncelleyin.",
+      "geoNote": "Konum, bu sunucudaki geoip.dat ile belirlenir, bu nedenle IP adresleri hiçbir yere gönderilmez. Harita verisi: Natural Earth.",
+      "geoUnlocated": "{count} satırda özel veya maskelenmiş IP gibi ülkesi olmayan bir adres var."
     },
     "sponsors": {
       "title": "Sponsorlar",

@@ -423,42 +423,50 @@ func domainKind(payload []byte) string {
 // field means /0 — a default route, which a hand-built ext: database may well
 // contain — and must not be read as "no prefix given".
 func cidrBytes(payload []byte) ([]byte, bool, error) {
+	prefix, ok, err := parseCIDR(payload)
+	if err != nil || !ok {
+		return nil, false, err
+	}
+	return []byte(prefix.String()), true, nil
+}
+
+func parseCIDR(payload []byte) (netip.Prefix, bool, error) {
 	var address []byte
 	prefix := uint64(0)
 	for len(payload) > 0 {
 		number, wireType, consumed := protowire.ConsumeTag(payload)
 		if consumed < 0 {
-			return nil, false, protowire.ParseError(consumed)
+			return netip.Prefix{}, false, protowire.ParseError(consumed)
 		}
 		payload = payload[consumed:]
 		switch {
 		case number == fieldCIDRAddress && wireType == protowire.BytesType:
 			raw, size := protowire.ConsumeBytes(payload)
 			if size < 0 {
-				return nil, false, protowire.ParseError(size)
+				return netip.Prefix{}, false, protowire.ParseError(size)
 			}
 			address = raw
 			payload = payload[size:]
 		case number == fieldCIDRPrefixLen && wireType == protowire.VarintType:
 			raw, size := protowire.ConsumeVarint(payload)
 			if size < 0 {
-				return nil, false, protowire.ParseError(size)
+				return netip.Prefix{}, false, protowire.ParseError(size)
 			}
 			prefix = raw
 			payload = payload[size:]
 		default:
 			size := protowire.ConsumeFieldValue(number, wireType, payload)
 			if size < 0 {
-				return nil, false, protowire.ParseError(size)
+				return netip.Prefix{}, false, protowire.ParseError(size)
 			}
 			payload = payload[size:]
 		}
 	}
 	addr, ok := netip.AddrFromSlice(address)
 	if !ok || prefix > uint64(addr.BitLen()) {
-		return nil, false, nil
+		return netip.Prefix{}, false, nil
 	}
-	return []byte(netip.PrefixFrom(addr, int(prefix)).String()), true, nil
+	return netip.PrefixFrom(addr, int(prefix)), true, nil
 }
 
 // mergeAttributes always returns a non-nil slice: the JSON contract declares

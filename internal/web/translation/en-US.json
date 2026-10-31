@@ -114,6 +114,7 @@
     "groups": "Groups",
     "nodes": "Nodes",
     "hosts": "Hosts",
+    "logs": "Logs",
     "settings": "Panel Settings",
     "xray": "Xray Configs",
     "routing": "Routing",
@@ -2493,6 +2494,89 @@
       "routingScript": "Routing Script",
       "routingScriptDesc": "Path to a .lua file defining HandleRoute, absolute or relative to the Xray bin folder. The script then picks every route and Xray ignores all routing rules, the panel's api rule included: send the api inbound to the api outbound or traffic stats and live client changes stop. Xray will not start if the file is missing or invalid.",
       "routingScriptActive": "A routing script is set under {section}, so Xray ignores these rules."
+    },
+    "logs": {
+      "file": "Log file",
+      "timeRange": "Time range",
+      "level": "Level",
+      "autoRefresh": "Auto refresh",
+      "autoRefreshOff": "Auto refresh off",
+      "autoRefreshEvery": "Every {seconds}s",
+      "outbound": "Outbound",
+      "truncated": "Line shortened",
+      "noMatches": "No log lines match these filters",
+      "noFiles": "No log files found",
+      "noFilesHint": "Logs appear here once files are written to this folder:",
+      "uncategorized": "Uncategorized",
+      "noTimestamps": "No timestamps",
+      "clickHint": "Click a chart point or a list row to filter by it.",
+      "scanStopped": "Stopped after analysing {scanned}: the rest of this file is not included.",
+      "readBudget": "Searched {scanned} without filling this page. Older lines may still match: load older lines to keep searching.",
+      "lineCap": "Showing the newest {count} lines. Narrow the filters to reach older ones.",
+      "loadOlder": "Load older lines",
+      "externalTitle": "Some Xray logs are outside the log folder",
+      "externalDesc": "This page only reads the log folder, so these logs are not shown. To include one, change its path in the log section of the Xray configuration:",
+      "tabs": {
+        "overview": "Overview",
+        "raw": "Raw logs"
+      },
+      "ranges": {
+        "all": "Whole file",
+        "15m": "Last 15 minutes",
+        "1h": "Last hour",
+        "6h": "Last 6 hours",
+        "24h": "Last 24 hours",
+        "7d": "Last 7 days",
+        "custom": "Custom range"
+      },
+      "levels": {
+        "all": "All",
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info",
+        "debug": "Debug"
+      },
+      "fields": {
+        "query": "Search all text",
+        "ip": "IP",
+        "country": "Country",
+        "user": "User",
+        "host": "Host",
+        "inbound": "Inbound",
+        "protocol": "Protocol",
+        "status": "Status or message"
+      },
+      "kinds": {
+        "access": "Access log",
+        "error": "Error log"
+      },
+      "cards": {
+        "lines": "Lines",
+        "errors": "Errors",
+        "warnings": "Warnings",
+        "uniqueIps": "Unique IPs",
+        "uniqueUsers": "Unique users",
+        "range": "Time covered"
+      },
+      "charts": {
+        "volume": "Log volume over time",
+        "problems": "Errors and warnings over time",
+        "topIps": "Top IPs",
+        "topUsers": "Top users",
+        "topHosts": "Top hosts",
+        "topErrorCategories": "Errors and warnings by category",
+        "topProtocols": "Top protocols",
+        "topInbounds": "Top inbounds",
+        "topStatuses": "Top statuses",
+        "countries": "Requests by country"
+      },
+      "columns": {
+        "time": "Time",
+        "message": "Message"
+      },
+      "geoMissing": "Country data is unavailable because geoip.dat was not found in the Xray folder. Update the geo files to see the map.",
+      "geoNote": "Located with geoip.dat on this server, so IP addresses are never sent anywhere. Map data: Natural Earth.",
+      "geoUnlocated": "{count} lines have an address with no country, such as a private or masked IP."
     },
     "sponsors": {
       "title": "Sponsors",

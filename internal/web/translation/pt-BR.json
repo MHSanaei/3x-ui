@@ -121,6 +121,7 @@
     "donate": "Doar",
     "sponsors": "Patrocinadores",
     "hosts": "Hosts",
+    "logs": "Logs",
     "docs": "Documentação",
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "Insira um único número entre 0 e 65535"
       },
       "dragToReorder": "Arraste para reordenar {name}"
+    },
+    "logs": {
+      "file": "Arquivo de log",
+      "timeRange": "Intervalo de tempo",
+      "level": "Nível",
+      "autoRefresh": "Atualização automática",
+      "autoRefreshOff": "Atualização automática desligada",
+      "autoRefreshEvery": "A cada {seconds} s",
+      "outbound": "Saída",
+      "truncated": "Linha encurtada",
+      "noMatches": "Nenhuma linha corresponde a estes filtros",
+      "noFiles": "Nenhum arquivo de log encontrado",
+      "noFilesHint": "Os logs aparecem aqui quando arquivos são gravados nesta pasta:",
+      "uncategorized": "Sem categoria",
+      "noTimestamps": "Sem carimbo de data/hora",
+      "clickHint": "Clique em um ponto do gráfico ou em uma linha da lista para filtrar por ele.",
+      "scanStopped": "A análise parou após {scanned}: o restante deste arquivo não está incluído.",
+      "readBudget": "Foram pesquisados {scanned} sem preencher esta página. Linhas mais antigas ainda podem corresponder: carregue linhas mais antigas para continuar pesquisando.",
+      "lineCap": "Exibindo as {count} linhas mais recentes. Restrinja os filtros para alcançar as mais antigas.",
+      "loadOlder": "Carregar linhas mais antigas",
+      "externalTitle": "Alguns logs do Xray estão fora da pasta de logs",
+      "externalDesc": "Esta página lê apenas a pasta de logs, portanto estes logs não são exibidos. Para incluir um deles, altere o caminho na seção log da configuração do Xray:",
+      "tabs": {
+        "overview": "Visão geral",
+        "raw": "Logs brutos"
+      },
+      "ranges": {
+        "all": "Arquivo inteiro",
+        "15m": "Últimos 15 minutos",
+        "1h": "Última hora",
+        "6h": "Últimas 6 horas",
+        "24h": "Últimas 24 horas",
+        "7d": "Últimos 7 dias",
+        "custom": "Intervalo personalizado"
+      },
+      "levels": {
+        "all": "Todos",
+        "error": "Erro",
+        "warning": "Aviso",
+        "info": "Informação",
+        "debug": "Depuração"
+      },
+      "fields": {
+        "query": "Pesquisar em todo o texto",
+        "ip": "IP",
+        "country": "País",
+        "user": "Usuário",
+        "host": "Host",
+        "inbound": "Entrada",
+        "protocol": "Protocolo",
+        "status": "Status ou mensagem"
+      },
+      "kinds": {
+        "access": "Log de acesso",
+        "error": "Log de erros"
+      },
+      "cards": {
+        "lines": "Linhas",
+        "errors": "Erros",
+        "warnings": "Avisos",
+        "uniqueIps": "IPs únicos",
+        "uniqueUsers": "Usuários únicos",
+        "range": "Período coberto"
+      },
+      "charts": {
+        "volume": "Volume de logs ao longo do tempo",
+        "problems": "Erros e avisos ao longo do tempo",
+        "topIps": "Principais IPs",
+        "topUsers": "Principais usuários",
+        "topHosts": "Principais hosts",
+        "topErrorCategories": "Erros e avisos por categoria",
+        "topProtocols": "Principais protocolos",
+        "topInbounds": "Principais entradas",
+        "topStatuses": "Principais status",
+        "countries": "Solicitações por país"
+      },
+      "columns": {
+        "time": "Hora",
+        "message": "Mensagem"
+      },
+      "geoMissing": "Os dados de países não estão disponíveis porque geoip.dat não foi encontrado na pasta do Xray. Atualize os arquivos geo para ver o mapa.",
+      "geoNote": "Localizado com geoip.dat neste servidor, portanto os endereços IP nunca são enviados a lugar algum. Dados do mapa: Natural Earth.",
+      "geoUnlocated": "{count} linhas têm um endereço sem país, como um IP privado ou mascarado."
     },
     "sponsors": {
       "title": "Patrocinadores",

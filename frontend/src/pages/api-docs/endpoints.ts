@@ -196,6 +196,68 @@ const hwidStatusErrorResponses = {
   '500': { description: 'Database lookup failed. Empty body.' },
 };
 
+const LOG_QUERY_PARAMS: EndpointParam[] = [
+  {
+    name: 'file',
+    in: 'query',
+    type: 'string',
+    desc: 'File name from /panel/api/logs/files, for example 3xui.log.',
+  },
+  {
+    name: 'query',
+    in: 'query',
+    type: 'string',
+    desc: 'Free text matched against the whole raw line.',
+    optional: true,
+  },
+  { name: 'ip', in: 'query', type: 'string', desc: 'Client IP contains.', optional: true },
+  {
+    name: 'country',
+    in: 'query',
+    type: 'string',
+    desc: 'Country code of the client IP, from the local geoip.dat, for example DE.',
+    optional: true,
+  },
+  { name: 'user', in: 'query', type: 'string', desc: 'User or email contains.', optional: true },
+  { name: 'host', in: 'query', type: 'string', desc: 'Host or domain contains.', optional: true },
+  { name: 'inbound', in: 'query', type: 'string', desc: 'Inbound tag contains.', optional: true },
+  {
+    name: 'protocol',
+    in: 'query',
+    type: 'string',
+    desc: 'Protocol or network contains.',
+    optional: true,
+  },
+  {
+    name: 'status',
+    in: 'query',
+    type: 'string',
+    desc: 'Status or message text contains.',
+    optional: true,
+  },
+  {
+    name: 'levels',
+    in: 'query',
+    type: 'string',
+    desc: 'Comma-separated levels: error, warning, info, debug, unknown.',
+    optional: true,
+  },
+  {
+    name: 'since',
+    in: 'query',
+    type: 'integer',
+    desc: 'Inclusive start, Unix milliseconds. Lines without a timestamp are excluded.',
+    optional: true,
+  },
+  {
+    name: 'until',
+    in: 'query',
+    type: 'integer',
+    desc: 'Inclusive end, Unix milliseconds. Lines without a timestamp are excluded.',
+    optional: true,
+  },
+];
+
 export const sections: readonly Section[] = [
   {
     id: 'authentication',
@@ -1935,6 +1997,57 @@ export const sections: readonly Section[] = [
     ],
   },
 
+  {
+    id: 'logs',
+    title: 'Logs',
+    description:
+      'Read-only access to the log files in XUI_LOG_FOLDER. Only regular files named like *.log, *.log.N or *.log.gz are served; symlinks and anything outside the folder are refused. Admin tokens only.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/logs/files',
+        summary:
+          'List the readable log files, most recently written first, and any Xray log configured to a path outside the folder.',
+        responseSchema: 'LogFileList',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/logs/read',
+        summary: 'Return one newest-first page of the lines matching a filter.',
+        description:
+          'Each request scans at most 64 MiB. A page can come back short with budgetExhausted set; pass nextCursor back to continue the search. nextCursor is 0 once nothing older remains.',
+        params: [
+          ...LOG_QUERY_PARAMS,
+          {
+            name: 'limit',
+            in: 'query',
+            type: 'integer',
+            desc: 'Lines per page, 1-1000.',
+            optional: true,
+            defaultValue: 200,
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            type: 'integer',
+            desc: 'nextCursor of the previous page; omit for the newest lines.',
+            optional: true,
+          },
+        ],
+        responseSchema: 'LogPage',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/logs/stats',
+        summary:
+          'Aggregate the lines matching a filter: level counts, a volume timeline and top lists.',
+        description:
+          'Scans at most 64 MiB, newest lines first (for .gz files, 64 MiB of decompressed data from the start), and sets budgetExhausted when part of the file was left out.',
+        params: LOG_QUERY_PARAMS,
+        responseSchema: 'LogStats',
+      },
+    ],
+  },
   {
     id: 'backup',
     title: 'Backup',

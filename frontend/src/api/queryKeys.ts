@@ -4,6 +4,12 @@ export const keys = {
     status: () => ['server', 'status'] as const,
     fail2banStatus: () => ['server', 'fail2banStatus'] as const,
   },
+  logs: {
+    root: () => ['logs'] as const,
+    files: () => ['logs', 'files'] as const,
+    lines: (file: string | null, filters: unknown) => ['logs', 'lines', file, filters] as const,
+    stats: (file: string | null, filters: unknown) => ['logs', 'stats', file, filters] as const,
+  },
   nodes: {
     root: () => ['nodes'] as const,
     list: () => ['nodes', 'list'] as const,

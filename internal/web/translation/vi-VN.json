@@ -121,6 +121,7 @@
     "donate": "Quyên góp",
     "sponsors": "Nhà tài trợ",
     "hosts": "Hosts",
+    "logs": "Nhật ký",
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
       },
       "dragToReorder": "Kéo để sắp xếp lại {name}"
+    },
+    "logs": {
+      "file": "Tệp nhật ký",
+      "timeRange": "Khoảng thời gian",
+      "level": "Mức",
+      "autoRefresh": "Tự động làm mới",
+      "autoRefreshOff": "Tắt tự động làm mới",
+      "autoRefreshEvery": "Mỗi {seconds} giây",
+      "outbound": "Đầu ra",
+      "truncated": "Dòng đã bị rút gọn",
+      "noMatches": "Không có dòng nào khớp với các bộ lọc này",
+      "noFiles": "Không tìm thấy tệp nhật ký",
+      "noFilesHint": "Nhật ký sẽ xuất hiện ở đây khi có tệp được ghi vào thư mục này:",
+      "uncategorized": "Chưa phân loại",
+      "noTimestamps": "Không có dấu thời gian",
+      "clickHint": "Nhấp vào một điểm trên biểu đồ hoặc một hàng trong danh sách để lọc theo đó.",
+      "scanStopped": "Đã dừng phân tích sau {scanned}: phần còn lại của tệp này không được tính.",
+      "readBudget": "Đã tìm trong {scanned} mà chưa đầy trang này. Các dòng cũ hơn vẫn có thể khớp: hãy tải dòng cũ hơn để tiếp tục tìm.",
+      "lineCap": "Đang hiển thị {count} dòng mới nhất. Thu hẹp bộ lọc để xem các dòng cũ hơn.",
+      "loadOlder": "Tải dòng cũ hơn",
+      "externalTitle": "Một số nhật ký Xray nằm ngoài thư mục nhật ký",
+      "externalDesc": "Trang này chỉ đọc thư mục nhật ký nên các nhật ký này không được hiển thị. Để thêm, hãy đổi đường dẫn trong phần log của cấu hình Xray:",
+      "tabs": {
+        "overview": "Tổng quan",
+        "raw": "Nhật ký thô"
+      },
+      "ranges": {
+        "all": "Toàn bộ tệp",
+        "15m": "15 phút qua",
+        "1h": "1 giờ qua",
+        "6h": "6 giờ qua",
+        "24h": "24 giờ qua",
+        "7d": "7 ngày qua",
+        "custom": "Khoảng tùy chỉnh"
+      },
+      "levels": {
+        "all": "Tất cả",
+        "error": "Lỗi",
+        "warning": "Cảnh báo",
+        "info": "Thông tin",
+        "debug": "Gỡ lỗi"
+      },
+      "fields": {
+        "query": "Tìm trong toàn bộ văn bản",
+        "ip": "IP",
+        "country": "Quốc gia",
+        "user": "Người dùng",
+        "host": "Máy chủ",
+        "inbound": "Đầu vào",
+        "protocol": "Giao thức",
+        "status": "Trạng thái hoặc thông báo"
+      },
+      "kinds": {
+        "access": "Nhật ký truy cập",
+        "error": "Nhật ký lỗi"
+      },
+      "cards": {
+        "lines": "Số dòng",
+        "errors": "Lỗi",
+        "warnings": "Cảnh báo",
+        "uniqueIps": "IP duy nhất",
+        "uniqueUsers": "Người dùng duy nhất",
+        "range": "Thời gian bao phủ"
+      },
+      "charts": {
+        "volume": "Khối lượng nhật ký theo thời gian",
+        "problems": "Lỗi và cảnh báo theo thời gian",
+        "topIps": "IP hàng đầu",
+        "topUsers": "Người dùng hàng đầu",
+        "topHosts": "Máy chủ hàng đầu",
+        "topErrorCategories": "Lỗi và cảnh báo theo danh mục",
+        "topProtocols": "Giao thức hàng đầu",
+        "topInbounds": "Đầu vào hàng đầu",
+        "topStatuses": "Trạng thái hàng đầu",
+        "countries": "Yêu cầu theo quốc gia"
+      },
+      "columns": {
+        "time": "Thời gian",
+        "message": "Thông báo"
+      },
+      "geoMissing": "Không có dữ liệu quốc gia vì không tìm thấy geoip.dat trong thư mục Xray. Hãy cập nhật các tệp geo để xem bản đồ.",
+      "geoNote": "Xác định vị trí bằng geoip.dat trên máy chủ này nên địa chỉ IP không bao giờ được gửi đi đâu. Dữ liệu bản đồ: Natural Earth.",
+      "geoUnlocated": "{count} dòng có địa chỉ không thuộc quốc gia nào, như IP riêng hoặc IP bị che."
     },
     "sponsors": {
       "title": "Nhà tài trợ",
