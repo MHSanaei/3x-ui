@@ -477,3 +477,116 @@ primed:
 		t.Errorf("read on the relayed connection after its forward was withdrawn = %v, want io.EOF", err)
 	}
 }
+
+// leavePortForwardSlots fills slots until only free remain, so a test hits the
+// ceiling with a handful of flows; returns how many it holds (cleanup releases).
+func leavePortForwardSlots(t *testing.T, slots chan struct{}, free int) int {
+	t.Helper()
+	held := 0
+	for acquirePortForwardSlot(slots) {
+		held++
+	}
+	for range free {
+		<-slots
+		held--
+	}
+	t.Cleanup(func() {
+		for range held {
+			<-slots
+		}
+	})
+	return held
+}
+
+func waitPortForwardSlots(t *testing.T, slots chan struct{}, want int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for len(slots) > want {
+		if time.Now().After(deadline) {
+			t.Fatalf("slots still taken = %d, want at most %d", len(slots), want)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestPortForwardUDPSessionsAreCapped(t *testing.T) {
+	const port = 58913
+	const free, sources = 3, 10
+	held := leavePortForwardSlots(t, portForwardUDPSlots, free)
+
+	gs := newTestStack(t, "10.211.2.1")
+	l := listenPortForwardUDP(gs, 503, portForwardKey{email: "a@x", port: port, proto: udpForward}, func(string) (netip.Addr, bool) {
+		return netip.MustParseAddr("10.211.2.2"), true
+	})
+	if l == nil {
+		t.Fatal("listenPortForwardUDP returned nil")
+	}
+	defer l.Close()
+
+	for range sources {
+		conn, err := net.Dial("udp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err != nil {
+			t.Fatalf("dial udp: %v", err)
+		}
+		defer conn.Close()
+		if _, err := conn.Write([]byte("x")); err != nil {
+			t.Fatalf("write udp: %v", err)
+		}
+	}
+
+	// Long enough for readLoop to have drained every datagram sent above.
+	most := 0
+	for settle := time.Now().Add(500 * time.Millisecond); time.Now().Before(settle); time.Sleep(10 * time.Millisecond) {
+		l.mu.Lock()
+		most = max(most, len(l.sessions))
+		l.mu.Unlock()
+	}
+	if most < free || most > portForwardMaxFlows-held {
+		t.Fatalf("sessions opened by %d sources = %d, want the %d free slots", sources, most, free)
+	}
+
+	// A slot that outlived its session would shrink the ceiling for good.
+	l.Close()
+	waitPortForwardSlots(t, portForwardUDPSlots, held)
+}
+
+func TestPortForwardTCPConnectionsAreCapped(t *testing.T) {
+	const port = 58914
+	const free, clients = 3, 10
+	held := leavePortForwardSlots(t, portForwardTCPSlots, free)
+
+	// Parks every relayed connection at its first step, holding its slot.
+	release := make(chan struct{})
+	gs := newTestStack(t, "10.211.3.1")
+	l := listenPortForwardTCP(gs, 504, portForwardKey{email: "a@x", port: port, proto: tcpForward}, func(string) (netip.Addr, bool) {
+		<-release
+		return netip.Addr{}, false
+	})
+	if l == nil {
+		t.Fatal("listenPortForwardTCP returned nil")
+	}
+	defer l.Close()
+
+	relayed := 0
+	for range clients {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second)
+		if err != nil {
+			t.Fatalf("dial tcp: %v", err)
+		}
+		defer conn.Close()
+		// A refused connection is closed at once; a relayed one stays silent.
+		_ = conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		if _, err := conn.Read(make([]byte, 1)); err != nil {
+			var nerr net.Error
+			if errors.As(err, &nerr) && nerr.Timeout() {
+				relayed++
+			}
+		}
+	}
+	if relayed < free || relayed > portForwardMaxFlows-held {
+		t.Fatalf("connections relayed out of %d = %d, want the %d free slots", clients, relayed, free)
+	}
+
+	close(release)
+	waitPortForwardSlots(t, portForwardTCPSlots, held)
+}

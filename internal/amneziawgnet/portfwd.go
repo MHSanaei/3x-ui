@@ -270,6 +270,28 @@ func openPortForwardListener(gstack *stack.Stack, inboundID int, key portForward
 
 const portForwardDialTimeout = 10 * time.Second
 
+// portForwardMaxFlows caps live TCP relays, and separately UDP sessions, over every
+// listener: senders are unauthenticated, and each flow pins a goroutine and a buffer.
+const portForwardMaxFlows = 2048
+
+// Process-wide on purpose: a per-listener cap still multiplies by the forwarded ports
+// and by the number of forwarding peers.
+var (
+	portForwardTCPSlots = make(chan struct{}, portForwardMaxFlows)
+	portForwardUDPSlots = make(chan struct{}, portForwardMaxFlows)
+)
+
+// acquirePortForwardSlot never blocks the accept or read loop; false means the flow is
+// refused. The owner gives the slot back by receiving from slots.
+func acquirePortForwardSlot(slots chan struct{}) bool {
+	select {
+	case slots <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
+
 // acceptRetryDelay paces an accept loop's retries, so an error that lasts
 // (EMFILE, until descriptors free up) neither spins it nor floods the log.
 const acceptRetryDelay = 100 * time.Millisecond
@@ -349,7 +371,14 @@ func (l *tcpForwardListener) acceptLoop(gstack *stack.Stack, inboundID int, key 
 			}
 			continue
 		}
-		go l.relayTCPForward(gstack, conn, inboundID, key, target)
+		if !acquirePortForwardSlot(portForwardTCPSlots) {
+			conn.Close()
+			continue
+		}
+		go func() {
+			defer func() { <-portForwardTCPSlots }()
+			l.relayTCPForward(gstack, conn, inboundID, key, target)
+		}()
 	}
 }
 
