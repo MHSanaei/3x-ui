@@ -161,7 +161,7 @@ func TestSocksRelayAgainstRealXray(t *testing.T) {
 	udpRelay := NewUDPRelay(relay, dev.Stack)
 	defer udpRelay.Close()
 
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		peer, ok := idx.Lookup(src.Addr().Unmap())
 		if !ok {
 			conn.Close()

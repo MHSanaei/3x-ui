@@ -77,7 +77,7 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 	// Registering the forwarder doesn't require any peer to be configured
 	// yet, so this ordering is free; it's Configure's IpcSet that must
 	// never run before the forwarder is registered.
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _, _ netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, _, _ netip.AddrPort) {
 		defer conn.Close()
 		io.Copy(io.Discard, conn)
 	})

@@ -65,7 +65,7 @@ func TestTCPForwarderHandsOverSourceOfAnAlreadyResetConnection(t *testing.T) {
 	}
 	accepted, resetSent := make(chan struct{}), make(chan struct{})
 	got := make(chan handedOver, 1)
-	AttachTCPForwarder(gstack, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
+	AttachTCPForwarder(gstack, ownerBySource, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		defer conn.Close()
 		close(accepted)
 		<-resetSent
@@ -106,5 +106,57 @@ func TestTCPForwarderHandsOverSourceOfAnAlreadyResetConnection(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("handler never saw the reset")
+	}
+}
+
+// ownerBySource counts every tunnel source address as a peer of its own.
+func ownerBySource(src netip.Addr) (string, bool) {
+	return src.String(), true
+}
+
+// The forwarder's in-flight limit is shared by the interface, so one peer's bare SYNs used
+// to take every slot and leave the other clients' connections unanswered.
+func TestTCPForwarderPeerCannotStarveOthers(t *testing.T) {
+	tun, gstack, err := createNetTUNWithStack([]netip.Addr{netip.MustParseAddr("10.8.1.1")}, 1420)
+	if err != nil {
+		t.Fatalf("createNetTUNWithStack: %v", err)
+	}
+	defer tun.Close()
+
+	flooderRange := netip.MustParsePrefix("10.8.2.0/24")
+	AttachTCPForwarder(gstack, func(src netip.Addr) (string, bool) {
+		if flooderRange.Contains(src) {
+			return "flooder", true
+		}
+		return "other", true
+	}, func(conn *gonet.TCPConn, _, _ netip.AddrPort) { conn.Close() })
+
+	other := netip.MustParseAddrPort("10.8.1.3:40000")
+	answered := make(chan struct{})
+	go func() {
+		bufs, sizes := [][]byte{make([]byte, 2048)}, []int{0}
+		for {
+			if _, err := tun.Read(bufs, sizes, 0); err != nil {
+				return
+			}
+			reply := header.IPv4(bufs[0][:sizes[0]])
+			seg := header.TCP(reply.Payload())
+			if reply.DestinationAddress() == tcpip.AddrFrom4(other.Addr().As4()) && seg.Flags() == header.TCPFlagSyn|header.TCPFlagAck {
+				close(answered)
+				return
+			}
+		}
+	}()
+
+	dst := netip.MustParseAddrPort("10.8.1.1:80")
+	for n := range 70000 {
+		src := netip.AddrPortFrom(netip.AddrFrom4([4]byte{10, 8, 2, byte(n)}), uint16(1024+n/256))
+		injectFromPeer(t, tun, rawTCPSegment(src, dst, 1000, 0, header.TCPFlagSyn))
+	}
+	injectFromPeer(t, tun, rawTCPSegment(other, dst, 1000, 0, header.TCPFlagSyn))
+	select {
+	case <-answered:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("no SYN-ACK for %s; dropped at the in-flight limit: %d", other, gstack.Stats().TCP.ForwardMaxInFlightDrop.Value())
 	}
 }

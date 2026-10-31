@@ -62,6 +62,11 @@ func (m *managed) lookupPeer(addr netip.Addr) (amneziawg.Peer, bool) {
 	return peers.Lookup(addr)
 }
 
+func (m *managed) peerEmail(addr netip.Addr) (string, bool) {
+	peer, ok := m.lookupPeer(addr)
+	return peer.Email, ok
+}
+
 func (m *managed) handleUDP(src, dst netip.AddrPort, payload []byte) {
 	peer, ok := m.lookupPeer(src.Addr())
 	if !ok {
@@ -227,7 +232,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		structFP:     structFP,
 	}
 	next.peers.Store(NewPeerIndex(inst.Peers))
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, next.peerEmail, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		// Reload for every connection: in-place reconfiguration swaps the peer
 		// index without reattaching handlers and may hold the lifecycle lock.
 		peer, ok := next.lookupPeer(src.Addr().Unmap())
