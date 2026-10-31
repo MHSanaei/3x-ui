@@ -2281,7 +2281,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				}
 				if runtimeInbound != nil && running.Enable {
 					// Unbuildable means unknown running state: the rebuild below covers it.
-					runningInbound, _ = s.buildInboundForLocalRuntime(tx, &running)
+					runningInbound, _ = s.buildRunningInbound(tx, &running)
 				}
 				postCommitApply = func() {
 					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
@@ -2438,6 +2438,16 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 // Strips disabled clients on top of the node payload. Safe only because the
 // target here is an in-memory Xray/mtg config, not another panel's database.
 func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	return s.stripDisabledClients(tx, inbound, true)
+}
+
+// The stored row as its handler holds it: its own enable flags only. A stats row
+// is shared by every inbound of the client and already holds what this push stored.
+func (s *InboundService) buildRunningInbound(tx *gorm.DB, stored *model.Inbound) (*model.Inbound, error) {
+	return s.stripDisabledClients(tx, stored, false)
+}
+
+func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inbound, byStatsRow bool) (*model.Inbound, error) {
 	built, err := s.buildInboundForNodePush(tx, inbound)
 	if err != nil {
 		return nil, err
@@ -2459,9 +2469,11 @@ func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model
 			emails = append(emails, email)
 		}
 	}
-	disabled, err := trafficDisabledEmails(tx, emails)
-	if err != nil {
-		return nil, err
+	var disabled map[string]struct{}
+	if byStatsRow {
+		if disabled, err = trafficDisabledEmails(tx, emails); err != nil {
+			return nil, err
+		}
 	}
 
 	trafficIDs := make(map[string]int)

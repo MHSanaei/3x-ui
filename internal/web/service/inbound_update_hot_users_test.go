@@ -133,6 +133,10 @@ func TestNodeInboundPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
 			if err := (&ClientService{}).SyncInbound(nil, stored.Id, tc.stored); err != nil {
 				t.Fatalf("SyncInbound: %v", err)
 			}
+			// Every client the API creates has a stats row, and the push rewrites its flag.
+			for _, c := range tc.stored {
+				mkTraffic(t, stored.Id, c.Email, 0, 0, 0, 0, c.Enable)
+			}
 			if tc.enabling {
 				if err := database.GetDB().Model(stored).Update("enable", false).Error; err != nil {
 					t.Fatalf("disable stored inbound: %v", err)
@@ -154,6 +158,43 @@ func TestNodeInboundPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
 				t.Fatal("needRestart = true, want the push applied without restarting the core")
 			}
 		})
+	}
+}
+
+// A client's stats row is shared by all its inbounds, so the push for the first one
+// has switched it off by the time the second arrives: that handler holds the user still.
+func TestNodeInboundPushDisablingASharedClientRemovesItFromEveryHandler(t *testing.T) {
+	const (
+		idA = "5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a301"
+		idB = "5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a302"
+	)
+	active := []model.Client{hotUsersClient("a", idA, true), hotUsersClient("b", idB, true)}
+	bDisabled := []model.Client{hotUsersClient("a", idA, true), hotUsersClient("b", idB, false)}
+
+	setupConflictDB(t)
+	probe := &inboundOpsProbe{}
+	useTestRuntimeManager(t).SetLocalRuntimeOverride(probe)
+
+	tags := []string{"hot-users-1", "hot-users-2"}
+	for i, tag := range tags {
+		seedInboundConflict(t, tag, "0.0.0.0", 50081+i, model.VLESS, `{"network":"tcp"}`, clientsSettings(t, active))
+		if err := (&ClientService{}).SyncInbound(nil, loadInboundByTag(t, tag).Id, active); err != nil {
+			t.Fatalf("SyncInbound %s: %v", tag, err)
+		}
+	}
+	for _, c := range active {
+		mkTraffic(t, loadInboundByTag(t, tags[0]).Id, c.Email, 0, 0, 0, 0, true)
+	}
+
+	for _, tag := range tags {
+		pushed := *loadInboundByTag(t, tag)
+		pushed.Settings = clientsSettings(t, bDisabled)
+		if _, _, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&pushed); err != nil {
+			t.Fatalf("UpdateInbound %s: %v", tag, err)
+		}
+	}
+	if got, want := probe.recorded(), []string{"remove-user b", "remove-user b"}; !slices.Equal(got, want) {
+		t.Fatalf("core operations = %q, want %q", got, want)
 	}
 }
 
