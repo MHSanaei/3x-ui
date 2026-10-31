@@ -2508,6 +2508,9 @@ func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inboun
 		finalClients = append(finalClients, c)
 	}
 	settings["clients"] = finalClients
+	if inbound.Protocol == model.Shadowsocks {
+		xray.LockShadowsocks2022(settings)
+	}
 
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {

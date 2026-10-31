@@ -329,6 +329,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if mutated {
 				settings["clients"] = finalClients
 			}
+			if inbound.Protocol == model.Shadowsocks && xray.LockShadowsocks2022(settings) {
+				mutated = true
+			}
 		}
 
 		if inboundCanHostFallbacks(inbound) {
