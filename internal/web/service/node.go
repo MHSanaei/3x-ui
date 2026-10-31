@@ -90,6 +90,8 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 			DialContext:     netsafe.SSRFGuardedDialContext,
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
 		},
+		// The pin must be the certificate of the host asked, not of wherever it redirects.
+		CheckRedirect: runtime.NoCrossHostRedirect,
 	}
 	defer client.CloseIdleConnections()
 	resp, err := client.Do(req)

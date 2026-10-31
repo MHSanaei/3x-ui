@@ -662,3 +662,34 @@ func TestDecodeCertPin(t *testing.T) {
 		})
 	}
 }
+
+// The master presents the same credentials to every node; a node's redirect must not
+// carry a request (a push, the mTLS certificate) to another host.
+func TestNodeClientsDoNotFollowARedirectToAnotherHost(t *testing.T) {
+	var otherHit atomic.Int32
+	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { otherHit.Add(1) }))
+	defer other.Close()
+	hostile := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/panel/api/inbounds/update/1", http.StatusTemporaryRedirect)
+	}))
+	defer hostile.Close()
+	u, _ := url.Parse(hostile.URL)
+	port, _ := strconv.Atoi(u.Port())
+	for _, node := range []*model.Node{
+		{Id: 41, Address: u.Hostname(), Port: port, Scheme: "https", TlsVerifyMode: "skip", AllowPrivateAddress: true},
+		{Id: 42, Address: u.Hostname(), Port: port, Scheme: "http", AllowPrivateAddress: true},
+	} {
+		client, err := HTTPClientForNode(node, "")
+		if err != nil {
+			t.Fatalf("HTTPClientForNode: %v", err)
+		}
+		req, _ := http.NewRequestWithContext(netsafe.ContextWithAllowPrivate(context.Background(), true),
+			http.MethodPost, hostile.URL+"/panel/api/inbounds/list", strings.NewReader("{}"))
+		if resp, err := client.Do(req); err == nil {
+			_ = resp.Body.Close()
+		}
+	}
+	if otherHit.Load() != 0 {
+		t.Fatalf("a node's redirect reached another host %d time(s)", otherHit.Load())
+	}
+}
