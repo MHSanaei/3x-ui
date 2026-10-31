@@ -38,10 +38,12 @@ type Server struct {
 	users *UserRegistry
 	relay *SocksRelay
 
-	tlsConfig    *tls.Config
-	quicConfig   *quic.Config
-	quicListener *quic.Listener
-	packetConn   net.PacketConn
+	tlsConfig     *tls.Config
+	quicConfig    *quic.Config
+	quicListener  *quic.Listener
+	quicTransport *quic.Transport
+	pending       pendingConns
+	packetConn    net.PacketConn
 
 	lastOnline  sync.Map // email string -> time.Time
 	logThrottle sync.Map // event name -> *atomic.Int64 timestamp
@@ -146,12 +148,21 @@ func (s *Server) Start() error {
 	}
 	s.packetConn = pConn
 
-	ln, err := quic.Listen(pConn, s.tlsConfig, s.quicConfig)
+	transport := &quic.Transport{
+		Conn:                pConn,
+		VerifySourceAddress: s.pending.needsRetry,
+		ConnContext: func(ctx context.Context, info *quic.ClientInfo) (context.Context, error) {
+			return s.pending.admit(ctx, connInfo{remote: info.RemoteAddr, addressVerified: info.AddrVerified})
+		},
+	}
+	ln, err := transport.Listen(s.tlsConfig, s.quicConfig)
 	if err != nil {
+		_ = transport.Close()
 		_ = pConn.Close()
 		return fmt.Errorf("tuic: quic listen on %s: %w", s.listenAddr, err)
 	}
 	s.quicListener = ln
+	s.quicTransport = transport
 	s.running.Store(true)
 	s.logf(tuicLogInfo, "listener started on %s", s.listenAddr)
 
@@ -391,6 +402,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			authUser.Store(user)
 			s.markActive(user.Email)
 			authTimer.Stop()
+			releasePendingSlot(conn.Context())
 			s.logf(tuicLogInfo, "client authenticated")
 			authOnce.Do(func() { close(authSignal) })
 			return true
@@ -430,6 +442,19 @@ func (s *Server) handleConn(conn *quic.Conn) {
 	defer cleanup()
 
 	var innerWg sync.WaitGroup
+	// Before authentication each stream kind may start only a few handlers; a peer that never
+	// authenticates would otherwise get a goroutine per stream it opens.
+	var preAuthUni, preAuthBi atomic.Int32
+	preAuthSlot := func(count *atomic.Int32) (release func(), ok bool) {
+		if authState.Load() == 1 {
+			return func() {}, true
+		}
+		if count.Add(1) > maxPreAuthStreams {
+			count.Add(-1)
+			return nil, false
+		}
+		return func() { count.Add(-1) }, true
+	}
 	// Loop 1: Unidirectional streams
 	innerWg.Add(1)
 	go func() {
@@ -439,9 +464,15 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			if err != nil {
 				return
 			}
+			release, ok := preAuthSlot(&preAuthUni)
+			if !ok {
+				uniStream.CancelRead(0x100)
+				continue
+			}
 			innerWg.Add(1)
 			go func(stream *quic.ReceiveStream) {
 				defer innerWg.Done()
+				defer release()
 				s.handleUniStream(sessCtx, conn, stream, authenticate, waitForAuth, udpAssociations, &relayWg)
 			}(uniStream)
 		}
@@ -456,9 +487,16 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			if err != nil {
 				return
 			}
+			release, ok := preAuthSlot(&preAuthBi)
+			if !ok {
+				biStream.CancelRead(0x100)
+				biStream.CancelWrite(0x100)
+				continue
+			}
 			innerWg.Add(1)
 			go func(stream *quic.Stream) {
 				defer innerWg.Done()
+				defer release()
 				s.handleBiStream(sessCtx, conn, stream, authenticate, waitForAuth)
 			}(biStream)
 		}
@@ -1031,6 +1069,9 @@ func (s *Server) Close() error {
 	var err error
 	if s.quicListener != nil {
 		err = s.quicListener.Close()
+	}
+	if s.quicTransport != nil {
+		_ = s.quicTransport.Close()
 	}
 	if s.packetConn != nil {
 		_ = s.packetConn.Close()
