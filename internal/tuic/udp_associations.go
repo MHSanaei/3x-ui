@@ -14,6 +14,8 @@ const (
 
 var errUdpAssociationClosed = errors.New("tuic: UDP association is closed")
 
+var errUserUdpRelayBudget = errors.New("tuic: the client has too many open UDP relays")
+
 type udpAssociation struct {
 	responseTransport uint8
 	relay             *udpRelaySession
@@ -98,10 +100,16 @@ func (r *udpAssociationRegistry) ensureRelay(ctx context.Context, assocID uint16
 	}
 	r.mu.Unlock()
 
+	if user.udpRelays.Add(1) > maxUserUdpRelays {
+		user.udpRelays.Add(-1)
+		return nil, false, errUserUdpRelayBudget
+	}
 	socksSession, err := relay.DialUDP(ctx, user.Email)
 	if err != nil {
+		user.udpRelays.Add(-1)
 		return nil, false, err
 	}
+	socksSession.onClose = func() { user.udpRelays.Add(-1) }
 
 	r.mu.Lock()
 	defer r.mu.Unlock()

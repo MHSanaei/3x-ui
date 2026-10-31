@@ -196,14 +196,18 @@ func (s *Server) applyCongestionControl(conn *quic.Conn) {
 	}
 }
 
-func (s *Server) registerConn(user *User, conn *quic.Conn) {
+func (s *Server) registerConn(user *User, conn *quic.Conn) bool {
 	s.activeConnsMu.Lock()
 	defer s.activeConnsMu.Unlock()
+	if user.sessions.Load() >= maxUserSessions {
+		return false
+	}
 	if s.activeConns[user.UUID] == nil {
 		s.activeConns[user.UUID] = make(map[*quic.Conn]*User)
 	}
 	s.activeConns[user.UUID][conn] = user
 	user.sessions.Add(1)
+	return true
 }
 
 func (s *Server) unregisterConn(user *User, conn *quic.Conn) {
@@ -379,8 +383,12 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			if !authState.CompareAndSwap(0, 1) {
 				return authState.Load() == 1 && authUser.Load() == user
 			}
+			if !s.registerConn(user, conn) {
+				authState.Store(2)
+				s.logLimited(tuicLogWarn, "tuic-sessions", 30*time.Second, "client refused: more than %d connections", maxUserSessions)
+				return false
+			}
 			authUser.Store(user)
-			s.registerConn(user, conn)
 			s.markActive(user.Email)
 			authTimer.Stop()
 			s.logf(tuicLogInfo, "client authenticated")
