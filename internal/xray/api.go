@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -54,6 +55,14 @@ var (
 	clientTrafficRegex = regexp.MustCompile(`user>>>([^>]+)>>>traffic>>>(downlink|uplink)`)
 )
 
+// statsFamilies are polled one query each: outbound counters are named after third-party
+// subscription tags, and their reply must not take the clients' counters down with it.
+var statsFamilies = []string{"user>>>", "inbound>>>", "outbound>>>"}
+
+// maxStatsReplyBytes replaces gRPC's 4 MiB receive default, which a stats reply of about
+// 45k clients reaches alone; the peer is the panel's own core on loopback.
+const maxStatsReplyBytes = 64 << 20
+
 // XrayAPI is a gRPC client for managing Xray core configuration, inbounds, outbounds, and statistics.
 type XrayAPI struct {
 	HandlerServiceClient *command.HandlerServiceClient
@@ -62,6 +71,7 @@ type XrayAPI struct {
 	grpcClient           *grpc.ClientConn
 	isConnected          bool
 	StatsLastValues      map[string]int64
+	statsBaselined       map[string]bool
 }
 
 func getRequiredUserString(user map[string]any, key string) (string, error) {
@@ -99,7 +109,10 @@ func (x *XrayAPI) Init(apiPort int) error {
 	}
 
 	addr := fmt.Sprintf("127.0.0.1:%d", apiPort)
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxStatsReplyBytes)),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to Xray API: %w", err)
 	}
@@ -108,6 +121,7 @@ func (x *XrayAPI) Init(apiPort int) error {
 	x.isConnected = true
 	if x.StatsLastValues == nil {
 		x.StatsLastValues = make(map[string]int64)
+		x.statsBaselined = make(map[string]bool, len(statsFamilies))
 	}
 
 	hsClient := command.NewHandlerServiceClient(conn)
@@ -975,41 +989,61 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 		return nil, nil, common.NewError("xray StatusServiceClient is not initialized")
 	}
 
-	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: false})
-	if err != nil {
+	tagTrafficMap := make(map[string]*Traffic)
+	emailTrafficMap := make(map[string]*ClientTraffic)
+	if x.statsBaselined == nil {
+		x.statsBaselined = make(map[string]bool, len(statsFamilies))
+	}
+
+	var live []*statsService.Stat
+	var failed []error
+	for _, family := range statsFamilies {
+		resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Pattern: family, Reset_: false})
+		if err != nil {
+			failed = append(failed, fmt.Errorf("%s: %w", family, err))
+			continue
+		}
+		baselinePass := !x.statsBaselined[family]
+		x.statsBaselined[family] = true
+		for _, stat := range resp.GetStat() {
+			// The core matches Pattern anywhere in the name; the prefix keeps it to one family.
+			if !strings.HasPrefix(stat.Name, family) {
+				continue
+			}
+			live = append(live, stat)
+			lastValue, ok := x.StatsLastValues[stat.Name]
+			x.StatsLastValues[stat.Name] = stat.Value
+			if baselinePass {
+				continue
+			}
+			if !ok || stat.Value < lastValue {
+				lastValue = 0
+			}
+			value := stat.Value - lastValue
+			if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
+				processTraffic(matches, value, tagTrafficMap)
+			} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
+				processClientTraffic(matches, value, emailTrafficMap)
+			}
+		}
+	}
+	if len(failed) == len(statsFamilies) {
+		err := errors.Join(failed...)
 		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
 	}
-
-	tagTrafficMap := make(map[string]*Traffic)
-	emailTrafficMap := make(map[string]*ClientTraffic)
-
-	baselinePass := len(x.StatsLastValues) == 0
-
-	for _, stat := range resp.GetStat() {
-		lastValue, ok := x.StatsLastValues[stat.Name]
-		x.StatsLastValues[stat.Name] = stat.Value
-		if baselinePass {
-			continue
-		}
-		if !ok || stat.Value < lastValue {
-			lastValue = 0
-		}
-		value := stat.Value - lastValue
-		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
-			processTraffic(matches, value, tagTrafficMap)
-		} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
-			processClientTraffic(matches, value, emailTrafficMap)
-		}
+	for _, err := range failed {
+		logger.Warning("Failed to query Xray stats, counting the other families:", err)
 	}
 
 	// Drop delta baselines for stats that no longer exist (deleted inbounds or
 	// clients), which otherwise linger until the next Xray restart. Only rebuild
 	// when the map has drifted past 2x the live set, so the steady-state hot path
 	// stays allocation-free.
-	if n := len(resp.GetStat()); n > 0 && len(x.StatsLastValues) > 2*n {
+	// A family that failed is not gone, so its baselines stay.
+	if n := len(live); n > 0 && len(failed) == 0 && len(x.StatsLastValues) > 2*n {
 		pruned := make(map[string]int64, n)
-		for _, stat := range resp.GetStat() {
+		for _, stat := range live {
 			pruned[stat.Name] = x.StatsLastValues[stat.Name]
 		}
 		x.StatsLastValues = pruned

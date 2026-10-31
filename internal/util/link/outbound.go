@@ -1255,6 +1255,8 @@ func base64DecodeFlexible(s string) (string, error) {
 // replacing every other run of characters with a single dash.
 var slugRe = regexp.MustCompile(`[^\p{L}\p{N}]+`)
 
+const maxSlugRunes = 64
+
 func SlugRemark(remark string) string {
 	s := strings.ToLower(strings.TrimSpace(remark))
 	s = slugRe.ReplaceAllString(s, "-")
@@ -1265,6 +1267,10 @@ func SlugRemark(remark string) string {
 	// collapse runs of dashes
 	for strings.Contains(s, "--") {
 		s = strings.ReplaceAll(s, "--", "-")
+	}
+	// The tag names Xray counters, a traffic row and the config; a link author picks the remark.
+	if r := []rune(s); len(r) > maxSlugRunes {
+		s = strings.TrimRight(string(r[:maxSlugRunes]), "-")
 	}
 	return s
 }

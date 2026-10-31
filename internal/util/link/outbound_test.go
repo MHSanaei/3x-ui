@@ -533,6 +533,10 @@ func TestSlugAndSuggest(t *testing.T) {
 	if got := SuggestTag("ru-", "Сервер 2", 0); got != "ru-сервер-2" {
 		t.Errorf("unicode suggest tag got %q", got)
 	}
+	// The tag names Xray counters and an outbound_traffics row; a provider picks the remark.
+	if got := SlugRemark(strings.Repeat("Ab ", 1<<20)); got != strings.Repeat("ab-", 21)+"a" {
+		t.Errorf("megabyte remark slug = %.80q (%d bytes), want the first 64 runes", got, len(got))
+	}
 }
 
 // The obfs-local plugin the panel exports carries the only description of
