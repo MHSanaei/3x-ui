@@ -244,7 +244,8 @@ func TestTCPForwardAcceptLoopSurvivesTransientError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	l := &tcpForwardListener{ln: &failFirstAccept{Listener: host}, closing: make(chan struct{})}
+	l := &tcpForwardListener{ln: &failFirstAccept{Listener: host}}
+	l.ctx, l.cancel = context.WithCancel(context.Background())
 	defer l.Close()
 	noTarget := func(string) (netip.Addr, bool) { return netip.Addr{}, false }
 	go l.acceptLoop(newTestStack(t, "10.211.4.1"), 505, portForwardKey{email: "a@x", proto: tcpForward}, noTarget)
@@ -462,5 +463,17 @@ primed:
 	}
 	if string(gotUDP) != wantUDP {
 		t.Errorf("UDP round trip = %q, want %q", gotUDP, wantUDP)
+	}
+
+	// Withdrawing the forward must end the connection already relaying over
+	// it, not just refuse new ones.
+	withdrawn := inst
+	withdrawn.Peers = []amneziawg.Peer{
+		{Email: "client@test", PublicKey: clientPub, AllowedIPs: []string{clientAddr + "/32"}},
+	}
+	set.Reconcile(withdrawn)
+	tcpConn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := tcpConn.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Errorf("read on the relayed connection after its forward was withdrawn = %v, want io.EOF", err)
 	}
 }

@@ -226,6 +226,20 @@ func enablePromiscuousRouting(gstack *stack.Stack) {
 	gstack.SetSpoofing(1, true)
 }
 
+// endpointRemoteAddr returns the address ep is connected to; false for an
+// endpoint that has none (listening, unconnected).
+func endpointRemoteAddr(ep stack.TransportEndpoint) (netip.Addr, bool) {
+	tep, ok := ep.(tcpip.Endpoint)
+	if !ok {
+		return netip.Addr{}, false
+	}
+	info, ok := tep.Info().(*stack.TransportEndpointInfo)
+	if !ok || info.ID.RemoteAddress.Len() == 0 {
+		return netip.Addr{}, false
+	}
+	return addrFromTcpip(info.ID.RemoteAddress), true
+}
+
 // addrFromTcpip converts a gVisor tcpip.Address to netip.Addr.
 func addrFromTcpip(a tcpip.Address) netip.Addr {
 	if a.Len() == 4 {

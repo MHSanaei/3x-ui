@@ -70,6 +70,27 @@ func (m *managed) handleUDP(src, dst netip.AddrPort, payload []byte) {
 	m.udpRelay.Handle(src, dst, peer.Email, payload)
 }
 
+// dropReassignedFlows aborts every stack flow pinned to a tunnel address its
+// peer in before lost (removed or re-keyed): the next client inherits the address.
+func (m *managed) dropReassignedFlows(before *PeerIndex) {
+	reassigned := func(addr netip.Addr) bool {
+		was, ok := before.Lookup(addr)
+		if !ok {
+			return false
+		}
+		now, ok := m.lookupPeer(addr)
+		return !ok || now.PublicKey != was.PublicKey
+	}
+	// Abort, not Close: a closed endpoint keeps retransmitting unacknowledged
+	// data, and that would reach whoever holds the address next.
+	for _, ep := range m.dev.Stack.RegisteredEndpoints() {
+		if remote, ok := endpointRemoteAddr(ep); ok && reassigned(remote) {
+			ep.Abort()
+		}
+	}
+	m.udpRelay.CloseSessions(reassigned)
+}
+
 func (m *managed) close() {
 	m.portForwards.Close()
 	// Stop packet delivery before closing the relay so an in-flight handler
@@ -177,11 +198,12 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if err := cur.dev.IpcSet(conf); err != nil {
 			return fmt.Errorf("amneziawgnet: reconfigure inbound %d: %w", inst.Id, err)
 		}
-		cur.peers.Store(NewPeerIndex(inst.Peers))
+		oldPeers := cur.peers.Swap(NewPeerIndex(inst.Peers))
 		cur.inst = inst
 		cur.uapiConfig = conf
 		applyV6Aliases(diffV6Aliases(oldInst, inst))
 		cur.portForwards.Reconcile(inst)
+		cur.dropReassignedFlows(oldPeers)
 		return nil
 	}
 

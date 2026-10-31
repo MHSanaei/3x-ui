@@ -455,6 +455,19 @@ func (u *UDPRelay) pump(src netip.AddrPort, sess *socks5UDPSession) {
 	}
 }
 
+// CloseSessions tears down the sessions whose tunnel-internal source address
+// matches; pump retires each one's goroutine on the resulting read error.
+func (u *UDPRelay) CloseSessions(match func(netip.Addr) bool) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	for k, s := range u.sessions {
+		if match(k.Addr()) {
+			s.Close()
+			delete(u.sessions, k)
+		}
+	}
+}
+
 // Close tears down every open session. Call when the owning Device is
 // closed.
 func (u *UDPRelay) Close() {

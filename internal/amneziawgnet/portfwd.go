@@ -305,10 +305,11 @@ func tunnelFullAddress(addr netip.Addr, port int) tcpip.FullAddress {
 }
 
 // tcpForwardListener is one open host-facing TCP listener for a single
-// portForwardKey.
+// portForwardKey; ctx ends with it and takes every relay it started along.
 type tcpForwardListener struct {
-	ln      net.Listener
-	closing chan struct{}
+	ln     net.Listener
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // listenPortForwardTCP opens a host-facing TCP listener on key.port and
@@ -324,7 +325,8 @@ func listenPortForwardTCP(gstack *stack.Stack, inboundID int, key portForwardKey
 		logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: listen tcp :%d: %v", inboundID, key.email, key.port, err)
 		return nil
 	}
-	l := &tcpForwardListener{ln: ln, closing: make(chan struct{})}
+	l := &tcpForwardListener{ln: ln}
+	l.ctx, l.cancel = context.WithCancel(context.Background())
 	logger.Infof("amneziawgnet: port-forward: inbound %d peer %q: listening tcp :%d", inboundID, key.email, key.port)
 	go l.acceptLoop(gstack, inboundID, key, target)
 	return l
@@ -335,29 +337,29 @@ func (l *tcpForwardListener) acceptLoop(gstack *stack.Stack, inboundID int, key 
 		conn, err := l.ln.Accept()
 		if err != nil {
 			select {
-			case <-l.closing:
+			case <-l.ctx.Done():
 				return // intentional shutdown, not a real accept error
 			default:
 			}
 			logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: accept tcp :%d: %v", inboundID, key.email, key.port, err)
 			// Keep accepting: returning would strand a bound socket nobody
 			// serves, under a key Reconcile still sees as open and never reopens.
-			if !waitAcceptRetry(l.closing) {
+			if !waitAcceptRetry(l.ctx.Done()) {
 				return
 			}
 			continue
 		}
-		go relayTCPForward(gstack, conn, inboundID, key, target)
+		go l.relayTCPForward(gstack, conn, inboundID, key, target)
 	}
 }
 
-func relayTCPForward(gstack *stack.Stack, conn net.Conn, inboundID int, key portForwardKey, target portForwardTargetFunc) {
+func (l *tcpForwardListener) relayTCPForward(gstack *stack.Stack, conn net.Conn, inboundID int, key portForwardKey, target portForwardTargetFunc) {
 	defer conn.Close()
 	addr, ok := target(key.email)
 	if !ok {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), portForwardDialTimeout)
+	ctx, cancel := context.WithTimeout(l.ctx, portForwardDialTimeout)
 	defer cancel()
 	tunnelConn, err := gonet.DialContextTCP(ctx, gstack, tunnelFullAddress(addr, key.port), tunnelNetwork(addr))
 	if err != nil {
@@ -366,14 +368,17 @@ func relayTCPForward(gstack *stack.Stack, conn net.Conn, inboundID int, key port
 	}
 	defer tunnelConn.Close()
 
+	stop := context.AfterFunc(l.ctx, func() {
+		conn.Close()
+		tunnelConn.Close()
+	})
+	defer stop()
 	pipeBothWays(conn, tunnelConn)
 }
 
-// Close stops accepting new connections. Already-relaying connections are
-// left to finish on their own -- there's no shared state to tear down early
-// for, and an abrupt cut would just look like a network error to whichever
-// external client was mid-transfer.
+// Close stops accepting and cuts the connections already relaying, as
+// udpForwardListener.Close does: a withdrawn forward must not stay usable.
 func (l *tcpForwardListener) Close() {
-	close(l.closing)
+	l.cancel()
 	l.ln.Close()
 }
