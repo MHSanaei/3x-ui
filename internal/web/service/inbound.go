@@ -1310,6 +1310,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := validateInboundTLSCertificates(inbound.StreamSettings); err != nil {
 			return inbound, false, err
 		}
+	} else if err := validatePushedInbound(inbound, nil); err != nil {
+		return inbound, false, err
+	}
+	if err := validateInboundEnvRefs(inbound); err != nil {
+		return inbound, false, err
 	}
 	if err := validateInboundBuildInput(inbound); err != nil {
 		return inbound, false, err
@@ -2033,6 +2038,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	if err := validateInboundBuildInput(inbound); err != nil {
 		return inbound, false, err
+	}
+	if err := validateInboundEnvRefs(inbound); err != nil {
+		return inbound, false, err
+	}
+	if s.FromNodeSync {
+		if err := validatePushedInbound(inbound, oldInbound); err != nil {
+			return inbound, false, err
+		}
 	}
 	// Grandfather a row that was already stored incomplete so it stays editable;
 	// only a save that breaks a previously valid TLS block is refused.

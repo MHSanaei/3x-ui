@@ -356,7 +356,9 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	if listen == "" {
 		listen = "0.0.0.0"
 	}
-	listen = fmt.Sprintf("\"%v\"", listen)
+	// Encoded, not quoted by hand: an escaped "env:" prefix must stay literal text.
+	encodedListen, _ := json.Marshal(listen)
+	listen = string(encodedListen)
 	protocol := string(i.Protocol)
 	settings := i.Settings
 	switch i.Protocol {
