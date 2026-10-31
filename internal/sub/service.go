@@ -31,6 +31,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+// salamanderWarningSeen maps an inbound id to a digest of the setting names
+// last warned about: a node picks the names, so the entry must stay fixed-size.
 var salamanderWarningSeen sync.Map
 
 // SubService provides business logic for generating subscription links and managing subscription data.
@@ -1610,9 +1612,10 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 					// packetSize rides its own URI fields; anything else still
 					// breaks standard clients and must warn even when gecko fires.
 					if extra := extraSalamanderKeys(settings, gecko != ""); len(extra) > 0 {
-						warningKey := fmt.Sprintf("%d:%v", inbound.Id, extra)
-						if _, loaded := salamanderWarningSeen.LoadOrStore(warningKey, struct{}{}); !loaded {
-							logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
+						// Warn again when the set changes; log a bounded sample of the names.
+						digest := sha256.Sum256([]byte(strings.Join(extra, "\x00")))
+						if prev, _ := salamanderWarningSeen.Swap(inbound.Id, digest); prev != digest {
+							logger.Warningf("SubService - inbound %d: salamander settings %.32q cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra[:min(len(extra), 8)])
 						}
 					}
 					if params["obfs"] == "" {
