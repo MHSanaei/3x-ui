@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -171,7 +172,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) (strin
 func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
-		return nil, common.NewError("invalid subscription URL:", err)
+		return nil, common.NewError("invalid subscription URL:", withoutRequestURL(err))
 	}
 	if cleanURL == "" {
 		return nil, common.NewError("subscription URL is required")
@@ -206,6 +207,12 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgen
 	if err := database.GetDB().Create(sub).Error; err != nil {
 		return nil, err
 	}
+	// GORM leaves a zero value out of the INSERT, and the column defaults to enabled.
+	if !enabled {
+		if err := database.GetDB().Model(sub).Update("enabled", false).Error; err != nil {
+			return nil, err
+		}
+	}
 	return sub, nil
 }
 
@@ -217,7 +224,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 	}
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
-		return common.NewError("invalid subscription URL:", err)
+		return common.NewError("invalid subscription URL:", withoutRequestURL(err))
 	}
 	if cleanURL == "" {
 		return common.NewError("subscription URL is required")
@@ -232,16 +239,19 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 			return err
 		}
 	}
-	sub.Remark = strings.TrimSpace(remark)
-	sub.Url = cleanURL
-	sub.Enabled = enabled
-	sub.AllowPrivate = allowPrivate
-	sub.AllowInsecure = allowInsecure
-	sub.UserAgent = strings.TrimSpace(userAgent)
-	sub.Prepend = prepend
-	sub.TagPrefix = prefix
-	sub.UpdateInterval = updateInterval
-	return database.GetDB().Save(sub).Error
+	// Only the editable columns: a whole-row save would put back fetch results that a
+	// refresh stored meanwhile, or re-create a row deleted meanwhile.
+	return database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).Updates(map[string]any{
+		"remark":          strings.TrimSpace(remark),
+		"url":             cleanURL,
+		"enabled":         enabled,
+		"allow_private":   allowPrivate,
+		"allow_insecure":  allowInsecure,
+		"user_agent":      strings.TrimSpace(userAgent),
+		"prepend":         prepend,
+		"tag_prefix":      prefix,
+		"update_interval": updateInterval,
+	}).Error
 }
 
 // Delete removes a subscription.
@@ -332,22 +342,75 @@ func (s *OutboundSubscriptionService) subscriptionFetchClient(timeout time.Durat
 	return client
 }
 
-// fetchAndStore does the actual network + parse + stability + persist work.
+// subscriptionFetch is what one download of a subscription produces, before it is stored.
+type subscriptionFetch struct {
+	url        string
+	outbounds  []any
+	identities string
+	lastError  string
+}
+
+// fetchAndStore downloads a subscription and stores the result on its row.
 func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscription) ([]any, error) {
+	readURL := sub.Url
+	fetched, err := s.fetchOutbounds(sub)
+	if err != nil {
+		s.recordError(sub, err)
+		return nil, err
+	}
+	obsJSON, _ := json.Marshal(fetched.outbounds)
+	// Only the fetch's own columns, and only while the row still points where it was read:
+	// the download takes as long as the provider likes, and the admin may edit or delete meanwhile.
+	res := database.GetDB().Model(&model.OutboundSubscription{}).
+		Where("id = ? AND url = ?", sub.Id, readURL).
+		Updates(map[string]any{
+			"url":                    fetched.url,
+			"last_fetched_outbounds": string(obsJSON),
+			"link_identities":        fetched.identities,
+			"last_updated":           time.Now().Unix(),
+			"last_error":             fetched.lastError,
+		})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, common.NewError("subscription was deleted or pointed at another URL during the fetch")
+	}
+	return fetched.outbounds, nil
+}
+
+// Preview downloads and parses a subscription URL without storing anything.
+func (s *OutboundSubscriptionService) Preview(rawURL, userAgent string, allowPrivate, allowInsecure bool) ([]any, error) {
+	prefix, err := s.nextDefaultSubPrefix(0)
+	if err != nil {
+		return nil, err
+	}
+	fetched, err := s.fetchOutbounds(&model.OutboundSubscription{
+		Url: rawURL, UserAgent: userAgent, AllowPrivate: allowPrivate, AllowInsecure: allowInsecure, TagPrefix: prefix,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return fetched.outbounds, nil
+}
+
+// fetchOutbounds does the network, parse, filter and tag-stability work for sub.
+func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscription) (*subscriptionFetch, error) {
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
 	// any direct DB tampering). Private targets are blocked unless this
 	// subscription was explicitly created with AllowPrivate.
 	cleanURL, err := SanitizePublicHTTPURL(sub.Url, sub.AllowPrivate)
 	if err != nil {
-		s.recordError(sub, err)
-		return nil, err
+		return nil, withoutRequestURL(err)
 	}
 	if cleanURL == "" {
 		return nil, common.NewError("subscription has no valid URL")
 	}
-	sub.Url = cleanURL // persist the cleaned version
 
 	client := s.subscriptionFetchClient(30*time.Second, sub.AllowInsecure)
+	// The transport lives for this fetch only; left alone, the provider decides how long
+	// the connections it parks stay open.
+	defer client.CloseIdleConnections()
 	// Re-validate every redirect hop: the initial host is checked above, but a
 	// redirect could still point at a private/internal address (SSRF). Cap the
 	// redirect chain as well.
@@ -364,10 +427,9 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	}
 
 	reqCtx := netsafe.ContextWithAllowPrivate(context.Background(), sub.AllowPrivate)
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, sub.Url, nil)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, cleanURL, nil)
 	if err != nil {
-		s.recordError(sub, err)
-		return nil, err
+		return nil, withoutRequestURL(err)
 	}
 	userAgent := strings.TrimSpace(sub.UserAgent)
 	if userAgent == "" {
@@ -381,25 +443,20 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 
 	resp, err := client.Do(req)
 	if err != nil {
-		s.recordError(sub, err)
-		return nil, err
+		return nil, withoutRequestURL(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("http %d", resp.StatusCode)
-		s.recordError(sub, err)
-		return nil, err
+		return nil, fmt.Errorf("http %d", resp.StatusCode)
 	}
 	body, err := readBoundedOutboundSubscriptionBody(resp.Body)
 	if err != nil {
-		s.recordError(sub, err)
 		return nil, err
 	}
 
 	parsed, identities, err := link.ParseSubscriptionBody(body)
 	if err != nil {
-		s.recordError(sub, err)
 		return nil, err
 	}
 
@@ -436,6 +493,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 			dropped = append(dropped, fmt.Sprintf("%.64s: %s", ob["tag"], reason))
 			continue
 		}
+		forceUserspaceWireguard(map[string]any(ob))
 		if _, rejected := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), []any{map[string]any(ob)}); len(rejected) > 0 {
 			dropped = append(dropped, rejected...)
 			continue
@@ -462,22 +520,45 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		kept[i] = map[string]any(keptLinks[i])
 	}
 
-	// Persist the outbounds (as compact JSON array)
-	obsJSON, _ := json.Marshal(kept)
-
-	sub.LastFetchedOutbounds = string(obsJSON)
-	sub.LinkIdentities = string(identJSON)
-	sub.LastUpdated = time.Now().Unix()
-	sub.LastError = ""
+	fetched := &subscriptionFetch{url: cleanURL, outbounds: kept, identities: string(identJSON)}
 	if len(dropped) > 0 {
-		sub.LastError = fmt.Sprintf("dropped %d outbound(s): %s", len(dropped), dropped[0])
+		fetched.lastError = fmt.Sprintf("dropped %d outbound(s): %s", len(dropped), dropped[0])
 	}
-
-	if err := database.GetDB().Save(sub).Error; err != nil {
-		return nil, err
+	if len(parsed) >= link.MaxSubscriptionOutbounds {
+		fetched.lastError = strings.TrimPrefix(fetched.lastError+"; ", "; ") +
+			fmt.Sprintf("only the first %d links of the document are loaded", link.MaxSubscriptionOutbounds)
 	}
+	return fetched, nil
+}
 
-	return kept, nil
+// withoutRequestURL keeps only the host of the URL net/url and net/http quote in their
+// errors: a subscription URL is a credential, and these errors are logged and stored.
+func withoutRequestURL(err error) error {
+	var urlErr *url.Error
+	if !errors.As(err, &urlErr) {
+		return err
+	}
+	if u, parseErr := url.Parse(urlErr.URL); parseErr == nil && u.Host != "" {
+		return fmt.Errorf("%s %s: %w", urlErr.Op, u.Host, urlErr.Err)
+	}
+	return fmt.Errorf("%s: %w", urlErr.Op, urlErr.Err)
+}
+
+// forceUserspaceWireguard keeps a provider's wireguard fields off the host: the kernel
+// TUN path would install its addresses and routes on the panel's machine.
+func forceUserspaceWireguard(outbound any) {
+	ob, ok := outbound.(map[string]any)
+	if !ok {
+		return
+	}
+	if protocol, _ := ob["protocol"].(string); !strings.EqualFold(protocol, "wireguard") {
+		return
+	}
+	if settings, ok := ob["settings"].(map[string]any); ok {
+		settings["noKernelTun"] = true
+	} else {
+		ob["settings"] = map[string]any{"noKernelTun": true}
+	}
 }
 
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
@@ -587,6 +668,9 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			}
 			return reason != ""
 		})
+		for _, ob := range arr {
+			forceUserspaceWireguard(ob)
+		}
 		arr, _ = filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), arr)
 		if sub.Prepend {
 			prepend = append(prepend, arr...)

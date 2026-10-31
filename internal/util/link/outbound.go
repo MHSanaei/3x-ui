@@ -32,6 +32,10 @@ type ParseResult struct {
 	Identity string
 }
 
+// MaxSubscriptionOutbounds caps the outbounds one document yields: each is held, validated
+// and merged into the core's config, and the byte cap alone allows hundreds of thousands.
+const MaxSubscriptionOutbounds = 2000
+
 // ParseSubscriptionBody accepts the raw body returned by a subscription URL.
 // It handles the common case where the body is a base64-encoded blob of
 // newline-separated links, and also tolerates an already-decoded text body.
@@ -54,6 +58,9 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 	seen := map[string]int{}
 
 	for _, ln := range lines {
+		if len(outbounds) >= MaxSubscriptionOutbounds {
+			break
+		}
 		ln = strings.TrimSpace(ln)
 		if ln == "" || strings.HasPrefix(ln, "#") {
 			continue
