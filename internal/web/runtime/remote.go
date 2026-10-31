@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
@@ -423,7 +424,7 @@ func (r *Remote) ListInboundOptions(ctx context.Context) ([]RemoteInboundOption,
 	if err != nil {
 		return nil, err
 	}
-	list, err := decodeCappedList[RemoteInboundOption](env.Obj, maxNodeInbounds)
+	list, err := json_util.DecodeCappedList[RemoteInboundOption](env.Obj, maxNodeInbounds)
 	if err != nil {
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
@@ -435,7 +436,7 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	list, err := decodeCappedList[struct {
+	list, err := json_util.DecodeCappedList[struct {
 		Id  int    `json:"id"`
 		Tag string `json:"tag"`
 	}](env.Obj, maxNodeInbounds)
@@ -768,7 +769,7 @@ func (r *Remote) GetDescendants(ctx context.Context) ([]model.NodeSummary, error
 	if err != nil {
 		return nil, err
 	}
-	out, err := decodeCappedList[model.NodeSummary](env.Obj, maxNodeDescendants)
+	out, err := json_util.DecodeCappedList[model.NodeSummary](env.Obj, maxNodeDescendants)
 	if err != nil {
 		return nil, fmt.Errorf("decode descendants: %w", err)
 	}
@@ -829,7 +830,7 @@ func (r *Remote) FetchHostGroups(ctx context.Context) ([]*entity.HostGroup, erro
 	if err != nil {
 		return nil, err
 	}
-	groups, err := decodeCappedList[*entity.HostGroup](env.Obj, maxNodeHostGroups)
+	groups, err := json_util.DecodeCappedList[*entity.HostGroup](env.Obj, maxNodeHostGroups)
 	if err != nil {
 		return nil, fmt.Errorf("decode host groups: %w", err)
 	}
@@ -843,7 +844,7 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	if err != nil {
 		return nil, err
 	}
-	if snap.Inbounds, err = decodeCappedList[*model.Inbound](envList.Obj, maxNodeInbounds); err != nil {
+	if snap.Inbounds, err = json_util.DecodeCappedList[*model.Inbound](envList.Obj, maxNodeInbounds); err != nil {
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 
@@ -1003,7 +1004,7 @@ func (r *Remote) FetchAllClientIps(ctx context.Context) ([]model.InboundClientIp
 	if err != nil {
 		return nil, err
 	}
-	ips, err := decodeCappedList[model.InboundClientIps](env.Obj, maxNodeClientIPs)
+	ips, err := json_util.DecodeCappedList[model.InboundClientIps](env.Obj, maxNodeClientIPs)
 	if err != nil {
 		return nil, fmt.Errorf("decode client ips: %w", err)
 	}
