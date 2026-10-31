@@ -452,7 +452,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 
 	nodeIps, err := rt.FetchAllClientIps(ipCtx)
 	if err == nil && len(nodeIps) > 0 {
-		if err := j.inboundService.MergeInboundClientIps(nodeIps); err != nil {
+		if err := j.inboundService.MergeNodeClientIps(n.Id, nodeIps); err != nil {
 			logger.Warningf("node traffic sync: merge client ips from %s failed: %v", n.Name, err)
 		}
 	} else if err != nil {

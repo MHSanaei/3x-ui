@@ -1499,7 +1499,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	// The online report outlives this merge, so it is cut first to the node's own clients.
+	if len(snap.OnlineTree) > 0 || len(snap.OnlineEmails) > 0 {
+		attached, err := nodeAttachedEmails(db, nodeID)
+		if err != nil {
+			logger.Warningf("setRemoteTraffic: load the clients of node %d failed, dropping its online report: %v", nodeID, err)
+		}
+		keepAttachedOnlineEmails(snap, attached)
+	}
+
 	if process := currentXrayProcess(); process != nil {
+		hostedGuids := activeInboundGuidKeys(snap.Inbounds, tagToCentral, originGuidFor)
 		tree := snap.OnlineTree
 		switch {
 		case len(tree) == 0 && len(snap.OnlineEmails) > 0:
@@ -1514,7 +1524,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				tree = remapGuidTreeKey(tree, nodeRow.Guid, selfKey)
 			}
 		}
-		process.SetNodeOnlineTree(nodeID, tree)
+		process.SetNodeOnlineTree(nodeID, filterGuidTreeKeys(tree, hostedGuids))
 
 		activeTree := normalizeActiveInboundTreeTags(snap.ActiveInboundTree, tagToCentral)
 		if guidShared && len(activeTree) > 0 {
@@ -1523,7 +1533,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 		}
 		if len(activeTree) > 0 {
-			activeTree = filterGuidTreeKeys(activeTree, activeInboundGuidKeys(snap.Inbounds, tagToCentral, originGuidFor))
+			activeTree = filterGuidTreeKeys(activeTree, hostedGuids)
 		}
 		process.SetNodeActiveInboundTree(nodeID, activeTree)
 	}
@@ -1698,6 +1708,34 @@ func remapGuidTreeKey(tree map[string][]string, from, to string) map[string][]st
 		remapped[guid] = mergeEmails(remapped[guid], values)
 	}
 	return remapped
+}
+
+// keepAttachedOnlineEmails cuts a node's online report to the clients linked to its inbounds,
+// once each per GUID, into fresh slices so the reported ones are not pinned.
+func keepAttachedOnlineEmails(snap *runtime.TrafficSnapshot, attached map[string]struct{}) {
+	keep := func(emails []string) []string {
+		var kept []string
+		seen := make(map[string]struct{})
+		for _, email := range emails {
+			if _, ok := attached[email]; !ok {
+				continue
+			}
+			if _, dup := seen[email]; dup {
+				continue
+			}
+			seen[email] = struct{}{}
+			kept = append(kept, email)
+		}
+		return kept
+	}
+	snap.OnlineEmails = keep(snap.OnlineEmails)
+	tree := make(map[string][]string, len(snap.OnlineTree))
+	for guid, emails := range snap.OnlineTree {
+		if kept := keep(emails); len(kept) > 0 {
+			tree[guid] = kept
+		}
+	}
+	snap.OnlineTree = tree
 }
 
 func normalizeActiveInboundTreeTags(tree map[string][]string, tagToCentral map[string]*model.Inbound) map[string][]string {
