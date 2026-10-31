@@ -1026,6 +1026,30 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 				}
 			}
 			if !keepTraffic && len(successEmails) > 0 {
+				// Counters no per-inbound purge handled (shared or detached
+				// emails) survive to here: archive and log them before deleting.
+				if e := recordClosedWindowsTx(tx, successEmails, trafficWindowDelete); e != nil {
+					return e
+				}
+				survivors := make([]string, 0, len(successEmails))
+				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
+					var emails []string
+					if e := tx.Model(&xray.ClientTraffic{}).Where("email IN ?", batch).Pluck("email", &emails).Error; e != nil {
+						return e
+					}
+					survivors = append(survivors, emails...)
+				}
+				if len(survivors) > 0 {
+					changes := make([]model.ClientChangeLog, 0, len(survivors))
+					for _, email := range survivors {
+						changes = append(changes, model.ClientChangeLog{
+							Email: email, Field: "deleted", Source: clientChangeSourcePanel,
+						})
+					}
+					if e := logClientChangesTx(tx, changes); e != nil {
+						return e
+					}
+				}
 				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 					if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
 						return e

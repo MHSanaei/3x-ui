@@ -1543,31 +1543,46 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 }
 
 func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
+	oldLimit := ""
 	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
-		logClientChange(clientEmail, "limitIp", fmt.Sprintf("%d", rec.LimitIP), fmt.Sprintf("%d", count), clientChangeSourceTgbot)
+		oldLimit = fmt.Sprintf("%d", rec.LimitIP)
 	}
-	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+	needRestart, err := s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["limitIp"] = count
 	})
+	if err == nil {
+		logClientChange(clientEmail, "limitIp", oldLimit, fmt.Sprintf("%d", count), clientChangeSourceTgbot)
+	}
+	return needRestart, err
 }
 
 func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+	oldExpiry := ""
 	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
-		logClientChange(clientEmail, "expiry", fmt.Sprintf("%d", rec.ExpiryTime), fmt.Sprintf("%d", expiry_time), clientChangeSourceTgbot)
+		oldExpiry = fmt.Sprintf("%d", rec.ExpiryTime)
 	}
-	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+	needRestart, err := s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["expiryTime"] = expiry_time
 	})
+	if err == nil {
+		logClientChange(clientEmail, "expiry", oldExpiry, fmt.Sprintf("%d", expiry_time), clientChangeSourceTgbot)
+	}
+	return needRestart, err
 }
 
 func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundService, clientEmail string, totalGB int) (bool, error) {
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
 	}
+	oldLimit := ""
 	if rec, err := s.GetRecordByEmail(nil, clientEmail); err == nil {
-		logClientChange(clientEmail, "dataLimit", fmt.Sprintf("%d", rec.TotalGB), fmt.Sprintf("%d", int64(totalGB)*1024*1024*1024), clientChangeSourceTgbot)
+		oldLimit = fmt.Sprintf("%d", rec.TotalGB)
 	}
-	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
+	needRestart, err := s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["totalGB"] = totalGB * 1024 * 1024 * 1024
 	})
+	if err == nil {
+		logClientChange(clientEmail, "dataLimit", oldLimit, fmt.Sprintf("%d", int64(totalGB)*1024*1024*1024), clientChangeSourceTgbot)
+	}
+	return needRestart, err
 }

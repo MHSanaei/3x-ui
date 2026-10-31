@@ -38,21 +38,20 @@ const (
 // ClientNodeUsage is one node's accumulated counters for a client since its
 // last reset, with the node's display name resolved for the panel.
 type ClientNodeUsage struct {
-	NodeID   int    `json:"nodeId"`
-	NodeName string `json:"nodeName"`
-	Up       int64  `json:"up"`
-	Down     int64  `json:"down"`
+	NodeID   int    `json:"nodeId" example:"7"`
+	NodeName string `json:"nodeName" example:"de-fra-1"`
+	Up       int64  `json:"up" example:"1048576"`
+	Down     int64  `json:"down" example:"2097152"`
 }
 
-// ClientUsageHistory is the client's whole usage + change story behind the
-// edit modal's history button: lifetime totals, closed windows, per-node
-// counters, and the metadata change log.
+// ClientUsageHistory is the usage + change story behind the edit modal's
+// history button: lifetime totals, closed windows, per-node counters, the log.
 type ClientUsageHistory struct {
-	Email        string                      `json:"email"`
-	LifetimeUp   int64                       `json:"lifetimeUp"`
-	LifetimeDown int64                       `json:"lifetimeDown"`
-	CurrentUp    int64                       `json:"currentUp"`
-	CurrentDown  int64                       `json:"currentDown"`
+	Email        string                      `json:"email" example:"user1@example.com"`
+	LifetimeUp   int64                       `json:"lifetimeUp" example:"10737418240"`
+	LifetimeDown int64                       `json:"lifetimeDown" example:"21474836480"`
+	CurrentUp    int64                       `json:"currentUp" example:"1048576"`
+	CurrentDown  int64                       `json:"currentDown" example:"2097152"`
 	Windows      []model.ClientTrafficWindow `json:"windows"`
 	Nodes        []ClientNodeUsage           `json:"nodes"`
 	Changes      []model.ClientChangeLog     `json:"changes"`
@@ -115,9 +114,8 @@ func (s *ClientService) GetUsageHistory(email string) (*ClientUsageHistory, erro
 	return out, nil
 }
 
-// recordClosedWindowsTx archives the clients' about-to-be-zeroed counters as
-// closed windows, in the caller's transaction; only rows with real usage
-// are archived, and it must run before the counters are zeroed.
+// recordClosedWindowsTx archives the clients' about-to-be-zeroed counters
+// in the caller's transaction (only rows with real usage), before zeroing.
 func recordClosedWindowsTx(tx *gorm.DB, emails []string, reason string) error {
 	if len(emails) == 0 {
 		return nil
@@ -221,10 +219,8 @@ func logClientChange(email, field, oldValue, newValue, source string) {
 	}
 }
 
-// diffClientChanges returns one row per client-info field that differs
-// between the two states, keyed by newRec's email so history follows a
-// rename; empty when nothing changed. Renames are excluded: the record
-// rename sites log the "name" event exactly once per rename.
+// diffClientChanges returns one row per differing client-info field, keyed
+// by newRec's email; "name" is excluded because the rename sites log it.
 func diffClientChanges(oldRec, newRec *model.ClientRecord) []model.ClientChangeLog {
 	var entries []model.ClientChangeLog
 	add := func(field, oldVal, newVal string) {
@@ -267,9 +263,8 @@ func diffClientChanges(oldRec, newRec *model.ClientRecord) []model.ClientChangeL
 	return entries
 }
 
-// migrateClientHistoryEmailTx re-keys a renamed client's closed windows and
-// change log onto the new email, in the caller's transaction, so its whole
-// history follows the rename instead of being stranded under the old name.
+// migrateClientHistoryEmailTx re-keys a renamed client's windows and change
+// log onto the new email, in the caller's transaction, so history follows.
 func migrateClientHistoryEmailTx(tx *gorm.DB, oldEmail, newEmail string) error {
 	if oldEmail == "" || oldEmail == newEmail {
 		return nil

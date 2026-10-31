@@ -1056,6 +1056,22 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 			return err
 		}
 		if !keepTraffic && existing.Email != "" {
+			// Counters DelClientStat did not purge (shared or detached
+			// clients) survive to here: archive and log them before deleting.
+			if err := recordClosedWindowsTx(tx, []string{existing.Email}, trafficWindowDelete); err != nil {
+				return err
+			}
+			var survivors int64
+			if err := tx.Model(&xray.ClientTraffic{}).Where("email = ?", existing.Email).Count(&survivors).Error; err != nil {
+				return err
+			}
+			if survivors > 0 {
+				if err := logClientChangesTx(tx, []model.ClientChangeLog{{
+					Email: existing.Email, Field: "deleted", Source: clientChangeSourcePanel,
+				}}); err != nil {
+					return err
+				}
+			}
 			if err := tx.Where("email = ?", existing.Email).Delete(&xray.ClientTraffic{}).Error; err != nil {
 				return err
 			}

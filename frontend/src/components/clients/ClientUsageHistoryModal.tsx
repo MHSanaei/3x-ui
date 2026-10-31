@@ -119,7 +119,7 @@ export default function ClientUsageHistoryModal({
       dataIndex: 'reason',
       key: 'reason',
       width: 90,
-      render: (value: string) => <Tag>{t(REASON_KEYS[value] ?? 'pages.clients.reasonReset')}</Tag>,
+      render: (value: string) => <Tag>{REASON_KEYS[value] ? t(REASON_KEYS[value]) : value}</Tag>,
     },
   ];
 

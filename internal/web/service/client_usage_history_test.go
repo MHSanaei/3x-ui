@@ -389,6 +389,137 @@ func TestGetUsageHistoryJSONShape(t *testing.T) {
 	}
 }
 
+// Deleting an attached client archives its counters exactly once: the
+// per-inbound delete handles them, the final cleanup sees nothing left.
+func TestDeleteArchivesAttachedClientCountersOnce(t *testing.T) {
+	inboundSvc := &InboundService{}
+	seedUsageHistoryClient(t, inboundSvc, "del-attached@example.test", "01010101-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 400, 300)
+	svc := &ClientService{}
+
+	rec, err := svc.GetRecordByEmail(nil, "del-attached@example.test")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if _, err := svc.Delete(inboundSvc, rec.Id, false); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if got := len(windowsOf(t, "del-attached@example.test")); got != 1 {
+		t.Fatalf("windows = %d, want exactly 1", got)
+	}
+	deleted := 0
+	for _, c := range changesOf(t, "del-attached@example.test") {
+		if c.Field == "deleted" {
+			deleted++
+		}
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted rows = %d, want exactly 1", deleted)
+	}
+}
+
+// Deleting a client detached from every inbound archives its surviving
+// counters in the final cleanup, so nothing is dropped or double-counted.
+func TestDeleteArchivesDetachedClientCounters(t *testing.T) {
+	inboundSvc := &InboundService{}
+	seedUsageHistoryClient(t, inboundSvc, "del-detached@example.test", "02020202-bbbb-4bbb-8bbb-bbbbbbbbbbbb", 90, 60)
+	svc := &ClientService{}
+
+	// Detach: drop the inbound link so the per-inbound delete never runs.
+	rec, err := svc.GetRecordByEmail(nil, "del-detached@example.test")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if err := database.GetDB().Where("client_id = ?", rec.Id).Delete(&model.ClientInbound{}).Error; err != nil {
+		t.Fatalf("detach client_inbounds: %v", err)
+	}
+	if _, err := svc.Delete(inboundSvc, rec.Id, false); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	windows := windowsOf(t, "del-detached@example.test")
+	if len(windows) != 1 || windows[0].Reason != trafficWindowDelete || windows[0].Up != 90 || windows[0].Down != 60 {
+		t.Fatalf("windows = %+v, want one deleted window 90/60", windows)
+	}
+	deleted := 0
+	for _, c := range changesOf(t, "del-detached@example.test") {
+		if c.Field == "deleted" {
+			deleted++
+		}
+	}
+	if deleted != 1 {
+		t.Fatalf("deleted rows = %d, want exactly 1", deleted)
+	}
+}
+
+// A bulk delete archives the surviving counters of the deleted clients: one
+// window and one deleted event per email, never a duplicate.
+func TestBulkDeleteArchivesSurvivingCounters(t *testing.T) {
+	inboundSvc := &InboundService{}
+	seedUsageHistoryClient(t, inboundSvc, "bulk-del-a@example.test", "03030303-cccc-4ccc-8ccc-cccccccccccc", 10, 20)
+	svc := &ClientService{}
+	clientB := model.Client{Email: "bulk-del-b@example.test", ID: "04040404-dddd-4ddd-8ddd-dddddddddddd", SubID: "bulk-del-b@example.test", Enable: true}
+	ib2 := mkInbound(t, 54509, model.VLESS, clientsSettings(t, []model.Client{clientB}))
+	if err := svc.SyncInbound(nil, ib2.Id, []model.Client{clientB}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := database.GetDB().Create(&xray.ClientTraffic{InboundId: ib2.Id, Email: "bulk-del-b@example.test", Enable: true, Up: 30, Down: 40}).Error; err != nil {
+		t.Fatalf("seed traffic B: %v", err)
+	}
+	// Detach both so only the final cleanup handles the counters.
+	for _, email := range []string{"bulk-del-a@example.test", "bulk-del-b@example.test"} {
+		rec, err := svc.GetRecordByEmail(nil, email)
+		if err != nil {
+			t.Fatalf("GetRecordByEmail %s: %v", email, err)
+		}
+		if err := database.GetDB().Where("client_id = ?", rec.Id).Delete(&model.ClientInbound{}).Error; err != nil {
+			t.Fatalf("detach %s: %v", email, err)
+		}
+	}
+
+	res, _, err := svc.BulkDelete(inboundSvc, []string{"bulk-del-a@example.test", "bulk-del-b@example.test"}, false)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if res.Deleted != 2 || len(res.Skipped) != 0 {
+		t.Fatalf("result = %+v, want both deleted and none skipped", res)
+	}
+	for _, email := range []string{"bulk-del-a@example.test", "bulk-del-b@example.test"} {
+		windows := windowsOf(t, email)
+		if len(windows) != 1 || windows[0].Reason != trafficWindowDelete {
+			t.Fatalf("%s windows = %+v, want one deleted window", email, windows)
+		}
+		deleted := 0
+		for _, c := range changesOf(t, email) {
+			if c.Field == "deleted" {
+				deleted++
+			}
+		}
+		if deleted != 1 {
+			t.Fatalf("%s deleted rows = %d, want exactly 1", email, deleted)
+		}
+	}
+}
+
+// A rename that discards the old email's counters archives them under the
+// "renamed" reason without logging a deletion event.
+func TestDelClientStatRenamedArchivesWithoutDeletedEvent(t *testing.T) {
+	inboundSvc := &InboundService{}
+	seedUsageHistoryClient(t, inboundSvc, "del-rename@example.test", "05050505-eeee-4eee-8eee-eeeeeeeeeeee", 15, 8)
+
+	db := database.GetDB()
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		return inboundSvc.DelClientStat(tx, "del-rename@example.test", trafficWindowRename)
+	}); err != nil {
+		t.Fatalf("DelClientStat: %v", err)
+	}
+	windows := windowsOf(t, "del-rename@example.test")
+	if len(windows) != 1 || windows[0].Reason != trafficWindowRename || windows[0].Up != 15 || windows[0].Down != 8 {
+		t.Fatalf("windows = %+v, want one renamed window 15/8", windows)
+	}
+	if got := len(changesOf(t, "del-rename@example.test")); got != 0 {
+		t.Fatalf("change rows = %d, want 0 for a rename", got)
+	}
+}
+
 // itoa is a tiny strconv alias kept local so the table above stays readable.
 func itoa(v int64) string {
 	b, _ := json.Marshal(v)

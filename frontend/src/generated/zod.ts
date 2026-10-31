@@ -475,6 +475,17 @@ export const ClientSchema = z.object({
 });
 export type Client = z.infer<typeof ClientSchema>;
 
+export const ClientChangeLogSchema = z.object({
+  at: z.number().int(),
+  email: z.string(),
+  field: z.string(),
+  id: z.number().int(),
+  newValue: z.string(),
+  oldValue: z.string(),
+  source: z.string(),
+});
+export type ClientChangeLog = z.infer<typeof ClientChangeLogSchema>;
+
 export const ClientInboundSchema = z.object({
   clientId: z.number().int(),
   createdAt: z.number().int(),
@@ -482,6 +493,14 @@ export const ClientInboundSchema = z.object({
   inboundId: z.number().int(),
 });
 export type ClientInbound = z.infer<typeof ClientInboundSchema>;
+
+export const ClientNodeUsageSchema = z.object({
+  down: z.number().int(),
+  nodeId: z.number().int(),
+  nodeName: z.string(),
+  up: z.number().int(),
+});
+export type ClientNodeUsage = z.infer<typeof ClientNodeUsageSchema>;
 
 export const ClientPageResponseSchema = z.object({
   filtered: z.number().int(),
@@ -601,6 +620,28 @@ export const ClientTrafficSchema = z.object({
   uuid: z.string(),
 });
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
+
+export const ClientTrafficWindowSchema = z.object({
+  at: z.number().int(),
+  down: z.number().int(),
+  email: z.string(),
+  id: z.number().int(),
+  reason: z.string(),
+  up: z.number().int(),
+});
+export type ClientTrafficWindow = z.infer<typeof ClientTrafficWindowSchema>;
+
+export const ClientUsageHistorySchema = z.object({
+  changes: z.array(z.lazy(() => ClientChangeLogSchema)),
+  currentDown: z.number().int(),
+  currentUp: z.number().int(),
+  email: z.string(),
+  lifetimeDown: z.number().int(),
+  lifetimeUp: z.number().int(),
+  nodes: z.array(z.lazy(() => ClientNodeUsageSchema)),
+  windows: z.array(z.lazy(() => ClientTrafficWindowSchema)),
+});
+export type ClientUsageHistory = z.infer<typeof ClientUsageHistorySchema>;
 
 export const ClientsSummarySchema = z.object({
   active: z.number().int(),

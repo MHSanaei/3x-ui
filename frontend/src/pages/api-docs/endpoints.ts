@@ -1668,8 +1668,7 @@ export const sections: readonly Section[] = [
             desc: 'Client email (unique across the panel).',
           },
         ],
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "email": "user1@example.com",\n    "lifetimeUp": 107374182400,\n    "lifetimeDown": 214748364800,\n    "currentUp": 1073741824,\n    "currentDown": 0,\n    "windows": [\n      { "id": 1, "email": "user1@example.com", "at": 1735689600000, "up": 107374182400, "down": 214748364800, "reason": "reset" }\n    ],\n    "nodes": [\n      { "nodeId": 1, "nodeName": "de-fra-1", "up": 5368709120, "down": 10737418240 }\n    ],\n    "changes": [\n      { "id": 1, "email": "user1@example.com", "at": 1735776000000, "field": "dataLimit", "oldValue": "10737418240", "newValue": "21474836480", "source": "panel" }\n    ]\n  }\n}',
+        responseSchema: 'ClientUsageHistory',
       },
       {
         method: 'GET',

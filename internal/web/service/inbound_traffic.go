@@ -654,17 +654,18 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	return err
 }
 
-// DelClientStat removes a client's accounting rows; counters being dropped
-// are archived as a closed window first, and a lost-traffic event is logged
-// when the counters of a deleted client are discarded (reason "deleted").
+// DelClientStat removes a client's accounting rows; dropped counters are
+// archived first (deleted | renamed), and a deleted event is logged.
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string, reason string) error {
 	if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{email}); err != nil {
 		return err
 	}
-	if reason == trafficWindowDelete {
+	if reason == trafficWindowDelete || reason == trafficWindowRename {
 		if err := recordClosedWindowsTx(tx, []string{email}, reason); err != nil {
 			return err
 		}
+	}
+	if reason == trafficWindowDelete {
 		if err := logClientChangesTx(tx, []model.ClientChangeLog{{
 			Email: email, Field: "deleted", Source: clientChangeSourcePanel,
 		}}); err != nil {
@@ -684,10 +685,12 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string, re
 	if err := adjustGroupBaselinesForRemovedTraffic(tx, emails); err != nil {
 		return err
 	}
-	if reason == trafficWindowDelete {
+	if reason == trafficWindowDelete || reason == trafficWindowRename {
 		if err := recordClosedWindowsTx(tx, emails, reason); err != nil {
 			return err
 		}
+	}
+	if reason == trafficWindowDelete {
 		var changes []model.ClientChangeLog
 		for _, email := range emails {
 			changes = append(changes, model.ClientChangeLog{Email: email, Field: "deleted", Source: clientChangeSourcePanel})
