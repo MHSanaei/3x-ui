@@ -134,7 +134,7 @@ func newBenchTunnel(b *testing.B, listenPort int, serverAddr, clientAddr string)
 	if err != nil {
 		b.Fatalf("newUnconfiguredDevice: %v", err)
 	}
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		switch dest.Port() {
 		case benchDiscardPort:

@@ -205,15 +205,10 @@ func (m *Manager) ensureLocked(d Desired) error {
 		structFP:     structFP,
 	}
 	next.peers.Store(NewPeerIndex(inst.Peers))
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
-		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
-		if err != nil {
-			conn.Close()
-			return
-		}
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		// Reload for every connection: in-place reconfiguration swaps the peer
 		// index without reattaching handlers and may hold the lifecycle lock.
-		peer, ok := next.lookupPeer(srcAddrPort.Addr().Unmap())
+		peer, ok := next.lookupPeer(src.Addr().Unmap())
 		if !ok {
 			conn.Close()
 			return

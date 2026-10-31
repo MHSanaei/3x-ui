@@ -80,14 +80,9 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 	// purely from the decapsulated packet, not from any routing table.
 	wantDest := netip.MustParseAddrPort("10.201.9.9:9999")
 
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		defer conn.Close()
-		srcAddrPort, parseErr := netip.ParseAddrPort(conn.RemoteAddr().String())
-		var peer amneziawg.Peer
-		var ok bool
-		if parseErr == nil {
-			peer, ok = idx.Lookup(srcAddrPort.Addr().Unmap())
-		}
+		peer, ok := idx.Lookup(src.Addr().Unmap())
 		got <- recovered{email: peer.Email, ok: ok, dest: dest}
 		io.Copy(io.Discard, conn)
 	})
@@ -283,7 +278,7 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 	const wantRequest = "hello from client"
 	const wantReply = "hello from server"
 	serverDone := make(chan error, 1)
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		buf := make([]byte, len(wantRequest))
 		if _, err := io.ReadFull(conn, buf); err != nil {
@@ -461,7 +456,7 @@ func TestNewDeviceRandomTrailersAndDisableCookiesRoundTrip(t *testing.T) {
 	const wantRequest = "hello from client, with a trailer"
 	const wantReply = "hello from server, with a trailer"
 	serverDone := make(chan error, 1)
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		buf := make([]byte, len(wantRequest))
 		if _, err := io.ReadFull(conn, buf); err != nil {
