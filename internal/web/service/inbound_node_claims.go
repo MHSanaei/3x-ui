@@ -1,0 +1,275 @@
+package service
+
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+
+	"gorm.io/gorm"
+)
+
+var reportedRefusedClientClaim sync.Map
+
+// nodeClientClaims is what one node snapshot may do to the master's client records: a node
+// changes only records linked solely to its own inbounds, plus the new ones it creates.
+type nodeClientClaims struct {
+	refused map[string]string
+	// shared records are also served by the master or another node, so they keep the
+	// master's values except nodeKeptSharedKeys.
+	shared map[string]*model.ClientRecord
+	// storedSubID keeps an own record's subId when the node reports one held by a
+	// client it does not host.
+	storedSubID map[string]string
+}
+
+// nodeKeptSharedKeys stay as the node reported them: per-link values, and the lifecycle
+// the merge already settles against the master's traffic row.
+var nodeKeptSharedKeys = []string{"flow", "privateKey", "publicKey", "allowedIPs", "preSharedKey", "keepAlive", "enable", "expiryTime"}
+
+type clientLinkScope struct{ here, elsewhere bool }
+
+func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot) (*nodeClientClaims, error) {
+	claims := &nodeClientClaims{
+		refused:     map[string]string{},
+		shared:      map[string]*model.ClientRecord{},
+		storedSubID: map[string]string{},
+	}
+	subIDByEmail := map[string]string{}
+	for _, snapIb := range snap.Inbounds {
+		if snapIb == nil {
+			continue
+		}
+		_, entries, ok := splitSettingsClients(snapIb.Settings)
+		if !ok {
+			continue
+		}
+		for _, entry := range entries {
+			c, ok := readSettingsClient(entry)
+			if !ok || c.Email == "" {
+				continue
+			}
+			if c.Email != strings.TrimSpace(c.Email) {
+				claims.refused[c.Email] = "its email carries surrounding white space"
+				continue
+			}
+			if _, seen := subIDByEmail[c.Email]; !seen {
+				var subID string
+				_ = json.Unmarshal(c.SubID, &subID)
+				subIDByEmail[c.Email] = subID
+			}
+		}
+	}
+	if len(subIDByEmail) == 0 {
+		return claims, nil
+	}
+
+	lowered := make([]string, 0, len(subIDByEmail))
+	for email := range subIDByEmail {
+		lowered = append(lowered, strings.ToLower(email))
+	}
+	var records []model.ClientRecord
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(lowered), sqlInChunk) {
+		var rows []model.ClientRecord
+		if err := tx.Where("LOWER(email) IN ?", batch).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		records = append(records, rows...)
+	}
+	byEmail := make(map[string]*model.ClientRecord, len(records))
+	byLower := make(map[string]string, len(records))
+	for i := range records {
+		byEmail[records[i].Email] = &records[i]
+		byLower[strings.ToLower(records[i].Email)] = records[i].Email
+	}
+
+	subIDs := make([]string, 0, len(subIDByEmail))
+	for _, subID := range subIDByEmail {
+		if subID != "" {
+			subIDs = append(subIDs, subID)
+		}
+	}
+	var holders []model.ClientRecord
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(subIDs), sqlInChunk) {
+		var rows []model.ClientRecord
+		if err := tx.Select("id", "email", "sub_id").Where("sub_id IN ?", batch).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		holders = append(holders, rows...)
+	}
+
+	ids := make([]int, 0, len(records)+len(holders))
+	for i := range records {
+		ids = append(ids, records[i].Id)
+	}
+	for i := range holders {
+		ids = append(ids, holders[i].Id)
+	}
+	scopes, err := clientLinkScopes(tx, nodeID, ids)
+	if err != nil {
+		return nil, err
+	}
+	holdersBySub := make(map[string][]model.ClientRecord, len(holders))
+	for _, h := range holders {
+		holdersBySub[h.SubID] = append(holdersBySub[h.SubID], h)
+	}
+	subHeldElsewhere := func(email, subID string) bool {
+		for _, h := range holdersBySub[subID] {
+			if !strings.EqualFold(h.Email, email) && scopes[h.Id] != (clientLinkScope{here: true}) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for email, subID := range subIDByEmail {
+		rec, exact := byEmail[email]
+		if !exact {
+			if _, variant := byLower[strings.ToLower(email)]; variant {
+				claims.refused[email] = "another client's email differs from it only in case"
+			} else if subID != "" && subHeldElsewhere(email, subID) {
+				claims.refused[email] = "its subId belongs to a client this node does not host"
+			}
+			continue
+		}
+		scope := scopes[rec.Id]
+		switch {
+		case scope.elsewhere && scope.here:
+			claims.shared[email] = rec
+		case scope.elsewhere:
+			claims.refused[email] = "it is attached only to inbounds this node does not host"
+		case !scope.here && (rec.SyncOrphanedAt == 0 || rec.SyncOrphanedBy != nodeID):
+			claims.refused[email] = "it is detached from every inbound on the master"
+		case subID != rec.SubID && subID != "" && subHeldElsewhere(email, subID):
+			claims.storedSubID[email] = rec.SubID
+		}
+	}
+	for email, reason := range claims.refused {
+		key := fmt.Sprintf("%d:%s", nodeID, email)
+		if _, seen := reportedRefusedClientClaim.LoadOrStore(key, struct{}{}); !seen {
+			logger.Warningf("setRemoteTraffic: node %d reported client %q, not adopting: %s", nodeID, email, reason)
+		}
+	}
+	return claims, nil
+}
+
+// clientLinkScopes reports, per client id, whether it is linked to an inbound of this node
+// and whether to any inbound outside it (the master's own or another node's).
+func clientLinkScopes(tx *gorm.DB, nodeID int, ids []int) (map[int]clientLinkScope, error) {
+	scopes := make(map[int]clientLinkScope, len(ids))
+	for _, batch := range chunkInts(uniqueInts(ids), sqlInChunk) {
+		var rows []struct {
+			ClientID int
+			NodeID   *int
+		}
+		if err := tx.Table("client_inbounds").
+			Select("client_inbounds.client_id AS client_id, inbounds.node_id AS node_id").
+			Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
+			Where("client_inbounds.client_id IN ?", batch).
+			Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			s := scopes[r.ClientID]
+			if r.NodeID != nil && *r.NodeID == nodeID {
+				s.here = true
+			} else {
+				s.elsewhere = true
+			}
+			scopes[r.ClientID] = s
+		}
+	}
+	return scopes, nil
+}
+
+// apply rewrites a snapshot inbound's settings to what this node may claim.
+func (c *nodeClientClaims) apply(settings string) string {
+	if len(c.refused) == 0 && len(c.shared) == 0 && len(c.storedSubID) == 0 {
+		return settings
+	}
+	members, entries, ok := splitSettingsClients(settings)
+	if !ok {
+		return settings
+	}
+	changed := false
+	kept := make([]json.RawMessage, 0, len(entries))
+	for _, entry := range entries {
+		sc, ok := readSettingsClient(entry)
+		if !ok || sc.Email == "" {
+			kept = append(kept, entry)
+			continue
+		}
+		if _, refused := c.refused[sc.Email]; refused {
+			changed = true
+			continue
+		}
+		var override map[string]json.RawMessage
+		if rec, shared := c.shared[sc.Email]; shared {
+			override = sharedClientEntry(rec, entry)
+		} else if subID, keep := c.storedSubID[sc.Email]; keep {
+			if json.Unmarshal(entry, &override) == nil {
+				override["subId"], _ = json.Marshal(subID)
+			}
+		}
+		if override == nil {
+			kept = append(kept, entry)
+			continue
+		}
+		rewritten, err := json.Marshal(override)
+		if err != nil {
+			kept = append(kept, entry)
+			continue
+		}
+		changed = true
+		kept = append(kept, rewritten)
+	}
+	if !changed {
+		return settings
+	}
+	out, _ := joinSettingsClients(settings, members, kept)
+	return out
+}
+
+// sharedClientEntry is nil when the node's entry already agrees with the record on every
+// master-owned value, so an honest node's differing timestamps cause no re-push.
+func sharedClientEntry(rec *model.ClientRecord, nodeEntry json.RawMessage) map[string]json.RawMessage {
+	var reported model.Client
+	if json.Unmarshal(nodeEntry, &reported) != nil {
+		return nil
+	}
+	if !sharedRecordWouldChange(rec, &reported) {
+		return nil
+	}
+	var fromRecord, fromNode map[string]json.RawMessage
+	raw, err := json.Marshal(rec.ToClient())
+	if err != nil || json.Unmarshal(raw, &fromRecord) != nil || json.Unmarshal(nodeEntry, &fromNode) != nil {
+		return nil
+	}
+	for _, key := range nodeKeptSharedKeys {
+		if v, ok := fromNode[key]; ok {
+			fromRecord[key] = v
+		} else {
+			delete(fromRecord, key)
+		}
+	}
+	return fromRecord
+}
+
+// sharedRecordWouldChange merges the reported client onto a copy of the record the way
+// SyncInbound does, leaving out what the node may set and what the master restores anyway.
+func sharedRecordWouldChange(rec *model.ClientRecord, reported *model.Client) bool {
+	incoming := reported.ToRecord()
+	incoming.Enable = rec.Enable
+	incoming.ExpiryTime = rec.ExpiryTime
+	incoming.Comment = rec.Comment
+	incoming.CreatedAt = 0
+	merged := *rec
+	applyClientRecordMerge(&merged, incoming)
+	keepLinkOwnedFields(&merged, rec, false)
+	return !reflect.DeepEqual(merged, *rec)
+}

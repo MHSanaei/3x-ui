@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -87,4 +89,280 @@ func nodeInboundID(t *testing.T, db *gorm.DB, tag string) int {
 		t.Fatalf("read inbound %q: %v", tag, err)
 	}
 	return ib.Id
+}
+
+func seedMasterInbound(t *testing.T, db *gorm.DB, tag string, port int, clientsJSON string) *model.Inbound {
+	t.Helper()
+	ib := &model.Inbound{
+		UserId: 1, Tag: tag, Enable: true, Port: port, Protocol: model.VLESS,
+		Settings: `{"clients":[` + clientsJSON + `]}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create inbound %q: %v", tag, err)
+	}
+	clients, err := (&InboundService{}).GetClients(ib)
+	if err != nil {
+		t.Fatalf("parse clients of %q: %v", tag, err)
+	}
+	if err := (&ClientService{}).SyncInbound(db, ib.Id, clients); err != nil {
+		t.Fatalf("attach clients of %q: %v", tag, err)
+	}
+	return ib
+}
+
+func readClientRecord(t *testing.T, db *gorm.DB, email string) model.ClientRecord {
+	t.Helper()
+	var row model.ClientRecord
+	if err := db.Where("email = ?", email).First(&row).Error; err != nil {
+		t.Fatalf("read client %q: %v", email, err)
+	}
+	return row
+}
+
+func countClientsWhere(t *testing.T, db *gorm.DB, query string, args ...any) int64 {
+	t.Helper()
+	var n int64
+	if err := db.Model(&model.ClientRecord{}).Where(query, args...).Count(&n).Error; err != nil {
+		t.Fatalf("count clients: %v", err)
+	}
+	return n
+}
+
+func storedInboundSettings(t *testing.T, db *gorm.DB, tag string) string {
+	t.Helper()
+	var ib model.Inbound
+	if err := db.Where("tag = ?", tag).First(&ib).Error; err != nil {
+		t.Fatalf("read inbound %q: %v", tag, err)
+	}
+	return ib.Settings
+}
+
+func nodeHostsClient(t *testing.T, db *gorm.DB, tag, email string) bool {
+	t.Helper()
+	attached, err := (&ClientService{}).ListForInbound(db, nodeInboundID(t, db, tag))
+	if err != nil {
+		t.Fatalf("list clients of %q: %v", tag, err)
+	}
+	for _, c := range attached {
+		if c.Email == email {
+			return true
+		}
+	}
+	return false
+}
+
+// A client shared with a master inbound is rendered into the master's own Xray, so the
+// node's copy must not move its credential, reverse tag or subscription id.
+func TestNodeCannotRewriteClientSharedWithMaster(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+
+	const legitUUID = "11111111-1111-4111-8111-111111111111"
+	shared := fmt.Sprintf(`{"email":"shared@x","id":%q,"subId":"shared-sub","enable":true}`, legitUUID)
+	seedMasterInbound(t, db, "master-in", 40001, shared)
+	nid := 1
+	nodeIb := &model.Inbound{
+		UserId: 1, Tag: "n1-in", Enable: true, Port: 41001, Protocol: model.VLESS, NodeID: &nid,
+		Settings: `{"clients":[` + shared + `]}`,
+	}
+	if err := db.Create(nodeIb).Error; err != nil {
+		t.Fatalf("create node inbound: %v", err)
+	}
+	clients, _ := svc.GetClients(nodeIb)
+	if err := (&ClientService{}).SyncInbound(db, nodeIb.Id, clients); err != nil {
+		t.Fatalf("attach node clients: %v", err)
+	}
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"shared@x","id":"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz","subId":"picked-by-node","reverse":{"tag":"direct"},"enable":true}]}`,
+		xray.ClientTraffic{Email: "shared@x", Enable: true})
+
+	row := readClientRecord(t, db, "shared@x")
+	if row.UUID != legitUUID || row.SubID != "shared-sub" || row.Reverse != "" {
+		t.Fatalf("node rewrote a shared client: uuid=%q subId=%q reverse=%q", row.UUID, row.SubID, row.Reverse)
+	}
+	stored := storedInboundSettings(t, db, "n1-in")
+	if strings.Contains(stored, "zzzz") || strings.Contains(stored, "picked-by-node") || strings.Contains(stored, "direct") {
+		t.Fatalf("node inbound stored the node's values for a shared client: %s", stored)
+	}
+	if !nodeHostsClient(t, db, "n1-in", "shared@x") {
+		t.Fatal("the shared client lost its node link")
+	}
+}
+
+// A refused claim must leave no trace: the stored settings are re-synced later by
+// auto-renew, and its stats would land on the victim's traffic row.
+func TestNodeRefusedClaimIsNotStoredOrCounted(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	master := seedMasterInbound(t, db, "master-in", 40001, `{"email":"victim@x","id":"11111111-1111-4111-8111-111111111111","subId":"victim-sub","enable":true}`)
+	if err := db.Create(&xray.ClientTraffic{InboundId: master.Id, Email: "victim@x", Enable: true}).Error; err != nil {
+		t.Fatalf("seed victim traffic: %v", err)
+	}
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	hostile := `{"clients":[{"email":"victim@x","id":"","subId":"picked-by-node","enable":true},{"email":"victim@x ","subId":"padded","enable":true},{"email":"VICTIM@X","subId":"cased","enable":true},{"email":"own@x","enable":true}]}`
+	for _, up := range []int64{100, 600} {
+		syncNodeWithSettings(t, svc, 1, "n1-in", hostile,
+			xray.ClientTraffic{Email: "victim@x", Up: up, Enable: true},
+			xray.ClientTraffic{Email: "own@x", Enable: true})
+	}
+
+	if stored := storedInboundSettings(t, db, "n1-in"); strings.Contains(strings.ToLower(stored), "victim") {
+		t.Fatalf("refused claim stored on the node inbound: %s", stored)
+	}
+	if row := readClientRecord(t, db, "victim@x"); row.SubID != "victim-sub" {
+		t.Fatalf("victim subId = %q, want victim-sub", row.SubID)
+	}
+	if n := countClientsWhere(t, db, "LOWER(email) LIKE ?", "victim%"); n != 1 {
+		t.Fatalf("a padded or case-variant claim created a look-alike record: %d victim rows", n)
+	}
+	var counted int64
+	db.Model(xray.ClientTraffic{}).Where("LOWER(email) LIKE ? AND up > 0", "victim%").Count(&counted)
+	if counted != 0 {
+		t.Fatalf("refused claim's stats reached a victim traffic row: %d rows", counted)
+	}
+	if !nodeHostsClient(t, db, "n1-in", "own@x") {
+		t.Fatal("the node's own client was not adopted")
+	}
+}
+
+// A record with no inbound is the admin's (detached, or its inbound deleted), not a
+// node's; only a node whose own merge orphaned it may take it back.
+func TestNodeCannotAdoptDetachedClient(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	seedNodeRow(t, db, &model.Node{Id: 2, Name: "n2", Address: "127.0.0.2", Port: 2096, ApiToken: "tok2", Enable: true})
+	master := seedMasterInbound(t, db, "master-in", 40001,
+		`{"email":"detached@x","id":"11111111-1111-4111-8111-111111111111","subId":"d-sub","enable":true},`+
+			`{"email":"mine@x","id":"22222222-2222-4222-8222-222222222222","enable":true},`+
+			`{"email":"theirs@x","id":"33333333-3333-4333-8333-333333333333","enable":true}`)
+	if err := db.Exec("DELETE FROM client_inbounds WHERE inbound_id = ?", master.Id).Error; err != nil {
+		t.Fatalf("detach: %v", err)
+	}
+	for email, node := range map[string]int{"mine@x": 1, "theirs@x": 2} {
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
+			Updates(map[string]any{"sync_orphaned_at": 1, "sync_orphaned_by": node}).Error; err != nil {
+			t.Fatalf("mark %s orphaned: %v", email, err)
+		}
+	}
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"detached@x","subId":"picked","enable":true},{"email":"mine@x","enable":true},{"email":"theirs@x","subId":"picked2","enable":true}]}`)
+
+	if row := readClientRecord(t, db, "detached@x"); row.SubID != "d-sub" || nodeHostsClient(t, db, "n1-in", "detached@x") {
+		t.Fatalf("node adopted a detached client: subId=%q", row.SubID)
+	}
+	if nodeHostsClient(t, db, "n1-in", "theirs@x") {
+		t.Fatal("node adopted a client another node's merge orphaned")
+	}
+	if !nodeHostsClient(t, db, "n1-in", "mine@x") {
+		t.Fatal("node could not take back a client its own merge orphaned")
+	}
+}
+
+// The subscription server selects by subId alone, so a node's client must not join
+// the subscription of a customer it does not host.
+func TestNodeCannotClaimForeignSubID(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	seedMasterInbound(t, db, "master-in", 40001, `{"email":"customer@x","id":"11111111-1111-4111-8111-111111111111","subId":"cust-sub","enable":true}`)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"node-own@x","id":"66666666-6666-4666-8666-666666666666","subId":"cust-sub","enable":true}]}`)
+
+	if n := countClientsWhere(t, db, "sub_id = ?", "cust-sub"); n != 1 {
+		t.Fatalf("node joined a customer's subscription: %d records hold cust-sub", n)
+	}
+}
+
+// A shared client's tunnel keys are rendered into the master's own WireGuard inbound, so a
+// node tunnel must not own them even when its inbound id is the lower one.
+func TestNodeTunnelDoesNotOwnSharedPeerKeys(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+
+	const masterKey = "mJ3F8Yb3Kx6cdx6Sx4WbJ3qQDXB5cN3d0pH6m4kq0Ug="
+	const nodeKey = "nK9Pq1Zr6s8Lw2Vb4Xc7Dm0Fh5Jt3Ny9Ru1Ea6Go2Is="
+	entry := func(key, ip string) string {
+		return fmt.Sprintf(`{"email":"shared@x","publicKey":%q,"allowedIPs":[%q],"enable":true}`, key, ip)
+	}
+	nid := 1
+	nodeIb := &model.Inbound{
+		UserId: 1, Tag: "n1-wg", Enable: true, Port: 41002, Protocol: model.WireGuard, NodeID: &nid,
+		Settings: `{"clients":[` + entry(masterKey, "10.1.0.2/32") + `]}`,
+	}
+	masterIb := &model.Inbound{
+		UserId: 1, Tag: "master-wg", Enable: true, Port: 40002, Protocol: model.WireGuard,
+		Settings: `{"clients":[` + entry(masterKey, "10.0.0.2/32") + `]}`,
+	}
+	for _, ib := range []*model.Inbound{nodeIb, masterIb} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create %q: %v", ib.Tag, err)
+		}
+		clients, err := svc.GetClients(ib)
+		if err != nil {
+			t.Fatalf("parse %q: %v", ib.Tag, err)
+		}
+		if err := (&ClientService{}).SyncInbound(db, ib.Id, clients); err != nil {
+			t.Fatalf("attach %q: %v", ib.Tag, err)
+		}
+	}
+
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{{
+		Tag: "n1-wg", Enable: true, Port: 41002, Protocol: model.WireGuard,
+		Settings:    `{"clients":[` + entry(nodeKey, "10.1.0.2/32") + `]}`,
+		ClientStats: []xray.ClientTraffic{{Email: "shared@x", Enable: true}},
+	}}}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	if !nodeHostsClient(t, db, "n1-wg", "shared@x") {
+		t.Fatal("the shared client lost its node tunnel link")
+	}
+	if got := readClientRecord(t, db, "shared@x").PublicKey; got != masterKey {
+		t.Fatalf("node tunnel replaced a shared client's public key: %q", got)
+	}
+}
+
+// An honest node's copy of a shared client differs only in timestamps and comment; treating
+// that as a refused claim would mark the node dirty and re-push it on every tick.
+func TestNodeSharedClientInAgreementIsNotRewritten(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+
+	shared := `{"email":"shared@x","id":"11111111-1111-4111-8111-111111111111","subId":"shared-sub","comment":"vip","enable":true}`
+	seedMasterInbound(t, db, "master-in", 40001, shared)
+	nid := 1
+	nodeIb := &model.Inbound{
+		UserId: 1, Tag: "n1-in", Enable: true, Port: 41001, Protocol: model.VLESS, NodeID: &nid,
+		Settings: `{"clients":[` + shared + `]}`,
+	}
+	if err := db.Create(nodeIb).Error; err != nil {
+		t.Fatalf("create node inbound: %v", err)
+	}
+	clients, _ := svc.GetClients(nodeIb)
+	if err := (&ClientService{}).SyncInbound(db, nodeIb.Id, clients); err != nil {
+		t.Fatalf("attach node clients: %v", err)
+	}
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"shared@x","id":"11111111-1111-4111-8111-111111111111","subId":"shared-sub","enable":true,"created_at":1,"updated_at":2}]}`,
+		xray.ClientTraffic{Email: "shared@x", Enable: true})
+
+	var node model.Node
+	if err := db.Select("config_dirty").Where("id = ?", 1).First(&node).Error; err != nil {
+		t.Fatalf("read node: %v", err)
+	}
+	if node.ConfigDirty {
+		t.Fatal("a node in agreement with the master was marked dirty for a re-push")
+	}
 }

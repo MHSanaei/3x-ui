@@ -38,14 +38,12 @@ func TestSetRemoteTraffic_PreservesPanelLocalGroupAndComment(t *testing.T) {
 		t.Fatalf("create node inbound: %v", err)
 	}
 
-	if err := db.Create(&model.ClientRecord{
-		Email:   email,
-		UUID:    uid,
-		Enable:  true,
-		Group:   wantGroup,
-		Comment: wantComment,
-	}).Error; err != nil {
-		t.Fatalf("create client record: %v", err)
+	centralClients, err := (&InboundService{}).GetClients(central)
+	if err != nil {
+		t.Fatalf("parse central clients: %v", err)
+	}
+	if err := (&ClientService{}).SyncInbound(db, central.Id, centralClients); err != nil {
+		t.Fatalf("link client record: %v", err)
 	}
 
 	snap := &runtime.TrafficSnapshot{

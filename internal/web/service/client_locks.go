@@ -173,6 +173,7 @@ func isClientEmailTombstoned(email string) bool {
 // nest any value deeply, so entries stay raw text and only these fields are decoded.
 type settingsClientEntry struct {
 	Email      string          `json:"email"`
+	SubID      json.RawMessage `json:"subId"`
 	ExpiryTime json.RawMessage `json:"expiryTime"`
 	Enable     json.RawMessage `json:"enable"`
 }

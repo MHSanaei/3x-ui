@@ -1018,6 +1018,8 @@ type ClientRecord struct {
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
+	// The node whose merge orphaned the record: only that node may take it back.
+	SyncOrphanedBy int `json:"-" gorm:"column:sync_orphaned_by;default:0"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }

@@ -25,13 +25,13 @@ func clientRecordExists(tx *gorm.DB, email string) bool {
 	return n > 0
 }
 
-func markSyncOrphan(tx *gorm.DB, email string, nowMs int64) error {
+func markSyncOrphan(tx *gorm.DB, email string, nodeID int, nowMs int64) error {
 	if email == "" {
 		return nil
 	}
 	return tx.Model(&model.ClientRecord{}).
 		Where("email = ? AND sync_orphaned_at = 0", email).
-		Update("sync_orphaned_at", nowMs).Error
+		Updates(map[string]any{"sync_orphaned_at": nowMs, "sync_orphaned_by": nodeID}).Error
 }
 
 // A client that is attached again is not orphaned, whatever an earlier merge
@@ -39,7 +39,7 @@ func markSyncOrphan(tx *gorm.DB, email string, nowMs int64) error {
 func clearSyncOrphanMarks(tx *gorm.DB) error {
 	return tx.Model(&model.ClientRecord{}).
 		Where("sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)").
-		Update("sync_orphaned_at", 0).Error
+		Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error
 }
 
 // ReapSyncOrphans deletes the clients the node-snapshot sweep marked and no

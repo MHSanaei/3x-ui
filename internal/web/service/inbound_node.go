@@ -23,8 +23,6 @@ import (
 
 var reportedRemoteTagConflict sync.Map
 
-var reportedForeignClientClaim sync.Map
-
 // nodeBulkPushThreshold caps how many per-client RPCs a single operation will
 // stream to a remote node. Above it, the panel marks the node dirty instead and
 // lets one ReconcileNode push converge the whole inbound — far cheaper than M
@@ -494,46 +492,6 @@ func snapshotAttachedEmails(settings string) (map[string]struct{}, bool) {
 	return emails, true
 }
 
-// clientEmailsOwnedElsewhere returns the emails attached only to inbounds of
-// other nodes: email is unique, so adopting one would overwrite a client this
-// node does not serve. Attached nowhere means soft-orphaned, hence adoptable.
-func clientEmailsOwnedElsewhere(tx *gorm.DB, nodeID int, emails []string) (map[string]struct{}, error) {
-	attachedEmails := func(nodeScoped bool) ([]string, error) {
-		q := tx.Table("clients").
-			Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
-			Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
-			Where("clients.email IN ?", emails)
-		if nodeScoped {
-			q = q.Where("inbounds.node_id = ?", nodeID)
-		}
-		var rows []string
-		err := q.Pluck("clients.email", &rows).Error
-		return rows, err
-	}
-	attached, err := attachedEmails(false)
-	if err != nil {
-		return nil, err
-	}
-	if len(attached) == 0 {
-		return nil, nil
-	}
-	owned, err := attachedEmails(true)
-	if err != nil {
-		return nil, err
-	}
-	ownedSet := make(map[string]struct{}, len(owned))
-	for _, email := range owned {
-		ownedSet[email] = struct{}{}
-	}
-	foreign := make(map[string]struct{})
-	for _, email := range attached {
-		if _, ok := ownedSet[email]; !ok {
-			foreign[email] = struct{}{}
-		}
-	}
-	return foreign, nil
-}
-
 func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil
@@ -704,8 +662,23 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}()
 
+	claims, err := loadNodeClientClaims(tx, nodeID, snap)
+	if err != nil {
+		return false, err
+	}
+	// The raw blob stays for the reconcile fingerprint, so a rewrite leaves a mismatch to
+	// re-push the master's values against.
+	rawSettings := make(map[*model.Inbound]string, len(snap.Inbounds))
+	for _, snapIb := range snap.Inbounds {
+		if snapIb != nil {
+			rawSettings[snapIb] = snapIb.Settings
+			snapIb.Settings = claims.apply(snapIb.Settings)
+		}
+	}
+
 	structuralChange := false
 	lifecycleLifted := false
+	claimsRewritten := false
 	var sweptTags []string
 
 	var adoptedInbounds []*model.Inbound
@@ -713,6 +686,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		central      *model.Inbound
 		snapIb       *model.Inbound
 		wireSettings string
+		fingerprint  string
 	}
 	var pendingAdopts []pendingAdopt
 	degradedInbounds := map[int]string{}
@@ -870,6 +844,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if deduped, changed := dedupeSettingsClients(adoptedSettings); changed {
 			adoptedSettings = deduped
 		}
+		fingerprint := adoptedSettings
+		if raw := rawSettings[snapIb]; raw != snapIb.Settings {
+			fingerprint, _ = stripTombstonedClients(raw)
+			fingerprint, _ = dedupeSettingsClients(fingerprint)
+		}
 		updates := map[string]any{}
 		if !dirty && snapshotDropsEveryHubClient(tx, c.Id, adoptedSettings) {
 			degradedInbounds[c.Id] = c.Tag
@@ -877,7 +856,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// Defer lifecycle lift until after client_traffics absorbs this tick's
 			// deltas so quota stale-disable matches SQL (#6228).
 			pendingAdopts = append(pendingAdopts, pendingAdopt{
-				central: c, snapIb: snapIb, wireSettings: adoptedSettings,
+				central: c, snapIb: snapIb, wireSettings: adoptedSettings, fingerprint: fingerprint,
 			})
 			updates["enable"] = snapIb.Enable
 			updates["remark"] = snapIb.Remark
@@ -1287,10 +1266,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// so the adopted rows are served this tick, not after the TTL.
 			InvalidateSubData()
 		}
-		// The fingerprint stamps the un-lifted wire blob on purpose: a lift must
-		// leave reconcile a mismatch to re-push against.
-		if liftChanged || adoptedWireChanged(p.central, p.snapIb, p.wireSettings) {
-			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.wireSettings))
+		rewritten := p.fingerprint != p.wireSettings
+		claimsRewritten = claimsRewritten || rewritten
+		// The fingerprint stamps the node's own blob on purpose: a lift or a refused claim
+		// must leave reconcile a mismatch to re-push against.
+		if liftChanged || rewritten || adoptedWireChanged(p.central, p.snapIb, p.fingerprint) {
+			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.fingerprint))
 		}
 	}
 	for _, snapIb := range snap.Inbounds {
@@ -1374,29 +1355,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 		}
-		if len(localEmails) > 0 {
-			foreign, err := clientEmailsOwnedElsewhere(tx, nodeID, localEmails)
-			if err != nil {
-				return false, err
-			}
-			if len(foreign) > 0 {
-				kept := filtered[:0]
-				for i := range filtered {
-					if _, claimed := foreign[filtered[i].Email]; !claimed {
-						kept = append(kept, filtered[i])
-						continue
-					}
-					key := fmt.Sprintf("%d:%s", nodeID, filtered[i].Email)
-					if _, seen := reportedForeignClientClaim.LoadOrStore(key, struct{}{}); !seen {
-						logger.Warningf(
-							"setRemoteTraffic: node %d reported client %q, which is attached only to inbounds of another node — not adopting (rename one side to remove the duplicate email)",
-							nodeID, filtered[i].Email,
-						)
-					}
-				}
-				filtered = kept
-			}
-		}
 		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
 			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, err)
 			syncFailedInbounds[c.Id] = struct{}{}
@@ -1436,7 +1394,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			// "Ended the merge unattached" is true for a real remote deletion and
 			// equally true for a bad merge, so record a strike instead of deleting.
-			if err := markSyncOrphan(tx, email, now); err != nil {
+			if err := markSyncOrphan(tx, email, nodeID, now); err != nil {
 				logger.Warningf("setRemoteTraffic: mark orphan %q failed: %v", email, err)
 				continue
 			}
@@ -1472,14 +1430,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	if lifecycleLifted && !dirty {
+	if (lifecycleLifted || claimsRewritten) && !dirty {
+		reason := "lifecycle lift"
+		if !lifecycleLifted {
+			reason = "client claim rewrite"
+		}
 		var already model.Node
 		if err := database.GetDB().Select("config_dirty").Where("id = ?", nodeID).First(&already).Error; err == nil && already.ConfigDirty {
-			logger.Debugf("setRemoteTraffic: node %d lifecycle lift; already dirty", nodeID)
+			logger.Debugf("setRemoteTraffic: node %d %s; already dirty", nodeID, reason)
 		} else {
-			logger.Infof("setRemoteTraffic: node %d lifecycle lift; marking dirty for re-push", nodeID)
+			logger.Infof("setRemoteTraffic: node %d %s; marking dirty for re-push", nodeID, reason)
 			if err := (&NodeService{}).MarkNodeDirty(nodeID); err != nil {
-				logger.Warningf("setRemoteTraffic: mark node %d dirty after lifecycle lift failed: %v", nodeID, err)
+				logger.Warningf("setRemoteTraffic: mark node %d dirty after %s failed: %v", nodeID, reason, err)
 			}
 		}
 	}
