@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -295,5 +296,44 @@ func TestNewSocks5UDPSessionGivesUpOnSilentServer(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("newSocks5UDPSession still blocked 2s past the associate deadline: a silent SOCKS5 server parks the tunnel's delivery path")
+	}
+}
+
+// A burst of short connections through AmneziaWG used to allocate a fresh 32 KiB copy buffer
+// per direction per connection (gigabytes per hour under churn); the pair must be reused.
+func TestPipeBothWaysReusesCopyBuffersAcrossConnections(t *testing.T) {
+	payload := make([]byte, 16*1024)
+	sink := make([]byte, 16*1024)
+	relay := func() {
+		tunnelClient, tunnelSide := tcpPair(t)
+		upstreamSide, upstreamServer := tcpPair(t)
+		done := make(chan struct{})
+		go func() { pipeBothWays(tunnelSide, upstreamSide); close(done) }()
+		go func() {
+			_, _ = io.ReadFull(upstreamServer, sink[:len("ping")])
+			_, _ = upstreamServer.Write(payload)
+			_ = upstreamServer.Close()
+		}()
+		_, _ = tunnelClient.Write([]byte("ping"))
+		_ = tunnelClient.(*net.TCPConn).CloseWrite()
+		if _, err := io.ReadFull(tunnelClient, sink); err != nil {
+			t.Fatalf("reply: %v", err)
+		}
+		<-done
+	}
+	for range 5 {
+		relay()
+	}
+	const conns = 100
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	for range conns {
+		relay()
+	}
+	runtime.ReadMemStats(&after)
+	perConn := (after.TotalAlloc - before.TotalAlloc) / conns
+	if perConn >= 32*1024 {
+		t.Fatalf("each relayed connection allocated %d bytes, want the copy buffers reused (< 32 KiB)", perConn)
 	}
 }

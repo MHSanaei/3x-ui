@@ -465,8 +465,8 @@ func (s *socks5EgressServer) relayTCP(dev *Device, tag string, upstream net.Conn
 		return
 	}
 	done := make(chan struct{}, 2)
-	go func() { _, _ = io.Copy(tunnelConn, upstream); done <- struct{}{} }()
-	go func() { _, _ = io.Copy(upstream, tunnelConn); done <- struct{}{} }()
+	go func() { copyPooled(tunnelConn, upstream); done <- struct{}{} }()
+	go func() { copyPooled(upstream, tunnelConn); done <- struct{}{} }()
 	<-done
 }
 
