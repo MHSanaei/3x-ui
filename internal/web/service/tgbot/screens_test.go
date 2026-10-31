@@ -18,6 +18,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -1113,5 +1114,59 @@ func TestIndividualLinksScreenHasNoDuplicateLinksButton(t *testing.T) {
 	}
 	if got := rows[0][0].CallbackData; got != cbHome {
 		t.Errorf("the only control is %q, want the back row %q", got, cbHome)
+	}
+}
+
+// The pager was drawn on a client's screen but its taps never got past the
+// callback gate, so a client with several accounts was stuck on page one.
+func TestClientCanTurnPages(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4848, "pager@x")
+
+	for _, data := range []string{cbPageNext, cbPagePrev, cbPageNone} {
+		if !isClientSelfCallback(data) {
+			t.Errorf("a client's %q button is refused by the callback gate", data)
+		}
+	}
+
+	tb.renderScreen(4848, tb.newScreen("main", strings.Repeat("line of text\n", 300)))
+	tb.answerCallback(&telego.CallbackQuery{
+		ID:      "q1",
+		From:    telego.User{ID: 4848},
+		Data:    cbPageNext,
+		Message: &telego.Message{Chat: telego.Chat{ID: 4848}},
+	}, false)
+
+	sc, ok := tb.screens().get(4848)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	if sc.page != 1 {
+		t.Errorf("page = %d after a client tapped next, want 1", sc.page)
+	}
+}
+
+// A client with several accounts opens one from its home screen: that screen
+// must show the account's usage, since the client card is admin-only.
+func TestLinksScreenShowsUsageToItsOwner(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4949, "first@x")
+	seedClientForTgUser(t, 4949, "second@x")
+
+	tb.screenClientLinks(4949, "second@x")
+	sc, ok := tb.screens().get(4949)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	if want := tb.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(0)); !strings.Contains(sc.body, want) {
+		t.Errorf("the client's links screen shows no usage:\n%s", sc.body)
+	}
+	markup, _ := json.Marshal(sc.markup)
+	if strings.Contains(string(markup), "client_get_usage") {
+		t.Errorf("a client is offered the admin's client card: %s", markup)
 	}
 }
