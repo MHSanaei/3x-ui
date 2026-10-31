@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -14,7 +13,9 @@ import (
 	"gorm.io/gorm"
 )
 
-var reportedRefusedClientClaim sync.Map
+// reportedRefusedClaims holds, per node, the emails its last snapshot was refused: a
+// node chooses them, so only the latest set is kept and a claim logs once while it lasts.
+var reportedRefusedClaims sync.Map
 
 // nodeClientClaims is what one node snapshot may do to the master's client records: a node
 // changes only records linked solely to its own inbounds, plus the new ones it creates.
@@ -66,6 +67,7 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		}
 	}
 	if len(subIDByEmail) == 0 {
+		logRefusedClaims(nodeID, claims.refused)
 		return claims, nil
 	}
 
@@ -149,13 +151,21 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 			claims.storedSubID[email] = rec.SubID
 		}
 	}
-	for email, reason := range claims.refused {
-		key := fmt.Sprintf("%d:%s", nodeID, email)
-		if _, seen := reportedRefusedClientClaim.LoadOrStore(key, struct{}{}); !seen {
-			logger.Warningf("setRemoteTraffic: node %d reported client %q, not adopting: %s", nodeID, email, reason)
+	logRefusedClaims(nodeID, claims.refused)
+	return claims, nil
+}
+
+func logRefusedClaims(nodeID int, refused map[string]string) {
+	prev, _ := reportedRefusedClaims.Load(nodeID)
+	logged, _ := prev.(map[string]struct{})
+	current := make(map[string]struct{}, len(refused))
+	for email, reason := range refused {
+		current[email] = struct{}{}
+		if _, seen := logged[email]; !seen {
+			logger.Warningf("setRemoteTraffic: node %d reported client %.64q, not adopting: %s", nodeID, email, reason)
 		}
 	}
-	return claims, nil
+	reportedRefusedClaims.Store(nodeID, current)
 }
 
 // clientLinkScopes reports, per client id, whether it is linked to an inbound of this node

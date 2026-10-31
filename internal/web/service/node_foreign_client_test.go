@@ -366,3 +366,20 @@ func TestNodeSharedClientInAgreementIsNotRewritten(t *testing.T) {
 		t.Fatal("a node in agreement with the master was marked dirty for a re-push")
 	}
 }
+
+// The refused emails are the node's choice, so the state that keeps their warning to one
+// line must not keep every name a node ever sent.
+func TestNodeRefusedClaimLogStateIsBounded(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	for i := range 50 {
+		syncNodeWithSettings(t, svc, 1, "n1-in", fmt.Sprintf(`{"clients":[{"email":"rotating-%d@x ","enable":true}]}`, i))
+	}
+	held, _ := reportedRefusedClaims.Load(1)
+	if got := len(held.(map[string]struct{})); got != 1 {
+		t.Fatalf("refused-claim log state holds %d emails for one node, want 1", got)
+	}
+}
