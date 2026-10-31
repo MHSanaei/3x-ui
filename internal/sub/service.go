@@ -737,8 +737,12 @@ func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
 	return 0
 }
 
-// getInboundsBySubId loads the subscriber's inbounds; hosts are read per request, never cached.
+// getInboundsBySubId loads the subscriber's inbounds, hosts read per request; a blank subId
+// would match every client stored without one, so it names no subscription.
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
+	if strings.TrimSpace(subId) == "" {
+		return nil, nil
+	}
 	inbounds, err := s.loadInboundsBySubId(subId)
 	if err != nil {
 		return nil, err
