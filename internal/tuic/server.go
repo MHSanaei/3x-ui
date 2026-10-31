@@ -91,6 +91,11 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 	if authTimeout <= 0 {
 		authTimeout = 3
 	}
+	// A second count past a day only wraps the Duration below; rows stored before the save
+	// path bounded it fail here instead of panicking the listener on its first handshake.
+	if maxIdle > MaxTimeoutSeconds || authTimeout > MaxTimeoutSeconds {
+		return nil, fmt.Errorf("tuic: max_idle_time and authentication_timeout must not exceed %d seconds", MaxTimeoutSeconds)
+	}
 	maxUdpSize := inst.MaxUdpRelayPacketSize
 	if maxUdpSize <= 0 {
 		maxUdpSize = 1500
@@ -635,6 +640,9 @@ type packetReassembler struct {
 	maxPacketSize int
 	packets       map[packetFragmentKey]*packetReassembly
 }
+
+// MaxTimeoutSeconds bounds the second-count settings, far above any useful timeout.
+const MaxTimeoutSeconds = 86400
 
 const (
 	maxSafeUdpRelayPacketSize   = maxSocksUdpDatagramSize - 262
