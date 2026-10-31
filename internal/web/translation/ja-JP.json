@@ -121,6 +121,7 @@
     "donate": "寄付",
     "sponsors": "スポンサー",
     "hosts": "ホスト",
+    "logs": "ログ",
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "0〜65535 の単一の数値を入力してください"
       },
       "dragToReorder": "ドラッグして {name} を並べ替え"
+    },
+    "logs": {
+      "file": "ログファイル",
+      "timeRange": "期間",
+      "level": "レベル",
+      "autoRefresh": "自動更新",
+      "autoRefreshOff": "自動更新オフ",
+      "autoRefreshEvery": "{seconds} 秒ごと",
+      "outbound": "アウトバウンド",
+      "truncated": "行を短縮しました",
+      "noMatches": "このフィルターに一致する行はありません",
+      "noFiles": "ログファイルが見つかりません",
+      "noFilesHint": "このフォルダーにファイルが書き込まれると、ここにログが表示されます：",
+      "uncategorized": "未分類",
+      "noTimestamps": "タイムスタンプなし",
+      "clickHint": "グラフの点またはリストの行をクリックすると絞り込めます。",
+      "scanStopped": "{scanned} で分析を停止しました。このファイルの残りは含まれていません。",
+      "readBudget": "{scanned} を検索しましたが、このページは埋まりませんでした。古い行に一致する可能性があります。古い行を読み込んで検索を続けてください。",
+      "lineCap": "新しい {count} 行を表示しています。古い行を見るにはフィルターを絞り込んでください。",
+      "loadOlder": "古い行を読み込む",
+      "externalTitle": "一部の Xray ログがログフォルダーの外にあります",
+      "externalDesc": "このページはログフォルダーのみを読み取るため、これらのログは表示されません。表示するには、Xray 設定の log セクションでパスを変更してください：",
+      "tabs": {
+        "overview": "概要",
+        "raw": "生ログ"
+      },
+      "ranges": {
+        "all": "ファイル全体",
+        "15m": "過去 15 分",
+        "1h": "過去 1 時間",
+        "6h": "過去 6 時間",
+        "24h": "過去 24 時間",
+        "7d": "過去 7 日",
+        "custom": "カスタム期間"
+      },
+      "levels": {
+        "all": "すべて",
+        "error": "エラー",
+        "warning": "警告",
+        "info": "情報",
+        "debug": "デバッグ"
+      },
+      "fields": {
+        "query": "全文検索",
+        "ip": "IP",
+        "country": "国",
+        "user": "ユーザー",
+        "host": "ホスト",
+        "inbound": "インバウンド",
+        "protocol": "プロトコル",
+        "status": "ステータスまたはメッセージ"
+      },
+      "kinds": {
+        "access": "アクセスログ",
+        "error": "エラーログ"
+      },
+      "cards": {
+        "lines": "行数",
+        "errors": "エラー",
+        "warnings": "警告",
+        "uniqueIps": "ユニーク IP",
+        "uniqueUsers": "ユニークユーザー",
+        "range": "対象期間"
+      },
+      "charts": {
+        "volume": "ログ量の推移",
+        "problems": "エラーと警告の推移",
+        "topIps": "上位 IP",
+        "topUsers": "上位ユーザー",
+        "topHosts": "上位ホスト",
+        "topErrorCategories": "カテゴリ別のエラーと警告",
+        "topProtocols": "上位プロトコル",
+        "topInbounds": "上位インバウンド",
+        "topStatuses": "上位ステータス",
+        "countries": "国別リクエスト"
+      },
+      "columns": {
+        "time": "時刻",
+        "message": "メッセージ"
+      },
+      "geoMissing": "Xray フォルダーに geoip.dat が見つからないため、国データを利用できません。地図を表示するには geo ファイルを更新してください。",
+      "geoNote": "このサーバー上の geoip.dat で判定しているため、IP アドレスが外部に送信されることはありません。地図データ：Natural Earth。",
+      "geoUnlocated": "{count} 行のアドレスは、プライベート IP やマスクされた IP など、国を特定できません。"
     },
     "sponsors": {
       "title": "スポンサー",

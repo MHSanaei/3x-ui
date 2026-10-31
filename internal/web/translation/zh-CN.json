@@ -121,6 +121,7 @@
     "donate": "捐赠",
     "sponsors": "赞助商",
     "hosts": "主机",
+    "logs": "日志",
     "docs": "文档",
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
       },
       "dragToReorder": "拖动以重新排列 {name}"
+    },
+    "logs": {
+      "file": "日志文件",
+      "timeRange": "时间范围",
+      "level": "级别",
+      "autoRefresh": "自动刷新",
+      "autoRefreshOff": "关闭自动刷新",
+      "autoRefreshEvery": "每 {seconds} 秒",
+      "outbound": "出站",
+      "truncated": "行已截断",
+      "noMatches": "没有符合这些筛选条件的日志行",
+      "noFiles": "未找到日志文件",
+      "noFilesHint": "文件写入此文件夹后，日志将显示在这里：",
+      "uncategorized": "未分类",
+      "noTimestamps": "无时间戳",
+      "clickHint": "点击图表上的点或列表中的行即可按其筛选。",
+      "scanStopped": "分析在 {scanned} 后停止：此文件的其余部分未包含在内。",
+      "readBudget": "已搜索 {scanned}，本页仍未填满。较旧的行可能仍有匹配：加载较旧的行以继续搜索。",
+      "lineCap": "正在显示最新的 {count} 行。请缩小筛选范围以查看更早的行。",
+      "loadOlder": "加载较旧的行",
+      "externalTitle": "部分 Xray 日志位于日志文件夹之外",
+      "externalDesc": "此页面只读取日志文件夹，因此不显示这些日志。如需显示，请在 Xray 配置的 log 部分修改其路径：",
+      "tabs": {
+        "overview": "概览",
+        "raw": "原始日志"
+      },
+      "ranges": {
+        "all": "整个文件",
+        "15m": "最近 15 分钟",
+        "1h": "最近 1 小时",
+        "6h": "最近 6 小时",
+        "24h": "最近 24 小时",
+        "7d": "最近 7 天",
+        "custom": "自定义范围"
+      },
+      "levels": {
+        "all": "全部",
+        "error": "错误",
+        "warning": "警告",
+        "info": "信息",
+        "debug": "调试"
+      },
+      "fields": {
+        "query": "搜索全部文本",
+        "ip": "IP",
+        "country": "国家",
+        "user": "用户",
+        "host": "主机",
+        "inbound": "入站",
+        "protocol": "协议",
+        "status": "状态或消息"
+      },
+      "kinds": {
+        "access": "访问日志",
+        "error": "错误日志"
+      },
+      "cards": {
+        "lines": "行数",
+        "errors": "错误",
+        "warnings": "警告",
+        "uniqueIps": "独立 IP",
+        "uniqueUsers": "独立用户",
+        "range": "覆盖时段"
+      },
+      "charts": {
+        "volume": "日志量趋势",
+        "problems": "错误和警告趋势",
+        "topIps": "热门 IP",
+        "topUsers": "热门用户",
+        "topHosts": "热门主机",
+        "topErrorCategories": "按类别统计错误和警告",
+        "topProtocols": "热门协议",
+        "topInbounds": "热门入站",
+        "topStatuses": "热门状态",
+        "countries": "按国家统计请求"
+      },
+      "columns": {
+        "time": "时间",
+        "message": "消息"
+      },
+      "geoMissing": "未在 Xray 文件夹中找到 geoip.dat，因此没有国家数据。请更新 geo 文件以查看地图。",
+      "geoNote": "使用此服务器上的 geoip.dat 进行定位，IP 地址不会发送到任何地方。地图数据：Natural Earth。",
+      "geoUnlocated": "{count} 行的地址没有对应国家，例如私有或已掩码的 IP。"
     },
     "sponsors": {
       "title": "赞助商",

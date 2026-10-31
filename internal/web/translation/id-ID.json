@@ -121,6 +121,7 @@
     "donate": "Donasi",
     "sponsors": "Sponsor",
     "hosts": "Host",
+    "logs": "Log",
     "docs": "Dokumentasi",
     "openMenu": "Buka menu",
     "pinSidebar": "Sematkan bilah sisi",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
       },
       "dragToReorder": "Seret untuk mengurutkan ulang {name}"
+    },
+    "logs": {
+      "file": "Berkas log",
+      "timeRange": "Rentang waktu",
+      "level": "Level",
+      "autoRefresh": "Segarkan otomatis",
+      "autoRefreshOff": "Segarkan otomatis mati",
+      "autoRefreshEvery": "Setiap {seconds} dtk",
+      "outbound": "Keluar",
+      "truncated": "Baris dipersingkat",
+      "noMatches": "Tidak ada baris yang cocok dengan filter ini",
+      "noFiles": "Berkas log tidak ditemukan",
+      "noFilesHint": "Log akan muncul di sini setelah berkas ditulis ke folder ini:",
+      "uncategorized": "Tanpa kategori",
+      "noTimestamps": "Tanpa stempel waktu",
+      "clickHint": "Klik titik pada grafik atau baris pada daftar untuk memfilter.",
+      "scanStopped": "Analisis berhenti setelah {scanned}: sisa berkas ini tidak disertakan.",
+      "readBudget": "Telah mencari {scanned} tanpa mengisi halaman ini. Baris lama mungkin masih cocok: muat baris lama untuk melanjutkan pencarian.",
+      "lineCap": "Menampilkan {count} baris terbaru. Persempit filter untuk mencapai baris yang lebih lama.",
+      "loadOlder": "Muat baris lama",
+      "externalTitle": "Beberapa log Xray berada di luar folder log",
+      "externalDesc": "Halaman ini hanya membaca folder log, jadi log tersebut tidak ditampilkan. Untuk menyertakannya, ubah jalurnya di bagian log pada konfigurasi Xray:",
+      "tabs": {
+        "overview": "Ringkasan",
+        "raw": "Log mentah"
+      },
+      "ranges": {
+        "all": "Seluruh berkas",
+        "15m": "15 menit terakhir",
+        "1h": "1 jam terakhir",
+        "6h": "6 jam terakhir",
+        "24h": "24 jam terakhir",
+        "7d": "7 hari terakhir",
+        "custom": "Rentang khusus"
+      },
+      "levels": {
+        "all": "Semua",
+        "error": "Error",
+        "warning": "Peringatan",
+        "info": "Info",
+        "debug": "Debug"
+      },
+      "fields": {
+        "query": "Cari di semua teks",
+        "ip": "IP",
+        "country": "Negara",
+        "user": "Pengguna",
+        "host": "Host",
+        "inbound": "Masuk",
+        "protocol": "Protokol",
+        "status": "Status atau pesan"
+      },
+      "kinds": {
+        "access": "Log akses",
+        "error": "Log error"
+      },
+      "cards": {
+        "lines": "Baris",
+        "errors": "Error",
+        "warnings": "Peringatan",
+        "uniqueIps": "IP unik",
+        "uniqueUsers": "Pengguna unik",
+        "range": "Periode tercakup"
+      },
+      "charts": {
+        "volume": "Volume log dari waktu ke waktu",
+        "problems": "Error dan peringatan dari waktu ke waktu",
+        "topIps": "IP teratas",
+        "topUsers": "Pengguna teratas",
+        "topHosts": "Host teratas",
+        "topErrorCategories": "Error dan peringatan per kategori",
+        "topProtocols": "Protokol teratas",
+        "topInbounds": "Masuk teratas",
+        "topStatuses": "Status teratas",
+        "countries": "Permintaan per negara"
+      },
+      "columns": {
+        "time": "Waktu",
+        "message": "Pesan"
+      },
+      "geoMissing": "Data negara tidak tersedia karena geoip.dat tidak ditemukan di folder Xray. Perbarui berkas geo untuk melihat peta.",
+      "geoNote": "Dilokasikan dengan geoip.dat di server ini, sehingga alamat IP tidak pernah dikirim ke mana pun. Data peta: Natural Earth.",
+      "geoUnlocated": "{count} baris memiliki alamat tanpa negara, seperti IP pribadi atau yang disamarkan."
     },
     "sponsors": {
       "title": "Sponsor",

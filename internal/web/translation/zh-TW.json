@@ -121,6 +121,7 @@
     "donate": "捐贈",
     "sponsors": "贊助商",
     "hosts": "主機",
+    "logs": "日誌",
     "docs": "文件",
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "請輸入 0 到 65535 之間的單一數字"
       },
       "dragToReorder": "拖曳以重新排列 {name}"
+    },
+    "logs": {
+      "file": "日誌檔案",
+      "timeRange": "時間範圍",
+      "level": "層級",
+      "autoRefresh": "自動重新整理",
+      "autoRefreshOff": "關閉自動重新整理",
+      "autoRefreshEvery": "每 {seconds} 秒",
+      "outbound": "出站",
+      "truncated": "行已截斷",
+      "noMatches": "沒有符合這些篩選條件的日誌行",
+      "noFiles": "找不到日誌檔案",
+      "noFilesHint": "檔案寫入此資料夾後，日誌將顯示在這裡：",
+      "uncategorized": "未分類",
+      "noTimestamps": "無時間戳記",
+      "clickHint": "點擊圖表上的點或清單中的列即可依其篩選。",
+      "scanStopped": "分析在 {scanned} 後停止：此檔案的其餘部分未包含在內。",
+      "readBudget": "已搜尋 {scanned}，本頁仍未填滿。較舊的行可能仍有符合：載入較舊的行以繼續搜尋。",
+      "lineCap": "正在顯示最新的 {count} 行。請縮小篩選範圍以查看更早的行。",
+      "loadOlder": "載入較舊的行",
+      "externalTitle": "部分 Xray 日誌位於日誌資料夾之外",
+      "externalDesc": "此頁面只讀取日誌資料夾，因此不顯示這些日誌。如需顯示，請在 Xray 設定的 log 區段修改其路徑：",
+      "tabs": {
+        "overview": "概覽",
+        "raw": "原始日誌"
+      },
+      "ranges": {
+        "all": "整個檔案",
+        "15m": "最近 15 分鐘",
+        "1h": "最近 1 小時",
+        "6h": "最近 6 小時",
+        "24h": "最近 24 小時",
+        "7d": "最近 7 天",
+        "custom": "自訂範圍"
+      },
+      "levels": {
+        "all": "全部",
+        "error": "錯誤",
+        "warning": "警告",
+        "info": "資訊",
+        "debug": "除錯"
+      },
+      "fields": {
+        "query": "搜尋全部文字",
+        "ip": "IP",
+        "country": "國家",
+        "user": "使用者",
+        "host": "主機",
+        "inbound": "入站",
+        "protocol": "協定",
+        "status": "狀態或訊息"
+      },
+      "kinds": {
+        "access": "存取日誌",
+        "error": "錯誤日誌"
+      },
+      "cards": {
+        "lines": "行數",
+        "errors": "錯誤",
+        "warnings": "警告",
+        "uniqueIps": "不重複 IP",
+        "uniqueUsers": "不重複使用者",
+        "range": "涵蓋時段"
+      },
+      "charts": {
+        "volume": "日誌量趨勢",
+        "problems": "錯誤和警告趨勢",
+        "topIps": "熱門 IP",
+        "topUsers": "熱門使用者",
+        "topHosts": "熱門主機",
+        "topErrorCategories": "依類別統計錯誤和警告",
+        "topProtocols": "熱門協定",
+        "topInbounds": "熱門入站",
+        "topStatuses": "熱門狀態",
+        "countries": "依國家統計請求"
+      },
+      "columns": {
+        "time": "時間",
+        "message": "訊息"
+      },
+      "geoMissing": "在 Xray 資料夾中找不到 geoip.dat，因此沒有國家資料。請更新 geo 檔案以查看地圖。",
+      "geoNote": "使用此伺服器上的 geoip.dat 進行定位，IP 位址不會傳送到任何地方。地圖資料：Natural Earth。",
+      "geoUnlocated": "{count} 行的位址沒有對應國家，例如私有或已遮罩的 IP。"
     },
     "sponsors": {
       "title": "贊助商",

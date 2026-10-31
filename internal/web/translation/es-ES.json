@@ -121,6 +121,7 @@
     "donate": "Donar",
     "sponsors": "Patrocinadores",
     "hosts": "Hosts",
+    "logs": "Registros",
     "docs": "Documentación",
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
@@ -2493,6 +2494,89 @@
         "badVlessRoute": "Introduce un único número entre 0 y 65535"
       },
       "dragToReorder": "Arrastra para reordenar {name}"
+    },
+    "logs": {
+      "file": "Archivo de registro",
+      "timeRange": "Intervalo de tiempo",
+      "level": "Nivel",
+      "autoRefresh": "Actualización automática",
+      "autoRefreshOff": "Actualización automática desactivada",
+      "autoRefreshEvery": "Cada {seconds} s",
+      "outbound": "Saliente",
+      "truncated": "Línea acortada",
+      "noMatches": "Ninguna línea coincide con estos filtros",
+      "noFiles": "No se encontraron archivos de registro",
+      "noFilesHint": "Los registros aparecerán aquí cuando se escriban archivos en esta carpeta:",
+      "uncategorized": "Sin categoría",
+      "noTimestamps": "Sin marcas de tiempo",
+      "clickHint": "Haz clic en un punto del gráfico o en una fila de la lista para filtrar por él.",
+      "scanStopped": "El análisis se detuvo tras {scanned}: el resto de este archivo no está incluido.",
+      "readBudget": "Se buscó en {scanned} sin llenar esta página. Puede haber líneas más antiguas que coincidan: carga líneas anteriores para seguir buscando.",
+      "lineCap": "Se muestran las {count} líneas más recientes. Restringe los filtros para llegar a las anteriores.",
+      "loadOlder": "Cargar líneas anteriores",
+      "externalTitle": "Algunos registros de Xray están fuera de la carpeta de registros",
+      "externalDesc": "Esta página solo lee la carpeta de registros, así que estos registros no se muestran. Para incluir uno, cambia su ruta en la sección log de la configuración de Xray:",
+      "tabs": {
+        "overview": "Resumen",
+        "raw": "Registros sin procesar"
+      },
+      "ranges": {
+        "all": "Archivo completo",
+        "15m": "Últimos 15 minutos",
+        "1h": "Última hora",
+        "6h": "Últimas 6 horas",
+        "24h": "Últimas 24 horas",
+        "7d": "Últimos 7 días",
+        "custom": "Intervalo personalizado"
+      },
+      "levels": {
+        "all": "Todos",
+        "error": "Error",
+        "warning": "Advertencia",
+        "info": "Información",
+        "debug": "Depuración"
+      },
+      "fields": {
+        "query": "Buscar en todo el texto",
+        "ip": "IP",
+        "country": "País",
+        "user": "Usuario",
+        "host": "Host",
+        "inbound": "Entrante",
+        "protocol": "Protocolo",
+        "status": "Estado o mensaje"
+      },
+      "kinds": {
+        "access": "Registro de acceso",
+        "error": "Registro de errores"
+      },
+      "cards": {
+        "lines": "Líneas",
+        "errors": "Errores",
+        "warnings": "Advertencias",
+        "uniqueIps": "IP únicas",
+        "uniqueUsers": "Usuarios únicos",
+        "range": "Periodo cubierto"
+      },
+      "charts": {
+        "volume": "Volumen de registros en el tiempo",
+        "problems": "Errores y advertencias en el tiempo",
+        "topIps": "IP principales",
+        "topUsers": "Usuarios principales",
+        "topHosts": "Hosts principales",
+        "topErrorCategories": "Errores y advertencias por categoría",
+        "topProtocols": "Protocolos principales",
+        "topInbounds": "Entrantes principales",
+        "topStatuses": "Estados principales",
+        "countries": "Solicitudes por país"
+      },
+      "columns": {
+        "time": "Hora",
+        "message": "Mensaje"
+      },
+      "geoMissing": "Los datos de países no están disponibles porque no se encontró geoip.dat en la carpeta de Xray. Actualiza los archivos geo para ver el mapa.",
+      "geoNote": "Ubicado con geoip.dat en este servidor, por lo que las direcciones IP nunca se envían a ningún sitio. Datos del mapa: Natural Earth.",
+      "geoUnlocated": "{count} líneas tienen una dirección sin país, como una IP privada o enmascarada."
     },
     "sponsors": {
       "title": "Patrocinadores",

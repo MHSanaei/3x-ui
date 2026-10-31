@@ -3488,6 +3488,53 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "LogBucket": {
+    "description": "LogBucket is one point of the volume timeline.",
+    "properties": {
+      "errors": {
+        "example": 3,
+        "type": "integer"
+      },
+      "start": {
+        "example": 1767225600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "total": {
+        "example": 120,
+        "type": "integer"
+      },
+      "warnings": {
+        "example": 7,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "errors",
+      "start",
+      "total",
+      "warnings"
+    ],
+    "type": "object"
+  },
+  "LogCount": {
+    "description": "LogCount is one row of a top list.",
+    "properties": {
+      "count": {
+        "example": 42,
+        "type": "integer"
+      },
+      "value": {
+        "example": "203.0.113.9",
+        "type": "string"
+      }
+    },
+    "required": [
+      "count",
+      "value"
+    ],
+    "type": "object"
+  },
   "LogEntry": {
     "properties": {
       "DateTime": {
@@ -3528,6 +3575,390 @@ export const SCHEMAS: Record<string, unknown> = {
       "Inbound",
       "Outbound",
       "ToAddress"
+    ],
+    "type": "object"
+  },
+  "LogExternalPath": {
+    "description": "LogExternalPath is an Xray log configured to a path this feature refuses to read.",
+    "properties": {
+      "kind": {
+        "example": "access",
+        "type": "string"
+      },
+      "path": {
+        "example": "./access.log",
+        "type": "string"
+      },
+      "suggested": {
+        "example": "/var/log/x-ui/access.log",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "path",
+      "suggested"
+    ],
+    "type": "object"
+  },
+  "LogFile": {
+    "description": "LogFile describes one readable file in the log folder.",
+    "properties": {
+      "compressed": {
+        "example": false,
+        "type": "boolean"
+      },
+      "modTime": {
+        "example": 1767225600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "name": {
+        "example": "3xui.log",
+        "type": "string"
+      },
+      "size": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "compressed",
+      "modTime",
+      "name",
+      "size"
+    ],
+    "type": "object"
+  },
+  "LogFileList": {
+    "description": "LogFileList is the listing of the log folder.",
+    "properties": {
+      "external": {
+        "items": {
+          "$ref": "#/components/schemas/LogExternalPath"
+        },
+        "type": "array"
+      },
+      "files": {
+        "items": {
+          "$ref": "#/components/schemas/LogFile"
+        },
+        "type": "array"
+      },
+      "folder": {
+        "example": "/var/log/x-ui",
+        "type": "string"
+      }
+    },
+    "required": [
+      "external",
+      "files",
+      "folder"
+    ],
+    "type": "object"
+  },
+  "LogLine": {
+    "description": "LogLine is one parsed line; fields the line did not contain are empty.",
+    "properties": {
+      "category": {
+        "example": "app/proxyman/inbound",
+        "type": "string"
+      },
+      "country": {
+        "example": "DE",
+        "type": "string"
+      },
+      "host": {
+        "example": "example.com",
+        "type": "string"
+      },
+      "inbound": {
+        "example": "inbound-443",
+        "type": "string"
+      },
+      "ip": {
+        "example": "203.0.113.9",
+        "type": "string"
+      },
+      "level": {
+        "example": "info",
+        "type": "string"
+      },
+      "message": {
+        "example": "from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+        "type": "string"
+      },
+      "offset": {
+        "example": 52428,
+        "format": "int64",
+        "type": "integer"
+      },
+      "outbound": {
+        "example": "direct",
+        "type": "string"
+      },
+      "protocol": {
+        "example": "tcp",
+        "type": "string"
+      },
+      "raw": {
+        "example": "2026/01/01 00:00:00.000000 from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+        "type": "string"
+      },
+      "status": {
+        "example": "accepted",
+        "type": "string"
+      },
+      "time": {
+        "example": 1767225600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "truncated": {
+        "example": false,
+        "type": "boolean"
+      },
+      "user": {
+        "example": "alice@example.com",
+        "type": "string"
+      }
+    },
+    "required": [
+      "category",
+      "country",
+      "host",
+      "inbound",
+      "ip",
+      "level",
+      "message",
+      "offset",
+      "outbound",
+      "protocol",
+      "raw",
+      "status",
+      "time",
+      "truncated",
+      "user"
+    ],
+    "type": "object"
+  },
+  "LogPage": {
+    "description": "LogPage is one newest-first page of matching lines.",
+    "properties": {
+      "budgetExhausted": {
+        "example": false,
+        "type": "boolean"
+      },
+      "file": {
+        "example": "3xui.log",
+        "type": "string"
+      },
+      "fileSize": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lines": {
+        "items": {
+          "$ref": "#/components/schemas/LogLine"
+        },
+        "type": "array"
+      },
+      "nextCursor": {
+        "example": 52428,
+        "format": "int64",
+        "type": "integer"
+      },
+      "scannedBytes": {
+        "example": 65536,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "budgetExhausted",
+      "file",
+      "fileSize",
+      "lines",
+      "nextCursor",
+      "scannedBytes"
+    ],
+    "type": "object"
+  },
+  "LogStats": {
+    "description": "LogStats aggregates the lines matching a filter.",
+    "properties": {
+      "bucketMillis": {
+        "example": 60000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "budgetExhausted": {
+        "example": false,
+        "type": "boolean"
+      },
+      "countries": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "debugs": {
+        "example": 100,
+        "type": "integer"
+      },
+      "errors": {
+        "example": 12,
+        "type": "integer"
+      },
+      "file": {
+        "example": "3xui.log",
+        "type": "string"
+      },
+      "fileSize": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "firstTime": {
+        "example": 1767225600000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "geoAvailable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "infos": {
+        "example": 8000,
+        "type": "integer"
+      },
+      "lastTime": {
+        "example": 1767312000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "matchedLines": {
+        "example": 8200,
+        "type": "integer"
+      },
+      "scannedBytes": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      },
+      "scannedLines": {
+        "example": 9000,
+        "type": "integer"
+      },
+      "timeline": {
+        "items": {
+          "$ref": "#/components/schemas/LogBucket"
+        },
+        "type": "array"
+      },
+      "topErrorCategories": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topHosts": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topInbounds": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topIps": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topProtocols": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topStatuses": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "topUsers": {
+        "items": {
+          "$ref": "#/components/schemas/LogCount"
+        },
+        "type": "array"
+      },
+      "uniqueCapped": {
+        "example": false,
+        "type": "boolean"
+      },
+      "uniqueHosts": {
+        "example": 1800,
+        "type": "integer"
+      },
+      "uniqueIps": {
+        "example": 312,
+        "type": "integer"
+      },
+      "uniqueUsers": {
+        "example": 25,
+        "type": "integer"
+      },
+      "unknown": {
+        "example": 48,
+        "type": "integer"
+      },
+      "unlocatedLines": {
+        "example": 14,
+        "type": "integer"
+      },
+      "warnings": {
+        "example": 40,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "bucketMillis",
+      "budgetExhausted",
+      "countries",
+      "debugs",
+      "errors",
+      "file",
+      "fileSize",
+      "firstTime",
+      "geoAvailable",
+      "infos",
+      "lastTime",
+      "matchedLines",
+      "scannedBytes",
+      "scannedLines",
+      "timeline",
+      "topErrorCategories",
+      "topHosts",
+      "topInbounds",
+      "topIps",
+      "topProtocols",
+      "topStatuses",
+      "topUsers",
+      "uniqueCapped",
+      "uniqueHosts",
+      "uniqueIps",
+      "uniqueUsers",
+      "unknown",
+      "unlocatedLines",
+      "warnings"
     ],
     "type": "object"
   },

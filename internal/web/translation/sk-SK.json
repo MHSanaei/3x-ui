@@ -114,6 +114,7 @@
     "groups": "Skupiny",
     "nodes": "Servery",
     "hosts": "Adresy serverov",
+    "logs": "Záznamy",
     "settings": "Nastavenia panelu",
     "xray": "Nastavenia Xray",
     "routing": "Smerovanie",
@@ -2493,6 +2494,89 @@
       "routingScript": "Skript smerovania",
       "routingScriptDesc": "Cesta k súboru .lua s funkciou HandleRoute, absolútna alebo vzhľadom na priečinok bin Xray. Skript vyberá každú trasu a Xray ignoruje všetky pravidlá vrátane pravidla api panelu. Vstup api preto smerujte na výstup api, inak prestanú fungovať štatistiky spotreby aj zmeny klientov za behu. Ak súbor chýba alebo je neplatný, Xray sa nespustí.",
       "routingScriptActive": "V časti {section} je nastavený skript smerovania, preto Xray tieto pravidlá ignoruje."
+    },
+    "logs": {
+      "file": "Súbor záznamov",
+      "timeRange": "Časový rozsah",
+      "level": "Úroveň",
+      "autoRefresh": "Automatické obnovenie",
+      "autoRefreshOff": "Automatické obnovenie vypnuté",
+      "autoRefreshEvery": "Každých {seconds} s",
+      "outbound": "Odchádzajúce",
+      "truncated": "Riadok skrátený",
+      "noMatches": "Týmto filtrom nezodpovedá žiadny riadok",
+      "noFiles": "Nenašli sa žiadne súbory záznamov",
+      "noFilesHint": "Záznamy sa tu zobrazia po zapísaní súborov do tohto priečinka:",
+      "uncategorized": "Bez kategórie",
+      "noTimestamps": "Bez časových značiek",
+      "clickHint": "Kliknutím na bod grafu alebo riadok zoznamu podľa neho filtrujete.",
+      "scanStopped": "Analýza sa zastavila po {scanned}: zvyšok tohto súboru nie je zahrnutý.",
+      "readBudget": "Prehľadaných {scanned} bez naplnenia tejto stránky. Staršie riadky môžu stále zodpovedať: načítajte staršie riadky a pokračujte v hľadaní.",
+      "lineCap": "Zobrazuje sa {count} najnovších riadkov. Staršie zobrazíte zúžením filtrov.",
+      "loadOlder": "Načítať staršie riadky",
+      "externalTitle": "Niektoré záznamy Xray sú mimo priečinka záznamov",
+      "externalDesc": "Táto stránka číta iba priečinok záznamov, preto sa tieto záznamy nezobrazujú. Ak chcete niektorý zahrnúť, zmeňte jeho cestu v sekcii log konfigurácie Xray:",
+      "tabs": {
+        "overview": "Prehľad",
+        "raw": "Nespracované záznamy"
+      },
+      "ranges": {
+        "all": "Celý súbor",
+        "15m": "Posledných 15 minút",
+        "1h": "Posledná hodina",
+        "6h": "Posledných 6 hodín",
+        "24h": "Posledných 24 hodín",
+        "7d": "Posledných 7 dní",
+        "custom": "Vlastný rozsah"
+      },
+      "levels": {
+        "all": "Všetky",
+        "error": "Chyba",
+        "warning": "Varovanie",
+        "info": "Info",
+        "debug": "Ladenie"
+      },
+      "fields": {
+        "query": "Hľadať v celom texte",
+        "ip": "IP",
+        "country": "Krajina",
+        "user": "Používateľ",
+        "host": "Hostiteľ",
+        "inbound": "Prichádzajúce",
+        "protocol": "Protokol",
+        "status": "Stav alebo správa"
+      },
+      "kinds": {
+        "access": "Záznam prístupov",
+        "error": "Záznam chýb"
+      },
+      "cards": {
+        "lines": "Riadky",
+        "errors": "Chyby",
+        "warnings": "Varovania",
+        "uniqueIps": "Jedinečné IP",
+        "uniqueUsers": "Jedineční používatelia",
+        "range": "Pokryté obdobie"
+      },
+      "charts": {
+        "volume": "Objem záznamov v čase",
+        "problems": "Chyby a varovania v čase",
+        "topIps": "Najčastejšie IP",
+        "topUsers": "Najčastejší používatelia",
+        "topHosts": "Najčastejší hostitelia",
+        "topErrorCategories": "Chyby a varovania podľa kategórie",
+        "topProtocols": "Najčastejšie protokoly",
+        "topInbounds": "Najčastejšie prichádzajúce",
+        "topStatuses": "Najčastejšie stavy",
+        "countries": "Požiadavky podľa krajiny"
+      },
+      "columns": {
+        "time": "Čas",
+        "message": "Správa"
+      },
+      "geoMissing": "Údaje o krajinách nie sú dostupné, pretože geoip.dat sa nenašiel v priečinku Xray. Mapu zobrazíte aktualizáciou súborov geo.",
+      "geoNote": "Určené pomocou geoip.dat na tomto serveri, takže adresy IP sa nikam neposielajú. Údaje mapy: Natural Earth.",
+      "geoUnlocated": "Riadky s adresou bez krajiny, napríklad súkromnou alebo maskovanou IP: {count}."
     },
     "sponsors": {
       "title": "Sponzori",
