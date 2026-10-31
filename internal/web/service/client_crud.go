@@ -123,18 +123,19 @@ type ClientResetCycle struct {
 	TrafficResetDay int
 	Enable          bool
 	Total           int64
-	Used            int64
+	Up              int64
+	Down            int64
 }
 
 // Depleted reports a client the quota switched off. A reset restores that one;
 // a client disabled below its quota was switched off by hand and stays off.
 func (c ClientResetCycle) Depleted() bool {
-	return c.Total > 0 && c.Used >= c.Total
+	return c.Total > 0 && clampedTrafficAdd(c.Up, c.Down) >= c.Total
 }
 
 func clientResetCycles(tx *gorm.DB) *gorm.DB {
 	return tx.Table("clients c").
-		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) + COALESCE(ct.down, 0) AS used").
+		Select("c.email, c.traffic_reset_day, c.enable, COALESCE(ct.total, 0) AS total, COALESCE(ct.up, 0) AS up, COALESCE(ct.down, 0) AS down").
 		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email")
 }
 
