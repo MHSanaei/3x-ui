@@ -1,6 +1,7 @@
 package job
 
 import (
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -253,9 +254,29 @@ func (j *LdapSyncJob) createClients(newClients []model.Client, inboundIds []int,
 	logger.Infof("LDAP auto-create: %d clients for %s", created, tagList)
 }
 
+// withoutDepleted drops the clients the panel switched off itself: the directory
+// flag grants an account, it does not waive a spent quota or a passed expiry.
+func (j *LdapSyncJob) withoutDepleted(emails []string) []string {
+	if len(emails) == 0 {
+		return nil
+	}
+	depleted, err := j.inboundService.DepletedClientEmails(emails)
+	if err != nil {
+		logger.Warning("LDAP enable skipped, failed to look up depleted clients:", err)
+		return nil
+	}
+	return slices.DeleteFunc(emails, func(email string) bool {
+		_, hit := depleted[email]
+		return hit
+	})
+}
+
 // batchSetEnable takes the bulk path: per-user calls held each inbound's lock through
 // its node push, so users sharing a hung node inbound queued one push timeout apiece.
 func (j *LdapSyncJob) batchSetEnable(emails []string, enable bool) {
+	if enable {
+		emails = j.withoutDepleted(emails)
+	}
 	if len(emails) == 0 {
 		return
 	}

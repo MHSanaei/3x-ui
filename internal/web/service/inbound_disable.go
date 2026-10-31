@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -266,4 +267,24 @@ func trafficDisabledEmails(db *gorm.DB, emails []string) (map[string]struct{}, e
 		}
 	}
 	return disabled, nil
+}
+
+// DepletedClientEmails reports which emails disableInvalidClients keeps off (quota
+// spent or expiry passed), so an unattended enable does not hand them back.
+func (s *InboundService) DepletedClientEmails(emails []string) (map[string]struct{}, error) {
+	db := database.GetDB()
+	cond, condArgs := depletedCond(db)
+	depleted := make(map[string]struct{})
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqlInChunk) {
+		var page []string
+		if err := db.Model(xray.ClientTraffic{}).
+			Where(cond+" AND email IN ?", append(append([]any{}, condArgs...), batch)...).
+			Pluck("email", &page).Error; err != nil {
+			return nil, err
+		}
+		for _, e := range page {
+			depleted[e] = struct{}{}
+		}
+	}
+	return depleted, nil
 }
