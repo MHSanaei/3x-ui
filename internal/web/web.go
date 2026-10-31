@@ -813,6 +813,10 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 			err2 = common.Combine(err2, err)
 		}
 	}
+	// Before the bus: its Telegram notifier may sit in a send only StopBot ends.
+	if stopTgBot && s.tgbotService.IsRunning() {
+		s.tgbotService.Stop()
+	}
 	if s.bus != nil {
 		s.bus.Stop()
 	}
@@ -821,9 +825,6 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if stopXray {
 		service.StopTrafficWriter()
-	}
-	if stopTgBot && s.tgbotService.IsRunning() {
-		s.tgbotService.Stop()
 	}
 	if s.discordGateway != nil && s.discordGateway.IsRunning() {
 		s.discordGateway.Stop()
