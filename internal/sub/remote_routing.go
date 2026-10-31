@@ -486,7 +486,9 @@ func newRemoteRoutingHTTPClient() *http.Client {
 		ForceAttemptHTTP2:     true,
 		TLSHandshakeTimeout:   4 * time.Second,
 		ResponseHeaderTimeout: 5 * time.Second,
-		TLSClientConfig:       &tls.Config{MinVersion: tls.VersionTLS12},
+		// Downloads are minutes apart, and a parked connection lives as long as the host likes.
+		DisableKeepAlives: true,
+		TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 	return &http.Client{
 		Timeout:       remoteRoutingHTTPTimeout,

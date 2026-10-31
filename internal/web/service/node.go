@@ -91,6 +91,7 @@ func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // lgtm[go/disabled-certificate-check]
 		},
 	}
+	defer client.CloseIdleConnections()
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
