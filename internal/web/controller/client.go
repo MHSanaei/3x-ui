@@ -249,7 +249,18 @@ func (a *ClientController) update(c *gin.Context) {
 		model.Client
 		LimitHwid int `json:"limitHwid"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	body, err := c.GetRawData()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	// still-ui: fields the caller did not send keep their stored values instead
+	// of being reset to zero (see service.FillAbsentClientFields).
+	if err := a.clientService.FillAbsentClientFields(email, &req.Client, &req.LimitHwid, service.ClientPayloadKeys(body)); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
