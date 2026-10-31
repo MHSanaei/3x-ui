@@ -3,9 +3,11 @@ package service
 import (
 	"encoding/json"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -197,39 +199,48 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	}
 	snapshot := ib
 
-	settings := map[string]any{}
-	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
-		return nil, nil, err
+	// A blob that does not parse (a node can send one) leaves the settings as they are: the
+	// stats and client rows still disable the client, and one inbound must not stop the tick.
+	members, entries, ok := splitSettingsClients(ib.Settings)
+	if !ok {
+		logger.Warningf("disable clients: inbound %d settings do not parse; leaving them unchanged", inboundID)
+		return &snapshot, &ib, nil
 	}
-	clients, _ := settings["clients"].([]any)
 	now := time.Now().Unix() * 1000
 	mutated := false
-	for i := range clients {
-		entry, ok := clients[i].(map[string]any)
+	for i, entry := range entries {
+		c, ok := readSettingsClient(entry)
 		if !ok {
 			continue
 		}
-		email, _ := entry["email"].(string)
-		if _, hit := emails[email]; !hit {
+		if _, hit := emails[c.Email]; !hit {
 			continue
 		}
-		if cur, _ := entry["enable"].(bool); !cur {
+		var enabled bool
+		if json.Unmarshal(c.Enable, &enabled) != nil || !enabled {
 			continue
 		}
-		entry["enable"] = false
-		entry["updated_at"] = now
-		clients[i] = entry
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(entry, &fields) != nil {
+			continue
+		}
+		fields["enable"] = json.RawMessage("false")
+		fields["updated_at"] = json.RawMessage(strconv.FormatInt(now, 10))
+		rewritten, err := json.Marshal(fields)
+		if err != nil {
+			continue
+		}
+		entries[i] = rewritten
 		mutated = true
 	}
 	if !mutated {
 		return &snapshot, &ib, nil
 	}
-	settings["clients"] = clients
-	bs, marshalErr := json.MarshalIndent(settings, "", "  ")
-	if marshalErr != nil {
-		return nil, nil, marshalErr
+	joined, ok := joinSettingsClients(ib.Settings, members, entries)
+	if !ok {
+		return &snapshot, &ib, nil
 	}
-	ib.Settings = string(bs)
+	ib.Settings = joined
 	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).
 		Update("settings", ib.Settings).Error; err != nil {
 		return nil, nil, err

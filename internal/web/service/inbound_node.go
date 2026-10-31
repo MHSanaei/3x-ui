@@ -468,7 +468,9 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 // still links some: a reset or half-started node, never an authoritative removal.
 func snapshotDropsEveryHubClient(tx *gorm.DB, inboundID int, wireSettings string) bool {
 	clients, err := ParseInboundSettingsClients(wireSettings)
-	if err != nil || len(clients) > 0 {
+	// Settings that do not parse list no client the hub could keep either; storing them
+	// would only hand every later reader of the row a blob it cannot use.
+	if err == nil && len(clients) > 0 {
 		return false
 	}
 	var links int64

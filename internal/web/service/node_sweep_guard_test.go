@@ -213,3 +213,24 @@ func TestRepeatedSnapshotEntriesMergeTheInboundOnce(t *testing.T) {
 		t.Fatalf("remarks = %v, want the first entry merged once", remarks)
 	}
 }
+
+// Settings a node sends that do not parse must not replace the hub's copy: every later
+// reader of the row (expiry, quota, renewals, subscriptions) would get a blob it cannot use.
+func TestUnparseableSnapshotSettingsKeepTheHubCopy(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	createNodeInboundWithClient(t, db, 1, "keep", 41301, "kept@x")
+	good := `{"clients":[{"email":"kept@x","enable":true}]}`
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "keep", good, xray.ClientTraffic{Email: "kept@x", Enable: true}), false, false); err != nil {
+		t.Fatalf("seed sync: %v", err)
+	}
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "keep", `{"clients":[`, xray.ClientTraffic{Email: "kept@x", Enable: true}), false, false); err != nil {
+		t.Fatalf("broken sync: %v", err)
+	}
+	var ib model.Inbound
+	db.Where("tag = ?", "keep").First(&ib)
+	if _, err := ParseInboundSettingsClients(ib.Settings); err != nil {
+		t.Fatalf("stored settings %q no longer parse: %v", ib.Settings, err)
+	}
+}

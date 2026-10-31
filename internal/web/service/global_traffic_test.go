@@ -322,3 +322,36 @@ func TestAutoRenewClientsPastTheSQLVariableLimit(t *testing.T) {
 		t.Fatalf("autoRenewClients = %d, %v; want all %d renewed", count, err, n)
 	}
 }
+
+// One inbound whose stored settings do not parse (a node can send such a blob) must not
+// stop the master disabling depleted clients everywhere else.
+func TestDisableInvalidClientsSurvivesAnInboundWithBrokenSettings(t *testing.T) {
+	db := initTrafficTestDB(t)
+	for _, ib := range []*model.Inbound{
+		{UserId: 1, Tag: "broken", Port: 41201, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[`},
+		{UserId: 1, Tag: "local", Port: 41202, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[{"email":"bob","enable":true}]}`},
+	} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("seed inbound: %v", err)
+		}
+	}
+	for i, email := range []string{"alice", "bob"} {
+		seedClientRow(t, email, i+1, 10, 10, 5)
+		rec := &model.ClientRecord{Email: email, Enable: true, SubID: "s-" + email}
+		if err := db.Create(rec).Error; err != nil {
+			t.Fatalf("seed client: %v", err)
+		}
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: i + 1}).Error; err != nil {
+			t.Fatalf("link client: %v", err)
+		}
+	}
+	_, count, _, err := (&InboundService{}).disableInvalidClients(db, newTrafficMutationBatch())
+	if err != nil || count != 2 {
+		t.Fatalf("disableInvalidClients = %d, %v; want both depleted clients disabled", count, err)
+	}
+	var bob model.Inbound
+	db.Where("tag = ?", "local").First(&bob)
+	if !strings.Contains(bob.Settings, `"enable":false`) {
+		t.Fatalf("local inbound settings = %s, want bob disabled", bob.Settings)
+	}
+}
