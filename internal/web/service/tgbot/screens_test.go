@@ -636,9 +636,8 @@ func localizeWithRealBundle(t *testing.T) {
 	if _, err := bundle.ParseMessageFileBytes(data, path); err != nil {
 		t.Fatalf("parse %s: %v", path, err)
 	}
-	orig := locale.LocalizerBot
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
-	t.Cleanup(func() { locale.LocalizerBot = orig })
+	orig := locale.SwapBotLocalizer(i18n.NewLocalizer(bundle, "en-US"))
+	t.Cleanup(func() { locale.SwapBotLocalizer(orig) })
 }
 
 // seeding a client bound to a Telegram user, which the client screens key on
