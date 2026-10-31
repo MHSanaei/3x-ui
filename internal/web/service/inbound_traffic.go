@@ -961,13 +961,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 			}
 			if len(newClients) == 0 {
 				deletedInbounds = append(deletedInbounds, *inbound)
-				if err := s.clientService.DetachInbound(tx, inbound.Id); err != nil {
-					return err
-				}
-				if _, err := database.DeleteHosts(tx, "inbound_id = ?", inbound.Id); err != nil {
-					return err
-				}
-				if err := tx.Delete(model.Inbound{}, inbound.Id).Error; err != nil {
+				if err := s.deleteInboundRow(tx, inbound.Id); err != nil {
 					return err
 				}
 				if inbound.NodeID != nil {

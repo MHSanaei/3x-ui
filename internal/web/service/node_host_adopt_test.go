@@ -75,3 +75,52 @@ func TestSetRemoteTraffic_AdoptsNodeHostRows(t *testing.T) {
 		t.Fatalf("total host rows = %d, want 1 (group member for un-adopted node inbound 99 must not materialize)", total)
 	}
 }
+
+func TestSetRemoteTraffic_SweptInboundTakesItsDependentsAlong(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	const nodeID = 6
+	if err := db.Create(&model.Node{Id: nodeID, Name: "host-node", Address: "10.0.0.6", Port: 2053, ApiToken: "t", Guid: "host-node-guid"}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	inbound := func(id, port int, tag string) *model.Inbound {
+		return &model.Inbound{Id: id, Tag: tag, Enable: true, Port: port, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	}
+	group := func(groupId string, inboundId int) *entity.HostGroup {
+		return &entity.HostGroup{GroupId: groupId, InboundIds: []int{inboundId}, Hosts: []string{"cdn.example.com:8443"}, Remark: "cdn"}
+	}
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(nodeID, &runtime.TrafficSnapshot{
+		Inbounds:   []*model.Inbound{inbound(1, 443, "swept-443"), inbound(2, 444, "kept-444")},
+		HostGroups: []*entity.HostGroup{group("g-swept", 1), group("g-kept", 2)},
+	}, false, false); err != nil {
+		t.Fatalf("adopting merge: %v", err)
+	}
+	swept, kept := loadInboundByTag(t, "swept-443"), loadInboundByTag(t, "kept-444")
+	balancer := &model.SubBalancer{Remark: "both", InboundIds: []int{swept.Id, kept.Id}, Enabled: true}
+	if err := db.Create(balancer).Error; err != nil {
+		t.Fatalf("create balancer: %v", err)
+	}
+
+	if _, err := svc.setRemoteTrafficLocked(nodeID, &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{inbound(2, 444, "kept-444")},
+	}, false, false); err != nil {
+		t.Fatalf("sweeping merge: %v", err)
+	}
+
+	var groups []string
+	if err := db.Model(&model.Host{}).Order("group_id").Pluck("group_id", &groups).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(groups) != 1 || groups[0] != "g-kept" {
+		t.Fatalf("host groups after the sweep = %v, want [g-kept]", groups)
+	}
+	if err := db.First(balancer, balancer.Id).Error; err != nil {
+		t.Fatalf("reload balancer: %v", err)
+	}
+	if len(balancer.InboundIds) != 1 || balancer.InboundIds[0] != kept.Id {
+		t.Fatalf("balancer members after the sweep = %v, want [%d]", balancer.InboundIds, kept.Id)
+	}
+}

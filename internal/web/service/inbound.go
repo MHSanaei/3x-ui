@@ -1689,30 +1689,8 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 	}
 
 	if err := runSerializedTx(func(tx *gorm.DB) error {
-		if err := s.clientService.DetachInbound(tx, id); err != nil {
+		if err := s.deleteInboundRow(tx, id); err != nil {
 			return err
-		}
-		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
-			return err
-		}
-		if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
-			return err
-		}
-		// Drop the deleted inbound from any sub-balancer that selects it; a
-		// dangling id would emit a member no subscriber can resolve (#5648).
-		var balancers []model.SubBalancer
-		if err := tx.Find(&balancers).Error; err != nil {
-			return err
-		}
-		for i := range balancers {
-			before := balancers[i].InboundIds
-			balancers[i].InboundIds = slices.DeleteFunc(before, func(b int) bool { return b == id })
-			if len(balancers[i].InboundIds) == len(before) {
-				continue
-			}
-			if err := tx.Save(&balancers[i]).Error; err != nil {
-				return err
-			}
 		}
 		if loadErr == nil && ib.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
@@ -1747,6 +1725,37 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 		needRestart = true
 	}
 	return needRestart, nodePush, nil
+}
+
+// deleteInboundRow removes an inbound and every row keyed by its id; SQLite
+// hands a freed id out again, so anything left behind binds to the next inbound.
+func (s *InboundService) deleteInboundRow(tx *gorm.DB, id int) error {
+	if err := s.clientService.DetachInbound(tx, id); err != nil {
+		return err
+	}
+	if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
+		return err
+	}
+	if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
+		return err
+	}
+	// Drop the deleted inbound from any sub-balancer that selects it; a
+	// dangling id would emit a member no subscriber can resolve (#5648).
+	var balancers []model.SubBalancer
+	if err := tx.Find(&balancers).Error; err != nil {
+		return err
+	}
+	for i := range balancers {
+		before := balancers[i].InboundIds
+		balancers[i].InboundIds = slices.DeleteFunc(before, func(b int) bool { return b == id })
+		if len(balancers[i].InboundIds) == len(before) {
+			continue
+		}
+		if err := tx.Save(&balancers[i]).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type BulkDelInboundResult struct {
