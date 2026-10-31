@@ -71,6 +71,42 @@ func TestValidateOutboundConfig_RejectsWireguardRemoteDNSThatIsNotAnIP(t *testin
 	}
 }
 
+// The core's XHTTP dialer dereferences downloadSettings' address and casts its transport to
+// XHTTP on every dial, so a block lacking either panics the whole core; conf.Build() lets it through.
+func TestValidateOutboundConfig_RejectsXhttpDownloadSettingsTheDialerPanicsOn(t *testing.T) {
+	outbound := func(network, xhttpSettings string) []byte {
+		return []byte(`{
+			"protocol": "vless",
+			"settings": {"address": "1.2.3.4", "port": 443, "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "encryption": "none"},
+			"streamSettings": {"network": "` + network + `", "security": "tls", "xhttpSettings": ` + xhttpSettings + `}
+		}`)
+	}
+	for _, rejected := range []string{
+		`{"downloadSettings": {}}`,
+		`{"downloadSettings": {"port": 443, "network": "xhttp"}}`,
+		`{"downloadSettings": {"address": null, "port": 443, "network": "xhttp"}}`,
+		`{"downloadSettings": {"address": "5.6.7.8", "port": 443}}`,
+		`{"downloadSettings": {"address": "5.6.7.8", "port": 443, "network": "tcp"}}`,
+		`{"downloadSettings": {"address": "5.6.7.8", "port": 443, "method": "ws"}}`,
+		`{"DOWNLOADSETTINGS": {}}`,
+	} {
+		err := ValidateOutboundConfig(outbound("xhttp", rejected))
+		if err == nil || !strings.Contains(err.Error(), "downloadSettings") {
+			t.Errorf("xhttpSettings %s: want a downloadSettings refusal, got %v", rejected, err)
+		}
+	}
+	for _, accepted := range [][]byte{
+		outbound("xhttp", `{"path": "/up"}`),
+		outbound("xhttp", `{"downloadSettings": {"address": "5.6.7.8", "port": 443, "network": "xhttp"}}`),
+		outbound("xhttp", `{"downloadSettings": {"address": "down.example", "port": 443, "network": "splithttp", "security": "tls", "xhttpSettings": {"path": "/down"}}}`),
+		outbound("tcp", `{"downloadSettings": {}}`),
+	} {
+		if err := ValidateOutboundConfig(accepted); err != nil {
+			t.Errorf("outbound %s must stay valid, got: %v", accepted, err)
+		}
+	}
+}
+
 // xray-core 26.10.17 compiles a noise mask's Lua script inside Build (#7124), where the panel would
 // look beside its own binary; the xray child finds a relative script in its bin folder.
 func TestValidateOutboundConfig_FindsANoiseScriptBesideTheXrayBinary(t *testing.T) {

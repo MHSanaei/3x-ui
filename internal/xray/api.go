@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 
+	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/app/proxyman/command"
 	"github.com/xtls/xray-core/app/router"
 	routerService "github.com/xtls/xray-core/app/router/command"
@@ -42,6 +43,7 @@ import (
 	vlessOutbound "github.com/xtls/xray-core/proxy/vless/outbound"
 	"github.com/xtls/xray-core/proxy/vmess"
 	wireguard "github.com/xtls/xray-core/proxy/wireguard"
+	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -221,7 +223,42 @@ func ValidateOutboundConfig(outbound []byte) (err error) {
 	if err != nil {
 		return err
 	}
+	if err := validateXhttpDownloadSettings(built.SenderSettings); err != nil {
+		return err
+	}
 	return validateHandlerSettings(built.ProxySettings)
+}
+
+// validateXhttpDownloadSettings refuses what conf.Build() lets through but the core's XHTTP
+// dialer panics on at every dial: a downloadSettings block without an address or not on xhttp.
+func validateXhttpDownloadSettings(settings *serial.TypedMessage) error {
+	if settings == nil {
+		return nil
+	}
+	instance, err := settings.GetInstance()
+	if err != nil {
+		return nil
+	}
+	sender, ok := instance.(*proxyman.SenderConfig)
+	if !ok {
+		return nil
+	}
+	transport, err := sender.StreamSettings.GetEffectiveTransportSettings()
+	if err != nil {
+		return nil
+	}
+	xhttp, ok := transport.(*splithttp.Config)
+	if !ok || xhttp.DownloadSettings == nil {
+		return nil
+	}
+	if xhttp.DownloadSettings.Address == nil {
+		return common.NewError("xhttp downloadSettings has no address")
+	}
+	transport, _ = xhttp.DownloadSettings.GetEffectiveTransportSettings()
+	if _, ok := transport.(*splithttp.Config); !ok {
+		return common.NewError("xhttp downloadSettings network is not xhttp")
+	}
+	return nil
 }
 
 // validateHandlerSettings refuses what conf.Build() lets through but the core parses only

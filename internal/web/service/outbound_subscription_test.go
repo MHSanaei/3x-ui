@@ -717,3 +717,19 @@ func TestOutboundSubscriptionRefreshCapsXMCMasks(t *testing.T) {
 		t.Fatalf("kept %d outbounds, tags by address = %v", len(tags), byAddress)
 	}
 }
+
+// The core's XHTTP dialer panics on a downloadSettings block without an address or on another transport.
+func TestOutboundSubscriptionRefreshDropsXhttpDownloadSettingsTheCorePanicsOn(t *testing.T) {
+	setupSettingTestDB(t)
+	const server = "vless://00000000-0000-4000-8000-000000000000@%s:443?security=tls&type=xhttp&extra=%s#%s\n"
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return fmt.Sprintf(server, "1.1.1.1", url.QueryEscape(`{"downloadSettings":{}}`), "Empty") +
+			fmt.Sprintf(server, "8.8.8.8", url.QueryEscape(`{"downloadSettings":{"address":"8.8.4.4","port":443,"network":"tcp"}}`), "Tcp") +
+			fmt.Sprintf(server, "9.9.9.9", url.QueryEscape(`{"downloadSettings":{"address":"9.9.9.10","port":443,"network":"xhttp"}}`), "Complete")
+	})
+
+	want := map[string]string{"9.9.9.9": "p-complete"}
+	if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, want) {
+		t.Fatalf("tags by address = %v, want %v", got, want)
+	}
+}
