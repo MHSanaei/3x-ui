@@ -31,7 +31,7 @@ func (j *CheckCpuJob) Run() {
 	if !hadPrev {
 		return
 	}
-	percent, ok := sys.CPUBusyPercent(prev, times[0])
+	percent, ok := sys.CPUWorkPercent(prev, times[0])
 	if !ok {
 		return
 	}

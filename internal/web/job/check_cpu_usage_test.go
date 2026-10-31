@@ -50,6 +50,42 @@ func TestCheckCpuJobPublishesUsageSinceThePreviousRun(t *testing.T) {
 	}
 }
 
+// gopsutil's cpu.Percent, which the alarm used before, counts iowait as idle; counting it busy
+// would page operators every minute of a backup on a slow-disk host.
+func TestCheckCpuJobDoesNotCountIowaitAsBusy(t *testing.T) {
+	samples := []cpu.TimesStat{
+		{User: 1000, Iowait: 2000, Idle: 97000},
+		{User: 1030, Iowait: 2060, Idle: 97010}, // 30 user, 60 iowait, 10 idle: 30%
+	}
+	j := &CheckCpuJob{readTimes: func(bool) ([]cpu.TimesStat, error) {
+		s := samples[0]
+		samples = samples[1:]
+		return []cpu.TimesStat{s}, nil
+	}}
+
+	bus := eventbus.New(0)
+	t.Cleanup(bus.Stop)
+	got := make(chan float64, 2)
+	bus.Subscribe("test", func(e eventbus.Event) {
+		got <- e.Data.(*eventbus.SystemMetricData).Percent
+	})
+	prevBus := EventBus
+	EventBus = bus
+	t.Cleanup(func() { EventBus = prevBus })
+
+	j.Run()
+	j.Run()
+
+	select {
+	case p := <-got:
+		if p != 30 {
+			t.Fatalf("published %v%%, want 30%% (iowait is waiting, not CPU work)", p)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("no cpu.high event published by the second run")
+	}
+}
+
 // A Run that samples for its whole period keeps cron.Stop waiting, and with it
 // every panel restart, for up to a minute behind a closed listener.
 func TestCheckCpuJobRunDoesNotBlockForTheSamplePeriod(t *testing.T) {
