@@ -117,16 +117,15 @@ func allocateWireguardAddress(used []string, base string, allowWidening bool) (s
 			wide = append(wide, p)
 		}
 	}
-	isTaken := func(a netip.Addr) bool {
-		if _, ok := taken[a]; ok {
-			return true
-		}
+	// wideClaimOf returns a wide claim holding a, so the scan can step over the whole claim:
+	// a node may report one spanning the scope, and walking it is 2^64 steps in IPv6.
+	wideClaimOf := func(a netip.Addr) (netip.Prefix, bool) {
 		for _, p := range wide {
 			if p.Contains(a) {
-				return true
+				return p, true
 			}
 		}
-		return false
+		return netip.Prefix{}, false
 	}
 	scopes := []netip.Prefix{prefix}
 	if allowWidening && prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
@@ -136,14 +135,29 @@ func allocateWireguardAddress(used []string, base string, allowWidening bool) (s
 	}
 	for _, scope := range scopes {
 		addr := scope.Masked().Addr().Next().Next()
-		for scope.Contains(addr) {
-			if !isTaken(addr) {
-				return addr.String() + "/" + hostBits, nil
+		for addr.IsValid() && scope.Contains(addr) {
+			if _, ok := taken[addr]; ok {
+				addr = addr.Next()
+				continue
 			}
-			addr = addr.Next()
+			if claim, ok := wideClaimOf(addr); ok {
+				addr = lastPrefixAddr(claim).Next()
+				continue
+			}
+			return addr.String() + "/" + hostBits, nil
 		}
 	}
 	return "", common.NewError("wireguard: no free address available in", scopes[len(scopes)-1].String())
+}
+
+// lastPrefixAddr is the highest address of p.
+func lastPrefixAddr(p netip.Prefix) netip.Addr {
+	bytes := p.Masked().Addr().AsSlice()
+	for bit := p.Bits(); bit < len(bytes)*8; bit++ {
+		bytes[bit/8] |= 0x80 >> (bit % 8)
+	}
+	addr, _ := netip.AddrFromSlice(bytes)
+	return addr
 }
 
 // normalizeWireguardAllowedIPs validates user-supplied allowedIPs entries and

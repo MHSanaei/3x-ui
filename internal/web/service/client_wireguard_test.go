@@ -24,6 +24,9 @@ func TestAllocateWireguardAddress(t *testing.T) {
 		{name: "default base when empty", used: nil, base: "", want: "10.0.0.2/32"},
 		{name: "full ipv4 scope widens instead of failing", used: []string{"10.9.0.2/32", "10.9.0.3/32"}, base: "10.9.0.0/30", want: "10.9.0.4/32"},
 		{name: "exhausted ipv6 scope errors", used: []string{"fd00::2/128", "fd00::3/128"}, base: "fd00::/126", err: true},
+		// A node can report a wide claim; the scan must step over it, not through 2^64 addresses.
+		{name: "wide claim over an ipv6 scope", used: []string{"fd00::/64"}, base: "fd00::/64", err: true},
+		{name: "first address past a wide claim", used: []string{"10.0.0.0/25"}, base: "10.0.0.0/24", want: "10.0.0.128/32"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
