@@ -345,3 +345,34 @@ func TestNormalizeSettingPaths_RepairsLegacyValues(t *testing.T) {
 		}
 	}
 }
+
+// A padded group name was listed as its own group while every action on it hit the trimmed
+// one, so the upgrade folds stored names onto their trimmed form.
+func TestClientGroupNamesTrimmedOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	for email, group := range map[string]string{"a@x": "vip ", "b@x": "\tvip", "c@x": "vip"} {
+		if err := db.Create(&model.ClientRecord{Email: email, Group: group, Enable: true}).Error; err != nil {
+			t.Fatalf("seed %s: %v", email, err)
+		}
+	}
+	if err := db.Where("seeder_name = ?", "ClientGroupNameTrim").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	var groups []string
+	if err := db.Model(&model.ClientRecord{}).Distinct().Pluck("group_name", &groups).Error; err != nil {
+		t.Fatalf("read groups: %v", err)
+	}
+	if len(groups) != 1 || groups[0] != "vip" {
+		t.Fatalf("groups after upgrade = %q, want [vip]", groups)
+	}
+}
