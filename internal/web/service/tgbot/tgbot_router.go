@@ -1237,6 +1237,9 @@ func isClientSelfCallback(data string) bool {
 	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true
+	// Paging only turns the screen already tracked for the caller's own chat.
+	case cbPageNext, cbPagePrev, cbPageNone:
+		return true
 	}
 	_, _, ok := splitClientLinkCallback(data)
 	return ok

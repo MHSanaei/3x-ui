@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -137,17 +138,22 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 	})
 }
 
-// ownSubscriptionOnly reports whether the screen is the client's own single
-// subscription, where admin-only controls must stay off (reached via "Links").
-func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
+// ownClientTraffic returns the usage of a client the chat's user owns, and nil
+// for an admin: the owner sees its usage here, the admin has the client card.
+func (t *Tgbot) ownClientTraffic(chatID int64, email string) *xray.ClientTraffic {
 	if checkAdmin(chatID) {
-		return false
+		return nil
 	}
 	traffics, err := t.inboundService.GetClientTrafficTgBot(chatID)
 	if err != nil {
-		return false
+		return nil
 	}
-	return len(traffics) == 1 && traffics[0].Email == email
+	for _, traffic := range traffics {
+		if traffic.Email == email {
+			return traffic
+		}
+	}
+	return nil
 }
 
 // screenClientLinks draws the subscription and the links of a client.
@@ -158,6 +164,10 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 		return
 	}
 	body := t.clientScreenBody(email, "")
+	own := t.ownClientTraffic(chatID, email)
+	if own != nil {
+		body = t.clientInfoMsg(own, true, true, true, true, true, false) + "\n"
+	}
 	body += t.I18nBot("tgbot.messages.subURL", "URL=="+html.EscapeString(subURL))
 	if subJSON != "" {
 		body += t.I18nBot("tgbot.messages.jsonURL", "URL=="+html.EscapeString(subJSON))
@@ -167,9 +177,8 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email))),
 	}
-	// A client looking at its own subscription has nothing behind the admin's
-	// card: it only repeats the usage already on its home screen.
-	if !t.ownSubscriptionOnly(chatID, email) {
+	// The client card is admin-only; a client's own usage is already above.
+	if own == nil {
 		rows = append(rows, tu.InlineKeyboardRow(
 			t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))))
 	}
