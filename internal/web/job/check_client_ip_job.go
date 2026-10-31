@@ -20,6 +20,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
+	xnet "github.com/xtls/xray-core/common/net"
+	"github.com/xtls/xray-core/infra/conf"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -599,8 +601,8 @@ type pendingBan struct {
 	keptLive   int
 }
 
-// publishBans returns the clients whose lines reached the log. bannedSeen
-// advances only for those, so a failed write leaves the address retryable.
+// publishBans returns the clients whose lines reached the log or were withheld as
+// unproven. bannedSeen advances only for those, so a failed write stays retryable.
 func (j *CheckClientIpJob) publishBans(bans []pendingBan) []pendingBan {
 	published := make([]pendingBan, 0, len(bans))
 	var logIpFile *os.File
@@ -616,6 +618,14 @@ func (j *CheckClientIpJob) publishBans(bans []pendingBan) []pendingBan {
 		actionable := j.selectAdvancedSinceLastBan(b.email, b.candidates)
 		if len(actionable) == 0 {
 			j.recordBannedSeen(b.email, b.candidates, nil)
+			continue
+		}
+		// The caller still disconnects the client; only a firewall ban needs an
+		// address the sender has proven to own.
+		if j.sourceCanBeForged(b.email, b.inbound) {
+			j.recordBannedSeen(b.email, b.candidates, actionable)
+			logger.Warningf("[LIMIT_IP] Client %s: %d old IPs not queued for fail2ban, an inbound of the client accepts datagrams whose source can be forged", b.email, len(actionable))
+			published = append(published, b)
 			continue
 		}
 		if logIpFile == nil {
@@ -635,6 +645,57 @@ func (j *CheckClientIpJob) publishBans(bans []pendingBan) []pendingBan {
 		published = append(published, b)
 	}
 	return published
+}
+
+// sourceCanBeForged checks every enabled inbound the client is attached to: the
+// online list is per email, and node syncs merge node observations into the row.
+func (j *CheckClientIpJob) sourceCanBeForged(email string, resolved *model.Inbound) bool {
+	var inbounds []*model.Inbound
+	err := database.GetDB().Model(&model.Inbound{}).
+		Joins("JOIN client_inbounds ON client_inbounds.inbound_id = inbounds.id").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("clients.email = ? AND inbounds.enable = ?", email, true).
+		Find(&inbounds).Error
+	if err != nil {
+		j.checkError(err)
+		return true
+	}
+	// A client not yet in the relation was resolved by getInboundByEmail's fallback.
+	if len(inbounds) == 0 && resolved != nil {
+		inbounds = append(inbounds, resolved)
+	}
+	for _, inbound := range inbounds {
+		if acceptsUnverifiedSources(inbound) {
+			return true
+		}
+	}
+	return false
+}
+
+// acceptsUnverifiedSources: Shadowsocks authenticates each UDP datagram on its own
+// and mKCP takes the request with the first ones, so the core never answers first.
+func acceptsUnverifiedSources(inbound *model.Inbound) bool {
+	var stream struct {
+		Method  string `json:"method"`
+		Network string `json:"network"`
+	}
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+	// The core reads method as the newer name of network and prefers it.
+	if stream.Method != "" {
+		stream.Network = stream.Method
+	}
+	switch strings.ToLower(stream.Network) {
+	case "kcp", "mkcp":
+		return true
+	}
+	if inbound.Protocol != model.Shadowsocks {
+		return false
+	}
+	var settings struct {
+		Network *conf.NetworkList `json:"network"`
+	}
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	return xnet.HasNetwork(settings.Network.Build(), xnet.Network_UDP)
 }
 
 // writeBanLines emits one line per address; the wording is load-bearing, since
