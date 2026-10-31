@@ -140,8 +140,13 @@ const (
 	maxIdleNodeConnsPerHost = 8
 )
 
+// nodeTLSHandshakeTimeout ends a handshake the node never answers: the transport keeps
+// dialing for its pool after the request gives up, so without it the socket lives forever.
+var nodeTLSHandshakeTimeout = remoteHTTPTimeout
+
 func newNodeTransport(tlsCfg *tls.Config) *http.Transport {
 	return &http.Transport{
+		TLSHandshakeTimeout: nodeTLSHandshakeTimeout,
 		MaxIdleConns:        maxIdleNodeConns,
 		MaxIdleConnsPerHost: maxIdleNodeConnsPerHost,
 		IdleConnTimeout:     60 * time.Second,

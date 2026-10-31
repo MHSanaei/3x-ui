@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
@@ -691,5 +692,41 @@ func TestNodeClientsDoNotFollowARedirectToAnotherHost(t *testing.T) {
 	}
 	if otherHit.Load() != 0 {
 		t.Fatalf("a node's redirect reached another host %d time(s)", otherHit.Load())
+	}
+}
+
+// The transport keeps dialing for its pool after a request gives up, so a node that
+// never answers the TLS handshake would hold a socket and two goroutines forever.
+func TestNodeTransportGivesUpOnAStalledTLSHandshake(t *testing.T) {
+	previous := nodeTLSHandshakeTimeout
+	nodeTLSHandshakeTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { nodeTLSHandshakeTimeout = previous })
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+	closed := make(chan struct{})
+	go func() {
+		conn, err := lis.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_, _ = io.Copy(io.Discard, conn) // returns once the master hangs up
+		close(closed)
+	}()
+	client := &http.Client{Transport: newNodeTransport(&tls.Config{InsecureSkipVerify: true})}
+	ctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(context.Background(), true), 50*time.Millisecond)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+lis.Addr().String()+"/", nil)
+	if resp, err := client.Do(req); err == nil {
+		_ = resp.Body.Close()
+	}
+	select {
+	case <-closed:
+	case <-time.After(3 * time.Second):
+		t.Fatal("the stalled handshake's connection is still open")
 	}
 }

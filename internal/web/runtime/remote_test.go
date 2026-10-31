@@ -510,3 +510,31 @@ func TestRemoteAdoptedAliasYieldsToNodeReportedTag(t *testing.T) {
 		t.Fatalf("central tag resolved to %d via a stale alias, want 5 (the id the node reports)", id)
 	}
 }
+
+// A node's success=false message becomes an error the master logs and stores as the
+// node's lastError; it must not carry the whole response body there.
+func TestRemoteDo_BoundsTheNodeErrorMessage(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"success":false,"msg":"` + strings.Repeat("m", 1<<20) + `"}`))
+	}))
+	defer srv.Close()
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	_, err := r.do(context.Background(), http.MethodGet, "/probe", nil)
+	if err == nil || len(err.Error()) > errBodyDiagBytes+64 {
+		t.Fatalf("error = %d bytes, want at most the %d-byte diagnostic", len(err.Error()), errBodyDiagBytes)
+	}
+}
+
+// Each "{}" of a node-reported list decodes into a whole struct, so a body under the
+// byte cap could still expand into gigabytes; lists are capped by entry count.
+func TestRemoteNodeListsAreCappedByEntryCount(t *testing.T) {
+	descendants := "[" + strings.TrimSuffix(strings.Repeat("{},", maxNodeDescendants+1), ",") + "]"
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"success":true,"obj":` + descendants + `}`))
+	}))
+	defer srv.Close()
+	r := NewRemote(nodeForServer(t, srv, "skip", ""), nil)
+	if got, err := r.GetDescendants(context.Background()); !errors.Is(err, errRemoteListTooLong) {
+		t.Fatalf("GetDescendants = %d entries, %v; want errRemoteListTooLong", len(got), err)
+	}
+}
