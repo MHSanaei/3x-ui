@@ -86,6 +86,9 @@ func validateClientRenewal(client model.Client) error {
 	if err := validateClientResetDay(client.ResetDay); err != nil {
 		return err
 	}
+	if client.Reset > maxClientResetDays {
+		return common.NewError("client reset must not exceed", maxClientResetDays, "days")
+	}
 	if client.ResetWeekday < 0 || client.ResetWeekday > 7 {
 		return common.NewError("client resetWeekday must be between 0 and 7, got:", client.ResetWeekday)
 	}
