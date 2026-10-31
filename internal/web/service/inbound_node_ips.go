@@ -139,6 +139,10 @@ func (s *InboundService) MergeClientIpsByGuid(node *model.Node, trees map[string
 		}
 	}
 	for guid, perEmail := range trees {
+		// Stored once per email: an oversized key would multiply into every row.
+		if len(guid) > maxPanelGuidLen {
+			continue
+		}
 		if err := upsertNodeClientIps(guid, perEmail); err != nil {
 			return err
 		}

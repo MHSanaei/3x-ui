@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -231,5 +232,19 @@ func TestSnapshotListNotOverlaid_SlimOverlaid(t *testing.T) {
 	}
 	if slim[0].ClientStats[0].Up != 900 {
 		t.Errorf("slim list should carry the global overlay, got up=%d", slim[0].ClientStats[0].Up)
+	}
+}
+
+// The master GUID keys one stored row per client, so an oversized one is dropped.
+func TestAcceptGlobalTrafficDropsAnOversizedMasterGuid(t *testing.T) {
+	db := initTrafficTestDB(t)
+	seedClientRow(t, "alice", 1, 0, 0, 0)
+	if err := (&InboundService{}).AcceptGlobalTraffic(strings.Repeat("m", maxPanelGuidLen+1), []*xray.ClientTraffic{{Email: "alice", Up: 1, Down: 1}}); err != nil {
+		t.Fatalf("AcceptGlobalTraffic: %v", err)
+	}
+	var rows int64
+	db.Model(&model.ClientGlobalTraffic{}).Count(&rows)
+	if rows != 0 {
+		t.Fatalf("stored %d row(s) under an oversized master GUID", rows)
 	}
 }

@@ -561,7 +561,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
 	guidShared := nodeRow.Guid != "" && selfKey != nodeRow.Guid
 	originGuidFor := func(snapIb *model.Inbound) string {
-		if snapIb.OriginNodeGuid != "" && snapIb.OriginNodeGuid != nodeRow.Guid {
+		if snapIb.OriginNodeGuid != "" && snapIb.OriginNodeGuid != nodeRow.Guid && len(snapIb.OriginNodeGuid) <= maxPanelGuidLen {
 			return snapIb.OriginNodeGuid
 		}
 		return selfKey
