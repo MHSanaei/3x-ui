@@ -1,10 +1,13 @@
 package xray
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 )
 
 // TestValidateOutboundConfig_RejectsUnencryptedPublicVless covers xray-core
@@ -84,5 +87,66 @@ func TestValidateOutboundConfig_FindsANoiseScriptBesideTheXrayBinary(t *testing.
 	}`)
 	if err := ValidateOutboundConfig(outbound); err != nil {
 		t.Fatalf("ValidateOutboundConfig = %v, want the script beside the xray binary found", err)
+	}
+}
+
+// The core's loader panics on some third-party values instead of returning an error;
+// a subscription refresh must count that link as rejected, not unwind the whole job.
+func TestValidateOutboundConfig_ReturnsTheLoaderPanicAsAnError(t *testing.T) {
+	for name, outbound := range map[string]string{
+		"vless encryption": `{"protocol": "vless",
+			"settings": {"address": "1.2.3.4", "port": 443, "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "encryption": "mlkem768x25519plus.native.0rtt.AAAA"},
+			"streamSettings": {"network": "tcp", "security": "tls", "tlsSettings": {"serverName": "example.com"}}}`,
+		"reality spiderX": `{"protocol": "vless",
+			"settings": {"address": "1.2.3.4", "port": 443, "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "encryption": "none"},
+			"streamSettings": {"network": "tcp", "security": "reality", "realitySettings": {
+				"serverName": "example.com", "fingerprint": "chrome", "spiderX": "/%zz", "publicKey": "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg"}}}`,
+	} {
+		if err := ValidateOutboundConfig([]byte(outbound)); err == nil || !strings.Contains(err.Error(), "panicked") {
+			t.Fatalf("%s: ValidateOutboundConfig = %v, want the loader's panic as an error", name, err)
+		}
+	}
+}
+
+// conf.Build() lets these through, but the handler constructor parses them at core
+// start, and one failure there takes every inbound down with it.
+func TestValidateOutboundConfig_RejectsLinksTheHandlerConstructorRefuses(t *testing.T) {
+	const wg = "wireguard://JOSLNr3Kk8BViwrrTJ2M19gRBbGttnRfApY3nQ3fdT8%3D@203.0.113.10:51820?"
+	const wgPeer = "publickey=biSnuvUOX2pmtzf249FK8UGSq2PQslGSdoj4UqH4yew%3D"
+	const vless = "vless://b831381d-6324-4d53-ad4f-8cda48b30811@203.0.113.10:443?security=tls&sni=a&encryption=mlkem768x25519plus.native.1rtt."
+	x25519 := strings.Repeat("A", 43)
+	// ss userinfo: "2022-blake3-aes-128-gcm:shortkey", "hello world" (method guessed), a 16-byte key
+	const ssShort = "ss://MjAyMi1ibGFrZTMtYWVzLTEyOC1nY206c2hvcnRrZXk@203.0.113.10:8388"
+	const ssGuessed = "ss://aGVsbG8gd29ybGQ@203.0.113.10:8388"
+	const ssValid = "ss://MjAyMi1ibGFrZTMtYWVzLTEyOC1nY206QndjSEJ3Y0hCd2NIQndjSEJ3Y0hCdz09@203.0.113.10:8388"
+	for _, tc := range []struct{ name, link, wantErr string }{
+		{"wireguard address", wg + wgPeer + "&address=garbage", `address entry "garbage"`},
+		{"wireguard no public key", wg + "address=10.0.0.2/32", "peer without publicKey"},
+		{"wireguard valid", wg + wgPeer + "&address=10.0.0.2/32", ""},
+		{"vless padding", vless + "abc." + x25519, "vless encryption"},
+		{"vless mlkem key", vless + strings.Repeat("_", 1579), "vless encryption"},
+		{"vless valid", vless + x25519, ""},
+		{"ss2022 short key", ssShort, "shadowsocks 2022 key"},
+		{"ss guessed 2022 method", ssGuessed, "shadowsocks 2022 key"},
+		{"ss2022 valid", ssValid, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			parsed, err := link.ParseLink(tc.link)
+			if err != nil {
+				t.Fatalf("ParseLink: %v", err)
+			}
+			parsed.Outbound["tag"] = "t"
+			raw, _ := json.Marshal(parsed.Outbound)
+			err = ValidateOutboundConfig(raw)
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("ValidateOutboundConfig(%s) = %v, want nil", raw, err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("ValidateOutboundConfig(%s) = %v, want an error containing %q", raw, err, tc.wantErr)
+			}
+		})
 	}
 }

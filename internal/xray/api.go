@@ -5,6 +5,7 @@ package xray
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -36,6 +37,8 @@ import (
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
+	vlessEncryption "github.com/xtls/xray-core/proxy/vless/encryption"
+	vlessOutbound "github.com/xtls/xray-core/proxy/vless/outbound"
 	"github.com/xtls/xray-core/proxy/vmess"
 	wireguard "github.com/xtls/xray-core/proxy/wireguard"
 	"google.golang.org/grpc"
@@ -180,8 +183,14 @@ func (x *XrayAPI) DelInbound(tag string) error {
 // xray-core config loader, surfacing the exact error the core would raise at
 // startup — notably v26.7.11's refusal of unencrypted vless/trojan outbounds
 // whose server address is a public IP or domain.
-func ValidateOutboundConfig(outbound []byte) error {
+func ValidateOutboundConfig(outbound []byte) (err error) {
 	ensureXrayAssetLocation()
+	// The loader panics on some third-party values (a short vless encryption, a bad spiderX).
+	defer func() {
+		if r := recover(); r != nil {
+			err = common.NewErrorf("xray-core config loader panicked: %v", r)
+		}
+	}()
 
 	detour := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, detour); err != nil {
@@ -192,12 +201,12 @@ func ValidateOutboundConfig(outbound []byte) error {
 	if err != nil {
 		return err
 	}
-	return validateWireguardRemoteDNS(built.ProxySettings)
+	return validateHandlerSettings(built.ProxySettings)
 }
 
-// validateWireguardRemoteDNS refuses what conf.Build() lets through but the core feeds to
-// netip.MustParseAddr at startup: a non-IP remoteDNS entry, like "local" before 26.9.30.
-func validateWireguardRemoteDNS(settings *serial.TypedMessage) error {
+// validateHandlerSettings refuses what conf.Build() lets through but the core parses only
+// in the handler constructor, where one failure aborts the whole core start.
+func validateHandlerSettings(settings *serial.TypedMessage) error {
 	if settings == nil {
 		return nil
 	}
@@ -205,14 +214,88 @@ func validateWireguardRemoteDNS(settings *serial.TypedMessage) error {
 	if err != nil {
 		return nil
 	}
-	device, ok := instance.(*wireguard.DeviceConfig)
-	if !ok || !device.IsClient {
+	switch config := instance.(type) {
+	case *wireguard.DeviceConfig:
+		return validateWireguardClient(config)
+	case *vlessOutbound.Config:
+		return validateVlessEncryption(config)
+	case *shadowsocks_2022.ClientConfig:
+		return validateShadowsocks2022Key(config)
+	}
+	return nil
+}
+
+// validateWireguardClient mirrors proxy/wireguard.NewClient; remoteDNS goes to
+// netip.MustParseAddr there, so a non-IP entry ("local" before 26.9.30) is a crash.
+func validateWireguardClient(device *wireguard.DeviceConfig) error {
+	if !device.IsClient {
 		return nil
+	}
+	if len(device.Peers) == 0 {
+		return common.NewError("wireguard outbound has no peers")
+	}
+	for _, peer := range device.Peers {
+		if peer.PublicKey == "" {
+			return common.NewError("wireguard peer without publicKey")
+		}
+		if peer.Endpoint == "" {
+			return common.NewError("wireguard peer without endpoint")
+		}
+	}
+	for _, local := range device.Endpoint {
+		if _, err := netip.ParseAddr(local); err == nil {
+			continue
+		}
+		if _, err := netip.ParsePrefix(local); err != nil {
+			return common.NewErrorf("wireguard address entry %q is neither an IP nor a prefix", local)
+		}
 	}
 	for _, server := range device.DNS {
 		if _, err := netip.ParseAddr(server); err != nil {
 			return common.NewErrorf("wireguard remoteDNS entry %q is not an IP address", server)
 		}
+	}
+	return nil
+}
+
+// validateVlessEncryption mirrors proxy/vless/outbound.New, which parses the padding spec
+// and the X25519 / ML-KEM-768 keys of "encryption" through ClientInstance.Init.
+func validateVlessEncryption(config *vlessOutbound.Config) error {
+	if config.Vnext == nil || config.Vnext.User == nil {
+		return nil
+	}
+	user, err := config.Vnext.User.ToMemoryUser()
+	if err != nil {
+		return err
+	}
+	account, ok := user.Account.(*vless.MemoryAccount)
+	if !ok || account.Encryption == "" || account.Encryption == "none" {
+		return nil
+	}
+	var keys [][]byte
+	for part := range strings.SplitSeq(account.Encryption, ".") {
+		key, _ := base64.RawURLEncoding.DecodeString(part)
+		keys = append(keys, key)
+	}
+	if err := (&vlessEncryption.ClientInstance{}).Init(keys, account.XorMode, account.Seconds, account.Padding); err != nil {
+		return common.NewErrorf("vless encryption is unusable: %v", err)
+	}
+	return nil
+}
+
+// validateShadowsocks2022Key mirrors shadowsocks_2022.NewClient: every ":"-separated key
+// is base64 of the cipher's key length, and chacha20-poly1305 takes a single key.
+func validateShadowsocks2022Key(config *shadowsocks_2022.ClientConfig) error {
+	method, err := shadowsocks_2022.GetCipherMethod(config.Method)
+	if err != nil {
+		return err
+	}
+	keys, err := shadowsocks_2022.ParsePSKList(config.Key, method.KeySaltLength)
+	if err != nil {
+		return common.NewErrorf("shadowsocks 2022 key is unusable for %s: %v", config.Method, err)
+	}
+	if method.IsChaCha && len(keys) > 1 {
+		return common.NewError("shadowsocks 2022 chacha20-poly1305 does not support multiple keys")
 	}
 	return nil
 }
