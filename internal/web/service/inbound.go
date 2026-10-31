@@ -192,7 +192,10 @@ func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	if err == nil {
+		err = attachClientStats(db, inbounds)
+	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -235,7 +238,10 @@ func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	if err == nil {
+		err = attachClientStats(db, inbounds)
+	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -552,7 +558,10 @@ func inboundMtprotoDomain(protocol string, settings string) string {
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	if err == nil {
+		err = attachClientStats(db, inbounds)
+	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -2620,7 +2629,10 @@ func (s *InboundService) GetClientReverseTags() (string, error) {
 func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("remark like ?", "%"+query+"%").Find(&inbounds).Error
+	if err == nil {
+		err = attachClientStats(db, inbounds)
+	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}

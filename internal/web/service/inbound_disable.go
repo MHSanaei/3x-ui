@@ -105,7 +105,10 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		Email     string
 	}
 	var targets []target
-	if len(depletedEmails) > 0 {
+	// Chunked like every other statement here: a node alone can report more depleted
+	// clients than SQLite binds variables, which would stop the whole tick.
+	for _, batch := range chunkStrings(depletedEmails, sqlInChunk) {
+		var found []target
 		err = tx.Raw(`
 			SELECT inbounds.id AS inbound_id, inbounds.node_id AS node_id,
 			       inbounds.tag AS tag, clients.email AS email
@@ -113,10 +116,11 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 			JOIN client_inbounds ON client_inbounds.client_id = clients.id
 			JOIN inbounds        ON inbounds.id = client_inbounds.inbound_id
 			WHERE clients.email IN ?
-		`, depletedEmails).Scan(&targets).Error
+		`, batch).Scan(&found).Error
 		if err != nil {
 			return false, 0, nil, err
 		}
+		targets = append(targets, found...)
 	}
 
 	byInbound := make(map[int][]target)
@@ -167,9 +171,9 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		count += result.RowsAffected
 	}
 
-	if len(depletedEmails) > 0 {
+	for _, batch := range chunkStrings(depletedEmails, sqlInChunk) {
 		if err := tx.Model(&model.ClientRecord{}).
-			Where("email IN ?", depletedEmails).
+			Where("email IN ?", batch).
 			Updates(map[string]any{"enable": false, "updated_at": now}).Error; err != nil {
 			return false, count, nil, err
 		}

@@ -248,3 +248,77 @@ func TestAcceptGlobalTrafficDropsAnOversizedMasterGuid(t *testing.T) {
 		t.Fatalf("stored %d row(s) under an oversized master GUID", rows)
 	}
 }
+
+// A node can report tens of thousands of its own clients over quota; one IN list with a
+// bound variable per email overran SQLite's limit and stopped every expiry and quota check.
+func TestDisableInvalidClientsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 33000
+	if err := db.Create(&model.Inbound{UserId: 1, Tag: "big", Port: 41100, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[]}`}).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	for _, stmt := range []string{
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO client_traffics (inbound_id, email, enable, total, up, down) SELECT 1, 'c' || i, true, 1, 1, 1 FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO clients (email, enable, sub_id) SELECT 'c' || i, true, 's' || i FROM seq`,
+	} {
+		if err := db.Exec(stmt, n).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	if err := db.Exec(`INSERT INTO client_inbounds (client_id, inbound_id) SELECT id, 1 FROM clients`).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+	_, count, _, err := (&InboundService{}).disableInvalidClients(db, newTrafficMutationBatch())
+	if err != nil || count != n {
+		t.Fatalf("disableInvalidClients = %d, %v; want all %d disabled", count, err, n)
+	}
+}
+
+// Preloading client stats binds one variable per inbound, so past SQLite's limit the
+// master could not even build Xray's config; nodes report inbounds into the same table.
+func TestGetAllInboundsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 33000
+	if err := db.Exec(`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		INSERT INTO inbounds (user_id, tag, port, protocol, enable, settings, stream_settings, sniffing, listen, remark)
+		SELECT 1, 'in-' || i, i, 'vless', true, '{}', '', '', '', '' FROM seq`, n).Error; err != nil {
+		t.Fatalf("seed inbounds: %v", err)
+	}
+	seedClientRow(t, "alice", n, 0, 0, 0)
+	inbounds, err := (&InboundService{}).GetAllInbounds()
+	if err != nil || len(inbounds) != n {
+		t.Fatalf("GetAllInbounds = %d inbounds, %v; want %d", len(inbounds), err, n)
+	}
+	if last := inbounds[len(inbounds)-1]; len(last.ClientStats) != 1 || last.ClientStats[0].Email != "alice" {
+		t.Fatalf("last inbound's client stats = %v, want alice's row", last.ClientStats)
+	}
+}
+
+// Saving every renewed inbound in one statement binds every column of every row, which
+// overran SQLite's variable limit once enough inbounds held a client due for renewal.
+func TestAutoRenewClientsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 1400
+	for _, stmt := range []string{
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO inbounds (user_id, tag, port, protocol, enable, settings, stream_settings, sniffing, listen, remark)
+		 SELECT 1, 'in-' || i, i, 'vless', true, '{"clients":[{"email":"c' || i || '","enable":true,"expiryTime":1000,"reset":30}]}', '', '', '', '' FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO clients (email, enable, sub_id, expiry_time, reset) SELECT 'c' || i, true, 's' || i, 1000, 30 FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO client_traffics (inbound_id, email, enable, expiry_time, reset) SELECT i, 'c' || i, true, 1000, 30 FROM seq`,
+	} {
+		if err := db.Exec(stmt, n).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	if err := db.Exec(`INSERT INTO client_inbounds (client_id, inbound_id) SELECT c.id, i.id FROM clients c JOIN inbounds i ON i.tag = 'in-' || substr(c.email, 2)`).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+	_, count, err := (&InboundService{}).autoRenewClients(db, newTrafficMutationBatch())
+	if err != nil || count != n {
+		t.Fatalf("autoRenewClients = %d, %v; want all %d renewed", count, err, n)
+	}
+}

@@ -335,7 +335,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		}
 	}
 
-	err = tx.Save(inbounds).Error
+	err = saveInChunks(tx, inbounds)
 	if err != nil {
 		logger.Warning("AddClientTraffic update inbounds ", err)
 		logger.Error(inbounds)
@@ -533,7 +533,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 		}
 		inbounds[inbound_index].Settings = string(newSettings)
 	}
-	err = tx.Save(inbounds).Error
+	err = saveInChunks(tx, inbounds)
 	if err != nil {
 		return false, 0, err
 	}
@@ -550,7 +550,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			logger.Warning("autoRenewClients sync clients: SyncInbound failed", syncErr)
 		}
 	}
-	err = tx.Save(traffics).Error
+	err = saveInChunks(tx, traffics)
 	if err != nil {
 		return false, 0, err
 	}
