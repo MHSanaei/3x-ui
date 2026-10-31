@@ -529,6 +529,10 @@ func (b *egressUDPBudget) release(sess *egressUDPSession) {
 	b.mu.Unlock()
 }
 
+// maxPendingUDPResolves caps the domain datagrams one association may have
+// waiting on tunnel DNS; each holds a goroutine and a copy of the datagram.
+const maxPendingUDPResolves = 32
+
 // relayUDP answers the associate request and relays datagrams to
 // per-destination tunnel endpoints until the control connection closes.
 func (s *socks5EgressServer) relayUDP(dev *Device, tag string, ctl udpControl, _ socksTarget) {
@@ -551,6 +555,7 @@ func (s *socks5EgressServer) relayUDP(dev *Device, tag string, ctl udpControl, _
 	}
 
 	sessions := &udpEgressSessions{m: map[netip.AddrPort]*egressUDPSession{}}
+	pendingResolves := make(chan struct{}, maxPendingUDPResolves)
 
 	// Reader: strip per-datagram SOCKS5 headers and forward into the tunnel;
 	// only the associated client's address is accepted.
@@ -580,10 +585,20 @@ func (s *socks5EgressServer) relayUDP(dev *Device, tag string, ctl udpControl, _
 				if perr != nil {
 					continue
 				}
+				dnsSrv := s.currentDNSServer(tag)
+				if daddr, ok := cachedTunnelAddr(dev, tag, dnsSrv, name); ok {
+					s.deliverUDPDatagram(dev, tag, udpConn, client, sessions, netip.AddrPortFrom(daddr, port), data[hdrLen:])
+					continue
+				}
+				select {
+				case pendingResolves <- struct{}{}:
+				default:
+					continue // enough lookups pending; UDP may drop
+				}
 				// Resolve off reader loop so slow tunnel DNS lookups do not
 				// stall other destinations on this association.
 				go func(client netip.AddrPort, name string, port uint16, hdrLen int, datagram []byte) {
-					dnsSrv := s.currentDNSServer(tag)
+					defer func() { <-pendingResolves }()
 					rctx, rcancel := context.WithTimeout(context.Background(), tunnelResolveTimeout)
 					daddr, rerr := resolveTunnelVia(rctx, dev, tag, dnsSrv, name)
 					rcancel()
