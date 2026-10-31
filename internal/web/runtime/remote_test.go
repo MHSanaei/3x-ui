@@ -538,3 +538,19 @@ func TestRemoteNodeListsAreCappedByEntryCount(t *testing.T) {
 		t.Fatalf("GetDescendants = %d entries, %v; want errRemoteListTooLong", len(got), err)
 	}
 }
+
+// A node rotating inbound tags must not grow the per-tag maps forever: an inbound the
+// master swept leaves nothing behind in either tag form, its adopted alias included.
+func TestRemoteForgetInboundDropsEveryTrace(t *testing.T) {
+	n := &model.Node{Id: 7, Name: "n"}
+	r := NewRemote(n, nil)
+	ib := &model.Inbound{Tag: "n7-in-443", Port: 443, Protocol: model.VLESS}
+	r.AdoptInboundAlias(ib, RemoteInboundOption{Id: 3, Tag: "in-443"})
+	r.RecordAdoptedInbound(&model.Inbound{Tag: "in-443", Port: 443, Protocol: model.VLESS})
+	r.ForgetInbound("in-443")
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if len(r.pushedFP)+len(r.remoteIDByTag)+len(r.adoptedAliases) != 0 {
+		t.Fatalf("left behind: pushedFP=%v ids=%v aliases=%v", r.pushedFP, r.remoteIDByTag, r.adoptedAliases)
+	}
+}

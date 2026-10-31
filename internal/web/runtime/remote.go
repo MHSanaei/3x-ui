@@ -498,7 +498,7 @@ func (r *Remote) DelInbound(ctx context.Context, ib *model.Inbound) error {
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/del/"+strconv.Itoa(id), nil); err != nil {
 		return err
 	}
-	r.cacheDel(ib.Tag)
+	r.ForgetInbound(ib.Tag)
 	return nil
 }
 
@@ -579,6 +579,23 @@ func (r *Remote) ForgetPushedInbound(tag string) {
 	delete(r.pushedFP, bare)
 	delete(r.pushedFP, prefix+bare)
 	r.mu.Unlock()
+}
+
+// ForgetInbound drops everything kept under an inbound the node no longer has, in either
+// tag form: a node rotating tags would otherwise grow these maps without bound.
+func (r *Remote) ForgetInbound(tag string) {
+	prefix := nodeInboundTagPrefix(r.node.Id)
+	bare := strings.TrimPrefix(tag, prefix)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range []string{bare, prefix + bare} {
+		if alias, ok := r.adoptedAliases[t]; ok {
+			delete(r.remoteIDByTag, alias)
+			delete(r.adoptedAliases, t)
+		}
+		delete(r.remoteIDByTag, t)
+		delete(r.pushedFP, t)
+	}
 }
 
 // AdoptInboundAlias records a deployed alias without mutating either panel.

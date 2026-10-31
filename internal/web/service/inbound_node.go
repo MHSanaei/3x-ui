@@ -704,6 +704,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	structuralChange := false
 	lifecycleLifted := false
+	var sweptTags []string
 
 	var adoptedInbounds []*model.Inbound
 	type pendingAdopt struct {
@@ -1036,6 +1037,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			return false, err
 		}
 		delete(tagToCentral, c.Tag)
+		sweptTags = append(sweptTags, c.Tag)
 		structuralChange = true
 	}
 
@@ -1480,12 +1482,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	if len(adoptedInbounds) > 0 {
+	if len(adoptedInbounds) > 0 || len(sweptTags) > 0 {
 		if mgr := runtime.GetManager(); mgr != nil {
 			if rt, rtErr := mgr.RuntimeFor(&nodeID); rtErr == nil {
 				if rem, ok := rt.(*runtime.Remote); ok {
 					for _, ib := range adoptedInbounds {
 						rem.RecordAdoptedInbound(ib)
+					}
+					for _, tag := range sweptTags {
+						rem.ForgetInbound(tag)
 					}
 				}
 			}
