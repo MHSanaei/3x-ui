@@ -39,6 +39,11 @@ const (
 	remoteRoutingHappMaxBody  = 16 << 10 // 16 KiB; Happ emits the result in a response header
 	remoteRoutingHappMaxValue = 8 << 10  // normalized Routing header value
 	remoteRoutingClashMaxBody = 2 << 20  // 2 MiB
+
+	// What a document may marshal to, aliases copied out; the encoder re-indents a node's text
+	// once per enclosing level, hence the depth bound.
+	remoteRoutingClashMaxWritten = 4 << 20
+	remoteRoutingClashMaxDepth   = 16
 )
 
 // isHappPayloadKind reports whether the kind carries a happ-payload source:
@@ -448,6 +453,9 @@ func normalizeClashRouting(body []byte) (string, map[string]any, error) {
 	if len(document) == 0 {
 		return "", nil, errors.New("Clash routing response must be a YAML map")
 	}
+	if budget := remoteRoutingClashMaxWritten; !clashFitsWritten(document, 0, &budget) {
+		return "", nil, errors.New("Clash routing response is too large or too deeply nested once written out")
+	}
 	hasSupportedKey := false
 	for key := range document {
 		if remoteClashKeyClasses[key] == remoteClashRouteGraph {
@@ -469,6 +477,43 @@ func normalizeClashRouting(body []byte) (string, map[string]any, error) {
 		return "", nil, fmt.Errorf("invalid remote Clash routing schema: %w", err)
 	}
 	return text, document, nil
+}
+
+// clashFitsWritten charges what the encoder writes for v: every string per line at its
+// indentation, every node its indentation. It stops as soon as the budget is spent.
+func clashFitsWritten(v any, depth int, budget *int) bool {
+	if depth > remoteRoutingClashMaxDepth {
+		return false
+	}
+	indent := 2*depth + 2
+	switch v := v.(type) {
+	case string:
+		*budget -= len(v) + (strings.Count(v, "\n")+1)*indent
+	case []byte:
+		// The encoder writes !!binary values as a list with one item per byte.
+		*budget -= len(v) * (indent + 6)
+	case map[string]any:
+		for key, child := range v {
+			if *budget -= len(key) + indent; *budget < 0 || !clashFitsWritten(child, depth+1, budget) {
+				return false
+			}
+		}
+	case map[any]any:
+		for key, child := range v {
+			if *budget -= indent; *budget < 0 || !clashFitsWritten(key, depth+1, budget) || !clashFitsWritten(child, depth+1, budget) {
+				return false
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if *budget -= indent; *budget < 0 || !clashFitsWritten(child, depth+1, budget) {
+				return false
+			}
+		}
+	default:
+		*budget -= indent + 24
+	}
+	return *budget >= 0
 }
 
 func resolveIncyRoutingSource(raw string) (string, bool, error) {
