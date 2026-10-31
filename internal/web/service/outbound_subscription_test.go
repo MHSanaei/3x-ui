@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -452,4 +453,54 @@ func outboundsContainTag(outbounds []any, tag string) bool {
 		}
 	}
 	return false
+}
+
+// The core dials a subscription outbound's server itself, so a provider must not point
+// one at Xray's credential-less API, whatever allowPrivate says, nor steer the dial past the check.
+func TestOutboundSubscriptionRefreshDropsLinksIntoXrayListeners(t *testing.T) {
+	setupSettingTestDB(t)
+	const uuid = "00000000-0000-4000-8000-000000000000"
+	srv := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp","sockopt":{"addressPortStrategy":"SrvPortAndAddress"}}}`)
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return "vless://" + uuid + "@127.0.0.1:62789?security=tls&type=tcp#Api\n" +
+			"vless://" + uuid + "@8.8.8.8:443?security=tls&type=tcp#B\n" +
+			"vless://" + uuid + "@8.8.8.8:443?security=tls&type=xhttp&extra=" + srv + "#Srv"
+	})
+	tags, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tags, []string{"p-b"}) {
+		t.Fatalf("stored tags = %v, want only p-b", tags)
+	}
+	sub, err := (&OutboundSubscriptionService{}).Get(subID)
+	if err != nil || !strings.Contains(sub.LastError, "dropped 2 outbound(s)") {
+		t.Fatalf("lastError = %q (%v), want the two refused links reported", sub.LastError, err)
+	}
+}
+
+func TestActiveOutboundsDropStoredPrivateDialTargets(t *testing.T) {
+	setupSettingTestDB(t)
+	stored := `[{"tag":"p-lan","protocol":"vless","settings":{"address":"10.0.0.7","port":443,"id":"00000000-0000-4000-8000-000000000000","encryption":"none"},"streamSettings":{"network":"tcp","security":"tls"}},` +
+		`{"tag":"p-pub","protocol":"vless","settings":{"address":"8.8.8.8","port":443,"id":"00000000-0000-4000-8000-000000000000","encryption":"none"},"streamSettings":{"network":"tcp","security":"tls"}}]`
+	sub := &model.OutboundSubscription{Url: "https://provider.example/sub", TagPrefix: "p-", Enabled: true, LastFetchedOutbounds: stored}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	obs, err := (&OutboundSubscriptionService{}).AllActiveOutbounds()
+	if err != nil {
+		t.Fatalf("AllActiveOutbounds: %v", err)
+	}
+	if outboundsContainTag(obs, "p-lan") || !outboundsContainTag(obs, "p-pub") {
+		t.Fatalf("active outbounds = %v, want the stored LAN target dropped and the public one kept", obs)
+	}
+}
+
+func TestNamesInternalHost(t *testing.T) {
+	for host, want := range map[string]bool{
+		"127.0.0.1": true, " [::1]:62789 ": true, "fe80::1%eth0": true, "10.1.2.3:80": true,
+		"localhost": true, "api.localhost.": true, "intranet": true, "": true, "env:HOME": true,
+		"8.8.8.8": false, "cdn.example.com": false, "[2001:4860:4860::8888]:443": false,
+	} {
+		if got := namesInternalHost(host); got != want {
+			t.Errorf("namesInternalHost(%q) = %v, want %v", host, got, want)
+		}
+	}
 }

@@ -612,3 +612,48 @@ func TestParseLink_PutsUDPHopMaskLast(t *testing.T) {
 		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
 	}
 }
+
+// A share link describes a remote server; keys that redirect the dial or name files on
+// the importing host must not survive, however the core's case-folding decoder spells them.
+func TestParseLinkDropsHostLocalKeys(t *testing.T) {
+	extra := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp",` +
+		`"sockopt":{"dialerProxy":"api","tcpFastOpen":true},` +
+		`"tlsSettings":{"serverName":"cdn.example.com","CERTIFICATES":[{"certificateFile":"/dev/zero","keyFile":"/etc/shadow"}],"maſterKeyLog":"/root/keys"}}}`)
+	fm := url.QueryEscape(`{"tcp":[{"type":"header-custom","settings":{"DialerProxy":"api"}}]}`)
+	res, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&sni=cdn.example.com&extra=" + extra + "&fm=" + fm + "#node")
+	if err != nil {
+		t.Fatalf("parse vless: %v", err)
+	}
+	raw, err := json.Marshal(res.Outbound)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var hostLocal []string
+	var walk func(v any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case map[string]any:
+			for k, child := range v {
+				for _, banned := range []string{"dialerProxy", "certificateFile", "keyFile", "masterKeyLog"} {
+					if strings.EqualFold(k, banned) {
+						hostLocal = append(hostLocal, k)
+					}
+				}
+				walk(child)
+			}
+		case []any:
+			for _, child := range v {
+				walk(child)
+			}
+		}
+	}
+	var decoded any
+	_ = json.Unmarshal(raw, &decoded)
+	walk(decoded)
+	if len(hostLocal) > 0 {
+		t.Fatalf("outbound keeps host-local keys %v: %s", hostLocal, raw)
+	}
+	if !strings.Contains(string(raw), `"tcpFastOpen":true`) || !strings.Contains(string(raw), `"serverName":"cdn.example.com"`) {
+		t.Fatalf("remote-server settings were dropped too: %s", raw)
+	}
+}

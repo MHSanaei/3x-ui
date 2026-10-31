@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -423,13 +425,19 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		}
 	}
 
-	// Drop core-rejected links before tagging: prevTagByIndex indexes the persisted
-	// (filtered) list, so positions must be counted in that same list.
-	var droppedByCore []string
+	// Drop refused and core-rejected links before tagging: prevTagByIndex indexes the
+	// persisted (filtered) list, so positions must be counted in that same list.
+	var dropped []string
+	ownPorts := xrayOwnPorts()
 	keptLinks, keptIdentities := parsed[:0], identities[:0]
 	for i, ob := range parsed {
-		if _, dropped := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), []any{map[string]any(ob)}); len(dropped) > 0 {
-			droppedByCore = append(droppedByCore, dropped...)
+		if reason := internalDialTarget(map[string]any(ob), sub.AllowPrivate, ownPorts); reason != "" {
+			logger.Warningf("outbound sub %d: dropping outbound %.64q: %s", sub.Id, ob["tag"], reason)
+			dropped = append(dropped, fmt.Sprintf("%.64s: %s", ob["tag"], reason))
+			continue
+		}
+		if _, rejected := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), []any{map[string]any(ob)}); len(rejected) > 0 {
+			dropped = append(dropped, rejected...)
 			continue
 		}
 		keptLinks = append(keptLinks, ob)
@@ -461,8 +469,8 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 	sub.LinkIdentities = string(identJSON)
 	sub.LastUpdated = time.Now().Unix()
 	sub.LastError = ""
-	if len(droppedByCore) > 0 {
-		sub.LastError = fmt.Sprintf("dropped %d outbound(s) the xray core rejects: %s", len(droppedByCore), droppedByCore[0])
+	if len(dropped) > 0 {
+		sub.LastError = fmt.Sprintf("dropped %d outbound(s): %s", len(dropped), dropped[0])
 	}
 
 	if err := database.GetDB().Save(sub).Error; err != nil {
@@ -561,6 +569,7 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 	if err := db.Where("enabled = ?", true).Order("priority asc, id asc").Find(&subs).Error; err != nil {
 		return nil, nil, err
 	}
+	ownPorts := xrayOwnPorts()
 	for _, sub := range subs {
 		if strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
 			continue
@@ -570,6 +579,14 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			logger.Warningf("outbound sub %d has corrupt LastFetchedOutbounds: %v", sub.Id, err)
 			continue
 		}
+		// Rows stored before the fetch refused these, or while allowPrivate was on.
+		arr = slices.DeleteFunc(arr, func(ob any) bool {
+			reason := internalDialTarget(ob, sub.AllowPrivate, ownPorts)
+			if reason != "" {
+				logger.Warningf("outbound sub %d: dropping a stored outbound: %s", sub.Id, reason)
+			}
+			return reason != ""
+		})
 		arr, _ = filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), arr)
 		if sub.Prepend {
 			prepend = append(prepend, arr...)
@@ -672,3 +689,75 @@ Consequences for balancers / routing:
 We deliberately do *not* mutate the saved xrayTemplateConfig. Subscription
 outbounds are always injected at runtime in GetXrayConfig.
 */
+
+// xrayOwnPorts lists the ports of Xray's gRPC API and metrics listeners, which ask
+// for no credentials: being reachable from loopback only is their whole protection.
+func xrayOwnPorts() []string {
+	ports := []string{strconv.Itoa(reservedAPIPort())}
+	metrics, _ := (&XrayMetricsService{}).discoverListen()
+	if _, port, err := net.SplitHostPort(metrics); err == nil {
+		ports = append(ports, port)
+	}
+	return ports
+}
+
+// internalDialTarget says why a subscription outbound must not be loaded, or "". Keys
+// match at any depth (xhttp downloadSettings is a second server) and case-folded like the core.
+func internalDialTarget(outbound any, allowPrivate bool, ownPorts []string) string {
+	switch v := outbound.(type) {
+	case map[string]any:
+		for key, child := range v {
+			text, isText := child.(string)
+			switch {
+			case strings.EqualFold(key, "port"):
+				// A public name may resolve to loopback by dial time, so the port alone decides.
+				if slices.Contains(ownPorts, fmt.Sprint(child)) {
+					return "its port belongs to Xray's own API or metrics listener"
+				}
+			case strings.EqualFold(key, "addressPortStrategy"):
+				if text != "" && !strings.EqualFold(text, "none") {
+					return "addressPortStrategy takes its server from DNS records"
+				}
+			case strings.EqualFold(key, "address"), strings.EqualFold(key, "endpoint"):
+				// WireGuard's settings.address is a list of tunnel addresses, never dialled.
+				if !isText {
+					break
+				}
+				if _, port, err := net.SplitHostPort(strings.TrimSpace(text)); err == nil && slices.Contains(ownPorts, port) {
+					return "its port belongs to Xray's own API or metrics listener"
+				}
+				if !allowPrivate && namesInternalHost(text) {
+					return fmt.Sprintf("it connects to the private/internal address %.64q and allowPrivate is off", text)
+				}
+			}
+			if reason := internalDialTarget(child, allowPrivate, ownPorts); reason != "" {
+				return reason
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if reason := internalDialTarget(child, allowPrivate, ownPorts); reason != "" {
+				return reason
+			}
+		}
+	}
+	return ""
+}
+
+// namesInternalHost reports whether host, with or without a port, names this host or
+// its network once xray-core and Go's dialer have read it.
+func namesInternalHost(host string) bool {
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[] ")
+	host, _, _ = strings.Cut(host, "%")
+	if ip := net.ParseIP(host); ip != nil {
+		return isBlockedIP(ip)
+	}
+	// An empty host is the local system and a name without a dot comes from
+	// /etc/hosts or the search domain ("env:" has none either).
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	return !strings.Contains(host, ".") || host == "localhost" || strings.HasSuffix(host, ".localhost")
+}
