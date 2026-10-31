@@ -922,6 +922,11 @@ func (s *Server) relayUDPResponses(
 	sess *udpRelaySession,
 ) {
 	defer associations.release(assocID, association)
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	if !associations.attachResponseStop(assocID, association, stop) {
+		return
+	}
 	buf := make([]byte, s.maxUdpRelayPacketSize+263)
 	var nextPktID uint16
 	for {

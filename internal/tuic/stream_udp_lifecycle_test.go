@@ -210,3 +210,45 @@ func TestUdpAssociationTouchDoesNotRefreshReusedID(t *testing.T) {
 		t.Fatal("replacement association timestamp changed after stale touch")
 	}
 }
+
+// A response relay blocked on stream credit the client never grants must still end when
+// its association is dissociated; otherwise each Packet/Dissociate round leaves one behind.
+func TestDissociateStopsAResponseRelayBlockedOnTheClient(t *testing.T) {
+	socksAddr, cleanup := startMockSocks5Server(t, "udp-dissociate@x", "lifecycle-socks-password")
+	defer cleanup()
+	server, _, clientID, _ := startLifecycleTestServer(t, socksAddr, "udp-dissociate@x")
+	serverConn, user := authenticatedServerConnection(t, server, clientID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session, err := server.relay.DialUDP(ctx, user.Email)
+	if err != nil {
+		t.Fatalf("open SOCKS UDP session: %v", err)
+	}
+	const associationID uint16 = 61245
+	association := &udpAssociation{
+		responseTransport: packetTransportStream,
+		relay:             &udpRelaySession{relay: session, responseTransport: packetTransportStream},
+		lastActive:        time.Now(),
+	}
+	registry := newUdpAssociationRegistry(maxUdpRelayPacketSize)
+	registry.associations[associationID] = association
+	responseDone := make(chan struct{})
+	go func() {
+		defer close(responseDone)
+		server.relayUDPResponses(ctx, serverConn, user, associationID, association, registry, association.relay)
+	}()
+	target := &Address{Type: AddrTypeIPv4, IP: net.IPv4(8, 8, 8, 8), Port: 53}
+	for range 150 {
+		if _, err := session.Send(target, []byte("echo")); err != nil {
+			t.Fatalf("send SOCKS datagram: %v", err)
+		}
+	}
+	time.Sleep(300 * time.Millisecond)
+	registry.dissociate(associationID)
+	select {
+	case <-responseDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the response relay is still running after its association was dissociated")
+	}
+}

@@ -20,7 +20,10 @@ type udpAssociation struct {
 	lastActive        time.Time
 	opening           bool
 	openCancel        context.CancelFunc
-	pending           []pendingUdpPacket
+	// stopResponses ends the response relay, which may be blocked on stream credit the
+	// client never grants; closing the SOCKS side alone does not reach it.
+	stopResponses context.CancelFunc
+	pending       []pendingUdpPacket
 }
 
 type udpAssociationRegistry struct {
@@ -122,6 +125,7 @@ func (r *udpAssociationRegistry) dissociate(assocID uint16) bool {
 	association := r.associations[assocID]
 	if association != nil {
 		r.clearPendingLocked(association)
+		association.stopResponsesLocked()
 	}
 	delete(r.associations, assocID)
 	r.datagramReassembler.clearAssociation(assocID)
@@ -160,6 +164,7 @@ func (r *udpAssociationRegistry) expireLocked(now time.Time) {
 		}
 		delete(r.associations, assocID)
 		r.clearPendingLocked(association)
+		association.stopResponsesLocked()
 		r.datagramReassembler.clearAssociation(assocID)
 		r.streamReassembler.clearAssociation(assocID)
 		if association.relay != nil {
@@ -172,6 +177,7 @@ func (r *udpAssociationRegistry) closeAll() {
 	r.mu.Lock()
 	for _, association := range r.associations {
 		r.clearPendingLocked(association)
+		association.stopResponsesLocked()
 		if association.relay != nil {
 			_ = association.relay.relay.Close()
 		}
@@ -186,6 +192,7 @@ func (r *udpAssociationRegistry) release(id uint16, expected *udpAssociation) {
 	r.mu.Lock()
 	if r.associations[id] == expected {
 		r.clearPendingLocked(expected)
+		expected.stopResponsesLocked()
 		delete(r.associations, id)
 		r.datagramReassembler.clearAssociation(id)
 		r.streamReassembler.clearAssociation(id)
@@ -193,5 +200,23 @@ func (r *udpAssociationRegistry) release(id uint16, expected *udpAssociation) {
 	r.mu.Unlock()
 	if expected.relay != nil {
 		_ = expected.relay.relay.Close()
+	}
+}
+
+// attachResponseStop records the response relay's cancel on a live association; false
+// means the association is already gone and the relay must not start.
+func (r *udpAssociationRegistry) attachResponseStop(assocID uint16, expected *udpAssociation, stop context.CancelFunc) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.associations[assocID] != expected {
+		return false
+	}
+	expected.stopResponses = stop
+	return true
+}
+
+func (a *udpAssociation) stopResponsesLocked() {
+	if a.stopResponses != nil {
+		a.stopResponses()
 	}
 }
