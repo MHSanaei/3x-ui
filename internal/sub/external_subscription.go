@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -21,10 +24,21 @@ import (
 const (
 	subscriptionCacheTTL      = 5 * time.Minute
 	subscriptionMaxBytes      = 2 << 20 // 2 MiB
+	subscriptionMaxLinks      = 1000
 	subscriptionCacheCapacity = 256
 )
 
-var subscriptionHTTPClient = &http.Client{Timeout: 6 * time.Second}
+// The provider picks every redirect target, so each hop is resolved, checked and dialed by
+// the SSRF guard; its headers are bounded like its body.
+var subscriptionHTTPClient = &http.Client{
+	Timeout: 6 * time.Second,
+	Transport: &http.Transport{
+		DialContext:            netsafe.SSRFGuardedDialContext,
+		TLSHandshakeTimeout:    5 * time.Second,
+		MaxResponseHeaderBytes: 64 << 10,
+		IdleConnTimeout:        90 * time.Second,
+	},
+}
 
 type subscriptionCacheEntry struct {
 	links     []string
@@ -129,7 +143,7 @@ func recordExternalSubscriptionFetch(rawURL string, fetchErr error) {
 	}
 	lastFetchError := ""
 	if fetchErr != nil {
-		lastFetchError = fetchErr.Error()
+		lastFetchError = common.TruncateStatusText(service.WithoutRequestURL(fetchErr).Error())
 	}
 	if err := database.GetDB().
 		Model(&model.ClientExternalLink{}).
@@ -138,14 +152,14 @@ func recordExternalSubscriptionFetch(rawURL string, fetchErr error) {
 			"last_fetch_at":    time.Now().UnixMilli(),
 			"last_fetch_error": lastFetchError,
 		}).Error; err != nil {
-		logger.Warningf("sub: recording fetch status for external subscription %q: %v", rawURL, err)
+		logger.Warningf("sub: recording fetch status for an external subscription: %v", err)
 	}
 }
 
 func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, service.WithoutRequestURL(err)
 	}
 	// Some providers gate the link body on a known client User-Agent.
 	req.Header.Set("User-Agent", externalSubUserAgent())
@@ -155,7 +169,7 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	}
 	resp, err := subscriptionHTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, service.WithoutRequestURL(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -168,12 +182,17 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	if len(body) > subscriptionMaxBytes {
 		return nil, errSubscriptionBodyTooLarge
 	}
-	return decodeSubscriptionBody(body), nil
+	links := decodeSubscriptionBody(body)
+	if len(links) > subscriptionMaxLinks {
+		return nil, errSubscriptionTooManyLinks
+	}
+	return links, nil
 }
 
 var (
 	errBadStatus                = &subError{"non-2xx subscription response"}
 	errSubscriptionBodyTooLarge = &subError{"subscription response body exceeds size limit"}
+	errSubscriptionTooManyLinks = &subError{"subscription lists more than 1000 share links"}
 )
 
 // externalSubUserAgent returns the panel setting for external subscription
@@ -193,8 +212,16 @@ type subError struct{ msg string }
 
 func (e *subError) Error() string { return e.msg }
 
-// decodeSubscriptionBody handles the common base64-encoded newline list as well
-// as a plain-text body, returning only the lines that look like share links.
+// serverShareLinkSchemes are the server links a raw subscription carries on: what the link
+// parser reads, what the panel itself writes, and common third-party server schemes.
+var serverShareLinkSchemes = []string{
+	"vmess", "vless", "trojan", "ss", "ssr", "hysteria", "hysteria2", "hy2", "tuic", "wireguard", "wg",
+	"vpn", "socks", "socks5", "anytls", "juicity", "naive+https", "tg",
+}
+
+// decodeSubscriptionBody handles the common base64-encoded newline list as well as a
+// plain-text body, keeping only server share links: app deeplinks and plain URLs would
+// reach the subscriber's app as directives the operator never chose.
 func decodeSubscriptionBody(body []byte) []string {
 	text := strings.TrimSpace(string(body))
 	if text == "" {
@@ -210,7 +237,8 @@ func decodeSubscriptionBody(body []byte) []string {
 		if ln == "" || strings.HasPrefix(ln, "#") {
 			continue
 		}
-		if strings.Contains(ln, "://") {
+		scheme, _, found := strings.Cut(ln, "://")
+		if found && slices.ContainsFunc(serverShareLinkSchemes, func(s string) bool { return strings.EqualFold(s, scheme) }) {
 			out = append(out, ln)
 		}
 	}

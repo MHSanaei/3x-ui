@@ -131,7 +131,35 @@ func ParseLink(link string) (*ParseResult, error) {
 		return nil, err
 	}
 	dropHostLocalKeys(res.Outbound)
+	if !nestsWithin(map[string]any(res.Outbound), maxOutboundDepth) {
+		return nil, fmt.Errorf("link nests JSON deeper than %d levels", maxOutboundDepth)
+	}
 	return res, nil
+}
+
+// maxOutboundDepth bounds the JSON a link can nest into its outbound (the deepest real shape,
+// an xhttp download stream's finalmask, is about 11): pretty-printing costs depth squared.
+const maxOutboundDepth = 16
+
+func nestsWithin(v any, depth int) bool {
+	if depth < 0 {
+		return false
+	}
+	switch v := v.(type) {
+	case map[string]any:
+		for _, child := range v {
+			if !nestsWithin(child, depth-1) {
+				return false
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if !nestsWithin(child, depth-1) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func parseLinkByScheme(link string) (*ParseResult, error) {

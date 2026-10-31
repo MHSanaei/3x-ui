@@ -268,7 +268,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			maps.Copy(newConfigJson, s.bakedTemplate())
 			newConfigJson["outbounds"] = newOutbounds
 			newConfigJson["remarks"] = remark
-			newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+			newConfig, _ := json.Marshal(newConfigJson)
 			configArray = append(configArray, newConfig)
 		}
 	}

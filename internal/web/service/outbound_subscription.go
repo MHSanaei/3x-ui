@@ -172,7 +172,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) (strin
 func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
-		return nil, common.NewError("invalid subscription URL:", withoutRequestURL(err))
+		return nil, common.NewError("invalid subscription URL:", WithoutRequestURL(err))
 	}
 	if cleanURL == "" {
 		return nil, common.NewError("subscription URL is required")
@@ -224,7 +224,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 	}
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
-		return common.NewError("invalid subscription URL:", withoutRequestURL(err))
+		return common.NewError("invalid subscription URL:", WithoutRequestURL(err))
 	}
 	if cleanURL == "" {
 		return common.NewError("subscription URL is required")
@@ -368,7 +368,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 			"last_fetched_outbounds": string(obsJSON),
 			"link_identities":        fetched.identities,
 			"last_updated":           time.Now().Unix(),
-			"last_error":             fetched.lastError,
+			"last_error":             common.TruncateStatusText(fetched.lastError),
 		})
 	if res.Error != nil {
 		return nil, res.Error
@@ -401,7 +401,7 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 	// subscription was explicitly created with AllowPrivate.
 	cleanURL, err := SanitizePublicHTTPURL(sub.Url, sub.AllowPrivate)
 	if err != nil {
-		return nil, withoutRequestURL(err)
+		return nil, WithoutRequestURL(err)
 	}
 	if cleanURL == "" {
 		return nil, common.NewError("subscription has no valid URL")
@@ -429,7 +429,7 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 	reqCtx := netsafe.ContextWithAllowPrivate(context.Background(), sub.AllowPrivate)
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, cleanURL, nil)
 	if err != nil {
-		return nil, withoutRequestURL(err)
+		return nil, WithoutRequestURL(err)
 	}
 	userAgent := strings.TrimSpace(sub.UserAgent)
 	if userAgent == "" {
@@ -443,7 +443,7 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, withoutRequestURL(err)
+		return nil, WithoutRequestURL(err)
 	}
 	defer resp.Body.Close()
 
@@ -557,9 +557,9 @@ func spendXMCBudget(outbound any, budget *int) bool {
 	return true
 }
 
-// withoutRequestURL keeps only the host of the URL net/url and net/http quote in their
+// WithoutRequestURL keeps only the host of the URL net/url and net/http quote in their
 // errors: a subscription URL is a credential, and these errors are logged and stored.
-func withoutRequestURL(err error) error {
+func WithoutRequestURL(err error) error {
 	var urlErr *url.Error
 	if !errors.As(err, &urlErr) {
 		return err
@@ -588,7 +588,7 @@ func forceUserspaceWireguard(outbound any) {
 }
 
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
-	sub.LastError = err.Error()
+	sub.LastError = common.TruncateStatusText(err.Error())
 	_ = database.GetDB().Model(sub).Update("last_error", sub.LastError).Error
 }
 

@@ -661,3 +661,17 @@ func TestParseLinkDropsHostLocalKeys(t *testing.T) {
 		t.Fatalf("remote-server settings were dropped too: %s", raw)
 	}
 }
+
+// Pretty-printing costs the square of the nesting depth, and extra=, fm= and the vmess
+// JSON copy provider JSON into the outbound; a link may not nest past real shapes.
+func TestParseLinkRejectsDeeplyNestedJSON(t *testing.T) {
+	deep := strings.Repeat(`{"a":`, 40) + `1` + strings.Repeat(`}`, 40)
+	if _, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=" + url.QueryEscape(`{"xmux":`+deep+`}`) + "#n"); err == nil {
+		t.Fatal("a link nesting JSON 40 levels deep was accepted")
+	}
+	real := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp","xhttpSettings":{"headers":{"a":"b"}},` +
+		`"finalmask":{"udp":[{"type":"noise","settings":{"noise":[{"type":"rand","packet":"10-20"}]}}]}}}`)
+	if _, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=" + real + "#n"); err != nil {
+		t.Fatalf("a real download stream with a finalmask was refused: %v", err)
+	}
+}

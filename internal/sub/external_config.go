@@ -203,7 +203,8 @@ func parsedExternalOutbound(rawLink string) json_util.RawMessage {
 		return nil
 	}
 	ob["tag"] = "proxy"
-	b, err := json.MarshalIndent(ob, "", "  ")
+	// Compact: the response is indented once at the end, and each extra pass costs per level.
+	b, err := json.Marshal(ob)
 	if err != nil {
 		return nil
 	}
