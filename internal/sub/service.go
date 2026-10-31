@@ -827,7 +827,7 @@ func (s *SubService) indexStatsBySubId(subId string) {
 // when applicable. Covers both fallback mechanisms:
 //   - panel-tracked: an inbound_fallbacks row where child_id = inbound.Id
 //   - legacy unix-socket: inbound.Listen begins with "@" and some VLESS/
-//     Trojan inbound's settings.fallbacks references that listen address
+//     Trojan inbound on the same host names that socket in settings.fallbacks
 //
 // Returns true when a projection happened; sub services call this before
 // generating links so a child VLESS-WS bound to 127.0.0.1 emits the
@@ -861,7 +861,15 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 
 	if master == nil && len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
 		var m model.Inbound
-		if err := db.Model(model.Inbound{}).
+		// A unix socket exists only on the host that binds it, so only an inbound
+		// hosted where the child runs (this panel, or the same node) can front it.
+		q := db.Model(model.Inbound{})
+		if inbound.NodeID != nil {
+			q = q.Where("node_id = ?", *inbound.NodeID)
+		} else {
+			q = q.Where("node_id IS NULL")
+		}
+		if err := q.
 			Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
 			Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", inbound.Listen).
 			First(&m).Error; err == nil {

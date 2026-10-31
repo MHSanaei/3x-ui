@@ -233,6 +233,57 @@ func TestSub_HostOverFallback(t *testing.T) {
 	}
 }
 
+// The legacy "@socket" lookup stays on the child's own host: an older inbound
+// mirrored from another node that names the same socket is never the master.
+func TestSub_LegacyFallbackMasterStaysOnChildHost(t *testing.T) {
+	foreign, own := 7, 8
+	for _, tc := range []struct {
+		name   string
+		nodeID *int
+	}{
+		{"local child", nil},
+		{"node child", &own},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			db := database.GetDB()
+			for _, master := range []*model.Inbound{
+				{
+					UserId: 1, Tag: "foreign", Enable: true, Port: 44301, Protocol: model.VLESS, NodeID: &foreign,
+					Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@vless-ws"}]}`,
+					StreamSettings: `{"network":"tcp","security":"none","externalProxy":[{"forceTls":"none","dest":"evil.example","port":8080}]}`,
+				},
+				{
+					UserId: 1, Tag: "front", Enable: true, Port: 9443, Protocol: model.VLESS, NodeID: tc.nodeID,
+					Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@vless-ws"}]}`,
+					StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"front.sni"}}`,
+				},
+			} {
+				if err := db.Create(master).Error; err != nil {
+					t.Fatalf("seed %s: %v", master.Tag, err)
+				}
+			}
+			child := seedSubInbound(t, "s1", "child", 4441, 1, `{"network":"ws","security":"none"}`)
+			if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).
+				Updates(map[string]any{"listen": "@vless-ws", "node_id": tc.nodeID}).Error; err != nil {
+				t.Fatalf("place child: %v", err)
+			}
+
+			links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+			if err != nil {
+				t.Fatalf("GetSubs: %v", err)
+			}
+			joined := strings.Join(links, "\n")
+			if strings.Contains(joined, "evil.example") {
+				t.Fatalf("another node's inbound was used as fallback master: %s", joined)
+			}
+			if !strings.Contains(joined, ":9443") || !strings.Contains(joined, "sni=front.sni") {
+				t.Fatalf("the front on the child's host must be projected: %s", joined)
+			}
+		})
+	}
+}
+
 // #8 — a client only gets hosts for inbounds it is actually on (the
 // clients ⋈ client_inbounds ⋈ inbounds join), never arbitrary inbounds.
 func TestSub_HostsResolveViaClientInbounds(t *testing.T) {
