@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -42,6 +43,9 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		storedSubID: map[string]string{},
 	}
 	subIDByEmail := map[string]string{}
+	// A subId selects a whole subscription, so within one snapshot it may name one client only.
+	firstEmailBySub := map[string]string{}
+	sharesSubID := map[string]struct{}{}
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -63,6 +67,11 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 				var subID string
 				_ = json.Unmarshal(c.SubID, &subID)
 				subIDByEmail[c.Email] = subID
+				if first, taken := firstEmailBySub[subID]; subID != "" && taken && !strings.EqualFold(first, c.Email) {
+					sharesSubID[c.Email] = struct{}{}
+				} else if subID != "" && !taken {
+					firstEmailBySub[subID] = c.Email
+				}
 			}
 		}
 	}
@@ -105,12 +114,9 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		holders = append(holders, rows...)
 	}
 
-	ids := make([]int, 0, len(records)+len(holders))
+	ids := make([]int, 0, len(records))
 	for i := range records {
 		ids = append(ids, records[i].Id)
-	}
-	for i := range holders {
-		ids = append(ids, holders[i].Id)
 	}
 	scopes, err := clientLinkScopes(tx, nodeID, ids)
 	if err != nil {
@@ -120,9 +126,12 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 	for _, h := range holders {
 		holdersBySub[h.SubID] = append(holdersBySub[h.SubID], h)
 	}
-	subHeldElsewhere := func(email, subID string) bool {
+	subIDTaken := func(email, subID string) bool {
+		if _, shared := sharesSubID[email]; shared {
+			return true
+		}
 		for _, h := range holdersBySub[subID] {
-			if !strings.EqualFold(h.Email, email) && scopes[h.Id] != (clientLinkScope{here: true}) {
+			if !strings.EqualFold(h.Email, email) {
 				return true
 			}
 		}
@@ -134,8 +143,8 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		if !exact {
 			if _, variant := byLower[strings.ToLower(email)]; variant {
 				claims.refused[email] = "another client's email differs from it only in case"
-			} else if subID != "" && subHeldElsewhere(email, subID) {
-				claims.refused[email] = "its subId belongs to a client this node does not host"
+			} else if subID != "" && subIDTaken(email, subID) {
+				claims.refused[email] = "its subId belongs to another client"
 			}
 			continue
 		}
@@ -147,7 +156,7 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 			claims.refused[email] = "it is attached only to inbounds this node does not host"
 		case !scope.here && (rec.SyncOrphanedAt == 0 || rec.SyncOrphanedBy != nodeID):
 			claims.refused[email] = "it is detached from every inbound on the master"
-		case subID != rec.SubID && subID != "" && subHeldElsewhere(email, subID):
+		case subID != rec.SubID && subID != "" && subIDTaken(email, subID):
 			claims.storedSubID[email] = rec.SubID
 		}
 	}
@@ -282,4 +291,46 @@ func sharedRecordWouldChange(rec *model.ClientRecord, reported *model.Client) bo
 	applyClientRecordMerge(&merged, incoming)
 	keepLinkOwnedFields(&merged, rec, false)
 	return !reflect.DeepEqual(merged, *rec)
+}
+
+// A node's stream, sniffing and remark are rendered into every subscription link of the
+// inbound, once per client and external proxy, so their size bounds a request's cost.
+const (
+	maxNodeStreamSettingsBytes = 64 << 10
+	maxNodeSniffingBytes       = 16 << 10
+	maxNodeRemarkBytes         = 1 << 10
+	maxNodeExternalProxies     = 64
+)
+
+// reportedOversizeInbounds holds, per node, the tags its last snapshot left out as oversized.
+var reportedOversizeInbounds sync.Map
+
+// oversizeNodeInbound names the field that keeps a reported inbound from being taken in.
+func oversizeNodeInbound(ib *model.Inbound) string {
+	switch {
+	case len(ib.StreamSettings) > maxNodeStreamSettingsBytes:
+		return fmt.Sprintf("streamSettings exceeds %d bytes", maxNodeStreamSettingsBytes)
+	case len(ib.Sniffing) > maxNodeSniffingBytes:
+		return fmt.Sprintf("sniffing exceeds %d bytes", maxNodeSniffingBytes)
+	case len(ib.Remark) > maxNodeRemarkBytes:
+		return fmt.Sprintf("remark exceeds %d bytes", maxNodeRemarkBytes)
+	}
+	var stream struct {
+		ExternalProxy []json.RawMessage `json:"externalProxy"`
+	}
+	if json.Unmarshal([]byte(ib.StreamSettings), &stream) == nil && len(stream.ExternalProxy) > maxNodeExternalProxies {
+		return fmt.Sprintf("more than %d external proxies", maxNodeExternalProxies)
+	}
+	return ""
+}
+
+func logOversizeNodeInbounds(nodeID int, tags map[string]string) {
+	prev, _ := reportedOversizeInbounds.Load(nodeID)
+	logged, _ := prev.(map[string]string)
+	for tag, reason := range tags {
+		if _, seen := logged[tag]; !seen {
+			logger.Warningf("setRemoteTraffic: node %d reported inbound %.64q, not taking it in: %s", nodeID, tag, reason)
+		}
+	}
+	reportedOversizeInbounds.Store(nodeID, tags)
 }

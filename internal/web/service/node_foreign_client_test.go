@@ -383,3 +383,59 @@ func TestNodeRefusedClaimLogStateIsBounded(t *testing.T) {
 		t.Fatalf("refused-claim log state holds %d emails for one node, want 1", got)
 	}
 }
+
+// A subscription renders every client holding its subId, so a node creating many clients
+// under one subId multiplied the cost of a single request without bound.
+func TestNodeClientsCannotShareASubID(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"a@x","subId":"one-sub","enable":true},{"email":"b@x","subId":"one-sub","enable":true},{"email":"c@x","subId":"c-sub","enable":true}]}`)
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"a@x","subId":"one-sub","enable":true},{"email":"c@x","subId":"c-sub","enable":true},{"email":"d@x","subId":"one-sub","enable":true}]}`)
+
+	if n := countClientsWhere(t, db, "sub_id = ?", "one-sub"); n != 1 {
+		t.Fatalf("%d records hold one subId, want 1", n)
+	}
+	if !nodeHostsClient(t, db, "n1-in", "c@x") {
+		t.Fatal("a client with its own subId was not adopted")
+	}
+}
+
+// Every reported stream, sniffing and remark is rendered once per client and external
+// proxy of a subscription, so an oversized one let a node make one request cost gigabytes.
+func TestNodeOversizeInboundIsNotTakenIn(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	proxies := make([]string, maxNodeExternalProxies+1)
+	for i := range proxies {
+		proxies[i] = fmt.Sprintf(`{"dest":"h%d.example","port":443,"forceTls":"same"}`, i)
+	}
+	stream := `{"network":"tcp","externalProxy":[` + strings.Join(proxies, ",") + `]}`
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
+		{Tag: "n1-in", Enable: true, Port: 41001, Protocol: model.VLESS, Settings: `{"clients":[]}`, StreamSettings: stream},
+		{Tag: "n1-new", Enable: true, Port: 41002, Protocol: model.VLESS, Settings: `{"clients":[]}`, Remark: strings.Repeat("r", maxNodeRemarkBytes+1)},
+	}}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	var stored model.Inbound
+	if err := db.Where("tag = ?", "n1-in").First(&stored).Error; err != nil {
+		t.Fatalf("the oversized report removed the existing inbound: %v", err)
+	}
+	if strings.Contains(stored.StreamSettings, "externalProxy") {
+		t.Fatal("an inbound with too many external proxies was taken in")
+	}
+	var created int64
+	db.Model(&model.Inbound{}).Where("tag = ?", "n1-new").Count(&created)
+	if created != 0 {
+		t.Fatal("an inbound with an oversized remark was adopted")
+	}
+}

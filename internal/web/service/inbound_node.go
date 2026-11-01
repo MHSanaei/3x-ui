@@ -708,6 +708,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	mergedCentral := make(map[int]struct{}, len(central))
 
 	snapTags := make(map[string]struct{}, len(snap.Inbounds))
+	oversizeTags := map[string]string{}
 	for snapIdx, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -758,6 +759,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 			mergedCentral[c.Id] = struct{}{}
+		}
+		if reason := oversizeNodeInbound(snapIb); reason != "" {
+			oversizeTags[snapIb.Tag] = reason
+			snap.Inbounds[snapIdx] = nil
+			continue
 		}
 		if !ok {
 			if dirty {
@@ -915,6 +921,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	logOversizeNodeInbounds(nodeID, oversizeTags)
 	if hostGroupsSkipped > 0 {
 		logger.Warningf(
 			"setRemoteTraffic: node %d: left out %d host group adoption(s) — a group is limited to %d bytes and the node's inbounds to %d host rows",
