@@ -94,7 +94,11 @@
     },
     "swagger-ui-react": {
       "js-yaml": "^4.3.2",
-      "brace-expansion": "^5.0.9"
+      "brace-expansion": "^5.0.9",
+      "minimatch": "^11.0.3"
+    },
+    "@joshwooding/vite-plugin-react-docgen-typescript": {
+      "glob": "^14.0.3"
     },
     "@typeschema/valibot": {
       "valibot": "^1.1.0"
