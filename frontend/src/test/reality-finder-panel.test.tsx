@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, waitFor } from '@testing-library/react';
 
 import RealityFinderPanel from '@/pages/inbounds/form/security/RealityFinderPanel';
@@ -8,7 +8,7 @@ import { makeTestQueryClient, renderWithProviders } from './test-utils';
 
 const command = new Msg(true, '', {
   token: 'tok',
-  expiresAt: 1793000000,
+  expiresAt: 4102444800,
   server: '203.0.113.10',
   scriptUrl: 'https://panel.example.com/realityfinder/run/tok/script.py',
   unix: 'python3 -c "run-unix"',
@@ -71,6 +71,8 @@ function renderPanel(listen: string, onPick = vi.fn()) {
 }
 
 describe('REALITY finder (scan from the admin device)', () => {
+  beforeEach(() => sessionStorage.clear());
+
   it('asks for a command through 443 when the inbound sits behind a local listener', async () => {
     const post = vi.spyOn(HttpUtil, 'post').mockResolvedValue(command);
     vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
@@ -107,5 +109,36 @@ describe('REALITY finder (scan from the admin device)', () => {
     fireEvent.click(getByRole('button', { name: 'Make command' }));
 
     await waitFor(async () => expect(await findByText(/came from a VPN or a server/)).toBeTruthy());
+  });
+
+  it('shows the last report again after the scanner is closed and reopened', async () => {
+    const post = vi.spyOn(HttpUtil, 'post').mockResolvedValue(command);
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', [report()]));
+    const first = renderPanel('');
+    fireEvent.click(first.getByRole('button', { name: 'Make command' }));
+    expect(await first.findByText('cut.example.com')).toBeTruthy();
+    first.unmount();
+
+    const again = renderPanel('');
+
+    expect(await again.findByText('cut.example.com')).toBeTruthy();
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not bring back an expired command', async () => {
+    vi.spyOn(HttpUtil, 'post').mockResolvedValue(
+      new Msg(true, '', { ...(command.obj as object), expiresAt: 1 }),
+    );
+    const get = vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', [report()]));
+    const first = renderPanel('');
+    fireEvent.click(first.getByRole('button', { name: 'Make command' }));
+    await first.findByText('cut.example.com');
+    first.unmount();
+    get.mockClear();
+
+    const again = renderPanel('');
+
+    expect(again.queryByText('python -c "run-windows"')).toBeNull();
+    expect(get).not.toHaveBeenCalled();
   });
 });

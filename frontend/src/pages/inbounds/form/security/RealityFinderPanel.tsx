@@ -42,6 +42,29 @@ export function finderDefaultPort(inboundPort: number, listen: string): number {
   return local || !inboundPort ? 443 : inboundPort;
 }
 
+// The command lives for a day; keeping it per inbound in this browser tab lets the scanner be
+// closed and reopened (to add another target) without making and running a new one.
+const finderStoreKey = (inboundPort: number, listen: string) =>
+  `realityFinder.command.${inboundPort}.${listen}`;
+
+export function loadFinderCommand(key: string): RealityFinderCommand | null {
+  try {
+    const cmd = JSON.parse(sessionStorage.getItem(key) ?? 'null') as RealityFinderCommand | null;
+    return cmd && cmd.expiresAt * 1000 > Date.now() ? cmd : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveFinderCommand(key: string, cmd: RealityFinderCommand | null) {
+  try {
+    if (cmd) sessionStorage.setItem(key, JSON.stringify(cmd));
+    else sessionStorage.removeItem(key);
+  } catch {
+    // storage blocked: the command just does not outlive the dialog
+  }
+}
+
 export function finderNotes(row: RealityFinderTarget): string[] {
   const notes: string[] = [];
   if (row.same24) notes.push('same24');
@@ -63,7 +86,14 @@ export default function RealityFinderPanel({
   const [scope, setScope] = useState('24');
   const [making, setMaking] = useState(false);
   const [error, setError] = useState('');
-  const [command, setCommand] = useState<RealityFinderCommand | null>(null);
+  const storeKey = finderStoreKey(inboundPort, listen);
+  const [command, setCommandState] = useState<RealityFinderCommand | null>(() =>
+    loadFinderCommand(storeKey),
+  );
+  const setCommand = (cmd: RealityFinderCommand | null) => {
+    setCommandState(cmd);
+    saveFinderCommand(storeKey, cmd);
+  };
   const [picked, setPicked] = useState<number | null>(null);
 
   const reports = useQuery({
@@ -76,7 +106,10 @@ export default function RealityFinderPanel({
         undefined,
         { silent: true },
       );
-      if (!msg?.success) throw new Error(msg?.msg || 'expired');
+      if (!msg?.success) {
+        saveFinderCommand(storeKey, null);
+        throw new Error(msg?.msg || 'expired');
+      }
       return msg.obj ?? [];
     },
   });

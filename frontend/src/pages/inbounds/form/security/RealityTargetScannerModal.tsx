@@ -199,7 +199,6 @@ export default function RealityTargetScannerModal({
     <Modal
       open={open}
       onCancel={onClose}
-      destroyOnHidden
       footer={[
         tab === 'server' ? (
           <Button key="rescan" onClick={() => runScan(query.trim() || undefined)} loading={loading}>
