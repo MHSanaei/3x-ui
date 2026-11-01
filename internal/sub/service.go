@@ -3607,20 +3607,22 @@ func (s *SubService) socketFront(key socketFrontKey) *model.Inbound {
 			Listen         string
 			Port           int
 			StreamSettings string
-			Fallbacks      string
+			Settings       string
 		}
-		// json_valid keeps one inbound with unreadable settings from failing the
-		// whole statement and hiding every front.
+		// Parsed here, not with SQL JSON functions, so the lookup works on PostgreSQL too and one
+		// inbound with unreadable settings cannot hide every front.
 		if err := database.GetDB().Model(model.Inbound{}).
-			Select("node_id, listen, port, stream_settings, json_extract(settings, '$.fallbacks') AS fallbacks").
-			Where("CASE WHEN json_valid(settings) THEN JSON_TYPE(settings, '$.fallbacks') END = 'array'").
+			Select("node_id, listen, port, stream_settings, settings").
+			Where("settings LIKE ?", "%fallbacks%").
 			Order("id ASC").Scan(&fronts).Error; err != nil {
 			return nil
 		}
 		for _, front := range fronts {
-			var fallbacks []any
-			_ = json.Unmarshal([]byte(front.Fallbacks), &fallbacks)
-			for _, fallback := range fallbacks {
+			var parsed struct {
+				Fallbacks []any `json:"fallbacks"`
+			}
+			_ = json.Unmarshal([]byte(front.Settings), &parsed)
+			for _, fallback := range parsed.Fallbacks {
 				rule, _ := fallback.(map[string]any)
 				dest, _ := rule["dest"].(string)
 				k := socketFrontKey{node: nodeKeyOf(front.NodeID), dest: dest}

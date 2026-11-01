@@ -2048,8 +2048,10 @@ func TestSub_LegacyFallbackMasterLookedUpOncePerRequest(t *testing.T) {
 
 	scans := 0
 	count := func(tx *gorm.DB) {
-		if strings.Contains(tx.Statement.SQL.String(), "$.fallbacks") {
-			scans++
+		for _, v := range tx.Statement.Vars {
+			if v == "%fallbacks%" {
+				scans++
+			}
 		}
 	}
 	_ = db.Callback().Query().After("gorm:query").Register("test:count_front_scans", count)
