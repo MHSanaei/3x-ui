@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "روز ماه برای تمدید تقویمی",
         "descPROTOCOL": "پروتکل اینباند (VLESS، VMess، Trojan، …)",
         "descTRANSPORT": "شبکهٔ انتقال (tcp، ws، grpc، …)",
-        "descSECURITY": "امنیت انتقال (TLS، REALITY، NONE)"
+        "descSECURITY": "امنیت انتقال (TLS، REALITY، NONE)",
+        "descINBOUND_TRAFFIC_USED": "ترافیک مصرف‌شده اینباند (خوانا)",
+        "descINBOUND_TRAFFIC_LEFT": "ترافیک باقی‌مانده اینباند (در صورت نامحدود بودن پنهان می‌شود)",
+        "descINBOUND_TRAFFIC_TOTAL": "ترافیک کل اینباند (در صورت نامحدود بودن پنهان می‌شود)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "ترافیک مصرف‌شده اینباند به بایت",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "ترافیک باقی‌مانده اینباند به بایت",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "ترافیک کل اینباند به بایت",
+        "descINBOUND_UP": "ترافیک آپلود اینباند",
+        "descINBOUND_DOWN": "ترافیک دانلود اینباند"
       },
       "toasts": {
         "list": "بارگذاری میزبان‌ها ناموفق",

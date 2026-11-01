@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Día del mes en que se renueva",
         "descPROTOCOL": "Protocolo del inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Red de transporte (tcp, ws, grpc, …)",
-        "descSECURITY": "Seguridad del transporte (TLS, REALITY, NONE)"
+        "descSECURITY": "Seguridad del transporte (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Tráfico usado del inbound",
+        "descINBOUND_TRAFFIC_LEFT": "Tráfico restante del inbound (oculto si es ilimitado)",
+        "descINBOUND_TRAFFIC_TOTAL": "Tráfico total del inbound (oculto si es ilimitado)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Tráfico usado del inbound en bytes",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Tráfico restante del inbound en bytes",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Tráfico total del inbound en bytes",
+        "descINBOUND_UP": "Tráfico de subida del inbound",
+        "descINBOUND_DOWN": "Tráfico de bajada del inbound"
       },
       "toasts": {
         "list": "Error al cargar los hosts",

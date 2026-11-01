@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Takvime göre yenileme günü",
         "descPROTOCOL": "Gelen bağlantı protokolü (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Taşıma ağı (tcp, ws, grpc, …)",
-        "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)"
+        "descSECURITY": "Taşıma güvenliği (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Gelen bağlantı kullanılan trafik",
+        "descINBOUND_TRAFFIC_LEFT": "Gelen bağlantı kalan trafik (sınırsızsa gizlenir)",
+        "descINBOUND_TRAFFIC_TOTAL": "Gelen bağlantı toplam trafik (sınırsızsa gizlenir)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Gelen bağlantı kullanılan trafik (byte)",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Gelen bağlantı kalan trafik (byte)",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Gelen bağlantı toplam trafik (byte)",
+        "descINBOUND_UP": "Gelen bağlantı yükleme trafiği",
+        "descINBOUND_DOWN": "Gelen bağlantı indirme trafiği"
       },
       "toasts": {
         "list": "Host'lar yüklenemedi",

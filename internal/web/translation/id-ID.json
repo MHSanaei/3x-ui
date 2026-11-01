@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Tanggal perpanjangan setiap bulan",
         "descPROTOCOL": "Protokol inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Jaringan transport (tcp, ws, grpc, …)",
-        "descSECURITY": "Keamanan transport (TLS, REALITY, NONE)"
+        "descSECURITY": "Keamanan transport (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Trafik terpakai inbound",
+        "descINBOUND_TRAFFIC_LEFT": "Trafik tersisa inbound (disembunyikan jika tanpa batas)",
+        "descINBOUND_TRAFFIC_TOTAL": "Total trafik inbound (disembunyikan jika tanpa batas)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Trafik terpakai inbound dalam byte",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Trafik tersisa inbound dalam byte",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Total trafik inbound dalam byte",
+        "descINBOUND_UP": "Trafik unggah inbound",
+        "descINBOUND_DOWN": "Trafik unduh inbound"
       },
       "toasts": {
         "list": "Gagal memuat host",

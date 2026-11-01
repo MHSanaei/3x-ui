@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Число месяца, в которое продлевается доступ",
         "descPROTOCOL": "Протокол входящего (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Транспортная сеть (tcp, ws, grpc, …)",
-        "descSECURITY": "Безопасность транспорта (TLS, REALITY, NONE)"
+        "descSECURITY": "Безопасность транспорта (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Использованный трафик входящего подключения",
+        "descINBOUND_TRAFFIC_LEFT": "Оставшийся трафик входящего подключения (скрыт при безлимите)",
+        "descINBOUND_TRAFFIC_TOTAL": "Общий трафик входящего подключения (скрыт при безлимите)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Использованный трафик входящего подключения в байтах",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Оставшийся трафик входящего подключения в байтах",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Общий трафик входящего подключения в байтах",
+        "descINBOUND_UP": "Исходящий трафик входящего подключения",
+        "descINBOUND_DOWN": "Входящий трафик входящего подключения"
       },
       "toasts": {
         "list": "Не удалось загрузить хосты",

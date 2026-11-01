@@ -18,7 +18,12 @@ func expandCtx(client model.Client, stats xray.ClientTraffic, inbound *model.Inb
 }
 
 func TestExpandRemarkVars(t *testing.T) {
-	inbound := &model.Inbound{Remark: "Germany"}
+	inbound := &model.Inbound{
+		Remark: "Germany",
+		Total:  500 * gb,
+		Up:     50 * gb,
+		Down:   100 * gb,
+	}
 	client := model.Client{
 		Email:     "john@example.com",
 		ID:        "3f2a9c1b-aaaa-bbbb-cccc-1234567890ab",
@@ -55,6 +60,15 @@ func TestExpandRemarkVars(t *testing.T) {
 		{"{{TRAFFIC_TOTAL_BYTES}}", "53687091200"},
 		{"{{UP}}", "5.00GB"},
 		{"{{DOWN}}", "3.00GB"},
+		{"{{INBOUND_TRAFFIC_USED}}", "150.00GB"},
+		{"{{INBOUND_TRAFFIC_LEFT}}", "350.00GB"},
+		{"{{INBOUND_TRAFFIC_TOTAL}}", "500.00GB"},
+		{"{{INBOUND_TRAFFIC_USED_BYTES}}", "161061273600"},
+		{"{{INBOUND_TRAFFIC_LEFT_BYTES}}", "375809638400"},
+		{"{{INBOUND_TRAFFIC_TOTAL_BYTES}}", "536870912000"},
+		{"{{INBOUND_UP}}", "50.00GB"},
+		{"{{INBOUND_DOWN}}", "100.00GB"},
+		{"{INBOUND_TRAFFIC_LEFT}", "350.00GB"},
 		{"{{STATUS}}", "active"},
 		{"{{EXPIRE_UNIX}}", "0"},  // no expiry
 		{"{{EXPIRE_DATE}}", ""},   // no fixed date
@@ -101,6 +115,21 @@ func TestExpandRemarkVars_EdgeCases(t *testing.T) {
 	delayed := expandCtx(model.Client{}, xray.ClientTraffic{Enable: true, ExpiryTime: -864_000_000}, nil)
 	if got := expandRemarkVars("{{DAYS_LEFT}}", delayed); got != "10" {
 		t.Errorf("delayed-start DAYS_LEFT = %q, want 10", got)
+	}
+	// Inbound unlimited traffic and nil checks (#6720).
+	unlimitedInbound := expandCtx(model.Client{}, xray.ClientTraffic{}, &model.Inbound{Total: 0, Up: gb})
+	if got := remarkVarValue("INBOUND_TRAFFIC_TOTAL", unlimitedInbound); got != "∞" {
+		t.Errorf("unlimited INBOUND_TRAFFIC_TOTAL = %q, want ∞", got)
+	}
+	if got := remarkVarValue("INBOUND_TRAFFIC_LEFT", unlimitedInbound); got != "∞" {
+		t.Errorf("unlimited INBOUND_TRAFFIC_LEFT = %q, want ∞", got)
+	}
+	if got := expandRemarkVars("{{INBOUND_TRAFFIC_LEFT_BYTES}}", unlimitedInbound); got != "0" {
+		t.Errorf("unlimited INBOUND_TRAFFIC_LEFT_BYTES = %q, want 0", got)
+	}
+	nilInbound := expandCtx(model.Client{}, xray.ClientTraffic{}, nil)
+	if got := expandRemarkVars("{{INBOUND_TRAFFIC_TOTAL}}", nilInbound); got != "" {
+		t.Errorf("nil inbound INBOUND_TRAFFIC_TOTAL = %q, want empty", got)
 	}
 }
 

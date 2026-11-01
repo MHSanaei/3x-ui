@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Dia do mês em que é renovado",
         "descPROTOCOL": "Protocolo da entrada (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Rede de transporte (tcp, ws, grpc, …)",
-        "descSECURITY": "Segurança do transporte (TLS, REALITY, NONE)"
+        "descSECURITY": "Segurança do transporte (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Tráfego usado da inbound",
+        "descINBOUND_TRAFFIC_LEFT": "Tráfego restante da inbound (oculto se ilimitado)",
+        "descINBOUND_TRAFFIC_TOTAL": "Tráfego total da inbound (oculto se ilimitado)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Tráfego usado da inbound em bytes",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Tráfego restante da inbound em bytes",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Tráfego total da inbound em bytes",
+        "descINBOUND_UP": "Tráfego de upload da inbound",
+        "descINBOUND_DOWN": "Tráfego de download da inbound"
       },
       "toasts": {
         "list": "Falha ao carregar os hosts",

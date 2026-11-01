@@ -2490,7 +2490,15 @@
         "descRESET_DAY": "Ngày trong tháng để gia hạn",
         "descPROTOCOL": "Giao thức inbound (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Mạng truyền tải (tcp, ws, grpc, …)",
-        "descSECURITY": "Bảo mật truyền tải (TLS, REALITY, NONE)"
+        "descSECURITY": "Bảo mật truyền tải (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Lưu lượng inbound đã dùng",
+        "descINBOUND_TRAFFIC_LEFT": "Lưu lượng inbound còn lại (ẩn nếu không giới hạn)",
+        "descINBOUND_TRAFFIC_TOTAL": "Tổng lưu lượng inbound (ẩn nếu không giới hạn)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Lưu lượng inbound đã dùng tính bằng byte",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Lưu lượng inbound còn lại tính bằng byte",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Tổng lưu lượng inbound tính bằng byte",
+        "descINBOUND_UP": "Lưu lượng tải lên inbound",
+        "descINBOUND_DOWN": "Lưu lượng tải xuống inbound"
       },
       "toasts": {
         "list": "Không tải được danh sách host",

@@ -1206,7 +1206,15 @@
         "descRESET_DAY": "Deň mesačného kalendárneho obnovenia",
         "descPROTOCOL": "Protokol vstupu (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Prenosová sieť (tcp, ws, grpc, …)",
-        "descSECURITY": "Zabezpečenie prenosu (TLS, REALITY, NONE)"
+        "descSECURITY": "Zabezpečenie prenosu (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Využité dáta inboundu",
+        "descINBOUND_TRAFFIC_LEFT": "Zostávajúce dáta inboundu (skryté pri neobmedzenom limite)",
+        "descINBOUND_TRAFFIC_TOTAL": "Celkové dáta inboundu (skryté pri neobmedzenom limite)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Využité dáta inboundu v bajtoch",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Zostávajúce dáta inboundu v bajtoch",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Celkové dáta inboundu v bajtoch",
+        "descINBOUND_UP": "Upload inboundu",
+        "descINBOUND_DOWN": "Download inboundu"
       },
       "toasts": {
         "list": "Nepodarilo sa načítať adresy serverov",
