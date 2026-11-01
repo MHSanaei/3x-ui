@@ -680,12 +680,14 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{clientEmail}); err != nil {
 				return err
 			}
-			if err := clearGlobalTraffic(tx, clientEmail); err != nil {
+			keepOff, err := handDisabledEmails(tx, []string{clientEmail})
+			if err != nil {
 				return err
 			}
-			if err := tx.Model(xray.ClientTraffic{}).
-				Where("email = ?", clientEmail).
-				Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
+			if _, err := zeroClientTraffics(tx, []string{clientEmail}, keepOff); err != nil {
+				return err
+			}
+			if err := clearGlobalTraffic(tx, clientEmail); err != nil {
 				return err
 			}
 			return tx.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
@@ -723,8 +725,14 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	if err != nil {
 		return false, nil, err
 	}
+	// A reset lifts the quota gate only: a client switched off by hand stays off.
+	keepOff, err := handDisabledEmails(database.GetDB(), []string{clientEmail})
+	if err != nil {
+		return false, nil, err
+	}
+	handDisabled := len(keepOff) > 0
 
-	if !traffic.Enable {
+	if !traffic.Enable && !handDisabled {
 		inbound, err := s.GetInbound(id)
 		if err != nil {
 			return false, nil, err
@@ -766,7 +774,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 
 	traffic.Up = 0
 	traffic.Down = 0
-	traffic.Enable = true
+	traffic.Enable = !handDisabled
 
 	db := database.GetDB()
 	now := time.Now().UnixMilli()

@@ -160,6 +160,15 @@ func quotaDisabledEmails(tx *gorm.DB, within []string) ([]string, error) {
 	if err := clientResetCycles(tx).Where("c.enable = ?", false).Scan(&cycles).Error; err != nil {
 		return nil, err
 	}
+	// Cross-panel usage depletes too: a client cut off on pushed usage was the quota's doing.
+	rows := make([]xray.ClientTraffic, len(cycles))
+	for i, c := range cycles {
+		rows[i] = xray.ClientTraffic{Email: c.Email, Up: c.Up, Down: c.Down, Total: c.Total}
+	}
+	overlayGlobalTrafficValues(tx, rows)
+	for i := range cycles {
+		cycles[i].Up, cycles[i].Down = rows[i].Up, rows[i].Down
+	}
 	var in map[string]bool
 	if within != nil {
 		in = make(map[string]bool, len(within))

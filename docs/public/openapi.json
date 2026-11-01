@@ -10163,7 +10163,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Zero up/down counters for many clients in one call. Loops the single-reset path so each client is re-enabled across its attached inbounds and pushed to Xray/remote nodes. Returns the count of successfully reset clients.",
+        "summary": "Zero up/down counters for many clients in one call. Loops the single-reset path so each client its quota had disabled is re-enabled across its attached inbounds and pushed to Xray/remote nodes; a client disabled by hand stays disabled. Returns the count of successfully reset clients.",
         "operationId": "post_panel_api_clients_bulkResetTraffic",
         "requestBody": {
           "required": true,
@@ -10504,7 +10504,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Zero out a single client’s up/down counters. Re-enables the client across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately.",
+        "summary": "Zero out a single client’s up/down counters. Re-enables a client its quota had disabled across every attached inbound and pushes the change to Xray (or the remote node) so depleted users can connect again immediately; a client disabled by hand stays disabled.",
         "operationId": "post_panel_api_clients_resetTraffic_email",
         "parameters": [
           {
