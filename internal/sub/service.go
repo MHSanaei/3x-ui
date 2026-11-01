@@ -79,6 +79,9 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	// socketFronts maps a host and a unix-socket dest named by a settings.fallbacks to the
+	// lowest-id inbound of that host naming it. Filled by socketFront; reset per request.
+	socketFronts map[socketFrontKey]*model.Inbound
 	// rendered is what this request has put into its response so far.
 	rendered renderBudget
 	// settingsCache is shared by this service's requests (ForRequest copies the pointer); only
@@ -130,6 +133,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.clientsByInbound = map[int]map[string]model.Client{}
 	s.fullyPrimedInbounds = map[int]bool{}
 	s.settingsByInbound = map[int]map[string]any{}
+	s.socketFronts = nil
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
@@ -878,21 +882,9 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 	}
 
 	if master == nil && len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-		var m model.Inbound
 		// A unix socket exists only on the host that binds it, so only an inbound
 		// hosted where the child runs (this panel, or the same node) can front it.
-		q := db.Model(model.Inbound{})
-		if inbound.NodeID != nil {
-			q = q.Where("node_id = ?", *inbound.NodeID)
-		} else {
-			q = q.Where("node_id IS NULL")
-		}
-		if err := q.
-			Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
-			Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", inbound.Listen).
-			First(&m).Error; err == nil {
-			master = &m
-		}
+		master = s.socketFront(socketFrontKey{node: nodeKeyOf(inbound.NodeID), dest: inbound.Listen})
 	}
 
 	if master == nil {
@@ -3520,4 +3512,54 @@ func extraSalamanderKeys(settings map[string]any, expressedPacketSize bool) []st
 	}
 	sort.Strings(extra)
 	return extra
+}
+
+// socketFrontKey names a unix socket on one host: 0 is this panel, else the node id.
+type socketFrontKey struct {
+	node int
+	dest string
+}
+
+func nodeKeyOf(nodeID *int) int {
+	if nodeID == nil {
+		return 0
+	}
+	return *nodeID
+}
+
+// socketFront resolves a legacy unix-socket child to its front. That means parsing the
+// settings JSON of every inbound, so the scan runs once per request, not once per child.
+func (s *SubService) socketFront(key socketFrontKey) *model.Inbound {
+	if s.socketFronts == nil {
+		s.socketFronts = map[socketFrontKey]*model.Inbound{}
+		var fronts []struct {
+			NodeID         *int
+			Listen         string
+			Port           int
+			StreamSettings string
+			Fallbacks      string
+		}
+		// json_valid keeps one inbound with unreadable settings from failing the
+		// whole statement and hiding every front.
+		if err := database.GetDB().Model(model.Inbound{}).
+			Select("node_id, listen, port, stream_settings, json_extract(settings, '$.fallbacks') AS fallbacks").
+			Where("CASE WHEN json_valid(settings) THEN JSON_TYPE(settings, '$.fallbacks') END = 'array'").
+			Order("id ASC").Scan(&fronts).Error; err != nil {
+			return nil
+		}
+		for _, front := range fronts {
+			var fallbacks []any
+			_ = json.Unmarshal([]byte(front.Fallbacks), &fallbacks)
+			for _, fallback := range fallbacks {
+				rule, _ := fallback.(map[string]any)
+				dest, _ := rule["dest"].(string)
+				k := socketFrontKey{node: nodeKeyOf(front.NodeID), dest: dest}
+				if _, taken := s.socketFronts[k]; taken || !strings.HasPrefix(dest, "@") {
+					continue
+				}
+				s.socketFronts[k] = &model.Inbound{Listen: front.Listen, Port: front.Port, StreamSettings: front.StreamSettings}
+			}
+		}
+	}
+	return s.socketFronts[key]
 }

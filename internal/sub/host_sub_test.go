@@ -17,6 +17,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 func seedSubDB(t *testing.T) {
@@ -2009,5 +2011,69 @@ func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 	}
 	if strings.Contains(parts[1], "sni=") {
 		t.Errorf("expected blank sni: %s", parts[1])
+	}
+}
+
+// The "@socket" front lookup parses every inbound's settings, so a request runs it
+// once, not per child; the lower-id front still wins and unreadable settings are skipped.
+func TestSub_LegacyFallbackMasterLookedUpOncePerRequest(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	fronts := []*model.Inbound{
+		{
+			UserId: 1, Tag: "front", Enable: true, Port: 9443, Protocol: model.VLESS,
+			Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":80},{"dest":"@child-1"},"not-an-object"]}`,
+			StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"front.sni"}}`,
+		},
+		{
+			UserId: 1, Tag: "newer-front", Enable: true, Port: 9444, Protocol: model.VLESS,
+			Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@child-1"},{"dest":"@child-2"}]}`,
+			StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"newer.sni"}}`,
+		},
+		{UserId: 1, Tag: "broken", Enable: true, Port: 9445, Protocol: model.VLESS, Settings: `{not json`, StreamSettings: `{}`},
+	}
+	for _, ib := range fronts {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("seed %s: %v", ib.Tag, err)
+		}
+	}
+	for i := 1; i <= 3; i++ {
+		child := seedSubInbound(t, "s1", fmt.Sprintf("child-%d", i), 4450+i, i, `{"network":"ws","security":"none"}`)
+		child.Listen = fmt.Sprintf("@child-%d", i)
+		if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).Update("listen", child.Listen).Error; err != nil {
+			t.Fatalf("set child listen: %v", err)
+		}
+	}
+
+	scans := 0
+	count := func(tx *gorm.DB) {
+		if strings.Contains(tx.Statement.SQL.String(), "$.fallbacks") {
+			scans++
+		}
+	}
+	_ = db.Callback().Query().After("gorm:query").Register("test:count_front_scans", count)
+	_ = db.Callback().Row().After("gorm:row").Register("test:count_front_scans", count)
+	t.Cleanup(func() {
+		_ = db.Callback().Query().Remove("test:count_front_scans")
+		_ = db.Callback().Row().Remove("test:count_front_scans")
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if scans != 1 {
+		t.Fatalf("inbound settings were scanned %d times in one request, want 1", scans)
+	}
+	if len(links) != 3 {
+		t.Fatalf("links = %d, want 3: %v", len(links), links)
+	}
+	for i, want := range []string{"req.example.com:9443?", "req.example.com:9444?", "req.example.com:4453?"} {
+		if !strings.Contains(links[i], want) {
+			t.Fatalf("child-%d link should advertise %s: %s", i+1, want, links[i])
+		}
+	}
+	if !strings.Contains(links[0], "sni=front.sni") {
+		t.Fatalf("child-1 must carry its front's TLS state: %s", links[0])
 	}
 }
