@@ -3197,6 +3197,11 @@ func seedClientsFromInboundJSON() error {
 					continue
 				}
 				model.NormalizeLegacyClientFields(obj)
+				// Releases before 3.1.0 served a client whose JSON carries no
+				// switch; only an explicit false means disabled.
+				if obj["enable"] == nil {
+					obj["enable"] = true
+				}
 				blob, err := json.Marshal(obj)
 				if err != nil {
 					continue
@@ -3217,6 +3222,14 @@ func seedClientsFromInboundJSON() error {
 				if !dup {
 					if err := tx.Create(incoming).Error; err != nil {
 						return err
+					}
+					// gorm default:true drops enable=false on Create — restate (#6478).
+					if !c.Enable {
+						if err := tx.Model(&model.ClientRecord{}).Where("id = ?", incoming.Id).
+							UpdateColumn("enable", false).Error; err != nil {
+							return err
+						}
+						incoming.Enable = false
 					}
 					byEmail[email] = incoming
 					row = incoming

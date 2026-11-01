@@ -220,6 +220,47 @@ func TestSeedClientsFromInboundJSON_IsIdempotentAgainstExistingClients(t *testin
 	}
 }
 
+func TestSeedClientsFromInboundJSON_KeepsTheManualSwitch(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	inbound := model.Inbound{
+		UserId:   1,
+		Port:     12345,
+		Protocol: model.VLESS,
+		Settings: `{"clients": [
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c001", "email": "paying", "enable": true},
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c002", "email": "banned", "enable": false},
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c003", "email": "no-switch"}
+		]}`,
+		Tag: "test-inbound",
+	}
+	if err := db.Create(&inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := db.Where("seeder_name = ?", "ClientsTable").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear ClientsTable history: %v", err)
+	}
+
+	if err := seedClientsFromInboundJSON(); err != nil {
+		t.Fatalf("seedClientsFromInboundJSON: %v", err)
+	}
+
+	for email, want := range map[string]bool{"paying": true, "banned": false, "no-switch": true} {
+		var row model.ClientRecord
+		if err := db.Where("email = ?", email).First(&row).Error; err != nil {
+			t.Fatalf("read client %s: %v", email, err)
+		}
+		if row.Enable != want {
+			t.Errorf("client %s migrated with enable = %v, want %v", email, row.Enable, want)
+		}
+	}
+}
+
 func TestNormalizeInboundClientSubId_FillsMissingAndPreservesExisting(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
