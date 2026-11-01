@@ -160,7 +160,8 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		case scope.elsewhere:
 			claims.refused[email] = "it is attached only to inbounds this node does not host"
 			claims.usageOnly[email] = struct{}{}
-		case !scope.here && (rec.SyncOrphanedAt == 0 || rec.SyncOrphanedBy != nodeID):
+		// A mark from before sync_orphaned_by existed names no node, so any node may take it back.
+		case !scope.here && (rec.SyncOrphanedAt == 0 || (rec.SyncOrphanedBy != 0 && rec.SyncOrphanedBy != nodeID)):
 			claims.refused[email] = "it is detached from every inbound on the master"
 		case subID != rec.SubID && subID != "" && subIDTaken(email, subID):
 			claims.storedSubID[email] = rec.SubID

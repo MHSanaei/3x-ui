@@ -243,11 +243,13 @@ func TestNodeCannotAdoptDetachedClient(t *testing.T) {
 	master := seedMasterInbound(t, db, "master-in", 40001,
 		`{"email":"detached@x","id":"11111111-1111-4111-8111-111111111111","subId":"d-sub","enable":true},`+
 			`{"email":"mine@x","id":"22222222-2222-4222-8222-222222222222","enable":true},`+
-			`{"email":"theirs@x","id":"33333333-3333-4333-8333-333333333333","enable":true}`)
+			`{"email":"theirs@x","id":"33333333-3333-4333-8333-333333333333","enable":true},`+
+			`{"email":"legacy@x","id":"44444444-4444-4444-8444-444444444444","enable":true}`)
 	if err := db.Exec("DELETE FROM client_inbounds WHERE inbound_id = ?", master.Id).Error; err != nil {
 		t.Fatalf("detach: %v", err)
 	}
-	for email, node := range map[string]int{"mine@x": 1, "theirs@x": 2} {
+	// legacy@x was marked before sync_orphaned_by existed, so its mark names no node.
+	for email, node := range map[string]int{"mine@x": 1, "theirs@x": 2, "legacy@x": 0} {
 		if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
 			Updates(map[string]any{"sync_orphaned_at": 1, "sync_orphaned_by": node}).Error; err != nil {
 			t.Fatalf("mark %s orphaned: %v", email, err)
@@ -256,7 +258,7 @@ func TestNodeCannotAdoptDetachedClient(t *testing.T) {
 	createNodeInbound(t, db, 1, "n1-in", 41001)
 
 	syncNodeWithSettings(t, svc, 1, "n1-in",
-		`{"clients":[{"email":"detached@x","subId":"picked","enable":true},{"email":"mine@x","enable":true},{"email":"theirs@x","subId":"picked2","enable":true}]}`)
+		`{"clients":[{"email":"detached@x","subId":"picked","enable":true},{"email":"mine@x","enable":true},{"email":"theirs@x","subId":"picked2","enable":true},{"email":"legacy@x","enable":true}]}`)
 
 	if row := readClientRecord(t, db, "detached@x"); row.SubID != "d-sub" || nodeHostsClient(t, db, "n1-in", "detached@x") {
 		t.Fatalf("node adopted a detached client: subId=%q", row.SubID)
@@ -266,6 +268,9 @@ func TestNodeCannotAdoptDetachedClient(t *testing.T) {
 	}
 	if !nodeHostsClient(t, db, "n1-in", "mine@x") {
 		t.Fatal("node could not take back a client its own merge orphaned")
+	}
+	if !nodeHostsClient(t, db, "n1-in", "legacy@x") {
+		t.Fatal("a client orphaned before the upgrade could not be taken back and would be reaped")
 	}
 }
 
