@@ -1012,33 +1012,38 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		if id < 0 {
 			return tx.Where(depletedClause, now).Delete(xray.ClientTraffic{}).Error
 		}
-		emails := make([]string, 0, len(depletedEmails))
-		for e := range depletedEmails {
-			emails = append(emails, e)
+		rowEmails := make([]string, 0, len(depletedRows))
+		for _, r := range depletedRows {
+			if r.Email != "" {
+				rowEmails = append(rowEmails, r.Email)
+			}
 		}
-		var stillReferenced []string
 		emailExpr := database.JSONFieldText("client.value", "email")
 		stillQuery := fmt.Sprintf(
-			"SELECT DISTINCT LOWER(%s) %s WHERE LOWER(%s) IN ?",
+			"SELECT DISTINCT %s %s WHERE LOWER(%s) IN ? OR %s IN ?",
 			emailExpr,
 			database.JSONClientsFromInbound(),
 			emailExpr,
+			emailExpr,
 		)
-		if err := tx.Raw(stillQuery, emails).Scan(&stillReferenced).Error; err != nil {
-			return err
+		stillSet := make(map[string]struct{}, len(rowEmails))
+		for _, batch := range chunkStrings(emailSpellings(rowEmails), sqlInChunk) {
+			var stillReferenced []string
+			if err := tx.Raw(stillQuery, batch, batch).Scan(&stillReferenced).Error; err != nil {
+				return err
+			}
+			for _, e := range stillReferenced {
+				stillSet[strings.ToLower(e)] = struct{}{}
+			}
 		}
-		stillSet := make(map[string]struct{}, len(stillReferenced))
-		for _, e := range stillReferenced {
-			stillSet[e] = struct{}{}
-		}
-		toDelete := make([]string, 0, len(emails))
-		for _, e := range emails {
-			if _, kept := stillSet[e]; !kept {
+		toDelete := make([]string, 0, len(rowEmails))
+		for _, e := range rowEmails {
+			if _, kept := stillSet[strings.ToLower(e)]; !kept {
 				toDelete = append(toDelete, e)
 			}
 		}
-		if len(toDelete) > 0 {
-			if err := tx.Where("LOWER(email) IN ?", toDelete).Delete(xray.ClientTraffic{}).Error; err != nil {
+		for _, batch := range chunkStrings(emailSpellings(toDelete), sqlInChunk) {
+			if err := tx.Where("LOWER(email) IN ? OR email IN ?", batch, batch).Delete(xray.ClientTraffic{}).Error; err != nil {
 				return err
 			}
 		}

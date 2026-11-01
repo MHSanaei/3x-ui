@@ -616,29 +616,20 @@ func (s *InboundService) GetAllEmails() ([]string, error) {
 // checked. One clients row owns an email's identity, so the answer no longer
 // needs a scan of every inbound's settings JSON (#6252).
 func (s *InboundService) emailSubIDsForClients(clients []model.Client) (map[string]string, error) {
-	want := make(map[string]struct{}, len(clients))
+	emails := make([]string, 0, len(clients))
 	for i := range clients {
-		if email := strings.ToLower(strings.TrimSpace(clients[i].Email)); email != "" {
-			want[email] = struct{}{}
-		}
+		emails = append(emails, clients[i].Email)
 	}
-	result := make(map[string]string, len(want))
-	if len(want) == 0 {
-		return result, nil
-	}
-	lowered := make([]string, 0, len(want))
-	for email := range want {
-		lowered = append(lowered, email)
-	}
+	result := make(map[string]string, len(emails))
 	db := database.GetDB()
-	for _, batch := range chunkStrings(lowered, sqlInChunk) {
+	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
 		var rows []struct {
 			Email string
 			SubID string `gorm:"column:sub_id"`
 		}
 		err := db.Model(&model.ClientRecord{}).
 			Select("email, sub_id").
-			Where("LOWER(email) IN ?", batch).
+			Where("LOWER(email) IN ? OR email IN ?", batch, batch).
 			Scan(&rows).Error
 		if err != nil {
 			return nil, err
