@@ -210,7 +210,7 @@ func (t *benchTunnel) dial(b *testing.B, dest netip.AddrPort) *gonet.TCPConn {
 func BenchmarkTunnelThroughput(b *testing.B) {
 	const chunkSize = 64 << 10
 	const serverAddr = "10.203.0.1"
-	tun := newBenchTunnel(b, 58714, serverAddr, "10.203.0.2")
+	tun := newBenchTunnel(b, freeUDPPort(b), serverAddr, "10.203.0.2")
 	defer tun.closeFn()
 
 	b.Run("upload", func(b *testing.B) {

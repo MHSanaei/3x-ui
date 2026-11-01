@@ -57,12 +57,7 @@ func newPairedTunnelForTest(t *testing.T) *pairedTunnel {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	listenPort := pc.LocalAddr().(*net.UDPAddr).Port
-	pc.Close()
+	listenPort := freeUDPPort(t)
 
 	obf := amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
 	serverInst := amneziawg.Instance{
@@ -133,12 +128,7 @@ func newPairedTunnelV6ForTest(t *testing.T) *pairedTunnel {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	listenPort := pc.LocalAddr().(*net.UDPAddr).Port
-	pc.Close()
+	listenPort := freeUDPPort(t)
 
 	obf := amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
 	serverInst := amneziawg.Instance{

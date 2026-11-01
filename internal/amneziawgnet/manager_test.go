@@ -29,7 +29,7 @@ func TestManagerLifecycle(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            3,
 		InterfaceName: "awgtest3",
-		ListenPort:    58714,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.203.0.1/24"},
@@ -117,7 +117,7 @@ func TestEnsureRebuildsWhenS4ChangesTheDerivedMTU(t *testing.T) {
 			inst := amneziawg.Instance{
 				Id:            9 + i,
 				InterfaceName: fmt.Sprintf("awgtest%d", 9+i),
-				ListenPort:    58719 + i,
+				ListenPort:    0,
 				PrivateKey:    priv,
 				PublicKey:     pub,
 				Address:       []string{"10.209.0.1/24"},
@@ -214,7 +214,7 @@ func TestEnsureUnchangedInstanceDoesNotResetLivePeers(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            4,
 		InterfaceName: "awgtest4",
-		ListenPort:    58715,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.204.0.1/24"},
@@ -351,7 +351,7 @@ func TestEnsureDropsFlowsOfReassignedTunnelAddress(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            9,
 		InterfaceName: "awgtest9",
-		ListenPort:    58720,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.206.0.1/24"},
@@ -465,7 +465,7 @@ func TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            7,
 		InterfaceName: "awgtest7",
-		ListenPort:    58717,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.207.0.1/24"},
@@ -525,7 +525,7 @@ func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            8,
 		InterfaceName: "awgtest8",
-		ListenPort:    58718,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.208.0.1/24"},

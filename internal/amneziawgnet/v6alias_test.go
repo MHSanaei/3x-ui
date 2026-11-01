@@ -305,7 +305,7 @@ func TestManagerRemoveLeavesHostOwnedAddressInPlace(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:                    7,
 		InterfaceName:         "awgtest7",
-		ListenPort:            58717,
+		ListenPort:            0,
 		PrivateKey:            priv,
 		PublicKey:             pub,
 		Address:               []string{"10.207.0.1/24", "fd86:ea04:1115::1/64"},

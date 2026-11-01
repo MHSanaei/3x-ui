@@ -45,7 +45,7 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 		t.Fatalf("generate idle-peer keypair: %v", err)
 	}
 
-	const listenPort = 58713 // distinct from device_test.go's fixed port
+	listenPort := freeUDPPort(t)
 	const activeEmail = "active@example.com"
 	const idleEmail = "idle@example.com"
 
