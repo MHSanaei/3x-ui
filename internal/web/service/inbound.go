@@ -1028,18 +1028,21 @@ const (
 // listening (stopping every inbound) or an outbound dials.
 func validateXDriveStorage(streamSettings string) error {
 	var stream struct {
-		Network        string `json:"network"`
-		XDriveSettings struct {
-			Service      string          `json:"service"`
-			RemoteFolder string          `json:"remoteFolder"`
-			Secrets      []string        `json:"secrets"`
-			Template     json.RawMessage `json:"template"`
-		} `json:"xdriveSettings"`
+		Network        string          `json:"network"`
+		XDriveSettings json.RawMessage `json:"xdriveSettings"`
 	}
 	if json.Unmarshal([]byte(streamSettings), &stream) != nil || stream.Network != "xdrive" {
 		return nil
 	}
-	xd := stream.XDriveSettings
+	var xd struct {
+		Service      string          `json:"service"`
+		RemoteFolder string          `json:"remoteFolder"`
+		Secrets      []string        `json:"secrets"`
+		Template     json.RawMessage `json:"template"`
+	}
+	if len(stream.XDriveSettings) > 0 && json.Unmarshal(stream.XDriveSettings, &xd) != nil {
+		return common.NewError("XDRIVE settings are not a valid object.")
+	}
 	hasFolder := strings.TrimSpace(xd.RemoteFolder) != ""
 	switch xd.Service {
 	case "local":
@@ -1058,8 +1061,12 @@ func validateXDriveStorage(streamSettings string) error {
 			return common.NewError(`XDRIVE service "template" needs a "template" object describing the storage API.`)
 		}
 		return validateXDriveTemplate(xd.Template)
+	case "s3":
+		if err := xray.ValidateXDriveS3(stream.XDriveSettings); err != nil {
+			return common.NewError("XDRIVE ", err)
+		}
 	default:
-		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, google-drive or template.", xd.Service))
+		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, google-drive, template or s3.", xd.Service))
 	}
 	return nil
 }

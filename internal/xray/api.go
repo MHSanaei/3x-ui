@@ -237,6 +237,17 @@ func ValidateTunWfpBlockLeak(values []string) error {
 	return err
 }
 
+// ValidateXDriveS3 builds an "s3" xdriveSettings object through the vendored loader, which runs
+// the endpoint, bucket and secret checks xray-core 26.10.31 (#7231) applies to the S3 backend.
+func ValidateXDriveS3(xdriveSettings []byte) error {
+	c := new(conf.XDriveConfig)
+	if err := json.Unmarshal(xdriveSettings, c); err != nil {
+		return err
+	}
+	_, err := c.Build()
+	return err
+}
+
 // validateXhttpDownloadSettings refuses what conf.Build() lets through but the core's XHTTP
 // dialer panics on at every dial: a downloadSettings block without an address or not on xhttp.
 func validateXhttpDownloadSettings(settings *serial.TypedMessage) error {

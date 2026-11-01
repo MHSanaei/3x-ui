@@ -150,7 +150,7 @@ func hostReaches(inbound *model.Inbound) ([]pushReach, error) {
 			object("hysteria masquerade", "hysteriasettings", "masquerade")
 		case leaf.endsWith("masterkeylog") && lower != "" && lower != "none":
 			add("masterKeyLog", leaf)
-		case leaf.endsWith("xdrivesettings", "service") && (lower == "local" || lower == "template"):
+		case leaf.endsWith("xdrivesettings", "service") && (lower == "local" || lower == "template" || lower == "s3"):
 			object("xdrive service", "xdrivesettings")
 		case leaf.endsWith("echconfiglist") && strings.Contains(lower, "://"):
 			add("echConfigList", leaf)

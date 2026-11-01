@@ -252,6 +252,10 @@ func TestAddInboundRefusesPushedFieldsThatReachThisHost(t *testing.T) {
 			t.Errorf("%s: refused: %v", name, err)
 		}
 	}
+	s3 := xdriveInbound(44404, `{"service":"s3","remoteFolder":"x","secrets":["AKID","SECRET"],"s3":{"endpoint":"http://127.0.0.1:2053","region":"r","bucket":"b"}}`)
+	if _, _, err := push.AddInbound(s3); err == nil || !strings.Contains(err.Error(), "may not set xdrive service") {
+		t.Fatalf("pushed S3 storage on this host's own port = %v, want refused by the push guard", err)
+	}
 	if _, _, err := (&InboundService{}).AddInbound(&model.Inbound{Enable: true, Listen: "env:XUI_DB_DSN", Port: 44403, Protocol: model.VLESS, Settings: `{"clients":[]}`}); err == nil || !strings.Contains(err.Error(), "env:") {
 		t.Fatalf("env: listen = %v, want refused for every caller", err)
 	}
