@@ -820,11 +820,43 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	// only widens the window in which new handshakes fail.
 	time.Sleep(100 * time.Millisecond)
 
+	// clientConfig is the scan's snapshot: a disable or delete committed since then
+	// found no user to remove (or restarted the core) and will not come back for it.
+	if !j.clientStillServed(inbound.Id, clientEmail) {
+		logger.Infof("[LIMIT_IP] Not restoring %s: disabled or removed during its temporary disconnect", clientEmail)
+		return
+	}
+
 	// Re-add user to allow new connections
 	err = xrayAPI.AddUser(protocol, inbound.Tag, clientConfig)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to re-add user %s: %v", clientEmail, err)
+		return
 	}
+
+	// Asked again: a commit can land between the check and the re-add. Writers touch
+	// the core only after they commit, so one this check misses removes the user itself.
+	if !j.clientStillServed(inbound.Id, clientEmail) {
+		logger.Infof("[LIMIT_IP] Removing %s again: disabled or removed during its temporary disconnect", clientEmail)
+		if err := xrayAPI.RemoveUser(inbound.Tag, clientEmail); err != nil {
+			logger.Warningf("[LIMIT_IP] Failed to remove user %s again: %v", clientEmail, err)
+		}
+	}
+}
+
+// clientStillServed is GetXrayConfig's rule for handing a client to the core: linked to
+// the enabled inbound, enabled, not depleted per client_traffics. A failed read is "no".
+func (j *CheckClientIpJob) clientStillServed(inboundId int, clientEmail string) bool {
+	var served int64
+	err := database.GetDB().Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
+		Where("client_inbounds.inbound_id = ? AND inbounds.enable = ?", inboundId, true).
+		Where("clients.email = ? AND clients.enable = ?", clientEmail, true).
+		Where("NOT EXISTS (SELECT 1 FROM client_traffics WHERE client_traffics.email = clients.email AND client_traffics.enable = ?)", false).
+		Count(&served).Error
+	j.checkError(err)
+	return err == nil && served > 0
 }
 
 // resolveXrayAPIPort returns the API inbound port from running config, then template config, then default.
