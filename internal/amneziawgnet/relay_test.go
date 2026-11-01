@@ -302,15 +302,19 @@ func TestNewSocks5UDPSessionGivesUpOnSilentServer(t *testing.T) {
 // A burst of short connections through AmneziaWG used to allocate a fresh 32 KiB copy buffer
 // per direction per connection (gigabytes per hour under churn); the pair must be reused.
 func TestPipeBothWaysReusesCopyBuffersAcrossConnections(t *testing.T) {
+	if raceEnabled {
+		t.Skip("under -race sync.Pool drops a share of Puts at random")
+	}
 	payload := make([]byte, 16*1024)
 	sink := make([]byte, 16*1024)
+	ping := make([]byte, len("ping")) // the server goroutine's own buffer
 	relay := func() {
 		tunnelClient, tunnelSide := tcpPair(t)
 		upstreamSide, upstreamServer := tcpPair(t)
 		done := make(chan struct{})
 		go func() { pipeBothWays(tunnelSide, upstreamSide); close(done) }()
 		go func() {
-			_, _ = io.ReadFull(upstreamServer, sink[:len("ping")])
+			_, _ = io.ReadFull(upstreamServer, ping)
 			_, _ = upstreamServer.Write(payload)
 			_ = upstreamServer.Close()
 		}()
