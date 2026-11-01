@@ -10,6 +10,7 @@
   "create": "Crear",
   "add": "Añadir",
   "remove": "Quitar",
+  "removeItem": "Quitar {item}",
   "update": "Actualizar",
   "copy": "Copiar",
   "copied": "Copiado",

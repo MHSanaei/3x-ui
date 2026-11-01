@@ -10,6 +10,7 @@
   "create": "Vytvoriť",
   "add": "Pridať",
   "remove": "Odstrániť",
+  "removeItem": "Odstrániť {item}",
   "update": "Aktualizovať",
   "copy": "Kopírovať",
   "copied": "Skopírované",

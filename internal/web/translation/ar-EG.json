@@ -10,6 +10,7 @@
   "create": "إنشاء",
   "add": "إضافة",
   "remove": "إزالة",
+  "removeItem": "إزالة {item}",
   "update": "تحديث",
   "copy": "نسخ",
   "copied": "اتنسخ",

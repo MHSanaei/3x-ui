@@ -10,6 +10,7 @@
   "create": "创建",
   "add": "添加",
   "remove": "移除",
+  "removeItem": "移除 {item}",
   "update": "更新",
   "copy": "复制",
   "copied": "已复制",

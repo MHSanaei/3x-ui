@@ -4,6 +4,7 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 
 interface StringListProps {
@@ -112,6 +113,7 @@ export default function TunFields() {
         <Select
           id="tun-wfp-block-leak"
           mode="tags"
+          tagRender={selectTagRender}
           tokenSeparators={[',', ' ']}
           allowClear
           options={WFP_BLOCK_LEAK_OPTIONS}

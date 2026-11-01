@@ -10,6 +10,7 @@
   "create": "ایجاد",
   "add": "افزودن",
   "remove": "حذف",
+  "removeItem": "حذف {item}",
   "update": "به‌روزرسانی",
   "copy": "کپی",
   "copied": "کپی شد",

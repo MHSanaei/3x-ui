@@ -10,6 +10,7 @@
   "create": "Oluştur",
   "add": "Ekle",
   "remove": "Kaldır",
+  "removeItem": "{item} öğesini kaldır",
   "update": "Güncelle",
   "copy": "Kopyala",
   "copied": "Kopyalandı",

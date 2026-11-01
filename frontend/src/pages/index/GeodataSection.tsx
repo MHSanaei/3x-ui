@@ -178,7 +178,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
     <div>
       {modalContextHolder}
       {messageContextHolder}
-      <Spin spinning={loading}>
+      <Spin aria-live="off" spinning={loading}>
         <Alert type="info" className="mb-12" title={t('pages.index.geodataHint')} showIcon />
         <Form layout="vertical">
           <Form.Item

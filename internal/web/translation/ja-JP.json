@@ -10,6 +10,7 @@
   "create": "作成",
   "add": "追加",
   "remove": "削除",
+  "removeItem": "{item} を削除",
   "update": "更新",
   "copy": "コピー",
   "copied": "コピー済み",

@@ -4,6 +4,7 @@ import { Input, InputNumber, Select, Switch, Typography } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { JsonEditor } from '@/components/form';
+import { selectTagRender } from '@/components/form/SelectTag';
 import { FormField } from '@/components/form/rhf';
 import { XDriveServiceSchema } from '@/schemas/protocols/stream/xdrive';
 
@@ -161,7 +162,7 @@ export default function XDriveForm() {
             tooltip={t('pages.inbounds.form.xdrive.secretsDesc')}
             name={[...BASE, 'secrets']}
           >
-            <Select mode="tags" tokenSeparators={[',']} open={false} />
+            <Select mode="tags" tagRender={selectTagRender} tokenSeparators={[',']} open={false} />
           </FormField>
           <FormField
             label={t('pages.inbounds.form.xdrive.template')}

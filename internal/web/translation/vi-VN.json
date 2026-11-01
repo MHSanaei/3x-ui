@@ -10,6 +10,7 @@
   "create": "Tạo",
   "add": "Thêm",
   "remove": "Xóa",
+  "removeItem": "Xóa {item}",
   "update": "Cập nhật",
   "copy": "Sao chép",
   "copied": "Đã sao chép",

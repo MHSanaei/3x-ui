@@ -720,6 +720,7 @@ export default function InboundsPage() {
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
             <Spin
+              aria-live="off"
               spinning={!fetched || !hostsFetched}
               delay={200}
               description={t('loading')}

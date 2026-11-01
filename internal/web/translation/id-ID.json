@@ -10,6 +10,7 @@
   "create": "Buat",
   "add": "Tambah",
   "remove": "Hapus",
+  "removeItem": "Hapus {item}",
   "update": "Perbarui",
   "copy": "Salin",
   "copied": "Tersalin",
