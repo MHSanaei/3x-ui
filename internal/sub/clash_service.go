@@ -90,7 +90,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
-					render := func() []map[string]any { return s.getProxies(subReq, variant.inbound(subReq, inbound), client, host) }
+					render := func() []map[string]any {
+						return s.budgetedProxies(subReq, variant.inbound(subReq, inbound), client, host)
+					}
 					ordered = append(ordered, orderedSubEntry[func() []map[string]any]{variant.order, render})
 				}
 				continue
@@ -106,7 +108,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
+			proxies = append(proxies, s.budgetedProxies(subReq, effective, client, host)...)
 		}
 	}
 	if subReq.hostsFirst {

@@ -173,7 +173,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
 					render := func() subConfigEntry {
-						configs := s.getConfig(subReq, variant.inbound(subReq, inbound), client, host)
+						configs := s.budgetedConfig(subReq, variant.inbound(subReq, inbound), client, host)
 						return subConfigEntry{sortIndex: inbound.SubSortIndex, id: inbound.Id, configs: configs, hostOrder: variant.order}
 					}
 					ordered = append(ordered, orderedSubEntry[func() subConfigEntry]{variant.order, render})
@@ -191,7 +191,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, effective, client, host)...)
+			inboundConfigs = append(inboundConfigs, s.budgetedConfig(subReq, effective, client, host)...)
 		}
 		if len(inboundConfigs) > 0 {
 			entries = append(entries, subConfigEntry{

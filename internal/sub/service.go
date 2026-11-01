@@ -79,6 +79,8 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	// rendered is what this request has put into its response so far.
+	rendered renderBudget
 	// settingsCache is shared by this service's requests (ForRequest copies the pointer); only
 	// subscription bodies read through it, never panel link rendering.
 	settingsCache   *inboundSettingsCache
@@ -131,6 +133,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
+	s.rendered = 0
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()
@@ -525,6 +528,10 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			if client.Enable {
 				hasEnabledClient = true
 			}
+			if s.rendered.spent() {
+				seenEmails[client.Email] = struct{}{}
+				continue
+			}
 			var link string
 			if s.hostsFirst {
 				variants, closed := s.clientHostVariants(inbound, client, "raw")
@@ -552,7 +559,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			} else {
 				link = s.GetLink(inbound, client.Email)
 			}
-			if !s.hostsFirst {
+			if !s.hostsFirst && s.keepLink(link) {
 				result = append(result, link)
 			}
 			emails = append(emails, client.Email)
@@ -561,7 +568,12 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	}
 	if s.hostsFirst {
 		for _, render := range orderedSubValues(ordered) {
-			result = append(result, render())
+			if s.rendered.spent() {
+				break
+			}
+			if link := render(); s.keepLink(link) {
+				result = append(result, link)
+			}
 		}
 	}
 	for _, ext := range externalLinks {
