@@ -155,6 +155,19 @@ func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 	}
 }
 
+// h2Params (xray-core 26.10.31, #7295) tunes the XHTTP server's HTTP/2; clients must not get it.
+func TestSubJsonServiceDropsXhttpServerOnlyH2Params(t *testing.T) {
+	svc := NewSubJsonService("", "", "", "", nil)
+	stream := svc.streamData(`{"network":"xhttp","security":"none","xhttpSettings":{"path":"/x","mode":"auto","h2Params":{"MaxConcurrentStreams":512}}}`, "")
+	xhttp, _ := stream["xhttpSettings"].(map[string]any)
+	if xhttp == nil || xhttp["path"] != "/x" {
+		t.Fatalf("xhttpSettings = %#v, want the inbound's path kept", stream["xhttpSettings"])
+	}
+	if h2, ok := xhttp["h2Params"]; ok {
+		t.Fatalf("xhttpSettings.h2Params = %#v, want the server-only key dropped", h2)
+	}
+}
+
 func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello"}}]}`
 	svc := NewSubJsonService("", "", finalMask, "", nil)

@@ -809,6 +809,7 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 			delete(xhttp, "scMaxBufferedPosts")
 			delete(xhttp, "scStreamUpServerSecs")
 			delete(xhttp, "serverMaxHeaderBytes")
+			delete(xhttp, "h2Params")
 			// Values matching xray-core's own defaults stay off the wire:
 			// old panels seeded them into every stored config and the
 			// literal scMinPostsIntervalMs=30 is a DPI fingerprint (#5141).
