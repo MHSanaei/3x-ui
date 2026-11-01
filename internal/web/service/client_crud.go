@@ -1172,6 +1172,9 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 			return false, fmt.Errorf("inbound %d: %w", ibId, getErr)
 		}
 		copyClient := *clientWire
+		// A forward is a listener on the target inbound's host, set per inbound: carried over, it
+		// would let a node-reported client choose ports on this host.
+		copyClient.ForwardedPorts = ""
 		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
 			copyClient.AllowedIPs = nil
 		}

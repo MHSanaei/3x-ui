@@ -111,6 +111,8 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 				continue
 			}
 			client := *rec.ToClient()
+			// Forwards are set per inbound; see Attach.
+			client.ForwardedPorts = ""
 			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
 				client.Flow = flow
 			}
