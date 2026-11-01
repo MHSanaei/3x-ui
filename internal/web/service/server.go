@@ -1477,6 +1477,37 @@ func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWG
 	return logs
 }
 
+// Xray's HTTP inbound logs the requested URL whole, so an access-log line has
+// no length bound; GetXrayLogs keeps this much of a line's start and of its end.
+const (
+	maxAccessLogLineBytes = 64 << 10
+	accessLogLineEndBytes = 1 << 10
+)
+
+// readAccessLogLine returns the next line of r. A line longer than r's buffer
+// loses its middle and keeps its end (route, email) instead of failing the read.
+func readAccessLogLine(r *bufio.Reader) (string, error) {
+	chunk, more, err := r.ReadLine()
+	if err != nil {
+		return "", err
+	}
+	line := string(chunk)
+
+	var end []byte
+	for more {
+		chunk, more, err = r.ReadLine()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		end = append(end, chunk...)
+		end = end[max(0, len(end)-accessLogLineEndBytes):]
+	}
+	return line + string(end), nil
+}
+
 func (s *ServerService) GetXrayLogs(
 	count string,
 	filter string,
@@ -1509,10 +1540,17 @@ func (s *ServerService) GetXrayLogs(
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	reader := bufio.NewReaderSize(file, maxAccessLogLineBytes)
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	for {
+		line, err := readAccessLogLine(reader)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil
+		}
+		line = strings.TrimSpace(line)
 
 		if line == "" || strings.Contains(line, "api -> api") {
 			// skipping empty lines and api calls
@@ -1549,10 +1587,6 @@ func (s *ServerService) GetXrayLogs(
 		if len(entries) > countInt {
 			entries = entries[1:]
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil
 	}
 
 	return entries

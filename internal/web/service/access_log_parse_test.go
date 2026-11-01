@@ -2,7 +2,9 @@ package service
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -146,5 +148,63 @@ func TestGetXrayLogsMemoryDoesNotGrowWithTheFile(t *testing.T) {
 		case <-time.After(time.Millisecond):
 			peak = max(peak, heap())
 		}
+	}
+}
+
+// One proxied request with a URL past 64 KiB stopped the scanner and blanked the whole view.
+func TestGetXrayLogsSurvivesOverlongLine(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", dir)
+	accessLog := filepath.Join(dir, "access.log")
+	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"log":{"access":"`+filepath.ToSlash(accessLog)+`"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lines := []string{
+		"2024/01/02 15:04:05.000000 from 1.2.3.4:1 accepted tcp:one.example:443 [in-1 >> direct] email: alice",
+		"2024/01/02 15:04:06.000000 from 1.2.3.4:2 accepted http://two.example/?" + strings.Repeat("a", 300000) + " [in-2 >> blocked] email: mallory",
+		"2024/01/02 15:04:07.000000 from 1.2.3.4:3 accepted tcp:three.example:443 [in-1 >> direct] email: alice",
+	}
+	if err := os.WriteFile(accessLog, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	get := func(filter string) []LogEntry {
+		return (&ServerService{}).GetXrayLogs("100", filter, "true", "true", "true", []string{"direct"}, []string{"blocked"})
+	}
+	entries := get("")
+	if len(entries) != len(lines) {
+		t.Fatalf("got %d entries for %d log lines", len(entries), len(lines))
+	}
+	if entries[0].ToAddress != "tcp:one.example:443" || entries[2].ToAddress != "tcp:three.example:443" {
+		t.Errorf("neighbours of the long line were not parsed: %q, %q", entries[0].ToAddress, entries[2].ToAddress)
+	}
+
+	long := entries[1]
+	if !strings.HasPrefix(long.ToAddress, "http://two.example/?a") || len(long.ToAddress) > maxAccessLogLineBytes+accessLogLineEndBytes {
+		t.Errorf("long ToAddress: %d bytes starting %.30q", len(long.ToAddress), long.ToAddress)
+	}
+	if long.FromAddress != "1.2.3.4:2" || long.Inbound != "in-2" || long.Outbound != "blocked" || long.Email != "mallory" || long.Event != 1 {
+		t.Errorf("long line lost its attribution: from %q, [%q >> %q], email %q, event %d", long.FromAddress, long.Inbound, long.Outbound, long.Email, long.Event)
+	}
+	if got := get("mallory"); len(got) != 1 {
+		t.Errorf("filter by the long line's email matched %d entries, want 1", len(got))
+	}
+}
+
+func TestReadAccessLogLine(t *testing.T) {
+	const size, end = 64, accessLogLineEndBytes
+	fits := strings.Repeat("f", size-1)
+	head, middle, tail := strings.Repeat("h", size), strings.Repeat("m", 3*end), strings.Repeat("t", end)
+
+	// the last line fills the buffer exactly and ends the input without a newline
+	r := bufio.NewReaderSize(strings.NewReader(fits+"\n"+head+"x\r\n\n"+head+middle+tail+"\n"+head), size)
+	for i, want := range []string{fits, head + "x", "", head + tail, head} {
+		got, err := readAccessLogLine(r)
+		if err != nil || got != want {
+			t.Errorf("line %d: got %d bytes %.20q (err %v), want %d bytes %.20q", i, len(got), got, err, len(want), want)
+		}
+	}
+	if _, err := readAccessLogLine(r); !errors.Is(err, io.EOF) {
+		t.Errorf("after the last line: err = %v, want io.EOF", err)
 	}
 }
