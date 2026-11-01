@@ -951,6 +951,22 @@ export const sections: readonly Section[] = [
         responseSchemaArray: true,
       },
       {
+        method: 'POST',
+        path: '/panel/api/server/realityFinder/command',
+        summary:
+          "Make a one-day command that finds REALITY targets from a device on the users' ISP: it reads the certificates of the server's neighbours, checks each name (TLS 1.3, X25519, h2, valid certificate) and sends it as SNI to the inbound's port to see whether the ISP cuts it. This server sends no probes; the script reports back with the token alone. An empty server is this server's public IPv4; port 0 skips the filter test.",
+        body: '{\n  "server": "203.0.113.10",\n  "port": 443,\n  "scope": "24",\n  "current": "www.example.com"\n}',
+        responseSchema: 'RealityFinderCommand',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/realityFinder/command/:token',
+        summary: 'The reports the runs of a REALITY finder command sent back so far, oldest first.',
+        params: [{ name: 'token', in: 'path', type: 'string', desc: 'The command token.' }],
+        responseSchema: 'RealityFinderReport',
+        responseSchemaArray: true,
+      },
+      {
         method: 'GET',
         path: '/panel/api/server/clientIps',
         summary:

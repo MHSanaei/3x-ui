@@ -985,6 +985,62 @@ export interface Readiness {
   ready: boolean;
 }
 
+export interface RealityFinderCommand {
+  expiresAt: number;
+  scriptUrl: string;
+  server: string;
+  token: string;
+  unix: string;
+  windows: string;
+}
+
+export interface RealityFinderCommandRequest {
+  current: string;
+  port: number;
+  scope: string;
+  server: string;
+}
+
+export interface RealityFinderNetwork {
+  asn: number;
+  country: string;
+  ip: string;
+  org: string;
+}
+
+export interface RealityFinderReport {
+  at: number;
+  filterTested: boolean;
+  network: RealityFinderNetwork;
+  port: number;
+  router: boolean;
+  server: RealityFinderServer;
+  targets: RealityFinderTarget[];
+  tested: number;
+  warning: string;
+}
+
+export interface RealityFinderServer {
+  asn: number;
+  holder: string;
+  ip: string;
+  prefix: string;
+}
+
+export interface RealityFinderTarget {
+  cdn: string;
+  dnsMatch: boolean;
+  expires: string;
+  filtered?: boolean | null;
+  ip: string;
+  issuer: string;
+  ms: number;
+  same24: boolean;
+  sameAsn: boolean;
+  score: number;
+  sni: string;
+}
+
 export interface RealityScanResult {
   alpn: string;
   certChainBytes: number;

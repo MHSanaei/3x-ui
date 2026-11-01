@@ -61,9 +61,15 @@ export default function RealityForm({
 }: RealityFormProps) {
   const { t } = useTranslation();
   const uid = useId();
-  const { getFieldState, trigger } = useFormContext();
+  const { getFieldState, trigger, setValue } = useFormContext();
+  const inboundPort = Number(useWatch({ name: 'port' })) || 0;
+  const listen = (useWatch({ name: 'listen' }) as string | undefined) ?? '';
+  const currentTarget =
+    (useWatch({ name: 'streamSettings.realitySettings.target' }) as string | undefined) ?? '';
   const [scannerOpen, setScannerOpen] = useState(false);
-  const mldsa65Seed = useWatch({ name: 'streamSettings.realitySettings.mldsa65Seed' });
+  const mldsa65Seed = useWatch({
+    name: 'streamSettings.realitySettings.mldsa65Seed',
+  });
   const mldsa65Verify = useWatch({
     name: 'streamSettings.realitySettings.settings.mldsa65Verify',
   });
@@ -112,7 +118,12 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
         label="uTLS"
       >
-        <Select options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))} />
+        <Select
+          options={Object.values(UTLS_FINGERPRINT).map((fp) => ({
+            value: fp,
+            label: fp,
+          }))}
+        />
       </FormField>
       <Form.Item
         htmlFor={`${uid}-target`}
@@ -389,6 +400,17 @@ export default function RealityForm({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => applyRealityScanResult(r, true)}
+        onPickTarget={(target, serverNames) => {
+          setValue('streamSettings.realitySettings.target', target, {
+            shouldDirty: true,
+          });
+          setValue('streamSettings.realitySettings.serverNames', serverNames, {
+            shouldDirty: true,
+          });
+        }}
+        inboundPort={inboundPort}
+        listen={listen}
+        currentTarget={currentTarget}
         mldsa65Enabled={mldsa65Enabled}
       />
     </>

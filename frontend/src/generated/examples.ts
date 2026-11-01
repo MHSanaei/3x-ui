@@ -1083,6 +1083,80 @@ export const EXAMPLES: Record<string, unknown> = {
     "installCommand": "sudo /usr/local/x-ui/x-ui install-awg-kernel",
     "ready": false
   },
+  "RealityFinderCommand": {
+    "expiresAt": 1793000000,
+    "scriptUrl": "https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+    "server": "203.0.113.10",
+    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+    "unix": "python3 -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\"",
+    "windows": "python -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\""
+  },
+  "RealityFinderCommandRequest": {
+    "current": "www.example.com",
+    "port": 443,
+    "scope": "24",
+    "server": "203.0.113.10"
+  },
+  "RealityFinderNetwork": {
+    "asn": 197207,
+    "country": "IR",
+    "ip": "5.120.1.2",
+    "org": "Mobile Communication Company of Iran PLC"
+  },
+  "RealityFinderReport": {
+    "at": 1793000000,
+    "filterTested": true,
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.120.1.2",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "port": 443,
+    "router": false,
+    "server": {
+      "asn": 24940,
+      "holder": "HETZNER-AS",
+      "ip": "203.0.113.10",
+      "prefix": "203.0.113.0/24"
+    },
+    "targets": [
+      {
+        "cdn": "",
+        "dnsMatch": true,
+        "expires": "Jan 30 12:00:00 2027 GMT",
+        "filtered": false,
+        "ip": "203.0.113.20",
+        "issuer": "Let's Encrypt",
+        "ms": 240,
+        "same24": true,
+        "sameAsn": true,
+        "score": 96,
+        "sni": "www.example.com"
+      }
+    ],
+    "tested": 253,
+    "warning": ""
+  },
+  "RealityFinderServer": {
+    "asn": 24940,
+    "holder": "HETZNER-AS",
+    "ip": "203.0.113.10",
+    "prefix": "203.0.113.0/24"
+  },
+  "RealityFinderTarget": {
+    "cdn": "",
+    "dnsMatch": true,
+    "expires": "Jan 30 12:00:00 2027 GMT",
+    "filtered": false,
+    "ip": "203.0.113.20",
+    "issuer": "Let's Encrypt",
+    "ms": 240,
+    "same24": true,
+    "sameAsn": true,
+    "score": 96,
+    "sni": "www.example.com"
+  },
   "RealityScanResult": {
     "alpn": "h2",
     "certChainBytes": 3427,

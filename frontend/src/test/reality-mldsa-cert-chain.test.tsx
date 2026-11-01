@@ -94,6 +94,10 @@ describe('ML-DSA-65 cert chain warning', () => {
         onClose={noop}
         scanRealityCandidates={async () => [smallChain]}
         onPick={noop}
+        onPickTarget={noop}
+        inboundPort={443}
+        listen=""
+        currentTarget=""
         mldsa65Enabled
       />,
     );
