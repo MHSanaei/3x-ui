@@ -439,3 +439,23 @@ func TestNodeOversizeInboundIsNotTakenIn(t *testing.T) {
 		t.Fatal("an inbound with an oversized remark was adopted")
 	}
 }
+
+// SQLite's LOWER folds ASCII only, so a lookup by lowered email missed a stored non-ASCII
+// capital and the node's claim on that master-only client went through untouched.
+func TestNodeCannotClaimNonASCIICapitalEmail(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	seedMasterInbound(t, db, "master-in", 40001, `{"email":"Иван@x","id":"11111111-1111-4111-8111-111111111111","subId":"ivan-sub","enable":true}`)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in",
+		`{"clients":[{"email":"Иван@x","subId":"picked-by-node","enable":true},{"email":"иван@x","subId":"lower","enable":true}]}`)
+
+	if row := readClientRecord(t, db, "Иван@x"); row.SubID != "ivan-sub" {
+		t.Fatalf("node rewrote a master-only non-ASCII client: subId=%q", row.SubID)
+	}
+	if n := countClientsWhere(t, db, "email = ?", "иван@x"); n != 0 {
+		t.Fatal("a case variant of a non-ASCII email created a look-alike record")
+	}
+}

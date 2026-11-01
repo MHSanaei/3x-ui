@@ -84,14 +84,15 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		return claims, nil
 	}
 
-	lowered := make([]string, 0, len(subIDByEmail))
+	reported := make([]string, 0, len(subIDByEmail))
 	for email := range subIDByEmail {
-		lowered = append(lowered, strings.ToLower(email))
+		reported = append(reported, email)
 	}
+	// SQLite's LOWER folds ASCII only, so a non-ASCII capital is matched by its spellings too.
 	var records []model.ClientRecord
-	for _, batch := range chunkStrings(uniqueNonEmptyStrings(lowered), sqlInChunk) {
+	for _, batch := range chunkStrings(emailSpellings(reported), sqlInChunk) {
 		var rows []model.ClientRecord
-		if err := tx.Where("LOWER(email) IN ?", batch).Find(&rows).Error; err != nil {
+		if err := tx.Where("LOWER(email) IN ? OR email IN ?", batch, batch).Find(&rows).Error; err != nil {
 			return nil, err
 		}
 		records = append(records, rows...)
