@@ -1574,17 +1574,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					return perr
 				}
 				if push {
-					payload := inbound
-					pushable := true
-					if inbound.Protocol == model.MTProto || inbound.Protocol == model.TUIC {
-						if built, bErr := s.buildInboundForLocalRuntime(tx, inbound); bErr == nil {
-							payload = built
-						} else {
-							logger.Debug("Unable to prepare runtime inbound config:", bErr)
-							pushable = false
+					// An imported or master-pushed row lists its disabled and depleted clients too.
+					payload, bErr := s.buildInboundForLocalRuntime(tx, inbound)
+					if bErr != nil {
+						logger.Debug("Unable to prepare runtime inbound config:", bErr)
+						if inbound.Protocol != model.MTProto && inbound.Protocol != model.TUIC {
+							needRestart = true
 						}
-					}
-					if pushable {
+					} else {
 						postCommitApply = func() {
 							if err1 := rt.AddInbound(context.Background(), payload); err1 == nil {
 								logger.Debug("New inbound added on", rt.Name(), ":", inbound.Tag)
