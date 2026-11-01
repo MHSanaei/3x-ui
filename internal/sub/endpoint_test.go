@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -229,5 +230,27 @@ func TestGenVlessLinkEscapesID(t *testing.T) {
 	got := NewSubService("").genVlessLink(in, "user")
 	if !strings.HasPrefix(got, "vless://a%40b%23c%0Ad@203.0.113.5:443?") {
 		t.Fatalf("vless id not escaped: %q", got)
+	}
+}
+
+// The panel builds its own link and QR through the browser's URL parser, which escapes
+// userinfo with the WHATWG userinfo set; a subscription escaping more serves another id.
+func TestGenVlessLinkEscapesIDLikeThePanel(t *testing.T) {
+	for id, want := range map[string]string{
+		"team+1":     "team+1",
+		"a=b":        "a%3Db",
+		"x:y;z":      "x%3Ay%3Bz",
+		"ok!$,'()*~": "ok!$,'()*~",
+		"é":          "%C3%A9",
+	} {
+		in := &model.Inbound{
+			Listen: "203.0.113.5", Port: 443, Protocol: model.VLESS, Remark: "n",
+			Settings:       `{"clients":[{"id":` + strconv.Quote(id) + `,"email":"user"}],"decryption":"none"}`,
+			StreamSettings: `{"network":"tcp","security":"none"}`,
+		}
+		got := NewSubService("").genVlessLink(in, "user")
+		if !strings.HasPrefix(got, "vless://"+want+"@203.0.113.5:443?") {
+			t.Errorf("id %q: link %q, want userinfo %q", id, got, want)
+		}
 	}
 }
