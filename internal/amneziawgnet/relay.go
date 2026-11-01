@@ -80,17 +80,41 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 
 // dialUpstream opens the SOCKS5 CONNECT through the core's bridge. Bounded: a core that
 // accepts but never answers would pin this relay and its endpoint. The bound covers the
-// handshake only; the returned connection carries no deadline.
+// TCP connect and the handshake only; the returned connection carries no deadline.
+//
+// It returns the raw *net.TCPConn, not the *socks.Conn that DialContext wraps it in:
+// pipeBothWays needs CloseWrite to pass a client's half-close on to the upstream.
 func (r SocksRelay) dialUpstream(email string, dest netip.AddrPort) (net.Conn, error) {
-	auth := &proxy.Auth{User: email, Password: r.Password}
-	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, &net.Dialer{})
+	conn, err := net.DialTimeout("tcp", r.Addr, socks5ConnectTimeout)
 	if err != nil {
+		return nil, err
+	}
+	if err := conn.SetDeadline(time.Now().Add(socks5ConnectTimeout)); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	auth := &proxy.Auth{User: email, Password: r.Password}
+	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, dialedConn{conn})
+	if err != nil {
+		conn.Close()
 		return nil, fmt.Errorf("build SOCKS5 dialer: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), socks5ConnectTimeout)
-	defer cancel()
-	return dialer.(proxy.ContextDialer).DialContext(ctx, "tcp", dest.String())
+	upstream, err := dialer.Dial("tcp", dest.String())
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if err := upstream.SetDeadline(time.Time{}); err != nil {
+		upstream.Close()
+		return nil, err
+	}
+	return upstream, nil
 }
+
+// dialedConn hands proxy.SOCKS5 a connection already made under the bound.
+type dialedConn struct{ conn net.Conn }
+
+func (d dialedConn) Dial(string, string) (net.Conn, error) { return d.conn, nil }
 
 var socks5ConnectTimeout = 10 * time.Second
 
