@@ -652,6 +652,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// email to its per-field max (nodeEmailTotals) so divergent copies can't make
 	// the reset clamp re-add a lower sibling as fresh traffic (#5274).
 	snapEmailsAll := make(map[string]struct{})
+	reportedEmails := make(map[string]struct{})
 	nodeEmailTotals := make(map[string]nodeTrafficCounter)
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
@@ -660,6 +661,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		for i := range snapIb.ClientStats {
 			email := snapIb.ClientStats[i].Email
 			snapEmailsAll[email] = struct{}{}
+			reportedEmails[email] = struct{}{}
 			cur := nodeEmailTotals[email]
 			if snapIb.ClientStats[i].Up > cur.Up {
 				cur.Up = snapIb.ClientStats[i].Up
@@ -669,14 +671,19 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			nodeEmailTotals[email] = cur
 		}
+		if clients, err := s.GetClients(snapIb); err == nil {
+			for _, client := range clients {
+				reportedEmails[client.Email] = struct{}{}
+			}
+		}
 	}
 
 	// The stored row of every reported email, wherever it is homed, so the merge
 	// can skip a write that would leave it unchanged. Homed rows share centralCS's pointer.
-	statByEmail := make(map[string]*xray.ClientTraffic, len(snapEmailsAll))
-	if len(snapEmailsAll) > 0 {
-		snapEmailList := make([]string, 0, len(snapEmailsAll))
-		for email := range snapEmailsAll {
+	statByEmail := make(map[string]*xray.ClientTraffic, len(reportedEmails))
+	if len(reportedEmails) > 0 {
+		snapEmailList := make([]string, 0, len(reportedEmails))
+		for email := range reportedEmails {
 			snapEmailList = append(snapEmailList, email)
 		}
 		for _, batch := range chunkStrings(snapEmailList, sqliteMaxVars) {
@@ -1111,7 +1118,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				continue
 			}
 
-			existing := centralCSByEmail[cs.Email]
+			existing := statByEmail[cs.Email]
 			if existing != nil {
 				expiryChanged := !clientFrozen && existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
 				// Only a real latch to disabled is structural; one-way merge never
@@ -1254,7 +1261,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	var perInboundOld []oldSet
 	syncFailedInbounds := map[int]struct{}{}
 	for _, p := range pendingAdopts {
-		lifted, liftChanged := liftClientLifecycleInSettings(p.wireSettings, centralCSByEmail)
+		lifted, liftChanged := liftClientLifecycleInSettings(p.wireSettings, statByEmail)
 		adoptedSettings := p.wireSettings
 		if liftChanged {
 			adoptedSettings = lifted
@@ -1316,7 +1323,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if isClientEmailTombstoned(clients[i].Email) {
 				continue
 			}
-			existing := centralCSByEmail[clients[i].Email]
+			existing := statByEmail[clients[i].Email]
 			var csPtr *xray.ClientTraffic
 			if cs, hit := csByEmail[clients[i].Email]; hit {
 				csCopy := cs
