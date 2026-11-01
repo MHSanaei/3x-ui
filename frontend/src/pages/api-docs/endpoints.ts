@@ -1263,9 +1263,9 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/update/:email',
         summary:
-          'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
+          'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload: omitted fields keep their current values, and an explicit zero or empty value clears a field.',
         description:
-          'The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.',
+          'An omitted `flow` leaves every attached inbound on its own flow. `reverse` is replaced, not kept: omit it or send null to clear the tag. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.',
         params: [
           {
             name: 'email',
