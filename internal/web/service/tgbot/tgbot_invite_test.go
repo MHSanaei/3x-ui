@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"encoding/base64"
 	"strings"
 	"sync"
 	"testing"
@@ -221,4 +222,18 @@ func TestTgUserMentionEscapesName(t *testing.T) {
 	if got != want {
 		t.Errorf("tgUserMention = %q, want %q", got, want)
 	}
+}
+
+// The bot's handlers recover panics, so a claim that panicked with inviteClaimMu held left
+// it locked for good and every later /start claim parked on a worker slot.
+func TestInviteClaimReleasesTheLockWhenItPanics(t *testing.T) {
+	func() {
+		defer func() { _ = recover() }()
+		// No database is open here, so resolving the token panics inside the lock.
+		(&Tgbot{}).claimInvite(1, 1, base64.RawURLEncoding.EncodeToString([]byte("some-sub-id")))
+	}()
+	if !inviteClaimMu.TryLock() {
+		t.Fatal("inviteClaimMu is still held after a claim panicked")
+	}
+	inviteClaimMu.Unlock()
 }
