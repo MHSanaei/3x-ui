@@ -342,9 +342,8 @@ func TestPipeBothWaysReusesCopyBuffersAcrossConnections(t *testing.T) {
 	}
 }
 
-// TestDialUpstreamGivesUpOnSilentBridge pins that a SOCKS5 bridge the kernel accepts but
-// nobody answers -- a hung Xray -- fails the CONNECT within its bound instead of pinning
-// the relay and its endpoint forever.
+// TestDialUpstreamGivesUpOnSilentBridge: a bridge that accepts but never answers (a hung
+// Xray) must fail the CONNECT within its bound instead of pinning the relay.
 func TestDialUpstreamGivesUpOnSilentBridge(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0") // never accepted: no greeting reply ever comes
 	if err != nil {
@@ -376,9 +375,8 @@ func TestDialUpstreamGivesUpOnSilentBridge(t *testing.T) {
 	}
 }
 
-// TestDialUpstreamLeavesNoDeadlineAfterHandshake pins that the connect bound covers the
-// SOCKS5 handshake only: a destination that answers later than the bound still reaches
-// the client through the returned connection.
+// TestDialUpstreamLeavesNoDeadlineAfterHandshake: the connect bound covers the handshake
+// only, so writes and reads after it has passed still go through.
 func TestDialUpstreamLeavesNoDeadlineAfterHandshake(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -398,7 +396,7 @@ func TestDialUpstreamLeavesNoDeadlineAfterHandshake(t *testing.T) {
 			return
 		}
 		defer c.Close()
-		served <- serveSocks5Connect(c, 3*socks5ConnectTimeout, []byte("late"))
+		served <- serveSocks5Connect(c, []byte("ping"), []byte("late"))
 	}()
 
 	relay := SocksRelay{Addr: ln.Addr().String(), Password: "x"}
@@ -407,7 +405,12 @@ func TestDialUpstreamLeavesNoDeadlineAfterHandshake(t *testing.T) {
 		t.Fatalf("dialUpstream: %v", err)
 	}
 	defer conn.Close()
-	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second)) // test guard only
+	guard := time.AfterFunc(5*time.Second, func() { _ = conn.Close() })
+	defer guard.Stop()
+	time.Sleep(3 * socks5ConnectTimeout)
+	if _, err := conn.Write([]byte("ping")); err != nil {
+		t.Fatalf("write after the connect bound passed: %v (the handshake deadline leaked onto the relay)", err)
+	}
 	got := make([]byte, 4)
 	if _, err := io.ReadFull(conn, got); err != nil {
 		t.Fatalf("read after the connect bound passed: %v (the handshake deadline leaked onto the relay)", err)
@@ -420,8 +423,8 @@ func TestDialUpstreamLeavesNoDeadlineAfterHandshake(t *testing.T) {
 	}
 }
 
-// serveSocks5Connect answers one username/password SOCKS5 CONNECT, waits, then writes payload.
-func serveSocks5Connect(c net.Conn, wait time.Duration, payload []byte) error {
+// serveSocks5Connect answers one username/password SOCKS5 CONNECT, reads request, then writes reply.
+func serveSocks5Connect(c net.Conn, request, reply []byte) error {
 	buf := make([]byte, 512)
 	read := func(n int) ([]byte, error) { _, err := io.ReadFull(c, buf[:n]); return buf[:n], err }
 	hdr, err := read(2) // VER NMETHODS
@@ -472,7 +475,13 @@ func serveSocks5Connect(c net.Conn, wait time.Duration, payload []byte) error {
 	if _, err := c.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}); err != nil {
 		return err
 	}
-	time.Sleep(wait)
-	_, err = c.Write(payload)
+	got, err := read(len(request))
+	if err != nil {
+		return err
+	}
+	if string(got) != string(request) {
+		return errors.New("bridge read an unexpected request")
+	}
+	_, err = c.Write(reply)
 	return err
 }

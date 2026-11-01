@@ -1,8 +1,7 @@
 package amneziawgnet
 
-// A client that writes its request and half-closes must still get the upstream's
-// reply through SocksRelay.RelayTCP: pipeBothWays passes CloseWrite on, which needs
-// the raw TCP connection to the bridge (not x/net/proxy's *socks.Conn wrapper).
+// Half-close through SocksRelay.RelayTCP needs the raw TCP conn to the bridge,
+// not x/net/proxy's *socks.Conn wrapper, which has no CloseWrite.
 
 import (
 	"bufio"
@@ -26,10 +25,6 @@ func hcListen(tb testing.TB) net.Listener {
 	}
 	return ln
 }
-
-// BenchmarkHCPipe: one relayed connection through pipeBothWays, both sides loopback TCP.
-// The client sends 4 bytes and half-closes; the upstream answers <size> bytes and closes.
-// Pair setup and teardown run with the timer stopped.
 
 type hcNetstacks struct {
 	client *netstack.Net
@@ -60,9 +55,8 @@ func hcShuttle(src, dst tun.Device) {
 	}
 }
 
-// hcNewNetstacks: an "AWG client" stack dialling into a "server" stack whose accepted
-// conns are the *gonet.TCPConn the relay receives in production. No crypto: only the
-// relay path differs between the trees.
+// hcNewNetstacks links a client stack to a server stack whose accepted conns are the
+// *gonet.TCPConn the relay gets in production.
 func hcNewNetstacks(tb testing.TB) *hcNetstacks {
 	ca := netip.MustParseAddr("10.77.0.1")
 	sa := netip.MustParseAddr("10.77.0.2")
@@ -174,13 +168,8 @@ func hcServeSocks(c net.Conn, payload []byte) error {
 	return errors.New("not tcp")
 }
 
-// BenchmarkHCRelayTCP: the full production entry, SocksRelay.RelayTCP: tunnel side is a
-// gVisor *gonet.TCPConn, upstream is a loopback SOCKS5 bridge that answers <size> bytes.
-// Tunnel pair setup and teardown run with the timer stopped; the SOCKS5 dial and
-
-// TestHCHalfCloseThroughRelayTCP: a client that sends its request and half-closes (as
-// pipeBothWays is documented to support) must still get the upstream's reply through
-// SocksRelay.RelayTCP.
+// TestHCHalfCloseThroughRelayTCP: a client that sends its request and half-closes
+// must still get the upstream's reply through SocksRelay.RelayTCP.
 func TestHCHalfCloseThroughRelayTCP(t *testing.T) {
 	ns := hcNewNetstacks(t)
 	defer ns.close()

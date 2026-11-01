@@ -78,12 +78,8 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 	pipeBothWays(conn, upstream)
 }
 
-// dialUpstream opens the SOCKS5 CONNECT through the core's bridge. Bounded: a core that
-// accepts but never answers would pin this relay and its endpoint. The bound covers the
-// TCP connect and the handshake only; the returned connection carries no deadline.
-//
-// It returns the raw *net.TCPConn, not the *socks.Conn that DialContext wraps it in:
-// pipeBothWays needs CloseWrite to pass a client's half-close on to the upstream.
+// dialUpstream bounds the bridge connect and SOCKS5 handshake so a silent core cannot pin the relay.
+// It returns the raw *net.TCPConn with no deadline left: pipeBothWays needs its CloseWrite.
 func (r SocksRelay) dialUpstream(email string, dest netip.AddrPort) (net.Conn, error) {
 	conn, err := net.DialTimeout("tcp", r.Addr, socks5ConnectTimeout)
 	if err != nil {
