@@ -11,6 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 
 	"github.com/mymmrac/telego"
 )
@@ -197,7 +198,8 @@ func (t *Tgbot) allowInviteAttempt(from *telego.User) bool {
 	inviteAttemptsMu.Unlock()
 
 	if count == inviteAttemptLimit+1 {
-		t.SendMsgToTgbotAdmins(t.I18nBot("tgbot.messages.inviteRateLimitedAdmin",
+		// locale.I18n directly: User is a ready-made mention that I18nBot would escape.
+		t.SendMsgToTgbotAdmins(locale.I18n(locale.Bot, "tgbot.messages.inviteRateLimitedAdmin",
 			"User=="+tgUserMention(from),
 			"ID=="+strconv.FormatInt(from.ID, 10),
 			"Limit=="+strconv.Itoa(inviteAttemptLimit)))

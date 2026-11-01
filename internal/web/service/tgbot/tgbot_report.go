@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"fmt"
+	"html"
 	"net"
 	"os"
 	"strconv"
@@ -292,7 +293,7 @@ func (t *Tgbot) notifyExhausted() {
 											output.WriteString(":\r\n")
 											for _, traffic := range disabledClients {
 												output.WriteString(" ")
-												output.WriteString(traffic.Email)
+												output.WriteString(html.EscapeString(traffic.Email))
 											}
 											output.WriteString("\r\n")
 										}

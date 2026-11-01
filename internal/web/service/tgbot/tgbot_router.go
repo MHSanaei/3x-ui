@@ -2,7 +2,6 @@ package tgbot
 
 import (
 	"context"
-	"html"
 	"slices"
 	"strconv"
 	"strings"
@@ -1030,17 +1029,17 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.openOwnClientScreen(chatId, callbackQuery.From.ID, callbackQuery.Data)
 	case "add_client_ch_default_email":
 		userStateMgr.set(actor, "awaiting_email")
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+html.EscapeString(draft.email)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+draft.email))
 	case "add_client_ch_default_comment":
 		userStateMgr.set(actor, "awaiting_comment")
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+html.EscapeString(draft.comment)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+draft.comment))
 	case "add_client_ch_default_tg_id":
 		userStateMgr.set(actor, "awaiting_tg_id")
 		current := draft.tgID
 		if current == "" {
 			current = "—"
 		}
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.tgid_prompt", "ClientTGID=="+html.EscapeString(current)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.tgid_prompt", "ClientTGID=="+current))
 	case "add_client_ch_default_traffic":
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1192,9 +1191,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 		report.WriteString(t.I18nBot("tgbot.messages.FinishProcess"))
 
-		// Escaped whole (a stray "<" makes Telegram reject a page) and paged:
-		// past ~80 clients the report exceeds one message.
-		t.sendPagedNotice(chatId, html.EscapeString(report.String()))
+		// Paged: past ~80 clients the report exceeds one message.
+		t.sendPagedNotice(chatId, report.String())
 		// The confirmation has served its purpose: leaving it on screen left the
 		// only button being the one just pressed.
 		t.screenHome(chatId, callbackQuery.From.ID)

@@ -321,7 +321,7 @@ func (t *Tgbot) clientInfoMsg(
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	if attachIds, err := t.clientService.GetInboundIdsForEmail(nil, traffic.Email); err == nil && len(attachIds) > 0 {
-		output += fmt.Sprintf("🔗 Inbounds: %s\r\n", t.describeAttachedInbounds(attachIds))
+		output += fmt.Sprintf("🔗 Inbounds: %s\r\n", html.EscapeString(t.describeAttachedInbounds(attachIds)))
 	}
 	if printEnabled {
 		output += t.I18nBot("tgbot.messages.enabled", "Enable=="+enabled)
