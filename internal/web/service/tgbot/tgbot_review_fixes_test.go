@@ -2,12 +2,20 @@ package tgbot
 
 import (
 	"encoding/json"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
+	"gorm.io/gorm"
 )
 
 // A login success must not fold into the failure card of the same IP: the
@@ -270,5 +278,59 @@ func TestUsageEmailArgumentDoesNotLeakAnotherClient(t *testing.T) {
 	markup, _ := json.Marshal(sc.markup)
 	if strings.Contains(body, "other@example.com") || strings.Contains(string(markup), "other@example.com") {
 		t.Fatalf("a client's /usage <email> leaked another client:\n%s\n%s", body, markup)
+	}
+}
+
+// Listing an account's clients used to load their whole inbound, settings and
+// all, several times per client, so the list cost its length times the inbound's.
+func TestClientUsageDoesNotLoadTheInboundPerClient(t *testing.T) {
+	sent := recordingBotServer(t)
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	db := database.GetDB()
+
+	const owned = 40
+	clients := make([]model.Client, 0, owned)
+	for i := range owned {
+		n := strconv.Itoa(i)
+		clients = append(clients, model.Client{ID: "uuid-" + n, Email: "owned-" + n, SubID: "sub-" + n, TgID: ownerTgID, Enable: true})
+	}
+	settings, err := json.Marshal(map[string]any{"clients": clients})
+	if err != nil {
+		t.Fatalf("marshal settings: %v", err)
+	}
+	inbound := &model.Inbound{UserId: 1, Tag: "in-443", Remark: "shared-inbound", Enable: true, Port: 443, Protocol: model.VLESS, Settings: string(settings)}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := (&service.ClientService{}).SyncInbound(nil, inbound.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	for i := range clients {
+		if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: clients[i].Email, Enable: true}).Error; err != nil {
+			t.Fatalf("seed traffic: %v", err)
+		}
+	}
+
+	origRunning := isRunning
+	t.Cleanup(func() { isRunning = origRunning })
+	isRunning = true
+
+	wholeRows := 0
+	if err := db.Callback().Query().After("gorm:query").Register("test:whole_inbound_rows", func(tx *gorm.DB) {
+		if tx.Statement.Table == "inbounds" && len(tx.Statement.Selects) == 0 {
+			wholeRows++
+		}
+	}); err != nil {
+		t.Fatalf("register query counter: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove("test:whole_inbound_rows") })
+
+	(&Tgbot{}).getClientUsage(ownerTgID, ownerTgID)
+
+	if got := strings.Join(sent(), "\n"); !strings.Contains(got, "shared-inbound") {
+		t.Fatalf("no client listed with its inbound: %q", got)
+	}
+	if wholeRows >= owned {
+		t.Fatalf("the inbound row was loaded %d times for %d clients", wholeRows, owned)
 	}
 }

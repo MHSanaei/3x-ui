@@ -1351,6 +1351,12 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 }
 
 func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+	// The client's own row answers without loading and parsing its whole
+	// inbound; legacy clients never normalized into `clients` fall through.
+	if rec, rErr := s.GetRecordByEmail(nil, clientEmail); rErr == nil && rec != nil {
+		return rec.Enable, nil
+	}
+
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, err

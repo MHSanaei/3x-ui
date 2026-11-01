@@ -1802,6 +1802,23 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
+// GetInboundRemarks returns the remarks of the given inbounds keyed by id
+// without loading their settings; ids that do not exist are absent.
+func (s *InboundService) GetInboundRemarks(ids []int) (map[int]string, error) {
+	db := database.GetDB()
+	remarks := make(map[int]string, len(ids))
+	for _, batch := range chunkInts(ids, sqlInChunk) {
+		var rows []model.Inbound
+		if err := db.Select("id", "remark").Where("id IN ?", batch).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for i := range rows {
+			remarks[rows[i].Id] = rows[i].Remark
+		}
+	}
+	return remarks, nil
+}
+
 func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}

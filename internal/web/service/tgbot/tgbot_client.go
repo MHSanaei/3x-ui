@@ -86,14 +86,10 @@ func (t *Tgbot) describeAttachedInbounds(ids []int) string {
 	if len(ids) == 0 {
 		return ""
 	}
+	remarks, _ := t.inboundService.GetInboundRemarks(ids)
 	parts := make([]string, 0, len(ids))
 	for _, id := range ids {
-		ib, err := t.inboundService.GetInbound(id)
-		if err != nil || ib == nil {
-			parts = append(parts, fmt.Sprintf("#%d", id))
-			continue
-		}
-		label := ib.Remark
+		label := remarks[id]
 		if label == "" {
 			label = fmt.Sprintf("#%d", id)
 		}
