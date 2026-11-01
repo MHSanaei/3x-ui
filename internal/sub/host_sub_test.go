@@ -2118,7 +2118,8 @@ func seedSharedSubIdInbound(t *testing.T, protocol model.Protocol, subId string,
 func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
 	const n = 1000
 	const subId = "shared-sub-id"
-	const maxAllocated = 128 << 20
+	// The race detector roughly doubles allocations; one decode per link costs several times this.
+	const maxAllocated = 256 << 20
 	serverPriv, serverPub := mustWireguardKeypair(t)
 	clientPriv, _ := mustWireguardKeypair(t)
 
