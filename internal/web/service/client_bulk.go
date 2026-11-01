@@ -30,6 +30,7 @@ type BulkAttachResult struct {
 // all clients to a target in a single AddInboundClient call, and reports clients already
 // present on a target as skipped.
 func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkAttachResult, bool, error) {
+	inboundIds = uniqueInts(inboundIds)
 	result := &BulkAttachResult{}
 	if len(emails) == 0 || len(inboundIds) == 0 {
 		return result, false, nil
@@ -1357,7 +1358,7 @@ func (s *ClientService) bulkCreate(inboundSvc *InboundService, payloads []Client
 		seenEmail[le] = struct{}{}
 		seenSubID[client.SubID] = le
 
-		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds, limitHwid: payloads[i].LimitHwid, payloadIdx: i})
+		prep = append(prep, prepared{client: client, inboundIds: uniqueInts(payloads[i].InboundIds), limitHwid: payloads[i].LimitHwid, payloadIdx: i})
 		emails = append(emails, email)
 		subIDs = append(subIDs, client.SubID)
 	}

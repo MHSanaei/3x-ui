@@ -191,6 +191,8 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if payload == nil {
 		return false, common.NewError("empty payload")
 	}
+	// A repeated id adds nothing but another copy of the client held through the fan-out.
+	payload.InboundIds = uniqueInts(payload.InboundIds)
 	client := payload.Client
 	if strings.TrimSpace(client.Email) == "" {
 		return false, common.NewError("client email is required")
@@ -1138,6 +1140,7 @@ func addressesFitAmneziaWGInbound(addrs []string, ib *model.Inbound) bool {
 // Attach applies the client to every requested inbound: one failing inbound no
 // longer aborts the others, so the error can name several and needRestart holds.
 func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
+	inboundIds = uniqueInts(inboundIds)
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err

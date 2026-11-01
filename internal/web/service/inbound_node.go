@@ -84,7 +84,7 @@ func (s *InboundService) AnyNodePending(inboundIds []int) bool {
 		return false
 	}
 	nodeSvc := NodeService{}
-	for _, id := range inboundIds {
+	for _, id := range uniqueInts(inboundIds) {
 		ib, err := s.GetInbound(id)
 		if err != nil || ib.NodeID == nil {
 			continue
