@@ -258,6 +258,12 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
 		if len(commandArgs) > 0 {
+			// A placeholder user can be neither throttled nor bound, so its claim is
+			// refused before it counts: the link works from the account's own chat.
+			if sentForChat(message) {
+				t.sendNotice(chatId, t.I18nBot("tgbot.messages.inviteInvalid"))
+				return
+			}
 			if !isAdmin && !t.allowInviteAttempt(message.From) {
 				t.sendNotice(chatId, t.I18nBot("tgbot.messages.inviteRateLimited"))
 				return
@@ -265,7 +271,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			t.claimInvite(chatId, message.From.ID, commandArgs[0])
 		}
 		// A stranger learns only its ChatID, which is what an admin needs to bind it.
-		if !isAdmin && t.levelOf(message.From.ID) == levelStranger {
+		if !isAdmin && (sentForChat(message) || t.levelOf(message.From.ID) == levelStranger) {
 			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
 			return
 		}
