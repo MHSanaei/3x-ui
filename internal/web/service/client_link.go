@@ -387,6 +387,18 @@ func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wanted
 		}).CreateInBatches(toInsert, 200).Error; err != nil {
 			return nil, err
 		}
+		// Not left to the next node merge: there may never be one, and a mark that outlives the
+		// attach hands the client to the reaper on its next detach.
+		linked := make([]int, 0, len(toInsert))
+		for _, link := range toInsert {
+			linked = append(linked, link.ClientId)
+		}
+		for _, batch := range chunkInts(linked, sqlInChunk) {
+			if err := tx.Model(&model.ClientRecord{}).Where("id IN ? AND sync_orphaned_at > 0", batch).
+				Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error; err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	relinked := append([]int(nil), toDelete...)
