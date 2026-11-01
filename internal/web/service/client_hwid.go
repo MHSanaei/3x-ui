@@ -92,10 +92,12 @@ func normalizeHwidRequest(req HwidRequest) HwidRequest {
 	}
 }
 
+// The subscription body is built for disabled clients too, so an expired,
+// depleted or suspended client must keep holding the limit of its subId.
 func effectiveHwidLimitForSubID(tx *gorm.DB, subID string) (int, error) {
 	var limit int
 	err := tx.Model(&model.ClientRecord{}).
-		Where("sub_id = ? AND enable = ?", subID, true).
+		Where("sub_id = ?", subID).
 		Select("COALESCE(MAX(limit_hwid), 0)").
 		Scan(&limit).Error
 	return limit, err
@@ -216,7 +218,7 @@ func trackUnlimitedHwid(db *gorm.DB, subID string, req HwidRequest) {
 }
 
 // HwidSlotStatusForSubID is SELECT-only: it must never write client_hwids or
-// last_seen. Enabled-clients scope mirrors the gate, so limit == limit enforced.
+// last_seen. It shares the gate's limit query, so limit == limit enforced.
 func (s *ClientService) HwidSlotStatusForSubID(subID string) (status HwidSlotStatus, found bool, err error) {
 	subID = strings.TrimSpace(subID)
 	if subID == "" {
