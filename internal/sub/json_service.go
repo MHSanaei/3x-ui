@@ -731,11 +731,11 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+			newOutbounds = append(newOutbounds, s.genHy(subReq, inbound, newStream, client, jsonMux(mux, hostMux)))
 		case "masque":
 			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		case "wireguard":
-			wgOutbound := s.genWireguard(inbound, client)
+			wgOutbound := s.genWireguard(subReq, inbound, client)
 			if wgOutbound == nil {
 				continue
 			}
@@ -1037,7 +1037,7 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 	return result
 }
 
-func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genHy(subReq *SubService, inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
 		Protocol: string(inbound.Protocol),
 		Tag:      "proxy",
@@ -1047,9 +1047,8 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 
-	var settings, stream map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	version, _ := settings["version"].(float64)
+	var stream map[string]any
+	version, _ := subReq.linkSettings(inbound)["version"].(float64)
 	outbound.Settings = map[string]any{
 		"version": int(version),
 		"address": inbound.Listen,
@@ -1115,13 +1114,12 @@ func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]
 // mirroring genWireguardLink: the peer public key is derived from the inbound
 // secretKey, the client owns the private key / tunnel address / pre-shared key,
 // and the peer routes the full tunnel. Returns nil when the client has no key.
-func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genWireguard(subReq *SubService, inbound *model.Inbound, client model.Client) json_util.RawMessage {
 	if client.PrivateKey == "" {
 		return nil
 	}
 
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	secretKey, _ := inboundSettings["secretKey"].(string)
 
 	peer := map[string]any{

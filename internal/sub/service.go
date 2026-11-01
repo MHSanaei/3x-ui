@@ -91,6 +91,17 @@ type SubService struct {
 	hostGroupOrders map[string]hostEntryOrder
 	hostsFirst      bool
 	sharedGroupSni  map[string]string
+	// tuicByInbound and amneziaWGServerByInbound are the typed equivalents of
+	// settingsByInbound: one decode per request, not one per link of a subId.
+	tuicByInbound            map[int]*tuicLinkInstance
+	amneziaWGServerByInbound map[int]*amneziawg.ServerSettings
+}
+
+// tuicLinkInstance indexes a decoded TUIC inbound's clients by email
+// (first occurrence wins, matching the settings-JSON scan it replaces).
+type tuicLinkInstance struct {
+	tuic.Instance
+	byEmail map[string]*tuic.TuicClientSettings
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -134,6 +145,8 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.fullyPrimedInbounds = map[int]bool{}
 	s.settingsByInbound = map[int]map[string]any{}
 	s.socketFronts = nil
+	s.tuicByInbound = map[int]*tuicLinkInstance{}
+	s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
@@ -255,6 +268,55 @@ func (s *SubService) linkSettings(inbound *model.Inbound) map[string]any {
 		s.settingsByInbound[inbound.Id] = out
 	}
 	return out
+}
+
+// tuicInstanceForLink returns the inbound's tuic.Instance decoded once per
+// request, or nil when the settings do not decode.
+func (s *SubService) tuicInstanceForLink(inbound *model.Inbound) *tuicLinkInstance {
+	if inbound.Id > 0 {
+		if cached, ok := s.tuicByInbound[inbound.Id]; ok {
+			return cached
+		}
+	}
+	var out *tuicLinkInstance
+	if inst, ok := tuic.InstanceFromInbound(inbound); ok {
+		out = &tuicLinkInstance{Instance: inst, byEmail: make(map[string]*tuic.TuicClientSettings, len(inst.Clients))}
+		for i := range out.Clients {
+			if _, exists := out.byEmail[out.Clients[i].Email]; !exists {
+				out.byEmail[out.Clients[i].Email] = &out.Clients[i]
+			}
+		}
+	}
+	if inbound.Id > 0 {
+		if s.tuicByInbound == nil {
+			s.tuicByInbound = map[int]*tuicLinkInstance{}
+		}
+		s.tuicByInbound[inbound.Id] = out
+	}
+	return out
+}
+
+// amneziaWGServerForLink returns the inbound's AmneziaWG server block decoded once
+// per request without its clients (those resolve via clientForLink), or nil.
+func (s *SubService) amneziaWGServerForLink(inbound *model.Inbound) *amneziawg.ServerSettings {
+	if inbound.Id > 0 {
+		if cached, ok := s.amneziaWGServerByInbound[inbound.Id]; ok {
+			return cached
+		}
+	}
+	var parsed struct {
+		Server *amneziawg.ServerSettings `json:"server"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		parsed.Server = nil
+	}
+	if inbound.Id > 0 {
+		if s.amneziaWGServerByInbound == nil {
+			s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
+		}
+		s.amneziaWGServerByInbound[inbound.Id] = parsed.Server
+	}
+	return parsed.Server
 }
 
 // loadRemarkSettings populates the per-request remark formatting state so
@@ -965,17 +1027,11 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.TUIC {
 		return ""
 	}
-	inst, ok := tuic.InstanceFromInbound(inbound)
-	if !ok {
+	inst := s.tuicInstanceForLink(inbound)
+	if inst == nil {
 		return ""
 	}
-	var client *tuic.TuicClientSettings
-	for _, c := range inst.Clients {
-		if c.Email == email {
-			client = &c
-			break
-		}
-	}
+	client := inst.byEmail[email]
 	if client == nil && len(inst.Clients) > 0 && email == "" {
 		client = &inst.Clients[0]
 	}
@@ -1197,11 +1253,10 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	if inbound.Protocol != model.AmneziaWG {
 		return ""
 	}
-	var parsed amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+	server := s.amneziaWGServerForLink(inbound)
+	if server == nil {
 		return ""
 	}
-	server := parsed.Server
 
 	resolved, ok := s.clientForLink(inbound, email)
 	if !ok || resolved.PrivateKey == "" {

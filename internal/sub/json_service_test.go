@@ -520,7 +520,7 @@ func TestSubJsonServiceWireguard(t *testing.T) {
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 	}
 
-	raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client)
+	raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client)
 	if raw == nil {
 		t.Fatal("genWireguard returned nil for a valid wireguard client")
 	}
@@ -564,7 +564,7 @@ func TestSubJsonServiceWireguardNoKey(t *testing.T) {
 	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
 	client := model.Client{Email: "user"}
 
-	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client); raw != nil {
+	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client); raw != nil {
 		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }
