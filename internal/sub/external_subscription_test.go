@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -371,6 +372,7 @@ func TestFetchFallsBackToDefaultExternalSubUserAgent(t *testing.T) {
 
 // The provider chooses where the fetch goes, every redirect included, so the dial itself
 // must refuse this host and its network.
+// A hostname is the provider's to resolve, so one answering with a private address is refused.
 func TestDoFetchSubscriptionLinksRefusesPrivateTargets(t *testing.T) {
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -378,7 +380,8 @@ func TestDoFetchSubscriptionLinksRefusesPrivateTargets(t *testing.T) {
 		_, _ = w.Write([]byte("vless://uuid@example.com:443#internal"))
 	}))
 	defer srv.Close()
-	if links, err := doFetchSubscriptionLinks(srv.URL + "/admin"); err == nil || links != nil {
+	viaName := strings.Replace(srv.URL, "127.0.0.1", "localhost", 1)
+	if links, err := doFetchSubscriptionLinks(viaName + "/admin"); err == nil || links != nil {
 		t.Fatalf("fetch of a loopback target = %v, %v; want it refused", links, err)
 	}
 	if hits.Load() != 0 {
@@ -416,13 +419,48 @@ func TestExternalSubscriptionFetchErrorIsBoundedAndKeepsTheURLSecret(t *testing.
 	}
 }
 
-func TestDoFetchSubscriptionLinksRefusesTooManyLinks(t *testing.T) {
-	allowLoopbackProvider(t)
+// A provider listing past the cap is cut to it, not refused: refusing dropped every link
+// the subscription served before the cap existed.
+func TestDoFetchSubscriptionLinksCapsTooManyLinks(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(strings.Repeat("trojan://p@a:1\n", subscriptionMaxLinks+1)))
 	}))
 	defer srv.Close()
-	if links, err := doFetchSubscriptionLinks(srv.URL); !errors.Is(err, errSubscriptionTooManyLinks) || links != nil {
-		t.Fatalf("fetch = %d links, %v; want errSubscriptionTooManyLinks", len(links), err)
+	if links, err := doFetchSubscriptionLinks(srv.URL); err != nil || len(links) != subscriptionMaxLinks {
+		t.Fatalf("fetch = %d links, %v; want the first %d", len(links), err, subscriptionMaxLinks)
+	}
+}
+
+// An operator merging a panel on their own network names its address in the URL; refusing
+// it lost those links from every subscriber's response after the SSRF guard went in.
+func TestDoFetchSubscriptionLinksFetchesOperatorChosenPrivateAddress(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("vless://uuid@example.com:443#lan"))
+	}))
+	defer srv.Close()
+	if links, err := doFetchSubscriptionLinks(srv.URL + "/sub"); err != nil || len(links) != 1 {
+		t.Fatalf("fetch of an operator-chosen loopback URL = %v, %v; want its link", links, err)
+	}
+}
+
+// A panel that reaches the Internet only through the host's proxy fetched through it before
+// the guarded transport, which had no proxy at all.
+func TestDoFetchSubscriptionLinksUsesTheHostProxy(t *testing.T) {
+	var proxied atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proxied.Add(1)
+		_, _ = w.Write([]byte("vless://uuid@example.com:443#via-proxy"))
+	}))
+	defer proxy.Close()
+	proxyURL, _ := url.Parse(proxy.URL)
+	previous := subscriptionProxy
+	subscriptionProxy = http.ProxyURL(proxyURL)
+	t.Cleanup(func() { subscriptionProxy = previous })
+
+	if links, err := doFetchSubscriptionLinks("http://provider.example/sub"); err != nil || len(links) != 1 {
+		t.Fatalf("proxied fetch = %v, %v; want the provider's link", links, err)
+	}
+	if proxied.Load() != 1 {
+		t.Fatalf("proxy saw %d requests, want 1", proxied.Load())
 	}
 }

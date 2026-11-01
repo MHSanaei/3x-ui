@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -38,6 +40,35 @@ var subscriptionHTTPClient = &http.Client{
 		MaxResponseHeaderBytes: 64 << 10,
 		IdleConnTimeout:        90 * time.Second,
 	},
+}
+
+// subscriptionProxy is the host's proxy setting: the proxy is the operator's and does the
+// dialling, so a proxied fetch goes through it as the default transport did.
+var subscriptionProxy = http.ProxyFromEnvironment
+
+var proxiedSubscriptionHTTPClient = &http.Client{
+	Timeout: 6 * time.Second,
+	Transport: &http.Transport{
+		Proxy:                  func(r *http.Request) (*url.URL, error) { return subscriptionProxy(r) },
+		TLSHandshakeTimeout:    5 * time.Second,
+		MaxResponseHeaderBytes: 64 << 10,
+		IdleConnTimeout:        90 * time.Second,
+	},
+}
+
+// subscriptionClientFor picks the proxied client when the host's proxy setting covers req.
+func subscriptionClientFor(req *http.Request) *http.Client {
+	if proxyURL, err := subscriptionProxy(req); err == nil && proxyURL != nil {
+		return proxiedSubscriptionHTTPClient
+	}
+	return subscriptionHTTPClient
+}
+
+// operatorChosePrivateHost reports a URL naming a private address itself: the operator picked
+// it. A hostname does not count, since the provider controls what its DNS answers.
+func operatorChosePrivateHost(u *url.URL) bool {
+	ip := net.ParseIP(u.Hostname())
+	return ip != nil && netsafe.IsBlockedIP(ip)
 }
 
 type subscriptionCacheEntry struct {
@@ -161,13 +192,16 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	if err != nil {
 		return nil, service.WithoutRequestURL(err)
 	}
+	// A provider on the operator's own network is fetched; the hops a public provider picks by
+	// redirecting stay held to public addresses.
+	req = req.WithContext(netsafe.ContextWithAllowPrivate(req.Context(), operatorChosePrivateHost(req.URL)))
 	// Some providers gate the link body on a known client User-Agent.
 	req.Header.Set("User-Agent", externalSubUserAgent())
 	// A 3x-ui donor with an HWID limit answers 404 when the header is empty (#6559).
 	if hwid := service.ExternalSubscriptionHwid(); hwid != "" {
 		req.Header.Set("X-HWID", hwid)
 	}
-	resp, err := subscriptionHTTPClient.Do(req)
+	resp, err := subscriptionClientFor(req).Do(req)
 	if err != nil {
 		return nil, service.WithoutRequestURL(err)
 	}
@@ -184,7 +218,8 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	}
 	links := decodeSubscriptionBody(body)
 	if len(links) > subscriptionMaxLinks {
-		return nil, errSubscriptionTooManyLinks
+		logger.Warningf("sub: an external subscription lists %d share links; serving the first %d", len(links), subscriptionMaxLinks)
+		links = links[:subscriptionMaxLinks]
 	}
 	return links, nil
 }
@@ -192,7 +227,6 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 var (
 	errBadStatus                = &subError{"non-2xx subscription response"}
 	errSubscriptionBodyTooLarge = &subError{"subscription response body exceeds size limit"}
-	errSubscriptionTooManyLinks = &subError{"subscription lists more than 1000 share links"}
 )
 
 // externalSubUserAgent returns the panel setting for external subscription
