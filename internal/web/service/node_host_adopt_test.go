@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -122,5 +124,73 @@ func TestSetRemoteTraffic_SweptInboundTakesItsDependentsAlong(t *testing.T) {
 	}
 	if len(balancer.InboundIds) != 1 || balancer.InboundIds[0] != kept.Id {
 		t.Fatalf("balancer members after the sweep = %v, want [%d]", balancer.InboundIds, kept.Id)
+	}
+}
+
+// floodSnapshot reports inboundCount new inbounds (ids and ports from firstPort)
+// and makes every group a member of all of them.
+func floodSnapshot(tagPrefix string, firstPort, inboundCount int, groups ...*entity.HostGroup) *runtime.TrafficSnapshot {
+	snap := &runtime.TrafficSnapshot{HostGroups: groups}
+	ids := make([]int, inboundCount)
+	for i := range ids {
+		ids[i] = firstPort + i
+		snap.Inbounds = append(snap.Inbounds, &model.Inbound{
+			Id: firstPort + i, Tag: fmt.Sprintf("%s-%d", tagPrefix, i), Enable: true, Port: firstPort + i, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+		})
+	}
+	for _, g := range groups {
+		g.InboundIds = ids
+	}
+	return snap
+}
+
+func countHostRows(t *testing.T, query string, args ...any) int64 {
+	t.Helper()
+	var n int64
+	if err := database.GetDB().Model(&model.Host{}).Where(query, args...).Count(&n).Error; err != nil {
+		t.Fatalf("count hosts: %v", err)
+	}
+	return n
+}
+
+// A group is stored once per address and per inbound, so a small hosts/list answer
+// must not be able to write an unbounded number of rows or bytes, in one merge or many.
+func TestSetRemoteTraffic_BoundsAdoptedHostRows(t *testing.T) {
+	setupConflictDB(t)
+
+	const nodeID = 7
+	if err := database.GetDB().Create(&model.Node{
+		Id: nodeID, Name: "flood-node", Address: "10.0.0.7", Port: 2053, ApiToken: "t", Guid: "flood-node-guid",
+	}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+
+	addresses := make([]string, 50)
+	for i := range addresses {
+		addresses[i] = fmt.Sprintf("h%d.example", i)
+	}
+	snap := floodSnapshot("flood", 30000, 100,
+		&entity.HostGroup{GroupId: "g-big", Hosts: []string{"cdn.example"}, Remark: "big", Sni: strings.Repeat("s", 100_000)},
+		&entity.HostGroup{GroupId: "g-many", Hosts: addresses, Remark: "many", Sni: "sni.example"},
+	)
+
+	svc := InboundService{}
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+	if big := countHostRows(t, "group_id = ?", "g-big"); big != 0 {
+		t.Fatalf("a 100000-byte group was stored %d times", big)
+	}
+	if total := countHostRows(t, "1 = 1"); total != maxAdoptedHostRows {
+		t.Fatalf("one merge adopted %d host rows, want %d", total, maxAdoptedHostRows)
+	}
+
+	more := floodSnapshot("more", 31000, 10, &entity.HostGroup{GroupId: "g-more", Hosts: addresses, Remark: "more"})
+	more.Inbounds = append(more.Inbounds, snap.Inbounds...)
+	if _, err := svc.setRemoteTrafficLocked(nodeID, more, false, false); err != nil {
+		t.Fatalf("second setRemoteTrafficLocked: %v", err)
+	}
+	if total := countHostRows(t, "1 = 1"); total != maxAdoptedHostRows {
+		t.Fatalf("a second merge raised the node's host rows to %d, want %d", total, maxAdoptedHostRows)
 	}
 }

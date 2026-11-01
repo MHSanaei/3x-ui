@@ -654,6 +654,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
+	// The host rows the node's inbounds already hold count against this merge's adoption.
+	hostGroups := adoptableHostGroups(snap.HostGroups)
+	hostGroupsSkipped := len(snap.HostGroups) - len(hostGroups)
+	hostRowBudget := 0
+	if len(hostGroups) > 0 {
+		if hostRowBudget, err = adoptedHostRowBudget(db, nodeID); err != nil {
+			return false, err
+		}
+	}
+
 	tx := db.Begin()
 	committed := false
 	defer func() {
@@ -821,9 +831,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if newIb.Tag != snapIb.Tag {
 				tagToCentral[newIb.Tag] = &newIb
 			}
-			if rows := adoptedHostRows(snap.HostGroups, snapIb.Id, newIb.Id); len(rows) > 0 {
+			rows, skipped := adoptedHostRows(hostGroups, snapIb.Id, newIb.Id, hostRowBudget)
+			hostGroupsSkipped += skipped
+			if len(rows) > 0 {
 				if err := tx.Create(&rows).Error; err != nil {
 					logger.Warningf("setRemoteTraffic: adopt host rows for tag %q failed: %v", newIb.Tag, err)
+				} else {
+					hostRowBudget -= len(rows)
 				}
 			}
 			newInboundIDs[newIb.Id] = struct{}{}
@@ -899,6 +913,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				return false, err
 			}
 		}
+	}
+
+	if hostGroupsSkipped > 0 {
+		logger.Warningf(
+			"setRemoteTraffic: node %d: left out %d host group adoption(s) — a group is limited to %d bytes and the node's inbounds to %d host rows",
+			nodeID, hostGroupsSkipped, maxAdoptedHostGroupBytes, maxAdoptedHostRows,
+		)
 	}
 
 	// The inbound each reported email now lives under, so a swept inbound's
