@@ -606,7 +606,9 @@ func TestTranslateUISingleBrackets(t *testing.T) {
 		{"{EMAIL}", "{{EMAIL}}"},
 		{"{DATA_LEFT}", "{{TRAFFIC_LEFT}}"},
 		{"{DATA_LEFT} of {DATA_LIMIT}", "{{TRAFFIC_LEFT}} of {{TRAFFIC_TOTAL}}"},
-		{"{STATUS_EMOJI} {INBOUND}", "{{STATUS_EMOJI}} {INBOUND}"},
+		{"{STATUS_EMOJI} {INBOUND}", "{{STATUS_EMOJI}} {{INBOUND}}"},
+		{"{HOST}", "{{HOST}}"},
+		{"{ID}", "{{ID}}"},
 		{"{UNKNOWN_TOKEN}", "{UNKNOWN_TOKEN}"},
 		{"no braces", "no braces"},
 		{"{{TRAFFIC_LEFT}}", "{{TRAFFIC_LEFT}}"},
@@ -623,14 +625,17 @@ func TestExpandRemarkVars_SingleBracketUI(t *testing.T) {
 	inbound := &model.Inbound{Remark: "DE", Protocol: "vless"}
 	stats := xray.ClientTraffic{Enable: true, Total: 100 * gb, Up: 50 * gb, Down: 0}
 	ctx := remarkContext{
-		client:    model.Client{Email: "alice@test.com"},
-		stats:     stats,
-		inbound:   inbound,
-		transport: "ws",
-		security:  "tls",
+		client:     model.Client{Email: "alice@test.com"},
+		stats:      stats,
+		inbound:    inbound,
+		hostRemark: "CDN",
+		transport:  "ws",
+		security:   "tls",
 	}
 	cases := []struct{ tmpl, want string }{
 		{"{EMAIL}", "alice@test.com"},
+		{"{INBOUND}", "DE"},
+		{"{HOST}", "CDN"},
 		{"{DATA_LEFT}", "50.00GB"},
 		{"{DATA_USAGE}", "50.00GB"},
 		{"{DATA_LIMIT}", "100.00GB"},
