@@ -554,3 +554,17 @@ func TestRemoteForgetInboundDropsEveryTrace(t *testing.T) {
 		t.Fatalf("left behind: pushedFP=%v ids=%v aliases=%v", r.pushedFP, r.remoteIDByTag, r.adoptedAliases)
 	}
 }
+
+// The cap is documented in JSON values; counting keys and closing brackets as well refused a
+// node's whole online report at well under the stated number of values.
+func TestDecodeCappedValuesCountsValuesOnly(t *testing.T) {
+	var got map[string][]string
+	// One object, two arrays and three strings: six values, though fourteen tokens.
+	raw := json.RawMessage(`{"guid-a":["x","y"],"guid-b":["z"]}`)
+	if err := decodeCappedValues(raw, &got, 6); err != nil {
+		t.Fatalf("six values under a cap of six: %v", err)
+	}
+	if err := decodeCappedValues(raw, &got, 5); !errors.Is(err, errRemoteListTooLong) {
+		t.Fatalf("six values under a cap of five: err = %v, want errRemoteListTooLong", err)
+	}
+}

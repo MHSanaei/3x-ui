@@ -23,19 +23,35 @@ const (
 var errRemoteListTooLong = json_util.ErrListTooLong
 
 // decodeCappedValues unmarshals raw into v after checking it holds at most maxValues
-// JSON values in all, nested ones included.
+// JSON values in all, nested ones included; object keys and closing brackets are not values.
 func decodeCappedValues(raw json.RawMessage, v any, maxValues int) error {
 	dec := json.NewDecoder(bytes.NewReader(raw))
-	for count := 0; ; count++ {
+	// One frame per open container; an object's strings alternate between key and value.
+	type frame struct{ object, wantKey bool }
+	var open []frame
+	count := 0
+	for {
 		tok, err := dec.Token()
 		if err != nil {
 			break
 		}
-		if delim, ok := tok.(json.Delim); ok && (delim == ']' || delim == '}') {
+		delim, isDelim := tok.(json.Delim)
+		if isDelim && (delim == ']' || delim == '}') {
+			open = open[:len(open)-1]
 			continue
 		}
-		if count > maxValues {
+		if top := len(open) - 1; top >= 0 && open[top].object {
+			if open[top].wantKey {
+				open[top].wantKey = false
+				continue
+			}
+			open[top].wantKey = true
+		}
+		if count++; count > maxValues {
 			return fmt.Errorf("%w (%d values)", errRemoteListTooLong, maxValues)
+		}
+		if isDelim {
+			open = append(open, frame{object: delim == '{', wantKey: delim == '{'})
 		}
 	}
 	return json.Unmarshal(raw, v)
