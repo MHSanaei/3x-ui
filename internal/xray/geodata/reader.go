@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/netip"
 	"os"
 	"sort"
@@ -53,6 +54,9 @@ type byteSpan struct {
 func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 	scan := &categoryScan{kind: kind, spans: make(map[string][]byteSpan)}
 	byCode := make(map[string]int)
+	// Parallel to scan.categories: a category split over many records adds each
+	// record's own attributes to its set and is sorted once, at the end.
+	var attributeSets []map[string]struct{}
 
 	err := eachListEntry(data, func(entry []byte, span byteSpan) error {
 		count := 0
@@ -88,19 +92,19 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 		scan.spans[code] = append(scan.spans[code], span)
 		if position, seen := byCode[code]; seen {
 			scan.categories[position].Entries += count
-			scan.categories[position].Attributes = mergeAttributes(scan.categories[position].Attributes, attributes)
+			maps.Copy(attributeSets[position], attributes)
 			return nil
 		}
 		byCode[code] = len(scan.categories)
-		scan.categories = append(scan.categories, GeoCategory{
-			Code:       code,
-			Entries:    count,
-			Attributes: mergeAttributes(nil, attributes),
-		})
+		scan.categories = append(scan.categories, GeoCategory{Code: code, Entries: count})
+		attributeSets = append(attributeSets, attributes)
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	for position, attributes := range attributeSets {
+		scan.categories[position].Attributes = sortedAttributes(attributes)
 	}
 	sort.Slice(scan.categories, func(i, j int) bool { return scan.categories[i].Code < scan.categories[j].Code })
 	return scan, nil
@@ -461,25 +465,11 @@ func cidrBytes(payload []byte) ([]byte, bool, error) {
 	return []byte(netip.PrefixFrom(addr, int(prefix)).String()), true, nil
 }
 
-// mergeAttributes always returns a non-nil slice: the JSON contract declares
-// attributes as an array, and a nil slice would marshal to null and break
-// clients validating against it.
-func mergeAttributes(existing []string, attributes map[string]struct{}) []string {
-	if len(attributes) == 0 {
-		if existing == nil {
-			return []string{}
-		}
-		return existing
-	}
-	merged := make(map[string]struct{}, len(existing)+len(attributes))
-	for _, attribute := range existing {
-		merged[attribute] = struct{}{}
-	}
+// sortedAttributes always returns a non-nil slice: the JSON contract declares
+// attributes as an array, and a nil slice would marshal to null.
+func sortedAttributes(attributes map[string]struct{}) []string {
+	out := make([]string, 0, len(attributes))
 	for attribute := range attributes {
-		merged[attribute] = struct{}{}
-	}
-	out := make([]string, 0, len(merged))
-	for attribute := range merged {
 		out = append(out, attribute)
 	}
 	sort.Strings(out)
