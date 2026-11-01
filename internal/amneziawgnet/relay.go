@@ -68,16 +68,7 @@ func SocksInboundSettings(emails []string, password string) ([]byte, error) {
 func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrPort) {
 	defer conn.Close()
 
-	auth := &proxy.Auth{User: email, Password: r.Password}
-	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, &net.Dialer{})
-	if err != nil {
-		logger.Warningf("amneziawgnet: RelayTCP: build SOCKS5 dialer: %v", err)
-		return
-	}
-	// Bounded: a core that accepts but never answers would pin this relay and its endpoint.
-	ctx, cancel := context.WithTimeout(context.Background(), socks5ConnectTimeout)
-	upstream, err := dialer.(proxy.ContextDialer).DialContext(ctx, "tcp", dest.String())
-	cancel()
+	upstream, err := r.dialUpstream(email, dest)
 	if err != nil {
 		logger.Warningf("amneziawgnet: RelayTCP: SOCKS5 CONNECT to %s as %q: %v", dest, email, err)
 		return
@@ -85,6 +76,20 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 	defer upstream.Close()
 
 	pipeBothWays(conn, upstream)
+}
+
+// dialUpstream opens the SOCKS5 CONNECT through the core's bridge. Bounded: a core that
+// accepts but never answers would pin this relay and its endpoint. The bound covers the
+// handshake only; the returned connection carries no deadline.
+func (r SocksRelay) dialUpstream(email string, dest netip.AddrPort) (net.Conn, error) {
+	auth := &proxy.Auth{User: email, Password: r.Password}
+	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, &net.Dialer{})
+	if err != nil {
+		return nil, fmt.Errorf("build SOCKS5 dialer: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), socks5ConnectTimeout)
+	defer cancel()
+	return dialer.(proxy.ContextDialer).DialContext(ctx, "tcp", dest.String())
 }
 
 var socks5ConnectTimeout = 10 * time.Second
