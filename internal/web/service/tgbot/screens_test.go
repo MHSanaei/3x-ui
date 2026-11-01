@@ -508,6 +508,34 @@ func TestScreenArtReprobeWindow(t *testing.T) {
 	}
 }
 
+// A probe a previous test left in flight held the process-wide probe slot, so under -race -shuffle
+// the next test's stale avatar was never re-probed (CI flake in TestScreenArtReprobeWindow).
+func TestScreenArtResetWaitsForAProbeLeftInFlight(t *testing.T) {
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(300 * time.Millisecond)
+		http.Error(w, "gone", http.StatusServiceUnavailable)
+	}))
+	defer slow.Close()
+	swapTestBot(t, slow.URL)
+	(&Tgbot{}).ensureScreenArt()
+
+	srv, calls := recordingServer(t, false)
+	defer srv.Close()
+	swapTestBot(t, srv.URL)
+	screenArtMu.Lock()
+	artProbedAt = time.Now().Add(-2 * time.Minute)
+	screenArtMu.Unlock()
+
+	(&Tgbot{}).ensureScreenArt()
+	for range 100 {
+		if countMethod(calls(), "getUserProfilePhotos") > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the probe left in flight by the previous bot kept the new one from probing")
+}
+
 func TestScreenKeepsArtFromTheBotAvatar(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
 	tb.resolveScreenArt()
