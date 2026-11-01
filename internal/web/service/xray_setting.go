@@ -98,6 +98,9 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 		if err := validateXDriveInbound(inbound.Protocol, string(inbound.Settings), string(inbound.StreamSettings)); err != nil {
 			return common.NewError("xray template inbound \""+inbound.Tag+"\":", err)
 		}
+		if err := validateTunWfpBlockLeak(inbound.Protocol, string(inbound.Settings)); err != nil {
+			return common.NewError("xray template inbound \""+inbound.Tag+"\":", err)
+		}
 	}
 	if len(xrayConfig.OutboundConfigs) > 0 {
 		var outbounds []json.RawMessage

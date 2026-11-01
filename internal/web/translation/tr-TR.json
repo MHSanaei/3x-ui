@@ -762,7 +762,7 @@
         "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
         "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
         "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i (53 ve 853 portları ile DNS İstemcisi hizmeti) TUN içinde tutar ve DNS sunucuları gerekir; windnsclient yalnızca o hizmeti kapsar; başka bir port için tcp/PORT veya udp/PORT yazın; misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
         "maxVersion": "Maksimum sürüm",
         "headerName": "Başlık adı",
         "headerValue": "Başlık değeri"
