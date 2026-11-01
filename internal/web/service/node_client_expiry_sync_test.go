@@ -1030,7 +1030,7 @@ func TestNodeActivationLiftsClientRecordExpiry(t *testing.T) {
 	const activated = int64(1798448344010)
 	negSettings := `{"clients":[{"email":"delayed","enable":true,"expiryTime":-2592000000}]}`
 
-	if err := db.Create(&model.ClientRecord{Email: email, Enable: true, ExpiryTime: duration}).Error; err != nil {
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).Update("expiry_time", duration).Error; err != nil {
 		t.Fatalf("seed client record: %v", err)
 	}
 

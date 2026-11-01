@@ -15,7 +15,6 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -90,7 +89,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
-					render := func() []map[string]any { return s.getProxies(subReq, variant.inbound(subReq, inbound), client, host) }
+					render := func() []map[string]any {
+						return s.budgetedProxies(subReq, variant.inbound(subReq, inbound), client, host)
+					}
 					ordered = append(ordered, orderedSubEntry[func() []map[string]any]{variant.order, render})
 				}
 				continue
@@ -106,7 +107,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
+			proxies = append(proxies, s.budgetedProxies(subReq, effective, client, host)...)
 		}
 	}
 	if subReq.hostsFirst {
@@ -668,8 +669,7 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		return nil
 	}
 
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	secretKey, _ := inboundSettings["secretKey"].(string)
 
 	proxy := map[string]any{
@@ -721,21 +721,18 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 }
 
 func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
-	inst, ok := tuic.InstanceFromInbound(inbound)
-	if !ok {
+	inst := subReq.tuicInstanceForLink(inbound)
+	if inst == nil {
 		return nil
 	}
 	uuid := client.ID
 	password := client.Password
-	for _, c := range inst.Clients {
-		if c.Email == client.Email {
-			if uuid == "" {
-				uuid = c.UUID
-			}
-			if password == "" {
-				password = c.Password
-			}
-			break
+	if c := inst.byEmail[client.Email]; c != nil {
+		if uuid == "" {
+			uuid = c.UUID
+		}
+		if password == "" {
+			password = c.Password
 		}
 	}
 	if uuid == "" || password == "" {
@@ -777,15 +774,9 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 // amneziaWGClientAddresses prefers this inbound's own settings entry over the
 // shared clients.wg_allowed_ips column, which for an identity attached to both
 // a wireguard and an amneziawg inbound holds the other one's address.
-func amneziaWGClientAddresses(settingsClients []model.Client, client model.Client) []string {
-	for i := range settingsClients {
-		if !strings.EqualFold(settingsClients[i].Email, client.Email) {
-			continue
-		}
-		if len(settingsClients[i].AllowedIPs) > 0 {
-			return settingsClients[i].AllowedIPs
-		}
-		break
+func amneziaWGClientAddresses(subReq *SubService, inbound *model.Inbound, client model.Client) []string {
+	if own, ok := subReq.clientForLink(inbound, client.Email); ok && len(own.AllowedIPs) > 0 {
+		return own.AllowedIPs
 	}
 	return client.AllowedIPs
 }
@@ -809,11 +800,10 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 		return nil
 	}
 
-	var parsed amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+	server := subReq.amneziaWGServerForLink(inbound)
+	if server == nil {
 		return nil
 	}
-	server := parsed.Server
 
 	proxy := map[string]any{
 		"name":        subReq.endpointRemark(inbound, client.Email, ep, ""),
@@ -834,7 +824,7 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 		proxy["persistent-keepalive"] = ka
 	}
 
-	for _, addr := range amneziaWGClientAddresses(parsed.Clients, client) {
+	for _, addr := range amneziaWGClientAddresses(subReq, inbound, client) {
 		ip := stripCIDR(addr)
 		if ip == "" {
 			continue

@@ -32,6 +32,8 @@ var (
 	artProbedAt   time.Time
 	// artProbeRunning keeps a burst of renders from starting a burst of probes.
 	artProbeRunning atomic.Bool
+	// artProbes lets resetScreenArt outlast a probe still running against a previous bot.
+	artProbes sync.WaitGroup
 
 	blackTileOnce  sync.Once
 	blackTileBytes []byte
@@ -109,10 +111,10 @@ func (t *Tgbot) ensureScreenArt() {
 	if !artProbeRunning.CompareAndSwap(false, true) {
 		return
 	}
-	go func() {
+	artProbes.Go(func() {
 		defer artProbeRunning.Store(false)
 		t.resolveScreenArt()
-	}()
+	})
 }
 
 // artFileID returns the cached file_id for a screen kind. A fallback tile cached
@@ -163,6 +165,7 @@ func cacheArtFileID(kind, fileID string) {
 
 // resetScreenArt drops the cached file_ids; tests use it between mock servers.
 func resetScreenArt() {
+	artProbes.Wait()
 	screenArtMu.Lock()
 	screenArtIDs = map[string]string{}
 	artOverrides = map[string]string{}

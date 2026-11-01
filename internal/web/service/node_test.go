@@ -1,7 +1,15 @@
 package service
 
 import (
+	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
@@ -248,5 +256,35 @@ func TestFilterNodeSnapshotKeepsAdoptedAlias(t *testing.T) {
 
 	if len(snap.Inbounds) != 1 || snap.Inbounds[0].Tag != "deployed-alias" {
 		t.Fatalf("filtered snapshot = %#v, want adopted alias only", snap.Inbounds)
+	}
+}
+
+// The probe builds a transport per call; what it parks would stay open for as long
+// as the node, an untrusted peer, keeps the connection.
+func TestFetchCertFingerprintLeavesNoIdleConnection(t *testing.T) {
+	var open atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		switch state {
+		case http.StateNew:
+			open.Add(1)
+		case http.StateClosed, http.StateHijacked:
+			open.Add(-1)
+		}
+	}
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	u, _ := url.Parse(server.URL)
+	port, _ := strconv.Atoi(u.Port())
+	node := &model.Node{Scheme: "https", Address: u.Hostname(), Port: port, AllowPrivateAddress: true}
+	if _, err := (&NodeService{}).FetchCertFingerprint(context.Background(), node); err != nil {
+		t.Fatalf("FetchCertFingerprint: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for open.Load() != 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if n := open.Load(); n != 0 {
+		t.Fatalf("%d connection(s) to the node still open after the probe", n)
 	}
 }

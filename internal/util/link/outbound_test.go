@@ -533,6 +533,10 @@ func TestSlugAndSuggest(t *testing.T) {
 	if got := SuggestTag("ru-", "Сервер 2", 0); got != "ru-сервер-2" {
 		t.Errorf("unicode suggest tag got %q", got)
 	}
+	// The tag names Xray counters and an outbound_traffics row; a provider picks the remark.
+	if got := SlugRemark(strings.Repeat("Ab ", 1<<20)); got != strings.Repeat("ab-", 21)+"a" {
+		t.Errorf("megabyte remark slug = %.80q (%d bytes), want the first 64 runes", got, len(got))
+	}
 }
 
 // The obfs-local plugin the panel exports carries the only description of
@@ -610,5 +614,64 @@ func TestParseLink_PutsUDPHopMaskLast(t *testing.T) {
 	want := `{"udp":[{"settings":{"password":"s3cr3t"},"type":"salamander"},{"settings":{"mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
 	if string(got) != want {
 		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
+	}
+}
+
+// A share link describes a remote server; keys that redirect the dial or name files on
+// the importing host must not survive, however the core's case-folding decoder spells them.
+func TestParseLinkDropsHostLocalKeys(t *testing.T) {
+	extra := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp",` +
+		`"sockopt":{"dialerProxy":"api","tcpFastOpen":true},` +
+		`"tlsSettings":{"serverName":"cdn.example.com","CERTIFICATES":[{"certificateFile":"/dev/zero","keyFile":"/etc/shadow"}],"maſterKeyLog":"/root/keys"}}}`)
+	fm := url.QueryEscape(`{"tcp":[{"type":"header-custom","settings":{"DialerProxy":"api"}}]}`)
+	res, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&sni=cdn.example.com&extra=" + extra + "&fm=" + fm + "#node")
+	if err != nil {
+		t.Fatalf("parse vless: %v", err)
+	}
+	raw, err := json.Marshal(res.Outbound)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var hostLocal []string
+	var walk func(v any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case map[string]any:
+			for k, child := range v {
+				for _, banned := range []string{"dialerProxy", "certificateFile", "keyFile", "masterKeyLog"} {
+					if strings.EqualFold(k, banned) {
+						hostLocal = append(hostLocal, k)
+					}
+				}
+				walk(child)
+			}
+		case []any:
+			for _, child := range v {
+				walk(child)
+			}
+		}
+	}
+	var decoded any
+	_ = json.Unmarshal(raw, &decoded)
+	walk(decoded)
+	if len(hostLocal) > 0 {
+		t.Fatalf("outbound keeps host-local keys %v: %s", hostLocal, raw)
+	}
+	if !strings.Contains(string(raw), `"tcpFastOpen":true`) || !strings.Contains(string(raw), `"serverName":"cdn.example.com"`) {
+		t.Fatalf("remote-server settings were dropped too: %s", raw)
+	}
+}
+
+// Pretty-printing costs the square of the nesting depth, and extra=, fm= and the vmess
+// JSON copy provider JSON into the outbound; a link may not nest past real shapes.
+func TestParseLinkRejectsDeeplyNestedJSON(t *testing.T) {
+	deep := strings.Repeat(`{"a":`, 40) + `1` + strings.Repeat(`}`, 40)
+	if _, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=" + url.QueryEscape(`{"xmux":`+deep+`}`) + "#n"); err == nil {
+		t.Fatal("a link nesting JSON 40 levels deep was accepted")
+	}
+	real := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp","xhttpSettings":{"headers":{"a":"b"}},` +
+		`"finalmask":{"udp":[{"type":"noise","settings":{"noise":[{"type":"rand","packet":"10-20"}]}}]}}}`)
+	if _, err := ParseLink("vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=" + real + "#n"); err != nil {
+		t.Fatalf("a real download stream with a finalmask was refused: %v", err)
 	}
 }
