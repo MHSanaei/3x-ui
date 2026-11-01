@@ -145,8 +145,12 @@ func TestUpdateByEmailJSONOmittedFlowKeepsEachInboundsFlow(t *testing.T) {
 	if got := inboundClientByEmail(t, ws.Id, seed.Email); got.Flow != "" {
 		t.Fatalf("WS inbound gained flow %q", got.Flow)
 	}
+	if rec := lookupClientRecord(t, seed.Email); rec.Reverse == "" {
+		t.Fatal("an omitted reverse must keep the tag")
+	}
+	updateByEmailJSON(t, svc, seed.Email, `{"reverse": null}`)
 	if rec := lookupClientRecord(t, seed.Email); rec.Reverse != "" {
-		t.Fatalf("an omitted reverse must clear the tag: %q", rec.Reverse)
+		t.Fatalf("an explicit null reverse must clear the tag: %q", rec.Reverse)
 	}
 
 	updateByEmailJSON(t, svc, seed.Email, `{"flow": ""}`)

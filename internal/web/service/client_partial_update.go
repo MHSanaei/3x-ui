@@ -9,15 +9,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
-type clientUpdateBody struct {
-	model.Client
-	LimitHwid int `json:"limitHwid"`
-}
-
 // UpdateByEmailJSON applies a POST /clients/update body: an omitted key keeps the
-// stored value and an explicit zero or empty value clears it, but an omitted reverse clears.
+// stored value and an explicit zero, empty or null value clears it.
 func (s *ClientService) UpdateByEmailJSON(inboundSvc *InboundService, email string, body []byte, inboundFilter ...int) (bool, error) {
-	var req clientUpdateBody
+	var req clientPayloadWithHwid
 	if err := json.Unmarshal(body, &req); err != nil {
 		return false, err
 	}
@@ -58,8 +53,7 @@ func (k payloadKeys) has(name string) bool {
 	return false
 }
 
-// fillAbsentClientFields leaves flow to update (it is per inbound) and reverse alone:
-// model.Client drops an empty reverse on marshal, so its absence has always meant clear.
+// fillAbsentClientFields leaves flow to update, which keeps it per inbound.
 func fillAbsentClientFields(rec *model.ClientRecord, updated *model.Client, limitHwid *int, keys payloadKeys) {
 	stored := rec.ToClient()
 	if !keys.has("email") {
@@ -109,6 +103,9 @@ func fillAbsentClientFields(rec *model.ClientRecord, updated *model.Client, limi
 	}
 	if !keys.has("adTag") {
 		updated.AdTag = stored.AdTag
+	}
+	if !keys.has("reverse") {
+		updated.Reverse = stored.Reverse
 	}
 	if !keys.has("limitHwid") {
 		*limitHwid = rec.LimitHwid

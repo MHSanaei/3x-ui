@@ -46,8 +46,9 @@ _openapi:
     - depth: 2
       title: 'Update an existing client by email. Changes propagate to every attached
         inbound. Body is the JSON client payload: omitted fields keep their
-        current values, and an explicit zero or empty value clears a field.'
-      url: '#update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-or-empty-value-clears-a-field'
+        current values, and an explicit zero, empty or null value clears a
+        field, except as noted below.'
+      url: '#update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below'
     - depth: 2
       title: Delete a client by email. Removes it from every attached inbound and
         drops its traffic record unless keepTraffic=1 is passed.
@@ -335,9 +336,9 @@ _openapi:
         id: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
       - content: 'Update an existing client by email. Changes propagate to every
           attached inbound. Body is the JSON client payload: omitted fields keep
-          their current values, and an explicit zero or empty value clears a
-          field.'
-        id: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-or-empty-value-clears-a-field
+          their current values, and an explicit zero, empty or null value clears
+          a field, except as noted below.'
+        id: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
       - content: Delete a client by email. Removes it from every attached inbound and
           drops its traffic record unless keepTraffic=1 is passed.
         id: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
@@ -635,9 +636,11 @@ _openapi:
           preview is informational and does not reserve an allowance or
           guarantee node availability.
         heading: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
-      - content: 'An omitted `flow` leaves every attached inbound on its own flow.
-          `reverse` is replaced, not kept: omit it or send null to clear the
-          tag. The inbounds are applied concurrently and independently: one that
+      - content: 'An omitted `flow` leaves every attached inbound on its own flow. Send
+          `"reverse": null` to remove the reverse tag. Credentials (`id`,
+          `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG
+          `allowedIPs` are never cleared: an empty value keeps the stored one.
+          The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
           are reported together, one per line. So a `success:false` response can
@@ -645,7 +648,7 @@ _openapi:
           record is written after the inbounds, so a failure there is reported
           without an `inbound <id>:` prefix and leaves the inbound edits in
           place.'
-        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-or-empty-value-clears-a-field
+        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
       - content: 'The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
