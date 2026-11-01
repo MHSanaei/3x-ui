@@ -531,6 +531,9 @@ func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
+	// Next suffix to try per base: tags are only ever added, so every lower one
+	// is taken and resuming there keeps a node-sized member list linear.
+	nextSuffix := make(map[string]int)
 	var proxies []json_util.RawMessage
 	// Members in emission order with their owning inbound, so costs[] can
 	// reference the exact retagged tags assigned here.
@@ -546,9 +549,11 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			protocol, _ := outbound["protocol"].(string)
 			base := prefix + balancerMemberSuffix(protocol)
 			tag := base
-			for suffix := 2; usedTags[tag]; suffix++ {
+			suffix := max(nextSuffix[base], 2)
+			for ; usedTags[tag]; suffix++ {
 				tag = fmt.Sprintf("%s-%d", base, suffix)
 			}
+			nextSuffix[base] = suffix
 			usedTags[tag] = true
 			member := maps.Clone(outbound)
 			member["tag"] = tag
