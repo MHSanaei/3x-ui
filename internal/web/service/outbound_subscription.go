@@ -41,7 +41,7 @@ func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []stri
 	for _, ob := range outbounds {
 		raw, err := json.Marshal(ob)
 		if err == nil {
-			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil && !shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, buildErr) {
+			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil && !shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, raw, buildErr) {
 				tag := ""
 				if m, ok := ob.(map[string]any); ok {
 					tag, _ = m["tag"].(string)

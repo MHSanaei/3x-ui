@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
+	"net/netip"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,7 +24,31 @@ type XraySettingService struct {
 const (
 	unencryptedOutboundProhibitedError = "without TLS or other encryption is prohibited unless the server address is a private IP or domain"
 	unencryptedOutboundMinimumVersion  = "26.7.11"
+	narrowedPrivateIPMinimumVersion    = "26.10.29"
 )
+
+// legacyPrivateIPPrefixes is the "private" set xray-core 26.7.11 to 26.10.28 let an unencrypted
+// vless/trojan outbound reach; 26.10.29 (#7249) narrowed it to RFC 1918, loopback and link-local.
+var legacyPrivateIPPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("10.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("127.0.0.0/8"),
+	netip.MustParsePrefix("169.254.0.0/16"),
+	netip.MustParsePrefix("172.16.0.0/12"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("192.88.99.0/24"),
+	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("224.0.0.0/3"),
+	netip.MustParsePrefix("::/127"),
+	netip.MustParsePrefix("fc00::/7"),
+	netip.MustParsePrefix("fe80::/10"),
+	netip.MustParsePrefix("ff00::/8"),
+}
 
 func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	// The frontend round-trips the whole getXraySetting response back
@@ -103,7 +128,7 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 				return common.NewError("xray template outbound \""+probe.Tag+"\":", err)
 			}
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
-				if shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, err) {
+				if shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, outbound, err) {
 					continue
 				}
 				tagged := struct {
@@ -133,16 +158,54 @@ func checkTemplateLuaScripts(cfg *xray.Config) error {
 	return nil
 }
 
-// shouldSkipLegacyUnencryptedOutboundRejection lets an older running Xray
-// core accept an outbound that the newer embedded validator rejects solely
-// because it is unencrypted and targets a public address. Unknown or malformed
-// versions preserve the embedded validator's strict behavior.
-func shouldSkipLegacyUnencryptedOutboundRejection(coreVersion string, err error) bool {
+// shouldSkipLegacyUnencryptedOutboundRejection keeps an unencrypted outbound the running core still
+// allows: any address before 26.7.11, a legacy-private IP before 26.10.29; unknown versions stay strict.
+func shouldSkipLegacyUnencryptedOutboundRejection(coreVersion string, outbound []byte, err error) bool {
 	if err == nil || !strings.Contains(err.Error(), unencryptedOutboundProhibitedError) {
 		return false
 	}
-	comparison, ok := compareXrayCoreVersions(coreVersion, unencryptedOutboundMinimumVersion)
-	return ok && comparison < 0
+	if comparison, ok := compareXrayCoreVersions(coreVersion, unencryptedOutboundMinimumVersion); !ok {
+		return false
+	} else if comparison < 0 {
+		return true
+	}
+	comparison, _ := compareXrayCoreVersions(coreVersion, narrowedPrivateIPMinimumVersion)
+	if comparison >= 0 {
+		return false
+	}
+	addr, parseErr := netip.ParseAddr(unencryptedOutboundServerAddress(outbound))
+	if parseErr != nil {
+		return false
+	}
+	addr = addr.Unmap()
+	return slices.ContainsFunc(legacyPrivateIPPrefixes, func(p netip.Prefix) bool { return p.Contains(addr) })
+}
+
+// unencryptedOutboundServerAddress reads the server address of a vless or trojan outbound in
+// any of the shapes the core loader accepts: flat, vless "vnext" or trojan "servers".
+func unencryptedOutboundServerAddress(outbound []byte) string {
+	type server struct {
+		Address string `json:"address"`
+	}
+	var probe struct {
+		Settings struct {
+			Address string   `json:"address"`
+			Vnext   []server `json:"vnext"`
+			Servers []server `json:"servers"`
+		} `json:"settings"`
+	}
+	if json.Unmarshal(outbound, &probe) != nil {
+		return ""
+	}
+	switch {
+	case probe.Settings.Address != "":
+		return probe.Settings.Address
+	case len(probe.Settings.Vnext) > 0:
+		return probe.Settings.Vnext[0].Address
+	case len(probe.Settings.Servers) > 0:
+		return probe.Settings.Servers[0].Address
+	}
+	return ""
 }
 
 func compareXrayCoreVersions(a, b string) (int, bool) {
