@@ -116,6 +116,9 @@ func (m *managed) close() {
 type Manager struct {
 	mu     sync.Mutex
 	ifaces map[int]*managed
+	// v6Owned: IPv6 aliases this Manager put on the host, the only ones it
+	// may delete again (see applyV6Aliases).
+	v6Owned map[v6Alias]struct{}
 }
 
 var (
@@ -189,7 +192,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if conf == cur.uapiConfig {
 			cur.peers.Store(NewPeerIndex(inst.Peers))
 			cur.inst = inst
-			applyV6Aliases(diffV6Aliases(oldInst, inst))
+			m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 			// buildUAPIConfig never reads ForwardedPorts (it's a panel-level
 			// concept, not a WireGuard UAPI field), so a ForwardedPorts-only
 			// edit renders byte-identical here and takes this exact no-op
@@ -206,7 +209,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		oldPeers := cur.peers.Swap(NewPeerIndex(inst.Peers))
 		cur.inst = inst
 		cur.uapiConfig = conf
-		applyV6Aliases(diffV6Aliases(oldInst, inst))
+		m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 		cur.portForwards.Reconcile(inst)
 		cur.dropReassignedFlows(oldPeers)
 		return nil
@@ -262,7 +265,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	conf, _ := buildUAPIConfig(inst, opts)
 	next.uapiConfig = conf
 	m.ifaces[inst.Id] = next
-	applyV6Aliases(diffV6Aliases(oldInst, inst))
+	m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 	portForwards.Reconcile(inst)
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
 	return nil
@@ -302,7 +305,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 		if _, ok := want[id]; ok {
 			continue
 		}
-		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+		m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.close()
 		delete(m.ifaces, id)
 		logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -325,7 +328,7 @@ func (m *Manager) Remove(id int) {
 	if !exists {
 		return
 	}
-	applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+	m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 	cur.close()
 	delete(m.ifaces, id)
 	logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -336,7 +339,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, cur := range m.ifaces {
-		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+		m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.close()
 		delete(m.ifaces, id)
 	}
