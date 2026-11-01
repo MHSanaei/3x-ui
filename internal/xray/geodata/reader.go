@@ -57,6 +57,9 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 	// Parallel to scan.categories: a category split over many records adds each
 	// record's own attributes to its set and is sorted once, at the end.
 	var attributeSets []map[string]struct{}
+	// A record or attribute key costs the index far more than its bytes on disk, so
+	// MaxFileSize bounds nothing here: size counts what the scan has kept.
+	size := 0
 
 	err := eachListEntry(data, func(entry []byte, span byteSpan) error {
 		count := 0
@@ -73,6 +76,9 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 				for _, attr := range attrs {
 					attributes[attr] = struct{}{}
 				}
+				if len(attributes) > MaxIndexSize {
+					return ErrIndexTooLarge
+				}
 			} else {
 				_, ok, err := cidrBytes(payload)
 				if err != nil {
@@ -87,6 +93,9 @@ func scanIndex(data []byte, kind GeoKind) (*categoryScan, error) {
 		})
 		if err != nil || code == "" {
 			return err
+		}
+		if size += 1 + len(attributes); size > MaxIndexSize {
+			return ErrIndexTooLarge
 		}
 		scan.usable += count
 		scan.spans[code] = append(scan.spans[code], span)
@@ -172,6 +181,10 @@ func detectKind(data []byte, name string) (GeoKind, *categoryScan, error) {
 	var firstErr error
 	for _, kind := range [...]GeoKind{first, second} {
 		scan, err := scanIndex(data, kind)
+		if errors.Is(err, ErrIndexTooLarge) {
+			// Retrying as the other layout would only spend the same memory again.
+			return "", nil, err
+		}
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
@@ -350,6 +363,9 @@ func domainValue(payload []byte) ([]byte, []string, error) {
 				return nil, nil, protowire.ParseError(size)
 			}
 			if key := attributeKey(raw); key != "" {
+				if len(attributes) == MaxIndexSize {
+					return nil, nil, ErrIndexTooLarge
+				}
 				attributes = append(attributes, key)
 			}
 			payload = payload[size:]
