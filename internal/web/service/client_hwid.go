@@ -128,19 +128,18 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	}
 	req = normalizeHwidRequest(req)
 	if limit <= 0 {
-		res.Allowed = true
 		if len(req.Hwid) < minHwidLength {
-			return res, nil
+			return HwidGateResult{Allowed: true}, nil
 		}
 		// The gate runs before the sub lookup; a subId no client owns gets no row.
 		known, err := subIDHasEnabledClient(db, subID)
 		if err != nil {
 			return res, err
 		}
-		if known {
-			trackUnlimitedHwid(db, subID, req)
+		// A limit set since the read above sends the request through the gate below.
+		if !known || trackUnlimitedHwid(db, subID, req) {
+			return HwidGateResult{Allowed: true}, nil
 		}
-		return res, nil
 	}
 
 	res.Active = true
@@ -206,15 +205,29 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 
 // trackUnlimitedHwid lists devices of a sub with no HWID limit in the panel. It is
 // best-effort: a failed write must not deny a subscription nothing restricts.
-func trackUnlimitedHwid(db *gorm.DB, subID string, req HwidRequest) {
+// False means the sub has a limit by now and no row was written.
+func trackUnlimitedHwid(db *gorm.DB, subID string, req HwidRequest) bool {
+	limited := false
 	now := time.Now().UnixMilli()
-	err := db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "sub_id"}, {Name: "hwid_hash"}},
-		DoUpdates: clause.AssignmentColumns([]string{"last_seen", "user_agent", "device_os", "os_version", "device_model"}),
-	}).Create(&model.ClientHwid{SubID: subID, HwidHash: hashHwid(req.Hwid), FirstSeen: now, LastSeen: now, UserAgent: req.UserAgent, DeviceOS: req.DeviceOS, OsVersion: req.OsVersion, DeviceModel: req.DeviceModel}).Error
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// A row landing behind setClientLimitHwidByEmailTx's trim would stay registered
+		// above the limit, so the caller's read does not count here.
+		limit, err := effectiveHwidLimitForSubID(tx, subID)
+		if err != nil {
+			return err
+		}
+		if limited = limit > 0; limited {
+			return nil
+		}
+		return tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sub_id"}, {Name: "hwid_hash"}},
+			DoUpdates: clause.AssignmentColumns([]string{"last_seen", "user_agent", "device_os", "os_version", "device_model"}),
+		}).Create(&model.ClientHwid{SubID: subID, HwidHash: hashHwid(req.Hwid), FirstSeen: now, LastSeen: now, UserAgent: req.UserAgent, DeviceOS: req.DeviceOS, OsVersion: req.OsVersion, DeviceModel: req.DeviceModel}).Error
+	})
 	if err != nil {
 		logger.Warning("track HWID for unlimited subscription failed:", err)
 	}
+	return !limited
 }
 
 // HwidSlotStatusForSubID is SELECT-only: it must never write client_hwids or
