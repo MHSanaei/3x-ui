@@ -213,6 +213,10 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	normalizeClientTrafficReset(&client)
+	// Nothing to withdraw on a new client, so a blank spec is no spec.
+	if client.ForwardedPortsSpec() == "" {
+		client.ForwardedPorts = nil
+	}
 	client.ClientHostRuleIds = model.NormalizeClientHostRuleIds(client.ClientHostRuleIds)
 	if len(payload.InboundIds) == 0 {
 		return false, common.NewError("at least one inbound is required")
@@ -938,6 +942,16 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
+	// The AmneziaWG forwards too: the record merge keeps a stored spec when the settings
+	// carry none, so a withdrawal is written here; nil (not sent) leaves it alone.
+	if updated.ForwardedPorts != nil {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			UpdateColumn("wg_forwarded_ports", updated.ForwardedPortsSpec()).Error; err != nil {
+			return needRestart, err
+		}
+	}
+
 	// Same shape as the group write above: SyncInbound keeps a stored ad-tag
 	// when the incoming settings carry none, so clearing the override must be
 	// applied here, where the editor always round-trips the field.
@@ -1186,7 +1200,7 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		copyClient := *clientWire
 		// A forward is a listener on the target inbound's host, set per inbound: carried over, it
 		// would let a node-reported client choose ports on this host.
-		copyClient.ForwardedPorts = ""
+		copyClient.ForwardedPorts = nil
 		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
 			copyClient.AllowedIPs = nil
 		}

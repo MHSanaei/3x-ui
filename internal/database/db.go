@@ -1530,7 +1530,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "SessionSecretRotation", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban", "ClientGroupNameTrim", "OwnerlessClientHwidPurge"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "SessionSecretRotation", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban", "ClientGroupNameTrim", "OwnerlessClientHwidPurge", "ClientForwardedPortsBackfill"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1721,6 +1721,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "OwnerlessClientHwidPurge") {
 		if err := purgeOwnerlessClientHwids(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "ClientForwardedPortsBackfill") {
+		if err := backfillClientForwardedPorts(); err != nil {
 			return err
 		}
 	}
@@ -1917,6 +1923,40 @@ func clearLegacyProxySettings() error {
 			return err
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
+	})
+}
+
+// The client editor fills forwardedPorts from the record, which kept the value it was created
+// with; an emptied field now withdraws the forwards, so the record must hold the live spec.
+func backfillClientForwardedPorts() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Select("id", "settings").Where("protocol = ?", model.AmneziaWG).Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, ib := range inbounds {
+			var parsed struct {
+				Clients []struct {
+					Email          string `json:"email"`
+					ForwardedPorts string `json:"forwardedPorts"`
+				} `json:"clients"`
+			}
+			if json.Unmarshal([]byte(ib.Settings), &parsed) != nil {
+				continue
+			}
+			for _, c := range parsed.Clients {
+				spec := strings.TrimSpace(c.ForwardedPorts)
+				if c.Email == "" || spec == "" {
+					continue
+				}
+				if err := tx.Model(&model.ClientRecord{}).
+					Where("email = ? AND (wg_forwarded_ports IS NULL OR wg_forwarded_ports = '')", c.Email).
+					UpdateColumn("wg_forwarded_ports", spec).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ClientForwardedPortsBackfill"}).Error
 	})
 }
 

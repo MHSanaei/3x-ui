@@ -63,6 +63,11 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	if incoming.KeepAlive != "" {
 		row.KeepAlive = incoming.KeepAlive
 	}
+	// Guarded like Group: only an AmneziaWG entry is sure to carry the spec, and the record
+	// is shared with every other inbound of the client.
+	if incoming.ForwardedPorts != "" {
+		row.ForwardedPorts = incoming.ForwardedPorts
+	}
 	row.SubID = incoming.SubID
 	row.LimitIP = incoming.LimitIP
 	row.TotalGB = incoming.TotalGB

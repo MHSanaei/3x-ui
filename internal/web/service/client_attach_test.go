@@ -210,8 +210,8 @@ func TestAttachDoesNotCarryForwardedPorts(t *testing.T) {
 				t.Fatalf("GetClients(own): %v", err)
 			}
 			for _, c := range clients {
-				if c.Email == "forwarder" && c.ForwardedPorts != "" {
-					t.Fatalf("attach carried forwardedPorts %q onto the master's inbound", c.ForwardedPorts)
+				if c.Email == "forwarder" && c.ForwardedPortsSpec() != "" {
+					t.Fatalf("attach carried forwardedPorts %q onto the master's inbound", c.ForwardedPortsSpec())
 				}
 			}
 		})

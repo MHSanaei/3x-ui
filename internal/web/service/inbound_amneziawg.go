@@ -324,7 +324,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 				if client.Enable {
 					inst.Peers = append(inst.Peers, amneziawg.Peer{
 						AllowedIPs:     client.AllowedIPs,
-						ForwardedPorts: client.ForwardedPorts,
+						ForwardedPorts: client.ForwardedPortsSpec(),
 					})
 				}
 			}
@@ -372,7 +372,7 @@ func (s *InboundService) loadPortConflictContext(db *gorm.DB, nodeID *int) (port
 // amneziaWGForwardedPortsConflict renders one client's ForwardedPorts collision,
 // or nil: the single copy both the pre-Save pass and the post-Save re-run use.
 func (s *InboundService) amneziaWGForwardedPortsConflict(ctx portConflictContext, c *model.Client) error {
-	hit := s.checkForwardedPortsConflict(ctx, c.ForwardedPorts)
+	hit := s.checkForwardedPortsConflict(ctx, c.ForwardedPortsSpec())
 	if hit == "" {
 		return nil
 	}

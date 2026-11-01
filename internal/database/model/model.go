@@ -955,7 +955,7 @@ type Client struct {
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
 	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"`      // Numeric values or AmneziaWG ranges; 0 disables, omission preserves.
-	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
+	ForwardedPorts      *string          `json:"forwardedPorts,omitempty"` // AmneziaWG port-forwarding spec, e.g. "80,443,8000-8100"; "" withdraws the forwards, omit to keep them
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
 	Email               string           `json:"email"`                            // Client email identifier
@@ -1273,6 +1273,27 @@ func keepAliveValue(value *KeepAliveValue) KeepAliveValue {
 	return *value
 }
 
+// ForwardedPortsSpec is the client's port-forwarding spec, "" when unset.
+func (c Client) ForwardedPortsSpec() string {
+	if c.ForwardedPorts == nil {
+		return ""
+	}
+	return strings.TrimSpace(*c.ForwardedPorts)
+}
+
+// ForwardedPortsPtr wraps an explicit spec, "" included: distinct from a nil
+// ForwardedPorts, which means the field was never sent.
+func ForwardedPortsPtr(spec string) *string { return &spec }
+
+// nonEmptyForwardedPorts keeps a stored "" nil: a record re-saved as a client must not
+// read as a request to withdraw the forwards.
+func nonEmptyForwardedPorts(spec string) *string {
+	if spec == "" {
+		return nil
+	}
+	return ForwardedPortsPtr(spec)
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:             c.Email,
@@ -1304,7 +1325,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
 		PreSharedKey:   c.PreSharedKey,
 		KeepAlive:      keepAliveValue(c.KeepAlive),
-		ForwardedPorts: c.ForwardedPorts,
+		ForwardedPorts: c.ForwardedPortsSpec(),
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
 	}
@@ -1364,7 +1385,7 @@ func (r *ClientRecord) ToClient() *Client {
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
 		KeepAlive:      keepAlivePtr(r.KeepAlive),
-		ForwardedPorts: r.ForwardedPorts,
+		ForwardedPorts: nonEmptyForwardedPorts(r.ForwardedPorts),
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
 	}

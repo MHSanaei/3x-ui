@@ -452,3 +452,43 @@ func TestOwnerlessClientHwidsPurgedOnUpgrade(t *testing.T) {
 		t.Fatalf("hwid rows after upgrade = %q, want [owned]", subs)
 	}
 }
+
+// The editor fills forwardedPorts from the record, and an emptied field now withdraws the
+// forwards: a record left at its creation value would drop live forwards on the next save.
+func TestClientForwardedPortsBackfilledOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	if err := db.Create(&model.ClientRecord{Email: "fwd@x", Enable: true}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientRecord{Email: "kept@x", Enable: true, ForwardedPorts: "9000"}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.Inbound{
+		Tag: "awg", Port: 51820, Protocol: model.AmneziaWG, Enable: true,
+		Settings: `{"clients":[{"email":"fwd@x","forwardedPorts":"8022"},{"email":"kept@x","forwardedPorts":"9001"}]}`,
+	}).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := db.Where("seeder_name = ?", "ClientForwardedPortsBackfill").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	for email, want := range map[string]string{"fwd@x": "8022", "kept@x": "9000"} {
+		var rec model.ClientRecord
+		if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+			t.Fatalf("read %s: %v", email, err)
+		}
+		if rec.ForwardedPorts != want {
+			t.Errorf("%s forwardedPorts = %q after upgrade, want %q", email, rec.ForwardedPorts, want)
+		}
+	}
+}
