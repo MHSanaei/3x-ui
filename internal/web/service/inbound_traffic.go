@@ -462,13 +462,18 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// instead of a linear scan of every expired row (O(clients × expired) per
 	// inbound, quadratic at scale). Pointers keep the in-place mutation below.
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
-	// Keep the pre-renewal quota state: the shared pointer becomes enabled while
-	// processing the first inbound, while an already-enabled row paired with
-	// disabled settings represents an operator-disabled client we must preserve.
-	trafficWasEnabled := make(map[string]bool, len(traffics))
+	// Judged on the pre-renewal rows, as the shared pointer is enabled while processing
+	// the first inbound: only what the lifecycle job switched off comes back.
+	var switchedOff []xray.ClientTraffic
 	for i := range traffics {
 		trafficByEmail[traffics[i].Email] = traffics[i]
-		trafficWasEnabled[traffics[i].Email] = traffics[i].Enable
+		if !traffics[i].Enable {
+			switchedOff = append(switchedOff, *traffics[i])
+		}
+	}
+	lifecycleDisabled, err := lifecycleDisabledEmails(tx, switchedOff)
+	if err != nil {
+		return false, 0, err
 	}
 	renewedEmails := make([]string, 0, len(traffics))
 	for inbound_index := range inbounds {
@@ -508,7 +513,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				traffic.Up = 0
 				renewedEmails = append(renewedEmails, email)
 			}
-			if !trafficWasEnabled[email] {
+			if _, restore := lifecycleDisabled[email]; restore {
 				traffic.Enable = true
 				c["enable"] = true
 				key := inboundClientKey{inboundID: inbounds[inbound_index].Id, email: email}

@@ -288,3 +288,32 @@ func (s *InboundService) DepletedClientEmails(emails []string) (map[string]struc
 	}
 	return depleted, nil
 }
+
+// lifecycleDisabledEmails picks, out of switched-off stats rows, the ones that
+// disableInvalidClients cleared; an operator's disable clears the flag as well.
+func lifecycleDisabledEmails(tx *gorm.DB, rows []xray.ClientTraffic) (map[string]struct{}, error) {
+	emails := make([]string, 0, len(rows))
+	for i := range rows {
+		emails = append(emails, rows[i].Email)
+	}
+	records, err := clientRecordsByEmail(tx, emails)
+	if err != nil {
+		return nil, err
+	}
+	// Cross-panel usage depletes too (depletedClientsCond); the overlay raises
+	// the counters in place, so callers hand it copies.
+	overlayGlobalTrafficValues(tx, rows)
+	disabled := make(map[string]struct{}, len(rows))
+	for i := range rows {
+		r := &rows[i]
+		depleted := r.Total > 0 && r.Up+r.Down >= r.Total
+		// The job stamps the record once the deadline has passed (whole seconds
+		// is all a stamp pushed to a node keeps); an operator's disable came earlier.
+		record := records[r.Email]
+		expired := record != nil && r.ExpiryTime > 0 && record.UpdatedAt >= r.ExpiryTime/1000*1000
+		if depleted || expired {
+			disabled[r.Email] = struct{}{}
+		}
+	}
+	return disabled, nil
+}
