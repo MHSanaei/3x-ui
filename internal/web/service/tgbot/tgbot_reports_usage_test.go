@@ -2,10 +2,13 @@ package tgbot
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
@@ -363,5 +366,74 @@ func TestLoginAlertKeepsUsernameOnOneLine(t *testing.T) {
 				t.Errorf("login %s, line break %q: message = %q, want it to contain %q", status, lineBreak, got, want)
 			}
 		}
+	}
+}
+
+// The notifiers exempt login events from their cooldown, so failed logins are throttled where
+// they are published, or an unauthenticated flood crowds every other alert out of the queues.
+func TestLoginFailAlertGate(t *testing.T) {
+	g := &loginFailAlertGate{}
+	now := time.Now()
+
+	if !g.allow("192.0.2.1", now) {
+		t.Fatal("first failure of a source must be alerted")
+	}
+	if g.allow("192.0.2.1", now.Add(loginFailAlertWindow-time.Second)) {
+		t.Fatal("a source must be alerted once per window")
+	}
+
+	passed := 1
+	for i := range 1000 {
+		if g.allow(fmt.Sprintf("2001:db8::%x", i), now.Add(time.Second)) {
+			passed++
+		}
+	}
+	if passed != loginFailAlertMaxSources {
+		t.Fatalf("%d sources alerted in one window, want %d", passed, loginFailAlertMaxSources)
+	}
+	if len(g.sources) > loginFailAlertMaxSources {
+		t.Fatalf("gate tracks %d sources, want at most %d", len(g.sources), loginFailAlertMaxSources)
+	}
+
+	if !g.allow("192.0.2.1", now.Add(loginFailAlertWindow)) {
+		t.Fatal("a new window must alert again")
+	}
+}
+
+func TestUserLoginNotifyThrottlesOnlyFailures(t *testing.T) {
+	bus := eventbus.New(0)
+	defer bus.Stop()
+	prevBus, prevGate := EventBus, loginFailAlerts
+	EventBus, loginFailAlerts = bus, &loginFailAlertGate{}
+	defer func() { EventBus, loginFailAlerts = prevBus, prevGate }()
+
+	var failures, successes atomic.Int32
+	bus.Subscribe("counter", func(e eventbus.Event) {
+		if e.Data.(*eventbus.LoginEventData).Status == "success" {
+			successes.Add(1)
+		} else {
+			failures.Add(1)
+		}
+	})
+
+	bot := &Tgbot{}
+	for range 50 {
+		bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.1", Time: "now", Status: LoginFail, Reason: "too many failed attempts"})
+	}
+	bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.2", Time: "now", Status: LoginFail, Reason: "invalid credentials"})
+	for range 3 {
+		bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.1", Time: "now", Status: LoginSuccess})
+	}
+
+	// The bus delivers in publication order, so the last success arrives after every failure.
+	deadline := time.Now().Add(5 * time.Second)
+	for successes.Load() < 3 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := successes.Load(); got != 3 {
+		t.Fatalf("successful logins reported %d times, want 3", got)
+	}
+	if got := failures.Load(); got != 2 {
+		t.Fatalf("failed logins from two sources reported %d times, want 2", got)
 	}
 }
