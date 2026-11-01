@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "Uložiť nastavenia geodát?",
       "geodataConfirmContent": "Zmení sa šablóna konfigurácie Xray a Xray sa reštartuje.",
       "geodataInvalidUrl": "Pre každý súbor zadajte odkaz HTTPS.",
-      "geodataInvalidFile": "Použite samotný názov súboru, napr. geosite_custom.dat, bez cesty.",
+      "geodataInvalidFile": "Použite samotný názov súboru .dat, napr. geosite_custom.dat, bez cesty.",
       "geodataInvalidCron": "Výraz cron musí mať 5 polí, napr. 0 4 * * *",
       "geodataEmpty": "Nie sú nastavené žiadne súbory. V pravidlách smerovania na ne odkazujte ako ext:geosite_custom.dat:category.",
       "dontRefresh": "Prebieha inštalácia. Neobnovujte stránku.",

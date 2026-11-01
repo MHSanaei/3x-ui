@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "Lưu cài đặt geodata?",
       "geodataConfirmContent": "Mẫu cấu hình Xray sẽ được cập nhật và Xray sẽ khởi động lại.",
       "geodataInvalidUrl": "Mỗi tệp cần một URL HTTPS.",
-      "geodataInvalidFile": "Tên tệp phải là tên đơn giản, ví dụ geosite_custom.dat (không chứa đường dẫn).",
+      "geodataInvalidFile": "Tên tệp phải là tên .dat đơn giản, ví dụ geosite_custom.dat (không chứa đường dẫn).",
       "geodataInvalidCron": "Cron phải có 5 trường, ví dụ 0 4 * * *",
       "geodataEmpty": "Chưa cấu hình tệp nào. Trong quy tắc định tuyến, tham chiếu tệp dạng ext:geosite_custom.dat:category.",
       "dontRefresh": "Đang tiến hành cài đặt, vui lòng không làm mới trang này.",

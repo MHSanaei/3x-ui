@@ -19,8 +19,8 @@ interface GeodataSectionProps {
 }
 
 const DEFAULT_CRON = '0 4 * * *';
-// Xray resolves `file` inside its asset directory; plain file names only.
-const FILE_NAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+// Xray resolves `file` inside its asset directory; since 26.10.29 a scheduled one must be .dat.
+const FILE_NAME_PATTERN = /^[A-Za-z0-9._-]+\.dat$/i;
 
 function fileNameFromUrl(url: string): string {
   try {

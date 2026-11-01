@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "¿Guardar la configuración de geodata?",
       "geodataConfirmContent": "Se actualizará la plantilla de configuración de Xray y se reiniciará Xray.",
       "geodataInvalidUrl": "Cada archivo necesita una URL HTTPS.",
-      "geodataInvalidFile": "El nombre de archivo debe ser simple, p. ej. geosite_custom.dat (sin rutas).",
+      "geodataInvalidFile": "El nombre de archivo debe ser un nombre .dat simple, p. ej. geosite_custom.dat (sin rutas).",
       "geodataInvalidCron": "Cron debe tener 5 campos, p. ej. 0 4 * * *",
       "geodataEmpty": "No hay archivos configurados. En las reglas de enrutamiento se referencian como ext:geosite_custom.dat:category.",
       "dontRefresh": "La instalación está en progreso, por favor no actualices esta página.",

@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "geodata 設定を保存しますか？",
       "geodataConfirmContent": "Xray 設定テンプレートを更新し、Xray を再起動します。",
       "geodataInvalidUrl": "各ファイルには HTTPS URL が必要です。",
-      "geodataInvalidFile": "ファイル名はパスを含まない単純な名前にしてください（例: geosite_custom.dat）。",
+      "geodataInvalidFile": "ファイル名はパスを含まない単純な .dat 名にしてください（例: geosite_custom.dat）。",
       "geodataInvalidCron": "Cron は 5 フィールド必要です（例: 0 4 * * *）",
       "geodataEmpty": "ファイルが設定されていません。ルーティングルールでは ext:geosite_custom.dat:category の形式で参照します。",
       "dontRefresh": "インストール中、このページをリロードしないでください",

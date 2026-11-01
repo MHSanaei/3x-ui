@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "تنظیمات geodata ذخیره شود؟",
       "geodataConfirmContent": "قالب پیکربندی Xray به‌روزرسانی و Xray ری‌استارت می‌شود.",
       "geodataInvalidUrl": "هر فایل به یک آدرس HTTPS نیاز دارد.",
-      "geodataInvalidFile": "نام فایل باید ساده باشد، مانند geosite_custom.dat (بدون مسیر).",
+      "geodataInvalidFile": "نام فایل باید یک نام ساده با پسوند ‎.dat باشد، مانند geosite_custom.dat (بدون مسیر).",
       "geodataInvalidCron": "Cron باید ۵ بخش داشته باشد، مثل 0 4 * * *",
       "geodataEmpty": "فایلی پیکربندی نشده است. در قوانین مسیریابی فایل‌ها به صورت ext:geosite_custom.dat:category استفاده می‌شوند.",
       "dontRefresh": "در حال نصب، لطفا صفحه را رفرش نکنید",

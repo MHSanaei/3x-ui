@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "保存 geodata 设置？",
       "geodataConfirmContent": "将更新 Xray 配置模板并重启 Xray。",
       "geodataInvalidUrl": "每个文件都需要 HTTPS 地址。",
-      "geodataInvalidFile": "文件名必须是纯文件名，例如 geosite_custom.dat（不能包含路径）。",
+      "geodataInvalidFile": "文件名必须是纯 .dat 文件名，例如 geosite_custom.dat（不能包含路径）。",
       "geodataInvalidCron": "Cron 必须为 5 段，例如 0 4 * * *",
       "geodataEmpty": "尚未配置文件。路由规则中可通过 ext:geosite_custom.dat:category 引用文件。",
       "dontRefresh": "安装中，请勿刷新此页面",

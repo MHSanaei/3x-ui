@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "Save geodata settings?",
       "geodataConfirmContent": "This updates the Xray config template and restarts Xray.",
       "geodataInvalidUrl": "Each file needs an HTTPS URL.",
-      "geodataInvalidFile": "File names must be plain names like geosite_custom.dat (no paths).",
+      "geodataInvalidFile": "File names must be plain .dat names like geosite_custom.dat (no paths).",
       "geodataInvalidCron": "Cron must have 5 fields, e.g. 0 4 * * *",
       "geodataEmpty": "No files configured. Reference files in routing rules as ext:geosite_custom.dat:category.",
       "dontRefresh": "Installation is in progress, please do not refresh this page",

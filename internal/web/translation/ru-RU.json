@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "Сохранить настройки geodata?",
       "geodataConfirmContent": "Шаблон конфигурации Xray будет обновлён, а Xray перезапущен.",
       "geodataInvalidUrl": "Для каждого файла нужен HTTPS URL.",
-      "geodataInvalidFile": "Имя файла должно быть простым, например geosite_custom.dat (без путей).",
+      "geodataInvalidFile": "Имя файла должно быть простым именем .dat, например geosite_custom.dat (без путей).",
       "geodataInvalidCron": "Cron должен содержать 5 полей, напр. 0 4 * * *",
       "geodataEmpty": "Файлы не настроены. В правилах маршрутизации файлы указываются как ext:geosite_custom.dat:category.",
       "dontRefresh": "Установка в процессе. Не обновляйте страницу",

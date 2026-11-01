@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "Geodata ayarları kaydedilsin mi?",
       "geodataConfirmContent": "Xray yapılandırma şablonu güncellenecek ve Xray yeniden başlatılacak.",
       "geodataInvalidUrl": "Her dosya için bir HTTPS URL gerekir.",
-      "geodataInvalidFile": "Dosya adı yalnızca dosya adı olmalıdır, örn. geosite_custom.dat (yol içermemeli).",
+      "geodataInvalidFile": "Dosya adı yalnızca .dat uzantılı bir dosya adı olmalıdır, örn. geosite_custom.dat (yol içermemeli).",
       "geodataInvalidCron": "Cron 5 alandan oluşmalıdır, örn. 0 4 * * *",
       "geodataEmpty": "Yapılandırılmış dosya yok. Yönlendirme kurallarında dosyalar ext:geosite_custom.dat:category olarak kullanılır.",
       "dontRefresh": "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin",

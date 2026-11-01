@@ -238,7 +238,7 @@
       "geodataConfirmTitle": "حفظ إعدادات geodata؟",
       "geodataConfirmContent": "سيتم تحديث قالب إعدادات Xray وإعادة تشغيل Xray.",
       "geodataInvalidUrl": "كل ملف يحتاج إلى رابط HTTPS.",
-      "geodataInvalidFile": "يجب أن يكون اسم الملف اسماً بسيطاً مثل geosite_custom.dat (بدون مسارات).",
+      "geodataInvalidFile": "يجب أن يكون اسم الملف اسماً بسيطاً بامتداد ‎.dat مثل geosite_custom.dat (بدون مسارات).",
       "geodataInvalidCron": "يجب أن يتكون cron من 5 حقول، مثل 0 4 * * *",
       "geodataEmpty": "لا توجد ملفات مهيأة. في قواعد التوجيه يُشار إلى الملفات بالشكل ext:geosite_custom.dat:category.",
       "dontRefresh": "التثبيت شغال، متعملش Refresh للصفحة",
