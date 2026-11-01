@@ -2118,17 +2118,17 @@ func seedSharedSubIdInbound(t *testing.T, protocol model.Protocol, subId string,
 // A subscription of n clients of one inbound must decode that inbound's settings
 // once, not once per link: with the clients array inside, n decodes grow with n².
 func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
-	const n = 1000
 	const subId = "shared-sub-id"
-	// The race detector roughly doubles allocations; one decode per link costs several times this.
-	const maxAllocated = 256 << 20
+	// Growth, not an absolute byte count, so the race detector or a Go upgrade cannot move
+	// it: tripling n triples linear work and multiplies a per-link decode by nine.
+	const small, scale, maxGrowth = 300, 3, 5.0
 	serverPriv, serverPub := mustWireguardKeypair(t)
 	clientPriv, _ := mustWireguardKeypair(t)
 
 	email := func(i int) string { return fmt.Sprintf("user-%04d@sub", i) }
 	uuid := func(i int) string { return fmt.Sprintf("11111111-2222-4333-8444-%012d", i) }
-	seed := map[model.Protocol]func(t *testing.T) *model.Inbound{
-		model.TUIC: func(t *testing.T) *model.Inbound {
+	seed := map[model.Protocol]func(t *testing.T, n int) *model.Inbound{
+		model.TUIC: func(t *testing.T, n int) *model.Inbound {
 			return seedSharedSubIdInbound(t, model.TUIC, subId, n, `"server":{"certificate":"/c","private_key":"/k"}`,
 				func(i int) string {
 					return fmt.Sprintf(`{"uuid":%q,"password":"pw","email":%q,"enable":true}`, uuid(i), email(i))
@@ -2137,7 +2137,7 @@ func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
 					return model.ClientRecord{Email: email(i), UUID: uuid(i), Password: "pw"}
 				})
 		},
-		model.AmneziaWG: func(t *testing.T) *model.Inbound {
+		model.AmneziaWG: func(t *testing.T, n int) *model.Inbound {
 			return seedSharedSubIdInbound(t, model.AmneziaWG, subId, n, fmt.Sprintf(`"server":{"privateKey":%q,"publicKey":%q,"mtu":1420}`, serverPriv, serverPub),
 				func(i int) string {
 					return fmt.Sprintf(`{"email":%q,"privateKey":%q,"allowedIPs":["10.8.%d.%d/32"],"enable":true}`, email(i), clientPriv, i/256, i%256)
@@ -2146,7 +2146,7 @@ func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
 					return model.ClientRecord{Email: email(i), PrivateKey: clientPriv, AllowedIPs: fmt.Sprintf("10.8.%d.%d/32", i/256, i%256)}
 				})
 		},
-		model.WireGuard: func(t *testing.T) *model.Inbound {
+		model.WireGuard: func(t *testing.T, n int) *model.Inbound {
 			return seedSharedSubIdInbound(t, model.WireGuard, subId, n, fmt.Sprintf(`"secretKey":%q,"mtu":1420`, serverPriv),
 				func(i int) string {
 					return fmt.Sprintf(`{"email":%q,"privateKey":%q,"allowedIPs":["10.8.%d.%d/32"],"enable":true}`, email(i), clientPriv, i/256, i%256)
@@ -2155,7 +2155,7 @@ func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
 					return model.ClientRecord{Email: email(i), PrivateKey: clientPriv, AllowedIPs: fmt.Sprintf("10.8.%d.%d/32", i/256, i%256)}
 				})
 		},
-		model.Hysteria: func(t *testing.T) *model.Inbound {
+		model.Hysteria: func(t *testing.T, n int) *model.Inbound {
 			return seedSharedSubIdInbound(t, model.Hysteria, subId, n, `"version":2`,
 				func(i int) string {
 					return fmt.Sprintf(`{"email":%q,"auth":"auth","enable":true}`, email(i))
@@ -2216,19 +2216,21 @@ func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			initSubDB(t)
-			seed[tc.protocol](t)
-
-			var before, after runtime.MemStats
-			runtime.ReadMemStats(&before)
-			got := tc.fetch(t)
-			runtime.ReadMemStats(&after)
-
-			if got != n {
-				t.Fatalf("entries = %d, want %d", got, n)
+			allocated := func(n int) float64 {
+				initSubDB(t)
+				seed[tc.protocol](t, n)
+				var before, after runtime.MemStats
+				runtime.ReadMemStats(&before)
+				got := tc.fetch(t)
+				runtime.ReadMemStats(&after)
+				if got != n {
+					t.Fatalf("entries = %d, want %d", got, n)
+				}
+				return float64(after.TotalAlloc - before.TotalAlloc)
 			}
-			if allocated := after.TotalAlloc - before.TotalAlloc; allocated > maxAllocated {
-				t.Fatalf("%d entries allocated %d MiB, want at most %d MiB", n, allocated>>20, maxAllocated>>20)
+			base, grown := allocated(small), allocated(small*scale)
+			if growth := grown / base; growth > maxGrowth {
+				t.Fatalf("%dx the entries allocated %.1fx the memory (%d MiB), want linear growth", scale, growth, int64(grown)>>20)
 			}
 		})
 	}
