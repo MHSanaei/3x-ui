@@ -4,117 +4,128 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
-// still-ui: partial client updates.
-//
-// POST /panel/api/clients/update/:email binds the body into model.Client, so a
-// field the caller left out arrives as its zero value. Before this merge a
-// script or bot that sent only {"email":..., "expiryTime":...} silently
-// disabled the client (enable=false), dropped its traffic/IP/HWID limits, its
-// Telegram id, comment, group, VLESS flow and renewal settings. The panel UI
-// always sends the full client, so it is unaffected; API callers now get the
-// usual "partial update keeps what it did not mention" semantics. An explicit
-// zero ("enable": false, "expiryTime": 0, "comment": "") still clears the field.
-//
-// Tunnel credentials (WireGuard/AmneziaWG keys, preSharedKey, allowedIPs,
-// keepAlive, forwardedPorts) and UUID/password/auth/secret are not handled here:
-// they are per-inbound and already carried forward by Update/UpdateInboundClient.
+type clientUpdateBody struct {
+	model.Client
+	LimitHwid int `json:"limitHwid"`
+}
 
-// ClientPayloadKeys returns the set of top-level JSON keys present in an update
-// body. A body that is not a JSON object yields an empty set.
-func ClientPayloadKeys(body []byte) map[string]bool {
+// UpdateByEmailJSON applies a POST /clients/update body: an omitted key keeps the
+// stored value and an explicit zero or empty value clears it, but an omitted reverse clears.
+func (s *ClientService) UpdateByEmailJSON(inboundSvc *InboundService, email string, body []byte, inboundFilter ...int) (bool, error) {
+	var req clientUpdateBody
+	if err := json.Unmarshal(body, &req); err != nil {
+		return false, err
+	}
+	if email == "" {
+		return false, common.NewError("client email is required")
+	}
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return false, err
+	}
+	keys := clientPayloadKeys(body)
+	fillAbsentClientFields(rec, &req.Client, &req.LimitHwid, keys)
+	return s.update(inboundSvc, rec.Id, req.Client, req.LimitHwid, !keys.has("flow"), inboundFilter)
+}
+
+type payloadKeys []string
+
+func clientPayloadKeys(body []byte) payloadKeys {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return map[string]bool{}
+		return nil
 	}
-	keys := make(map[string]bool, len(raw))
+	keys := make(payloadKeys, 0, len(raw))
 	for k := range raw {
-		keys[k] = true
+		keys = append(keys, k)
 	}
 	return keys
 }
 
-// FillAbsentClientFields copies every generic client field whose JSON key is
-// missing from present out of the stored record for email into updated (and
-// limitHwid). Unknown email: nothing is filled; Update reports the error.
-func (s *ClientService) FillAbsentClientFields(email string, updated *model.Client, limitHwid *int, present map[string]bool) error {
-	email = strings.TrimSpace(email)
-	if email == "" || updated == nil {
-		return nil
+// has matches keys the way encoding/json binds them to fields: case-insensitively,
+// so a body sending "limitIP" counts as carrying limitIp.
+func (k payloadKeys) has(name string) bool {
+	for _, key := range k {
+		if strings.EqualFold(key, name) {
+			return true
+		}
 	}
-	rec, err := s.GetRecordByEmail(nil, email)
-	if err != nil {
-		return err
-	}
-	FillAbsentClientFieldsFrom(rec, updated, limitHwid, present)
-	return nil
+	return false
 }
 
-// FillAbsentClientFieldsFrom is the pure part of FillAbsentClientFields.
-func FillAbsentClientFieldsFrom(rec *model.ClientRecord, updated *model.Client, limitHwid *int, present map[string]bool) {
-	if rec == nil || updated == nil {
-		return
-	}
+// fillAbsentClientFields leaves flow to update (it is per inbound) and reverse alone:
+// model.Client drops an empty reverse on marshal, so its absence has always meant clear.
+func fillAbsentClientFields(rec *model.ClientRecord, updated *model.Client, limitHwid *int, keys payloadKeys) {
 	stored := rec.ToClient()
-	absent := func(key string) bool { return !present[key] }
-
-	if absent("email") {
+	if !keys.has("email") {
 		updated.Email = stored.Email
 	}
-	if absent("security") {
+	if !keys.has("security") {
 		updated.Security = stored.Security
 	}
-	if absent("flow") {
-		updated.Flow = stored.Flow
-	}
-	if absent("reverse") {
-		updated.Reverse = stored.Reverse
-	}
-	if absent("limitIp") {
+	if !keys.has("limitIp") {
 		updated.LimitIP = stored.LimitIP
 	}
-	if absent("totalGB") {
+	if !keys.has("totalGB") {
 		updated.TotalGB = stored.TotalGB
 	}
-	if absent("expiryTime") {
+	if !keys.has("expiryTime") {
 		updated.ExpiryTime = stored.ExpiryTime
 	}
-	if absent("enable") {
+	if !keys.has("enable") {
 		updated.Enable = stored.Enable
 	}
-	if absent("tgId") {
+	if !keys.has("tgId") {
 		updated.TgID = stored.TgID
 	}
-	if absent("group") {
+	if !keys.has("group") {
 		updated.Group = stored.Group
 	}
-	if absent("comment") {
+	if !keys.has("comment") {
 		updated.Comment = stored.Comment
 	}
-	if absent("reset") {
+	if !keys.has("reset") {
 		updated.Reset = stored.Reset
 	}
-	if absent("resetDay") {
+	if !keys.has("resetDay") {
 		updated.ResetDay = stored.ResetDay
 	}
-	if absent("resetWeekday") {
+	if !keys.has("resetWeekday") {
 		updated.ResetWeekday = stored.ResetWeekday
 	}
-	if absent("resetMax") {
+	if !keys.has("resetMax") {
 		updated.ResetMax = stored.ResetMax
 	}
-	if absent("trafficReset") {
+	if !keys.has("trafficReset") {
 		updated.TrafficReset = stored.TrafficReset
 	}
-	if absent("trafficResetDay") {
+	if !keys.has("trafficResetDay") {
 		updated.TrafficResetDay = stored.TrafficResetDay
 	}
-	if absent("adTag") {
+	if !keys.has("adTag") {
 		updated.AdTag = stored.AdTag
 	}
-	if limitHwid != nil && absent("limitHwid") {
+	if !keys.has("limitHwid") {
 		*limitHwid = rec.LimitHwid
 	}
+}
+
+// inboundFlowOverrides returns each linked inbound's flow_override: the reliable
+// per-inbound flow, unlike clients.flow (see EffectiveFlow).
+func inboundFlowOverrides(recordId int) (map[int]string, error) {
+	var links []model.ClientInbound
+	if err := database.GetDB().Select("inbound_id", "flow_override").
+		Where("client_id = ?", recordId).Find(&links).Error; err != nil {
+		return nil, err
+	}
+	flows := make(map[int]string, len(links))
+	for _, link := range links {
+		flows[link.InboundId] = link.FlowOverride
+	}
+	return flows, nil
 }

@@ -245,27 +245,13 @@ func (a *ClientController) create(c *gin.Context) {
 
 func (a *ClientController) update(c *gin.Context) {
 	email := c.Param("email")
-	var req struct {
-		model.Client
-		LimitHwid int `json:"limitHwid"`
-	}
 	body, err := c.GetRawData()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	if err := json.Unmarshal(body, &req); err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
-	// still-ui: fields the caller did not send keep their stored values instead
-	// of being reset to zero (see service.FillAbsentClientFields).
-	if err := a.clientService.FillAbsentClientFields(email, &req.Client, &req.LimitHwid, service.ClientPayloadKeys(body)); err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
 	inboundFilter := parseInboundIdsQuery(c.Query("inboundIds"))
-	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, req.Client, req.LimitHwid, inboundFilter...)
+	needRestart, err := a.clientService.UpdateByEmailJSON(&a.inboundService, email, body, inboundFilter...)
 	// Flagged before the error check: a partly-applied edit leaves the change
 	// committed on the inbounds that succeeded, and those still need the restart.
 	if needRestart {
