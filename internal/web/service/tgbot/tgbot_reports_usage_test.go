@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"gorm.io/gorm"
 )
 
@@ -332,5 +333,35 @@ func TestClientUsageDoesNotLoadTheInboundPerClient(t *testing.T) {
 	}
 	if wholeRows >= owned {
 		t.Fatalf("the inbound row was loaded %d times for %d clients", wholeRows, owned)
+	}
+}
+
+// The login alert is one field per line and the username is
+// whatever the visitor typed, so a line break in it must not start a new line.
+func TestLoginAlertKeepsUsernameOnOneLine(t *testing.T) {
+	draftLocalizer(t,
+		&i18n.Message{ID: "tgbot.messages.loginSuccess", Other: "✅ Logged in to the panel successfully.\r\n"},
+		&i18n.Message{ID: "tgbot.messages.loginFailed", Other: "❗️Login attempt to the panel failed.\r\n"},
+		&i18n.Message{ID: "tgbot.messages.hostname", Other: "💻 Host: {{ .Hostname }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.reason", Other: "❗️ Reason: {{ .Reason }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.username", Other: "👤 Username: {{ .Username }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.ip", Other: "🌐 IP: {{ .IP }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.time", Other: "⏰ Time: {{ .Time }}\r\n"},
+	)
+
+	for _, lineBreak := range []string{"\r\n", "\n", "\r", "\v", "\f", "\u0085", "\u2028", "\u2029", "\r\n\r\n"} {
+		username := "mallory" + lineBreak + "🌐 IP: 203.0.113.77"
+		for _, status := range []string{"fail", "success"} {
+			got := (&Tgbot{}).formatEventMessage(eventbus.Event{
+				Type: eventbus.EventLoginAttempt,
+				Data: &eventbus.LoginEventData{
+					Username: username, IP: "192.0.2.1", Time: "now", Status: status, Reason: "invalid credentials",
+				},
+			})
+			want := "👤 Username: mallory" + strings.Repeat(" ", len([]rune(lineBreak))) + "🌐 IP: 203.0.113.77\r\n🌐 IP: 192.0.2.1\r\n"
+			if !strings.Contains(got, want) {
+				t.Errorf("login %s, line break %q: message = %q, want it to contain %q", status, lineBreak, got, want)
+			}
+		}
 	}
 }
