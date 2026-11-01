@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
@@ -676,8 +677,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	if err != nil {
 		return false, err
 	}
-	// The raw blob stays for the reconcile fingerprint, so a rewrite leaves a mismatch to
-	// re-push the master's values against.
+	// The raw blob stays for the usage-only lookup: those entries are refused from the stored
+	// settings, yet the node's usage under them still counts.
 	rawSettings := make(map[*model.Inbound]string, len(snap.Inbounds))
 	for _, snapIb := range snap.Inbounds {
 		if snapIb != nil {
@@ -688,7 +689,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 	structuralChange := false
 	lifecycleLifted := false
-	claimsRewritten := false
 	var sweptTags []string
 
 	var adoptedInbounds []*model.Inbound
@@ -696,7 +696,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		central      *model.Inbound
 		snapIb       *model.Inbound
 		wireSettings string
-		fingerprint  string
 	}
 	var pendingAdopts []pendingAdopt
 	degradedInbounds := map[int]string{}
@@ -864,11 +863,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if deduped, changed := dedupeSettingsClients(adoptedSettings); changed {
 			adoptedSettings = deduped
 		}
-		fingerprint := adoptedSettings
-		if raw := rawSettings[snapIb]; raw != snapIb.Settings {
-			fingerprint, _ = stripTombstonedClients(raw)
-			fingerprint, _ = dedupeSettingsClients(fingerprint)
-		}
 		updates := map[string]any{}
 		if !dirty && snapshotDropsEveryHubClient(tx, c.Id, adoptedSettings) {
 			degradedInbounds[c.Id] = c.Tag
@@ -876,7 +870,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// Defer lifecycle lift until after client_traffics absorbs this tick's
 			// deltas so quota stale-disable matches SQL (#6228).
 			pendingAdopts = append(pendingAdopts, pendingAdopt{
-				central: c, snapIb: snapIb, wireSettings: adoptedSettings, fingerprint: fingerprint,
+				central: c, snapIb: snapIb, wireSettings: adoptedSettings,
 			})
 			updates["enable"] = snapIb.Enable
 			updates["remark"] = snapIb.Remark
@@ -1058,6 +1052,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		// Parsed once per inbound on the first renewal candidate, not per client.
 		var snapExpiries map[string]int64
 		attachedOnNode, membershipKnown := snapshotAttachedEmails(snapIb.Settings)
+		usageOnly := claims.usageOnlyIn(rawSettings[snapIb])
+		if membershipKnown {
+			maps.Copy(attachedOnNode, usageOnly)
+		}
 		for _, cs := range snapIb.ClientStats {
 			// A node detach keeps the stat row, so its quota and verdict are stale (#6724).
 			if _, attached := attachedOnNode[strings.ToLower(cs.Email)]; membershipKnown && !attached {
@@ -1070,7 +1068,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// Until the node applies a reset it owes, its verdict rests on the
 			// pre-reset counters: only usage may move for this client.
 			_, owed := owedResets[cs.Email]
-			clientFrozen := lifecycleFrozen || owed
+			_, onlyUsage := usageOnly[strings.ToLower(cs.Email)]
+			clientFrozen := lifecycleFrozen || owed || onlyUsage
 
 			base, seen := nodeBaselines[cs.Email]
 			var deltaUp, deltaDown int64
@@ -1290,12 +1289,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// so the adopted rows are served this tick, not after the TTL.
 			InvalidateSubData()
 		}
-		rewritten := p.fingerprint != p.wireSettings
-		claimsRewritten = claimsRewritten || rewritten
-		// The fingerprint stamps the node's own blob on purpose: a lift or a refused claim
-		// must leave reconcile a mismatch to re-push against.
-		if liftChanged || rewritten || adoptedWireChanged(p.central, p.snapIb, p.fingerprint) {
-			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.fingerprint))
+		// The fingerprint stamps the un-lifted wire blob on purpose: a lift must leave reconcile
+		// a mismatch to re-push against. A refused claim must not: the push would delete it on the node.
+		if liftChanged || adoptedWireChanged(p.central, p.snapIb, p.wireSettings) {
+			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.wireSettings))
 		}
 	}
 	for _, snapIb := range snap.Inbounds {
@@ -1454,18 +1451,14 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	if (lifecycleLifted || claimsRewritten) && !dirty {
-		reason := "lifecycle lift"
-		if !lifecycleLifted {
-			reason = "client claim rewrite"
-		}
+	if lifecycleLifted && !dirty {
 		var already model.Node
 		if err := database.GetDB().Select("config_dirty").Where("id = ?", nodeID).First(&already).Error; err == nil && already.ConfigDirty {
-			logger.Debugf("setRemoteTraffic: node %d %s; already dirty", nodeID, reason)
+			logger.Debugf("setRemoteTraffic: node %d lifecycle lift; already dirty", nodeID)
 		} else {
-			logger.Infof("setRemoteTraffic: node %d %s; marking dirty for re-push", nodeID, reason)
+			logger.Infof("setRemoteTraffic: node %d lifecycle lift; marking dirty for re-push", nodeID)
 			if err := (&NodeService{}).MarkNodeDirty(nodeID); err != nil {
-				logger.Warningf("setRemoteTraffic: mark node %d dirty after %s failed: %v", nodeID, reason, err)
+				logger.Warningf("setRemoteTraffic: mark node %d dirty after lifecycle lift failed: %v", nodeID, err)
 			}
 		}
 	}

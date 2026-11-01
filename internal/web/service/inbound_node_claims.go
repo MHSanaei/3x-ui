@@ -28,6 +28,9 @@ type nodeClientClaims struct {
 	// storedSubID keeps an own record's subId when the node reports one held by a
 	// client it does not host.
 	storedSubID map[string]string
+	// usageOnly records live only outside this node but share the email: the node's usage
+	// still adds to them (cross-panel totals), its lifecycle and record values do not.
+	usageOnly map[string]struct{}
 }
 
 // nodeKeptSharedKeys stay as the node reported them: per-link values, and the lifecycle
@@ -41,6 +44,7 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 		refused:     map[string]string{},
 		shared:      map[string]*model.ClientRecord{},
 		storedSubID: map[string]string{},
+		usageOnly:   map[string]struct{}{},
 	}
 	subIDByEmail := map[string]string{}
 	// A subId selects a whole subscription, so within one snapshot it may name one client only.
@@ -154,6 +158,7 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 			claims.shared[email] = rec
 		case scope.elsewhere:
 			claims.refused[email] = "it is attached only to inbounds this node does not host"
+			claims.usageOnly[email] = struct{}{}
 		case !scope.here && (rec.SyncOrphanedAt == 0 || rec.SyncOrphanedBy != nodeID):
 			claims.refused[email] = "it is detached from every inbound on the master"
 		case subID != rec.SubID && subID != "" && subIDTaken(email, subID):
@@ -333,4 +338,25 @@ func logOversizeNodeInbounds(nodeID int, tags map[string]string) {
 		}
 	}
 	reportedOversizeInbounds.Store(nodeID, tags)
+}
+
+// usageOnlyIn lists, lowercased as the stats merge keys them, the usage-only emails a
+// snapshot inbound's own settings carry.
+func (c *nodeClientClaims) usageOnlyIn(settings string) map[string]struct{} {
+	out := map[string]struct{}{}
+	if len(c.usageOnly) == 0 {
+		return out
+	}
+	_, entries, ok := splitSettingsClients(settings)
+	if !ok {
+		return out
+	}
+	for _, entry := range entries {
+		if sc, ok := readSettingsClient(entry); ok {
+			if _, only := c.usageOnly[sc.Email]; only {
+				out[strings.ToLower(sc.Email)] = struct{}{}
+			}
+		}
+	}
+	return out
 }

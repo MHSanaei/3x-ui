@@ -191,8 +191,8 @@ func TestNodeCannotRewriteClientSharedWithMaster(t *testing.T) {
 	}
 }
 
-// A refused claim must leave no trace: the stored settings are re-synced later by
-// auto-renew, and its stats would land on the victim's traffic row.
+// A refused claim must not be stored (auto-renew re-syncs the settings later) nor move the
+// client's lifecycle; usage under an email the master also serves still adds up across panels.
 func TestNodeRefusedClaimIsNotStoredOrCounted(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -206,7 +206,8 @@ func TestNodeRefusedClaimIsNotStoredOrCounted(t *testing.T) {
 	hostile := `{"clients":[{"email":"victim@x","id":"","subId":"picked-by-node","enable":true},{"email":"victim@x ","subId":"padded","enable":true},{"email":"VICTIM@X","subId":"cased","enable":true},{"email":"own@x","enable":true}]}`
 	for _, up := range []int64{100, 600} {
 		syncNodeWithSettings(t, svc, 1, "n1-in", hostile,
-			xray.ClientTraffic{Email: "victim@x", Up: up, Enable: true},
+			xray.ClientTraffic{Email: "victim@x", Up: up, Enable: false, ExpiryTime: 1},
+			xray.ClientTraffic{Email: "victim@x ", Up: up, Enable: true},
 			xray.ClientTraffic{Email: "own@x", Enable: true})
 	}
 
@@ -219,10 +220,13 @@ func TestNodeRefusedClaimIsNotStoredOrCounted(t *testing.T) {
 	if n := countClientsWhere(t, db, "LOWER(email) LIKE ?", "victim%"); n != 1 {
 		t.Fatalf("a padded or case-variant claim created a look-alike record: %d victim rows", n)
 	}
-	var counted int64
-	db.Model(xray.ClientTraffic{}).Where("LOWER(email) LIKE ? AND up > 0", "victim%").Count(&counted)
-	if counted != 0 {
-		t.Fatalf("refused claim's stats reached a victim traffic row: %d rows", counted)
+	if got := readTraffic(t, db, "victim@x"); got.Up != 500 || !got.Enable || got.ExpiryTime != 0 {
+		t.Fatalf("victim traffic up=%d enable=%v expiry=%d, want the node's usage (500) and the master's lifecycle (true, 0)", got.Up, got.Enable, got.ExpiryTime)
+	}
+	var lookalike int64
+	db.Model(xray.ClientTraffic{}).Where("email <> ? AND LOWER(email) LIKE ?", "victim@x", "victim%").Count(&lookalike)
+	if lookalike != 0 {
+		t.Fatalf("a padded claim's stats created %d look-alike traffic rows", lookalike)
 	}
 	if !nodeHostsClient(t, db, "n1-in", "own@x") {
 		t.Fatal("the node's own client was not adopted")
@@ -332,8 +336,8 @@ func TestNodeTunnelDoesNotOwnSharedPeerKeys(t *testing.T) {
 	}
 }
 
-// An honest node's copy of a shared client differs only in timestamps and comment; treating
-// that as a refused claim would mark the node dirty and re-push it on every tick.
+// An honest node's copy of a shared client differs only in timestamps and comment; rewriting
+// it to the record's JSON would churn the stored settings on every tick.
 func TestNodeSharedClientInAgreementIsNotRewritten(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -358,12 +362,8 @@ func TestNodeSharedClientInAgreementIsNotRewritten(t *testing.T) {
 		`{"clients":[{"email":"shared@x","id":"11111111-1111-4111-8111-111111111111","subId":"shared-sub","enable":true,"created_at":1,"updated_at":2}]}`,
 		xray.ClientTraffic{Email: "shared@x", Enable: true})
 
-	var node model.Node
-	if err := db.Select("config_dirty").Where("id = ?", 1).First(&node).Error; err != nil {
-		t.Fatalf("read node: %v", err)
-	}
-	if node.ConfigDirty {
-		t.Fatal("a node in agreement with the master was marked dirty for a re-push")
+	if stored := storedInboundSettings(t, db, "n1-in"); !strings.Contains(stored, `"updated_at":2`) {
+		t.Fatalf("a node in agreement with the master had its entry rewritten: %s", stored)
 	}
 }
 
