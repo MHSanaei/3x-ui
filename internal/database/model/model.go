@@ -4,6 +4,7 @@ package model
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -705,6 +706,16 @@ func ValidMtprotoAdTag(tag string) bool {
 	}
 	_, err := hex.DecodeString(tag)
 	return err == nil
+}
+
+// ValidMtprotoSecret mirrors mtg's secret parser: hex, else unpadded URL-safe
+// base64, of the 0xee FakeTLS marker, a 16-byte key and a non-empty host name.
+func ValidMtprotoSecret(secret string) bool {
+	decoded, err := hex.DecodeString(secret)
+	if err != nil {
+		decoded, err = base64.RawURLEncoding.DecodeString(secret)
+	}
+	return err == nil && len(decoded) > 17 && decoded[0] == 0xee
 }
 
 // StripMtprotoInboundSecret removes the vestigial inbound-level `secret` from an
