@@ -1751,13 +1751,24 @@ function wgPeerCommentSuffix(peer: unknown): string {
   return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
-// Only the post-quantum key payloads outgrow a QR; the REALITY ML-KEM hint and the
-// mlkem768x25519plus prefix of an X25519-authenticated encryption do not (#6730).
+// Only genuine post-quantum key payloads (such as ML-KEM-768 or ML-DSA-65 keys)
+// outgrow a QR code. Links under 1000 characters easily fit in standard QR codes
+// (Level L holds up to 2953 bytes) and cannot contain 1500+ byte PQ keys.
+// The REALITY ML-KEM hint, short pqv flags, and the mlkem768x25519plus prefix of an
+// X25519-authenticated encryption do not (#6730, #7034).
 export function isPostQuantumLink(link: string): boolean {
+  if (link.length <= 1000) return false;
+
   const withoutRemark = link.split('#', 1)[0];
   const queryStart = withoutRemark.indexOf('?');
   if (queryStart < 0) return false;
   const params = new URLSearchParams(withoutRemark.slice(queryStart + 1));
-  if (params.get('pqv')) return true;
-  return vlessEncryptionAuthKind(params.get('encryption') ?? '')?.startsWith('mlkem768') ?? false;
+
+  // ML-DSA-65 verify keys are ~2600 chars; short flags (e.g. pqv=1, pqv=true) are not PQ payloads
+  const pqv = params.get('pqv');
+  if (pqv && pqv.length > 300) return true;
+
+  const authKind = vlessEncryptionAuthKind(params.get('encryption') ?? '');
+  if (authKind?.startsWith('x25519')) return false;
+  return authKind?.startsWith('mlkem768') ?? false;
 }

@@ -1484,6 +1484,32 @@ describe('isPostQuantumLink', () => {
     expect(isPostQuantumLink(link)).toBe(false);
   });
 
+  it('keeps the QR for VLESS encryption in xorpub and random modes with X25519 (#7034)', () => {
+    const linkXor = realityLink((ib) => {
+      ib.settings.encryption = `mlkem768x25519plus.xorpub.0rtt.${x25519Key}`;
+    });
+    expect(isPostQuantumLink(linkXor)).toBe(false);
+
+    const linkRand = realityLink((ib) => {
+      ib.settings.encryption = `mlkem768x25519plus.random.0rtt.${x25519Key}`;
+    });
+    expect(isPostQuantumLink(linkRand)).toBe(false);
+  });
+
+  it('keeps the QR when pqv is a short boolean or flag parameter rather than a PQ verify key', () => {
+    const link = `${realityLink()}&pqv=true`;
+    expect(isPostQuantumLink(link)).toBe(false);
+  });
+
+  it('keeps the QR for an X25519 link even when total URL length exceeds 1000 characters', () => {
+    const base = realityLink((ib) => {
+      ib.settings.encryption = `mlkem768x25519plus.native.0rtt.${x25519Key}`;
+    });
+    const longLink = `${base}&extraPadding=${'x'.repeat(1200)}`;
+    expect(longLink.length).toBeGreaterThan(1000);
+    expect(isPostQuantumLink(longLink)).toBe(false);
+  });
+
   it('hides the QR for VLESS encryption authenticated by an ML-KEM-768 key', () => {
     const link = realityLink((ib) => {
       ib.settings.encryption = `mlkem768x25519plus.native.0rtt.${mlkem768Key}`;
