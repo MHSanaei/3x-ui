@@ -55,6 +55,12 @@ func TestRealityFinderScriptCarriesTheJob(t *testing.T) {
 	if cmd.ScriptUrl != wantURL || !strings.Contains(cmd.Unix, "'"+wantURL+"'") || !strings.HasPrefix(cmd.Windows, "python -c ") {
 		t.Fatalf("command = %+v, want both lines to fetch %s", cmd, wantURL)
 	}
+	// Cloudflare refuses Python's default User-Agent (error 1010), so the fetch must name one.
+	for _, line := range []string{cmd.Unix, cmd.Windows} {
+		if !strings.Contains(line, "'User-Agent':'Mozilla/5.0") {
+			t.Errorf("command %q fetches the script with Python's default User-Agent", line)
+		}
+	}
 	script, err := (&RealityFinderService{}).Script(cmd.Token, "https://panel.example.com/r")
 	if err != nil {
 		t.Fatal(err)

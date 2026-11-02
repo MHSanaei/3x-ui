@@ -1088,8 +1088,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "scriptUrl": "https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
     "server": "203.0.113.10",
     "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
-    "unix": "python3 -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\"",
-    "windows": "python -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\""
+    "unix": "python3 -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\"",
+    "windows": "python -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""
   },
   "RealityFinderCommandRequest": {
     "current": "www.example.com",

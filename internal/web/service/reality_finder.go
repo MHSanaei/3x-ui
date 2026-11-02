@@ -57,8 +57,8 @@ type RealityFinderCommand struct {
 	ExpiresAt int64  `json:"expiresAt" example:"1793000000"`
 	Server    string `json:"server" example:"203.0.113.10"`
 	ScriptUrl string `json:"scriptUrl" example:"https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py"`
-	Unix      string `json:"unix" example:"python3 -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\""`
-	Windows   string `json:"windows" example:"python -c \"import urllib.request as u;exec(u.urlopen('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py').read())\""`
+	Unix      string `json:"unix" example:"python3 -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""`
+	Windows   string `json:"windows" example:"python -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""`
 }
 
 type RealityFinderNetwork struct {
@@ -181,8 +181,10 @@ func (s *RealityFinderService) NewCommand(req RealityFinderCommandRequest, baseU
 	realityFinderJobsMu.Unlock()
 
 	scriptURL := baseURL + "realityfinder/run/" + token + "/script.py"
-	// python -c keeps the terminal as stdin, so the script can wait for the VPN to go off
-	oneLiner := `-c "import urllib.request as u;exec(u.urlopen('` + scriptURL + `').read())"`
+	// python -c keeps the terminal as stdin, so the script can wait for the VPN to go off; the
+	// User-Agent is set because Cloudflare answers Python's default one with error 1010.
+	oneLiner := `-c "import urllib.request as u;exec(u.urlopen(u.Request('` + scriptURL +
+		`',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())"`
 	return &RealityFinderCommand{
 		Token:     token,
 		ExpiresAt: expires.Unix(),
