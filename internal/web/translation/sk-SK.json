@@ -1165,7 +1165,7 @@
         "allowInsecure": "Vynechať overenie certifikátu TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Jedna hodnota trasy VLESS (0-65535) vložená do UUID, napr. 443. Prázdne pole znamená žiadnu trasu.",
         "mihomoX25519": "Len pre Mihomo: použiť obyčajný REALITY hello s X25519 bez ML-KEM (support-x25519mlkem768: false). Pre servery s Xray-core starším ako 26.9.8, ktoré ML-KEM nevyžadujú.",
-        "remark": "Bežný názov tejto adresy servera. Ako názov konfigurácie sa zobrazí iba vtedy, ak samotný vstup nemá vlastný názov."
+        "remark": "Bežný názov tejto adresy servera. Vložte {{HOST}} do šablóny poznámky, aby sa zahrnul do názvov konfigurácií."
       },
       "remarkVars": {
         "title": "Premenné šablóny",
