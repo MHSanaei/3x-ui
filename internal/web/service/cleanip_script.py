@@ -284,7 +284,7 @@ def main():
 
 
 def pin_panel():
-    """The command came through PANEL_VIA (curl --resolve): report through it too, as this
+    """The command was fetched through PANEL_VIA: report through it too, as this
     ISP may not resolve or route the panel's domain."""
     if not PANEL_VIA:
         return

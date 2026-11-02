@@ -431,11 +431,11 @@ export const EXAMPLES: Record<string, unknown> = {
     "expiresAt": 1793000000,
     "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
     "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
-    "unix": "curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -",
-    "unixVia": "curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -",
+    "unix": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
+    "unixVia": "python3 -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
     "via": "104.16.1.1",
-    "windows": "irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -",
-    "windowsVia": "curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"
+    "windows": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
+    "windowsVia": "python -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""
   },
   "CleanIpCommandRequest": {
     "cdn": "cloudflare",

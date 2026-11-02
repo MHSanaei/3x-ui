@@ -44,13 +44,29 @@ func (a *CleanIpController) network(c *gin.Context) {
 	jsonObj(c, network, nil)
 }
 
-// panelBaseURL is the panel as the caller reached it, ending in the base path.
+// panelBaseURL is the panel as the caller reached it, ending in the base path. Like
+// resolveHost, forwarded headers count only from a trusted proxy; the port is kept.
 func panelBaseURL(c *gin.Context) string {
-	scheme := "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+	scheme, host := "http", c.Request.Host
+	if c.Request.TLS != nil {
 		scheme = "https"
 	}
-	return scheme + "://" + c.Request.Host + c.GetString("base_path")
+	if isTrustedForwardedRequest(c) {
+		if strings.EqualFold(firstForwarded(c.GetHeader("X-Forwarded-Proto")), "https") {
+			scheme = "https"
+		}
+		if h := firstForwarded(c.GetHeader("X-Forwarded-Host")); h != "" {
+			host = h
+		}
+	}
+	return scheme + "://" + host + c.GetString("base_path")
+}
+
+func firstForwarded(v string) string {
+	if i := strings.Index(v, ","); i >= 0 {
+		v = v[:i]
+	}
+	return strings.TrimSpace(v)
 }
 
 func (a *CleanIpController) newCommand(c *gin.Context) {
@@ -105,8 +121,7 @@ func NewCleanIpRunController(g *gin.RouterGroup) *CleanIpRunController {
 }
 
 func (a *CleanIpRunController) script(c *gin.Context) {
-	token := c.Param("token")
-	script, err := a.cleanIpService.Script(token, panelBaseURL(c)+"cleanip/run/"+token+"/report", c.Query("via"))
+	script, err := a.cleanIpService.Script(c.Param("token"), c.Query("via"))
 	if err != nil {
 		script = "print('This command has expired: make a new one on the Clean IP scanner page.')\n"
 	}

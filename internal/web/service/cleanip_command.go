@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net"
@@ -58,13 +60,13 @@ type CleanIpCommand struct {
 	Token     string `json:"token" example:"kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D"`
 	ExpiresAt int64  `json:"expiresAt" example:"1793000000"`
 	ScriptUrl string `json:"scriptUrl" example:"https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py"`
-	Unix      string `json:"unix" example:"curl -fsSL 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python3 -"`
-	Windows   string `json:"windows" example:"irm 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py' | python -"`
+	Unix      string `json:"unix" example:"python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""`
+	Windows   string `json:"windows" example:"python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""`
 	// Via, UnixVia, WindowsVia reach the panel's domain through the fastest page IP, for an
 	// ISP that blocks the domain itself; empty without a page IP or for a panel opened by IP.
 	Via        string `json:"via" example:"104.16.1.1"`
-	UnixVia    string `json:"unixVia" example:"curl -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python3 -"`
-	WindowsVia string `json:"windowsVia" example:"curl.exe -fsSL --resolve 'panel.example.com:443:104.16.1.1' 'https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1' | python -"`
+	UnixVia    string `json:"unixVia" example:"python3 -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""`
+	WindowsVia string `json:"windowsVia" example:"python -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""`
 }
 
 type CleanIpHit struct {
@@ -95,6 +97,9 @@ type CleanIpReport struct {
 
 type cleanIpJob struct {
 	req     CleanIpCommandRequest
+	script  string
+	via     string
+	viaRun  string
 	expires time.Time
 	reports []CleanIpReport
 }
@@ -123,6 +128,9 @@ func validIPv4(s string) (string, bool) {
 // baseURL is the panel as the admin's browser reaches it, ending in "/".
 func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (*CleanIpCommand, error) {
 	req.Host = strings.TrimSpace(req.Host)
+	if strings.ContainsAny(baseURL, "'\"\\") {
+		return nil, errCleanIpBadRequest
+	}
 	if req.Path == "" {
 		req.Path = "/"
 	}
@@ -171,38 +179,51 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 		}
 		delete(cleanIpJobs, oldest)
 	}
-	cleanIpJobs[token] = &cleanIpJob{req: req, expires: expires}
-	cleanIpJobsMu.Unlock()
-
 	scriptURL := baseURL + "cleanip/run/" + token + "/script.py"
-	cmd := &CleanIpCommand{
-		Token:     token,
-		ExpiresAt: expires.Unix(),
-		ScriptUrl: scriptURL,
-		Unix:      "curl -fsSL '" + scriptURL + "' | python3 -",
-		Windows:   "irm '" + scriptURL + "' | python -",
+	reportURL := baseURL + "cleanip/run/" + token + "/report"
+	job := &cleanIpJob{req: req, expires: expires, script: cleanIpBuildScript(req, reportURL, "")}
+	cmd := &CleanIpCommand{Token: token, ExpiresAt: expires.Unix(), ScriptUrl: scriptURL}
+	cmd.Unix = "python3 " + hashedRunCommand(scriptURL, job.script, "", "")
+	cmd.Windows = "python " + hashedRunCommand(scriptURL, job.script, "", "")
+	if domain := panelDomain(baseURL); domain != "" && len(req.Ips) > 0 {
+		job.via = req.Ips[0]
+		job.viaRun = cleanIpBuildScript(req, reportURL, job.via)
+		cmd.Via = job.via
+		run := hashedRunCommand(scriptURL+"?via="+job.via, job.viaRun, domain, job.via)
+		cmd.UnixVia, cmd.WindowsVia = "python3 "+run, "python "+run
 	}
-	if hostPort, ok := panelHostPort(baseURL); ok && len(req.Ips) > 0 {
-		cmd.Via = req.Ips[0]
-		args := "-fsSL --resolve '" + hostPort + ":" + cmd.Via + "' '" + scriptURL + "?via=" + cmd.Via + "'"
-		cmd.UnixVia = "curl " + args + " | python3 -"
-		cmd.WindowsVia = "curl.exe " + args + " | python -"
-	}
+	cleanIpJobs[token] = job
+	cleanIpJobsMu.Unlock()
 	return cmd, nil
 }
 
-// panelHostPort is the panel's "domain:port" for curl --resolve; a panel opened by IP has
-// no domain an ISP could block, so it is not pinned.
-func panelHostPort(baseURL string) (string, bool) {
+// hashedRunCommand is the python -c that fetches the script and runs it only if its SHA-256
+// matches, since the fetch may cross the filtered ISP in plain HTTP. A pin acts as curl --resolve.
+func hashedRunCommand(scriptURL, script, pinDomain, pinIP string) string {
+	sum := sha256.Sum256([]byte(script))
+	code := "import urllib.request as u,hashlib as h"
+	if pinDomain != "" {
+		code += ",socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('" + pinIP +
+			"' if a=='" + pinDomain + "' else a,*r,**k)"
+	}
+	// Cloudflare answers Python's default User-Agent with error 1010.
+	code += ";s=u.urlopen(u.Request('" + scriptURL + "',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read()"
+	if pinDomain != "" {
+		code += ";o.getaddrinfo=g"
+	}
+	code += ";exec(s) if h.sha256(s).hexdigest()=='" + hex.EncodeToString(sum[:]) +
+		"' else print('The script did not match this command: make a new one on the Clean IP scanner page.')"
+	return `-c "` + code + `"`
+}
+
+// panelDomain is the panel's domain for the pinned command; a panel opened by IP has no
+// domain an ISP could block, so it is not pinned.
+func panelDomain(baseURL string) string {
 	u, err := url.Parse(baseURL)
 	if err != nil || u.Hostname() == "" || net.ParseIP(u.Hostname()) != nil {
-		return "", false
+		return ""
 	}
-	port := u.Port()
-	if port == "" {
-		port = map[string]string{"http": "80", "https": "443"}[u.Scheme]
-	}
-	return u.Hostname() + ":" + port, port != ""
+	return u.Hostname()
 }
 
 // cleanIpJobFor needs cleanIpJobsMu held.
@@ -258,20 +279,23 @@ func (s *CleanIpService) Cdns() []CleanIpCdn {
 	return cleanIpCdns
 }
 
-// Script is the job's test with its values written in as JSON, which Python reads as literals.
-// via is the IP the command was fetched through (?via=); the script reports through it too.
-func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
-	via, _ = validIPv4(via)
+// Script is the job's test, fixed when the command was made so the command can hash it; via
+// is the IP a pinned command was fetched through (?via=).
+func (s *CleanIpService) Script(token, via string) (string, error) {
 	cleanIpJobsMu.Lock()
+	defer cleanIpJobsMu.Unlock()
 	job, err := cleanIpJobFor(token)
-	var req CleanIpCommandRequest
-	if err == nil {
-		req = job.req
-	}
-	cleanIpJobsMu.Unlock()
 	if err != nil {
 		return "", err
 	}
+	if via != "" && via == job.via {
+		return job.viaRun, nil
+	}
+	return job.script, nil
+}
+
+// cleanIpBuildScript writes the job's values in as JSON, which Python reads as literals.
+func cleanIpBuildScript(req CleanIpCommandRequest, reportURL, via string) string {
 	return strings.NewReplacer(
 		"__HOST__", pyLiteral(req.Host),
 		"__PATH__", pyLiteral(req.Path),
@@ -281,7 +305,7 @@ func (s *CleanIpService) Script(token, reportURL, via string) (string, error) {
 		"__PER_RANGE__", strconv.Itoa(req.PerRange),
 		"__RANGES__", pyLiteral(req.Ranges),
 		"__IPS__", pyLiteral(req.Ips),
-	).Replace(cleanIpScript), nil
+	).Replace(cleanIpScript)
 }
 
 func (s *CleanIpService) Reports(token string) ([]CleanIpReport, error) {
