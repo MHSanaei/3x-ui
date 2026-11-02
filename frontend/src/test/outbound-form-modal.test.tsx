@@ -563,6 +563,69 @@ describe('OutboundFormModal XDRIVE service name', () => {
   });
 });
 
+// xray-core 26.10.31 (#7231): every S3 key needs a registered field or the editor drops it on save.
+describe('OutboundFormModal XDRIVE S3 storage', () => {
+  it('opens and saves a stored S3 outbound unchanged', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const xdriveSettings = {
+      service: 's3',
+      remoteFolder: 'xdrive',
+      secrets: ['AKID', 'SECRET', 'TOKEN'],
+      s3: {
+        endpoint: 'https://storage.yandexcloud.net',
+        region: 'ru-central1',
+        bucket: 'example-bucket',
+        pathStyle: false,
+      },
+    };
+    const outbound = {
+      protocol: 'vless',
+      tag: 's3-out',
+      settings: {
+        address: 'example.com',
+        port: 443,
+        id: 'c9f0c2d0-0000-4000-8000-000000000000',
+        encryption: 'mlkem768x25519plus.native.0rtt.key',
+      },
+      mux: { enabled: true, concurrency: 8 },
+      streamSettings: { network: 'xdrive', security: 'none', xdriveSettings },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect((screen.getByLabelText('Bucket') as HTMLInputElement).value).toBe('example-bucket');
+    expect((screen.getByLabelText('Access key ID') as HTMLInputElement).value).toBe('AKID');
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as { streamSettings: Record<string, unknown> };
+    expect(payload.streamSettings.xdriveSettings).toMatchObject(xdriveSettings);
+  });
+});
+
 // xray-core 26.10.10 dials the XDRIVE storage API with the outbound's tlsSettings (SNI,
 // uTLS fingerprint), so switching a TLS outbound to XDRIVE must keep them.
 describe('OutboundFormModal XDRIVE TLS', () => {

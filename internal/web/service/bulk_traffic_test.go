@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ func TestBulkResetTrafficZeroesUsageAndReenables(t *testing.T) {
 	if err := svc.SyncInbound(nil, ib.Id, source); err != nil {
 		t.Fatalf("seed linkage: %v", err)
 	}
-	mkTraffic(t, ib.Id, "alice@x", 10, 20, 0, 0, false)
+	mkTraffic(t, ib.Id, "alice@x", 10, 20, 30, 0, false)
 	mkTraffic(t, ib.Id, "bob@x", 5, 5, 0, 0, true)
 	mkTraffic(t, ib.Id, "carol@x", 7, 0, 0, 0, true)
 
@@ -202,5 +203,133 @@ func TestGetClientTrafficByEmailReadsClientsTable(t *testing.T) {
 	}
 	if tr.SubId != "sa" {
 		t.Fatalf("SubId not enriched from clients table, got %q", tr.SubId)
+	}
+}
+
+// A depleted usage row keyed by a padded email belongs to no client; trimming it on the
+// way to BulkDelete deleted the healthy client it resembles.
+func TestDelDepletedIgnoresPaddedUsageRow(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	source := []model.Client{{Email: "alice@x", ID: "11111111-1111-1111-1111-111111111111", SubID: "sa", Enable: true}}
+	ib := mkInbound(t, 21003, model.VLESS, clientsSettings(t, source))
+	if err := svc.SyncInbound(nil, ib.Id, source); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	mkTraffic(t, ib.Id, "alice@x", 0, 0, 0, 0, true)
+	mkTraffic(t, ib.Id, "alice@x ", 0, 0, 0, 1, false)
+
+	deleted, _, err := svc.DelDepleted(inboundSvc)
+	if err != nil {
+		t.Fatalf("DelDepleted: %v", err)
+	}
+	if deleted != 0 {
+		t.Fatalf("deleted %d clients, want 0", deleted)
+	}
+	if _, err := svc.GetRecordByEmail(nil, "alice@x"); err != nil {
+		t.Fatalf("alice was deleted through a look-alike usage row: %v", err)
+	}
+}
+
+// trafficResets is every way to reset a client's traffic; a master forwards its
+// scheduled and "reset all" resets to a node through the first two.
+var trafficResets = []struct {
+	name string
+	run  func(ib *model.Inbound, email string) error
+}{
+	{"ResetTrafficByEmail", func(_ *model.Inbound, email string) error {
+		_, err := (&ClientService{}).ResetTrafficByEmail(&InboundService{}, email)
+		return err
+	}},
+	{"BulkResetTraffic", func(_ *model.Inbound, email string) error {
+		_, err := (&ClientService{}).BulkResetTraffic(&InboundService{}, []string{email})
+		return err
+	}},
+	{"ResetAllClientTraffics", func(ib *model.Inbound, _ string) error {
+		_, err := (&ClientService{}).ResetAllClientTraffics(&InboundService{}, ib.Id)
+		return err
+	}},
+	{"ResetAllTraffics", func(*model.Inbound, string) error {
+		_, err := (&ClientService{}).ResetAllTraffics()
+		return err
+	}},
+	{"ResetClientTraffic", func(ib *model.Inbound, email string) error {
+		_, err := (&InboundService{}).ResetClientTraffic(ib.Id, email)
+		return err
+	}},
+	{"ResetClientTrafficByEmail", func(_ *model.Inbound, email string) error {
+		return (&InboundService{}).ResetClientTrafficByEmail(email)
+	}},
+}
+
+func TestTrafficReset_LeavesOperatorDisabledClientOff(t *testing.T) {
+	const email = "banned@x"
+	for _, total := range []int64{0, 1000} {
+		for _, reset := range trafficResets {
+			t.Run(fmt.Sprintf("%s/quota=%d", reset.name, total), func(t *testing.T) {
+				setupBulkDB(t)
+				svc := &ClientService{}
+				// Disabled with usage below quota: nothing but a human did that.
+				ib := seedLocalDisabledClient(t, svc, 52020, "", email, total, 0, 10, 10)
+
+				if err := reset.run(ib, email); err != nil {
+					t.Fatalf("%s: %v", reset.name, err)
+				}
+
+				assertEnableEverywhere(t, svc, &InboundService{}, ib.Id, email, false)
+				if tr := trafficOf(t, email); tr.Up != 0 || tr.Down != 0 {
+					t.Fatalf("traffic after reset up=%d down=%d, want 0/0", tr.Up, tr.Down)
+				}
+			})
+		}
+	}
+}
+
+func TestTrafficReset_RestoresQuotaDisabledClient(t *testing.T) {
+	const email = "depleted@x"
+	for _, reset := range trafficResets {
+		t.Run(reset.name, func(t *testing.T) {
+			setupBulkDB(t)
+			ib := seedLocalDisabledClient(t, &ClientService{}, 52021, "", email, 1000, 0, 600, 500)
+
+			if err := reset.run(ib, email); err != nil {
+				t.Fatalf("%s: %v", reset.name, err)
+			}
+
+			if tr := trafficOf(t, email); !tr.Enable || tr.Up != 0 || tr.Down != 0 {
+				t.Fatalf("traffic after reset enable=%v up=%d down=%d, want true 0/0", tr.Enable, tr.Up, tr.Down)
+			}
+		})
+	}
+}
+
+// A node cuts a client on the usage its master pushed while the node's own
+// share is still below the quota; a reset must still count that as depleted.
+func TestTrafficReset_RestoresClientDisabledByGlobalUsage(t *testing.T) {
+	const email = "shared@x"
+	for i, reset := range trafficResets {
+		t.Run(reset.name, func(t *testing.T) {
+			setupBulkDB(t)
+			svc := &ClientService{}
+			inboundSvc := &InboundService{}
+			ib := seedLocalDisabledClient(t, svc, 52022, "", email, 1000, 0, 100, 100)
+			if err := inboundSvc.AcceptGlobalTraffic("master-a", []*xray.ClientTraffic{{Email: email, Up: 800, Down: 700}}); err != nil {
+				t.Fatalf("AcceptGlobalTraffic: %v", err)
+			}
+
+			if err := reset.run(ib, email); err != nil {
+				t.Fatalf("%s: %v", reset.name, err)
+			}
+
+			if !trafficOf(t, email).Enable {
+				t.Fatal("client_traffics.enable = false: the pushed usage was not counted as depleted")
+			}
+			// Only the ClientService per-client resets restore the record and settings.
+			if i < 2 {
+				assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, true)
+			}
+		})
 	}
 }

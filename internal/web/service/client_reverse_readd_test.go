@@ -137,12 +137,12 @@ func depleteClientTraffic(t *testing.T, inboundId int, email string) {
 	t.Helper()
 	db := database.GetDB()
 	res := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).
-		Updates(map[string]any{"enable": false, "up": 1, "down": 1})
+		Updates(map[string]any{"enable": false, "up": 1, "down": 1, "total": 2})
 	if res.Error != nil {
 		t.Fatalf("deplete traffic: %v", res.Error)
 	}
 	if res.RowsAffected == 0 {
-		if err := db.Create(&xray.ClientTraffic{InboundId: inboundId, Email: email, Enable: false, Up: 1, Down: 1}).Error; err != nil {
+		if err := db.Create(&xray.ClientTraffic{InboundId: inboundId, Email: email, Enable: false, Up: 1, Down: 1, Total: 2}).Error; err != nil {
 			t.Fatalf("create depleted traffic: %v", err)
 		}
 	}

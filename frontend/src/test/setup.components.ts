@@ -3,6 +3,7 @@ import { cleanup } from '@testing-library/react';
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { INTERPOLATION } from '@/i18n/react';
 import enUS from '../../../internal/web/translation/en-US.json';
 
 // RTL sets this from a global beforeAll, which never runs with `globals: false`.
@@ -75,7 +76,7 @@ if (!i18next.isInitialized) {
     lng: 'en-US',
     fallbackLng: 'en-US',
     resources: { 'en-US': { translation: enUS } },
-    interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
+    interpolation: INTERPOLATION,
     returnNull: false,
   });
 }
