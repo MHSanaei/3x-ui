@@ -230,6 +230,57 @@ func runNodeSyncScenarios(t *testing.T, bin, scope string) {
 		})
 	})
 
+	t.Run("a stale node disable cannot overwrite a client homed on the master", func(t *testing.T) {
+		pr.t = t
+		master.stop()
+		master.setClientTrafficHome("p3", localIb.Id)
+		master.start()
+		eventually(t, settleTimeout, "node has no pending master push", func() (bool, string) {
+			var current struct {
+				ConfigDirty bool `json:"configDirty"`
+			}
+			if err := json.Unmarshal(master.call(http.MethodGet, "/panel/api/nodes/get/"+strconv.Itoa(pr.nodeID), nil), &current); err != nil {
+				t.Fatalf("decode node state: %v", err)
+			}
+			return !current.ConfigDirty, "master still has a pending node push"
+		})
+		nib, ok := pr.nodeInbound(madePort)
+		entry := nib.client("p3")
+		if !ok || entry == nil {
+			t.Fatal("node has no shared p3 client")
+		}
+		entry["enable"] = false
+		node.call(http.MethodPost, "/panel/api/clients/update/p3", entry)
+		readEnabled := func() bool {
+			var payload struct {
+				Client struct {
+					Enable bool `json:"enable"`
+				} `json:"client"`
+			}
+			if err := json.Unmarshal(master.call(http.MethodGet, "/panel/api/clients/get/p3", nil), &payload); err != nil {
+				t.Fatalf("decode shared client: %v", err)
+			}
+			return payload.Client.Enable
+		}
+		converged := func() bool {
+			ib, exists := pr.nodeInbound(madePort)
+			client := ib.client("p3")
+			return readEnabled() && exists && client != nil && client["enable"] == true
+		}
+		eventually(t, settleTimeout, "the master lifecycle restores the stale node copy", func() (bool, string) {
+			if !readEnabled() {
+				t.Fatal("stale node disable overwrote the master's shared client record")
+			}
+			return converged(), "node copy is still disabled"
+		})
+		for until := time.Now().Add(12 * time.Second); time.Now().Before(until); {
+			if !converged() {
+				t.Fatal("shared client enable state drifted across later sync cycles")
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	})
+
 	t.Run("detaching a client from the node inbound removes it there", func(t *testing.T) {
 		pr.t = t
 		master.call(http.MethodPost, "/panel/api/clients/p2/detach", map[string]any{"inboundIds": []int{madeID}})

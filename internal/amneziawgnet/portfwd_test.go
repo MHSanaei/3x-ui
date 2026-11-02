@@ -2,11 +2,14 @@ package amneziawgnet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -138,43 +141,15 @@ func dialLoopback(t *testing.T, network string, port int) {
 	conn.Close()
 }
 
-// Reserve an OS-selected port on both protocols instead of assuming a fixed
-// port is unused by other tests or the runner's outgoing connections.
-func reservePortForwardTestPort(t *testing.T) (net.Listener, net.PacketConn) {
-	t.Helper()
-	for range 100 {
-		tcp, err := net.Listen("tcp4", "127.0.0.1:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		udp, err := net.ListenPacket("udp4", tcp.Addr().String())
-		if err != nil {
-			tcp.Close()
-			continue
-		}
-		t.Cleanup(func() {
-			tcp.Close()
-			udp.Close()
-		})
-		return tcp, udp
-	}
-	t.Fatal("could not reserve a loopback port for both TCP and UDP")
-	return nil, nil
-}
-
 func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 	gs := newTestStack(t, "10.211.0.1")
 	set := NewPortForwardSet(gs, 501)
-	t.Cleanup(set.Close)
 
-	tcp, udp := reservePortForwardTestPort(t)
-	port := tcp.Addr().(*net.TCPAddr).Port
+	port := freeTCPUDPPort(t)
 	inst := amneziawg.Instance{Peers: []amneziawg.Peer{
 		peerWithPortsAndIPs("a@x", fmt.Sprintf("%d", port), "10.211.0.2/32"),
 	}}
 
-	tcp.Close()
-	udp.Close()
 	set.Reconcile(inst)
 	set.mu.Lock()
 	n := len(set.listeners)
@@ -206,8 +181,7 @@ func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 	if n != 0 {
 		t.Fatalf("listeners after removal Reconcile = %d, want 0", n)
 	}
-	if conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second); err == nil {
-		conn.Close()
+	if _, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second); err == nil {
 		t.Error("port still accepting connections after the listener should have closed")
 	}
 }
@@ -215,12 +189,13 @@ func TestPortForwardSetReconcileOpensAndClosesListeners(t *testing.T) {
 func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 	gs := newTestStack(t, "10.211.1.1")
 	set := NewPortForwardSet(gs, 502)
-	t.Cleanup(set.Close)
 
-	blocker, collidingUDP := reservePortForwardTestPort(t)
-	collidingPort := blocker.Addr().(*net.TCPAddr).Port
-	tcp, udp := reservePortForwardTestPort(t)
-	okPort := tcp.Addr().(*net.TCPAddr).Port
+	collidingPort, okPort := freeTCPUDPPort(t), freeTCPUDPPort(t)
+	blocker, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", collidingPort))
+	if err != nil {
+		t.Fatalf("pre-bind test port: %v", err)
+	}
+	defer blocker.Close()
 
 	inst := amneziawg.Instance{Peers: []amneziawg.Peer{
 		peerWithPortsAndIPs("a@x", fmt.Sprintf("%d,%d", collidingPort, okPort), "10.211.1.2/32"),
@@ -229,9 +204,6 @@ func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 	// Must not panic despite one of the two ports being unbindable, and the
 	// other port (and its UDP counterpart on the colliding port) must still
 	// open normally.
-	collidingUDP.Close() // Keep only the deliberate TCP conflict open.
-	tcp.Close()
-	udp.Close()
 	set.Reconcile(inst)
 	set.mu.Lock()
 	n := len(set.listeners)
@@ -248,6 +220,46 @@ func TestPortForwardSetReconcileSurvivesPreBoundPort(t *testing.T) {
 		t.Error("UDP listener on the colliding port's own number should still open (TCP and UDP binds are independent)")
 	}
 	dialLoopback(t, "tcp", okPort)
+
+	set.Close()
+}
+
+// failFirstAccept fails the first Accept the way the kernel does once the
+// process is at RLIMIT_NOFILE, then behaves like the listener it wraps.
+type failFirstAccept struct {
+	net.Listener
+	failed atomic.Bool
+}
+
+func (l *failFirstAccept) Accept() (net.Conn, error) {
+	if l.failed.CompareAndSwap(false, true) {
+		return nil, &net.OpError{Op: "accept", Net: "tcp", Addr: l.Addr(), Err: syscall.EMFILE}
+	}
+	return l.Listener.Accept()
+}
+
+func TestTCPForwardAcceptLoopSurvivesTransientError(t *testing.T) {
+	host, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	l := &tcpForwardListener{ln: &failFirstAccept{Listener: host}}
+	l.ctx, l.cancel = context.WithCancel(context.Background())
+	defer l.Close()
+	noTarget := func(string) (netip.Addr, bool) { return netip.Addr{}, false }
+	go l.acceptLoop(newTestStack(t, "10.211.4.1"), 505, portForwardKey{email: "a@x", proto: tcpForward}, noTarget)
+
+	conn, err := net.DialTimeout("tcp", host.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+	// relayTCPForward closes a connection it has no target for, so EOF proves
+	// the loop accepted it; a dead loop leaves it queued in the backlog.
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	if _, err := conn.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Fatalf("read after a transient accept error = %v, want io.EOF from an accepted connection", err)
+	}
 }
 
 // --- Real round trip: a genuine amneziawg-go client handshakes against a
@@ -267,9 +279,8 @@ func TestPortForwardRoundTripTCPAndUDP(t *testing.T) {
 		t.Fatalf("generate client keypair: %v", err)
 	}
 
-	const listenPort = 58920 // fixed loopback test port, matches this package's existing test convention
-	const tcpPort = 58921
-	const udpPort = 58922
+	listenPort := freeUDPPort(t)
+	tcpPort, udpPort := freeTCPUDPPort(t), freeTCPUDPPort(t)
 	const clientAddr = "10.202.0.2"
 
 	inst := amneziawg.Instance{
@@ -451,4 +462,129 @@ primed:
 	if string(gotUDP) != wantUDP {
 		t.Errorf("UDP round trip = %q, want %q", gotUDP, wantUDP)
 	}
+
+	// Withdrawing the forward must end the connection already relaying over
+	// it, not just refuse new ones.
+	withdrawn := inst
+	withdrawn.Peers = []amneziawg.Peer{
+		{Email: "client@test", PublicKey: clientPub, AllowedIPs: []string{clientAddr + "/32"}},
+	}
+	set.Reconcile(withdrawn)
+	tcpConn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := tcpConn.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Errorf("read on the relayed connection after its forward was withdrawn = %v, want io.EOF", err)
+	}
+}
+
+// leavePortForwardSlots fills slots until only free remain, so a test hits the
+// ceiling with a handful of flows; returns how many it holds (cleanup releases).
+func leavePortForwardSlots(t *testing.T, slots chan struct{}, free int) int {
+	t.Helper()
+	held := 0
+	for acquirePortForwardSlot(slots) {
+		held++
+	}
+	for range free {
+		<-slots
+		held--
+	}
+	t.Cleanup(func() {
+		for range held {
+			<-slots
+		}
+	})
+	return held
+}
+
+func waitPortForwardSlots(t *testing.T, slots chan struct{}, want int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for len(slots) > want {
+		if time.Now().After(deadline) {
+			t.Fatalf("slots still taken = %d, want at most %d", len(slots), want)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestPortForwardUDPSessionsAreCapped(t *testing.T) {
+	port := freeUDPPort(t)
+	const free, sources = 3, 10
+	held := leavePortForwardSlots(t, portForwardUDPSlots, free)
+
+	gs := newTestStack(t, "10.211.2.1")
+	l := listenPortForwardUDP(gs, 503, portForwardKey{email: "a@x", port: port, proto: udpForward}, func(string) (netip.Addr, bool) {
+		return netip.MustParseAddr("10.211.2.2"), true
+	})
+	if l == nil {
+		t.Fatal("listenPortForwardUDP returned nil")
+	}
+	defer l.Close()
+
+	for range sources {
+		conn, err := net.Dial("udp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err != nil {
+			t.Fatalf("dial udp: %v", err)
+		}
+		defer conn.Close()
+		if _, err := conn.Write([]byte("x")); err != nil {
+			t.Fatalf("write udp: %v", err)
+		}
+	}
+
+	// Long enough for readLoop to have drained every datagram sent above.
+	most := 0
+	for settle := time.Now().Add(500 * time.Millisecond); time.Now().Before(settle); time.Sleep(10 * time.Millisecond) {
+		l.mu.Lock()
+		most = max(most, len(l.sessions))
+		l.mu.Unlock()
+	}
+	if most < free || most > portForwardMaxFlows-held {
+		t.Fatalf("sessions opened by %d sources = %d, want the %d free slots", sources, most, free)
+	}
+
+	// A slot that outlived its session would shrink the ceiling for good.
+	l.Close()
+	waitPortForwardSlots(t, portForwardUDPSlots, held)
+}
+
+func TestPortForwardTCPConnectionsAreCapped(t *testing.T) {
+	port := freePort(t)
+	const free, clients = 3, 10
+	held := leavePortForwardSlots(t, portForwardTCPSlots, free)
+
+	// Parks every relayed connection at its first step, holding its slot.
+	release := make(chan struct{})
+	gs := newTestStack(t, "10.211.3.1")
+	l := listenPortForwardTCP(gs, 504, portForwardKey{email: "a@x", port: port, proto: tcpForward}, func(string) (netip.Addr, bool) {
+		<-release
+		return netip.Addr{}, false
+	})
+	if l == nil {
+		t.Fatal("listenPortForwardTCP returned nil")
+	}
+	defer l.Close()
+
+	relayed := 0
+	for range clients {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second)
+		if err != nil {
+			t.Fatalf("dial tcp: %v", err)
+		}
+		defer conn.Close()
+		// A refused connection is closed at once; a relayed one stays silent.
+		_ = conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		if _, err := conn.Read(make([]byte, 1)); err != nil {
+			var nerr net.Error
+			if errors.As(err, &nerr) && nerr.Timeout() {
+				relayed++
+			}
+		}
+	}
+	if relayed < free || relayed > portForwardMaxFlows-held {
+		t.Fatalf("connections relayed out of %d = %d, want the %d free slots", clients, relayed, free)
+	}
+
+	close(release)
+	waitPortForwardSlots(t, portForwardTCPSlots, held)
 }

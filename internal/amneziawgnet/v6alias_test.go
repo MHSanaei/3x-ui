@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func peerWithIPs(email string, ips ...string) amneziawg.Peer {
@@ -264,14 +265,71 @@ func TestApplyV6AliasesAddsBeforeRemoves(t *testing.T) {
 		}
 		return "", nil
 	})
-	applyV6Aliases(
+	m := &Manager{ifaces: map[int]*managed{}}
+	m.applyV6Aliases([]v6Alias{{Addr: "fd86::2", Iface: "eth0"}}, nil)
+	m.applyV6Aliases(
 		[]v6Alias{{Addr: "fd86::99", Iface: "eth0"}},
 		[]v6Alias{{Addr: "fd86::2", Iface: "eth0"}},
 	)
-	if len(*calls) != 2 {
-		t.Fatalf("expected exactly 2 calls, got %d", len(*calls))
+	if len(*calls) != 3 {
+		t.Fatalf("expected exactly 3 calls, got %d", len(*calls))
 	}
-	if order[0] != "add" || order[1] != "del" {
-		t.Fatalf("expected add before del, got order=%v", order)
+	if order[1] != "add" || order[2] != "del" {
+		t.Fatalf("expected add before del, got order=%v", order[1:])
+	}
+}
+
+// An address the host already held (::1 on lo, its own /128) answers the add
+// with EEXIST; tearing the inbound down must leave it in place.
+func TestManagerRemoveLeavesHostOwnedAddressInPlace(t *testing.T) {
+	calls := withFakeRunIP(t, func(ctx context.Context, args ...string) (string, error) {
+		if args[2] == "add" && args[3] == "::1/128" {
+			return "RTNETLINK answers: File exists", errors.New("exit status 2")
+		}
+		return "", nil
+	})
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	_, foreignPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate peer keypair: %v", err)
+	}
+	_, hostOwnPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate peer keypair: %v", err)
+	}
+	m := &Manager{ifaces: map[int]*managed{}}
+	defer m.StopAll()
+	inst := amneziawg.Instance{
+		Id:                    7,
+		InterfaceName:         "awgtest7",
+		ListenPort:            0,
+		PrivateKey:            priv,
+		PublicKey:             pub,
+		Address:               []string{"10.207.0.1/24", "fd86:ea04:1115::1/64"},
+		MTU:                   1420,
+		Obfuscation:           amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20},
+		IPv6Enabled:           true,
+		IPv6ExternalInterface: "lo",
+		Peers: []amneziawg.Peer{
+			{Email: "foreign", PublicKey: foreignPub, AllowedIPs: []string{"10.207.0.2/32", "2001:db8:beef::1/128"}},
+			{Email: "host-own", PublicKey: hostOwnPub, AllowedIPs: []string{"10.207.0.3/32", "::1/128"}},
+		},
+	}
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure: %v", err)
+	}
+	m.Remove(inst.Id)
+
+	var deleted []string
+	for _, c := range *calls {
+		if c[2] == "del" {
+			deleted = append(deleted, c[3])
+		}
+	}
+	if len(deleted) != 1 || deleted[0] != "2001:db8:beef::1/128" {
+		t.Fatalf("deleted %v, want only the alias this process added (2001:db8:beef::1/128)", deleted)
 	}
 }

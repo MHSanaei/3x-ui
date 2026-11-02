@@ -18,6 +18,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -508,6 +509,34 @@ func TestScreenArtReprobeWindow(t *testing.T) {
 	}
 }
 
+// A probe a previous test left in flight held the process-wide probe slot, so under -race -shuffle
+// the next test's stale avatar was never re-probed (CI flake in TestScreenArtReprobeWindow).
+func TestScreenArtResetWaitsForAProbeLeftInFlight(t *testing.T) {
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(300 * time.Millisecond)
+		http.Error(w, "gone", http.StatusServiceUnavailable)
+	}))
+	defer slow.Close()
+	swapTestBot(t, slow.URL)
+	(&Tgbot{}).ensureScreenArt()
+
+	srv, calls := recordingServer(t, false)
+	defer srv.Close()
+	swapTestBot(t, srv.URL)
+	screenArtMu.Lock()
+	artProbedAt = time.Now().Add(-2 * time.Minute)
+	screenArtMu.Unlock()
+
+	(&Tgbot{}).ensureScreenArt()
+	for range 100 {
+		if countMethod(calls(), "getUserProfilePhotos") > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the probe left in flight by the previous bot kept the new one from probing")
+}
+
 func TestScreenKeepsArtFromTheBotAvatar(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
 	tb.resolveScreenArt()
@@ -636,9 +665,8 @@ func localizeWithRealBundle(t *testing.T) {
 	if _, err := bundle.ParseMessageFileBytes(data, path); err != nil {
 		t.Fatalf("parse %s: %v", path, err)
 	}
-	orig := locale.LocalizerBot
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
-	t.Cleanup(func() { locale.LocalizerBot = orig })
+	orig := locale.SwapBotLocalizer(i18n.NewLocalizer(bundle, "en-US"))
+	t.Cleanup(func() { locale.SwapBotLocalizer(orig) })
 }
 
 // seeding a client bound to a Telegram user, which the client screens key on
@@ -1113,5 +1141,59 @@ func TestIndividualLinksScreenHasNoDuplicateLinksButton(t *testing.T) {
 	}
 	if got := rows[0][0].CallbackData; got != cbHome {
 		t.Errorf("the only control is %q, want the back row %q", got, cbHome)
+	}
+}
+
+// The pager was drawn on a client's screen but its taps never got past the
+// callback gate, so a client with several accounts was stuck on page one.
+func TestClientCanTurnPages(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4848, "pager@x")
+
+	for _, data := range []string{cbPageNext, cbPagePrev, cbPageNone} {
+		if !isClientSelfCallback(data) {
+			t.Errorf("a client's %q button is refused by the callback gate", data)
+		}
+	}
+
+	tb.renderScreen(4848, tb.newScreen("main", strings.Repeat("line of text\n", 300)))
+	tb.answerCallback(&telego.CallbackQuery{
+		ID:      "q1",
+		From:    telego.User{ID: 4848},
+		Data:    cbPageNext,
+		Message: &telego.Message{Chat: telego.Chat{ID: 4848}},
+	}, false)
+
+	sc, ok := tb.screens().get(4848)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	if sc.page != 1 {
+		t.Errorf("page = %d after a client tapped next, want 1", sc.page)
+	}
+}
+
+// A client with several accounts opens one from its home screen: that screen
+// must show the account's usage, since the client card is admin-only.
+func TestLinksScreenShowsUsageToItsOwner(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4949, "first@x")
+	seedClientForTgUser(t, 4949, "second@x")
+
+	tb.screenClientLinks(4949, "second@x")
+	sc, ok := tb.screens().get(4949)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	if want := tb.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(0)); !strings.Contains(sc.body, want) {
+		t.Errorf("the client's links screen shows no usage:\n%s", sc.body)
+	}
+	markup, _ := json.Marshal(sc.markup)
+	if strings.Contains(string(markup), "client_get_usage") {
+		t.Errorf("a client is offered the admin's client card: %s", markup)
 	}
 }
