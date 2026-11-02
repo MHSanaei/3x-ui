@@ -1238,8 +1238,11 @@ func isClientSelfCallback(data string) bool {
 	switch data {
 	// "hide" is how any recipient puts a message away: it carries no target of its
 	// own (it is the message it sits on), so it is safe for anyone to reach.
+	// Pager callbacks (next, prev, none) operate on the chat's active screen
+	// and must be allowed so clients can page through long link lists or accounts.
 	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
-		"client_individual_links", "client_qr_links":
+		"client_individual_links", "client_qr_links",
+		cbPageNext, cbPagePrev, cbPageNone:
 		return true
 	}
 	_, _, ok := splitClientLinkCallback(data)

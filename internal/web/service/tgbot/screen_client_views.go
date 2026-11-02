@@ -137,17 +137,13 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 	})
 }
 
-// ownSubscriptionOnly reports whether the screen is the client's own single
+// ownSubscriptionOnly reports whether the screen is the client's own
 // subscription, where admin-only controls must stay off (reached via "Links").
 func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
 	if checkAdmin(chatID) {
 		return false
 	}
-	traffics, err := t.inboundService.GetClientTrafficTgBot(chatID)
-	if err != nil {
-		return false
-	}
-	return len(traffics) == 1 && traffics[0].Email == email
+	return t.clientOwnedByTgUser(chatID, email)
 }
 
 // screenClientLinks draws the subscription and the links of a client.

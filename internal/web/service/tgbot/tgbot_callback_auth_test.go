@@ -25,7 +25,12 @@ func TestAnswerCallbackDeniesPrivilegedActionToNonAdmin(t *testing.T) {
 }
 
 func TestIsClientSelfCallback(t *testing.T) {
-	allowed := []string{"client_traffic", "client_sub_links", "client_qr_links", "client_sub_links alice@x"}
+	allowed := []string{
+		"client_traffic", "client_sub_links", "client_qr_links", "client_sub_links alice@x",
+		"home", "hide", "client_commands", "client_individual_links",
+		"client_individual_links alice@x", "client_qr_links alice@x",
+		"pg:next", "pg:prev", "pg:none",
+	}
 	for _, d := range allowed {
 		if !isClientSelfCallback(d) {
 			t.Errorf("%q should be a per-user client callback", d)

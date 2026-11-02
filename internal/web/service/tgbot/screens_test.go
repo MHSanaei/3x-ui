@@ -908,6 +908,7 @@ func TestLinksScreenHidesTheClientCardFromItsOwner(t *testing.T) {
 	initReportDB(t)
 	setTestAdmins(t)
 	seedClientForTgUser(t, 4646, "mine@x")
+	seedClientForTgUser(t, 4646, "mine2@x")
 
 	tb.screenClientLinks(4646, "mine@x")
 	sc, ok := tb.screens().get(4646)
@@ -1126,6 +1127,16 @@ func TestBroadcastCopyToAClientCarriesHide(t *testing.T) {
 func TestClientCanReachTheHideCallback(t *testing.T) {
 	if !isClientSelfCallback("hide") {
 		t.Fatal("a client's hide button is refused by the callback gate")
+	}
+}
+
+// The pagination buttons must reach a client through the callback gate, or a
+// multi-page screen would trap the client on page 1 with an endless spinner.
+func TestClientCanReachPaginationCallbacks(t *testing.T) {
+	for _, cb := range []string{cbPageNext, cbPagePrev, cbPageNone} {
+		if !isClientSelfCallback(cb) {
+			t.Fatalf("client pagination callback %q is refused by callback gate", cb)
+		}
 	}
 }
 
