@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 
 	"gorm.io/gorm"
@@ -94,12 +95,13 @@ func (s *InboundService) DeliverNodeResets(ctx context.Context, nodeID int, rt r
 	defer lock.(*sync.Mutex).Unlock()
 	db := database.GetDB()
 	var rows []model.NodePendingReset
-	if err := db.Where("node_id = ?", nodeID).Order("id").Find(&rows).Error; err != nil {
+	if err := db.Where("node_id = ?", nodeID).Order("queued_at, id").Find(&rows).Error; err != nil {
 		return err
 	}
 	if len(rows) == 0 {
 		return nil
 	}
+	var failed error
 	bulk, canBulk := rt.(nodeBulkResetter)
 	for start := 0; start < len(rows); start += sqlInChunk {
 		batch := rows[start:min(start+sqlInChunk, len(rows))]
@@ -107,27 +109,41 @@ func (s *InboundService) DeliverNodeResets(ctx context.Context, nodeID int, rt r
 		for i := range batch {
 			emails[i] = batch[i].Email
 		}
-		var err error
 		if canBulk && len(batch) > nodeBulkPushThreshold {
-			err = bulk.ResetClientTraffics(ctx, emails)
-		} else {
-			for _, email := range emails {
-				if err = rt.ResetClientTraffic(ctx, nil, email); err != nil {
-					break
+			if err := bulk.ResetClientTraffics(ctx, emails); err != nil {
+				return err
+			}
+			for i := range batch {
+				if err := settleNodeReset(db, &batch[i]); err != nil {
+					return err
 				}
 			}
+			continue
 		}
-		if err != nil {
-			return err
-		}
+		// Each reset settles on its own: one the node never accepts must neither hold back
+		// the rest nor have them re-sent, which would wipe the usage made in between.
 		for i := range batch {
-			if err := db.Where("id = ? AND queued_at = ?", batch[i].Id, batch[i].QueuedAt).
-				Delete(&model.NodePendingReset{}).Error; err != nil {
+			if err := rt.ResetClientTraffic(ctx, nil, batch[i].Email); err != nil {
+				failed = err
+				// To the back of the queue, so it cannot spend the next attempt's budget first.
+				db.Model(&model.NodePendingReset{}).Where("id = ? AND queued_at = ?", batch[i].Id, batch[i].QueuedAt).
+					Update("queued_at", time.Now().UnixNano())
+				if ctx.Err() != nil {
+					return failed
+				}
+				continue
+			}
+			if err := settleNodeReset(db, &batch[i]); err != nil {
 				return err
 			}
 		}
 	}
-	return nil
+	return failed
+}
+
+// settleNodeReset drops a delivered row unless it was re-queued while it was being sent.
+func settleNodeReset(db *gorm.DB, row *model.NodePendingReset) error {
+	return db.Where("id = ? AND queued_at = ?", row.Id, row.QueuedAt).Delete(&model.NodePendingReset{}).Error
 }
 
 // deliverNodeResetsNow tries each node once right after a reset commits; what
@@ -137,16 +153,28 @@ func (s *InboundService) deliverNodeResetsNow(nodeIDs []int) {
 	if mgr == nil || len(nodeIDs) == 0 {
 		return
 	}
-	fanoutInboundResults(nodeIDs, nodeFanoutConcurrency, func(i int) struct{} {
-		rt, err := mgr.RuntimeFor(&nodeIDs[i])
-		if err != nil {
+	done := make(chan struct{})
+	common.GoRecover("node-reset-delivery", func() {
+		defer close(done)
+		fanoutInboundResults(nodeIDs, nodeFanoutConcurrency, func(i int) struct{} {
+			rt, err := mgr.RuntimeFor(&nodeIDs[i])
+			if err != nil {
+				return struct{}{}
+			}
+			ctx, cancel := nodePushContext()
+			defer cancel()
+			if err := s.DeliverNodeResets(ctx, nodeIDs[i], rt); err != nil {
+				logger.Warning("reset delivery to", rt.Name(), "deferred to the next sync:", err)
+			}
 			return struct{}{}
-		}
-		ctx, cancel := nodePushContext()
-		defer cancel()
-		if err := s.DeliverNodeResets(ctx, nodeIDs[i], rt); err != nil {
-			logger.Warning("reset delivery to", rt.Name(), "deferred to the next sync:", err)
-		}
-		return struct{}{}
+		})
 	})
+	// A silent node must not hold the request that queued the reset (a node relaying its
+	// master's reset): the master would time out and replay it, wiping usage made since.
+	select {
+	case <-done:
+	case <-time.After(nodeResetInlineWait):
+	}
 }
+
+const nodeResetInlineWait = time.Second

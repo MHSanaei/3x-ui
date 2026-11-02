@@ -31,6 +31,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+// salamanderWarningSeen maps an inbound id to a digest of the setting names
+// last warned about: a node picks the names, so the entry must stay fixed-size.
 var salamanderWarningSeen sync.Map
 
 // SubService provides business logic for generating subscription links and managing subscription data.
@@ -77,6 +79,11 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	// socketFronts maps a host and a unix-socket dest named by a settings.fallbacks to the
+	// lowest-id inbound of that host naming it. Filled by socketFront; reset per request.
+	socketFronts map[socketFrontKey]*model.Inbound
+	// rendered is what this request has put into its response so far.
+	rendered renderBudget
 	// settingsCache is shared by this service's requests (ForRequest copies the pointer); only
 	// subscription bodies read through it, never panel link rendering.
 	settingsCache   *inboundSettingsCache
@@ -84,6 +91,17 @@ type SubService struct {
 	hostGroupOrders map[string]hostEntryOrder
 	hostsFirst      bool
 	sharedGroupSni  map[string]string
+	// tuicByInbound and amneziaWGServerByInbound are the typed equivalents of
+	// settingsByInbound: one decode per request, not one per link of a subId.
+	tuicByInbound            map[int]*tuicLinkInstance
+	amneziaWGServerByInbound map[int]*amneziawg.ServerSettings
+}
+
+// tuicLinkInstance indexes a decoded TUIC inbound's clients by email
+// (first occurrence wins, matching the settings-JSON scan it replaces).
+type tuicLinkInstance struct {
+	tuic.Instance
+	byEmail map[string]*tuic.TuicClientSettings
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -126,9 +144,13 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.clientsByInbound = map[int]map[string]model.Client{}
 	s.fullyPrimedInbounds = map[int]bool{}
 	s.settingsByInbound = map[int]map[string]any{}
+	s.socketFronts = nil
+	s.tuicByInbound = map[int]*tuicLinkInstance{}
+	s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
+	s.rendered = 0
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()
@@ -246,6 +268,55 @@ func (s *SubService) linkSettings(inbound *model.Inbound) map[string]any {
 		s.settingsByInbound[inbound.Id] = out
 	}
 	return out
+}
+
+// tuicInstanceForLink returns the inbound's tuic.Instance decoded once per
+// request, or nil when the settings do not decode.
+func (s *SubService) tuicInstanceForLink(inbound *model.Inbound) *tuicLinkInstance {
+	if inbound.Id > 0 {
+		if cached, ok := s.tuicByInbound[inbound.Id]; ok {
+			return cached
+		}
+	}
+	var out *tuicLinkInstance
+	if inst, ok := tuic.InstanceFromInbound(inbound); ok {
+		out = &tuicLinkInstance{Instance: inst, byEmail: make(map[string]*tuic.TuicClientSettings, len(inst.Clients))}
+		for i := range out.Clients {
+			if _, exists := out.byEmail[out.Clients[i].Email]; !exists {
+				out.byEmail[out.Clients[i].Email] = &out.Clients[i]
+			}
+		}
+	}
+	if inbound.Id > 0 {
+		if s.tuicByInbound == nil {
+			s.tuicByInbound = map[int]*tuicLinkInstance{}
+		}
+		s.tuicByInbound[inbound.Id] = out
+	}
+	return out
+}
+
+// amneziaWGServerForLink returns the inbound's AmneziaWG server block decoded once
+// per request without its clients (those resolve via clientForLink), or nil.
+func (s *SubService) amneziaWGServerForLink(inbound *model.Inbound) *amneziawg.ServerSettings {
+	if inbound.Id > 0 {
+		if cached, ok := s.amneziaWGServerByInbound[inbound.Id]; ok {
+			return cached
+		}
+	}
+	var parsed struct {
+		Server *amneziawg.ServerSettings `json:"server"`
+	}
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil {
+		parsed.Server = nil
+	}
+	if inbound.Id > 0 {
+		if s.amneziaWGServerByInbound == nil {
+			s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
+		}
+		s.amneziaWGServerByInbound[inbound.Id] = parsed.Server
+	}
+	return parsed.Server
 }
 
 // loadRemarkSettings populates the per-request remark formatting state so
@@ -523,6 +594,10 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			if client.Enable {
 				hasEnabledClient = true
 			}
+			if s.rendered.spent() {
+				seenEmails[client.Email] = struct{}{}
+				continue
+			}
 			var link string
 			if s.hostsFirst {
 				variants, closed := s.clientHostVariants(inbound, client, "raw")
@@ -550,7 +625,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			} else {
 				link = s.GetLink(inbound, client.Email)
 			}
-			if !s.hostsFirst {
+			if !s.hostsFirst && s.keepLink(link) {
 				result = append(result, link)
 			}
 			emails = append(emails, client.Email)
@@ -559,7 +634,12 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	}
 	if s.hostsFirst {
 		for _, render := range orderedSubValues(ordered) {
-			result = append(result, render())
+			if s.rendered.spent() {
+				break
+			}
+			if link := render(); s.keepLink(link) {
+				result = append(result, link)
+			}
 		}
 	}
 	for _, ext := range externalLinks {
@@ -735,8 +815,12 @@ func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
 	return 0
 }
 
-// getInboundsBySubId loads the subscriber's inbounds; hosts are read per request, never cached.
+// getInboundsBySubId loads the subscriber's inbounds, hosts read per request; a blank subId
+// would match every client stored without one, so it names no subscription.
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
+	if strings.TrimSpace(subId) == "" {
+		return nil, nil
+	}
 	inbounds, err := s.loadInboundsBySubId(subId)
 	if err != nil {
 		return nil, err
@@ -779,15 +863,15 @@ func (s *SubService) loadInboundsBySubId(subId string) ([]*model.Inbound, error)
 	return inbounds, nil
 }
 
-// subscriptionSettings is an inbound's settings for a subscription body: WireGuard and AmneziaWG
-// keep their peers, every other protocol gets the shared copy without the clients array.
+// WireGuard/AmneziaWG need their peers, and TUIC link generation reads embedded clients.
+// Other protocols can share cached settings without the clients array.
 func (s *SubService) subscriptionSettings(inbound *model.Inbound) (string, error) {
 	load := func() (string, error) {
 		var settings string
 		err := database.GetDB().Model(&model.Inbound{}).Select("settings").Where("id = ?", inbound.Id).Row().Scan(&settings)
 		return settings, err
 	}
-	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG || inbound.Protocol == model.TUIC {
 		return load()
 	}
 	return s.settingsCache.settingsFor(inbound.Id, load)
@@ -827,7 +911,7 @@ func (s *SubService) indexStatsBySubId(subId string) {
 // when applicable. Covers both fallback mechanisms:
 //   - panel-tracked: an inbound_fallbacks row where child_id = inbound.Id
 //   - legacy unix-socket: inbound.Listen begins with "@" and some VLESS/
-//     Trojan inbound's settings.fallbacks references that listen address
+//     Trojan inbound on the same host names that socket in settings.fallbacks
 //
 // Returns true when a projection happened; sub services call this before
 // generating links so a child VLESS-WS bound to 127.0.0.1 emits the
@@ -860,13 +944,9 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 	}
 
 	if master == nil && len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-		var m model.Inbound
-		if err := db.Model(model.Inbound{}).
-			Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
-			Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", inbound.Listen).
-			First(&m).Error; err == nil {
-			master = &m
-		}
+		// A unix socket exists only on the host that binds it, so only an inbound
+		// hosted where the child runs (this panel, or the same node) can front it.
+		master = s.socketFront(socketFrontKey{node: nodeKeyOf(inbound.NodeID), dest: inbound.Listen})
 	}
 
 	if master == nil {
@@ -947,17 +1027,11 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.TUIC {
 		return ""
 	}
-	inst, ok := tuic.InstanceFromInbound(inbound)
-	if !ok {
+	inst := s.tuicInstanceForLink(inbound)
+	if inst == nil {
 		return ""
 	}
-	var client *tuic.TuicClientSettings
-	for _, c := range inst.Clients {
-		if c.Email == email {
-			client = &c
-			break
-		}
-	}
+	client := inst.byEmail[email]
 	if client == nil && len(inst.Clients) > 0 && email == "" {
 		client = &inst.Clients[0]
 	}
@@ -1179,11 +1253,10 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	if inbound.Protocol != model.AmneziaWG {
 		return ""
 	}
-	var parsed amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+	server := s.amneziaWGServerForLink(inbound)
+	if server == nil {
 		return ""
 	}
-	server := parsed.Server
 
 	resolved, ok := s.clientForLink(inbound, email)
 	if !ok || resolved.PrivateKey == "" {
@@ -1359,7 +1432,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params,
 			security,
 			func(ep map[string]any, dest string, port int) string {
-				return fmt.Sprintf("vless://%s@%s", applyVlessRoute(uuid, hostVlessRoute(ep)), joinHostPort(dest, port))
+				return fmt.Sprintf("vless://%s@%s", encodeLinkUserinfo(applyVlessRoute(uuid, hostVlessRoute(ep))), joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
 				return s.endpointRemark(inbound, email, ep, streamNetwork)
@@ -1367,7 +1440,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		)
 	}
 
-	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
+	link := fmt.Sprintf("vless://%s@%s", encodeLinkUserinfo(uuid), joinHostPort(address, port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
@@ -1435,13 +1508,42 @@ func encodeUserinfo(s string) string {
 	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
+// encodeLinkUserinfo escapes with the WHATWG userinfo set, as the panel's own links do through
+// the browser's URL parser, so a non-UUID id reads the same in a subscription and a QR.
+func encodeLinkUserinfo(s string) string {
+	const escaped = " \"#<>?`{}/:;=@[\\]^|"
+	var sb strings.Builder
+	for _, b := range []byte(s) {
+		if b < 0x20 || b > 0x7e || strings.IndexByte(escaped, b) >= 0 {
+			fmt.Fprintf(&sb, "%%%02X", b)
+		} else {
+			sb.WriteByte(b)
+		}
+	}
+	return sb.String()
+}
+
 // joinHostPort wraps an IPv6 host in square brackets the way RFC 3986
 // requires for URI authorities, while leaving IPv4 addresses and hostnames
 // untouched. It also strips any brackets already present on the input so
 // callers don't have to normalize upstream.
 func joinHostPort(host string, port int) string {
 	host = strings.Trim(host, "[]")
-	return net.JoinHostPort(host, strconv.Itoa(port))
+	return net.JoinHostPort(escapeLinkHost(host), strconv.Itoa(port))
+}
+
+// escapeLinkHost percent-encodes whitespace, control characters and URI delimiters: a
+// node-reported address is never re-parsed, so a raw line break would end the link's line.
+func escapeLinkHost(host string) string {
+	var sb strings.Builder
+	for _, r := range host {
+		if r == ' ' || !strconv.IsPrint(r) || strings.ContainsRune("\"#/<>?@[\\]^`{|}", r) {
+			sb.WriteString(encodeURIComponent(string(r)))
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
@@ -1588,9 +1690,10 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 					// packetSize rides its own URI fields; anything else still
 					// breaks standard clients and must warn even when gecko fires.
 					if extra := extraSalamanderKeys(settings, gecko != ""); len(extra) > 0 {
-						warningKey := fmt.Sprintf("%d:%v", inbound.Id, extra)
-						if _, loaded := salamanderWarningSeen.LoadOrStore(warningKey, struct{}{}); !loaded {
-							logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
+						// Warn again when the set changes; log a bounded sample of the names.
+						digest := sha256.Sum256([]byte(strings.Join(extra, "\x00")))
+						if prev, _ := salamanderWarningSeen.Swap(inbound.Id, digest); prev != digest {
+							logger.Warningf("SubService - inbound %d: salamander settings %.32q cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra[:min(len(extra), 8)])
 						}
 					}
 					if params["obfs"] == "" {
@@ -3479,4 +3582,56 @@ func extraSalamanderKeys(settings map[string]any, expressedPacketSize bool) []st
 	}
 	sort.Strings(extra)
 	return extra
+}
+
+// socketFrontKey names a unix socket on one host: 0 is this panel, else the node id.
+type socketFrontKey struct {
+	node int
+	dest string
+}
+
+func nodeKeyOf(nodeID *int) int {
+	if nodeID == nil {
+		return 0
+	}
+	return *nodeID
+}
+
+// socketFront resolves a legacy unix-socket child to its front. That means parsing the
+// settings JSON of every inbound, so the scan runs once per request, not once per child.
+func (s *SubService) socketFront(key socketFrontKey) *model.Inbound {
+	if s.socketFronts == nil {
+		s.socketFronts = map[socketFrontKey]*model.Inbound{}
+		var fronts []struct {
+			NodeID         *int
+			Listen         string
+			Port           int
+			StreamSettings string
+			Settings       string
+		}
+		// Parsed here, not with SQL JSON functions, so the lookup works on PostgreSQL too and one
+		// inbound with unreadable settings cannot hide every front.
+		if err := database.GetDB().Model(model.Inbound{}).
+			Select("node_id, listen, port, stream_settings, settings").
+			Where("settings LIKE ?", "%fallbacks%").
+			Order("id ASC").Scan(&fronts).Error; err != nil {
+			return nil
+		}
+		for _, front := range fronts {
+			var parsed struct {
+				Fallbacks []any `json:"fallbacks"`
+			}
+			_ = json.Unmarshal([]byte(front.Settings), &parsed)
+			for _, fallback := range parsed.Fallbacks {
+				rule, _ := fallback.(map[string]any)
+				dest, _ := rule["dest"].(string)
+				k := socketFrontKey{node: nodeKeyOf(front.NodeID), dest: dest}
+				if _, taken := s.socketFronts[k]; taken || !strings.HasPrefix(dest, "@") {
+					continue
+				}
+				s.socketFronts[k] = &model.Inbound{Listen: front.Listen, Port: front.Port, StreamSettings: front.StreamSettings}
+			}
+		}
+	}
+	return s.socketFronts[key]
 }
