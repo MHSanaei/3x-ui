@@ -20,7 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
-import { CipherSuitesSelect } from '@/components/form';
+import { CipherSuitesSelect, selectTagRender } from '@/components/form';
 import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField } from '@/components/form/rhf';
 import {
@@ -380,6 +380,7 @@ export default function TlsForm({
       <FormField name={['streamSettings', 'tlsSettings', 'alpn']} label="ALPN">
         <Select
           mode="multiple"
+          tagRender={selectTagRender}
           tokenSeparators={[',']}
           style={{ width: '100%' }}
           options={Object.values(ALPN_OPTION).map((a) => ({ value: a, label: a }))}
@@ -392,6 +393,7 @@ export default function TlsForm({
       >
         <Select
           mode="tags"
+          tagRender={selectTagRender}
           tokenSeparators={[',', ' ']}
           style={{ width: '100%' }}
           options={['X25519MLKEM768', 'X25519', 'P-256', 'P-384', 'P-521'].map((c) => ({
@@ -478,6 +480,7 @@ export default function TlsForm({
               id={`${uid}-pinnedPeerCertSha256`}
               aria-describedby={`${uid}-pinnedPeerCertSha256-hint`}
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',', ' ']}
               placeholder={t('pages.inbounds.form.pinnedPeerCertSha256Placeholder')}
               style={{ width: 'calc(100% - 64px)' }}
