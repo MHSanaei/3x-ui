@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -15,9 +16,9 @@ import (
 func TestCleanIpCommandRefusesASwappedScript(t *testing.T) {
 	py := pythonForTest(t)
 	marker := filepath.Join(t.TempDir(), "pwned")
-	var fetched []string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fetched = append(fetched, r.URL.RequestURI())
+	var fetches atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fetches.Add(1)
 		_, _ = w.Write([]byte("open(r\"" + marker + "\", 'w').write('x')\n"))
 	}))
 	defer srv.Close()
@@ -34,7 +35,7 @@ func TestCleanIpCommandRefusesASwappedScript(t *testing.T) {
 	}
 
 	for name, line := range map[string]string{"direct": direct.Unix, "via": cmd.UnixVia} {
-		fetched = nil
+		fetches.Store(0)
 		code := strings.TrimSuffix(strings.TrimPrefix(line, `python3 -c "`), `"`)
 		run := exec.Command(py, "-c", code)
 		run.Env = append(os.Environ(), "NO_PROXY=*", "no_proxy=*")
@@ -43,8 +44,8 @@ func TestCleanIpCommandRefusesASwappedScript(t *testing.T) {
 		if _, err := os.Stat(marker); err == nil {
 			t.Fatalf("%s: the command ran a script the panel did not make; output %q", name, out)
 		}
-		if !strings.Contains(string(out), "did not match") || len(fetched) != 1 {
-			t.Errorf("%s: output %q after fetching %v, want one fetch and the mismatch notice", name, out, fetched)
+		if n := fetches.Load(); !strings.Contains(string(out), "did not match") || n != 1 {
+			t.Errorf("%s: output %q after %d fetches, want one fetch and the mismatch notice", name, out, n)
 		}
 	}
 	if want := "/secret/cleanip/run/" + cmd.Token + "/script.py?via=127.0.0.1"; !strings.Contains(cmd.UnixVia, "'http://panel.invalid:"+port+want+"'") {
