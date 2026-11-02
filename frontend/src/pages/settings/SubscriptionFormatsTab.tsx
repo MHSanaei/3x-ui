@@ -13,7 +13,7 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
-import { GoRegexInput } from '@/components/form';
+import { GoRegexInput, selectTagRender } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
@@ -418,6 +418,7 @@ export default function SubscriptionFormatsTab({
                   <SettingListItem paddings="small" title={<>{t('pages.settings.direct')} IPs</>}>
                     <Select
                       mode="tags"
+                      tagRender={selectTagRender}
                       value={ruleValues('direct', 'ip')}
                       style={{ width: '100%' }}
                       onChange={(v) => setRuleValues('direct', 'ip', DEFAULT_DIRECT_RULES[1], v)}
@@ -434,6 +435,7 @@ export default function SubscriptionFormatsTab({
                   >
                     <Select
                       mode="tags"
+                      tagRender={selectTagRender}
                       value={ruleValues('direct', 'domain')}
                       style={{ width: '100%' }}
                       onChange={(v) =>
@@ -467,6 +469,7 @@ export default function SubscriptionFormatsTab({
                   <SettingListItem paddings="small" title={t('pages.xray.blockdomains')}>
                     <Select
                       mode="tags"
+                      tagRender={selectTagRender}
                       value={ruleValues('block', 'domain')}
                       style={{ width: '100%' }}
                       onChange={(v) => setRuleValues('block', 'domain', DEFAULT_BLOCK_RULES[0], v)}
@@ -476,6 +479,7 @@ export default function SubscriptionFormatsTab({
                   <SettingListItem paddings="small" title={t('pages.xray.blockips')}>
                     <Select
                       mode="tags"
+                      tagRender={selectTagRender}
                       value={ruleValues('block', 'ip')}
                       style={{ width: '100%' }}
                       onChange={(v) => setRuleValues('block', 'ip', BLOCK_IP_RULE, v)}

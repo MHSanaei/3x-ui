@@ -108,6 +108,8 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     serverMaxHeaderBytes: z.number().int().min(0).default(0),
     uplinkHTTPMethod: z.string().default(''),
     headers: WsHeaderMapSchema.default({}),
+    // Server-only Go net/http HTTP2Config (xray-core 26.10.31); never put into share links.
+    h2Params: z.record(z.string(), z.unknown()).optional(),
     // Client-side fields stored on inbound for subscription propagation.
     // The server listener ignores them at runtime, but the panel embeds
     // them in share-link `extra` blobs so the same xhttp config can

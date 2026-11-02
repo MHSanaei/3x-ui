@@ -46,10 +46,19 @@ func commandAllowed(level userLevel, command string) bool {
 	return commandsByLevel[level][command]
 }
 
+// sentForChat reports that no account stands behind message.From: a post by an
+// anonymous admin or a channel carries a placeholder user shared by everybody.
+func sentForChat(message *telego.Message) bool {
+	return message.SenderChat != nil || message.From.IsBot
+}
+
 // gateCommand reports whether a command reaches answerCommand, and as whom. A
 // stranger's refused command gets no reply, so the bot reveals nothing to probe.
 func (t *Tgbot) gateCommand(message *telego.Message) (isAdmin bool, ok bool) {
-	level := t.levelOf(message.From.ID)
+	level := levelStranger
+	if !sentForChat(message) {
+		level = t.levelOf(message.From.ID)
+	}
 	command, _, _ := tu.ParseCommand(message.Text)
 	if commandAllowed(level, command) {
 		return level == levelAdmin, true

@@ -11,7 +11,8 @@
   "jsPlugins": [
     "./tools/oxlint/input-number-guard.mjs",
     "./tools/oxlint/control-label-guard.mjs",
-    "./tools/oxlint/icon-a11y-guard.mjs"
+    "./tools/oxlint/icon-a11y-guard.mjs",
+    "./tools/oxlint/antd-a11y-guard.mjs"
   ],
   "categories": {
     "correctness": "error"
@@ -52,7 +53,9 @@
     "input-number/no-synthetic-clear": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
     "control-label/has-name": "off",
-    "antd-icon/explicit-a11y": "off"
+    "antd-icon/explicit-a11y": "off",
+    "antd-a11y/spin-content-not-live": "off",
+    "antd-a11y/select-tag-remove": "off"
   },
   "overrides": [
     {
@@ -78,7 +81,9 @@
       ],
       "rules": {
         "control-label/has-name": "error",
-        "antd-icon/explicit-a11y": "error"
+        "antd-icon/explicit-a11y": "error",
+        "antd-a11y/spin-content-not-live": "error",
+        "antd-a11y/select-tag-remove": "error"
       }
     },
     {
@@ -88,7 +93,9 @@
       ],
       "rules": {
         "control-label/has-name": "off",
-        "antd-icon/explicit-a11y": "off"
+        "antd-icon/explicit-a11y": "off",
+        "antd-a11y/spin-content-not-live": "off",
+        "antd-a11y/select-tag-remove": "off"
       }
     }
   ]

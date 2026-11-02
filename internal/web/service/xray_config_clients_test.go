@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func seedVlessInbound(t *testing.T, tag string, port int, clients []model.Client) {
@@ -178,4 +179,49 @@ func TestGetXrayConfig_KeepsVisionFlowWhereTheCoreRunsIt(t *testing.T) {
 			}
 		})
 	}
+}
+
+// With an empty client list xray-core runs a Shadowsocks-2022 inbound as a single-user
+// server, and the server key it then accepts alone is the first half of every client's password.
+func TestShadowsocks2022WithoutEnabledClientsStaysLocked(t *testing.T) {
+	setupSettingTestDB(t)
+	key := "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+	in := &model.Inbound{
+		Tag: "ss-2022", Enable: true, Port: 43110, Protocol: model.Shadowsocks,
+		Settings: `{"method":"2022-blake3-aes-256-gcm","password":"` + key + `","network":"tcp,udp","clients":[]}`,
+	}
+	if err := database.GetDB().Create(in).Error; err != nil {
+		t.Fatalf("create shadowsocks inbound: %v", err)
+	}
+	if err := (&ClientService{}).SyncInbound(nil, in.Id, []model.Client{{Email: "only@x", Password: key, Enable: true}}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	disableClients(t, "only@x")
+
+	onlyLocked := func(where string, clients any) {
+		t.Helper()
+		list, _ := clients.([]any)
+		if len(list) != 1 {
+			t.Fatalf("%s: clients = %v, want only the locked placeholder", where, clients)
+		}
+		if email, _ := list[0].(map[string]any)["email"].(string); email != xray.LockedShadowsocks2022Email {
+			t.Fatalf("%s: client %v served, want only the locked placeholder", where, list[0])
+		}
+	}
+	emitted, _ := emittedClients(t, in.Tag)
+	onlyLocked("config", emitted)
+
+	var stored model.Inbound
+	if err := database.GetDB().First(&stored, in.Id).Error; err != nil {
+		t.Fatalf("read inbound: %v", err)
+	}
+	runtimeInbound, err := (&InboundService{}).buildInboundForLocalRuntime(database.GetDB(), &stored)
+	if err != nil {
+		t.Fatalf("buildInboundForLocalRuntime: %v", err)
+	}
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(runtimeInbound.Settings), &settings); err != nil {
+		t.Fatalf("unmarshal runtime settings: %v", err)
+	}
+	onlyLocked("local runtime", settings["clients"])
 }

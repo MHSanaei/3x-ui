@@ -25,6 +25,10 @@ func buildClientUAPIConfig(inst amneziawg.OutboundInstance, opts DeviceOptions) 
 	}
 	b.WriteString("replace_peers=true\n")
 
+	// Rows saved before these bounds existed would allocate without limit per handshake.
+	if err := amneziawg.ValidateHandshakePreamble(inst.Obfuscation); err != nil {
+		return "", err
+	}
 	o := inst.Obfuscation
 	fmt.Fprintf(&b, "jc=%d\njmin=%d\njmax=%d\n", o.Jc, o.Jmin, o.Jmax)
 	fmt.Fprintf(&b, "s1=%d\ns2=%d\ns3=%d\ns4=%d\n", o.S1, o.S2, o.S3, o.S4)

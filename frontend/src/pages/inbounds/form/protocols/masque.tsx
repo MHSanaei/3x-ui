@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Input, InputNumber, Select } from 'antd';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { MASQUE_DEFAULT_PATH } from '@/schemas/protocols/stream/masque';
 
@@ -14,7 +15,7 @@ export function MasqueSettingsFields() {
         name={['settings', 'address']}
         required
       >
-        <Select mode="tags" tokenSeparators={[',', ' ']} open={false} />
+        <Select mode="tags" tagRender={selectTagRender} tokenSeparators={[',', ' ']} open={false} />
       </FormField>
       <FormField label={t('pages.inbounds.info.mtu')} name={['settings', 'mtu']}>
         <InputNumber min={1280} max={65535} placeholder="1280" style={{ width: '100%' }} />
