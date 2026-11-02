@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /*
- * Guards the 14-locale translation set two ways: every key in en-US must be
+ * Guards the 14-locale translation set: every key in en-US must be
  * referenced somewhere in the frontend or Go sources (dead keys accumulate
  * silently — this test deleted over two hundred of them when it was
  * introduced), and every locale must carry exactly the en-US key set
@@ -80,6 +80,17 @@ describe('i18n keys', () => {
     expect(dead, `dead i18n keys (delete from all 14 locales):\n  ${dead.join('\n  ')}`).toEqual(
       [],
     );
+  });
+
+  it('no literal t() key resolves to an object', () => {
+    const objectKeys = Array.from(
+      blob.matchAll(/\bt\(\s*(['"`])([\w.-]+)\1\s*[,)]/g),
+      (m) => m[2],
+    ).filter((key) => enKeys.some((leaf) => leaf.startsWith(`${key}.`)));
+    expect(
+      objectKeys,
+      `t() keys naming a group, rendered as "key '…' returned an object instead of string.":\n  ${objectKeys.join('\n  ')}`,
+    ).toEqual([]);
   });
 
   it('every locale carries exactly the en-US key set', () => {
