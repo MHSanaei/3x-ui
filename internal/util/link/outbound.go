@@ -387,7 +387,7 @@ func parseVless(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "vless",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"address":    host,
 			"port":       port,
@@ -429,7 +429,7 @@ func parseTrojan(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "trojan",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"servers": []any{
 				map[string]any{"address": host, "port": port, "password": pw},
@@ -634,7 +634,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol":       "hysteria",
-		"tag":            decodeHash(u.Fragment),
+		"tag":            decodeHash(u.EscapedFragment()),
 		"settings":       map[string]any{"address": host, "port": port, "version": 2},
 		"streamSettings": stream,
 	}
@@ -712,7 +712,7 @@ func parseWireguard(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "wireguard",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": settings,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
