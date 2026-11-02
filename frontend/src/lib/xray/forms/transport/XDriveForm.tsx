@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input, InputNumber, Select, Typography } from 'antd';
+import { Input, InputNumber, Select, Switch, Typography } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { JsonEditor } from '@/components/form';
+import { selectTagRender } from '@/components/form/SelectTag';
 import { FormField } from '@/components/form/rhf';
 import { XDriveServiceSchema } from '@/schemas/protocols/stream/xdrive';
 
@@ -13,7 +14,7 @@ const SERVICE_LABEL_KEYS: Partial<Record<string, string>> = {
   local: 'pages.inbounds.form.xdrive.serviceLocal',
   template: 'pages.inbounds.form.xdrive.serviceTemplate',
 };
-const SERVICE_NAMES: Partial<Record<string, string>> = { 'google-drive': 'Google Drive' };
+const SERVICE_NAMES: Partial<Record<string, string>> = { 'google-drive': 'Google Drive', s3: 'S3' };
 
 // Core defaults (transport/internet/xdrive/params.go), shown as placeholders so an
 // empty field keeps meaning "use the core's value".
@@ -29,6 +30,11 @@ const TUNING_FIELDS = [
 ] as const;
 
 const GOOGLE_DRIVE_SECRETS = ['clientId', 'clientSecret', 'refreshToken'] as const;
+const S3_SECRETS = [
+  ['accessKeyId', true],
+  ['secretAccessKey', true],
+  ['sessionToken', false],
+] as const;
 
 function TemplateEditor({
   value,
@@ -90,7 +96,11 @@ export default function XDriveForm() {
         name={[...BASE, 'remoteFolder']}
         required
       >
-        <Input placeholder={service === 'local' ? '/var/lib/xdrive' : 'xray-tunnel'} />
+        <Input
+          placeholder={
+            service === 'local' ? '/var/lib/xdrive' : service === 's3' ? 'xdrive' : 'xray-tunnel'
+          }
+        />
       </FormField>
       {service === 'google-drive' &&
         GOOGLE_DRIVE_SECRETS.map((key, index) => (
@@ -103,6 +113,48 @@ export default function XDriveForm() {
             {key === 'clientId' ? <Input /> : <Input.Password />}
           </FormField>
         ))}
+      {service === 's3' && (
+        <>
+          {S3_SECRETS.map(([key, required], index) => (
+            <FormField
+              key={key}
+              label={t(`pages.inbounds.form.xdrive.${key}`)}
+              name={[...BASE, 'secrets', index]}
+              required={required}
+            >
+              {key === 'accessKeyId' ? <Input /> : <Input.Password />}
+            </FormField>
+          ))}
+          <FormField
+            label={t('pages.inbounds.form.xdrive.s3Endpoint')}
+            name={[...BASE, 's3', 'endpoint']}
+            required
+          >
+            <Input placeholder="https://s3.amazonaws.com" />
+          </FormField>
+          <FormField
+            label={t('pages.inbounds.form.xdrive.s3Region')}
+            name={[...BASE, 's3', 'region']}
+          >
+            <Input placeholder="us-east-1" />
+          </FormField>
+          <FormField
+            label={t('pages.inbounds.form.xdrive.s3Bucket')}
+            name={[...BASE, 's3', 'bucket']}
+            required
+          >
+            <Input />
+          </FormField>
+          <FormField
+            label={t('pages.inbounds.form.xdrive.s3PathStyle')}
+            tooltip={t('pages.inbounds.form.xdrive.s3PathStyleDesc')}
+            name={[...BASE, 's3', 'pathStyle']}
+            transform={{ input: (value) => value !== false }}
+          >
+            <Switch />
+          </FormField>
+        </>
+      )}
       {service === 'template' && (
         <>
           <FormField
@@ -110,7 +162,7 @@ export default function XDriveForm() {
             tooltip={t('pages.inbounds.form.xdrive.secretsDesc')}
             name={[...BASE, 'secrets']}
           >
-            <Select mode="tags" tokenSeparators={[',']} open={false} />
+            <Select mode="tags" tagRender={selectTagRender} tokenSeparators={[',']} open={false} />
           </FormField>
           <FormField
             label={t('pages.inbounds.form.xdrive.template')}

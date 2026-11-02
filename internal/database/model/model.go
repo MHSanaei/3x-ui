@@ -4,6 +4,7 @@ package model
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -356,7 +357,9 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	if listen == "" {
 		listen = "0.0.0.0"
 	}
-	listen = fmt.Sprintf("\"%v\"", listen)
+	// Encoded, not quoted by hand: an escaped "env:" prefix must stay literal text.
+	encodedListen, _ := json.Marshal(listen)
+	listen = string(encodedListen)
 	protocol := string(i.Protocol)
 	settings := i.Settings
 	switch i.Protocol {
@@ -705,6 +708,16 @@ func ValidMtprotoAdTag(tag string) bool {
 	return err == nil
 }
 
+// ValidMtprotoSecret mirrors mtg's secret parser: hex, else unpadded URL-safe
+// base64, of the 0xee FakeTLS marker, a 16-byte key and a non-empty host name.
+func ValidMtprotoSecret(secret string) bool {
+	decoded, err := hex.DecodeString(secret)
+	if err != nil {
+		decoded, err = base64.RawURLEncoding.DecodeString(secret)
+	}
+	return err == nil && len(decoded) > 17 && decoded[0] == 0xee
+}
+
 // StripMtprotoInboundSecret removes the vestigial inbound-level `secret` from an
 // mtproto inbound's settings JSON. MTProto is multi-client: every secret lives on
 // a client, and mtg's [secrets] config plus every share link read only the
@@ -954,7 +967,7 @@ type Client struct {
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
 	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"` // Numeric values or AmneziaWG ranges; 0 disables, omission preserves.
 	AWGPing             *AWGPingPolicy   `json:"awgPing,omitempty"`
-	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
+	ForwardedPorts      *string          `json:"forwardedPorts,omitempty"` // AmneziaWG port-forwarding spec, e.g. "80,443,8000-8100"; "" withdraws the forwards, omit to keep them
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
 	Email               string           `json:"email"`                            // Client email identifier
@@ -1019,6 +1032,8 @@ type ClientRecord struct {
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
+	// The node whose merge orphaned the record: only that node may take it back.
+	SyncOrphanedBy int `json:"-" gorm:"column:sync_orphaned_by;default:0"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -1275,6 +1290,27 @@ func keepAliveValue(value *KeepAliveValue) KeepAliveValue {
 	return *value
 }
 
+// ForwardedPortsSpec is the client's port-forwarding spec, "" when unset.
+func (c Client) ForwardedPortsSpec() string {
+	if c.ForwardedPorts == nil {
+		return ""
+	}
+	return strings.TrimSpace(*c.ForwardedPorts)
+}
+
+// ForwardedPortsPtr wraps an explicit spec, "" included: distinct from a nil
+// ForwardedPorts, which means the field was never sent.
+func ForwardedPortsPtr(spec string) *string { return &spec }
+
+// nonEmptyForwardedPorts keeps a stored "" nil: a record re-saved as a client must not
+// read as a request to withdraw the forwards.
+func nonEmptyForwardedPorts(spec string) *string {
+	if spec == "" {
+		return nil
+	}
+	return ForwardedPortsPtr(spec)
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:             c.Email,
@@ -1290,7 +1326,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		ExpiryTime:        c.ExpiryTime,
 		Enable:            c.Enable,
 		TgID:              c.TgID,
-		Group:             c.Group,
+		Group:             strings.TrimSpace(c.Group),
 		Comment:           c.Comment,
 		Reset:             c.Reset,
 		ResetDay:          c.ResetDay,
@@ -1306,7 +1342,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
 		PreSharedKey:   c.PreSharedKey,
 		KeepAlive:      keepAliveValue(c.KeepAlive),
-		ForwardedPorts: c.ForwardedPorts,
+		ForwardedPorts: c.ForwardedPortsSpec(),
 		AWGPing:        c.AWGPing.Clone(),
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
@@ -1367,7 +1403,7 @@ func (r *ClientRecord) ToClient() *Client {
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
 		KeepAlive:      keepAlivePtr(r.KeepAlive),
-		ForwardedPorts: r.ForwardedPorts,
+		ForwardedPorts: nonEmptyForwardedPorts(r.ForwardedPorts),
 		AWGPing:        r.AWGPing.Clone(),
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,

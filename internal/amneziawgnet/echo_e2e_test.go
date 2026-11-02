@@ -152,16 +152,24 @@ func TestEchoEncryptedAWGToRealICMP(t *testing.T) {
 	if up.Load() != want || down.Load() != want {
 		t.Fatal("disabled probe was charged")
 	}
-	// Even the server's own netstack address must time out when ping is denied.
+	// Local tunnel-health probes retain the existing stack reply, independent of forwarding.
 	own, err := clientNet.DialPingAddr(netip.MustParseAddr("192.0.2.2"), netip.MustParseAddr("192.0.2.1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer own.Close()
-	_ = own.SetDeadline(time.Now().Add(200 * time.Millisecond))
+	_ = own.SetDeadline(time.Now().Add(time.Second))
 	_, _ = own.Write(msg)
-	if _, err := own.Read(reply); err == nil {
-		t.Fatal("gVisor local Echo bypassed the gate")
+	if n, err := own.Read(reply); err != nil || n != len(msg) || reply[0] != 0 || !bytes.Equal(reply[8:n], payload) {
+		t.Fatalf("local tunnel-health reply: n=%d err=%v", n, err)
+	}
+	if up.Load() != want || down.Load() != want {
+		t.Fatal("local health probe used remote forwarding accounting")
+	}
+	select {
+	case <-seen:
+		t.Fatal("local health probe sent host ICMP")
+	default:
 	}
 	enabled.Store(true)
 	missing, err := clientNet.DialPingAddr(netip.MustParseAddr("192.0.2.2"), netip.MustParseAddr("198.18.0.2"))

@@ -209,12 +209,18 @@ account enablement, expiration, quota and the canonical policy for both directio
 A policy revision invalidates outstanding replies even when access is restored
 before they return. Fresh cross-panel quota snapshots retain their native meaning.
 
-This changes the previous local gVisor ICMP behavior on every embedded inbound:
-IPv4 ICMP is intercepted before the stack, so a disabled policy produces no Echo
-reply, including to the server's own tunnel address. Other IPv4 ICMP types are
-also dropped in this first implementation. Existing ping-based tunnel-health
-checks must account for this; the policy does not preserve local Echo as an
-implicit exception.
+Ping to a configured tunnel-local server address keeps its existing gVisor
+reply, even when remote ping forwarding is disabled. This only checks the tunnel
+endpoint; it does not prove a remote destination is reachable. These local
+health replies do not open a host ICMP socket or use the remote forwarding grant
+and accounting. Other unfragmented IPv4 ICMP messages, including transport error
+reports, continue to reach the stack. Fragmented remote ICMP is not supported.
+
+Remote Echo requests are intercepted before gVisor and receive no reply unless
+the configured destination actually answers and the client policy permits it.
+A remote address in the tunnel's subnet is still remote unless it is an exact
+configured server address. No implicit local reply can make a remote health
+check appear successful.
 
 Limits are 128 requests/second per account (burst 256), 256 outstanding probes per
 account, and 1,024 requests/second globally (burst 2,048), with 4,096 outstanding

@@ -36,6 +36,9 @@ type expandedLink struct {
 // getClientExternalLinksBySubId returns active rows with owner state attached.
 // Consumers keep inactive owners as metadata but omit their link values.
 func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLinkEntry, error) {
+	if strings.TrimSpace(subId) == "" {
+		return nil, nil
+	}
 	db := database.GetDB()
 	var recs []model.ClientRecord
 	if err := db.Where("sub_id = ?", subId).Find(&recs).Error; err != nil {
@@ -203,7 +206,8 @@ func parsedExternalOutbound(rawLink string) json_util.RawMessage {
 		return nil
 	}
 	ob["tag"] = "proxy"
-	b, err := json.MarshalIndent(ob, "", "  ")
+	// Compact: the response is indented once at the end, and each extra pass costs per level.
+	b, err := json.Marshal(ob)
 	if err != nil {
 		return nil
 	}

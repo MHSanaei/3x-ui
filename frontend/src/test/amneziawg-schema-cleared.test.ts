@@ -42,9 +42,10 @@ describe('AmneziawgServerSchema obfuscation bounds', () => {
     ['s2', 1609],
     ['s3', 1637],
     ['s4', 33],
-    ['jc', 4294967296],
-    ['jmin', 4294967296],
-    ['jmax', 5000000000],
+    ['jc', 129],
+    ['jmin', 65536],
+    ['jmax', 65536],
+    ['mtu', 65536],
   ];
 
   it.each(overWidth)('rejects %s past what amneziawg-go can apply or receive', (field, value) => {
@@ -56,7 +57,9 @@ describe('AmneziawgServerSchema obfuscation bounds', () => {
     ['s2', 1608],
     ['s3', 1636],
     ['s4', 32],
-    ['jc', 4294967295],
+    ['jc', 128],
+    ['jmax', 65535],
+    ['mtu', 65535],
   ];
 
   it.each(atLimit)('accepts %s exactly at its limit', (field, value) => {

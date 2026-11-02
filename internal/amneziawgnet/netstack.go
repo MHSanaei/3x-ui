@@ -3,11 +3,14 @@
 package amneziawgnet
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net/netip"
 	"os"
+	"slices"
 	"sync"
 	"syscall"
+	"time"
 
 	awgtun "github.com/amnezia-vpn/amneziawg-go/v3/tun"
 
@@ -27,6 +30,10 @@ import (
 // 1024 starved simultaneous TCP slow-starts; channel.Endpoint drops silently when full.
 const tunQueueDepth = 8192
 
+// tunQueueMaxWait bounds how long WriteNotify parks the goroutine that made the stack
+// emit a packet; past it the packet is dropped, as channel.Endpoint drops when full.
+const tunQueueMaxWait = 5 * time.Millisecond
+
 // maxReceiveBuffer caps per-connection receive autotuning; gVisor's own 4 MB
 // cap held a single client upload near 310 Mbit/s at 50 ms RTT.
 const maxReceiveBuffer = 8 << 20
@@ -44,6 +51,7 @@ type stackTun struct {
 	closed         bool
 	mtu            int
 	echoHandler    func([]byte)
+	localAddrs     []netip.Addr
 }
 
 // createNetTUNWithStack builds a gVisor-backed tun.Device for localAddresses
@@ -63,6 +71,7 @@ func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device,
 		incomingPacket: make(chan *buffer.View, tunQueueDepth),
 		done:           make(chan struct{}),
 		mtu:            mtu,
+		localAddrs:     slices.Clone(localAddresses),
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true)
 	if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt); err != nil {
@@ -160,7 +169,7 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 		if len(packet) == 0 {
 			continue
 		}
-		if t.echoHandler != nil && packet[0]>>4 == 4 && len(packet) > 9 && packet[9] == 1 {
+		if t.echoHandler != nil && t.interceptEcho(packet) {
 			if len(packet) <= t.mtu {
 				t.echoHandler(packet)
 			}
@@ -181,6 +190,23 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 	return len(buf), nil
 }
 
+// Preserve tunnel-local health replies and ICMP errors; only remote Echo uses the grant.
+// Fragmented remote ICMP stays out of gVisor so reassembly cannot fabricate an Echo reply.
+func (t *stackTun) interceptEcho(packet []byte) bool {
+	if len(packet) < 20 || packet[0]>>4 != 4 || packet[9] != 1 {
+		return false
+	}
+	dst := netip.AddrFrom4([4]byte(packet[16:20]))
+	if slices.Contains(t.localAddrs, dst) {
+		return false
+	}
+	if binary.BigEndian.Uint16(packet[6:8])&0x3fff != 0 {
+		return true
+	}
+	headerLen := int(packet[0]&15) * 4
+	return headerLen < 20 || len(packet) <= headerLen || packet[headerLen] == 8
+}
+
 // WriteNotify runs on gVisor dispatch while Close tears the endpoint down,
 // so it must never block on closeMu across ep.Read or stack teardown.
 func (t *stackTun) WriteNotify() {
@@ -198,10 +224,21 @@ func (t *stackTun) WriteNotify() {
 	view := pkt.ToView()
 	pkt.DecRef()
 
+	select {
+	case t.incomingPacket <- view:
+		return
+	default:
+	}
+	// Echo replies and RSTs are emitted on amneziawg-go's per-peer receiver, which the
+	// reader of this queue itself waits on during a rebind: never park here for good.
+	timer := time.NewTimer(tunQueueMaxWait)
+	defer timer.Stop()
 	// Select against done so racing dispatch abandons packet on close
 	// without blocking Close or panicking on closed channel.
 	select {
 	case t.incomingPacket <- view:
+	case <-timer.C:
+		view.Release()
 	case <-t.done:
 		view.Release()
 	}
@@ -231,6 +268,20 @@ func (t *stackTun) Close() error {
 func enablePromiscuousRouting(gstack *stack.Stack) {
 	gstack.SetPromiscuousMode(1, true)
 	gstack.SetSpoofing(1, true)
+}
+
+// endpointRemoteAddr returns the address ep is connected to; false for an
+// endpoint that has none (listening, unconnected).
+func endpointRemoteAddr(ep stack.TransportEndpoint) (netip.Addr, bool) {
+	tep, ok := ep.(tcpip.Endpoint)
+	if !ok {
+		return netip.Addr{}, false
+	}
+	info, ok := tep.Info().(*stack.TransportEndpointInfo)
+	if !ok || info.ID.RemoteAddress.Len() == 0 {
+		return netip.Addr{}, false
+	}
+	return addrFromTcpip(info.ID.RemoteAddress), true
 }
 
 // addrFromTcpip converts a gVisor tcpip.Address to netip.Addr.

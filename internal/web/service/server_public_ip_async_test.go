@@ -564,3 +564,30 @@ func TestPublicIPv6BackoffPreservesIPv4RefreshAndRetry(t *testing.T) {
 		}
 	})
 }
+
+// The IP echo services are third parties; their answer is cached for the life
+// of the process and copied into every status sample.
+func TestGetPublicIPAcceptsOnlyAnAddress(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{name: "ipv4 with line ending", body: "203.0.113.7\n", want: "203.0.113.7"},
+		{name: "ipv6", body: "2001:db8::7", want: "2001:db8::7"},
+		{name: "not an address", body: "<html>blocked</html>", want: "N/A"},
+		{name: "address followed by megabytes", body: "203.0.113.7\n" + strings.Repeat("1", 8<<20), want: "N/A"},
+		{name: "empty", body: "", want: "N/A"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer server.Close()
+			if got := getPublicIP(server.URL); got != tt.want {
+				t.Fatalf("getPublicIP = %.40q (%d bytes), want %q", got, len(got), tt.want)
+			}
+		})
+	}
+}

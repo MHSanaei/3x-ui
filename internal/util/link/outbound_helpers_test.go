@@ -430,3 +430,34 @@ func TestParse_VmessFinalMask(t *testing.T) {
 		t.Fatalf("finalmask.udp = %#v, want %#v", udp, want)
 	}
 }
+
+func TestParse_RemarkDecodedOnce(t *testing.T) {
+	// Remarks as the subscription server writes them (encodeURIComponent).
+	cases := []struct {
+		fragment string
+		want     string
+	}{
+		{"VIP%2B", "VIP+"},
+		{"US%2BEU%201", "US+EU 1"},
+		{"a%2520b", "a%20b"},
+		{"%D0%A2%D0%B5%D1%81%D1%82", "Тест"},
+	}
+	prefixes := []string{
+		"vless://uuid@1.2.3.4:443?type=tcp#",
+		"trojan://pw@1.2.3.4:443#",
+		"hysteria2://auth@1.2.3.4:443#",
+		"wireguard://key@1.2.3.4:51820?publickey=pub#",
+		"ss://YWVzLTI1Ni1nY206cHc@1.2.3.4:8388#",
+	}
+	for _, p := range prefixes {
+		for _, c := range cases {
+			res, err := ParseLink(p + c.fragment)
+			if err != nil {
+				t.Fatalf("parse %s%s: %v", p, c.fragment, err)
+			}
+			if res.Outbound["tag"] != c.want {
+				t.Errorf("%s%s: tag = %q, want %q", p, c.fragment, res.Outbound["tag"], c.want)
+			}
+		}
+	}
+}
