@@ -1300,6 +1300,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
+	if err := normalizeVlessSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
@@ -2058,6 +2061,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
+	if err := normalizeVlessSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	if err := s.normalizeAmneziaWGSettings(inbound, oldInbound); err != nil {
 		return inbound, false, err
 	}
@@ -2439,6 +2445,22 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 	}
 
 	if !inboundCanHostFallbacks(inbound) {
+		mutated := false
+		if fb, ok := settings["fallbacks"].([]any); ok && len(fb) == 0 {
+			delete(settings, "fallbacks")
+			mutated = true
+		}
+		if inbound.Protocol == model.VLESS && vlessDecryptionEnabled(inbound.Settings) {
+			if _, ok := settings["fallbacks"]; ok {
+				delete(settings, "fallbacks")
+				mutated = true
+			}
+		}
+		if mutated {
+			if modifiedSettings, mErr := json.MarshalIndent(settings, "", "  "); mErr == nil {
+				built.Settings = string(modifiedSettings)
+			}
+		}
 		return &built, nil
 	}
 	fallbacks, err := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 
 	"gorm.io/gorm"
 )
@@ -60,6 +61,17 @@ func (s *FallbackService) GetParentForChild(childId int) (*model.InboundFallback
 // SetByMaster replaces the master's entire fallback list atomically.
 func (s *FallbackService) SetByMaster(masterId int, items []FallbackInput) error {
 	db := database.GetDB()
+	if len(items) > 0 {
+		var master model.Inbound
+		if err := db.Select("id", "protocol", "settings", "stream_settings").First(&master, masterId).Error; err == nil {
+			if !inboundCanHostFallbacks(&master) {
+				if master.Protocol == model.VLESS && vlessDecryptionEnabled(master.Settings) {
+					return common.NewError("VLESS settings: \"fallbacks\" can not be used together with \"decryption\"")
+				}
+				return common.NewError("Inbound cannot host fallbacks")
+			}
+		}
+	}
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("master_id = ?", masterId).Delete(&model.InboundFallback{}).Error; err != nil {
 			return err

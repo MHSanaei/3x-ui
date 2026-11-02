@@ -346,6 +346,21 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				}
 				settings["fallbacks"] = generic
 				mutated = true
+			} else if fb, ok := settings["fallbacks"].([]any); ok && len(fb) == 0 {
+				delete(settings, "fallbacks")
+				mutated = true
+			}
+		} else {
+			if fb, ok := settings["fallbacks"].([]any); ok && len(fb) == 0 {
+				delete(settings, "fallbacks")
+				mutated = true
+			}
+			if inbound.Protocol == model.VLESS && vlessDecryptionEnabled(inbound.Settings) {
+				if _, ok := settings["fallbacks"]; ok {
+					logger.Warningf("Inbound %q: dropping fallbacks, incompatible with VLESS decryption (crashes Xray-core, see #7001)", inbound.Tag)
+					delete(settings, "fallbacks")
+					mutated = true
+				}
 			}
 		}
 

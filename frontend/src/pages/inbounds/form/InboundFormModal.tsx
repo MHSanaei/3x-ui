@@ -251,6 +251,15 @@ export default function InboundFormModal({
    */
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
   const vlessEncryption = useWatch({ control, name: 'settings.encryption' }) ?? '';
+  const vlessDecryption = useWatch({ control, name: 'settings.decryption' }) ?? '';
+  const hasVlessDecryption =
+    protocol === Protocols.VLESS &&
+    ((typeof vlessEncryption === 'string' &&
+      vlessEncryption !== '' &&
+      vlessEncryption !== 'none') ||
+      (typeof vlessDecryption === 'string' &&
+        vlessDecryption !== '' &&
+        vlessDecryption !== 'none'));
   const ssMethod = useWatch({ control, name: 'settings.method' });
   const isSSWith2022 = isSS2022({
     protocol,
@@ -297,6 +306,7 @@ export default function InboundFormModal({
   });
   const isFallbackHost =
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN) &&
+    !hasVlessDecryption &&
     network === 'tcp' &&
     (security === 'tls' || security === 'reality');
 

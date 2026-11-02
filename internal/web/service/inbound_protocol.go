@@ -132,7 +132,8 @@ func vlessEncValueSet(v string) bool {
 // Xray only honors fallbacks on VLESS and Trojan inbounds carried over
 // TCP transport with TLS or Reality security. This is intentionally stricter
 // than inboundCanEnableTlsFlow (which also accepts any vlessenc stream): fallbacks
-// are a raw-TCP-only feature.
+// are a raw-TCP-only feature. VLESS inbounds with VLESS-level decryption configured
+// cannot host fallbacks (Xray-core refuses fallbacks together with decryption, #7001).
 func inboundCanHostFallbacks(ib *model.Inbound) bool {
 	if ib == nil {
 		return false
@@ -140,7 +141,69 @@ func inboundCanHostFallbacks(ib *model.Inbound) bool {
 	if ib.Protocol != model.VLESS && ib.Protocol != model.Trojan {
 		return false
 	}
+	if ib.Protocol == model.VLESS && vlessDecryptionEnabled(ib.Settings) {
+		return false
+	}
 	return streamSupportsFallbacks(ib.StreamSettings)
+}
+
+// vlessDecryptionEnabled reports whether a VLESS inbound has a real server-side
+// decryption value configured (vlessenc / ML-KEM).
+func vlessDecryptionEnabled(settings string) bool {
+	if settings == "" {
+		return false
+	}
+	var s struct {
+		Decryption string `json:"decryption"`
+	}
+	if err := json.Unmarshal([]byte(settings), &s); err != nil {
+		return false
+	}
+	return vlessEncValueSet(s.Decryption)
+}
+
+// normalizeVlessSettings drops empty fallbacks from VLESS settings (matching the UI's
+// dropLegacyOptionalEmpties) and refuses non-empty fallbacks when VLESS decryption is
+// configured. Xray-core's infra/conf/vless.go refuses fallbacks together with decryption
+// and checks Fallbacks != nil; an empty array [] saved via API would otherwise cause
+// Xray-core to crash with exit status 23 on startup (#7001).
+func normalizeVlessSettings(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.VLESS || strings.TrimSpace(inbound.Settings) == "" {
+		return nil
+	}
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		return nil
+	}
+	fbVal, hasFallbacks := settings["fallbacks"]
+	if !hasFallbacks {
+		return nil
+	}
+
+	decVal, _ := settings["decryption"].(string)
+	hasDecryption := vlessEncValueSet(decVal)
+
+	switch fb := fbVal.(type) {
+	case nil:
+		delete(settings, "fallbacks")
+	case []any:
+		if len(fb) == 0 {
+			delete(settings, "fallbacks")
+		} else if hasDecryption {
+			return common.NewError("VLESS settings: \"fallbacks\" can not be used together with \"decryption\"")
+		}
+	default:
+		if hasDecryption {
+			return common.NewError("VLESS settings: \"fallbacks\" can not be used together with \"decryption\"")
+		}
+	}
+
+	modified, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	inbound.Settings = string(modified)
+	return nil
 }
 
 // streamSupportsFallbacks reports whether the stream is raw TCP carried over

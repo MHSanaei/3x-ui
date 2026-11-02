@@ -73,6 +73,8 @@ func TestInboundCanHostFallbacks_StaysTcpOnly(t *testing.T) {
 	}{
 		{"vless tcp tls", model.VLESS, `{"network":"tcp","security":"tls"}`, "", true},
 		{"trojan tcp reality", model.Trojan, `{"network":"tcp","security":"reality"}`, "", true},
+		{"vless tcp tls with decryption not fallback-capable", model.VLESS, `{"network":"tcp","security":"tls"}`, `{"decryption":"` + vlessEncValue + `"}`, false},
+		{"vless tcp reality with decryption none is fallback-capable", model.VLESS, `{"network":"tcp","security":"reality"}`, `{"decryption":"none"}`, true},
 		{"vless xhttp vlessenc not fallback-capable", model.VLESS, `{"network":"xhttp","security":"none"}`, `{"encryption":"` + vlessEncValue + `"}`, false},
 		{"vmess tcp tls not fallback-capable", model.VMESS, `{"network":"tcp","security":"tls"}`, "", false},
 		{"nil-ish empty stream", model.VLESS, "", "", false},
@@ -87,6 +89,42 @@ func TestInboundCanHostFallbacks_StaysTcpOnly(t *testing.T) {
 	}
 	if inboundCanHostFallbacks(nil) {
 		t.Errorf("inboundCanHostFallbacks(nil) = true, want false")
+	}
+}
+
+func TestNormalizeVlessSettings_PrunesEmptyFallbacks(t *testing.T) {
+	ib := &model.Inbound{
+		Protocol: model.VLESS,
+		Settings: `{"clients":[],"decryption":"` + vlessEncValue + `","fallbacks":[]}`,
+	}
+	if err := normalizeVlessSettings(ib); err != nil {
+		t.Fatalf("normalizeVlessSettings failed: %v", err)
+	}
+	if strings.Contains(ib.Settings, "fallbacks") {
+		t.Fatalf("expected fallbacks to be stripped, got: %s", ib.Settings)
+	}
+}
+
+func TestNormalizeVlessSettings_RefusesNonEmptyFallbacksWithDecryption(t *testing.T) {
+	ib := &model.Inbound{
+		Protocol: model.VLESS,
+		Settings: `{"clients":[],"decryption":"` + vlessEncValue + `","fallbacks":[{"dest":"8080"}]}`,
+	}
+	if err := normalizeVlessSettings(ib); err == nil {
+		t.Fatal("expected normalizeVlessSettings to return error for non-empty fallbacks with decryption")
+	}
+}
+
+func TestNormalizeVlessSettings_KeepsFallbacksWithoutDecryption(t *testing.T) {
+	ib := &model.Inbound{
+		Protocol: model.VLESS,
+		Settings: `{"clients":[],"decryption":"none","fallbacks":[{"dest":"8080"}]}`,
+	}
+	if err := normalizeVlessSettings(ib); err != nil {
+		t.Fatalf("normalizeVlessSettings failed: %v", err)
+	}
+	if !strings.Contains(ib.Settings, "8080") {
+		t.Fatalf("expected fallbacks to be preserved, got: %s", ib.Settings)
 	}
 }
 

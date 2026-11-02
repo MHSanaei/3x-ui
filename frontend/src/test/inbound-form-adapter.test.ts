@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
+  dropLegacyOptionalEmpties,
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
 import { DBInbound, type DBInboundInit } from '@/models/dbinbound';
@@ -485,5 +486,33 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
     const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
     const xmux = stream.xhttpSettings.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');
+  });
+});
+
+describe('dropLegacyOptionalEmpties', () => {
+  it('drops empty fallbacks array', () => {
+    const settings: Record<string, unknown> = { clients: [], fallbacks: [] };
+    dropLegacyOptionalEmpties(settings, undefined);
+    expect(settings.fallbacks).toBeUndefined();
+  });
+
+  it('drops fallbacks when VLESS decryption is configured (#7001)', () => {
+    const settings: Record<string, unknown> = {
+      clients: [],
+      decryption: 'mlkem768x25519plus.native.0rtt.abc',
+      fallbacks: [{ dest: '8080' }],
+    };
+    dropLegacyOptionalEmpties(settings, undefined);
+    expect(settings.fallbacks).toBeUndefined();
+  });
+
+  it('keeps non-empty fallbacks when decryption is none', () => {
+    const settings: Record<string, unknown> = {
+      clients: [],
+      decryption: 'none',
+      fallbacks: [{ dest: '8080' }],
+    };
+    dropLegacyOptionalEmpties(settings, undefined);
+    expect(settings.fallbacks).toEqual([{ dest: '8080' }]);
   });
 });

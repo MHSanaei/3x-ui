@@ -334,8 +334,16 @@ export function dropLegacyOptionalEmpties(
   stream: Record<string, unknown> | undefined,
 ): void {
   // VLESS/Trojan emit `fallbacks` only when non-empty.
+  // VLESS settings: "fallbacks" can not be used together with "decryption" (Xray-core, #7001).
   const fb = settings.fallbacks;
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
+  if (
+    typeof settings.decryption === 'string' &&
+    settings.decryption !== '' &&
+    settings.decryption !== 'none'
+  ) {
+    delete settings.fallbacks;
+  }
 
   if (stream) {
     dropEmptyFinalMask(stream);
