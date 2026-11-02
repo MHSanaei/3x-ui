@@ -61,7 +61,7 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
 	for _, client := range clients {
 		inst.Peers = append(inst.Peers, amneziawg.Peer{
-			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPorts,
+			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPortsSpec(),
 		})
 	}
 	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
@@ -537,7 +537,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 		if oldInbound.Protocol == model.AmneziaWG {
-			if hit := inboundSvc.checkForwardedPortsConflict(portCtx, client.ForwardedPorts); hit != "" {
+			if hit := inboundSvc.checkForwardedPortsConflict(portCtx, client.ForwardedPortsSpec()); hit != "" {
 				return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
 			}
 		}
@@ -607,7 +607,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				return pErr
 			}
 			for i := range clients {
-				if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[i].ForwardedPorts); hit != "" {
+				if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[i].ForwardedPortsSpec()); hit != "" {
 					return common.NewError("amneziawg: forwardedPorts collides with", hit)
 				}
 			}
@@ -833,7 +833,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					}
 					peers = append(peers, oldClients[i].AllowedIPs...)
 				}
-				if entry, taken := wireguardAllowedIPsOverlap(normalized, peers); taken != "" {
+				if entry, taken := wireguardAllowedIPsOverlap(withoutKeptDefaultRoutes(normalized, old.AllowedIPs), peers); taken != "" {
 					return false, common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by another client")
 				}
 				clients[0].AllowedIPs = normalized
@@ -845,8 +845,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if clients[0].KeepAlive == nil {
 			clients[0].KeepAlive = old.KeepAlive
 		}
-		// AWG partial edits preserve forwarding specs; kernel mode rejects legacy specs.
-		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == "" {
+		// AWG partial edits (nil: the field was not sent) keep the stored spec; "" withdraws it.
+		if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts == nil {
 			clients[0].ForwardedPorts = old.ForwardedPorts
 		}
 	}
@@ -858,7 +858,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if err != nil {
 			return false, err
 		}
-		if hit := inboundSvc.checkForwardedPortsConflict(portCtx, clients[0].ForwardedPorts); hit != "" {
+		if hit := inboundSvc.checkForwardedPortsConflict(portCtx, clients[0].ForwardedPortsSpec()); hit != "" {
 			return false, common.NewError("amneziawg: forwardedPorts collides with", hit)
 		}
 	}
@@ -911,9 +911,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if clients[0].KeepAlive != nil {
 					newMap["keepAlive"] = clients[0].KeepAlive
 				}
-				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts != "" {
-					newMap["forwardedPorts"] = clients[0].ForwardedPorts
+				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPortsSpec() != "" {
+					newMap["forwardedPorts"] = clients[0].ForwardedPortsSpec()
 				}
+			}
+			// Withdrawn forwards are stored as no spec at all, whatever the protocol.
+			if clients[0].ForwardedPortsSpec() == "" {
+				delete(newMap, "forwardedPorts")
 			}
 			if oldClientMap != nil && sameClientConfigExceptUpdatedAt(oldClientMap, newMap) {
 				if v, ok2 := oldClientMap["updated_at"]; ok2 {
@@ -995,7 +999,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			if pErr != nil {
 				return pErr
 			}
-			if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[0].ForwardedPorts); hit != "" {
+			if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[0].ForwardedPortsSpec()); hit != "" {
 				return common.NewError("amneziawg: forwardedPorts collides with", hit)
 			}
 		}
@@ -1339,51 +1343,20 @@ func (s *ClientService) SetClientTelegramUserID(inboundSvc *InboundService, traf
 		return false, common.NewError("Inbound Not Found For Traffic ID:", trafficId)
 	}
 
-	clientEmail := traffic.Email
-
-	oldClients, err := inboundSvc.GetClients(inbound)
-	if err != nil {
-		return false, err
-	}
-
-	found := false
-	for _, oldClient := range oldClients {
-		if oldClient.Email == clientEmail {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return false, common.NewError("Client Not Found For Email:", clientEmail)
-	}
-
-	var settings map[string]any
-	err = json.Unmarshal([]byte(inbound.Settings), &settings)
-	if err != nil {
-		return false, err
-	}
-	clients := settings["clients"].([]any)
-	var newClients []any
-	for client_index := range clients {
-		c := clients[client_index].(map[string]any)
-		if c["email"] == clientEmail {
-			c["tgId"] = tgId
-			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
-		}
-	}
-	settings["clients"] = newClients
-	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-	inbound.Settings = string(modifiedSettings)
-	needRestart, err := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
-	return needRestart, err
+	// On every attached inbound: a sibling left holding the old tgId hands it
+	// back to the client record on its next SyncInbound (#5039).
+	return s.applyClientFieldByEmail(inboundSvc, traffic.Email, func(c map[string]any) {
+		c["tgId"] = tgId
+	})
 }
 
 func (s *ClientService) CheckIsEnabledByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+	// The client's own row answers without loading and parsing its whole
+	// inbound; legacy clients never normalized into `clients` fall through.
+	if rec, rErr := s.GetRecordByEmail(nil, clientEmail); rErr == nil && rec != nil {
+		return rec.Enable, nil
+	}
+
 	_, inbound, err := inboundSvc.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return false, err

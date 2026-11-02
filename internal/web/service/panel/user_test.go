@@ -2,6 +2,7 @@ package panel
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -46,5 +47,30 @@ func TestHasDefaultCredential(t *testing.T) {
 				t.Fatalf("HasDefaultCredential() = %v, %v; want %v", got, err, tc.want)
 			}
 		})
+	}
+}
+
+// The login route refuses names over MaxUsernameLength unread, so storing one would lock
+// the admin out of their own panel.
+func TestUserSettersRefuseNamesTheLoginRouteRefuses(t *testing.T) {
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	svc := &UserService{}
+	if err := svc.UpdateFirstUser("admin", "s3cret-Pass"); err != nil {
+		t.Fatalf("UpdateFirstUser: %v", err)
+	}
+	var user model.User
+	if err := database.GetDB().First(&user).Error; err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+	long := strings.Repeat("a", MaxUsernameLength+1)
+	if err := svc.UpdateFirstUser(long, "s3cret-Pass"); err == nil {
+		t.Fatal("UpdateFirstUser stored a name the login route refuses")
+	}
+	if err := svc.UpdateUser(user.Id, long, "s3cret-Pass"); err == nil {
+		t.Fatal("UpdateUser stored a name the login route refuses")
+	}
+	var stored model.User
+	if err := database.GetDB().First(&stored, user.Id).Error; err != nil || stored.Username != "admin" {
+		t.Fatalf("stored username = %q (%v), want it unchanged", stored.Username, err)
 	}
 }

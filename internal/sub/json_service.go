@@ -173,7 +173,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
 					render := func() subConfigEntry {
-						configs := s.getConfig(subReq, variant.inbound(subReq, inbound), client, host)
+						configs := s.budgetedConfig(subReq, variant.inbound(subReq, inbound), client, host)
 						return subConfigEntry{sortIndex: inbound.SubSortIndex, id: inbound.Id, configs: configs, hostOrder: variant.order}
 					}
 					ordered = append(ordered, orderedSubEntry[func() subConfigEntry]{variant.order, render})
@@ -191,7 +191,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, effective, client, host)...)
+			inboundConfigs = append(inboundConfigs, s.budgetedConfig(subReq, effective, client, host)...)
 		}
 		if len(inboundConfigs) > 0 {
 			entries = append(entries, subConfigEntry{
@@ -268,7 +268,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			maps.Copy(newConfigJson, s.bakedTemplate())
 			newConfigJson["outbounds"] = newOutbounds
 			newConfigJson["remarks"] = remark
-			newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+			newConfig, _ := json.Marshal(newConfigJson)
 			configArray = append(configArray, newConfig)
 		}
 	}
@@ -531,6 +531,9 @@ func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
+	// Next suffix to try per base: tags are only ever added, so every lower one
+	// is taken and resuming there keeps a node-sized member list linear.
+	nextSuffix := make(map[string]int)
 	var proxies []json_util.RawMessage
 	// Members in emission order with their owning inbound, so costs[] can
 	// reference the exact retagged tags assigned here.
@@ -546,9 +549,11 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			protocol, _ := outbound["protocol"].(string)
 			base := prefix + balancerMemberSuffix(protocol)
 			tag := base
-			for suffix := 2; usedTags[tag]; suffix++ {
+			suffix := max(nextSuffix[base], 2)
+			for ; usedTags[tag]; suffix++ {
 				tag = fmt.Sprintf("%s-%d", base, suffix)
 			}
+			nextSuffix[base] = suffix
 			usedTags[tag] = true
 			member := maps.Clone(outbound)
 			member["tag"] = tag
@@ -731,11 +736,11 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+			newOutbounds = append(newOutbounds, s.genHy(subReq, inbound, newStream, client, jsonMux(mux, hostMux)))
 		case "masque":
 			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		case "wireguard":
-			wgOutbound := s.genWireguard(inbound, client)
+			wgOutbound := s.genWireguard(subReq, inbound, client)
 			if wgOutbound == nil {
 				continue
 			}
@@ -804,6 +809,7 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 			delete(xhttp, "scMaxBufferedPosts")
 			delete(xhttp, "scStreamUpServerSecs")
 			delete(xhttp, "serverMaxHeaderBytes")
+			delete(xhttp, "h2Params")
 			// Values matching xray-core's own defaults stay off the wire:
 			// old panels seeded them into every stored config and the
 			// literal scMinPostsIntervalMs=30 is a DPI fingerprint (#5141).
@@ -1037,7 +1043,7 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 	return result
 }
 
-func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genHy(subReq *SubService, inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
 		Protocol: string(inbound.Protocol),
 		Tag:      "proxy",
@@ -1047,9 +1053,8 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 
-	var settings, stream map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	version, _ := settings["version"].(float64)
+	var stream map[string]any
+	version, _ := subReq.linkSettings(inbound)["version"].(float64)
 	outbound.Settings = map[string]any{
 		"version": int(version),
 		"address": inbound.Listen,
@@ -1115,13 +1120,12 @@ func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]
 // mirroring genWireguardLink: the peer public key is derived from the inbound
 // secretKey, the client owns the private key / tunnel address / pre-shared key,
 // and the peer routes the full tunnel. Returns nil when the client has no key.
-func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genWireguard(subReq *SubService, inbound *model.Inbound, client model.Client) json_util.RawMessage {
 	if client.PrivateKey == "" {
 		return nil
 	}
 
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	secretKey, _ := inboundSettings["secretKey"].(string)
 
 	peer := map[string]any{

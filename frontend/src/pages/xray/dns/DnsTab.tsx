@@ -23,6 +23,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 
+import { selectTagRender } from '@/components/form';
 import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -417,6 +418,7 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                   />
                   <Select
                     mode="tags"
+                    tagRender={selectTagRender}
                     value={row.values}
                     aria-label={t('pages.xray.dns.hostsValues')}
                     placeholder={t('pages.xray.dns.hostsValues')}

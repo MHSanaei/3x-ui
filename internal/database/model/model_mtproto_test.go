@@ -25,6 +25,20 @@ func TestGenerateFakeTLSSecret(t *testing.T) {
 	}
 }
 
+func TestValidMtprotoSecret(t *testing.T) {
+	const good = "ee0123456789abcdef0123456789abcdef6578616d706c652e636f6d"
+	for _, s := range []string{good, strings.ToUpper(good), "ee0123456789abcdef0123456789abcdef61", "7gEjRWeJq83vASNFZ4mrze9leGFtcGxlLmNvbQ"} {
+		if !ValidMtprotoSecret(s) {
+			t.Fatalf("mtg parses %q, so it must be valid", s)
+		}
+	}
+	for _, s := range []string{"", "zz", "ee00", "dd0123456789abcdef0123456789abcdef6578616d706c652e636f6d", "ee0123456789abcdef0123456789abcdef", "7gEjRWeJq83vASNFZ4mrze9leGFtcGxlLmNvbQ==", "not a secret"} {
+		if ValidMtprotoSecret(s) {
+			t.Fatalf("mtg refuses %q, so it must be invalid", s)
+		}
+	}
+}
+
 func TestStripMtprotoInboundAdTag(t *testing.T) {
 	in := `{"adTag":"0123456789abcdef0123456789abcdef","clients":[{"email":"a","adTag":"fedcba9876543210fedcba9876543210"}]}`
 	out, changed := StripMtprotoInboundAdTag(in)

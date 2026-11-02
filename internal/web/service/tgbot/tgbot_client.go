@@ -86,14 +86,10 @@ func (t *Tgbot) describeAttachedInbounds(ids []int) string {
 	if len(ids) == 0 {
 		return ""
 	}
+	remarks, _ := t.inboundService.GetInboundRemarks(ids)
 	parts := make([]string, 0, len(ids))
 	for _, id := range ids {
-		ib, err := t.inboundService.GetInbound(id)
-		if err != nil || ib == nil {
-			parts = append(parts, fmt.Sprintf("#%d", id))
-			continue
-		}
-		label := ib.Remark
+		label := remarks[id]
 		if label == "" {
 			label = fmt.Sprintf("#%d", id)
 		}
@@ -232,6 +228,11 @@ func (t *Tgbot) clientSubLinks(email, subURL string) ([]string, error) {
 	if err != nil || client == nil {
 		return nil, errors.New("client not found")
 	}
+	// A client stored without a subId has no subscription to look up; build
+	// its own links by email, as the panel's client page does.
+	if strings.TrimSpace(client.SubID) == "" {
+		return t.inboundService.GetAllClientLinks(u.Hostname(), email)
+	}
 	return t.inboundService.GetSubLinks(u.Hostname(), client.SubID)
 }
 
@@ -316,7 +317,7 @@ func (t *Tgbot) clientInfoMsg(
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	if attachIds, err := t.clientService.GetInboundIdsForEmail(nil, traffic.Email); err == nil && len(attachIds) > 0 {
-		output += fmt.Sprintf("🔗 Inbounds: %s\r\n", t.describeAttachedInbounds(attachIds))
+		output += fmt.Sprintf("🔗 Inbounds: %s\r\n", html.EscapeString(t.describeAttachedInbounds(attachIds)))
 	}
 	if printEnabled {
 		output += t.I18nBot("tgbot.messages.enabled", "Enable=="+enabled)

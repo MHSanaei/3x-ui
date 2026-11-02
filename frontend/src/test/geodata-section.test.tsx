@@ -76,4 +76,33 @@ describe('GeodataSection', () => {
       }
     });
   });
+
+  // xray-core 26.10.29 refuses a scheduled asset whose file is not .dat when it starts.
+  it('refuses to save a scheduled asset whose file is not .dat', async () => {
+    const post = vi.spyOn(HttpUtil, 'post').mockResolvedValue(
+      new Msg(
+        true,
+        '',
+        JSON.stringify({
+          xraySetting: {
+            outbounds: [],
+            geodata: { cron: '0 4 * * *', assets: [CUSTOM_SOURCE] },
+          },
+          geodataSources: [],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+
+    render(<GeodataSection active onBusy={vi.fn()} onClose={vi.fn()} />);
+
+    const file = await screen.findByDisplayValue(CUSTOM_SOURCE.file);
+    await user.clear(file);
+    await user.type(file, 'geosite_custom.mmdb');
+    await user.click(screen.getByRole('button', { name: 'Save & Restart Xray' }));
+
+    expect(await screen.findByText(/File names must be/)).toBeTruthy();
+    expect(screen.queryByText('Save geodata settings?')).toBeNull();
+    expect(post).toHaveBeenCalledTimes(1);
+  });
 });

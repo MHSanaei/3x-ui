@@ -580,3 +580,137 @@ func TestNormalizeAmneziaWGSettingsGatesHostReadinessOnlyWhenEnablingKernelMode(
 		})
 	}
 }
+
+func inboundForwardedPorts(t *testing.T, inboundSvc *InboundService, ibId int, email string) string {
+	t.Helper()
+	ib, err := inboundSvc.GetInbound(ibId)
+	if err != nil {
+		t.Fatalf("GetInbound %d: %v", ibId, err)
+	}
+	clients, err := inboundSvc.GetClients(ib)
+	if err != nil {
+		t.Fatalf("GetClients %d: %v", ibId, err)
+	}
+	for i := range clients {
+		if clients[i].Email == email {
+			return clients[i].ForwardedPortsSpec()
+		}
+	}
+	t.Fatalf("email %q not found on inbound %d", email, ibId)
+	return ""
+}
+
+// seedForwardedPortsClient attaches one AmneziaWG client already holding a
+// port forward, and returns its inbound and client-record id.
+func seedForwardedPortsClient(t *testing.T, email, forwardedPorts string) (*model.Inbound, int) {
+	t.Helper()
+	svc := &ClientService{}
+
+	seeded := model.Client{
+		Email:          email,
+		SubID:          "sub-" + email,
+		Enable:         true,
+		PublicKey:      "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=",
+		AllowedIPs:     []string{"10.8.1.2/32"},
+		ForwardedPorts: model.ForwardedPortsPtr(forwardedPorts),
+	}
+	ib := mkInbound(t, 51830, model.AmneziaWG, clientsSettings(t, []model.Client{seeded}))
+	if err := svc.SyncInbound(nil, ib.Id, []model.Client{seeded}); err != nil {
+		t.Fatalf("seed linkage: %v", err)
+	}
+	return ib, lookupClientRecord(t, email).Id
+}
+
+// The client form sends "" once the field was emptied. Carried forward like an
+// omitted field, the save was reported as done and the port stayed open.
+func TestUpdateCanWithdrawForwardedPorts(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	svc := &ClientService{}
+
+	ib, recId := seedForwardedPortsClient(t, "fp@x", "8022")
+	if got := inboundForwardedPorts(t, inboundSvc, ib.Id, "fp@x"); got != "8022" {
+		t.Fatalf("seeded forwardedPorts = %q, want 8022", got)
+	}
+
+	updated := model.Client{
+		Email:          "fp@x",
+		Enable:         true,
+		AllowedIPs:     []string{"10.8.1.2/32"},
+		ForwardedPorts: model.ForwardedPortsPtr(""),
+	}
+	if _, err := svc.Update(inboundSvc, recId, updated, 0); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	if got := inboundForwardedPorts(t, inboundSvc, ib.Id, "fp@x"); got != "" {
+		t.Fatalf("inbound forwardedPorts after an explicit \"\" = %q, want none", got)
+	}
+	stored, err := inboundSvc.GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	if strings.Contains(stored.Settings, "forwardedPorts") {
+		t.Fatalf("withdrawn forwards must leave no key behind: %s", stored.Settings)
+	}
+	if got := lookupClientRecord(t, "fp@x").ForwardedPorts; got != "" {
+		t.Fatalf("stored wg_forwarded_ports after an explicit \"\" = %q, want none", got)
+	}
+}
+
+// The other half of the contract: a payload that never mentions forwardedPorts
+// (a metadata-only edit from the bot or the API) leaves the stored value alone.
+func TestUpdateWithoutForwardedPortsPreservesTheStoredValue(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	svc := &ClientService{}
+
+	ib, recId := seedForwardedPortsClient(t, "fp@x", "8022")
+
+	updated := model.Client{
+		Email:      "fp@x",
+		Enable:     true,
+		AllowedIPs: []string{"10.8.1.2/32"},
+	}
+	if _, err := svc.Update(inboundSvc, recId, updated, 0); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	if got := inboundForwardedPorts(t, inboundSvc, ib.Id, "fp@x"); got != "8022" {
+		t.Fatalf("inbound forwardedPorts after an edit that omitted it = %q, want 8022", got)
+	}
+	if got := lookupClientRecord(t, "fp@x").ForwardedPorts; got != "8022" {
+		t.Fatalf("stored wg_forwarded_ports after an edit that omitted it = %q, want 8022", got)
+	}
+}
+
+// The form is filled from the record, and the traffic resets re-save it: a record
+// left at the creation-time spec moves the forward back on the next save.
+func TestUpdateKeepsTheRecordsForwardedPortsCurrent(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	svc := &ClientService{}
+
+	ib, recId := seedForwardedPortsClient(t, "fp@x", "8021")
+
+	updated := model.Client{
+		Email:          "fp@x",
+		Enable:         true,
+		AllowedIPs:     []string{"10.8.1.2/32"},
+		ForwardedPorts: model.ForwardedPortsPtr("8022"),
+	}
+	if _, err := svc.Update(inboundSvc, recId, updated, 0); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	rec := lookupClientRecord(t, "fp@x")
+	if rec.ForwardedPorts != "8022" {
+		t.Fatalf("stored wg_forwarded_ports after 8021 -> 8022 = %q, want 8022", rec.ForwardedPorts)
+	}
+
+	if _, err := svc.Update(inboundSvc, recId, *rec.ToClient(), 0); err != nil {
+		t.Fatalf("re-save of the record: %v", err)
+	}
+	if got := inboundForwardedPorts(t, inboundSvc, ib.Id, "fp@x"); got != "8022" {
+		t.Fatalf("inbound forwardedPorts after a re-save of the record = %q, want 8022", got)
+	}
+}
