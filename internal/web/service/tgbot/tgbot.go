@@ -25,6 +25,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/mymmrac/telego"
+	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
@@ -35,6 +36,8 @@ var (
 	// botMu guards bot: EnsureBot may replace it while a background goroutine
 	// (the screen artwork warm-up) is still using the previous liveBot().
 	botMu sync.RWMutex
+	// botStop is closed by StopBot to end every in-flight call of the live bot.
+	botStop chan struct{}
 
 	// botCancel stores the function to cancel the context, stopping Long Polling gracefully.
 	botCancel context.CancelFunc
@@ -367,16 +370,24 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// Create new Telegram bot instance
+	stop := make(chan struct{})
 	botMu.Lock()
-	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
+	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer, stop)
+	if err == nil {
+		botStop = stop
+	}
 	botMu.Unlock()
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
 	}
 
-	t.resolveScreenArt()
-	t.trySetBotCommands(liveBot())
+	// Off the start path: with Telegram unreachable these block for a minute,
+	// holding the panel's signal loop and the sub server behind them.
+	go func(b *telego.Bot) {
+		t.resolveScreenArt()
+		t.trySetBotCommands(b)
+	}(liveBot())
 
 	// Start receiving Telegram bot messages
 	tgBotMutex.Lock()
@@ -462,7 +473,7 @@ func panelEgressDial(resolve func() string) fasthttp.DialFunc {
 }
 
 // NewBot creates a new Telegram bot instance with optional proxy and API server settings.
-func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
+func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string, stopped <-chan struct{}) (*telego.Bot, error) {
 	// Validate proxy URL if provided
 	if proxyUrl != "" {
 		if !isSupportedBotProxyScheme(proxyUrl) {
@@ -490,7 +501,10 @@ func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tel
 
 	// Build bot options
 	var options []telego.BotOption
-	options = append(options, telego.WithFastHTTPClient(client))
+	options = append(options, telego.WithAPICaller(stoppableCaller{
+		inner:   ta.FastHTTPCaller{Client: client},
+		stopped: stopped,
+	}))
 
 	if apiServerUrl != "" {
 		options = append(options, telego.WithAPIServer(apiServerUrl))
@@ -602,6 +616,13 @@ func StopBot() {
 	botHandler = nil
 	isRunning = false
 	tgBotMutex.Unlock()
+
+	botMu.Lock()
+	if botStop != nil {
+		close(botStop)
+		botStop = nil
+	}
+	botMu.Unlock()
 
 	userStateMgr.reset()
 	addClientDrafts.resetAll()
