@@ -76,42 +76,22 @@ var unlimitedDropTokens = map[string]bool{
 }
 
 // uiTokenMap translates user-friendly single-brace tokens (used in the frontend
-// Remark/Host Name fields) to their internal double-brace equivalents.
+// Remark/Host Name fields) to their internal double-brace equivalents. Tokens
+// not present in this map are left untouched.
 var uiTokenMap = map[string]string{
-	"EMAIL":               "EMAIL",
-	"USERNAME":            "USERNAME",
-	"INBOUND":             "INBOUND",
-	"HOST":                "HOST",
-	"ID":                  "ID",
-	"SHORT_ID":            "SHORT_ID",
-	"TELEGRAM_ID":         "TELEGRAM_ID",
-	"SUB_ID":              "SUB_ID",
-	"COMMENT":             "COMMENT",
-	"DATA_USAGE":          "TRAFFIC_USED",
-	"DATA_LEFT":           "TRAFFIC_LEFT",
-	"DATA_LIMIT":          "TRAFFIC_TOTAL",
-	"TRAFFIC_USED":        "TRAFFIC_USED",
-	"TRAFFIC_LEFT":        "TRAFFIC_LEFT",
-	"TRAFFIC_TOTAL":       "TRAFFIC_TOTAL",
-	"TRAFFIC_USED_BYTES":  "TRAFFIC_USED_BYTES",
-	"TRAFFIC_LEFT_BYTES":  "TRAFFIC_LEFT_BYTES",
-	"TRAFFIC_TOTAL_BYTES": "TRAFFIC_TOTAL_BYTES",
-	"UP":                  "UP",
-	"DOWN":                "DOWN",
-	"STATUS":              "STATUS",
-	"STATUS_EMOJI":        "STATUS_EMOJI",
-	"DAYS_LEFT":           "DAYS_LEFT",
-	"TIME_LEFT":           "TIME_LEFT",
-	"USAGE_PERCENTAGE":    "USAGE_PERCENTAGE",
-	"EXPIRE_DATE":         "EXPIRE_DATE",
-	"JALALI_EXPIRE_DATE":  "JALALI_EXPIRE_DATE",
-	"EXPIRE_UNIX":         "EXPIRE_UNIX",
-	"CREATED_UNIX":        "CREATED_UNIX",
-	"RESET_DAYS":          "RESET_DAYS",
-	"RESET_DAY":           "RESET_DAY",
-	"PROTOCOL":            "PROTOCOL",
-	"TRANSPORT":           "TRANSPORT",
-	"SECURITY":            "SECURITY",
+	"EMAIL":              "EMAIL",
+	"DATA_USAGE":         "TRAFFIC_USED",
+	"DATA_LEFT":          "TRAFFIC_LEFT",
+	"DATA_LIMIT":         "TRAFFIC_TOTAL",
+	"DAYS_LEFT":          "DAYS_LEFT",
+	"EXPIRE_DATE":        "EXPIRE_DATE",
+	"JALALI_EXPIRE_DATE": "JALALI_EXPIRE_DATE",
+	"TIME_LEFT":          "TIME_LEFT",
+	"STATUS_EMOJI":       "STATUS_EMOJI",
+	"USAGE_PERCENTAGE":   "USAGE_PERCENTAGE",
+	"PROTOCOL":           "PROTOCOL",
+	"TRANSPORT":          "TRANSPORT",
+	"SECURITY":           "SECURITY",
 }
 
 // translateUISingleBrackets converts user-friendly single-brace tokens to the
