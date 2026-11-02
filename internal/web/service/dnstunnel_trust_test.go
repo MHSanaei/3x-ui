@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -15,9 +16,9 @@ import (
 func TestDnsTunnelCommandRefusesASwappedScript(t *testing.T) {
 	py := pythonForTest(t)
 	marker := filepath.Join(t.TempDir(), "pwned")
-	fetches := 0
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fetches++
+	var fetches atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fetches.Add(1)
 		_, _ = w.Write([]byte("open(r\"" + marker + "\", 'w').write('x')\n"))
 	}))
 	defer srv.Close()
@@ -35,7 +36,7 @@ func TestDnsTunnelCommandRefusesASwappedScript(t *testing.T) {
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatalf("the command ran a script the panel did not make; output %q", out)
 	}
-	if !strings.Contains(string(out), "make a new one on the DNS tunnel page") || fetches != 1 {
-		t.Errorf("output %q after %d fetches, want one fetch and the mismatch notice", out, fetches)
+	if n := fetches.Load(); !strings.Contains(string(out), "make a new one on the DNS tunnel page") || n != 1 {
+		t.Errorf("output %q after %d fetches, want one fetch and the mismatch notice", out, n)
 	}
 }
