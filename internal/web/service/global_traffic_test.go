@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -231,5 +232,126 @@ func TestSnapshotListNotOverlaid_SlimOverlaid(t *testing.T) {
 	}
 	if slim[0].ClientStats[0].Up != 900 {
 		t.Errorf("slim list should carry the global overlay, got up=%d", slim[0].ClientStats[0].Up)
+	}
+}
+
+// The master GUID keys one stored row per client, so an oversized one is dropped.
+func TestAcceptGlobalTrafficDropsAnOversizedMasterGuid(t *testing.T) {
+	db := initTrafficTestDB(t)
+	seedClientRow(t, "alice", 1, 0, 0, 0)
+	if err := (&InboundService{}).AcceptGlobalTraffic(strings.Repeat("m", maxPanelGuidLen+1), []*xray.ClientTraffic{{Email: "alice", Up: 1, Down: 1}}); err != nil {
+		t.Fatalf("AcceptGlobalTraffic: %v", err)
+	}
+	var rows int64
+	db.Model(&model.ClientGlobalTraffic{}).Count(&rows)
+	if rows != 0 {
+		t.Fatalf("stored %d row(s) under an oversized master GUID", rows)
+	}
+}
+
+// A node can report tens of thousands of its own clients over quota; one IN list with a
+// bound variable per email overran SQLite's limit and stopped every expiry and quota check.
+func TestDisableInvalidClientsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 33000
+	if err := db.Create(&model.Inbound{UserId: 1, Tag: "big", Port: 41100, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[]}`}).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	for _, stmt := range []string{
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO client_traffics (inbound_id, email, enable, total, up, down) SELECT 1, 'c' || i, true, 1, 1, 1 FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO clients (email, enable, sub_id) SELECT 'c' || i, true, 's' || i FROM seq`,
+	} {
+		if err := db.Exec(stmt, n).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	if err := db.Exec(`INSERT INTO client_inbounds (client_id, inbound_id) SELECT id, 1 FROM clients`).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+	_, count, _, err := (&InboundService{}).disableInvalidClients(db, newTrafficMutationBatch())
+	if err != nil || count != n {
+		t.Fatalf("disableInvalidClients = %d, %v; want all %d disabled", count, err, n)
+	}
+}
+
+// Preloading client stats binds one variable per inbound, so past SQLite's limit the
+// master could not even build Xray's config; nodes report inbounds into the same table.
+func TestGetAllInboundsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 33000
+	if err := db.Exec(`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		INSERT INTO inbounds (user_id, tag, port, protocol, enable, settings, stream_settings, sniffing, listen, remark)
+		SELECT 1, 'in-' || i, i, 'vless', true, '{}', '', '', '', '' FROM seq`, n).Error; err != nil {
+		t.Fatalf("seed inbounds: %v", err)
+	}
+	seedClientRow(t, "alice", n, 0, 0, 0)
+	inbounds, err := (&InboundService{}).GetAllInbounds()
+	if err != nil || len(inbounds) != n {
+		t.Fatalf("GetAllInbounds = %d inbounds, %v; want %d", len(inbounds), err, n)
+	}
+	if last := inbounds[len(inbounds)-1]; len(last.ClientStats) != 1 || last.ClientStats[0].Email != "alice" {
+		t.Fatalf("last inbound's client stats = %v, want alice's row", last.ClientStats)
+	}
+}
+
+// Saving every renewed inbound in one statement binds every column of every row, which
+// overran SQLite's variable limit once enough inbounds held a client due for renewal.
+func TestAutoRenewClientsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 1400
+	for _, stmt := range []string{
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO inbounds (user_id, tag, port, protocol, enable, settings, stream_settings, sniffing, listen, remark)
+		 SELECT 1, 'in-' || i, i, 'vless', true, '{"clients":[{"email":"c' || i || '","enable":true,"expiryTime":1000,"reset":30}]}', '', '', '', '' FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO clients (email, enable, sub_id, expiry_time, reset) SELECT 'c' || i, true, 's' || i, 1000, 30 FROM seq`,
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO client_traffics (inbound_id, email, enable, expiry_time, reset) SELECT i, 'c' || i, true, 1000, 30 FROM seq`,
+	} {
+		if err := db.Exec(stmt, n).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	if err := db.Exec(`INSERT INTO client_inbounds (client_id, inbound_id) SELECT c.id, i.id FROM clients c JOIN inbounds i ON i.tag = 'in-' || substr(c.email, 2)`).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+	_, count, err := (&InboundService{}).autoRenewClients(db, newTrafficMutationBatch())
+	if err != nil || count != n {
+		t.Fatalf("autoRenewClients = %d, %v; want all %d renewed", count, err, n)
+	}
+}
+
+// One inbound whose stored settings do not parse (a node can send such a blob) must not
+// stop the master disabling depleted clients everywhere else.
+func TestDisableInvalidClientsSurvivesAnInboundWithBrokenSettings(t *testing.T) {
+	db := initTrafficTestDB(t)
+	for _, ib := range []*model.Inbound{
+		{UserId: 1, Tag: "broken", Port: 41201, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[`},
+		{UserId: 1, Tag: "local", Port: 41202, Protocol: model.VLESS, Enable: true, Settings: `{"clients":[{"email":"bob","enable":true}]}`},
+	} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("seed inbound: %v", err)
+		}
+	}
+	for i, email := range []string{"alice", "bob"} {
+		seedClientRow(t, email, i+1, 10, 10, 5)
+		rec := &model.ClientRecord{Email: email, Enable: true, SubID: "s-" + email}
+		if err := db.Create(rec).Error; err != nil {
+			t.Fatalf("seed client: %v", err)
+		}
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: i + 1}).Error; err != nil {
+			t.Fatalf("link client: %v", err)
+		}
+	}
+	_, count, _, err := (&InboundService{}).disableInvalidClients(db, newTrafficMutationBatch())
+	if err != nil || count != 2 {
+		t.Fatalf("disableInvalidClients = %d, %v; want both depleted clients disabled", count, err)
+	}
+	var bob model.Inbound
+	db.Where("tag = ?", "local").First(&bob)
+	if !strings.Contains(bob.Settings, `"enable":false`) {
+		t.Fatalf("local inbound settings = %s, want bob disabled", bob.Settings)
 	}
 }

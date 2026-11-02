@@ -1053,3 +1053,35 @@ func TestInjectAmneziawgV6Egress_RulesPrependedBeforeExistingRules(t *testing.T)
 		t.Fatalf("the pre-existing rule must survive, got %+v", routing.Rules[1])
 	}
 }
+
+// The per-peer rule precedes the template's geoip:private routing rule, so the
+// outbound itself must block private-range egress, as "direct" does.
+func TestInjectAmneziawgV6Egress_OutboundBlocksPrivateEgress(t *testing.T) {
+	cfg := egressTestConfig()
+	inbound := amneziawgV6Inbound(1, "awg-1", "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"fd86:ea04:1115::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+
+	var outbounds []struct {
+		Tag      string `json:"tag"`
+		Settings struct {
+			FinalRules []any `json:"finalRules"`
+		} `json:"settings"`
+	}
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	want := `[{"action":"block","ip":["geoip:private"]},{"action":"allow"}]`
+	for _, o := range outbounds {
+		if o.Tag != amneziawgV6EgressTag(1, "a@x") {
+			continue
+		}
+		got, _ := json.Marshal(o.Settings.FinalRules)
+		if string(got) != want {
+			t.Fatalf("per-peer outbound finalRules = %s, want %s", got, want)
+		}
+		return
+	}
+	t.Fatalf("no outbound tagged %q in %s", amneziawgV6EgressTag(1, "a@x"), cfg.OutboundConfigs)
+}

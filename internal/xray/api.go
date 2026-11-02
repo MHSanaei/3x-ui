@@ -5,7 +5,9 @@ package xray
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -21,12 +23,13 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 
+	"github.com/xtls/xray-core/app/proxyman"
 	"github.com/xtls/xray-core/app/proxyman/command"
 	"github.com/xtls/xray-core/app/router"
 	routerService "github.com/xtls/xray-core/app/router/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
 	xnet "github.com/xtls/xray-core/common/net"
-	"github.com/xtls/xray-core/common/platform"
+	"github.com/xtls/xray-core/common/platform/filesystem"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
@@ -35,9 +38,13 @@ import (
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"github.com/xtls/xray-core/proxy/trojan"
+	"github.com/xtls/xray-core/proxy/tun"
 	"github.com/xtls/xray-core/proxy/vless"
+	vlessEncryption "github.com/xtls/xray-core/proxy/vless/encryption"
+	vlessOutbound "github.com/xtls/xray-core/proxy/vless/outbound"
 	"github.com/xtls/xray-core/proxy/vmess"
 	wireguard "github.com/xtls/xray-core/proxy/wireguard"
+	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -51,6 +58,14 @@ var (
 	clientTrafficRegex = regexp.MustCompile(`user>>>([^>]+)>>>traffic>>>(downlink|uplink)`)
 )
 
+// statsFamilies are polled one query each: outbound counters are named after third-party
+// subscription tags, and their reply must not take the clients' counters down with it.
+var statsFamilies = []string{"user>>>", "inbound>>>", "outbound>>>"}
+
+// maxStatsReplyBytes replaces gRPC's 4 MiB receive default, which a stats reply of about
+// 45k clients reaches alone; the peer is the panel's own core on loopback.
+const maxStatsReplyBytes = 64 << 20
+
 // XrayAPI is a gRPC client for managing Xray core configuration, inbounds, outbounds, and statistics.
 type XrayAPI struct {
 	HandlerServiceClient *command.HandlerServiceClient
@@ -59,6 +74,7 @@ type XrayAPI struct {
 	grpcClient           *grpc.ClientConn
 	isConnected          bool
 	StatsLastValues      map[string]int64
+	statsBaselined       map[string]bool
 }
 
 func getRequiredUserString(user map[string]any, key string) (string, error) {
@@ -96,7 +112,10 @@ func (x *XrayAPI) Init(apiPort int) error {
 	}
 
 	addr := fmt.Sprintf("127.0.0.1:%d", apiPort)
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxStatsReplyBytes)),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to Xray API: %w", err)
 	}
@@ -105,6 +124,7 @@ func (x *XrayAPI) Init(apiPort int) error {
 	x.isConnected = true
 	if x.StatsLastValues == nil {
 		x.StatsLastValues = make(map[string]int64)
+		x.statsBaselined = make(map[string]bool, len(statsFamilies))
 	}
 
 	hsClient := command.NewHandlerServiceClient(conn)
@@ -147,6 +167,9 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 		logger.Debug("Failed to unmarshal inbound:", err)
 		return err
 	}
+	if err := checkUntrustedBuildInput(conf.StreamSetting, inbound); err != nil {
+		return err
+	}
 	localizeNoiseScripts(conf.StreamSetting)
 	config, err := conf.Build()
 	if err != nil {
@@ -180,11 +203,20 @@ func (x *XrayAPI) DelInbound(tag string) error {
 // xray-core config loader, surfacing the exact error the core would raise at
 // startup — notably v26.7.11's refusal of unencrypted vless/trojan outbounds
 // whose server address is a public IP or domain.
-func ValidateOutboundConfig(outbound []byte) error {
+func ValidateOutboundConfig(outbound []byte) (err error) {
 	ensureXrayAssetLocation()
+	// The loader panics on some third-party values (a short vless encryption, a bad spiderX).
+	defer func() {
+		if r := recover(); r != nil {
+			err = common.NewErrorf("xray-core config loader panicked: %v", r)
+		}
+	}()
 
 	detour := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, detour); err != nil {
+		return err
+	}
+	if err := checkUntrustedBuildInput(detour.StreamSetting, outbound); err != nil {
 		return err
 	}
 	localizeNoiseScripts(detour.StreamSetting)
@@ -192,12 +224,33 @@ func ValidateOutboundConfig(outbound []byte) error {
 	if err != nil {
 		return err
 	}
-	return validateWireguardRemoteDNS(built.ProxySettings)
+	if err := validateXhttpDownloadSettings(built.SenderSettings); err != nil {
+		return err
+	}
+	return validateHandlerSettings(built.ProxySettings)
 }
 
-// validateWireguardRemoteDNS refuses what conf.Build() lets through but the core feeds to
-// netip.MustParseAddr at startup: a non-IP remoteDNS entry, like "local" before 26.9.30.
-func validateWireguardRemoteDNS(settings *serial.TypedMessage) error {
+// ValidateTunWfpBlockLeak runs the core's own check of a TUN inbound's autoSystemWfpBlockLeak,
+// which xray-core 26.10.31 (#7288) widened to "windnsclient" and "tcp/<port>" / "udp/<port>".
+func ValidateTunWfpBlockLeak(values []string) error {
+	_, err := tun.ExpandWfpBlockLeak(values)
+	return err
+}
+
+// ValidateXDriveS3 builds an "s3" xdriveSettings object through the vendored loader, which runs
+// the endpoint, bucket and secret checks xray-core 26.10.31 (#7231) applies to the S3 backend.
+func ValidateXDriveS3(xdriveSettings []byte) error {
+	c := new(conf.XDriveConfig)
+	if err := json.Unmarshal(xdriveSettings, c); err != nil {
+		return err
+	}
+	_, err := c.Build()
+	return err
+}
+
+// validateXhttpDownloadSettings refuses what conf.Build() lets through but the core's XHTTP
+// dialer panics on at every dial: a downloadSettings block without an address or not on xhttp.
+func validateXhttpDownloadSettings(settings *serial.TypedMessage) error {
 	if settings == nil {
 		return nil
 	}
@@ -205,14 +258,120 @@ func validateWireguardRemoteDNS(settings *serial.TypedMessage) error {
 	if err != nil {
 		return nil
 	}
-	device, ok := instance.(*wireguard.DeviceConfig)
-	if !ok || !device.IsClient {
+	sender, ok := instance.(*proxyman.SenderConfig)
+	if !ok {
 		return nil
+	}
+	transport, err := sender.StreamSettings.GetEffectiveTransportSettings()
+	if err != nil {
+		return nil
+	}
+	xhttp, ok := transport.(*splithttp.Config)
+	if !ok || xhttp.DownloadSettings == nil {
+		return nil
+	}
+	if xhttp.DownloadSettings.Address == nil {
+		return common.NewError("xhttp downloadSettings has no address")
+	}
+	transport, _ = xhttp.DownloadSettings.GetEffectiveTransportSettings()
+	if _, ok := transport.(*splithttp.Config); !ok {
+		return common.NewError("xhttp downloadSettings network is not xhttp")
+	}
+	return nil
+}
+
+// validateHandlerSettings refuses what conf.Build() lets through but the core parses only
+// in the handler constructor, where one failure aborts the whole core start.
+func validateHandlerSettings(settings *serial.TypedMessage) error {
+	if settings == nil {
+		return nil
+	}
+	instance, err := settings.GetInstance()
+	if err != nil {
+		return nil
+	}
+	switch config := instance.(type) {
+	case *wireguard.DeviceConfig:
+		return validateWireguardClient(config)
+	case *vlessOutbound.Config:
+		return validateVlessEncryption(config)
+	case *shadowsocks_2022.ClientConfig:
+		return validateShadowsocks2022Key(config)
+	}
+	return nil
+}
+
+// validateWireguardClient mirrors proxy/wireguard.NewClient; remoteDNS goes to
+// netip.MustParseAddr there, so a non-IP entry ("local" before 26.9.30) is a crash.
+func validateWireguardClient(device *wireguard.DeviceConfig) error {
+	if !device.IsClient {
+		return nil
+	}
+	if len(device.Peers) == 0 {
+		return common.NewError("wireguard outbound has no peers")
+	}
+	for _, peer := range device.Peers {
+		if peer.PublicKey == "" {
+			return common.NewError("wireguard peer without publicKey")
+		}
+		if peer.Endpoint == "" {
+			return common.NewError("wireguard peer without endpoint")
+		}
+	}
+	for _, local := range device.Endpoint {
+		if _, err := netip.ParseAddr(local); err == nil {
+			continue
+		}
+		if _, err := netip.ParsePrefix(local); err != nil {
+			return common.NewErrorf("wireguard address entry %q is neither an IP nor a prefix", local)
+		}
 	}
 	for _, server := range device.DNS {
 		if _, err := netip.ParseAddr(server); err != nil {
 			return common.NewErrorf("wireguard remoteDNS entry %q is not an IP address", server)
 		}
+	}
+	return nil
+}
+
+// validateVlessEncryption mirrors proxy/vless/outbound.New, which parses the padding spec
+// and the X25519 / ML-KEM-768 keys of "encryption" through ClientInstance.Init.
+func validateVlessEncryption(config *vlessOutbound.Config) error {
+	if config.Vnext == nil || config.Vnext.User == nil {
+		return nil
+	}
+	user, err := config.Vnext.User.ToMemoryUser()
+	if err != nil {
+		return err
+	}
+	account, ok := user.Account.(*vless.MemoryAccount)
+	if !ok || account.Encryption == "" || account.Encryption == "none" {
+		return nil
+	}
+	var keys [][]byte
+	for part := range strings.SplitSeq(account.Encryption, ".") {
+		key, _ := base64.RawURLEncoding.DecodeString(part)
+		keys = append(keys, key)
+	}
+	if err := (&vlessEncryption.ClientInstance{}).Init(keys, account.XorMode, account.Seconds, account.Padding); err != nil {
+		return common.NewErrorf("vless encryption is unusable: %v", err)
+	}
+	return nil
+}
+
+// validateShadowsocks2022Key mirrors shadowsocks_2022.NewClient: every ":"-separated key
+// is base64 of the cipher's key length, and chacha20-poly1305 takes a single key.
+func validateShadowsocks2022Key(config *shadowsocks_2022.ClientConfig) error {
+	method, err := shadowsocks_2022.GetCipherMethod(config.Method)
+	if err != nil {
+		return err
+	}
+	keys, err := shadowsocks_2022.ParsePSKList(config.Key, method.KeySaltLength)
+	if err != nil {
+		return common.NewErrorf("shadowsocks 2022 key is unusable for %s: %v", config.Method, err)
+	}
+	if method.IsChaCha && len(keys) > 1 {
+		return common.NewError("shadowsocks 2022 chacha20-poly1305 does not support multiple keys")
 	}
 	return nil
 }
@@ -229,6 +388,9 @@ func (x *XrayAPI) AddOutbound(outbound []byte) error {
 	conf := new(conf.OutboundDetourConfig)
 	if err := json.Unmarshal(outbound, conf); err != nil {
 		logger.Debug("Failed to unmarshal outbound:", err)
+		return err
+	}
+	if err := checkUntrustedBuildInput(conf.StreamSetting, outbound); err != nil {
 		return err
 	}
 	localizeNoiseScripts(conf.StreamSetting)
@@ -513,7 +675,7 @@ func childLuaScriptPath(script string) string {
 	if script == "" || filepath.IsAbs(script) {
 		return script
 	}
-	if _, err := platform.ResolveLuaFile(script); err == nil {
+	if _, err := filesystem.ResolveLuaFile(script); err == nil {
 		return script
 	}
 	binDir, err := filepath.Abs(config.GetBinFolderPath())
@@ -883,41 +1045,61 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 		return nil, nil, common.NewError("xray StatusServiceClient is not initialized")
 	}
 
-	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: false})
-	if err != nil {
+	tagTrafficMap := make(map[string]*Traffic)
+	emailTrafficMap := make(map[string]*ClientTraffic)
+	if x.statsBaselined == nil {
+		x.statsBaselined = make(map[string]bool, len(statsFamilies))
+	}
+
+	var live []*statsService.Stat
+	var failed []error
+	for _, family := range statsFamilies {
+		resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Pattern: family, Reset_: false})
+		if err != nil {
+			failed = append(failed, fmt.Errorf("%s: %w", family, err))
+			continue
+		}
+		baselinePass := !x.statsBaselined[family]
+		x.statsBaselined[family] = true
+		for _, stat := range resp.GetStat() {
+			// The core matches Pattern anywhere in the name; the prefix keeps it to one family.
+			if !strings.HasPrefix(stat.Name, family) {
+				continue
+			}
+			live = append(live, stat)
+			lastValue, ok := x.StatsLastValues[stat.Name]
+			x.StatsLastValues[stat.Name] = stat.Value
+			if baselinePass {
+				continue
+			}
+			if !ok || stat.Value < lastValue {
+				lastValue = 0
+			}
+			value := stat.Value - lastValue
+			if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
+				processTraffic(matches, value, tagTrafficMap)
+			} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
+				processClientTraffic(matches, value, emailTrafficMap)
+			}
+		}
+	}
+	if len(failed) == len(statsFamilies) {
+		err := errors.Join(failed...)
 		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
 	}
-
-	tagTrafficMap := make(map[string]*Traffic)
-	emailTrafficMap := make(map[string]*ClientTraffic)
-
-	baselinePass := len(x.StatsLastValues) == 0
-
-	for _, stat := range resp.GetStat() {
-		lastValue, ok := x.StatsLastValues[stat.Name]
-		x.StatsLastValues[stat.Name] = stat.Value
-		if baselinePass {
-			continue
-		}
-		if !ok || stat.Value < lastValue {
-			lastValue = 0
-		}
-		value := stat.Value - lastValue
-		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
-			processTraffic(matches, value, tagTrafficMap)
-		} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
-			processClientTraffic(matches, value, emailTrafficMap)
-		}
+	for _, err := range failed {
+		logger.Warning("Failed to query Xray stats, counting the other families:", err)
 	}
 
 	// Drop delta baselines for stats that no longer exist (deleted inbounds or
 	// clients), which otherwise linger until the next Xray restart. Only rebuild
 	// when the map has drifted past 2x the live set, so the steady-state hot path
 	// stays allocation-free.
-	if n := len(resp.GetStat()); n > 0 && len(x.StatsLastValues) > 2*n {
+	// A family that failed is not gone, so its baselines stay.
+	if n := len(live); n > 0 && len(failed) == 0 && len(x.StatsLastValues) > 2*n {
 		pruned := make(map[string]int64, n)
-		for _, stat := range resp.GetStat() {
+		for _, stat := range live {
 			pruned[stat.Name] = x.StatsLastValues[stat.Name]
 		}
 		x.StatsLastValues = pruned

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"embed"
 	"fmt"
+	"html"
 	"math/big"
 	"net"
 	"net/url"
@@ -249,9 +250,19 @@ func (t *Tgbot) NewTgbot() *Tgbot {
 	return new(Tgbot)
 }
 
-// I18nBot retrieves a localized message for the bot interface.
+// I18nBot retrieves a localized message for the bot interface. Every message is sent
+// HTML-parsed, so param values (remarks, e-mails, errors) are escaped here.
 func (t *Tgbot) I18nBot(name string, params ...string) string {
-	return locale.I18n(locale.Bot, name, params...)
+	escaped := make([]string, len(params))
+	for i, param := range params {
+		key, value, found := strings.Cut(param, "==")
+		if !found {
+			escaped[i] = param
+			continue
+		}
+		escaped[i] = key + "==" + html.EscapeString(value)
+	}
+	return locale.I18n(locale.Bot, name, escaped...)
 }
 
 // GetHashStorage returns the hash storage instance for callback queries.

@@ -235,7 +235,7 @@ func (t *Tgbot) screenReport(chatID int64) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.refresh", cbReport)),
 		t.backRow(),
 	}
-	t.renderScreen(chatID, t.newScreen("reports", html.EscapeString(report.String()), rows...))
+	t.renderScreen(chatID, t.newScreen("reports", report.String(), rows...))
 }
 
 // screenCommands explains the classic commands; kept because muscle memory is

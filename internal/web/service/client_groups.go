@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"sort"
 	"strings"
 
@@ -24,13 +25,8 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	db := database.GetDB()
 	// email is unique in both clients and client_traffics, so the LEFT JOIN
 	// never double-counts a client's traffic.
-	var derived []GroupSummary
-	if err := db.Table("clients AS c").
-		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
-		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
-		Where("c.group_name <> ''").
-		Group("c.group_name").
-		Scan(&derived).Error; err != nil {
+	derived, err := sumGroupTraffic(db, "c.group_name <> ''")
+	if err != nil {
 		return nil, err
 	}
 	var stored []model.ClientGroup
@@ -50,14 +46,14 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 		baseUp[g.Name] = g.ResetUp
 		baseDown[g.Name] = g.ResetDown
 	}
-	for _, g := range derived {
-		merged[g.Name] = groupAgg{count: g.ClientCount, up: g.Up, down: g.Down}
+	for name, g := range derived {
+		merged[name] = groupAgg{count: g.clients, up: g.up, down: g.down}
 	}
 	out := make([]GroupSummary, 0, len(merged))
 	for name, agg := range merged {
-		up := max(agg.up-baseUp[name], 0)
-		down := max(agg.down-baseDown[name], 0)
-		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: up + down, Up: up, Down: down})
+		up := max(clampedTrafficAdd(agg.up, -baseUp[name]), 0)
+		down := max(clampedTrafficAdd(agg.down, -baseDown[name]), 0)
+		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: clampedTrafficAdd(up, down), Up: up, Down: down})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
@@ -81,46 +77,35 @@ func shiftGroupBaselines(tx *gorm.DB, emails []string, sign int64) error {
 	if len(emails) == 0 {
 		return nil
 	}
-	type groupDelta struct {
-		Name string
-		Up   int64
-		Down int64
-	}
-	totals := make(map[string]*groupDelta)
+	totals := make(map[string]*groupCounters)
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
-		var part []groupDelta
-		if err := tx.Table("clients AS c").
-			Select("c.group_name AS name, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
-			Joins("JOIN client_traffics ct ON ct.email = c.email").
-			Where("c.group_name <> '' AND c.email IN ?", batch).
-			Group("c.group_name").
-			Scan(&part).Error; err != nil {
+		part, err := sumGroupTraffic(tx, "c.group_name <> '' AND c.email IN ?", batch)
+		if err != nil {
 			return err
 		}
-		for i := range part {
-			if agg, ok := totals[part[i].Name]; ok {
-				agg.Up += part[i].Up
-				agg.Down += part[i].Down
+		for name, p := range part {
+			if agg, ok := totals[name]; ok {
+				agg.up = clampedTrafficAdd(agg.up, p.up)
+				agg.down = clampedTrafficAdd(agg.down, p.down)
 			} else {
-				totals[part[i].Name] = &part[i]
+				totals[name] = p
 			}
 		}
 	}
 	for name, d := range totals {
-		if d.Up == 0 && d.Down == 0 {
+		if d.up == 0 && d.down == 0 {
 			continue
 		}
-		res := tx.Model(&model.ClientGroup{}).Where("name = ?", name).Updates(map[string]any{
-			"reset_up":   gorm.Expr("reset_up + ?", sign*d.Up),
-			"reset_down": gorm.Expr("reset_down + ?", sign*d.Down),
-		})
-		if res.Error != nil {
-			return res.Error
+		var group model.ClientGroup
+		err := tx.Where("name = ?", name).First(&group).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
-		if res.RowsAffected == 0 {
-			if err := tx.Create(&model.ClientGroup{Name: name, ResetUp: sign * d.Up, ResetDown: sign * d.Down}).Error; err != nil {
-				return err
-			}
+		group.Name = name
+		group.ResetUp = clampedTrafficAdd(group.ResetUp, sign*d.up)
+		group.ResetDown = clampedTrafficAdd(group.ResetDown, sign*d.down)
+		if err := tx.Save(&group).Error; err != nil {
+			return err
 		}
 	}
 	return nil
@@ -151,26 +136,23 @@ func (s *ClientService) ResetGroupTraffic(name string) error {
 		return common.NewError("group name is required")
 	}
 	db := database.GetDB()
-	var agg struct {
-		Up   int64
-		Down int64
-	}
-	if err := db.Table("clients AS c").
-		Select("COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
-		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
-		Where("c.group_name = ?", name).
-		Scan(&agg).Error; err != nil {
+	totals, err := sumGroupTraffic(db, "c.group_name = ?", name)
+	if err != nil {
 		return err
+	}
+	agg := groupCounters{}
+	if t := totals[name]; t != nil {
+		agg = *t
 	}
 	var count int64
 	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
 		return err
 	}
 	if count == 0 {
-		return db.Create(&model.ClientGroup{Name: name, ResetUp: agg.Up, ResetDown: agg.Down}).Error
+		return db.Create(&model.ClientGroup{Name: name, ResetUp: agg.up, ResetDown: agg.down}).Error
 	}
 	return db.Model(&model.ClientGroup{}).Where("name = ?", name).
-		Updates(map[string]any{"reset_up": agg.Up, "reset_down": agg.Down}).Error
+		Updates(map[string]any{"reset_up": agg.up, "reset_down": agg.down}).Error
 }
 
 func (s *ClientService) CreateGroup(name string) error {
@@ -449,4 +431,49 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		return 0, err
 	}
 	return len(records), nil
+}
+
+// groupCounters is a group's summed traffic, held within ±TrafficMax.
+type groupCounters struct {
+	clients  int
+	up, down int64
+}
+
+// clampedTrafficAdd adds two counters, saturating at ±TrafficMax: stored counters reach
+// the cap, and SQL SUM over two of them overflowed and failed the whole query.
+func clampedTrafficAdd(a, b int64) int64 {
+	switch {
+	case b > 0 && a > database.TrafficMax-b:
+		return database.TrafficMax
+	case b < 0 && a < -database.TrafficMax-b:
+		return -database.TrafficMax
+	}
+	return a + b
+}
+
+// sumGroupTraffic reads one row per grouped client matching where and adds them up in Go.
+func sumGroupTraffic(tx *gorm.DB, where string, args ...any) (map[string]*groupCounters, error) {
+	var rows []struct {
+		Name     string
+		Up, Down int64
+	}
+	if err := tx.Table("clients AS c").
+		Select("c.group_name AS name, COALESCE(ct.up, 0) AS up, COALESCE(ct.down, 0) AS down").
+		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
+		Where(where, args...).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	totals := make(map[string]*groupCounters)
+	for _, r := range rows {
+		agg := totals[r.Name]
+		if agg == nil {
+			agg = &groupCounters{}
+			totals[r.Name] = agg
+		}
+		agg.clients++
+		agg.up = clampedTrafficAdd(agg.up, r.Up)
+		agg.down = clampedTrafficAdd(agg.down, r.Down)
+	}
+	return totals, nil
 }

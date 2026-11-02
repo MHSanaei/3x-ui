@@ -44,7 +44,7 @@ func (t *Tgbot) screenClientIps(chatID int64, email string) {
 	if err != nil || len(ips) == 0 {
 		body += t.I18nBot("tgbot.noIpRecord")
 	} else {
-		body += t.I18nBot("tgbot.messages.ips", "IPs=="+html.EscapeString(formatIPLog(ips)))
+		body += t.I18nBot("tgbot.messages.ips", "IPs=="+formatIPLog(ips))
 	}
 	body += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	rows := [][]telego.InlineKeyboardButton{
@@ -168,9 +168,9 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	if own != nil {
 		body = t.clientInfoMsg(own, true, true, true, true, true, false) + "\n"
 	}
-	body += t.I18nBot("tgbot.messages.subURL", "URL=="+html.EscapeString(subURL))
+	body += t.I18nBot("tgbot.messages.subURL", "URL=="+subURL)
 	if subJSON != "" {
-		body += t.I18nBot("tgbot.messages.jsonURL", "URL=="+html.EscapeString(subJSON))
+		body += t.I18nBot("tgbot.messages.jsonURL", "URL=="+subJSON)
 	}
 	body += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	rows := [][]telego.InlineKeyboardButton{
@@ -222,7 +222,7 @@ func (t *Tgbot) screenClientQR(chatID int64, email string) {
 		return
 	}
 	body := t.clientScreenBody(email, t.I18nBot("tgbot.answers.qrCodeForClient", "Email=="+email))
-	body += t.I18nBot("tgbot.messages.subURL", "URL=="+html.EscapeString(subURL))
+	body += t.I18nBot("tgbot.messages.subURL", "URL=="+subURL)
 	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		t.backRow(),
