@@ -2,12 +2,24 @@ package tgbot
 
 import (
 	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"gorm.io/gorm"
 )
 
 // A login success must not fold into the failure card of the same IP: the
@@ -270,5 +282,158 @@ func TestUsageEmailArgumentDoesNotLeakAnotherClient(t *testing.T) {
 	markup, _ := json.Marshal(sc.markup)
 	if strings.Contains(body, "other@example.com") || strings.Contains(string(markup), "other@example.com") {
 		t.Fatalf("a client's /usage <email> leaked another client:\n%s\n%s", body, markup)
+	}
+}
+
+// Listing an account's clients used to load their whole inbound, settings and
+// all, several times per client, so the list cost its length times the inbound's.
+func TestClientUsageDoesNotLoadTheInboundPerClient(t *testing.T) {
+	sent := recordingBotServer(t)
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	db := database.GetDB()
+
+	const owned = 40
+	clients := make([]model.Client, 0, owned)
+	for i := range owned {
+		n := strconv.Itoa(i)
+		clients = append(clients, model.Client{ID: "uuid-" + n, Email: "owned-" + n, SubID: "sub-" + n, TgID: ownerTgID, Enable: true})
+	}
+	settings, err := json.Marshal(map[string]any{"clients": clients})
+	if err != nil {
+		t.Fatalf("marshal settings: %v", err)
+	}
+	inbound := &model.Inbound{UserId: 1, Tag: "in-443", Remark: "shared-inbound", Enable: true, Port: 443, Protocol: model.VLESS, Settings: string(settings)}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := (&service.ClientService{}).SyncInbound(nil, inbound.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	for i := range clients {
+		if err := db.Create(&xray.ClientTraffic{InboundId: inbound.Id, Email: clients[i].Email, Enable: true}).Error; err != nil {
+			t.Fatalf("seed traffic: %v", err)
+		}
+	}
+
+	origRunning := isRunning
+	t.Cleanup(func() { isRunning = origRunning })
+	isRunning = true
+
+	wholeRows := 0
+	if err := db.Callback().Query().After("gorm:query").Register("test:whole_inbound_rows", func(tx *gorm.DB) {
+		if tx.Statement.Table == "inbounds" && len(tx.Statement.Selects) == 0 {
+			wholeRows++
+		}
+	}); err != nil {
+		t.Fatalf("register query counter: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove("test:whole_inbound_rows") })
+
+	(&Tgbot{}).getClientUsage(ownerTgID, ownerTgID)
+
+	if got := strings.Join(sent(), "\n"); !strings.Contains(got, "shared-inbound") {
+		t.Fatalf("no client listed with its inbound: %q", got)
+	}
+	if wholeRows >= owned {
+		t.Fatalf("the inbound row was loaded %d times for %d clients", wholeRows, owned)
+	}
+}
+
+// The login alert is one field per line and the username is
+// whatever the visitor typed, so a line break in it must not start a new line.
+func TestLoginAlertKeepsUsernameOnOneLine(t *testing.T) {
+	draftLocalizer(t,
+		&i18n.Message{ID: "tgbot.messages.loginSuccess", Other: "✅ Logged in to the panel successfully.\r\n"},
+		&i18n.Message{ID: "tgbot.messages.loginFailed", Other: "❗️Login attempt to the panel failed.\r\n"},
+		&i18n.Message{ID: "tgbot.messages.hostname", Other: "💻 Host: {{ .Hostname }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.reason", Other: "❗️ Reason: {{ .Reason }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.username", Other: "👤 Username: {{ .Username }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.ip", Other: "🌐 IP: {{ .IP }}\r\n"},
+		&i18n.Message{ID: "tgbot.messages.time", Other: "⏰ Time: {{ .Time }}\r\n"},
+	)
+
+	for _, lineBreak := range []string{"\r\n", "\n", "\r", "\v", "\f", "\u0085", "\u2028", "\u2029", "\r\n\r\n"} {
+		username := "mallory" + lineBreak + "🌐 IP: 203.0.113.77"
+		for _, status := range []string{"fail", "success"} {
+			got := (&Tgbot{}).formatEventMessage(eventbus.Event{
+				Type: eventbus.EventLoginAttempt,
+				Data: &eventbus.LoginEventData{
+					Username: username, IP: "192.0.2.1", Time: "now", Status: status, Reason: "invalid credentials",
+				},
+			})
+			want := "👤 Username: mallory" + strings.Repeat(" ", len([]rune(lineBreak))) + "🌐 IP: 203.0.113.77\r\n🌐 IP: 192.0.2.1\r\n"
+			if !strings.Contains(got, want) {
+				t.Errorf("login %s, line break %q: message = %q, want it to contain %q", status, lineBreak, got, want)
+			}
+		}
+	}
+}
+
+// The notifiers exempt login events from their cooldown, so failed logins are throttled where
+// they are published, or an unauthenticated flood crowds every other alert out of the queues.
+func TestLoginFailAlertGate(t *testing.T) {
+	g := &loginFailAlertGate{}
+	now := time.Now()
+
+	if !g.allow("192.0.2.1", now) {
+		t.Fatal("first failure of a source must be alerted")
+	}
+	if g.allow("192.0.2.1", now.Add(loginFailAlertWindow-time.Second)) {
+		t.Fatal("a source must be alerted once per window")
+	}
+
+	passed := 1
+	for i := range 1000 {
+		if g.allow(fmt.Sprintf("2001:db8::%x", i), now.Add(time.Second)) {
+			passed++
+		}
+	}
+	if passed != loginFailAlertMaxSources {
+		t.Fatalf("%d sources alerted in one window, want %d", passed, loginFailAlertMaxSources)
+	}
+	if len(g.sources) > loginFailAlertMaxSources {
+		t.Fatalf("gate tracks %d sources, want at most %d", len(g.sources), loginFailAlertMaxSources)
+	}
+
+	if !g.allow("192.0.2.1", now.Add(loginFailAlertWindow)) {
+		t.Fatal("a new window must alert again")
+	}
+}
+
+func TestUserLoginNotifyThrottlesOnlyFailures(t *testing.T) {
+	bus := eventbus.New(0)
+	defer bus.Stop()
+	prevBus, prevGate := EventBus, loginFailAlerts
+	EventBus, loginFailAlerts = bus, &loginFailAlertGate{}
+	defer func() { EventBus, loginFailAlerts = prevBus, prevGate }()
+
+	var failures, successes atomic.Int32
+	bus.Subscribe("counter", func(e eventbus.Event) {
+		if e.Data.(*eventbus.LoginEventData).Status == "success" {
+			successes.Add(1)
+		} else {
+			failures.Add(1)
+		}
+	})
+
+	bot := &Tgbot{}
+	for range 50 {
+		bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.1", Time: "now", Status: LoginFail, Reason: "too many failed attempts"})
+	}
+	bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.2", Time: "now", Status: LoginFail, Reason: "invalid credentials"})
+	for range 3 {
+		bot.UserLoginNotify(LoginAttempt{Username: "admin", IP: "192.0.2.1", Time: "now", Status: LoginSuccess})
+	}
+
+	// The bus delivers in publication order, so the last success arrives after every failure.
+	deadline := time.Now().Add(5 * time.Second)
+	for successes.Load() < 3 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := successes.Load(); got != 3 {
+		t.Fatalf("successful logins reported %d times, want 3", got)
+	}
+	if got := failures.Load(); got != 2 {
+		t.Fatalf("failed logins from two sources reported %d times, want 2", got)
 	}
 }

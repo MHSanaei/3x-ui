@@ -166,6 +166,49 @@ func TestSettingsCacheRendersTheSameSubscription(t *testing.T) {
 	}
 }
 
+func TestSettingsCachePreservesTuicSubscriptions(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubProtocolInbound(t, "tuic-sub", "tuic", 4704, 1, `{}`, model.TUIC)
+	settings := `{"server":{"sni":"tuic.example.com"},"clients":[{"uuid":"11111111-2222-4333-8444-000000004704","password":"tuic-password","email":"tuic@e","subId":"tuic-sub","enable":true}]}`
+	if err := database.GetDB().Model(ib).Update("settings", settings).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", "tuic@e").Update("password", "tuic-password").Error; err != nil {
+		t.Fatal(err)
+	}
+	render := func(svc *SubService) []string {
+		t.Helper()
+		req := svc.ForRequest("req.example.com")
+		req.subscriptionBody = true
+		links, _, _, _, err := req.getSubs("tuic-sub")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(links) != 1 || !strings.HasPrefix(links[0], "tuic://") {
+			t.Fatalf("TUIC link missing from subscription: %v", links)
+		}
+		clash, _, err := NewSubClashService(false, "", false, svc).GetClash("tuic-sub", "req.example.com")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(clash, "tuic-password") {
+			t.Fatalf("TUIC credentials missing from Clash subscription: %s", clash)
+		}
+		return []string{links[0], clash}
+	}
+	want := render(NewSubService(""))
+	cached := NewSubService("")
+	t.Cleanup(cached.enableSettingsCache())
+	for round := range 2 {
+		got := render(cached)
+		for i, format := range []string{"raw", "clash"} {
+			if got[i] != want[i] {
+				t.Fatalf("round %d %s differs with settings cache:\n got: %s\nwant: %s", round, format, got[i], want[i])
+			}
+		}
+	}
+}
+
 // Only the settings blob is cached: the inbound row is read on every fetch, so a port change or a
 // disabled inbound reaches the next fetch, while settings wait for a panel edit's purge.
 func TestSettingsCacheReadsTheInboundRowFresh(t *testing.T) {

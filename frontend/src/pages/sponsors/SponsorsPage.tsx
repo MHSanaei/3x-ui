@@ -72,7 +72,7 @@ export default function SponsorsPage() {
                 <BecomeButton contact={data.contact} />
               </div>
 
-              <Spin spinning={!fetched} delay={200}>
+              <Spin aria-live="off" spinning={!fetched} delay={200}>
                 {sponsors.length === 0 ? (
                   fetched && <YourBrandCard contact={data.contact} />
                 ) : (

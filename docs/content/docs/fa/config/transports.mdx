@@ -133,10 +133,11 @@ inbound به مقدار `decryption` نیاز دارد و outbound به `encrypt
 
 | فیلد           | پیش‌فرض        | معنا |
 | -------------- | -------------- | ---- |
-| `service`      | `google-drive` | `google-drive`، `local` (پوشه‌ای روی دیسک) یا `template` (هر API ذخیره‌سازی HTTP). نگارش قدیمی `Google Drive` همچنان خوانده می‌شود. |
+| `service`      | `google-drive` | `google-drive`، `local` (پوشه‌ای روی دیسک)، `template` (هر API ذخیره‌سازی HTTP) یا `s3` (ذخیره‌ساز سازگار با S3). نگارش قدیمی `Google Drive` همچنان خوانده می‌شود. |
 | `remoteFolder` | —              | پوشه‌ای که فایل‌های نشست در آن قرار می‌گیرند. |
-| `secrets`      | —              | Google Drive: دقیقاً سه مقدار ClientID، ClientSecret و RefreshToken به همین ترتیب. Template: مقادیری که با `{secret0}`، `{secret1}`، … خوانده می‌شوند. |
+| `secrets`      | —              | Google Drive: دقیقاً سه مقدار ClientID، ClientSecret و RefreshToken به همین ترتیب. Template: مقادیری که با `{secret0}`، `{secret1}`، … خوانده می‌شوند. S3: ‏AccessKeyID، SecretAccessKey و در صورت نیاز SessionToken. |
 | `template`     | —              | فقط برای سرویس template: عملیات `auth`، `put`، `get`، `list` و `delete` در API ذخیره‌ساز. |
+| `s3`           | —              | فقط برای سرویس s3: `endpoint` (یک URL از نوع http(s))، `region`، `bucket` و `pathStyle` (پیش‌فرض `true`؛ با `false` نام باکت در نام میزبان می‌آید). `remoteFolder` پیشوند اشیاء است. |
 | تنظیمات دقیق   | پیش‌فرض هسته   | `segmentBytes` (512 KiB)، `flushIntervalMs` (20)، `pollIntervalMs`/`maxPollIntervalMs` (50/500)، `eagerWindowMs` (2000)، `holeTimeoutMs` (30000)، `sessionTtlSeconds` (300)، `concurrency` (8). |
 
 **آدرس/پورت Front** اختیاری (کلیدهای `address`/`port` در سطح stream) یک domain front
