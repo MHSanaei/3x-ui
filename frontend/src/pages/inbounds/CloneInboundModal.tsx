@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Select, Typography, message } from 'antd';
 
 import { HttpUtil } from '@/utils';
-import { SelectAllClearButtons } from '@/components/form';
+import { SelectAllClearButtons, selectTagRender } from '@/components/form';
 import { buildClonePayload, pickClonePort } from '@/lib/xray/inbound-clone';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import type { DBInbound } from '@/models/dbinbound';
@@ -132,6 +132,7 @@ export default function CloneInboundModal({
         <Select
           aria-label={t('pages.inbounds.deployTo')}
           mode="multiple"
+          tagRender={selectTagRender}
           style={{ width: '100%' }}
           value={targets}
           onChange={setTargets}

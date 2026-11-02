@@ -191,6 +191,15 @@ jobs:
             echo "expected at least 4 passing PostgreSQL migration tests, got $passed" >&2
             exit 1
           fi
+      - name: SQLite import host settings
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestImportSQLiteIntoPostgresHostSettings$' -count=1 -v | tee /tmp/postgres-import-host-settings.log
+          passed=$(grep -c -- '^--- PASS: TestImportSQLiteIntoPostgresHostSettings ' /tmp/postgres-import-host-settings.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected the SQLite import integration test to pass, got $passed" >&2
+            exit 1
+          fi
 
   codegen:
     runs-on: ubuntu-latest

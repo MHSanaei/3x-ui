@@ -216,3 +216,40 @@ func TestInboundsCommandRetriesARateLimitedPage(t *testing.T) {
 		t.Errorf("posted %d times for %d messages, want one retry of the limited page", posts, len(msgs))
 	}
 }
+
+func TestCommandRepliesEscapeNodeReportedText(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotToken("test-bot-token")
+	_ = settingService.SetDiscordChannelId("ch-1")
+	_ = settingService.SetDiscordAdminIds("u1")
+
+	inbounds := inboundFixtures(1)
+	inbounds[0].Remark = "**x** [reset](https://attacker.example/)"
+	inbounds[0].Protocol = "vless` [reset](https://attacker.example/) `"
+	inbounds[0].ClientStats[0].Email = "[reset](https://attacker.example/)"
+	const remark = `\*\*x\*\* \[reset\](https\://attacker.example/)`
+
+	t.Run("inbounds", func(t *testing.T) {
+		msgs := runInboundsCommand(t, settingService, inbounds)
+		if len(msgs) != 1 || len(msgs[0].Embeds) != 1 || len(msgs[0].Embeds[0].Fields) != 1 {
+			t.Fatalf("expected one message with one field, got %+v", msgs)
+		}
+		field := msgs[0].Embeds[0].Fields[0]
+		if want := "📍 " + remark; field.Name != want {
+			t.Errorf("field name = %q, want %q", field.Name, want)
+		}
+		if want := "Protocol: `vless' [reset](https://attacker.example/) '` | Port: `10000`"; !strings.HasPrefix(field.Value, want) {
+			t.Errorf("field value = %q, want the protocol kept inside its code span: %q", field.Value, want)
+		}
+	})
+
+	t.Run("usage", func(t *testing.T) {
+		embed := runUsageCommand(t, settingService, inbounds, inbounds[0].ClientStats[0].Email).Embeds[0]
+		if want := `\[reset\](https\://attacker.example/)`; !strings.HasSuffix(embed.Title, ": "+want) {
+			t.Errorf("title = %q, want it to end in %q", embed.Title, want)
+		}
+		if !strings.Contains(embed.Description, "**"+remark+"**") {
+			t.Errorf("description = %q, want it to carry %q", embed.Description, remark)
+		}
+	})
+}

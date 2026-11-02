@@ -27,9 +27,8 @@ func clientInfoLocalizer(t *testing.T) {
 		&i18n.Message{ID: "tgbot.messages.expire", Other: "Expire Date: {{ .Time }}\r\n"},
 		&i18n.Message{ID: "tgbot.wentWrong", Other: "went wrong"},
 	)
-	orig := locale.LocalizerBot
-	t.Cleanup(func() { locale.LocalizerBot = orig })
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
+	orig := locale.SwapBotLocalizer(i18n.NewLocalizer(bundle, "en-US"))
+	t.Cleanup(func() { locale.SwapBotLocalizer(orig) })
 }
 
 // Regression test: a start-after-first-use client is stored as a negative duration,

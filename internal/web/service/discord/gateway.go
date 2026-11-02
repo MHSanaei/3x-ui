@@ -610,8 +610,8 @@ func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
 				}
 
 				embed := Embed{
-					Title:       tr("discord.commands.usageTitle", "Email=="+client.Email),
-					Description: tr("discord.commands.usageDescription", "Remark=="+in.Remark, "Port=="+strconv.Itoa(in.Port)),
+					Title:       tr("discord.commands.usageTitle", "Email=="+escapeMarkdown(client.Email)),
+					Description: tr("discord.commands.usageDescription", "Remark=="+escapeMarkdown(in.Remark), "Port=="+strconv.Itoa(in.Port)),
 					Color:       color,
 					Timestamp:   time.Now().UTC().Format(time.RFC3339),
 					Fields: []EmbedField{
@@ -659,15 +659,17 @@ func (g *GatewayClient) sendInbounds(ctx context.Context) {
 		if !in.Enable {
 			state = tr("disabled")
 		}
+		// The template puts the protocol in a code span, where a backslash escapes
+		// nothing and only a backtick gets out.
 		val := tr("discord.values.inbound",
-			"Protocol=="+string(in.Protocol),
+			"Protocol=="+strings.ReplaceAll(string(in.Protocol), "`", "'"),
 			"Port=="+strconv.Itoa(in.Port),
 			"Clients=="+strconv.Itoa(len(in.ClientStats)),
 			"Up=="+common.FormatTraffic(in.Up),
 			"Down=="+common.FormatTraffic(in.Down),
 			"State=="+state,
 		)
-		fields = append(fields, cleanField(fmt.Sprintf("📍 %s", in.Remark), val, false))
+		fields = append(fields, markupField(fmt.Sprintf("📍 %s", escapeMarkdown(in.Remark)), val, false))
 	}
 
 	title := tr("discord.commands.inboundsTitle")
