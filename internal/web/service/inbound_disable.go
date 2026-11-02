@@ -35,6 +35,30 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *traf
 	return false, count, err
 }
 
+// quotaDisabledInboundCond matches local inbounds their own cap switched off (args: enable, nowMs);
+// expired or hand-disabled ones never match, so a reset cannot bring them back.
+const quotaDisabledInboundCond = `enable = ? AND node_id IS NULL AND total > 0 AND up + down >= total AND (expiry_time <= 0 OR expiry_time > ?)`
+
+// quotaDisabledInboundIDs lists the inbounds a traffic cap switched off.
+func quotaDisabledInboundIDs(db *gorm.DB, nowMs int64) ([]int, error) {
+	var ids []int
+	err := db.Model(model.Inbound{}).
+		Where("user_id > ?", 0).
+		Where(quotaDisabledInboundCond, false, nowMs).
+		Pluck("id", &ids).Error
+	return ids, err
+}
+
+// quotaDisabledInbound reports whether a traffic cap switched this inbound off.
+func quotaDisabledInbound(db *gorm.DB, id int, nowMs int64) (bool, error) {
+	var count int64
+	err := db.Model(model.Inbound{}).
+		Where("id = ?", id).
+		Where(quotaDisabledInboundCond, false, nowMs).
+		Count(&count).Error
+	return count > 0, err
+}
+
 const globalTrafficFreshWindow = 24 * time.Hour
 
 func globalTrafficFreshSince(now time.Time) int64 {
