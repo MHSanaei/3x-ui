@@ -3,9 +3,11 @@
 package amneziawgnet
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net/netip"
 	"os"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -48,6 +50,8 @@ type stackTun struct {
 	closeMu        sync.Mutex
 	closed         bool
 	mtu            int
+	echoHandler    func([]byte)
+	localAddrs     []netip.Addr
 }
 
 // createNetTUNWithStack builds a gVisor-backed tun.Device for localAddresses
@@ -67,6 +71,7 @@ func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device,
 		incomingPacket: make(chan *buffer.View, tunQueueDepth),
 		done:           make(chan struct{}),
 		mtu:            mtu,
+		localAddrs:     slices.Clone(localAddresses),
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true)
 	if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt); err != nil {
@@ -164,6 +169,12 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 		if len(packet) == 0 {
 			continue
 		}
+		if t.echoHandler != nil && t.interceptEcho(packet) {
+			if len(packet) <= t.mtu {
+				t.echoHandler(packet)
+			}
+			continue
+		}
 		pkb := stack.NewPacketBuffer(stack.PacketBufferOptions{Payload: buffer.MakeWithData(packet)})
 		switch packet[0] >> 4 {
 		case 4:
@@ -177,6 +188,23 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 		pkb.DecRef()
 	}
 	return len(buf), nil
+}
+
+// Preserve tunnel-local health replies and ICMP errors; only remote Echo uses the grant.
+// Fragmented remote ICMP stays out of gVisor so reassembly cannot fabricate an Echo reply.
+func (t *stackTun) interceptEcho(packet []byte) bool {
+	if len(packet) < 20 || packet[0]>>4 != 4 || packet[9] != 1 {
+		return false
+	}
+	dst := netip.AddrFrom4([4]byte(packet[16:20]))
+	if slices.Contains(t.localAddrs, dst) {
+		return false
+	}
+	if binary.BigEndian.Uint16(packet[6:8])&0x3fff != 0 {
+		return true
+	}
+	headerLen := int(packet[0]&15) * 4
+	return headerLen < 20 || len(packet) <= headerLen || packet[headerLen] == 8
 }
 
 // WriteNotify runs on gVisor dispatch while Close tears the endpoint down,

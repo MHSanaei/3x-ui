@@ -57,6 +57,8 @@ import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2
 import ClientRenewalFields from './ClientRenewalFields';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
 import './ClientFormModal.css';
+import { AWGPingListInputSchema } from '@/schemas/primitives/awg-ping';
+import { useAmneziawgPingReadiness } from '@/api/queries/useAmneziawgPingReadiness';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
 const VMESS_SECURITY_OPTIONS = ['auto', 'aes-128-gcm', 'chacha20-poly1305'] as const;
@@ -144,6 +146,9 @@ type Values = ClientFormValues & {
   wgAllowedIPs: string;
   awgAllowedIPs: string;
   awgForwardedPorts: string;
+  awgPingEnabled: boolean;
+  awgPingAllow: string;
+  awgPingDeny: string;
   wgKeepAlive: number | string | undefined;
   secret: string;
   adTag: string;
@@ -183,6 +188,9 @@ const EMPTY: Values = {
   wgAllowedIPs: '',
   awgAllowedIPs: '',
   awgForwardedPorts: '',
+  awgPingEnabled: false,
+  awgPingAllow: '',
+  awgPingDeny: '',
   wgKeepAlive: 25,
   secret: '',
   adTag: '',
@@ -402,6 +410,9 @@ export default function ClientFormModal({
         wgAllowedIPs: wgTunnelIPs ?? client.allowedIPs ?? '',
         awgAllowedIPs: awgTunnelIPs ?? client.allowedIPs ?? '',
         awgForwardedPorts: client.forwardedPorts || '',
+        awgPingEnabled: client.awgPing?.enabled ?? false,
+        awgPingAllow: (client.awgPing?.allow ?? []).join('\n'),
+        awgPingDeny: (client.awgPing?.deny ?? []).join('\n'),
         wgKeepAlive: client.keepAlive,
         secret: client.secret || '',
         adTag: client.adTag || '',
@@ -517,6 +528,8 @@ export default function ClientFormModal({
     () => (inboundIds || []).some((id) => amneziawgIds.has(id)),
     [inboundIds, amneziawgIds],
   );
+
+  const pingReadiness = useAmneziawgPingReadiness(open && showAmneziawg);
 
   const showMtproto = useMemo(
     () => (inboundIds || []).some((id) => mtprotoIds.has(id)),
@@ -840,6 +853,17 @@ export default function ClientFormModal({
       // has no host-level iptables layer to hang per-client DNAT off of.
       if (showAmneziawg) {
         clientPayload.forwardedPorts = values.awgForwardedPorts.trim();
+        const allow = AWGPingListInputSchema.safeParse(values.awgPingAllow);
+        const deny = AWGPingListInputSchema.safeParse(values.awgPingDeny);
+        if (!allow.success || !deny.success) {
+          messageApi.error(t('pages.clients.awgPingInvalid'));
+          return;
+        }
+        clientPayload.awgPing = {
+          enabled: values.awgPingEnabled,
+          allow: allow.data,
+          deny: deny.data,
+        };
       }
     }
 
@@ -1493,6 +1517,57 @@ export default function ClientFormModal({
                               <InputNumber min={0} max={65535} style={{ width: '100%' }} />
                             )}
                           </FormField>
+                          {showAmneziawg && (
+                            <>
+                              <Typography.Title level={5}>
+                                {t('pages.clients.awgPingTitle')}
+                              </Typography.Title>
+                              <Typography.Paragraph type="secondary">
+                                {t('pages.clients.awgPingHint')}
+                              </Typography.Paragraph>
+                              <Typography.Paragraph type="secondary">
+                                {t('pages.clients.awgPingLocalStatus')}:{' '}
+                                {pingReadiness.data
+                                  ? t(
+                                      pingReadiness.data.available
+                                        ? 'pages.clients.awgPingAvailable'
+                                        : 'pages.clients.awgPingUnavailable',
+                                    )
+                                  : t('pages.clients.awgPingUnknown')}
+                              </Typography.Paragraph>
+                              <FormField
+                                name="awgPingEnabled"
+                                label={t('pages.clients.awgPingEnable')}
+                                valueProp="checked"
+                              >
+                                <Switch />
+                              </FormField>
+                              <FormField
+                                name="awgPingAllow"
+                                label={t('pages.clients.awgPingAllow')}
+                                rules={{
+                                  validate: () =>
+                                    AWGPingListInputSchema.safeParse(
+                                      methods.getValues('awgPingAllow'),
+                                    ).success || t('pages.clients.awgPingInvalid'),
+                                }}
+                              >
+                                <Input.TextArea rows={3} placeholder="192.0.2.0/24" />
+                              </FormField>
+                              <FormField
+                                name="awgPingDeny"
+                                label={t('pages.clients.awgPingDeny')}
+                                rules={{
+                                  validate: () =>
+                                    AWGPingListInputSchema.safeParse(
+                                      methods.getValues('awgPingDeny'),
+                                    ).success || t('pages.clients.awgPingInvalid'),
+                                }}
+                              >
+                                <Input.TextArea rows={2} />
+                              </FormField>
+                            </>
+                          )}
                           {showAmneziawg && (
                             <FormField
                               name="awgForwardedPorts"

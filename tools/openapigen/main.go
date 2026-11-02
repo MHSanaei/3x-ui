@@ -34,6 +34,7 @@ func run(root, outDir string) error {
 				"Setting",
 				"Node",
 				"ClientReverse",
+				"AWGPingPolicy",
 				"Client",
 				"ClientRecord",
 				"ClientInbound",
