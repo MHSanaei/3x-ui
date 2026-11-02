@@ -242,6 +242,7 @@ export default function SettingsPage() {
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
             <Spin
+              aria-live="off"
               spinning={spinning || !fetched}
               delay={200}
               description={t('loading')}

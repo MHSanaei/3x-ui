@@ -103,7 +103,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   return (
     <Modal open={open} title={t('pages.index.xrayUpdates')} footer={null} onCancel={onClose}>
       {modalContextHolder}
-      <Spin spinning={loading}>
+      <Spin aria-live="off" spinning={loading}>
         <Collapse
           accordion
           activeKey={activeKey}

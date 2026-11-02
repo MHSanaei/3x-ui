@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -62,21 +63,36 @@ func (b *trafficMutationBatch) markNodesTx(tx *gorm.DB) error {
 // applyTrafficRemotePlans is bounded like every per-client node push: the nodes are
 // already dirty, so an offline or slow one defers to the reconcile.
 func (s *InboundService) applyTrafficRemotePlans(plans []trafficInboundUpdatePlan) bool {
-	ids := make([]int, len(plans))
+	byNode := make(map[int][]int)
+	var nodeIDs []int
 	for i := range plans {
-		ids[i] = plans[i].newInbound.Id
+		nodeID := 0
+		if plans[i].newInbound.NodeID != nil {
+			nodeID = *plans[i].newInbound.NodeID
+		}
+		if _, seen := byNode[nodeID]; !seen {
+			nodeIDs = append(nodeIDs, nodeID)
+		}
+		byNode[nodeID] = append(byNode[nodeID], i)
 	}
-	failed, panics := fanoutInboundResults(ids, inboundFanoutConcurrency, func(i int) bool {
-		rt, push, _, err := s.nodePushPlan(&plans[i].newInbound)
-		if err == nil && push {
-			ctx, cancel := nodePushContext()
-			err = rt.UpdateInbound(ctx, &plans[i].oldInbound, &plans[i].newInbound)
-			cancel()
-		}
-		if err != nil {
-			logger.Debug("traffic post-commit remote apply failed:", err)
-		}
-		return err != nil
+	failed, panics := fanoutInboundResults(nodeIDs, nodeFanoutConcurrency, func(n int) bool {
+		// One budget per node, not per inbound: a node choosing how many inbounds it reports
+		// must not choose how long the sync job waits on it before serving other nodes.
+		ctx, cancel := nodePushContext()
+		defer cancel()
+		indexes := byNode[nodeIDs[n]]
+		nodeFailed, nodePanics := fanoutInboundResults(indexes, inboundFanoutConcurrency, func(k int) bool {
+			plan := &plans[indexes[k]]
+			rt, push, _, err := s.nodePushPlan(&plan.newInbound)
+			if err == nil && push {
+				err = rt.UpdateInbound(ctx, &plan.oldInbound, &plan.newInbound)
+			}
+			if err != nil {
+				logger.Debug("traffic post-commit remote apply failed:", err)
+			}
+			return err != nil
+		})
+		return slices.Contains(nodeFailed, true) || slices.ContainsFunc(nodePanics, func(p error) bool { return p != nil })
 	})
 	needRestart := false
 	for i := range failed {

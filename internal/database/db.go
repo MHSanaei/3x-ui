@@ -405,7 +405,10 @@ func migrateSyncOrphanColumns() error {
 	if !db.Migrator().HasColumn(&model.ClientRecord{}, "sync_orphaned_at") {
 		return nil
 	}
-	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
+	if err := db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error; err != nil {
+		return err
+	}
+	return db.Exec("UPDATE clients SET sync_orphaned_by = 0 WHERE sync_orphaned_by IS NULL").Error
 }
 
 // The client identity checks match emails case-insensitively; without an
@@ -1527,7 +1530,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "SessionSecretRotation", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "NodeDownNotified", "ResetIpLimitNoFail2ban", "ClientGroupNameTrim", "OwnerlessClientHwidPurge", "ClientForwardedPortsBackfill"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1638,6 +1641,12 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
+	if !slices.Contains(seedersHistory, "SessionSecretRotation") {
+		if err := dropPreUpgradeSessionSecret(); err != nil {
+			return err
+		}
+	}
+
 	if !slices.Contains(seedersHistory, "OutboundRemovedKeysFix") {
 		if err := migrateOutboundRemovedKeys(); err != nil {
 			return err
@@ -1700,6 +1709,24 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "NodeDownNotified") {
 		if err := seedNodeDownNotified(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "ClientGroupNameTrim") {
+		if err := trimClientGroupNames(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "OwnerlessClientHwidPurge") {
+		if err := purgeOwnerlessClientHwids(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "ClientForwardedPortsBackfill") {
+		if err := backfillClientForwardedPorts(); err != nil {
 			return err
 		}
 	}
@@ -1896,6 +1923,83 @@ func clearLegacyProxySettings() error {
 			return err
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
+	})
+}
+
+// The client editor fills forwardedPorts from the record, which kept the value it was created
+// with; an emptied field now withdraws the forwards, so the record must hold the live spec.
+func backfillClientForwardedPorts() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Select("id", "settings").Where("protocol = ?", model.AmneziaWG).Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, ib := range inbounds {
+			var parsed struct {
+				Clients []struct {
+					Email          string `json:"email"`
+					ForwardedPorts string `json:"forwardedPorts"`
+				} `json:"clients"`
+			}
+			if json.Unmarshal([]byte(ib.Settings), &parsed) != nil {
+				continue
+			}
+			for _, c := range parsed.Clients {
+				spec := strings.TrimSpace(c.ForwardedPorts)
+				if c.Email == "" || spec == "" {
+					continue
+				}
+				if err := tx.Model(&model.ClientRecord{}).
+					Where("email = ? AND (wg_forwarded_ports IS NULL OR wg_forwarded_ports = '')", c.Email).
+					UpdateColumn("wg_forwarded_ports", spec).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ClientForwardedPortsBackfill"}).Error
+	})
+}
+
+// The HWID gate stored a row for any subId a request named, owned or not; those rows
+// belong to no subscription and only grow the database.
+func purgeOwnerlessClientHwids() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("sub_id NOT IN (SELECT sub_id FROM clients WHERE sub_id IS NOT NULL)").
+			Delete(&model.ClientHwid{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "OwnerlessClientHwidPurge"}).Error
+	})
+}
+
+// The groups page addresses a group by its trimmed name, so a padded stored name listed as
+// its own group while every action on it hit the trimmed one.
+func trimClientGroupNames() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var names []string
+		if err := tx.Model(&model.ClientRecord{}).Distinct().Pluck("group_name", &names).Error; err != nil {
+			return err
+		}
+		for _, name := range names {
+			if trimmed := strings.TrimSpace(name); trimmed != name {
+				if err := tx.Model(&model.ClientRecord{}).Where("group_name = ?", name).
+					UpdateColumn("group_name", trimmed).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "ClientGroupNameTrim"}).Error
+	})
+}
+
+// Secrets stored before v2.8.3 came from math/rand (a 31-bit clock seed up to v2.1.3);
+// GetSecret draws a crypto/rand one on the next start.
+func dropPreUpgradeSessionSecret() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("key = ?", "secret").Delete(&model.Setting{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "SessionSecretRotation"}).Error
 	})
 }
 
@@ -3133,6 +3237,11 @@ func seedClientsFromInboundJSON() error {
 					continue
 				}
 				model.NormalizeLegacyClientFields(obj)
+				// Releases before 3.1.0 served a client whose JSON carries no
+				// switch; only an explicit false means disabled.
+				if obj["enable"] == nil {
+					obj["enable"] = true
+				}
 				blob, err := json.Marshal(obj)
 				if err != nil {
 					continue
@@ -3153,6 +3262,14 @@ func seedClientsFromInboundJSON() error {
 				if !dup {
 					if err := tx.Create(incoming).Error; err != nil {
 						return err
+					}
+					// gorm default:true drops enable=false on Create — restate (#6478).
+					if !c.Enable {
+						if err := tx.Model(&model.ClientRecord{}).Where("id = ?", incoming.Id).
+							UpdateColumn("enable", false).Error; err != nil {
+							return err
+						}
+						incoming.Enable = false
 					}
 					byEmail[email] = incoming
 					row = incoming
