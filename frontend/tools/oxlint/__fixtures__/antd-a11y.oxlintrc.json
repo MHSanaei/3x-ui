@@ -1,0 +1,9 @@
+{
+  "plugins": [],
+  "categories": {},
+  "jsPlugins": ["../antd-a11y-guard.mjs"],
+  "rules": {
+    "antd-a11y/spin-content-not-live": "error",
+    "antd-a11y/select-tag-remove": "error"
+  }
+}

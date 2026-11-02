@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -529,6 +530,8 @@ func TestGregorianToJalali(t *testing.T) {
 		{2024, 1, 1, 1402, 10, 11},
 		{2000, 3, 20, 1379, 1, 1},
 		{1979, 2, 11, 1357, 11, 22},
+		// 2124-01-01 lies three 33-year blocks and a year past the reference.
+		{2124, 1, 1, 1502, 10, 11},
 	}
 	for _, c := range cases {
 		jy, jm, jd := gregorianToJalali(c.gy, c.gm, c.gd)
@@ -536,6 +539,19 @@ func TestGregorianToJalali(t *testing.T) {
 			t.Errorf("gregorianToJalali(%d,%d,%d) = (%d,%d,%d), want (%d,%d,%d)",
 				c.gy, c.gm, c.gd, jy, jm, jd, c.jy, c.jm, c.jd)
 		}
+	}
+}
+
+// A node reports the expiry the remark renders, so a date hundreds of millions of years
+// out must not walk the calendar month by month on every subscription fetch.
+func TestGregorianToJalaliFarDatesTakeConstantTime(t *testing.T) {
+	start := time.Now()
+	if jy, _, _ := gregorianToJalali(292000000, 1, 1); jy < 290000000 {
+		t.Fatalf("year 292000000 converted to Jalali year %d", jy)
+	}
+	_, _, _ = gregorianToJalali(-292000000, 1, 1)
+	if took := time.Since(start); took > 100*time.Millisecond {
+		t.Fatalf("converting far dates took %v", took)
 	}
 }
 

@@ -381,7 +381,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
                     + {t('pages.settings.security.apiTokenNew') || 'New token'}
                   </Button>
                 </div>
-                <Spin spinning={apiTokensLoading}>
+                <Spin aria-live="off" spinning={apiTokensLoading}>
                   {!apiTokens.length && !apiTokensLoading && (
                     <Empty
                       description={t('pages.settings.security.apiTokenEmpty') || 'No tokens yet'}
