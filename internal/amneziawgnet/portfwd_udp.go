@@ -78,9 +78,14 @@ func (l *udpForwardListener) readLoop(gstack *stack.Stack, inboundID int, key po
 			if !ok {
 				continue
 			}
+			// Dropped silently: a flood of fresh sources is when a per-datagram log line hurts.
+			if !acquirePortForwardSlot(portForwardUDPSlots) {
+				continue
+			}
 			raddr := tunnelFullAddress(addr, key.port)
 			conn, err := gonet.DialUDP(gstack, nil, &raddr, tunnelNetwork(addr))
 			if err != nil {
+				<-portForwardUDPSlots
 				logger.Warningf("amneziawgnet: port-forward: inbound %d peer %q: dial tunnel %s:%d: %v", inboundID, key.email, addr, key.port, err)
 				continue
 			}
@@ -109,6 +114,7 @@ func (l *udpForwardListener) pump(src netip.AddrPort, sess *udpForwardSession) {
 		delete(l.sessions, src)
 		l.mu.Unlock()
 		sess.conn.Close()
+		<-portForwardUDPSlots
 	}()
 	buf := make([]byte, 65536)
 	for {

@@ -169,7 +169,7 @@ func (t *Tgbot) handleAdminWorkflowCallback(query *telego.CallbackQuery) bool {
 			return true
 		}
 		if parts[0] == "admin_plan_delete" {
-			t.renderScreen(actor.chatID, t.newScreen("client", t.I18nBot("tgbot.messages.deletePlanConfirm", "Name=="+html.EscapeString(plan.Name)),
+			t.renderScreen(actor.chatID, t.newScreen("client", t.I18nBot("tgbot.messages.deletePlanConfirm", "Name=="+plan.Name),
 				tu.InlineKeyboardRow(t.btn("tgbot.buttons.delete", t.encodeQuery("admin_plan_delete_yes "+plan.ID+" "+strconv.FormatInt(plan.Revision, 10)))), t.backRow()))
 		} else {
 			if len(parts) != 3 {
@@ -317,7 +317,7 @@ func (t *Tgbot) screenClientOperation(chatID int64, op *service.ClientAdminOpera
 		mode = t.I18nBot("tgbot.messages.quickCreate")
 	}
 	body := t.I18nBot("tgbot.messages.operationPreview",
-		"Email=="+html.EscapeString(op.Email), "Mode=="+mode, "OldQuota=="+t.quotaLabel(p.OldQuotaBytes), "Used=="+common.FormatTraffic(p.UsedBytes),
+		"Email=="+op.Email, "Mode=="+mode, "OldQuota=="+t.quotaLabel(p.OldQuotaBytes), "Used=="+common.FormatTraffic(p.UsedBytes),
 		"NewQuota=="+t.quotaLabel(p.NewQuotaBytes), "Reset=="+t.enabledLabel(p.ResetUsage), "OldExpiry=="+t.expiryLabel(p.OldExpiry), "NewExpiry=="+t.expiryLabel(p.NewExpiry),
 		"OldEnabled=="+t.enabledLabel(p.EnabledBefore), "NewEnabled=="+t.enabledLabel(p.EnabledAfter), "Inbounds=="+inboundIDLabels(p.InboundIDs), "LimitIP=="+strconv.Itoa(p.LimitIP))
 	rows := [][]telego.InlineKeyboardButton{tu.InlineKeyboardRow(t.btn("tgbot.buttons.confirm", "admin_confirm "+op.Token), t.btn("tgbot.buttons.cancel", "admin_cancel "+op.Token))}
@@ -374,7 +374,7 @@ func (t *Tgbot) screenClientPlans(chatID int64, email string, page int) {
 }
 
 func (t *Tgbot) planBody(plan service.ClientPlan) string {
-	return t.I18nBot("tgbot.messages.planDetails", "Name=="+html.EscapeString(plan.Name), "Quota=="+t.quotaLabel(plan.QuotaBytes), "Days=="+strconv.Itoa(plan.Days),
+	return t.I18nBot("tgbot.messages.planDetails", "Name=="+plan.Name, "Quota=="+t.quotaLabel(plan.QuotaBytes), "Days=="+strconv.Itoa(plan.Days),
 		"FirstUse=="+t.enabledLabel(plan.FirstUse), "Enabled=="+t.enabledLabel(plan.Enabled), "LimitIP=="+strconv.Itoa(plan.LimitIP), "Inbounds=="+inboundIDLabels(plan.InboundIDs), "Mode=="+t.renewalModeLabel(plan.RenewalMode))
 }
 

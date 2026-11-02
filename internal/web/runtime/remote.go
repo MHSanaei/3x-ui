@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
@@ -327,6 +328,7 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, fmt.Errorf("decode envelope: %w", err)
 	}
 	if !env.Success {
+		env.Msg = truncateNodeMessage(env.Msg)
 		return &env, &remoteAPIError{msg: env.Msg}
 	}
 	return &env, nil
@@ -422,8 +424,8 @@ func (r *Remote) ListInboundOptions(ctx context.Context) ([]RemoteInboundOption,
 	if err != nil {
 		return nil, err
 	}
-	var list []RemoteInboundOption
-	if err := json.Unmarshal(env.Obj, &list); err != nil {
+	list, err := json_util.DecodeCappedList[RemoteInboundOption](env.Obj, maxNodeInbounds)
+	if err != nil {
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 	return list, nil
@@ -434,11 +436,11 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	var list []struct {
+	list, err := json_util.DecodeCappedList[struct {
 		Id  int    `json:"id"`
 		Tag string `json:"tag"`
-	}
-	if err := json.Unmarshal(env.Obj, &list); err != nil {
+	}](env.Obj, maxNodeInbounds)
+	if err != nil {
 		return fmt.Errorf("decode inbound list: %w", err)
 	}
 	next := make(map[string]int, len(list))
@@ -497,7 +499,7 @@ func (r *Remote) DelInbound(ctx context.Context, ib *model.Inbound) error {
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/del/"+strconv.Itoa(id), nil); err != nil {
 		return err
 	}
-	r.cacheDel(ib.Tag)
+	r.ForgetInbound(ib.Tag)
 	return nil
 }
 
@@ -578,6 +580,23 @@ func (r *Remote) ForgetPushedInbound(tag string) {
 	delete(r.pushedFP, bare)
 	delete(r.pushedFP, prefix+bare)
 	r.mu.Unlock()
+}
+
+// ForgetInbound drops everything kept under an inbound the node no longer has, in either
+// tag form: a node rotating tags would otherwise grow these maps without bound.
+func (r *Remote) ForgetInbound(tag string) {
+	prefix := nodeInboundTagPrefix(r.node.Id)
+	bare := strings.TrimPrefix(tag, prefix)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range []string{bare, prefix + bare} {
+		if alias, ok := r.adoptedAliases[t]; ok {
+			delete(r.remoteIDByTag, alias)
+			delete(r.adoptedAliases, t)
+		}
+		delete(r.remoteIDByTag, t)
+		delete(r.pushedFP, t)
+	}
 }
 
 // AdoptInboundAlias records a deployed alias without mutating either panel.
@@ -750,11 +769,9 @@ func (r *Remote) GetDescendants(ctx context.Context) ([]model.NodeSummary, error
 	if err != nil {
 		return nil, err
 	}
-	var out []model.NodeSummary
-	if len(env.Obj) > 0 {
-		if err := json.Unmarshal(env.Obj, &out); err != nil {
-			return nil, fmt.Errorf("decode descendants: %w", err)
-		}
+	out, err := json_util.DecodeCappedList[model.NodeSummary](env.Obj, maxNodeDescendants)
+	if err != nil {
+		return nil, fmt.Errorf("decode descendants: %w", err)
 	}
 	return out, nil
 }
@@ -813,11 +830,9 @@ func (r *Remote) FetchHostGroups(ctx context.Context) ([]*entity.HostGroup, erro
 	if err != nil {
 		return nil, err
 	}
-	var groups []*entity.HostGroup
-	if len(env.Obj) > 0 {
-		if err := json.Unmarshal(env.Obj, &groups); err != nil {
-			return nil, fmt.Errorf("decode host groups: %w", err)
-		}
+	groups, err := json_util.DecodeCappedList[*entity.HostGroup](env.Obj, maxNodeHostGroups)
+	if err != nil {
+		return nil, fmt.Errorf("decode host groups: %w", err)
 	}
 	return groups, nil
 }
@@ -829,7 +844,7 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(envList.Obj, &snap.Inbounds); err != nil {
+	if snap.Inbounds, err = json_util.DecodeCappedList[*model.Inbound](envList.Obj, maxNodeInbounds); err != nil {
 		return nil, fmt.Errorf("decode inbound list: %w", err)
 	}
 
@@ -837,14 +852,14 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	// node is an old build without the per-GUID endpoint (#4983).
 	envTree, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlinesByGuid", nil)
 	if err == nil && len(envTree.Obj) > 0 {
-		_ = json.Unmarshal(envTree.Obj, &snap.OnlineTree)
+		_ = decodeCappedValues(envTree.Obj, &snap.OnlineTree, maxNodeMapValues)
 	}
 	if len(snap.OnlineTree) == 0 {
 		envOnlines, err := r.do(ctx, http.MethodPost, "panel/api/clients/onlines", nil)
 		if err != nil {
 			logger.Warning("remote", r.node.Name, "onlines fetch failed:", err)
 		} else if len(envOnlines.Obj) > 0 {
-			_ = json.Unmarshal(envOnlines.Obj, &snap.OnlineEmails)
+			_ = decodeCappedValues(envOnlines.Obj, &snap.OnlineEmails, maxNodeMapValues)
 		}
 	}
 
@@ -852,14 +867,14 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	if err != nil {
 		logger.Warning("remote", r.node.Name, "lastOnline fetch failed:", err)
 	} else if len(envLastOnline.Obj) > 0 {
-		_ = json.Unmarshal(envLastOnline.Obj, &snap.LastOnlineMap)
+		_ = decodeCappedValues(envLastOnline.Obj, &snap.LastOnlineMap, maxNodeMapValues)
 	}
 
 	envActiveInbounds, err := r.do(ctx, http.MethodPost, "panel/api/clients/activeInbounds", nil)
 	if err != nil {
 		logger.Debugf("remote %s active inbounds fetch failed: %v", r.node.Name, err)
 	} else if len(envActiveInbounds.Obj) > 0 {
-		_ = json.Unmarshal(envActiveInbounds.Obj, &snap.ActiveInboundTree)
+		_ = decodeCappedValues(envActiveInbounds.Obj, &snap.ActiveInboundTree, maxNodeMapValues)
 	}
 
 	return snap, nil
@@ -989,11 +1004,9 @@ func (r *Remote) FetchAllClientIps(ctx context.Context) ([]model.InboundClientIp
 	if err != nil {
 		return nil, err
 	}
-	var ips []model.InboundClientIps
-	if len(env.Obj) > 0 {
-		if err := json.Unmarshal(env.Obj, &ips); err != nil {
-			return nil, fmt.Errorf("decode client ips: %w", err)
-		}
+	ips, err := json_util.DecodeCappedList[model.InboundClientIps](env.Obj, maxNodeClientIPs)
+	if err != nil {
+		return nil, fmt.Errorf("decode client ips: %w", err)
 	}
 	return ips, nil
 }
@@ -1014,7 +1027,7 @@ func (r *Remote) FetchClientIpsByGuid(ctx context.Context) (map[string]map[strin
 	}
 	out := map[string]map[string][]model.ClientIpEntry{}
 	if len(env.Obj) > 0 {
-		if err := json.Unmarshal(env.Obj, &out); err != nil {
+		if err := decodeCappedValues(env.Obj, &out, maxNodeMapValues); err != nil {
 			return nil, fmt.Errorf("decode client ips by guid: %w", err)
 		}
 	}

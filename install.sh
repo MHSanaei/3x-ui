@@ -1078,9 +1078,23 @@ prompt_and_setup_ssl() {
 }
 
 config_after_install() {
-    local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
-    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
-    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local settings existing_webBasePath
+    if ! settings=$("${xui_folder}/x-ui" setting -show true) ||
+        ! existing_webBasePath=$(printf '%s\n' "$settings" | awk '
+            /^get .* failed, error info:/ { failed = 1 }
+            /^hasDefaultCredential: (true|false)$/ { credentials++ }
+            /^port: [0-9]+$/ { ports++ }
+            /^webBasePath:/ { paths++; sub(/^webBasePath: ?/, ""); path = $0 }
+            END {
+                if (failed || credentials != 1 || ports != 1 || paths != 1 || (path != "" && path !~ /^\//)) exit 1
+                print path
+            }'); then
+        echo -e "${red}Unable to read webBasePath; leaving existing settings unchanged.${plain}" >&2
+        return 1
+    fi
+    existing_webBasePath=${existing_webBasePath#/}
+    local existing_hasDefaultCredential=$(printf '%s\n' "$settings" | awk '/^hasDefaultCredential: / {print $2}')
+    local existing_port=$(printf '%s\n' "$settings" | awk '/^port: / {print $2}')
     # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     local URL_lists=(
@@ -1120,7 +1134,7 @@ config_after_install() {
         fi
     fi
 
-    if [[ ${#existing_webBasePath} -lt 4 ]]; then
+    if [[ -z "$existing_webBasePath" ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_webBasePath="${XUI_WEB_BASE_PATH:-$(gen_random_string 18)}"
             local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
@@ -1348,7 +1362,7 @@ EOF
                 "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}"
         else
             local config_webBasePath=$(gen_random_string 18)
-            echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
+            echo -e "${yellow}WebBasePath is missing or set to root. Generating a new one...${plain}"
             ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
             echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
 

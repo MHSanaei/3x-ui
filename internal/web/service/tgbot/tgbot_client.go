@@ -3,7 +3,6 @@ package tgbot
 import (
 	"errors"
 	"fmt"
-	"html"
 	"net/url"
 	"slices"
 	"strconv"
@@ -69,9 +68,9 @@ func (t *Tgbot) BuildClientDraftMessage(draft *clientDraft) string {
 	}
 
 	return t.I18nBot("tgbot.messages.clientDraftTitle") + t.I18nBot("tgbot.messages.clientDraftDetails",
-		"Email=="+html.EscapeString(draft.email), "Attached=="+html.EscapeString(attached),
+		"Email=="+draft.email, "Attached=="+attached,
 		"Traffic=="+traffic, "Expiry=="+expiry, "LimitIP=="+ipLimit,
-		"TgID=="+html.EscapeString(tgID), "Comment=="+html.EscapeString(comment))
+		"TgID=="+tgID, "Comment=="+comment)
 }
 
 // describeAttachedInbounds returns a short "remark1, remark2" list for the given
@@ -80,14 +79,10 @@ func (t *Tgbot) describeAttachedInbounds(ids []int) string {
 	if len(ids) == 0 {
 		return ""
 	}
+	remarks, _ := t.inboundService.GetInboundRemarks(ids)
 	parts := make([]string, 0, len(ids))
-	inbounds, _ := t.inboundService.GetInboundLabelsByIDs(ids)
-	byID := make(map[int]string, len(inbounds))
-	for _, inbound := range inbounds {
-		byID[inbound.Id] = inbound.Remark
-	}
 	for _, id := range ids {
-		label := byID[id]
+		label := remarks[id]
 		if label == "" {
 			label = fmt.Sprintf("#%d", id)
 		}
@@ -232,6 +227,11 @@ func (t *Tgbot) clientSubLinks(email, subURL string) ([]string, error) {
 	if err != nil || client == nil {
 		return nil, errors.New("client not found")
 	}
+	// A client stored without a subId has no subscription to look up; build
+	// its own links by email, as the panel's client page does.
+	if strings.TrimSpace(client.SubID) == "" {
+		return t.inboundService.GetAllClientLinks(u.Hostname(), email)
+	}
 	return t.inboundService.GetSubLinks(u.Hostname(), client.SubID)
 }
 
@@ -314,9 +314,9 @@ func (t *Tgbot) clientInfoMsg(
 	}
 
 	output := ""
-	output += t.I18nBot("tgbot.messages.email", "Email=="+html.EscapeString(traffic.Email))
+	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	if attachIds, err := t.clientService.GetInboundIdsForEmail(nil, traffic.Email); err == nil && len(attachIds) > 0 {
-		output += t.I18nBot("tgbot.messages.attachedInbounds", "Inbounds=="+html.EscapeString(t.describeAttachedInbounds(attachIds)))
+		output += t.I18nBot("tgbot.messages.attachedInbounds", "Inbounds=="+t.describeAttachedInbounds(attachIds))
 	}
 	if printEnabled {
 		output += t.I18nBot("tgbot.messages.enabled", "Enable=="+enabled)

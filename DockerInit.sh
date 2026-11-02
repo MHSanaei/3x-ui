@@ -52,7 +52,7 @@ if [ -z "$MTG_MULTI_VER" ]; then
 fi
 mkdir -p build/bin
 cd build/bin
-curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.10.21/Xray-linux-${XRAY_ZIP}.zip"
+curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.10.31/Xray-linux-${XRAY_ZIP}.zip"
 unzip "Xray-linux-${XRAY_ZIP}.zip"
 rm -f "Xray-linux-${XRAY_ZIP}.zip" geoip.dat geosite.dat
 mv xray "${XRAY_BIN}"

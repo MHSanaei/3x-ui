@@ -19,7 +19,7 @@ const globalTrafficHeartbeatInterval = time.Hour
 // Identical usage refreshes hourly; client_traffics remains local-only for delta accounting.
 func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray.ClientTraffic) error {
 	masterGuid = strings.TrimSpace(masterGuid)
-	if masterGuid == "" {
+	if masterGuid == "" || len(masterGuid) > maxPanelGuidLen {
 		return nil
 	}
 	emails := make([]string, 0, len(traffics))

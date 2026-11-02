@@ -4,8 +4,11 @@ import (
 	"strings"
 	"testing"
 
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -242,4 +245,156 @@ func settingsSubID(t *testing.T, inboundId int, email string) string {
 	}
 	t.Fatalf("%q not found in settings", email)
 	return ""
+}
+
+func attachEmailToInbound(t *testing.T, db *gorm.DB, tag, email string) {
+	t.Helper()
+	id := nodeInboundID(t, db, tag)
+	clients, err := (&ClientService{}).ListForInbound(db, id)
+	if err != nil {
+		t.Fatalf("list clients of %q: %v", tag, err)
+	}
+	clients = append(clients, model.Client{Email: email, Enable: true})
+	if err := (&ClientService{}).SyncInbound(db, id, clients); err != nil {
+		t.Fatalf("attach %q to %q: %v", email, tag, err)
+	}
+}
+
+func countTrafficRows(t *testing.T, db *gorm.DB, email string) int64 {
+	t.Helper()
+	var rows int64
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Count(&rows).Error; err != nil {
+		t.Fatalf("count rows of %q: %v", email, err)
+	}
+	return rows
+}
+
+// SQLite's LOWER() folds ASCII only, so an email with a non-ASCII capital must
+// still be recognised as attached to a sibling inbound.
+func TestEmailUsedByOtherInbounds_NonASCIICapital(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-a", 41001)
+	createNodeInbound(t, db, 1, "n1-b", 41002)
+	svc := &InboundService{}
+
+	emails := []string{"Ivan", "Иван", "Ömer", "ÉMILE"}
+	for _, email := range emails {
+		attachEmailToInbound(t, db, "n1-a", email)
+		attachEmailToInbound(t, db, "n1-b", email)
+	}
+	except := nodeInboundID(t, db, "n1-a")
+
+	shared, err := svc.emailsUsedByOtherInbounds(db, emails, except)
+	if err != nil {
+		t.Fatalf("emailsUsedByOtherInbounds: %v", err)
+	}
+	for _, email := range emails {
+		used, err := svc.emailUsedByOtherInbounds(db, email, except)
+		if err != nil {
+			t.Fatalf("emailUsedByOtherInbounds(%q): %v", email, err)
+		}
+		if !used {
+			t.Errorf("emailUsedByOtherInbounds(%q) = false, the client is attached to n1-b", email)
+		}
+		if !shared[strings.ToLower(email)] {
+			t.Errorf("emailsUsedByOtherInbounds misses %q, the client is attached to n1-b", email)
+		}
+	}
+}
+
+// The traffic row holds usage, quota and expiry for every inbound of the client:
+// a node dropping its inbound must not take it from the panel's own inbound.
+func TestNodeInboundSweep_KeepsSharedRowOfNonASCIICapitalEmail(t *testing.T) {
+	db := initTrafficTestDB(t)
+	own := &model.Inbound{UserId: 1, Tag: "own-in", Enable: true, Port: 41000, Protocol: model.VLESS}
+	if err := db.Create(own).Error; err != nil {
+		t.Fatalf("create own inbound: %v", err)
+	}
+	createNodeInbound(t, db, 1, "n1-a", 41001)
+	createNodeInbound(t, db, 1, "n1-b", 41002)
+	svc := &InboundService{}
+
+	for _, email := range []string{"Ivan", "Иван"} {
+		client := model.Client{Email: email, Enable: true, TotalGB: 1 << 30}
+		attachEmailToInbound(t, db, "own-in", email)
+		attachEmailToInbound(t, db, "n1-a", email)
+		if err := svc.AddClientStat(db, nodeInboundID(t, db, "n1-a"), &client); err != nil {
+			t.Fatalf("AddClientStat(%q): %v", email, err)
+		}
+	}
+
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{{Tag: "n1-b"}}}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	for _, email := range []string{"Ivan", "Иван"} {
+		if rows := countTrafficRows(t, db, email); rows != 1 {
+			t.Errorf("%q is still attached to own-in but has %d client_traffics rows, want 1", email, rows)
+		}
+	}
+}
+
+// The duplicate-email check folds in Go as well: neither the stored spelling nor
+// a case variant of it may be claimed under another subId.
+func TestAddInboundClientRejectsTakenNonASCIICapitalEmail(t *testing.T) {
+	for _, email := range []string{"Иван", "иван", "ИВАН"} {
+		t.Run(email, func(t *testing.T) {
+			setupBulkDB(t)
+			cs := &ClientService{}
+			is := &InboundService{}
+
+			seed := []model.Client{{ID: "id-ivan", Email: "Иван", Enable: true, SubID: "s-ivan"}}
+			owner := mkInbound(t, 21161, model.VLESS, clientsSettings(t, seed))
+			if err := cs.SyncInbound(nil, owner.Id, seed); err != nil {
+				t.Fatalf("seed SyncInbound: %v", err)
+			}
+			target := mkInbound(t, 21162, model.VLESS, `{"clients": []}`)
+
+			add := []model.Client{{ID: "id-other", Email: email, Enable: true, SubID: "s-other"}}
+			_, err := cs.AddInboundClient(is, &model.Inbound{Id: target.Id, Settings: clientsSettings(t, add)})
+			if err == nil {
+				t.Fatalf("%q was accepted although Иван is taken", email)
+			}
+			if !strings.Contains(err.Error(), "Duplicate email") {
+				t.Errorf("error = %q, want it to mention Duplicate email", err)
+			}
+		})
+	}
+}
+
+// Scoped to one inbound, a depleted row goes only with the email's last inbound;
+// a row that is not shared goes even when LOWER() cannot fold its email.
+func TestDelDepletedClients_NonASCIICapitalEmail(t *testing.T) {
+	setupBulkDB(t)
+	cs := &ClientService{}
+	is := &InboundService{}
+	db := database.GetDB()
+
+	shared := model.Client{ID: "id-ivan", Email: "Иван", Enable: true, SubID: "s-ivan"}
+	single := model.Client{ID: "id-omer", Email: "Ömer", Enable: true, SubID: "s-omer"}
+	keep := model.Client{ID: "id-keep", Email: "keep@x", Enable: true, SubID: "s-keep"}
+	ibA := mkInbound(t, 21171, model.VLESS, clientsSettings(t, []model.Client{shared, single, keep}))
+	ibB := mkInbound(t, 21172, model.VLESS, clientsSettings(t, []model.Client{shared}))
+	if err := cs.SyncInbound(nil, ibA.Id, []model.Client{shared, single, keep}); err != nil {
+		t.Fatalf("seed A: %v", err)
+	}
+	if err := cs.SyncInbound(nil, ibB.Id, []model.Client{shared}); err != nil {
+		t.Fatalf("seed B: %v", err)
+	}
+	for _, email := range []string{"Иван", "Ömer"} {
+		if err := db.Create(&xray.ClientTraffic{InboundId: ibA.Id, Email: email, Enable: true, Up: 100, Total: 100}).Error; err != nil {
+			t.Fatalf("seed traffic of %q: %v", email, err)
+		}
+	}
+
+	if err := is.DelDepletedClients(ibA.Id); err != nil {
+		t.Fatalf("DelDepletedClients: %v", err)
+	}
+
+	for email, want := range map[string]int64{"Иван": 1, "Ömer": 0} {
+		if rows := countTrafficRows(t, db, email); rows != want {
+			t.Errorf("%q has %d client_traffics rows, want %d", email, rows, want)
+		}
+	}
 }

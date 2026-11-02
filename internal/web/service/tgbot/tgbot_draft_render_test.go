@@ -63,9 +63,8 @@ func draftLocalizer(t *testing.T, msgs ...*i18n.Message) {
 		t.Fatal(err)
 	}
 	_ = bundle.AddMessages(language.MustParse("en-US"), msgs...)
-	orig := locale.LocalizerBot
-	t.Cleanup(func() { locale.LocalizerBot = orig })
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
+	orig := locale.SwapBotLocalizer(i18n.NewLocalizer(bundle, "en-US"))
+	t.Cleanup(func() { locale.SwapBotLocalizer(orig) })
 }
 
 // Regression test: the wizard's own prompts are HTML-parsed as well, so the

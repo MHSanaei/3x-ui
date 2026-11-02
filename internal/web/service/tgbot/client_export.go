@@ -230,7 +230,7 @@ func (t *Tgbot) clientExportSummary(email string) (string, error) {
 		remaining = common.FormatTraffic(left)
 	}
 	return t.I18nBot("tgbot.messages.exportSummary",
-		"Email=="+html.EscapeString(email), "Enabled=="+enabled, "Quota=="+quota,
+		"Email=="+email, "Enabled=="+enabled, "Quota=="+quota,
 		"Used=="+common.FormatTraffic(traffic.Up+traffic.Down), "Remaining=="+remaining,
-		"Expiry=="+html.EscapeString(t.expiryLabel(traffic.ExpiryTime)), "Inbounds=="+html.EscapeString(strings.Join(labels, ", "))), nil
+		"Expiry=="+t.expiryLabel(traffic.ExpiryTime), "Inbounds=="+strings.Join(labels, ", ")), nil
 }

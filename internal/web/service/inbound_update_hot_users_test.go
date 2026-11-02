@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // inboundOpsProbe records every handler and user operation the panel sends the
@@ -133,6 +134,10 @@ func TestNodeInboundPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
 			if err := (&ClientService{}).SyncInbound(nil, stored.Id, tc.stored); err != nil {
 				t.Fatalf("SyncInbound: %v", err)
 			}
+			// Every client the API creates has a stats row, and the push rewrites its flag.
+			for _, c := range tc.stored {
+				mkTraffic(t, stored.Id, c.Email, 0, 0, 0, 0, c.Enable)
+			}
 			if tc.enabling {
 				if err := database.GetDB().Model(stored).Update("enable", false).Error; err != nil {
 					t.Fatalf("disable stored inbound: %v", err)
@@ -154,6 +159,43 @@ func TestNodeInboundPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
 				t.Fatal("needRestart = true, want the push applied without restarting the core")
 			}
 		})
+	}
+}
+
+// A client's stats row is shared by all its inbounds, so the push for the first one
+// has switched it off by the time the second arrives: that handler holds the user still.
+func TestNodeInboundPushDisablingASharedClientRemovesItFromEveryHandler(t *testing.T) {
+	const (
+		idA = "5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a301"
+		idB = "5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a302"
+	)
+	active := []model.Client{hotUsersClient("a", idA, true), hotUsersClient("b", idB, true)}
+	bDisabled := []model.Client{hotUsersClient("a", idA, true), hotUsersClient("b", idB, false)}
+
+	setupConflictDB(t)
+	probe := &inboundOpsProbe{}
+	useTestRuntimeManager(t).SetLocalRuntimeOverride(probe)
+
+	tags := []string{"hot-users-1", "hot-users-2"}
+	for i, tag := range tags {
+		seedInboundConflict(t, tag, "0.0.0.0", 50081+i, model.VLESS, `{"network":"tcp"}`, clientsSettings(t, active))
+		if err := (&ClientService{}).SyncInbound(nil, loadInboundByTag(t, tag).Id, active); err != nil {
+			t.Fatalf("SyncInbound %s: %v", tag, err)
+		}
+	}
+	for _, c := range active {
+		mkTraffic(t, loadInboundByTag(t, tags[0]).Id, c.Email, 0, 0, 0, 0, true)
+	}
+
+	for _, tag := range tags {
+		pushed := *loadInboundByTag(t, tag)
+		pushed.Settings = clientsSettings(t, bDisabled)
+		if _, _, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&pushed); err != nil {
+			t.Fatalf("UpdateInbound %s: %v", tag, err)
+		}
+	}
+	if got, want := probe.recorded(), []string{"remove-user b", "remove-user b"}; !slices.Equal(got, want) {
+		t.Fatalf("core operations = %q, want %q", got, want)
 	}
 }
 
@@ -279,5 +321,57 @@ func TestNodeShadowsocksPushChangingOnlyClientsKeepsTheHandler(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// addInboundRecorder keeps the payload handed to the local runtime, so a test can
+// check what the running core would register rather than what the DB stores.
+type addInboundRecorder struct {
+	fakeNodeRuntime
+	added *model.Inbound
+}
+
+func (r *addInboundRecorder) AddInbound(_ context.Context, ib *model.Inbound) error {
+	r.added = ib
+	return nil
+}
+
+// An imported or master-pushed inbound arrives with its clients, switched-off
+// ones included; only UpdateInbound/SetInboundEnable used to strip them.
+func TestAddInboundKeepsDisabledClientsOutOfTheCore(t *testing.T) {
+	setupConflictDB(t)
+	mgr := useTestRuntimeManager(t)
+	local := &addInboundRecorder{}
+	mgr.SetLocalRuntimeOverride(local)
+
+	svc := &InboundService{}
+	saved, needRestart, err := svc.AddInbound(&model.Inbound{
+		UserId: 1, Enable: true, Port: 44490, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+		Settings: `{"decryption":"none","clients":[
+			{"email":"paying","id":"5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a001","enable":true},
+			{"email":"banned","id":"5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a002","enable":false},
+			{"email":"depleted","id":"5f2eb9d6-3a2f-4a55-9812-6ea1e2f7a003","enable":true}]}`,
+		ClientStats: []xray.ClientTraffic{{Email: "depleted", Enable: false, Up: 10, Total: 10}},
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	if needRestart || local.added == nil {
+		t.Fatalf("the inbound must be hot-added to the running core; needRestart=%v added=%v", needRestart, local.added)
+	}
+	served, err := svc.GetClients(local.added)
+	if err != nil {
+		t.Fatalf("GetClients(runtime payload): %v", err)
+	}
+	if len(served) != 1 || served[0].Email != "paying" {
+		t.Fatalf("the core must get only the enabled client, got %s", local.added.Settings)
+	}
+	stored, err := svc.GetClients(saved)
+	if err != nil {
+		t.Fatalf("GetClients(stored row): %v", err)
+	}
+	if len(stored) != 3 {
+		t.Fatalf("the stored row must keep every client, got %s", saved.Settings)
 	}
 }
