@@ -61,13 +61,14 @@ func TestRealityFinderScriptCarriesTheJob(t *testing.T) {
 			t.Errorf("command %q fetches the script with Python's default User-Agent", line)
 		}
 	}
-	script, err := (&RealityFinderService{}).Script(cmd.Token, "https://panel.example.com/r")
+	script, err := (&RealityFinderService{}).Script(cmd.Token)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
 		`SERVER = "203.0.113.10"`, `PORT = 8443`, `SCOPE = "prefix"`,
-		`KNOWN = "www.example.com"`, `REPORT = "https://panel.example.com/r"`,
+		`KNOWN = "www.example.com"`,
+		`REPORT = "https://panel.example.com:2053/secret/realityfinder/run/` + cmd.Token + `/report"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script lacks %q", want)
@@ -82,7 +83,7 @@ func TestRealityFinderCommandExpiresAfterADay(t *testing.T) {
 	clock := resetRealityFinder(t, time.Unix(1_800_000_000, 0))
 	cmd := newFinderCommand(t, RealityFinderCommandRequest{Server: "203.0.113.10", Port: 443})
 	*clock = clock.Add(realityFinderCommandTTL + time.Second)
-	if _, err := (&RealityFinderService{}).Script(cmd.Token, "x"); !errors.Is(err, errRealityFinderExpired) {
+	if _, err := (&RealityFinderService{}).Script(cmd.Token); !errors.Is(err, errRealityFinderExpired) {
 		t.Errorf("Script after a day = %v, want errRealityFinderExpired", err)
 	}
 	if _, err := (&RealityFinderService{}).AddReport(cmd.Token, []byte(`{}`), "5.120.1.2"); !errors.Is(err, errRealityFinderExpired) {

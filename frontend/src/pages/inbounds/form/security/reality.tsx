@@ -37,6 +37,7 @@ interface RealityFormProps {
   scanRealityTarget: (allowPrivate?: boolean) => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   applyRealityScanResult: (result: RealityScanResult, replaceServerNames?: boolean) => void;
+  pickRealityTarget: (target: string, serverNames: string[]) => void;
   randomizeShortIds: () => void;
   randomizeSpiderX: () => void;
   genRealityKeypair: () => void;
@@ -52,6 +53,7 @@ export default function RealityForm({
   scanRealityTarget,
   scanRealityCandidates,
   applyRealityScanResult,
+  pickRealityTarget,
   randomizeShortIds,
   randomizeSpiderX,
   genRealityKeypair,
@@ -61,9 +63,10 @@ export default function RealityForm({
 }: RealityFormProps) {
   const { t } = useTranslation();
   const uid = useId();
-  const { getFieldState, trigger, setValue } = useFormContext();
+  const { getFieldState, trigger } = useFormContext();
   const inboundPort = Number(useWatch({ name: 'port' })) || 0;
   const listen = (useWatch({ name: 'listen' }) as string | undefined) ?? '';
+  const nodeId = (useWatch({ name: 'nodeId' }) as number | null | undefined) ?? null;
   const currentTarget =
     (useWatch({ name: 'streamSettings.realitySettings.target' }) as string | undefined) ?? '';
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -400,16 +403,10 @@ export default function RealityForm({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => applyRealityScanResult(r, true)}
-        onPickTarget={(target, serverNames) => {
-          setValue('streamSettings.realitySettings.target', target, {
-            shouldDirty: true,
-          });
-          setValue('streamSettings.realitySettings.serverNames', serverNames, {
-            shouldDirty: true,
-          });
-        }}
+        onPickTarget={pickRealityTarget}
         inboundPort={inboundPort}
         listen={listen}
+        nodeId={nodeId}
         currentTarget={currentTarget}
         mldsa65Enabled={mldsa65Enabled}
       />

@@ -21,13 +21,29 @@ func NewRealityFinderController(g *gin.RouterGroup) *RealityFinderController {
 	return a
 }
 
-// requestBaseURL is the panel as the caller reached it, ending in the base path.
+// requestBaseURL is the panel as the caller reached it, ending in the base path. Like
+// resolveHost, forwarded headers count only from a trusted proxy; the port is kept.
 func requestBaseURL(c *gin.Context) string {
-	scheme := "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+	scheme, host := "http", c.Request.Host
+	if c.Request.TLS != nil {
 		scheme = "https"
 	}
-	return scheme + "://" + c.Request.Host + c.GetString("base_path")
+	if isTrustedForwardedRequest(c) {
+		if strings.EqualFold(firstForwarded(c.GetHeader("X-Forwarded-Proto")), "https") {
+			scheme = "https"
+		}
+		if h := firstForwarded(c.GetHeader("X-Forwarded-Host")); h != "" {
+			host = h
+		}
+	}
+	return scheme + "://" + host + c.GetString("base_path")
+}
+
+func firstForwarded(v string) string {
+	if i := strings.Index(v, ","); i >= 0 {
+		v = v[:i]
+	}
+	return strings.TrimSpace(v)
 }
 
 func (a *RealityFinderController) newCommand(c *gin.Context) {
@@ -67,8 +83,7 @@ func NewRealityFinderRunController(g *gin.RouterGroup) *RealityFinderRunControll
 }
 
 func (a *RealityFinderRunController) script(c *gin.Context) {
-	token := c.Param("token")
-	script, err := a.finder.Script(token, requestBaseURL(c)+"realityfinder/run/"+token+"/report")
+	script, err := a.finder.Script(c.Param("token"))
 	if err != nil {
 		script = "print('This command has expired: make a new one in the REALITY target scanner.')\n"
 	}

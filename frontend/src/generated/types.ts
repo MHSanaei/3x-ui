@@ -996,6 +996,7 @@ export interface RealityFinderCommand {
 
 export interface RealityFinderCommandRequest {
   current: string;
+  nodeId?: number | null;
   port: number;
   scope: string;
   server: string;

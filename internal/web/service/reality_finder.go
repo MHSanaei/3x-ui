@@ -2,8 +2,10 @@ package service
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/netip"
@@ -50,6 +52,7 @@ type RealityFinderCommandRequest struct {
 	Port    int    `json:"port" example:"443"`
 	Scope   string `json:"scope" example:"24"`
 	Current string `json:"current" example:"www.example.com"`
+	NodeId  *int   `json:"nodeId" example:"1"`
 }
 
 type RealityFinderCommand struct {
@@ -57,8 +60,8 @@ type RealityFinderCommand struct {
 	ExpiresAt int64  `json:"expiresAt" example:"1793000000"`
 	Server    string `json:"server" example:"203.0.113.10"`
 	ScriptUrl string `json:"scriptUrl" example:"https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py"`
-	Unix      string `json:"unix" example:"python3 -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""`
-	Windows   string `json:"windows" example:"python -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""`
+	Unix      string `json:"unix" example:"python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\""`
+	Windows   string `json:"windows" example:"python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\""`
 }
 
 type RealityFinderNetwork struct {
@@ -105,6 +108,7 @@ type RealityFinderReport struct {
 
 type realityFinderJob struct {
 	req     RealityFinderCommandRequest
+	script  string
 	expires time.Time
 	reports []RealityFinderReport
 }
@@ -116,6 +120,7 @@ var (
 
 type RealityFinderService struct {
 	serverService ServerService
+	nodeService   NodeService
 }
 
 func realityFinderServer(raw string) (string, bool) {
@@ -131,12 +136,11 @@ func realityFinderServer(raw string) (string, bool) {
 // the panel as the admin's browser reaches it, ending in "/".
 func (s *RealityFinderService) NewCommand(req RealityFinderCommandRequest, baseURL string) (*RealityFinderCommand, error) {
 	if strings.TrimSpace(req.Server) == "" {
-		s.serverService.resolvePublicIPs()
-		ipv4, _ := s.serverService.publicIPs()
-		if _, ok := realityFinderServer(ipv4); !ok {
-			return nil, errRealityFinderNoServer
+		server, err := s.defaultServer(req.NodeId)
+		if err != nil {
+			return nil, err
 		}
-		req.Server = ipv4
+		req.Server = server
 	}
 	server, ok := realityFinderServer(req.Server)
 	if !ok || req.Port < 0 || req.Port > 65535 {
@@ -177,14 +181,17 @@ func (s *RealityFinderService) NewCommand(req RealityFinderCommandRequest, baseU
 		}
 		delete(realityFinderJobs, oldest)
 	}
-	realityFinderJobs[token] = &realityFinderJob{req: req, expires: expires}
+	script := realityFinderBuildScript(req, baseURL+"realityfinder/run/"+token+"/report")
+	realityFinderJobs[token] = &realityFinderJob{req: req, script: script, expires: expires}
 	realityFinderJobsMu.Unlock()
 
 	scriptURL := baseURL + "realityfinder/run/" + token + "/script.py"
-	// python -c keeps the terminal as stdin, so the script can wait for the VPN to go off; the
-	// User-Agent is set because Cloudflare answers Python's default one with error 1010.
-	oneLiner := `-c "import urllib.request as u;exec(u.urlopen(u.Request('` + scriptURL +
-		`',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())"`
+	sum := sha256.Sum256([]byte(script))
+	// python -c keeps stdin a terminal for the VPN-off prompt; the fetch may cross the users' ISP
+	// in plain HTTP, so only the hashed script runs. Cloudflare refuses Python's User-Agent (1010).
+	oneLiner := `-c "import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('` + scriptURL +
+		`',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='` +
+		hex.EncodeToString(sum[:]) + `' else print('The script did not match this command: make a new one in the REALITY target scanner.')"`
 	return &RealityFinderCommand{
 		Token:     token,
 		ExpiresAt: expires.Unix(),
@@ -204,18 +211,19 @@ func realityFinderJobFor(token string) (*realityFinderJob, error) {
 	return job, nil
 }
 
-// Script is the finder with the job's values written in as JSON, which Python reads as literals.
-func (s *RealityFinderService) Script(token, reportURL string) (string, error) {
+// Script is the job's finder, fixed when the command was made so the command can hash it.
+func (s *RealityFinderService) Script(token string) (string, error) {
 	realityFinderJobsMu.Lock()
+	defer realityFinderJobsMu.Unlock()
 	job, err := realityFinderJobFor(token)
-	var req RealityFinderCommandRequest
-	if err == nil {
-		req = job.req
-	}
-	realityFinderJobsMu.Unlock()
 	if err != nil {
 		return "", err
 	}
+	return job.script, nil
+}
+
+// realityFinderBuildScript writes the job's values in as JSON, which Python reads as literals.
+func realityFinderBuildScript(req RealityFinderCommandRequest, reportURL string) string {
 	literal := func(v string) string {
 		b, _ := json.Marshal(v)
 		return string(b)
@@ -226,7 +234,27 @@ func (s *RealityFinderService) Script(token, reportURL string) (string, error) {
 		"__SCOPE__", literal(req.Scope),
 		"__KNOWN__", literal(req.Current),
 		"__REPORT__", literal(reportURL),
-	).Replace(realityFinderScript), nil
+	).Replace(realityFinderScript)
+}
+
+// defaultServer is the inbound's own server: its node when it is deployed to one.
+func (s *RealityFinderService) defaultServer(nodeID *int) (string, error) {
+	if nodeID != nil {
+		node, err := s.nodeService.GetById(*nodeID)
+		if err != nil {
+			return "", err
+		}
+		if server, ok := realityFinderServer(node.Address); ok {
+			return server, nil
+		}
+		return "", errRealityFinderNoServer
+	}
+	s.serverService.resolvePublicIPs()
+	ipv4, _ := s.serverService.publicIPs()
+	if _, ok := realityFinderServer(ipv4); !ok {
+		return "", errRealityFinderNoServer
+	}
+	return ipv4, nil
 }
 
 func (s *RealityFinderService) Reports(token string) ([]RealityFinderReport, error) {

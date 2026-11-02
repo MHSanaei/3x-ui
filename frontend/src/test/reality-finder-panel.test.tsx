@@ -57,11 +57,12 @@ function report(over: Partial<RealityFinderReport> = {}): RealityFinderReport {
   };
 }
 
-function renderPanel(listen: string, onPick = vi.fn()) {
+function renderPanel(listen: string, onPick = vi.fn(), nodeId: number | null = null) {
   const view = renderWithProviders(
     <RealityFinderPanel
       inboundPort={8443}
       listen={listen}
+      nodeId={nodeId}
       currentTarget="www.old.example.com:443"
       onPick={onPick}
     />,
@@ -83,7 +84,30 @@ describe('REALITY finder (scan from the admin device)', () => {
     expect(await findByText('python -c "run-windows"')).toBeTruthy();
     expect(post).toHaveBeenCalledWith(
       '/panel/api/server/realityFinder/command',
-      { server: '', port: 443, scope: '24', current: 'www.old.example.com' },
+      { server: '', port: 443, scope: '24', current: 'www.old.example.com', nodeId: null },
+      expect.anything(),
+    );
+  });
+
+  // With no server typed, the panel picks the scan's server; for a node inbound that must
+  // be the node, not the master the admin happens to be logged in to.
+  it('names the node the inbound is deployed to when asking for a command', async () => {
+    const post = vi.spyOn(HttpUtil, 'post').mockResolvedValue(command);
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
+    const { getByRole, findByText } = renderPanel('', vi.fn(), 3);
+
+    fireEvent.click(getByRole('button', { name: 'Make command' }));
+
+    expect(await findByText('python -c "run-windows"')).toBeTruthy();
+    expect(post).toHaveBeenCalledWith(
+      '/panel/api/server/realityFinder/command',
+      {
+        server: '',
+        port: 8443,
+        scope: '24',
+        current: 'www.old.example.com',
+        nodeId: 3,
+      },
       expect.anything(),
     );
   });

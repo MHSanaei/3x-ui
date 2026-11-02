@@ -1088,11 +1088,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "scriptUrl": "https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
     "server": "203.0.113.10",
     "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
-    "unix": "python3 -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\"",
-    "windows": "python -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\""
+    "unix": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
+    "windows": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\""
   },
   "RealityFinderCommandRequest": {
     "current": "www.example.com",
+    "nodeId": 1,
     "port": 443,
     "scope": "24",
     "server": "203.0.113.10"

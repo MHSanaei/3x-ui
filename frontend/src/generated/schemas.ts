@@ -4374,11 +4374,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "unix": {
-        "example": "python3 -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\"",
+        "example": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
         "type": "string"
       },
       "windows": {
-        "example": "python -c \"import urllib.request as u;exec(u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read())\"",
+        "example": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
         "type": "string"
       }
     },
@@ -4398,6 +4398,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "current": {
         "example": "www.example.com",
         "type": "string"
+      },
+      "nodeId": {
+        "example": 1,
+        "nullable": true,
+        "type": "integer"
       },
       "port": {
         "example": 443,

@@ -17,6 +17,7 @@ interface RealityTargetScannerModalProps {
   onPickTarget: (target: string, serverNames: string[]) => void;
   inboundPort: number;
   listen: string;
+  nodeId?: number | null;
   currentTarget: string;
   mldsa65Enabled?: boolean;
 }
@@ -29,6 +30,7 @@ export default function RealityTargetScannerModal({
   onPickTarget,
   inboundPort,
   listen,
+  nodeId = null,
   currentTarget,
   mldsa65Enabled = false,
 }: RealityTargetScannerModalProps) {
@@ -253,6 +255,7 @@ export default function RealityTargetScannerModal({
               <RealityFinderPanel
                 inboundPort={inboundPort}
                 listen={listen}
+                nodeId={nodeId}
                 currentTarget={currentTarget}
                 onPick={(target, serverNames) => {
                   onPickTarget(target, serverNames);
