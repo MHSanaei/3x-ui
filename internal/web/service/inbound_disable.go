@@ -35,10 +35,8 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *traf
 	return false, count, err
 }
 
-// quotaDisabledInboundCond matches the local inbounds a traffic cap switched
-// off. An inbound that expired, or that an operator switched off by hand, is
-// not matched: a traffic reset must not bring either of them back.
-// Placeholders: nowMs.
+// quotaDisabledInboundCond matches local inbounds their own cap switched off (args: enable, nowMs);
+// expired or hand-disabled ones never match, so a reset cannot bring them back.
 const quotaDisabledInboundCond = `enable = ? AND node_id IS NULL AND total > 0 AND up + down >= total AND (expiry_time <= 0 OR expiry_time > ?)`
 
 // quotaDisabledInboundIDs lists the inbounds a traffic cap switched off.

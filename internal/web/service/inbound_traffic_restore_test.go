@@ -45,9 +45,8 @@ func seedQuotaInbound(t *testing.T, tag string, port int, total, up int64, expir
 	return ib
 }
 
-// A traffic cap switches an inbound off and drops it from the running core.
-// Zeroing the counters lifts the cap, so the inbound has to come back — an
-// inbound left off takes every client on it down with it.
+// A cap switches an inbound off and out of the core; zeroing the counters lifts
+// the cap, so the inbound must come back or every client on it stays down.
 func TestResetAllTrafficsRestoresQuotaDisabledInbound(t *testing.T) {
 	setupQuotaRestoreTest(t)
 	const gb = int64(1024 * 1024 * 1024)

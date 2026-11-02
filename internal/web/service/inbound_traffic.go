@@ -832,9 +832,8 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	return needRestart, nil, nil
 }
 
-// ResetAllTraffics zeroes every inbound's counters and brings back the
-// inbounds a traffic cap switched off: their cap no longer applies, and
-// leaving them off would keep every client on them dead.
+// ResetAllTraffics zeroes every inbound's counters and brings back the inbounds a traffic
+// cap switched off; left off, every client on them would stay dead.
 func (s *InboundService) ResetAllTraffics() (bool, error) {
 	var restore []int
 	err := submitTrafficWrite(func() error {
