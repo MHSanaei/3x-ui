@@ -88,8 +88,7 @@ func NewDnsTunnelRunController(g *gin.RouterGroup) *DnsTunnelRunController {
 }
 
 func (a *DnsTunnelRunController) script(c *gin.Context) {
-	token := c.Param("token")
-	script, err := a.dnsTunnelService.Script(token, panelBaseURL(c)+"dnstunnel/run/"+token+"/report")
+	script, err := a.dnsTunnelService.Script(c.Param("token"))
 	if err != nil {
 		script = "print('This command has expired: make a new one on the DNS tunnel page.')\n"
 	}

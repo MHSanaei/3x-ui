@@ -150,12 +150,12 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	reportURL := baseURL + "cleanip/run/" + token + "/report"
 	scripts := map[string]string{"": cleanIpBuildScript(req, reportURL, "")}
 	cmd := &CleanIpCommand{Token: token, ExpiresAt: expires.Unix(), ScriptUrl: scriptURL}
-	cmd.Unix = "python3 " + hashedRunCommand(scriptURL, scripts[""], "", "")
-	cmd.Windows = "python " + hashedRunCommand(scriptURL, scripts[""], "", "")
+	cmd.Unix = "python3 " + hashedRunCommand(scriptURL, scripts[""], "", "", cleanIpPage)
+	cmd.Windows = "python " + hashedRunCommand(scriptURL, scripts[""], "", "", cleanIpPage)
 	if domain := panelDomain(baseURL); domain != "" && len(req.Ips) > 0 {
 		cmd.Via = req.Ips[0]
 		scripts[cmd.Via] = cleanIpBuildScript(req, reportURL, cmd.Via)
-		run := hashedRunCommand(scriptURL+"?via="+cmd.Via, scripts[cmd.Via], domain, cmd.Via)
+		run := hashedRunCommand(scriptURL+"?via="+cmd.Via, scripts[cmd.Via], domain, cmd.Via, cleanIpPage)
 		cmd.UnixVia, cmd.WindowsVia = "python3 "+run, "python "+run
 	}
 	if err := cleanIpJobs.setScripts(token, scripts); err != nil {
@@ -164,9 +164,11 @@ func (s *CleanIpService) NewCommand(req CleanIpCommandRequest, baseURL string) (
 	return cmd, nil
 }
 
+const cleanIpPage = "Clean IP scanner page"
+
 // hashedRunCommand is the python -c that fetches the script and runs it only if its SHA-256
 // matches, since the fetch may cross the filtered ISP in plain HTTP. A pin acts as curl --resolve.
-func hashedRunCommand(scriptURL, script, pinDomain, pinIP string) string {
+func hashedRunCommand(scriptURL, script, pinDomain, pinIP, page string) string {
 	sum := sha256.Sum256([]byte(script))
 	code := "import urllib.request as u,hashlib as h"
 	if pinDomain != "" {
@@ -179,7 +181,7 @@ func hashedRunCommand(scriptURL, script, pinDomain, pinIP string) string {
 		code += ";o.getaddrinfo=g"
 	}
 	code += ";exec(s) if h.sha256(s).hexdigest()=='" + hex.EncodeToString(sum[:]) +
-		"' else print('The script did not match this command: make a new one on the Clean IP scanner page.')"
+		"' else print('The script did not match this command: make a new one on the " + page + ".')"
 	return `-c "` + code + `"`
 }
 

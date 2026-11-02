@@ -56,14 +56,17 @@ func TestDnsTunnelScriptFillsEveryPlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewCommand: %v", err)
 	}
-	script, err := s.Script(cmd.Token, "https://panel.example.com/p/dnstunnel/run/"+cmd.Token+"/report")
+	script, err := s.Script(cmd.Token)
 	if err != nil {
 		t.Fatalf("Script: %v", err)
 	}
 	if left := regexp.MustCompile(`__[A-Z_]+__`).FindAllString(script, -1); len(left) > 0 {
 		t.Fatalf("unfilled placeholders: %v", left)
 	}
-	for _, want := range []string{`ZONE = "t.example.com"`, `RESOLVERS = ["178.22.122.100","2001:4860:4860::8888"]`} {
+	for _, want := range []string{
+		`ZONE = "t.example.com"`, `RESOLVERS = ["178.22.122.100","2001:4860:4860::8888"]`,
+		`REPORT = "https://panel.example.com/p/dnstunnel/run/` + cmd.Token + `/report"`,
+	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script lacks %q", want)
 		}
@@ -195,7 +198,7 @@ func TestDnsTunnelScriptMeasuresNameLengthAndFlagsLiars(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewCommand: %v", err)
 	}
-	script, err := s.Script(cmd.Token, "https://p/r")
+	script, err := s.Script(cmd.Token)
 	if err != nil {
 		t.Fatalf("Script: %v", err)
 	}

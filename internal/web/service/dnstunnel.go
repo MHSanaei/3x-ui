@@ -188,6 +188,9 @@ func validResolverIp(s string) (string, bool) {
 }
 
 func (s *DnsTunnelService) NewCommand(req DnsTunnelCommandRequest, baseURL string) (*CleanIpCommand, error) {
+	if strings.ContainsAny(baseURL, "'\"\\") {
+		return nil, errCleanIpBadRequest
+	}
 	req.Zone = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(req.Zone), "."))
 	if !cleanIpHostRe.MatchString(req.Zone) {
 		return nil, errCleanIpBadRequest
@@ -206,25 +209,27 @@ func (s *DnsTunnelService) NewCommand(req DnsTunnelCommandRequest, baseURL strin
 	}
 
 	scriptURL := baseURL + "dnstunnel/run/" + token + "/script.py"
+	script := strings.NewReplacer(
+		"__ZONE__", pyLiteral(req.Zone),
+		"__RESOLVERS__", pyLiteral(req.Resolvers),
+		"__REPORT__", pyLiteral(baseURL+"dnstunnel/run/"+token+"/report"),
+	).Replace(dnsTunnelScript)
+	if err := dnsTunnelJobs.setScripts(token, map[string]string{"": script}); err != nil {
+		return nil, err
+	}
+	run := hashedRunCommand(scriptURL, script, "", "", "DNS tunnel page")
 	return &CleanIpCommand{
 		Token:     token,
 		ExpiresAt: expires.Unix(),
 		ScriptUrl: scriptURL,
-		Unix:      "curl -fsSL '" + scriptURL + "' | python3 -",
-		Windows:   "irm '" + scriptURL + "' | python -",
+		Unix:      "python3 " + run,
+		Windows:   "python " + run,
 	}, nil
 }
 
-func (s *DnsTunnelService) Script(token, reportURL string) (string, error) {
-	req, err := dnsTunnelJobs.request(token)
-	if err != nil {
-		return "", err
-	}
-	return strings.NewReplacer(
-		"__ZONE__", pyLiteral(req.Zone),
-		"__RESOLVERS__", pyLiteral(req.Resolvers),
-		"__REPORT__", pyLiteral(reportURL),
-	).Replace(dnsTunnelScript), nil
+// Script is the job's resolver test, fixed when the command was made so the command can hash it.
+func (s *DnsTunnelService) Script(token string) (string, error) {
+	return dnsTunnelJobs.script(token, "")
 }
 
 func (s *DnsTunnelService) Reports(token string) ([]DnsResolverReport, error) {
