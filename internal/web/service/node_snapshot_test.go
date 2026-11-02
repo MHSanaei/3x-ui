@@ -273,3 +273,34 @@ func initNodeSnapshotDB(t *testing.T, path string) *gorm.DB {
 	dbtest.InitDB(t, path)
 	return database.GetDB()
 }
+
+func TestNodeSnapshotRefusedClaimsKeepUsageAcrossUnchangedTicks(t *testing.T) {
+	db := initNodeSnapshotDB(t, filepath.Join(t.TempDir(), "claims.db"))
+	svc := &InboundService{}
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	master := seedMasterInbound(t, db, "master-in", 40001, `{"email":"victim@x","id":"11111111-1111-4111-8111-111111111111","subId":"victim-sub","enable":true}`)
+	if err := db.Create(&xray.ClientTraffic{InboundId: master.Id, Email: "victim@x", Enable: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	for _, up := range []int64{100, 200, 300, 400, 500} {
+		snap := snapshotWithClients(t, "n1-in", `{"clients":[{"email":"victim@x","subId":"picked-by-node","enable":true},{"email":"own@x","enable":true}]}`, xray.ClientTraffic{Email: "victim@x", Up: up, Enable: false, ExpiryTime: 1}, xray.ClientTraffic{Email: "own@x", Enable: true})
+		snap.StructuralRevision = "unchanged-hostile-catalog"
+		snap.Inbounds[0].Id = 1
+		if _, err := svc.SetRemoteTraffic(1, snap, false, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := readTraffic(t, db, "victim@x"); got.Up != 400 || !got.Enable || got.ExpiryTime != 0 {
+		t.Fatalf("victim traffic = %+v, want 400 bytes with master lifecycle", got)
+	}
+	if stored := storedInboundSettings(t, db, "n1-in"); strings.Contains(stored, "victim@x") {
+		t.Fatalf("stored refused claim: %s", stored)
+	}
+	if row := readClientRecord(t, db, "victim@x"); row.SubID != "victim-sub" {
+		t.Fatalf("victim subscription = %q", row.SubID)
+	}
+	if !nodeHostsClient(t, db, "n1-in", "own@x") {
+		t.Fatal("lost node's own client")
+	}
+}

@@ -71,26 +71,49 @@ var tunnelDNSCache = struct {
 const (
 	tunnelDNSCacheTTL     = 60 * time.Second
 	tunnelDNSCacheMaxSize = 1024
+	tunnelDNSMaxInFlight  = 1024
 )
+
+// tunnelDNSSlots caps lookups in flight across all outbounds: each one holds a
+// netstack port until the resolver answers or the lookup times out.
+var tunnelDNSSlots = make(chan struct{}, tunnelDNSMaxInFlight)
 
 // dnsCacheKey computes cache key scoped by outbound tag, server, and host.
 func dnsCacheKey(tag, dnsServer, host string) string {
 	return tag + "|" + dnsServer + "|" + host
 }
 
-func resolveTunnelVia(ctx context.Context, dev *Device, tag string, dnsServer string, host string) (netip.Addr, error) {
-	normDNS := amneziawg.NormalizeDNSServer(dnsServer)
-	if normDNS == "" {
-		normDNS = defaultDNSFor(dev.LocalAddresses())
+// tunnelDNSServerFor normalizes dnsServer, empty meaning the family default.
+func tunnelDNSServerFor(dev *Device, dnsServer string) string {
+	if normDNS := amneziawg.NormalizeDNSServer(dnsServer); normDNS != "" {
+		return normDNS
 	}
+	return defaultDNSFor(dev.LocalAddresses())
+}
+
+// cachedTunnelAddr returns host's unexpired cache entry; it never queries.
+func cachedTunnelAddr(dev *Device, tag string, dnsServer string, host string) (netip.Addr, bool) {
+	key := dnsCacheKey(tag, tunnelDNSServerFor(dev, dnsServer), host)
+	tunnelDNSCache.mu.Lock()
+	defer tunnelDNSCache.mu.Unlock()
+	e, ok := tunnelDNSCache.m[key]
+	return e.addr, ok && time.Now().Before(e.exp)
+}
+
+func resolveTunnelVia(ctx context.Context, dev *Device, tag string, dnsServer string, host string) (netip.Addr, error) {
+	if addr, ok := cachedTunnelAddr(dev, tag, dnsServer, host); ok {
+		return addr, nil
+	}
+	normDNS := tunnelDNSServerFor(dev, dnsServer)
 	key := dnsCacheKey(tag, normDNS, host)
 	now := time.Now()
-	tunnelDNSCache.mu.Lock()
-	if e, ok := tunnelDNSCache.m[key]; ok && now.Before(e.exp) {
-		tunnelDNSCache.mu.Unlock()
-		return e.addr, nil
+
+	select {
+	case tunnelDNSSlots <- struct{}{}:
+		defer func() { <-tunnelDNSSlots }()
+	case <-ctx.Done():
+		return netip.Addr{}, fmt.Errorf("dns lookup %q: too many lookups in flight: %w", host, ctx.Err())
 	}
-	tunnelDNSCache.mu.Unlock()
 
 	server, err := netip.ParseAddrPort(normDNS)
 	if err != nil {

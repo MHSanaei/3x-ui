@@ -23,7 +23,7 @@ func TestKernelAWGClientWritesRejectUnsafeValuesAndUnsupportedFeatures(t *testin
 		client     model.Client
 	}{
 		{"public key hook injection", "control characters", model.Client{Email: "bad-key@awg", Enable: true, PublicKey: "peer-key\n[Interface]\nPostDown = touch /tmp/pwned", AllowedIPs: []string{"10.8.1.2/32"}}},
-		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "bad-forward@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"10.8.1.2/32"}, ForwardedPorts: "54321"}},
+		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "bad-forward@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"10.8.1.2/32"}, ForwardedPorts: model.ForwardedPortsPtr("54321")}},
 		{"IPv6 allowed IP", "per-peer IPv6 egress is not supported", model.Client{Email: "bad-v6@awg", Enable: true, PublicKey: "peer-key", AllowedIPs: []string{"2001:db8::2/128"}}},
 	}
 	for _, tc := range cases {
@@ -70,7 +70,7 @@ func TestKernelAWGClientUpdateRejectsUnsafeValuesAndUnsupportedFeatures(t *testi
 		update     model.Client
 	}{
 		{"preshared key hook injection", "control characters", model.Client{Email: "kept@awg", PreSharedKey: "psk\n[Interface]\nPreDown = touch /tmp/pwned"}},
-		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "kept@awg", ForwardedPorts: "54321"}},
+		{"forwarded ports", "port forwarding is not supported", model.Client{Email: "kept@awg", ForwardedPorts: model.ForwardedPortsPtr("54321")}},
 		{"IPv6 allowed IP", "per-peer IPv6 egress is not supported", model.Client{Email: "kept@awg", AllowedIPs: []string{"2001:db8::2/128"}}},
 	}
 	for _, tc := range cases {
@@ -123,7 +123,7 @@ func TestKernelAWGClientFeatureChecksPreserveSupportedPaths(t *testing.T) {
 		t.Fatalf("valid IPv4 kernel peer was rejected: %v", err)
 	}
 	embedded := mkInbound(t, 52003, model.AmneziaWG, amneziawgClientTestSettings)
-	if _, err := svc.CreateOne(inboundSvc, embedded.Id, model.Client{Email: "forward@embedded", Enable: true, PublicKey: "valid-key", AllowedIPs: []string{"10.8.1.3/32"}, ForwardedPorts: "54321"}); err != nil {
+	if _, err := svc.CreateOne(inboundSvc, embedded.Id, model.Client{Email: "forward@embedded", Enable: true, PublicKey: "valid-key", AllowedIPs: []string{"10.8.1.3/32"}, ForwardedPorts: model.ForwardedPortsPtr("54321")}); err != nil {
 		t.Fatalf("embedded AWG port forwarding was rejected: %v", err)
 	}
 }
@@ -136,7 +136,7 @@ func TestKernelAWGSharedCreateAndUpdateValidateAllTargetsBeforeWrites(t *testing
 		kernel := mkInbound(t, 52005, model.AmneziaWG, kernelAWGSettings(nil))
 		embedded := mkInbound(t, 52006, model.AmneziaWG, amneziawgClientTestSettings)
 		_, err := svc.Create(inboundSvc, &ClientCreatePayload{
-			Client:     model.Client{Email: "shared-create@awg", Enable: true, PublicKey: "valid-key", AllowedIPs: []string{"10.8.1.2/32"}, ForwardedPorts: "54321"},
+			Client:     model.Client{Email: "shared-create@awg", Enable: true, PublicKey: "valid-key", AllowedIPs: []string{"10.8.1.2/32"}, ForwardedPorts: model.ForwardedPortsPtr("54321")},
 			InboundIds: []int{embedded.Id, kernel.Id},
 		})
 		if err == nil || !strings.Contains(err.Error(), "port forwarding is not supported") {
@@ -173,7 +173,7 @@ func TestKernelAWGSharedCreateAndUpdateValidateAllTargetsBeforeWrites(t *testing
 		beforeKernel, _ := inboundSvc.GetInbound(kernel.Id)
 		beforeEmbedded, _ := inboundSvc.GetInbound(embedded.Id)
 		rec := lookupClientRecord(t, seed.Email)
-		_, err := svc.Update(inboundSvc, rec.Id, model.Client{Email: seed.Email, ForwardedPorts: "54321"}, 0)
+		_, err := svc.Update(inboundSvc, rec.Id, model.Client{Email: seed.Email, ForwardedPorts: model.ForwardedPortsPtr("54321")}, 0)
 		if err == nil || !strings.Contains(err.Error(), "port forwarding is not supported") {
 			t.Fatalf("Update error = %v, want kernel feature rejection", err)
 		}

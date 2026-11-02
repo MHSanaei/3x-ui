@@ -2,11 +2,14 @@ package amneziawgnet
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/netip"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -54,12 +57,7 @@ func newPairedTunnelForTest(t *testing.T) *pairedTunnel {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	listenPort := pc.LocalAddr().(*net.UDPAddr).Port
-	pc.Close()
+	listenPort := freeUDPPort(t)
 
 	obf := amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
 	serverInst := amneziawg.Instance{
@@ -130,12 +128,7 @@ func newPairedTunnelV6ForTest(t *testing.T) *pairedTunnel {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	listenPort := pc.LocalAddr().(*net.UDPAddr).Port
-	pc.Close()
+	listenPort := freeUDPPort(t)
 
 	obf := amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
 	serverInst := amneziawg.Instance{
@@ -640,6 +633,117 @@ func TestEgressUDPDatagramDomainInterleavedClients(t *testing.T) {
 		if nr < 10 || !strings.Contains(string(rcv[:nr]), "echo:"+payload) {
 			t.Fatalf("reply payload = %q, want echo:%s", rcv[:nr], payload)
 		}
+	}
+}
+
+// TestEgressUDPDatagramDomainFloodBoundsPendingLookups ensures datagrams to a
+// name whose lookup never completes do not pin a goroutine and a port each.
+func TestEgressUDPDatagramDomainFloodBoundsPendingLookups(t *testing.T) {
+	tun := newPairedTunnelForTest(t)
+	registerEgressDeviceForTest(t, tun.client)
+	srv := GetEgressServer()
+	prev := srv.currentDNSServer()
+	srv.SetDNSServer(net.JoinHostPort(tun.serverIP.String(), "53"))
+	t.Cleanup(func() { srv.SetDNSServer(prev) })
+	resetTunnelDNSCacheForTest()
+
+	silentDNS, err := gonet.DialUDP(tun.server.Stack, &tcpip.FullAddress{NIC: 1, Port: 53}, nil, ipv4.ProtocolNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer silentDNS.Close()
+
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(srv.Port())))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctl.Close()
+
+	socksAuth(t, ctl)
+	if _, err := ctl.Write([]byte{0x05, 0x03, 0x00, 0x01, 0, 0, 0, 0, 0, 0}); err != nil {
+		t.Fatal(err)
+	}
+	reply := make([]byte, 10)
+	if _, err := io.ReadFull(ctl, reply); err != nil || reply[1] != 0x00 {
+		t.Fatalf("associate failed: %v %v", err, reply)
+	}
+	bindPort := binary.BigEndian.Uint16(reply[8:10])
+
+	udp, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: int(bindPort)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer udp.Close()
+
+	name := "never-answers.internal"
+	dgram := make([]byte, 0, 5+len(name)+2+1)
+	dgram = append(dgram, 0x00, 0x00, 0x00, 0x03, byte(len(name)))
+	dgram = append(dgram, name...)
+	dgram = append(dgram, 0x27, 0x0f, 'x')
+
+	const flood = 2000
+	before := runtime.NumGoroutine()
+	for i := 0; i < flood; i++ {
+		if _, err := udp.Write(dgram); err != nil {
+			t.Fatal(err)
+		}
+		if i%50 == 49 {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	time.Sleep(100 * time.Millisecond)
+	if grown := runtime.NumGoroutine() - before; grown > maxPendingUDPResolves+8 {
+		t.Fatalf("%d datagrams left %d goroutines behind, want at most %d pending lookups", flood, grown, maxPendingUDPResolves)
+	}
+
+	// A cached name takes no lookup slot, so it still gets through.
+	in, err := gonet.DialUDP(tun.server.Stack, &tcpip.FullAddress{NIC: 1, Port: 9999}, nil, ipv4.ProtocolNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	cached := "cached.internal"
+	tunnelDNSCache.mu.Lock()
+	tunnelDNSCache.m[dnsCacheKey("awg-dom-test", srv.currentDNSServer(), cached)] = tunnelDNSCacheEntry{addr: tun.serverIP, exp: time.Now().Add(time.Hour)}
+	tunnelDNSCache.mu.Unlock()
+	dgram = append([]byte{0x00, 0x00, 0x00, 0x03, byte(len(cached))}, cached...)
+	dgram = append(dgram, 0x27, 0x0f, 'p', 'i', 'n', 'g')
+	rcv := make([]byte, 64)
+	var nr int
+	var rerr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if _, err := udp.Write(dgram); err != nil {
+			t.Fatal(err)
+		}
+		in.SetReadDeadline(time.Now().Add(3 * time.Second))
+		nr, _, rerr = in.ReadFrom(rcv)
+		if rerr == nil {
+			break
+		}
+	}
+	if rerr != nil || string(rcv[:nr]) != "ping" {
+		t.Fatalf("cached-name datagram behind the flood: payload = %q, err = %v", rcv[:nr], rerr)
+	}
+}
+
+// TestResolveTunnelViaWaitsForLookupSlot ensures a cache miss opens no tunnel
+// endpoint (the nil Stack would panic) while every lookup slot is taken.
+func TestResolveTunnelViaWaitsForLookupSlot(t *testing.T) {
+	resetTunnelDNSCacheForTest()
+	for i := 0; i < cap(tunnelDNSSlots); i++ {
+		tunnelDNSSlots <- struct{}{}
+	}
+	t.Cleanup(func() {
+		for i := 0; i < cap(tunnelDNSSlots); i++ {
+			<-tunnelDNSSlots
+		}
+	})
+
+	dev := &Device{localAddrs: []netip.Addr{netip.MustParseAddr(tunnelTestClientAddr)}}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := resolveTunnelVia(ctx, dev, "awg-dom-test", "", "slots.internal"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want context.DeadlineExceeded", err)
 	}
 }
 

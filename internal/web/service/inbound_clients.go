@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 
@@ -123,17 +124,42 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 	return clientsByInbound
 }
 
+// emailSpellings returns the arguments a "LOWER(col) IN ? OR col IN ?" match
+// needs: SQLite's LOWER() folds ASCII only, so non-ASCII capitals get every case.
+func emailSpellings(emails []string) []string {
+	seen := make(map[string]struct{}, len(emails))
+	out := make([]string, 0, len(emails))
+	for _, e := range emails {
+		e = strings.TrimSpace(e)
+		if e == "" {
+			continue
+		}
+		variants := []string{strings.ToLower(e)}
+		if strings.ContainsFunc(e, func(r rune) bool { return r > unicode.MaxASCII }) {
+			variants = caseVariants(e)
+		}
+		for _, v := range variants {
+			if _, dup := seen[v]; !dup {
+				seen[v] = struct{}{}
+				out = append(out, v)
+			}
+		}
+	}
+	return out
+}
+
 // emailUsedByOtherInbounds reports whether email lives in any inbound other than
 // exceptInboundId. Inside a transaction pass tx: a pool query there starves the pool.
 func (s *InboundService) emailUsedByOtherInbounds(db *gorm.DB, email string, exceptInboundId int) (bool, error) {
-	if email == "" {
+	spellings := emailSpellings([]string{email})
+	if len(spellings) == 0 {
 		return false, nil
 	}
 	var count int64
 	err := db.Table("client_inbounds").
 		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-		Where("client_inbounds.inbound_id != ? AND LOWER(clients.email) = ?",
-			exceptInboundId, strings.ToLower(strings.TrimSpace(email))).
+		Where("client_inbounds.inbound_id != ? AND (LOWER(clients.email) IN ? OR clients.email IN ?)",
+			exceptInboundId, spellings, spellings).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -141,34 +167,22 @@ func (s *InboundService) emailUsedByOtherInbounds(db *gorm.DB, email string, exc
 	return count > 0, nil
 }
 
+// emailsUsedByOtherInbounds is emailUsedByOtherInbounds for a batch; the result
+// is keyed by the lower-cased email.
 func (s *InboundService) emailsUsedByOtherInbounds(db *gorm.DB, emails []string, exceptInboundId int) (map[string]bool, error) {
 	shared := make(map[string]bool, len(emails))
-	want := make(map[string]struct{}, len(emails))
-	for _, e := range emails {
-		e = strings.ToLower(strings.TrimSpace(e))
-		if e != "" {
-			want[e] = struct{}{}
-		}
-	}
-	if len(want) == 0 {
-		return shared, nil
-	}
-	lowered := make([]string, 0, len(want))
-	for e := range want {
-		lowered = append(lowered, e)
-	}
-	for _, batch := range chunkStrings(lowered, sqlInChunk) {
+	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
 		var rows []struct{ Email string }
 		err := db.Table("client_inbounds").
 			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-			Select("DISTINCT LOWER(clients.email) AS email").
-			Where("client_inbounds.inbound_id != ? AND LOWER(clients.email) IN ?", exceptInboundId, batch).
+			Select("DISTINCT clients.email AS email").
+			Where("client_inbounds.inbound_id != ? AND (LOWER(clients.email) IN ? OR clients.email IN ?)", exceptInboundId, batch, batch).
 			Scan(&rows).Error
 		if err != nil {
 			return nil, err
 		}
 		for _, r := range rows {
-			shared[r.Email] = true
+			shared[strings.ToLower(r.Email)] = true
 		}
 	}
 	return shared, nil

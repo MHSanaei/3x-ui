@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 	"syscall"
+	"time"
 
 	awgtun "github.com/amnezia-vpn/amneziawg-go/v3/tun"
 
@@ -26,6 +27,10 @@ import (
 // tunQueueDepth is the outbound queue depth for channel endpoint and handoff.
 // 1024 starved simultaneous TCP slow-starts; channel.Endpoint drops silently when full.
 const tunQueueDepth = 8192
+
+// tunQueueMaxWait bounds how long WriteNotify parks the goroutine that made the stack
+// emit a packet; past it the packet is dropped, as channel.Endpoint drops when full.
+const tunQueueMaxWait = 5 * time.Millisecond
 
 // maxReceiveBuffer caps per-connection receive autotuning; gVisor's own 4 MB
 // cap held a single client upload near 310 Mbit/s at 50 ms RTT.
@@ -191,10 +196,21 @@ func (t *stackTun) WriteNotify() {
 	view := pkt.ToView()
 	pkt.DecRef()
 
+	select {
+	case t.incomingPacket <- view:
+		return
+	default:
+	}
+	// Echo replies and RSTs are emitted on amneziawg-go's per-peer receiver, which the
+	// reader of this queue itself waits on during a rebind: never park here for good.
+	timer := time.NewTimer(tunQueueMaxWait)
+	defer timer.Stop()
 	// Select against done so racing dispatch abandons packet on close
 	// without blocking Close or panicking on closed channel.
 	select {
 	case t.incomingPacket <- view:
+	case <-timer.C:
+		view.Release()
 	case <-t.done:
 		view.Release()
 	}
@@ -224,6 +240,20 @@ func (t *stackTun) Close() error {
 func enablePromiscuousRouting(gstack *stack.Stack) {
 	gstack.SetPromiscuousMode(1, true)
 	gstack.SetSpoofing(1, true)
+}
+
+// endpointRemoteAddr returns the address ep is connected to; false for an
+// endpoint that has none (listening, unconnected).
+func endpointRemoteAddr(ep stack.TransportEndpoint) (netip.Addr, bool) {
+	tep, ok := ep.(tcpip.Endpoint)
+	if !ok {
+		return netip.Addr{}, false
+	}
+	info, ok := tep.Info().(*stack.TransportEndpointInfo)
+	if !ok || info.ID.RemoteAddress.Len() == 0 {
+		return netip.Addr{}, false
+	}
+	return addrFromTcpip(info.ID.RemoteAddress), true
 }
 
 // addrFromTcpip converts a gVisor tcpip.Address to netip.Addr.
