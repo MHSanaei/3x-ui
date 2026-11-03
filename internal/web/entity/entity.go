@@ -112,9 +112,10 @@ type AllSetting struct {
 	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`
 	ExternalSubUserAgent        string `json:"externalSubUserAgent" form:"externalSubUserAgent"`
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates" validate:"gte=0,lte=525600"`
-	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
-	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
-	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
+	ExternalTrafficInformEnable   bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
+	ExternalTrafficInformURI      string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
+	ExternalTrafficInformInterval int    `json:"externalTrafficInformInterval" form:"externalTrafficInformInterval" validate:"gte=0"`
+	RestartXrayOnClientDisable    bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`
 	SubURI                      string `json:"subURI" form:"subURI"`
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`
@@ -388,6 +389,10 @@ func (s *AllSetting) CheckValid() error {
 		if _, err := mail.ParseAddress(s.SmtpFrom); err != nil {
 			return common.NewError("SMTP from address is not valid:", s.SmtpFrom)
 		}
+	}
+
+	if s.ExternalTrafficInformInterval <= 0 {
+		s.ExternalTrafficInformInterval = 5
 	}
 
 	return nil

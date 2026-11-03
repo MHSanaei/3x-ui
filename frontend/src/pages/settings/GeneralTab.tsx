@@ -455,6 +455,25 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   onChange={(e) => updateSetting({ externalTrafficInformURI: e.target.value })}
                 />
               </SettingListItem>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.externalTrafficInformInterval')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="externalTrafficInformInterval"
+                    value={allSetting.externalTrafficInformInterval}
+                  />
+                }
+                description={t('pages.settings.externalTrafficInformIntervalDesc')}
+              >
+                <InputNumber
+                  value={allSetting.externalTrafficInformInterval}
+                  min={5}
+                  style={{ width: '100%' }}
+                  addonAfter={t('seconds')}
+                  onChange={onNumber((v) => updateSetting({ externalTrafficInformInterval: v }))}
+                />
+              </SettingListItem>
             </>
           ),
         },

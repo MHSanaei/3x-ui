@@ -64,6 +64,7 @@ export class AllSetting {
   subDomain = '';
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
+  externalTrafficInformInterval = 5;
   restartXrayOnClientDisable = true;
   subCertFile = '';
   subKeyFile = '';

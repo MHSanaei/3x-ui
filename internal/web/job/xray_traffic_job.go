@@ -2,6 +2,7 @@ package job
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -19,6 +20,11 @@ type XrayTrafficJob struct {
 	xrayService     service.XrayService
 	inboundService  service.InboundService
 	outboundService outbound.OutboundService
+
+	informMu       sync.Mutex
+	lastInformTime time.Time
+	accumInbounds  map[string]*xray.Traffic
+	accumClients   map[string]*xray.ClientTraffic
 }
 
 // clientStatsSnapshotMaxClients caps how many client_traffics rows the job
@@ -65,7 +71,10 @@ var externalInformClient = &fasthttp.Client{
 
 // NewXrayTrafficJob creates a new traffic collection job instance.
 func NewXrayTrafficJob() *XrayTrafficJob {
-	return new(XrayTrafficJob)
+	return &XrayTrafficJob{
+		accumInbounds: make(map[string]*xray.Traffic),
+		accumClients:  make(map[string]*xray.ClientTraffic),
+	}
 }
 
 // Run collects traffic statistics from Xray, updates the database, and pushes
@@ -102,8 +111,11 @@ func (j *XrayTrafficJob) Run() {
 	}
 	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)
-	} else if err != nil {
-		logger.Warning("get ExternalTrafficInformEnable failed:", err)
+	} else {
+		j.clearAccumulatedTraffic()
+		if err != nil {
+			logger.Warning("get ExternalTrafficInformEnable failed:", err)
+		}
 	}
 	if needRestart0 || needRestart1 {
 		j.xrayService.SetToNeedRestart()
@@ -224,10 +236,89 @@ func (j *XrayTrafficJob) Run() {
 	}
 }
 
+func (j *XrayTrafficJob) clearAccumulatedTraffic() {
+	j.informMu.Lock()
+	defer j.informMu.Unlock()
+	j.accumInbounds = make(map[string]*xray.Traffic)
+	j.accumClients = make(map[string]*xray.ClientTraffic)
+}
+
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {
 	if len(inboundTraffics) == 0 && len(clientTraffics) == 0 {
 		return
 	}
+
+	intervalSec := 5
+	if val, err := j.settingService.GetExternalTrafficInformInterval(); err == nil && val > 0 {
+		intervalSec = val
+	}
+
+	j.informMu.Lock()
+	if j.accumInbounds == nil {
+		j.accumInbounds = make(map[string]*xray.Traffic)
+	}
+	if j.accumClients == nil {
+		j.accumClients = make(map[string]*xray.ClientTraffic)
+	}
+
+	for _, tr := range inboundTraffics {
+		if tr == nil || (tr.Up == 0 && tr.Down == 0) {
+			continue
+		}
+		if existing, ok := j.accumInbounds[tr.Tag]; ok {
+			existing.Up += tr.Up
+			existing.Down += tr.Down
+		} else {
+			trCopy := *tr
+			j.accumInbounds[tr.Tag] = &trCopy
+		}
+	}
+
+	for _, ct := range clientTraffics {
+		if ct == nil || (ct.Up == 0 && ct.Down == 0) {
+			continue
+		}
+		if existing, ok := j.accumClients[ct.Email]; ok {
+			existing.Up += ct.Up
+			existing.Down += ct.Down
+			if ct.LastOnline > existing.LastOnline {
+				existing.LastOnline = ct.LastOnline
+			}
+		} else {
+			ctCopy := *ct
+			j.accumClients[ct.Email] = &ctCopy
+		}
+	}
+
+	now := time.Now()
+	interval := time.Duration(intervalSec) * time.Second
+	if intervalSec > 5 && !j.lastInformTime.IsZero() && now.Sub(j.lastInformTime) < interval-200*time.Millisecond {
+		j.informMu.Unlock()
+		return
+	}
+
+	toSendInbounds := make([]*xray.Traffic, 0, len(j.accumInbounds))
+	for _, tr := range j.accumInbounds {
+		toSendInbounds = append(toSendInbounds, tr)
+	}
+	toSendClients := make([]*xray.ClientTraffic, 0, len(j.accumClients))
+	for _, ct := range j.accumClients {
+		toSendClients = append(toSendClients, ct)
+	}
+
+	j.accumInbounds = make(map[string]*xray.Traffic)
+	j.accumClients = make(map[string]*xray.ClientTraffic)
+	j.lastInformTime = now
+	j.informMu.Unlock()
+
+	if len(toSendInbounds) == 0 && len(toSendClients) == 0 {
+		return
+	}
+
+	j.sendExternalTrafficInform(toSendInbounds, toSendClients)
+}
+
+func (j *XrayTrafficJob) sendExternalTrafficInform(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {
 	informURL, err := j.settingService.GetExternalTrafficInformURI()
 	if err != nil {
 		logger.Warning("get ExternalTrafficInformURI failed:", err)

@@ -74,6 +74,7 @@ export const AllSettingSchema = z
     subDomain: z.string().optional(),
     externalTrafficInformEnable: z.boolean().optional(),
     externalTrafficInformURI: z.string().optional(),
+    externalTrafficInformInterval: z.number().int().min(5).optional(),
     restartXrayOnClientDisable: z.boolean().optional(),
     subCertFile: z.string().optional(),
     subKeyFile: z.string().optional(),
