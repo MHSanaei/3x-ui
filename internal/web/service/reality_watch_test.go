@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -67,9 +70,8 @@ func realityTargetOf(t *testing.T, id int) (string, []string) {
 	return stream.RealitySettings.Target, stream.RealitySettings.ServerNames
 }
 
-// A target that fails once is often a blip; switching on it would move every client to a new
-// SNI for nothing. Only the third failed check in a row switches, and only to a spare that
-// passed both the server check and a real REALITY connection.
+// A single failure is often a blip, and a switch moves every client to a new SNI, so only the
+// third failed check in a row switches, and only to a spare that passed both checks.
 func TestRealityWatchSwitchesAfterThreeFailedChecks(t *testing.T) {
 	setupBulkDB(t)
 	tried := stubRealityWatch(t,
@@ -195,6 +197,10 @@ func TestRealityWatchManualSwitchNeedsTheRealTest(t *testing.T) {
 	if target, _ := realityTargetOf(t, ib.Id); target != "c.example:443" {
 		t.Fatalf("target = %s, want c.example:443", target)
 	}
+	// the editor fills its form from this, or its Save would put the old target back
+	if st := s.Status(ib.Id); st.Target != "c.example:443" || !reflect.DeepEqual(st.ServerNames, []string{"c.example"}) {
+		t.Errorf("status after the switch: target %s names %v", st.Target, st.ServerNames)
+	}
 }
 
 func TestRealityWatchSaveConfigNormalizesSpares(t *testing.T) {
@@ -249,5 +255,244 @@ func TestRealityWatchLeavesLocalTargetsAlone(t *testing.T) {
 		if target == "b.example:443" || s.Status(id).Fails != 0 {
 			t.Errorf("local target %s: switched or counted as failing (fails %d)", target, s.Status(id).Fails)
 		}
+	}
+}
+
+// duringRealTest runs edit while the spare's real test is in flight, the slow part of a switch.
+func duringRealTest(t *testing.T, edit func()) {
+	t.Helper()
+	prev := realityWatchRealTest
+	realityWatchRealTest = func(ctx context.Context, target, sni string) error {
+		edit()
+		return prev(ctx, target, sni)
+	}
+	t.Cleanup(func() { realityWatchRealTest = prev })
+}
+
+// A switch used to save the copy read before its checks, wiping what the admin saved meanwhile.
+func TestRealityWatchSwitchKeepsAnEditSavedDuringTheCheck(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, map[string]bool{"b.example:443": true}, map[string]bool{"b.example:443": true})
+	ib := realityInbound(t, 4441, "a.example:443", "a.example")
+	s := &RealityWatchService{}
+	if err := s.SaveConfig(ib.Id, RealityWatchEntry{Spares: []string{"b.example:443"}}); err != nil {
+		t.Fatal(err)
+	}
+	duringRealTest(t, func() {
+		if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", ib.Id).Update("remark", "edited").Error; err != nil {
+			t.Error(err)
+		}
+	})
+	if _, err := s.SwitchTo(context.Background(), ib.Id, "b.example:443"); err != nil {
+		t.Fatalf("SwitchTo: %v", err)
+	}
+	got, err := (&InboundService{}).GetInbound(ib.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Remark != "edited" {
+		t.Errorf("remark = %q, the switch overwrote the admin's edit", got.Remark)
+	}
+	if target, _ := realityTargetOf(t, ib.Id); target != "b.example:443" {
+		t.Errorf("target = %s, want b.example:443", target)
+	}
+}
+
+// An admin who fixes the target by hand mid-check has decided; the watcher must not override it.
+func TestRealityWatchDoesNotSwitchATargetTheAdminJustChanged(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, map[string]bool{"b.example:443": true}, map[string]bool{"b.example:443": true})
+	ib := realityInbound(t, 4442, "a.example:443", "a.example")
+	s := &RealityWatchService{}
+	if err := s.SaveConfig(ib.Id, RealityWatchEntry{Auto: true, Spares: []string{"b.example:443"}}); err != nil {
+		t.Fatal(err)
+	}
+	s.Tick(context.Background())
+	s.Tick(context.Background())
+	duringRealTest(t, func() {
+		cur, err := (&InboundService{}).GetInbound(ib.Id)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		stream := strings.ReplaceAll(cur.StreamSettings, "a.example", "admin.example")
+		if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", ib.Id).Update("stream_settings", stream).Error; err != nil {
+			t.Error(err)
+		}
+	})
+	s.Tick(context.Background())
+	if target, _ := realityTargetOf(t, ib.Id); target != "admin.example:443" {
+		t.Errorf("target = %s, the watcher replaced the admin's choice", target)
+	}
+	st := s.Status(ib.Id)
+	if !reflect.DeepEqual(st.Spares, []string{"b.example:443"}) {
+		t.Errorf("spares = %v, want them untouched", st.Spares)
+	}
+	if len(st.Events) != 0 {
+		t.Errorf("events = %+v, want none: nothing switched and a spare did pass", st.Events)
+	}
+}
+
+// Checks take up to 10 s per probe and 25 s per real test; the watch API must answer meanwhile.
+func TestRealityWatchApiAnswersDuringACheck(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, nil, nil)
+	ib := realityInbound(t, 4443, "a.example:443", "a.example")
+	s := &RealityWatchService{}
+	if err := s.SaveConfig(ib.Id, RealityWatchEntry{Spares: []string{"b.example:443"}}); err != nil {
+		t.Fatal(err)
+	}
+	prev := realityWatchProbe
+	t.Cleanup(func() { realityWatchProbe = prev })
+	realityWatchProbe = func(sv *ServerService, target, sni string, xver int) *RealityScanResult {
+		answered := make(chan struct{})
+		go func() {
+			s.Status(ib.Id)
+			close(answered)
+		}()
+		select {
+		case <-answered:
+		case <-time.After(3 * time.Second):
+			t.Error("Status blocked behind a running check")
+		}
+		return prev(sv, target, sni, xver)
+	}
+	s.Tick(context.Background())
+}
+
+// With the lock no longer held across checks, a slow cycle must not double-count failures.
+func TestRealityWatchTicksDoNotOverlap(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, nil, nil)
+	ib := realityInbound(t, 4444, "a.example:443", "a.example")
+	s := &RealityWatchService{}
+	if err := s.SaveConfig(ib.Id, RealityWatchEntry{Spares: []string{"b.example:443"}}); err != nil {
+		t.Fatal(err)
+	}
+	prev := realityWatchProbe
+	t.Cleanup(func() { realityWatchProbe = prev })
+	calls := 0
+	realityWatchProbe = func(sv *ServerService, target, sni string, xver int) *RealityScanResult {
+		calls++
+		if calls == 1 {
+			nested := make(chan struct{})
+			go func() {
+				s.Tick(context.Background())
+				close(nested)
+			}()
+			select {
+			case <-nested:
+			case <-time.After(3 * time.Second):
+				t.Error("the overlapping tick waited instead of returning at once")
+			}
+		}
+		return prev(sv, target, sni, xver)
+	}
+	s.Tick(context.Background())
+	if calls != 1 {
+		t.Errorf("target probed %d times, want the overlapping tick to do nothing", calls)
+	}
+	if st := s.Status(ib.Id); st.Fails != 1 {
+		t.Errorf("fails = %d, want 1", st.Fails)
+	}
+}
+
+// Missing the scanner's bar (no h2, SNI not on the cert) does not mean REALITY is broken: only
+// a target with no TLS 1.3, or one failing the real connection, counts as a failed check.
+func TestRealityWatchRealTestJudgesATargetTheScannerDislikes(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		worksNow  bool
+		tls13     bool
+		wantFails int
+		wantOk    bool
+	}{
+		{"works through REALITY", true, true, 0, true},
+		{"fails through REALITY", false, true, 1, false},
+		{"no TLS 1.3", true, false, 1, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupBulkDB(t)
+			stubRealityWatch(t, nil, map[string]bool{"a.example:443": tc.worksNow})
+			prev := realityWatchProbe
+			t.Cleanup(func() { realityWatchProbe = prev })
+			realityWatchProbe = func(_ *ServerService, target, _ string, _ int) *RealityScanResult {
+				return &RealityScanResult{Target: target, TLS13: tc.tls13, Reason: "server does not negotiate HTTP/2 (h2)"}
+			}
+			ib := realityInbound(t, 4445, "a.example:443", "a.example")
+			s := &RealityWatchService{}
+			if err := s.SaveConfig(ib.Id, RealityWatchEntry{Spares: []string{"b.example:443"}}); err != nil {
+				t.Fatal(err)
+			}
+			s.Tick(context.Background())
+			st := s.Status(ib.Id)
+			if st.Fails != tc.wantFails || st.Ok != tc.wantOk {
+				t.Errorf("fails = %d ok = %v, want %d %v", st.Fails, st.Ok, tc.wantFails, tc.wantOk)
+			}
+		})
+	}
+}
+
+// A Host's own SNI overrides serverNames in links, so a stale one keeps clients cut off after
+// a switch. Only rows of this inbound that use REALITY and pin one of its old names may change.
+func TestRealityWatchSwitchMovesHostSnis(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, map[string]bool{"b.example:443": true}, map[string]bool{"b.example:443": true})
+	ib := realityInbound(t, 4446, "a.example:443", "a.example")
+	other := realityInbound(t, 4447, "a.example:443", "a.example")
+	rows := []*model.Host{
+		{InboundId: ib.Id, Remark: "pinned", Security: "same", Sni: "a.example"},
+		{InboundId: ib.Id, Remark: "pool", Security: "reality", Sni: "a.example", Snis: []string{"a.example", "custom.example"}},
+		{InboundId: ib.Id, Remark: "custom", Security: "same", Sni: "custom.example"},
+		{InboundId: ib.Id, Remark: "tls", Security: "tls", Sni: "a.example"},
+		{InboundId: other.Id, Remark: "other", Security: "same", Sni: "a.example"},
+	}
+	if err := database.GetDB().Create(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	s := &RealityWatchService{}
+	if err := s.SaveConfig(ib.Id, RealityWatchEntry{Spares: []string{"b.example:443"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SwitchTo(context.Background(), ib.Id, "b.example:443"); err != nil {
+		t.Fatalf("SwitchTo: %v", err)
+	}
+	want := map[string]struct {
+		sni  string
+		snis []string
+	}{
+		"pinned": {sni: "b.example"},
+		"pool":   {sni: "b.example", snis: []string{"b.example", "custom.example"}},
+		"custom": {sni: "custom.example"},
+		"tls":    {sni: "a.example"},
+		"other":  {sni: "a.example"},
+	}
+	var got []model.Host
+	if err := database.GetDB().Find(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, h := range got {
+		w := want[h.Remark]
+		if h.Sni != w.sni || !slices.Equal(h.Snis, w.snis) {
+			t.Errorf("host %s: sni %q snis %v, want %q %v", h.Remark, h.Sni, h.Snis, w.sni, w.snis)
+		}
+	}
+}
+
+// The UI disables the button for node inbounds because this server's tests say nothing about
+// the node's network; the API must hold the same line.
+func TestRealityWatchManualSwitchRefusesANodeInbound(t *testing.T) {
+	setupBulkDB(t)
+	stubRealityWatch(t, map[string]bool{"b.example:443": true}, map[string]bool{"b.example:443": true})
+	ib := realityInbound(t, 4448, "a.example:443", "a.example")
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", ib.Id).Update("node_id", 7).Error; err != nil {
+		t.Fatal(err)
+	}
+	s := &RealityWatchService{}
+	if _, err := s.SwitchTo(context.Background(), ib.Id, "b.example:443"); !errors.Is(err, errRealityWatchOnNode) {
+		t.Fatalf("err = %v, want errRealityWatchOnNode", err)
+	}
+	if target, _ := realityTargetOf(t, ib.Id); target != "a.example:443" {
+		t.Errorf("target = %s, want it kept", target)
 	}
 }

@@ -801,7 +801,7 @@
         "title": "Keep REALITY working",
         "savedWithInbound": "They are saved together with the inbound.",
         "hint": "Every 10 minutes this server checks the target. After {limit} failed checks in a row, the inbound moves to the first spare that passes the same check and a real REALITY connection through a temporary Xray. Only the target and SNI change; clients get the new SNI with their next subscription update.",
-        "onNode": "This inbound runs on a node, so this server does not check it; you can still switch by hand.",
+        "onNode": "This inbound runs on a node, so this server cannot check or switch its target.",
         "status": "Status",
         "notChecked": "not checked yet",
         "failing": "failing ({fails} of {limit})",

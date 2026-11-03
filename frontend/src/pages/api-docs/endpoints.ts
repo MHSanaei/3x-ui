@@ -1969,10 +1969,10 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/realityWatch/switch/:id',
         summary:
-          'Move the inbound to this target now. Refused unless the target passes the server check and a real REALITY connection; only target and serverNames change.',
+          'Move the inbound to this target now and return its new status. Refused for a node inbound, or unless the target passes the server check and a real REALITY connection. Only target and serverNames change, plus any Hosts of this inbound that pin an old server name.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
         body: '{\n  "target": "www.example.com:443"\n}',
-        responseSchema: 'RealityWatchEvent',
+        responseSchema: 'RealityWatchStatus',
       },
       {
         method: 'POST',

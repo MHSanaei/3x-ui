@@ -1097,6 +1097,7 @@ export const RealityWatchStatusSchema = z.object({
   latencyMs: z.number().int(),
   ok: z.boolean(),
   reason: z.string(),
+  serverNames: z.array(z.string()),
   spares: z.array(z.string()),
   target: z.string(),
 });

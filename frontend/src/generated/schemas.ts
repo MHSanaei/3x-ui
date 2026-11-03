@@ -4558,6 +4558,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "reason": {
         "type": "string"
       },
+      "serverNames": {
+        "example": [
+          "old.example.com"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "spares": {
         "example": [
           "www.example.com:443"
@@ -4581,6 +4590,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs",
       "ok",
       "reason",
+      "serverNames",
       "spares",
       "target"
     ],

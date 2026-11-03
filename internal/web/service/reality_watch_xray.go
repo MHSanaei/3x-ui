@@ -26,9 +26,8 @@ const realityRealTestTimeout = 25 * time.Second
 
 var realityRealTestBinary = xray.GetBinaryPath
 
-// xrayRealityRealTest connects through a throwaway REALITY server (target = target) and client,
-// both on loopback, and fetches https://sni/ through them. TLS 1.3 + h2 is not enough: some
-// sites pass that check but break REALITY's handshake, which would cut every client.
+// xrayRealityRealTest fetches https://sni/ through a throwaway REALITY server and client on
+// loopback: some sites pass TLS 1.3 + h2 but break REALITY's handshake, cutting every client.
 func xrayRealityRealTest(ctx context.Context, target, sni string) error {
 	bin := realityRealTestBinary()
 	if _, err := os.Stat(bin); err != nil {

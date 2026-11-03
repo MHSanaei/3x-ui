@@ -801,7 +801,7 @@
         "title": "Udržať REALITY v chode",
         "savedWithInbound": "Uložia sa spolu s inboundom.",
         "hint": "Tento server každých 10 minút kontroluje cieľ. Po {limit} neúspešných kontrolách za sebou sa inbound presunie na prvý záložný cieľ, ktorý prejde rovnakou kontrolou a skutočným spojením REALITY cez dočasný Xray. Mení sa len cieľ a SNI; klienti dostanú nové SNI pri ďalšej aktualizácii odberu.",
-        "onNode": "Tento inbound beží na uzle, preto ho tento server nekontroluje; ručne ho prepnúť stále môžete.",
+        "onNode": "Tento inbound beží na uzle, preto tento server nemôže skontrolovať ani prepnúť jeho cieľ.",
         "status": "Stav",
         "notChecked": "zatiaľ nekontrolované",
         "failing": "zlyháva ({fails} z {limit})",

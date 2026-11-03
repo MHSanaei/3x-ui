@@ -1136,6 +1136,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "latencyMs": 180,
     "ok": true,
     "reason": "",
+    "serverNames": [
+      "old.example.com"
+    ],
     "spares": [
       "www.example.com:443"
     ],

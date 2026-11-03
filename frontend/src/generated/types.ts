@@ -1030,6 +1030,7 @@ export interface RealityWatchStatus {
   latencyMs: number;
   ok: boolean;
   reason: string;
+  serverNames: string[];
   spares: string[];
   target: string;
 }

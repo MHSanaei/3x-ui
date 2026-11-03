@@ -58,8 +58,8 @@ func (a *RealityWatchController) save(c *gin.Context) {
 	jsonObj(c, a.realityWatchService.Status(id), nil)
 }
 
-// switchTarget moves the inbound to the given target after the server check and a real
-// REALITY connection through it; a target failing either is refused.
+// switchTarget answers with the status so the editor gets the saved target and SNIs in one step;
+// a form left on the old ones would put them back on its next Save.
 func (a *RealityWatchController) switchTarget(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -71,12 +71,11 @@ func (a *RealityWatchController) switchTarget(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.realityWatch.toasts.switchFailed"), err)
 		return
 	}
-	ev, err := a.realityWatchService.SwitchTo(c.Request.Context(), id, req.Target)
-	if err != nil {
+	if _, err := a.realityWatchService.SwitchTo(c.Request.Context(), id, req.Target); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.realityWatch.toasts.switchFailed"), err)
 		return
 	}
-	jsonObj(c, ev, nil)
+	jsonObj(c, a.realityWatchService.Status(id), nil)
 }
 
 func (a *RealityWatchController) test(c *gin.Context) {

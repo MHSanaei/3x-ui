@@ -801,7 +801,7 @@
         "title": "Manter o REALITY funcionando",
         "savedWithInbound": "Eles são salvos junto com a entrada.",
         "hint": "A cada 10 minutos este servidor verifica o destino. Após {limit} verificações seguidas com falha, o inbound passa para a primeira reserva que passar na mesma verificação e numa conexão REALITY real por um Xray temporário. Só o destino e o SNI mudam; os clientes recebem o novo SNI na próxima atualização da assinatura.",
-        "onNode": "Este inbound roda em um nó, então este servidor não o verifica; ainda dá para trocar manualmente.",
+        "onNode": "Este inbound roda em um nó, então este servidor não pode verificar nem trocar o destino dele.",
         "status": "Status",
         "notChecked": "ainda não verificado",
         "failing": "falhando ({fails} de {limit})",

@@ -14,9 +14,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// The REALITY watch keeps an inbound's target alive: it checks the target from this server
-// and, after realityWatchFailLimit failed checks in a row, moves the inbound to the first
-// spare that passes both the server check and a real REALITY connection.
+// The REALITY watch checks a target from this server and, after realityWatchFailLimit failures
+// in a row, moves the inbound to the first spare that passes both checks.
 
 const (
 	realityWatchSetting   = "realityWatch"
@@ -30,6 +29,8 @@ var (
 	errRealityWatchNotReality  = errors.New("reality watch: not a REALITY inbound")
 	errRealityWatchTargetFails = errors.New("reality watch: target fails the check")
 	errRealityWatchNoSpare     = errors.New("reality watch: no spare target works")
+	errRealityWatchChanged     = errors.New("reality watch: the target changed during the check")
+	errRealityWatchOnNode      = errors.New("reality watch: this server cannot test a node inbound's target")
 
 	realityWatchProbe = func(s *ServerService, target, sni string, xver int) *RealityScanResult {
 		res, err := s.ScanRealityTarget(target, sni, xver, false)
@@ -57,16 +58,17 @@ type RealityWatchEvent struct {
 }
 
 type RealityWatchStatus struct {
-	InboundId int                 `json:"inboundId" example:"3"`
-	Target    string              `json:"target" example:"old.example.com:443"`
-	Auto      bool                `json:"auto" example:"true"`
-	Spares    []string            `json:"spares" example:"[\"www.example.com:443\"]"`
-	CheckedAt int64               `json:"checkedAt" example:"1793000000"`
-	Ok        bool                `json:"ok" example:"true"`
-	Fails     int                 `json:"fails" example:"0"`
-	Reason    string              `json:"reason" example:""`
-	LatencyMs int                 `json:"latencyMs" example:"180"`
-	Events    []RealityWatchEvent `json:"events"`
+	InboundId   int                 `json:"inboundId" example:"3"`
+	Target      string              `json:"target" example:"old.example.com:443"`
+	ServerNames []string            `json:"serverNames" example:"[\"old.example.com\"]"`
+	Auto        bool                `json:"auto" example:"true"`
+	Spares      []string            `json:"spares" example:"[\"www.example.com:443\"]"`
+	CheckedAt   int64               `json:"checkedAt" example:"1793000000"`
+	Ok          bool                `json:"ok" example:"true"`
+	Fails       int                 `json:"fails" example:"0"`
+	Reason      string              `json:"reason" example:""`
+	LatencyMs   int                 `json:"latencyMs" example:"180"`
+	Events      []RealityWatchEvent `json:"events"`
 }
 
 type realityWatchState struct {
@@ -78,9 +80,12 @@ type realityWatchState struct {
 	events    []RealityWatchEvent
 }
 
+// realityWatchMu guards config, state and the final save, never a network check: those take
+// minutes when targets time out and the API must answer meanwhile.
 var (
 	realityWatchMu     sync.Mutex
 	realityWatchStates = map[int]*realityWatchState{}
+	realityWatchTickMu sync.Mutex
 )
 
 func resetRealityWatchState() {
@@ -91,6 +96,7 @@ func resetRealityWatchState() {
 
 type RealityWatchService struct {
 	inboundService InboundService
+	hostService    HostService
 	settingService SettingService
 	serverService  ServerService
 	xrayService    XrayService
@@ -203,13 +209,19 @@ func (s *RealityWatchService) Status(inboundId int) RealityWatchStatus {
 }
 
 func (s *RealityWatchService) statusLocked(inboundId int, entry RealityWatchEntry) RealityWatchStatus {
-	st := RealityWatchStatus{InboundId: inboundId, Auto: entry.Auto, Spares: entry.Spares, Events: []RealityWatchEvent{}}
+	st := RealityWatchStatus{
+		InboundId: inboundId, Auto: entry.Auto, Spares: entry.Spares,
+		ServerNames: []string{}, Events: []RealityWatchEvent{},
+	}
 	if st.Spares == nil {
 		st.Spares = []string{}
 	}
 	if ib, err := s.inboundService.GetInbound(inboundId); err == nil {
 		if rs, ok := realityOf(ib); ok {
 			st.Target = rs.Target
+			if rs.ServerNames != nil {
+				st.ServerNames = rs.ServerNames
+			}
 		}
 	}
 	if state := realityWatchStates[inboundId]; state != nil {
@@ -233,53 +245,98 @@ func (s *RealityWatchService) List() []RealityWatchStatus {
 	return out
 }
 
-// Tick checks every watched inbound's target once (the cron job calls it). Node inbounds are
-// skipped: their REALITY server runs on the node, so this server's view says nothing about it.
+// Tick checks every watched inbound's target once (the cron job calls it). A cycle still running
+// when the next one fires keeps going alone, so one outage is not counted twice.
 func (s *RealityWatchService) Tick(ctx context.Context) {
-	realityWatchMu.Lock()
-	defer realityWatchMu.Unlock()
-	cfg := s.loadConfig()
-	for id, entry := range cfg {
-		ib, err := s.inboundService.GetInbound(id)
-		if err != nil || !ib.Enable || ib.NodeID != nil {
-			continue
-		}
-		rs, ok := realityOf(ib)
-		if !ok || localRealityTarget(rs.Target) {
-			continue
-		}
-		res := realityWatchProbe(&s.serverService, rs.Target, firstString(rs.ServerNames), rs.Xver)
-		// a domain that resolves into a private network: the SSRF guard blocked it, nothing failed
-		if res.PrivateTarget {
-			continue
-		}
-		state := realityWatchStates[id]
-		if state == nil {
-			state = &realityWatchState{}
-			realityWatchStates[id] = state
-		}
-		state.checkedAt, state.ok, state.reason, state.latencyMs = time.Now(), res.Feasible, res.Reason, res.LatencyMs
-		if res.Feasible {
-			state.fails = 0
-			continue
-		}
-		state.fails++
-		if !entry.Auto || state.fails < realityWatchFailLimit {
-			continue
-		}
-		ev, err := s.switchLocked(ctx, ib, rs, entry, entry.Spares, cfg)
-		if err != nil {
-			// one "nothing works" line per outage, not one per check
-			if n := len(state.events); n == 0 || state.events[n-1].To != "" {
-				s.recordLocked(id, RealityWatchEvent{At: time.Now().Unix(), From: rs.Target, Reason: res.Reason})
-			}
-			logger.Warningf("reality watch: inbound %d target %s fails (%s) and no spare works", id, rs.Target, res.Reason)
-			continue
-		}
-		ev.Reason = res.Reason
-		state.events[len(state.events)-1].Reason = res.Reason
-		state.fails = 0
+	if !realityWatchTickMu.TryLock() {
+		return
 	}
+	defer realityWatchTickMu.Unlock()
+	realityWatchMu.Lock()
+	cfg := s.loadConfig()
+	realityWatchMu.Unlock()
+	for id := range cfg {
+		s.checkInbound(ctx, id)
+	}
+}
+
+// checkInbound skips node inbounds: their REALITY server runs on the node, so this server's
+// view says nothing about it.
+func (s *RealityWatchService) checkInbound(ctx context.Context, id int) {
+	ib, err := s.inboundService.GetInbound(id)
+	if err != nil || !ib.Enable || ib.NodeID != nil {
+		return
+	}
+	rs, ok := realityOf(ib)
+	if !ok || localRealityTarget(rs.Target) {
+		return
+	}
+	res := realityWatchProbe(&s.serverService, rs.Target, firstString(rs.ServerNames), rs.Xver)
+	// a domain that resolves into a private network: the SSRF guard blocked it, nothing failed
+	if res.PrivateTarget {
+		return
+	}
+	alive := realityTargetAlive(ctx, rs, res)
+
+	realityWatchMu.Lock()
+	entry := s.loadConfig()[id]
+	state := realityWatchStates[id]
+	if state == nil {
+		state = &realityWatchState{}
+		realityWatchStates[id] = state
+	}
+	state.checkedAt, state.ok, state.reason, state.latencyMs = time.Now(), alive, res.Reason, res.LatencyMs
+	if alive {
+		state.fails = 0
+		state.reason = ""
+		realityWatchMu.Unlock()
+		return
+	}
+	state.fails++
+	due := entry.Auto && state.fails >= realityWatchFailLimit
+	realityWatchMu.Unlock()
+	if !due {
+		return
+	}
+
+	_, err = s.switchInbound(ctx, id, rs, entry.Spares, res.Reason)
+	switch {
+	case err == nil:
+	case errors.Is(err, errRealityWatchChanged):
+		logger.Infof("reality watch: inbound %d changed during the check, not switching it", id)
+	default:
+		realityWatchMu.Lock()
+		defer realityWatchMu.Unlock()
+		// one "nothing works" line per outage, not one per check
+		if n := len(state.events); n == 0 || state.events[n-1].To != "" {
+			s.recordLocked(id, RealityWatchEvent{At: time.Now().Unix(), From: rs.Target, Reason: res.Reason})
+		}
+		logger.Warningf("reality watch: inbound %d target %s fails (%s) and no spare works", id, rs.Target, res.Reason)
+	}
+}
+
+// realityTargetAlive decides whether a target failed. The scanner's bar (h2, SNI on the cert) is
+// for choosing a target; one that misses it can still carry REALITY, so the real test decides.
+func realityTargetAlive(ctx context.Context, rs realitySettingsView, res *RealityScanResult) bool {
+	if res.Feasible {
+		return true
+	}
+	if !res.TLS13 {
+		return false
+	}
+	target, err := normalizeRealityTarget(rs.Target)
+	if err != nil {
+		return false
+	}
+	sni := firstString(rs.ServerNames)
+	if sni == "" {
+		sni, _, _ = net.SplitHostPort(target)
+	}
+	if err := realityWatchRealTest(ctx, target, sni); err != nil {
+		logger.Infof("reality watch: %s fails a real REALITY connection: %v", target, err)
+		return false
+	}
+	return true
 }
 
 // localRealityTarget is a target on this machine or the LAN: a bare port, a unix socket, or
@@ -310,24 +367,25 @@ func firstString(list []string) string {
 	return list[0]
 }
 
-// SwitchTo moves an inbound to target now (the admin's button), after the same checks.
+// SwitchTo moves an inbound to target now (the admin's button), after the same checks. A node
+// inbound is refused: both checks run here and say nothing about the node's network.
 func (s *RealityWatchService) SwitchTo(ctx context.Context, inboundId int, target string) (*RealityWatchEvent, error) {
 	target, err := normalizeRealityTarget(target)
 	if err != nil {
 		return nil, err
 	}
-	realityWatchMu.Lock()
-	defer realityWatchMu.Unlock()
 	ib, err := s.inboundService.GetInbound(inboundId)
 	if err != nil {
 		return nil, err
+	}
+	if ib.NodeID != nil {
+		return nil, errRealityWatchOnNode
 	}
 	rs, ok := realityOf(ib)
 	if !ok {
 		return nil, errRealityWatchNotReality
 	}
-	cfg := s.loadConfig()
-	ev, err := s.switchLocked(ctx, ib, rs, cfg[inboundId], []string{target}, cfg)
+	ev, err := s.switchInbound(ctx, inboundId, rs, []string{target}, "")
 	if errors.Is(err, errRealityWatchNoSpare) {
 		return nil, errRealityWatchTargetFails
 	}
@@ -350,10 +408,10 @@ func (s *RealityWatchService) TestTarget(ctx context.Context, target string) (*R
 	return res, nil
 }
 
-// switchLocked tries candidates in order; the first that passes the server check and a real
-// REALITY connection becomes the target, with its host as the only SNI. Needs realityWatchMu.
-func (s *RealityWatchService) switchLocked(ctx context.Context, ib *model.Inbound, rs realitySettingsView,
-	entry RealityWatchEntry, candidates []string, cfg map[int]RealityWatchEntry,
+// switchInbound tries candidates in order; the first that passes the server check and a real
+// REALITY connection becomes the target, with its host as the only SNI.
+func (s *RealityWatchService) switchInbound(ctx context.Context, inboundId int, rs realitySettingsView,
+	candidates []string, reason string,
 ) (*RealityWatchEvent, error) {
 	for _, cand := range candidates {
 		if cand == rs.Target {
@@ -370,29 +428,57 @@ func (s *RealityWatchService) switchLocked(ctx context.Context, ib *model.Inboun
 			logger.Infof("reality watch: %s passes the TLS check but not a real REALITY connection: %v", cand, err)
 			continue
 		}
-		if err := s.applyTarget(ib, cand, host); err != nil {
-			return nil, err
-		}
-		spares := []string{}
-		for _, sp := range entry.Spares {
-			if sp != cand {
-				spares = append(spares, sp)
-			}
-		}
-		if old, err := normalizeRealityTarget(rs.Target); err == nil && !containsString(spares, old) {
-			spares = append(spares, old)
-		}
-		entry.Spares = spares
-		cfg[ib.Id] = entry
-		if err := s.storeConfig(cfg); err != nil {
-			return nil, err
-		}
-		ev := RealityWatchEvent{At: time.Now().Unix(), From: rs.Target, To: cand}
-		s.recordLocked(ib.Id, ev)
-		logger.Warningf("reality watch: inbound %d switched from %s to %s", ib.Id, rs.Target, cand)
-		return &ev, nil
+		return s.commitSwitch(inboundId, rs.Target, cand, host, reason)
 	}
 	return nil, errRealityWatchNoSpare
+}
+
+// commitSwitch saves a fresh copy of the inbound, since the checks took long enough for an admin
+// to save an edit. A target changed meanwhile means the admin already chose; nothing is switched.
+func (s *RealityWatchService) commitSwitch(inboundId int, from, to, sni, reason string) (*RealityWatchEvent, error) {
+	realityWatchMu.Lock()
+	defer realityWatchMu.Unlock()
+	ib, err := s.inboundService.GetInbound(inboundId)
+	if err != nil {
+		return nil, err
+	}
+	rs, ok := realityOf(ib)
+	if !ok {
+		return nil, errRealityWatchNotReality
+	}
+	if rs.Target != from {
+		return nil, errRealityWatchChanged
+	}
+	if err := s.applyTarget(ib, to, sni); err != nil {
+		return nil, err
+	}
+	// The inbound has moved, so a host failure must not lose the spares and history below.
+	if err := s.hostService.MoveInboundSni(inboundId, rs.ServerNames, sni); err != nil {
+		logger.Warningf("reality watch: inbound %d switched but its hosts keep the old SNI: %v", inboundId, err)
+	}
+	InvalidateSubData()
+
+	cfg := s.loadConfig()
+	entry := cfg[inboundId]
+	spares := []string{}
+	for _, sp := range entry.Spares {
+		if sp != to {
+			spares = append(spares, sp)
+		}
+	}
+	if old, err := normalizeRealityTarget(from); err == nil && !containsString(spares, old) {
+		spares = append(spares, old)
+	}
+	entry.Spares = spares
+	cfg[inboundId] = entry
+	if err := s.storeConfig(cfg); err != nil {
+		return nil, err
+	}
+	ev := RealityWatchEvent{At: time.Now().Unix(), From: from, To: to, Reason: reason}
+	s.recordLocked(inboundId, ev)
+	realityWatchStates[inboundId].fails = 0
+	logger.Warningf("reality watch: inbound %d switched from %s to %s", inboundId, from, to)
+	return &ev, nil
 }
 
 func (s *RealityWatchService) recordLocked(inboundId int, ev RealityWatchEvent) {

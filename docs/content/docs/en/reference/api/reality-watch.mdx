@@ -24,10 +24,11 @@ _openapi:
         automatically.
       url: '#set-the-spare-targets-hostport-in-order-of-preference-at-most-10-the-current-target-is-dropped-and-whether-a-dead-target-is-replaced-automatically'
     - depth: 2
-      title: Move the inbound to this target now. Refused unless the target passes the
-        server check and a real REALITY connection; only target and serverNames
-        change.
-      url: '#move-the-inbound-to-this-target-now-refused-unless-the-target-passes-the-server-check-and-a-real-reality-connection-only-target-and-servernames-change'
+      title: Move the inbound to this target now and return its new status. Refused
+        for a node inbound, or unless the target passes the server check and a
+        real REALITY connection. Only target and serverNames change, plus any
+        Hosts of this inbound that pin an old server name.
+      url: '#move-the-inbound-to-this-target-now-and-return-its-new-status-refused-for-a-node-inbound-or-unless-the-target-passes-the-server-check-and-a-real-reality-connection-only-target-and-servernames-change-plus-any-hosts-of-this-inbound-that-pin-an-old-server-name'
     - depth: 2
       title: Check a target from this server and through a real REALITY connection;
         feasible is false with a reason when either fails.
@@ -43,10 +44,11 @@ _openapi:
           the current target is dropped) and whether a dead target is replaced
           automatically.
         id: set-the-spare-targets-hostport-in-order-of-preference-at-most-10-the-current-target-is-dropped-and-whether-a-dead-target-is-replaced-automatically
-      - content: Move the inbound to this target now. Refused unless the target passes
-          the server check and a real REALITY connection; only target and
-          serverNames change.
-        id: move-the-inbound-to-this-target-now-refused-unless-the-target-passes-the-server-check-and-a-real-reality-connection-only-target-and-servernames-change
+      - content: Move the inbound to this target now and return its new status. Refused
+          for a node inbound, or unless the target passes the server check and a
+          real REALITY connection. Only target and serverNames change, plus any
+          Hosts of this inbound that pin an old server name.
+        id: move-the-inbound-to-this-target-now-and-return-its-new-status-refused-for-a-node-inbound-or-unless-the-target-passes-the-server-check-and-a-real-reality-connection-only-target-and-servernames-change-plus-any-hosts-of-this-inbound-that-pin-an-old-server-name
       - content: Check a target from this server and through a real REALITY connection;
           feasible is false with a reason when either fails.
         id: check-a-target-from-this-server-and-through-a-real-reality-connection-feasible-is-false-with-a-reason-when-either-fails

@@ -4584,6 +4584,15 @@
           "reason": {
             "type": "string"
           },
+          "serverNames": {
+            "example": [
+              "old.example.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "spares": {
             "example": [
               "www.example.com:443"
@@ -4607,6 +4616,7 @@
           "latencyMs",
           "ok",
           "reason",
+          "serverNames",
           "spares",
           "target"
         ],
@@ -13357,6 +13367,9 @@
                       "latencyMs": 180,
                       "ok": true,
                       "reason": "",
+                      "serverNames": [
+                        "old.example.com"
+                      ],
                       "spares": [
                         "www.example.com:443"
                       ],
@@ -13425,6 +13438,9 @@
                     "latencyMs": 180,
                     "ok": true,
                     "reason": "",
+                    "serverNames": [
+                      "old.example.com"
+                    ],
                     "spares": [
                       "www.example.com:443"
                     ],
@@ -13508,6 +13524,9 @@
                     "latencyMs": 180,
                     "ok": true,
                     "reason": "",
+                    "serverNames": [
+                      "old.example.com"
+                    ],
                     "spares": [
                       "www.example.com:443"
                     ],
@@ -13525,7 +13544,7 @@
         "tags": [
           "REALITY watch"
         ],
-        "summary": "Move the inbound to this target now. Refused unless the target passes the server check and a real REALITY connection; only target and serverNames change.",
+        "summary": "Move the inbound to this target now and return its new status. Refused for a node inbound, or unless the target passes the server check and a real REALITY connection. Only target and serverNames change, plus any Hosts of this inbound that pin an old server name.",
         "operationId": "post_panel_api_realityWatch_switch_id",
         "parameters": [
           {
@@ -13566,17 +13585,35 @@
                       "type": "string"
                     },
                     "obj": {
-                      "$ref": "#/components/schemas/RealityWatchEvent"
+                      "$ref": "#/components/schemas/RealityWatchStatus"
                     }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "at": 1793000000,
-                    "from": "old.example.com:443",
-                    "reason": "TLS handshake failed: EOF",
-                    "to": "www.example.com:443"
+                    "auto": true,
+                    "checkedAt": 1793000000,
+                    "events": [
+                      {
+                        "at": 1793000000,
+                        "from": "old.example.com:443",
+                        "reason": "TLS handshake failed: EOF",
+                        "to": "www.example.com:443"
+                      }
+                    ],
+                    "fails": 0,
+                    "inboundId": 3,
+                    "latencyMs": 180,
+                    "ok": true,
+                    "reason": "",
+                    "serverNames": [
+                      "old.example.com"
+                    ],
+                    "spares": [
+                      "www.example.com:443"
+                    ],
+                    "target": "old.example.com:443"
                   }
                 }
               }

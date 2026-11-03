@@ -801,7 +801,7 @@
         "title": "REALITY'yi çalışır tut",
         "savedWithInbound": "Bunlar inbound ile birlikte kaydedilir.",
         "hint": "Bu sunucu hedefi her 10 dakikada bir denetler. Art arda {limit} başarısız denetimden sonra inbound, aynı denetimi ve geçici bir Xray üzerinden gerçek bir REALITY bağlantısını geçen ilk yedeğe geçer. Yalnızca hedef ve SNI değişir; istemciler yeni SNI'yı bir sonraki abonelik güncellemesinde alır.",
-        "onNode": "Bu inbound bir düğümde çalışıyor, bu yüzden bu sunucu onu denetlemez; elle değiştirmek yine mümkün.",
+        "onNode": "Bu inbound bir düğümde çalışıyor, bu yüzden bu sunucu hedefini denetleyemez veya değiştiremez.",
         "status": "Durum",
         "notChecked": "henüz denetlenmedi",
         "failing": "başarısız ({fails}/{limit})",

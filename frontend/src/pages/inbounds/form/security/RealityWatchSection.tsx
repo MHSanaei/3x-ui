@@ -22,6 +22,7 @@ interface Props {
   message?: MessageInstance;
   // a new inbound has no id yet: its spares go to the form and are saved after the create
   onDraftChange?: (entry: RealityWatchEntry) => void;
+  onSwitched?: (target: string, serverNames: string[]) => void;
 }
 
 export default function RealityWatchSection({
@@ -30,6 +31,7 @@ export default function RealityWatchSection({
   scanRealityCandidates,
   message,
   onDraftChange,
+  onSwitched,
 }: Props) {
   const { t } = useTranslation();
   const uid = useId();
@@ -107,22 +109,18 @@ export default function RealityWatchSection({
   const switchTo = async (target: string) => {
     setBusy('switch:' + target);
     try {
-      const msg = await HttpUtil.post(
+      const msg = await HttpUtil.post<RealityWatchStatus>(
         `/panel/api/realityWatch/switch/${inboundId}`,
         { target },
         { ...JSON_HEADERS, silent: true },
       );
-      if (!msg?.success) {
+      if (!msg?.success || !msg.obj) {
         message?.error(msg?.msg || t('pages.inbounds.realityWatch.toasts.switchFailed'));
         return;
       }
       message?.success(t('pages.inbounds.realityWatch.toasts.switched', { target }));
-      const st = await HttpUtil.get<RealityWatchStatus>(
-        `/panel/api/realityWatch/status/${inboundId}`,
-        undefined,
-        { silent: true },
-      );
-      if (st?.success && st.obj) show(st.obj);
+      show(msg.obj);
+      onSwitched?.(msg.obj.target, msg.obj.serverNames);
     } finally {
       setBusy('');
     }
