@@ -204,6 +204,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	excludedClients, excludedInbounds := 0, 0
 	for _, inbound := range inbounds {
 		if !inbound.Enable {
 			continue
@@ -242,10 +243,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 		finalClients := make([]any, 0, len(dbClients))
 		var wgPeers []any
+		excludedBefore := excludedClients
 		for i := range dbClients {
 			c := dbClients[i]
 			if enable, exists := enableMap[c.Email]; exists && !enable {
-				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+				excludedClients++
 				continue
 			}
 			if !c.Enable {
@@ -313,6 +315,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				continue
 			}
 			finalClients = append(finalClients, entry)
+		}
+		if excludedClients > excludedBefore {
+			excludedInbounds++
 		}
 
 		var mutated bool
@@ -485,6 +490,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 	xrayConfig.RouterConfig = dropRefusedScript(xrayConfig.RouterConfig, "routing", routingScriptRefused)
 	xrayConfig.DNSConfig = dropRefusedScript(xrayConfig.DNSConfig, "dns", dnsScriptRefused)
+	if excludedClients > 0 {
+		logger.Infof("Xray config generated: excluded %d disabled client entries across %d inbounds", excludedClients, excludedInbounds)
+	}
 	return xrayConfig, nil
 }
 
