@@ -82,14 +82,15 @@ describe('i18n keys', () => {
     );
   });
 
-  it('no literal t() key resolves to an object', () => {
-    const objectKeys = Array.from(
-      blob.matchAll(/\bt\(\s*(['"`])([\w.-]+)\1\s*[,)]/g),
-      (m) => m[2],
-    ).filter((key) => enKeys.some((leaf) => leaf.startsWith(`${key}.`)));
+  it('every literal t() key is an en-US string', () => {
+    const leaves = new Set(enKeys);
+    const literalKeys = new Set(
+      Array.from(blob.matchAll(/\bt\(\s*(['"`])([\w.-]+)\1\s*[,)]/g), (m) => m[2]),
+    );
+    const unresolved = [...literalKeys].filter((key) => !leaves.has(key));
     expect(
-      objectKeys,
-      `t() keys naming a group, rendered as "key '…' returned an object instead of string.":\n  ${objectKeys.join('\n  ')}`,
+      unresolved,
+      `t() keys that are not an en-US string (a missing key renders raw, a group renders "key '…' returned an object instead of string."):\n  ${unresolved.join('\n  ')}`,
     ).toEqual([]);
   });
 
