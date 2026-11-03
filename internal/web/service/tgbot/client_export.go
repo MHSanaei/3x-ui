@@ -142,6 +142,19 @@ func (t *Tgbot) sendClientExport(ctx context.Context, chatID int64, email, kind 
 	if enabled, err := t.settingService.GetSubEnable(); err != nil || !enabled {
 		return errors.New("subscription server disabled")
 	}
+	raw, err := t.settingService.GetSubURI()
+	if kind == "json" {
+		raw, err = t.settingService.GetSubJsonURI()
+	}
+	if err != nil {
+		return err
+	}
+	// Validate before adding the subscription ID, which can disguise an empty host.
+	if raw != "" {
+		if err := validateSubscriptionURL(raw); err != nil {
+			return err
+		}
+	}
 	if err := validateSubscriptionURL(primary); err != nil {
 		return err
 	}

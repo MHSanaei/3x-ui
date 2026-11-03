@@ -185,9 +185,6 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 
 	// If pre-configured URIs are available, use them directly
 	if subURI != "" {
-		if err := validateSubscriptionURL(subURI); err != nil {
-			return "", "", err
-		}
 		if !strings.HasSuffix(subURI, "/") {
 			subURI = subURI + "/"
 		}
@@ -197,11 +194,6 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	}
 
 	if subJsonURI != "" {
-		if subJsonEnable {
-			if err := validateSubscriptionURL(subJsonURI); err != nil {
-				return "", "", err
-			}
-		}
 		if !strings.HasSuffix(subJsonURI, "/") {
 			subJsonURI = subJsonURI + "/"
 		}
