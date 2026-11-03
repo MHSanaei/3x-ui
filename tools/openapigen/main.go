@@ -36,6 +36,7 @@ func run(root, outDir string) error {
 				"ClientReverse",
 				"Client",
 				"ClientRecord",
+				"ClientExternalLink",
 				"ClientInbound",
 				"InboundFallback",
 				"Host",
@@ -122,7 +123,7 @@ func run(root, outDir string) error {
 		},
 		{
 			Path:        resolveRel(root, "internal/web/controller"),
-			StructAllow: setOf("TgBotCapabilities"),
+			StructAllow: setOf("TgBotCapabilities", "ClientPayload", "ClientDetail", "ClientTrafficDetail"),
 		},
 		{
 			Path:        resolveRel(root, "internal/amneziawg"),

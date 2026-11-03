@@ -475,6 +475,33 @@ export const ClientSchema = z.object({
 });
 export type Client = z.infer<typeof ClientSchema>;
 
+export const ClientDetailSchema = z.object({
+  client: z.lazy(() => ClientRecordSchema).nullable().optional(),
+  depletedAt: z.number().int(),
+  depletedReason: z.string(),
+  externalLinks: z.array(z.lazy(() => ClientExternalLinkSchema)),
+  inboundIds: z.array(z.number().int()),
+  tunnelAllowedIPs: z.record(z.number().int(), z.string()),
+  usedTraffic: z.number().int(),
+});
+export type ClientDetail = z.infer<typeof ClientDetailSchema>;
+
+export const ClientExternalLinkSchema = z.object({
+  clientId: z.number().int(),
+  createdAt: z.number().int(),
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int(),
+  id: z.number().int(),
+  kind: z.string(),
+  lastFetchAt: z.number().int(),
+  lastFetchError: z.string(),
+  namePrefix: z.string(),
+  remark: z.string(),
+  sortIndex: z.number().int(),
+  value: z.string(),
+});
+export type ClientExternalLink = z.infer<typeof ClientExternalLinkSchema>;
+
 export const ClientInboundSchema = z.object({
   clientId: z.number().int(),
   createdAt: z.number().int(),
@@ -493,6 +520,15 @@ export const ClientPageResponseSchema = z.object({
   total: z.number().int(),
 });
 export type ClientPageResponse = z.infer<typeof ClientPageResponseSchema>;
+
+export const ClientPayloadSchema = z.object({
+  client: z.lazy(() => ClientRecordSchema).nullable().optional(),
+  externalLinks: z.array(z.lazy(() => ClientExternalLinkSchema)),
+  inboundIds: z.array(z.number().int()),
+  tunnelAllowedIPs: z.record(z.number().int(), z.string()),
+  usedTraffic: z.number().int(),
+});
+export type ClientPayload = z.infer<typeof ClientPayloadSchema>;
 
 export const ClientRecordSchema = z.object({
   adTag: z.string(),
@@ -601,6 +637,29 @@ export const ClientTrafficSchema = z.object({
   uuid: z.string(),
 });
 export type ClientTraffic = z.infer<typeof ClientTrafficSchema>;
+
+export const ClientTrafficDetailSchema = z.object({
+  depletedAt: z.number().int(),
+  depletedReason: z.string(),
+  down: z.number().int(),
+  email: z.string(),
+  enable: z.boolean(),
+  expiryTime: z.number().int(),
+  id: z.number().int(),
+  inboundId: z.number().int(),
+  lastOnline: z.number().int(),
+  lastSubFetch: z.number().int(),
+  reset: z.number().int(),
+  resetCount: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
+  subId: z.string(),
+  total: z.number().int(),
+  up: z.number().int(),
+  uuid: z.string(),
+});
+export type ClientTrafficDetail = z.infer<typeof ClientTrafficDetailSchema>;
 
 export const ClientsSummarySchema = z.object({
   active: z.number().int(),
