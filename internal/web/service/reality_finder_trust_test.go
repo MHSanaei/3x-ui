@@ -21,16 +21,7 @@ import (
 // The command runs on the admin's device over the users' (hostile) ISP, often over plain
 // HTTP, so it must run only the exact script the panel made for it.
 func TestRealityFinderCommandRefusesASwappedScript(t *testing.T) {
-	python := ""
-	for _, name := range []string{"python3", "python"} {
-		if out, err := exec.Command(name, "-c", "print(7*6)").Output(); err == nil && strings.TrimSpace(string(out)) == "42" {
-			python = name
-			break
-		}
-	}
-	if python == "" {
-		t.Skip("no working python on PATH")
-	}
+	python := findWorkingPython(t)
 	resetRealityFinder(t, time.Now())
 	marker := filepath.Join(t.TempDir(), "pwned")
 	swapped := "open(" + `r"` + marker + `"` + ", 'w').write('x')\n"
@@ -89,4 +80,16 @@ func TestRealityFinderScansTheNodeAnInboundIsDeployedTo(t *testing.T) {
 	if !errors.Is(err, errRealityFinderNoServer) {
 		t.Errorf("node on a private address: err = %v, want errRealityFinderNoServer", err)
 	}
+}
+
+// findWorkingPython skips past the Windows Store stub, which is on PATH but runs nothing.
+func findWorkingPython(t *testing.T) string {
+	t.Helper()
+	for _, name := range []string{"python3", "python"} {
+		if out, err := exec.Command(name, "-c", "print(7*6)").Output(); err == nil && strings.TrimSpace(string(out)) == "42" {
+			return name
+		}
+	}
+	t.Skip("no working python on PATH")
+	return ""
 }

@@ -461,10 +461,16 @@ def ips_near(server_ip, nets, limit=MAX_IPS):
 
 # ---------- the filter test (through the user's own server) ----------
 
+def is_tls_alert(error):
+    # OpenSSL names every standard alert *_ALERT_* or TLSV1_* (TLSV1_UNRECOGNIZED_NAME)
+    reason = getattr(error, "reason", None) or ""
+    return isinstance(error, ssl.SSLError) and ("ALERT" in reason or reason.startswith("TLSV1_"))
+
+
 def sni_through(server_ip, port, sni, timeout=6, tries=2):
     """Does a TLS handshake with this SNI to the server get through this network?
-    A REALITY server passes unknown names on to its dest, so the handshake completes
-    unless the ISP cuts it on the name."""
+    A REALITY server passes unknown names on to its dest, so the dest answers unless the
+    ISP cuts the name. A TLS alert is such an answer, even though it refuses the name."""
     ctx = ssl_context(verify=False)
     for i in range(tries):
         try:
@@ -472,7 +478,9 @@ def sni_through(server_ip, port, sni, timeout=6, tries=2):
                 raw.settimeout(timeout)
                 with ctx.wrap_socket(raw, server_hostname=sni):
                     return True
-        except (OSError, ValueError):
+        except (OSError, ValueError) as e:
+            if is_tls_alert(e):
+                return True
             if i + 1 < tries:
                 time.sleep(0.5)
     return False
