@@ -143,6 +143,7 @@ type managed struct {
 	apiPort      int
 	apiToken     string
 	last         map[string]clientCounters
+	instance     Instance
 }
 
 // Manager owns the set of running mtg processes keyed by inbound id.
@@ -317,6 +318,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		switch ensureActionFor(cur.proc.IsRunning(), cur.structuralFP, cur.secretsFP, structFP, secFP) {
 		case ensureNoop:
 			cur.tag = inst.Tag
+			cur.instance = inst
 			return nil
 		case ensureReload:
 			if err := writeConfig(configPathForID(inst.Id), inst, cur.apiPort, cur.apiToken); err != nil {
@@ -325,6 +327,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 			if applySecrets(cur.apiPort, cur.apiToken, inst) {
 				cur.tag = inst.Tag
 				cur.secretsFP = secFP
+				cur.instance = inst
 				logger.Infof("mtproto: applied secret update to inbound %d in place", inst.Id)
 				return nil
 			}
@@ -359,6 +362,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		apiPort:      apiPort,
 		apiToken:     apiToken,
 		last:         map[string]clientCounters{},
+		instance:     inst,
 	}
 	logger.Infof("mtproto: started mtg for inbound %d on %s", inst.Id, inst.bindTo())
 	return nil
@@ -468,7 +472,7 @@ func (m *Manager) CollectTraffic() ([]Traffic, []string) {
 		}
 
 		m.mu.Lock()
-		if cur, ok := m.procs[s.id]; ok {
+		if cur, ok := m.procs[s.id]; ok && cur.apiPort == s.apiPort && cur.apiToken == s.apiToken {
 			cur.last = newLast
 		}
 		m.mu.Unlock()
@@ -495,26 +499,53 @@ func (m *Manager) ResetQuotaContext(ctx context.Context, email string, inboundID
 	if email == "" {
 		return nil
 	}
-	type target struct {
-		port  int
-		token string
-	}
 	m.mu.Lock()
-	targets := make([]target, 0, len(m.procs))
+	defer m.mu.Unlock()
+	var errs []error
+	var ids []int
 	for id, cur := range m.procs {
 		if len(inboundIDs) > 0 && !slices.Contains(inboundIDs, id) {
 			continue
 		}
-		if cur.proc != nil && cur.proc.IsRunning() {
-			targets = append(targets, target{cur.apiPort, cur.apiToken})
+		if slices.ContainsFunc(cur.instance.Secrets, func(secret SecretEntry) bool { return secret.Name == email }) {
+			ids = append(ids, id)
 		}
 	}
-	m.mu.Unlock()
-	var errs []error
-	for _, t := range targets {
-		errs = append(errs, resetQuotaContext(ctx, t.port, t.token, email))
+	for _, id := range ids {
+		cur := m.procs[id]
+		if err := ctx.Err(); err != nil {
+			return errors.Join(append(errs, err)...)
+		}
+		if cur.proc == nil {
+			continue
+		}
+		if !cur.proc.IsRunning() {
+			errs = append(errs, m.restartQuotaLocked(cur))
+			continue
+		}
+		err := resetQuotaContext(ctx, cur.apiPort, cur.apiToken, email)
+		if errors.Is(err, errQuotaResetUnsupported) {
+			err = m.restartQuotaLocked(cur)
+		}
+		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
+}
+
+var errQuotaResetUnsupported = errors.New("MTProto quota reset endpoint unsupported")
+
+func (m *Manager) restartQuotaLocked(cur *managed) error {
+	if cur.proc.IsRunning() {
+		if err := cur.proc.Stop(); err != nil {
+			return err
+		}
+	}
+	// Retain the desired instance on failure so a later reset/reconcile can retry.
+	if err := m.ensureLocked(cur.instance); err != nil {
+		m.procs[cur.instance.Id] = cur
+		return err
+	}
+	return nil
 }
 
 func resetQuotaContext(ctx context.Context, port int, token, email string) error {
@@ -530,6 +561,9 @@ func resetQuotaContext(ctx context.Context, port int, token, email string) error
 		return err
 	}
 	_ = resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return errQuotaResetUnsupported
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("MTProto quota reset returned HTTP %d", resp.StatusCode)
 	}

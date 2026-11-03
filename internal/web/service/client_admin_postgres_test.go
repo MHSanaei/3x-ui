@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -22,7 +23,7 @@ func TestAdminWorkflowPostgresDurability(t *testing.T) {
 	}
 	startSerializedWriter(t)
 	mgr := runtime.NewManager(runtime.LocalDeps{})
-	probe := &fakeNodeRuntime{}
+	probe := &adminApplyProbe{}
 	mgr.SetLocalRuntimeOverride(probe)
 	runtime.SetManager(mgr)
 	t.Cleanup(func() { runtime.SetManager(nil) })
@@ -44,6 +45,11 @@ func TestAdminWorkflowPostgresDurability(t *testing.T) {
 	tokens := []string{create.Token}
 	t.Cleanup(func() {
 		current := database.GetDB()
+		var record model.ClientRecord
+		if current.Where("email = ?", email).First(&record).Error == nil {
+			_ = current.Where("key = ?", pendingClientOperationKey(record.Id)).Delete(&model.Setting{}).Error
+			_ = current.Where("key = ?", clientResetOperationKey(record.Id)).Delete(&model.Setting{}).Error
+		}
 		_ = current.Where("client_id IN (?)", current.Model(&model.ClientRecord{}).Select("id").Where("email = ?", email)).Delete(&model.ClientInbound{}).Error
 		_ = current.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error
 		_ = current.Where("email = ?", email).Delete(&model.ClientGlobalTraffic{}).Error
@@ -132,5 +138,56 @@ func TestAdminWorkflowPostgresDurability(t *testing.T) {
 	stored, err := (&ClientPlanService{}).Resolve(plan.Name)
 	if err != nil || stored.ID != plan.ID {
 		t.Fatalf("plan lost on PostgreSQL reopen: %+v %v", stored, err)
+	}
+	current := database.GetDB()
+	for _, row := range []any{&model.ClientRecord{}, &xray.ClientTraffic{}} {
+		if err := current.Model(row).Where("email = ?", email).Updates(map[string]any{"enable": false, "expiry_time": time.Now().Add(-time.Hour).UnixMilli()}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	recovery, err := svc.PrepareRenew(77, email, ClientRenewalSpec{Mode: "replace", QuotaBytes: 40 << 30, Days: 30, FirstUse: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokens = append(tokens, recovery.Token)
+	probe.fail.Store(true)
+	if _, err := svc.Confirm(context.Background(), recovery.Token, 77); !errors.Is(err, ErrClientOperationPending) {
+		t.Fatalf("expected committed PostgreSQL synchronization failure: %v", err)
+	}
+	activated := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
+	if err := current.Model(&xray.ClientTraffic{}).Where("email = ?", email).Updates(map[string]any{"up": 321, "expiry_time": activated}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := current.Model(&model.ClientRecord{}).Where("email = ?", email).Update("updated_at", time.Now().UnixMilli()+100).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := database.CloseDB(); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.InitDB(""); err != nil {
+		t.Fatal(err)
+	}
+	next, err := svc.PrepareRenew(77, email, ClientRenewalSpec{Mode: "extend", QuotaBytes: 5 << 30, Days: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokens = append(tokens, next.Token)
+	if len(next.Pending) != 1 || next.Pending[0].Token != recovery.Token {
+		t.Fatalf("reopened PostgreSQL lost unresolved receipt: %+v", next.Pending)
+	}
+	probe.fail.Store(false)
+	for range 4 {
+		wg.Go(func() {
+			if _, err := svc.Confirm(context.Background(), recovery.Token, 77); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if err := database.GetDB().Where("email = ?", email).First(&traffic).Error; err != nil {
+		t.Fatal(err)
+	}
+	if traffic.Up != 321 || traffic.Total != 40<<30 || traffic.ExpiryTime != activated {
+		t.Fatalf("committed recovery reapplied PostgreSQL accounting: %+v", traffic)
 	}
 }

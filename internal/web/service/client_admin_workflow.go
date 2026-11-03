@@ -55,20 +55,21 @@ type ClientAdminPreview struct {
 }
 
 type ClientAdminOperation struct {
-	Token       string             `json:"token"`
-	Owner       int64              `json:"owner"`
-	Email       string             `json:"email"`
-	RecordID    int                `json:"recordId,omitempty"`
-	Kind        string             `json:"kind"`
-	State       string             `json:"state"`
-	ExpiresAt   int64              `json:"expiresAt"`
-	ConfirmedAt int64              `json:"confirmedAt,omitempty"`
-	Spec        ClientRenewalSpec  `json:"spec"`
-	Preview     ClientAdminPreview `json:"preview"`
-	Baseline    string             `json:"baseline,omitempty"`
-	SubID       string             `json:"subId,omitempty"`
-	Plan        *ClientPlan        `json:"plan,omitempty"`
-	NeedsEnable bool               `json:"needsEnable"`
+	Token       string                   `json:"token"`
+	Owner       int64                    `json:"owner"`
+	Email       string                   `json:"email"`
+	RecordID    int                      `json:"recordId,omitempty"`
+	Kind        string                   `json:"kind"`
+	State       string                   `json:"state"`
+	ExpiresAt   int64                    `json:"expiresAt"`
+	ConfirmedAt int64                    `json:"confirmedAt,omitempty"`
+	Spec        ClientRenewalSpec        `json:"spec"`
+	Preview     ClientAdminPreview       `json:"preview"`
+	Baseline    string                   `json:"baseline,omitempty"`
+	SubID       string                   `json:"subId,omitempty"`
+	Plan        *ClientPlan              `json:"plan,omitempty"`
+	NeedsEnable bool                     `json:"needsEnable"`
+	Pending     []ClientPendingOperation `json:"pending,omitempty"`
 }
 
 type ClientAdminWorkflowService struct{}
@@ -274,7 +275,7 @@ func saveClientOperation(tx *gorm.DB, op *ClientAdminOperation) error {
 func pruneClientOperations(tx *gorm.DB) error {
 	cutoff := clientOperationSettingPrefix + time.Now().UTC().AddDate(0, 0, -31).Format("20060102")
 	var ids []int
-	if err := tx.Model(&model.Setting{}).Where("key >= ? AND key < ?", clientOperationSettingPrefix, cutoff).Limit(sqlInChunk).Pluck("id", &ids).Error; err != nil {
+	if err := tx.Model(&model.Setting{}).Where("key >= ? AND key < ? AND value NOT LIKE ?", clientOperationSettingPrefix, cutoff, `%"state":"committed"%`).Limit(sqlInChunk).Pluck("id", &ids).Error; err != nil {
 		return err
 	}
 	if len(ids) == 0 {
@@ -384,6 +385,10 @@ func (s *ClientAdminWorkflowService) PrepareRenew(owner int64, email string, spe
 		}
 		op.Baseline = snap.fingerprint
 		op.RecordID = snap.record.Id
+		op.Pending, err = pendingClientOperations(tx, snap.record.Id)
+		if err != nil {
+			return err
+		}
 		if err := pruneClientOperations(tx); err != nil {
 			return err
 		}
@@ -456,17 +461,30 @@ func (s *ClientService) commitRenewalTx(tx *gorm.DB, op *ClientAdminOperation) e
 	if snap.fingerprint != op.Baseline {
 		return ErrClientOperationChanged
 	}
+	pending, err := pendingClientOperations(tx, snap.record.Id)
+	if err != nil {
+		return err
+	}
+	for _, existing := range pending {
+		if !slices.Contains(op.Pending, existing) {
+			return ErrClientOperationChanged
+		}
+	}
 	now := tx.NowFunc().UnixMilli()
 	op.Preview, err = renewalPreview(snap, op.Spec, now)
 	if err != nil {
 		return err
 	}
 	p := op.Preview
+	op.ConfirmedAt = now
 	updatedAt := now
 	if updatedAt <= snap.record.UpdatedAt {
 		updatedAt = snap.record.UpdatedAt + 1
 	}
 	if p.ResetUsage {
+		if err := writeBotSetting(tx, clientResetOperationKey(op.RecordID), op.Token); err != nil {
+			return err
+		}
 		if err := resetClientTrafficAccounting(tx, op.Email, p.EnabledAfter); err != nil {
 			return err
 		}
@@ -510,7 +528,10 @@ func (s *ClientService) commitRenewalTx(tx *gorm.DB, op *ClientAdminOperation) e
 	op.Baseline = after.fingerprint
 	op.NeedsEnable = p.EnabledAfter && (!p.EnabledBefore || !snap.traffic.Enable)
 	op.State = "committed"
-	return saveClientOperation(tx, op)
+	if err := saveClientOperation(tx, op); err != nil {
+		return err
+	}
+	return registerPendingClientOperation(tx, op)
 }
 
 func lockClientWorkflowInbounds(ctx context.Context, email string) (func(), error) {
@@ -582,6 +603,7 @@ func (s *ClientAdminWorkflowService) Confirm(ctx context.Context, token string, 
 		defer unlock()
 	}
 	resumeCreation := false
+	recoverSync := false
 	err = func() error {
 		botSettingsMu.Lock()
 		defer botSettingsMu.Unlock()
@@ -592,6 +614,7 @@ func (s *ClientAdminWorkflowService) Confirm(ctx context.Context, token string, 
 				return err
 			}
 			resumeCreation = op.State == "creating"
+			recoverSync = op.State == "committed"
 			if op.State == "done" {
 				record, err := (&ClientService{}).GetRecordByEmail(tx, op.Email)
 				if err != nil || record.Id != op.RecordID {
@@ -673,11 +696,15 @@ func (s *ClientAdminWorkflowService) Confirm(ctx context.Context, token string, 
 		if err := (&ClientPlanService{}).Validate(*op.Plan, op.Email); err != nil {
 			return nil, err
 		}
-		if _, err := (&ClientService{}).Create(&InboundService{}, payload); err != nil {
+		needRestart, createErr := (&ClientService{}).Create(&InboundService{}, payload)
+		if needRestart {
+			(&XrayService{}).SetToNeedRestart()
+		}
+		if createErr != nil {
 			if captureErr := captureInterruptedClientCreation(op); captureErr != nil {
 				return op, captureErr
 			}
-			return op, errors.Join(ErrClientOperationPending, err)
+			return op, errors.Join(ErrClientOperationPending, createErr)
 		}
 		unlock, lockErr := lockClientWorkflowInbounds(ctx, op.Email)
 		if lockErr != nil {
@@ -710,33 +737,43 @@ func (s *ClientAdminWorkflowService) Confirm(ctx context.Context, token string, 
 		}
 	}
 	InvalidateSubData()
-	if err := applyClientAdminOperation(ctx, op); err != nil {
+	if err := applyClientAdminOperation(ctx, op, recoverSync); err != nil {
 		return op, errors.Join(ErrClientOperationPending, err)
 	}
 	err = func() error {
 		botSettingsMu.Lock()
 		defer botSettingsMu.Unlock()
-		return runSerializedTx(func(tx *gorm.DB) error { op.State = "done"; return saveClientOperation(tx, op) })
+		return runSerializedTx(func(tx *gorm.DB) error {
+			op.State = "done"
+			if err := saveClientOperation(tx, op); err != nil {
+				return err
+			}
+			return unregisterPendingClientOperation(tx, op)
+		})
 	}()
 	if err != nil {
-		return op, err
+		return op, errors.Join(ErrClientOperationPending, err)
 	}
 	return op, nil
 }
 
-func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation) error {
+func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation, recoverSync bool) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	snap, err := loadClientLifecycle(database.GetDB(), op.Email)
 	if err != nil {
 		return err
 	}
-	if snap.fingerprint != op.Baseline {
-		return ErrClientOperationChanged
+	if snap.record.Id != op.RecordID {
+		return errors.New("committed operation target no longer exists; review the current client")
 	}
 	inboundSvc := &InboundService{}
 	nodes := map[int]bool{}
 	var mtprotoIDs []int
+	var resetToken string
+	if err := readBotSetting(database.GetDB(), clientResetOperationKey(op.RecordID), &resetToken); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
 	for _, inbound := range snap.inbounds {
 		if inbound.NodeID != nil {
 			nodes[*inbound.NodeID] = true
@@ -745,7 +782,7 @@ func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation) er
 			continue
 		}
 		needsConfig := inbound.NodeID != nil || servedOutsideXray(inbound.Protocol)
-		if !needsConfig && !op.NeedsEnable {
+		if !needsConfig && !op.NeedsEnable && !recoverSync {
 			continue
 		}
 		rt, err := inboundSvc.runtimeFor(inbound)
@@ -753,9 +790,19 @@ func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation) er
 			return err
 		}
 		if needsConfig {
-			desired := inbound
+			current := snap.clients[inbound.Id]
+			current["enable"] = snap.record.Enable && snap.traffic.Enable
+			current["totalGB"] = snap.record.TotalGB
+			current["expiryTime"] = mergeActivationExpiry(snap.record.ExpiryTime, snap.traffic.ExpiryTime)
+			settings, err := json.Marshal(snap.settings[inbound.Id])
+			if err != nil {
+				return err
+			}
+			built := *inbound
+			built.Settings = string(settings)
+			desired := &built
 			if inbound.NodeID == nil {
-				desired, err = inboundSvc.buildInboundForLocalRuntime(database.GetDB(), inbound)
+				desired, err = inboundSvc.buildInboundForLocalRuntime(database.GetDB(), desired)
 				if err != nil {
 					return err
 				}
@@ -772,7 +819,16 @@ func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation) er
 			if err := json.Unmarshal(data, &client); err != nil {
 				return err
 			}
-			if err := rt.UpdateUser(ctx, inbound, op.Email, client); err != nil {
+			current := *snap.record.ToClient()
+			current.Flow = client.Flow
+			if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+				current.PrivateKey, current.PublicKey, current.PreSharedKey = client.PrivateKey, client.PublicKey, client.PreSharedKey
+				current.AllowedIPs, current.KeepAlive = client.AllowedIPs, client.KeepAlive
+			}
+			current.Enable = current.Enable && snap.traffic.Enable
+			current.ExpiryTime = mergeActivationExpiry(current.ExpiryTime, snap.traffic.ExpiryTime)
+			if err := rt.UpdateUser(ctx, inbound, op.Email, current); err != nil {
+				(&XrayService{}).SetToNeedRestart()
 				return err
 			}
 		}
@@ -780,7 +836,9 @@ func applyClientAdminOperation(ctx context.Context, op *ClientAdminOperation) er
 			nodes[*inbound.NodeID] = true
 		}
 		if inbound.NodeID == nil && inbound.Protocol == model.MTProto {
-			mtprotoIDs = append(mtprotoIDs, inbound.Id)
+			if resetToken == "" || resetToken == op.Token {
+				mtprotoIDs = append(mtprotoIDs, inbound.Id)
+			}
 		}
 	}
 	if op.Preview.ResetUsage {

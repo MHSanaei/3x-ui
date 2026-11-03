@@ -2660,7 +2660,8 @@
       "clientPlans": "📦 Reusable client plans. Open a plan to edit it, delete it, or create a client. Client-card renewal also offers these plans.",
       "renewPlanScope": "Select a plan or enter a custom package. Renewal applies the plan’s quota, duration and renewal mode. Existing attachments, IP limit and identifiers remain unchanged.",
       "planDetails": "<b>Client plan: {{ .Name }}</b>\nQuota: {{ .Quota }}\nDays: {{ .Days }} (0 = unlimited)\nExpiry starts on first use: {{ .FirstUse }}\nEnabled on creation: {{ .Enabled }}\nIP limit on creation: {{ .LimitIP }}\nInbounds on creation: {{ .Inbounds }}\nRenewal: {{ .Mode }}",
-      "planNamePrompt": "Send a plan name: 1–32 letters, numbers, hyphens or underscores. Do not include spaces."
+      "planNamePrompt": "Send a plan name: 1–32 letters, numbers, hyphens or underscores. Do not include spaces.",
+      "previousRenewalPending": "A previous renewal has already committed and is awaiting synchronization. Retry it below. Confirming this preview deliberately applies a separate new renewal. If another administrator owns the pending operation, ask that administrator to retry it."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -2743,7 +2744,9 @@
       "delete": "🗑 Delete",
       "prev": "⬅️ Previous",
       "next": "Next ➡️",
-      "keepDisabled": "🔒 Keep disabled after renewal"
+      "keepDisabled": "🔒 Keep disabled after renewal",
+      "confirmSeparateRenewal": "Confirm separate renewal",
+      "retryCommittedRenewal": "Retry committed renewal"
     },
     "answers": {
       "broadcastStarted": "🚀 Toplu gönderim başladı.",

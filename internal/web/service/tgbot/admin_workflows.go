@@ -47,13 +47,13 @@ func parseRenewalArguments(args []string) (service.ClientRenewalSpec, error) {
 
 func (t *Tgbot) workflowError(chatID int64, err error) {
 	key := "tgbot.messages.workflowError"
-	if errors.Is(err, service.ErrClientOperationChanged) {
-		key = "tgbot.messages.workflowChanged"
-	} else if errors.Is(err, service.ErrClientOperationPending) {
+	if errors.Is(err, service.ErrClientOperationPending) {
 		key = "tgbot.messages.workflowPending"
+	} else if errors.Is(err, service.ErrClientOperationChanged) {
+		key = "tgbot.messages.workflowChanged"
 	}
 	message := t.I18nBot(key)
-	if key != "tgbot.messages.workflowChanged" {
+	if key != "tgbot.messages.workflowChanged" && !errors.Is(err, service.ErrClientOperationChanged) {
 		detail := []rune(err.Error())
 		if len(detail) > 240 {
 			detail = append(detail[:240], '…')
@@ -321,6 +321,15 @@ func (t *Tgbot) screenClientOperation(chatID int64, op *service.ClientAdminOpera
 		"NewQuota=="+t.quotaLabel(p.NewQuotaBytes), "Reset=="+t.enabledLabel(p.ResetUsage), "OldExpiry=="+t.expiryLabel(p.OldExpiry), "NewExpiry=="+t.expiryLabel(p.NewExpiry),
 		"OldEnabled=="+t.enabledLabel(p.EnabledBefore), "NewEnabled=="+t.enabledLabel(p.EnabledAfter), "Inbounds=="+inboundIDLabels(p.InboundIDs), "LimitIP=="+strconv.Itoa(p.LimitIP))
 	rows := [][]telego.InlineKeyboardButton{tu.InlineKeyboardRow(t.btn("tgbot.buttons.confirm", "admin_confirm "+op.Token), t.btn("tgbot.buttons.cancel", "admin_cancel "+op.Token))}
+	if len(op.Pending) > 0 {
+		body += "\n\n" + t.I18nBot("tgbot.messages.previousRenewalPending")
+		rows[0][0] = t.btn("tgbot.buttons.confirmSeparateRenewal", "admin_confirm "+op.Token)
+		for _, pending := range op.Pending {
+			if pending.Owner == op.Owner {
+				rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.retryCommittedRenewal", "admin_confirm "+pending.Token)))
+			}
+		}
+	}
 	if op.Kind == "renew" && !p.EnabledBefore && p.EnabledAfter {
 		rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.keepDisabled", "admin_keepoff "+op.Token)))
 	}
