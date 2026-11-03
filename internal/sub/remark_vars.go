@@ -588,9 +588,6 @@ func (s *SubService) lookupClient(inbound *model.Inbound, email string) model.Cl
 var usageInfoTokens = map[string]bool{
 	"TRAFFIC_USED": true, "TRAFFIC_LEFT": true, "TRAFFIC_TOTAL": true,
 	"TRAFFIC_USED_BYTES": true, "TRAFFIC_LEFT_BYTES": true, "TRAFFIC_TOTAL_BYTES": true,
-	"INBOUND_TRAFFIC_USED": true, "INBOUND_TRAFFIC_LEFT": true, "INBOUND_TRAFFIC_TOTAL": true,
-	"INBOUND_TRAFFIC_USED_BYTES": true, "INBOUND_TRAFFIC_LEFT_BYTES": true, "INBOUND_TRAFFIC_TOTAL_BYTES": true,
-	"INBOUND_UP": true, "INBOUND_DOWN": true,
 	"UP": true, "DOWN": true, "DAYS_LEFT": true, "EXPIRE_DATE": true, "EXPIRE_UNIX": true,
 	"STATUS": true, "STATUS_EMOJI": true, "USAGE_PERCENTAGE": true, "TIME_LEFT": true,
 	"JALALI_EXPIRE_DATE": true,
@@ -602,12 +599,25 @@ var connectionTokens = map[string]bool{
 	"SECURITY":  true,
 }
 
-var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
+var inboundTrafficTokens = map[string]bool{
+	"INBOUND_TRAFFIC_USED":        true,
+	"INBOUND_TRAFFIC_LEFT":        true,
+	"INBOUND_TRAFFIC_TOTAL":       true,
+	"INBOUND_TRAFFIC_USED_BYTES":  true,
+	"INBOUND_TRAFFIC_LEFT_BYTES":  true,
+	"INBOUND_TRAFFIC_TOTAL_BYTES": true,
+	"INBOUND_UP":                  true,
+	"INBOUND_DOWN":                true,
+}
+
+var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens, inboundTrafficTokens)
 
 // firstLinkOnlyBodyTokens are stripped from every subscription-body link after a
 // client's first one: the usage/info tokens plus the per-client EMAIL/USERNAME
 // identity. A client app needs the email once, so repeating it on every link of
 // the same subscription is noise — show it on the first link only, like traffic.
+// Note: per-inbound traffic tokens (inboundTrafficTokens) are deliberately kept on
+// each link because each inbound has distinct traffic metrics.
 var firstLinkOnlyBodyTokens = mergeTokenSets(usageInfoTokens, map[string]bool{
 	"EMAIL":    true,
 	"USERNAME": true,

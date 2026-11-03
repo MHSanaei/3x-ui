@@ -808,3 +808,83 @@ func TestGenTemplatedRemarkPreservesConfiguredOuterWhitespace(t *testing.T) {
 		t.Fatalf("remark = %q, want configured outer whitespace preserved", got)
 	}
 }
+
+func TestInboundTrafficOnAllLinks(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}|{{INBOUND_TRAFFIC_LEFT}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody: true,
+		usageShown:       map[string]bool{},
+	}
+	inbound1 := &model.Inbound{
+		Remark: "DE",
+		Total:  500 * gb,
+		Up:     50 * gb,
+		Down:   50 * gb,
+		ClientStats: []xray.ClientTraffic{{Email: "alice@x", Enable: true, Total: 100 * gb, Up: 10 * gb}},
+	}
+	inbound2 := &model.Inbound{
+		Remark: "FR",
+		Total:  200 * gb,
+		Up:     20 * gb,
+		Down:   30 * gb,
+		ClientStats: []xray.ClientTraffic{{Email: "alice@x", Enable: true, Total: 100 * gb, Up: 10 * gb}},
+	}
+	client := model.Client{Email: "alice@x"}
+	first := s.genTemplatedRemark(inbound1, client, "", "ws")
+	second := s.genTemplatedRemark(inbound2, client, "", "ws")
+
+	if !strings.Contains(first, "400.00GB") || !strings.Contains(first, "📊90.00GB") {
+		t.Fatalf("first link should carry both inbound and client traffic: %q", first)
+	}
+	if !strings.Contains(second, "150.00GB") {
+		t.Fatalf("second link must preserve inbound traffic: %q", second)
+	}
+	if strings.Contains(second, "📊") {
+		t.Fatalf("second link must strip client traffic: %q", second)
+	}
+}
+
+func TestInboundTrafficPreservedWithSubInfoNode(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:    "{{INBOUND}}|{{INBOUND_TRAFFIC_LEFT}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody:  true,
+		subInfoNodeEnable: true,
+	}
+	inbound := &model.Inbound{
+		Remark: "DE",
+		Total:  500 * gb,
+		Up:     50 * gb,
+		Down:   50 * gb,
+		ClientStats: []xray.ClientTraffic{{Email: "alice@x", Enable: true, Total: 100 * gb, Up: 10 * gb}},
+	}
+	client := model.Client{Email: "alice@x"}
+	remark := s.genTemplatedRemark(inbound, client, "", "ws")
+
+	if !strings.Contains(remark, "400.00GB") {
+		t.Fatalf("body link with subInfoNodeEnable must keep inbound traffic: %q", remark)
+	}
+	if strings.Contains(remark, "📊") {
+		t.Fatalf("body link with subInfoNodeEnable must strip client traffic: %q", remark)
+	}
+}
+
+func TestInboundTrafficStrippedInDisplay(t *testing.T) {
+	s := &SubService{
+		remarkTemplate:   "{{INBOUND}}|{{INBOUND_TRAFFIC_LEFT}}|📊{{TRAFFIC_LEFT}}",
+		subscriptionBody: false,
+	}
+	inbound := &model.Inbound{
+		Remark: "DE",
+		Total:  500 * gb,
+		Up:     50 * gb,
+		Down:   50 * gb,
+		ClientStats: []xray.ClientTraffic{{Email: "alice@x", Enable: true, Total: 100 * gb, Up: 10 * gb}},
+	}
+	client := model.Client{Email: "alice@x"}
+	remark := s.genTemplatedRemark(inbound, client, "", "ws")
+
+	if remark != "DE" {
+		t.Fatalf("display remark should strip inbound and client traffic: got %q, want %q", remark, "DE")
+	}
+}
+
