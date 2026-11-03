@@ -170,8 +170,17 @@ Network/runtime calls run after commit with bounded contexts. Success is shown
 only after the required runtime calls and node reset acknowledgements succeed.
 On a synchronization error, retry the same confirmation: committed renewal changes
 and usage resets are not applied twice.
+Retries reconcile the current canonical client, including later edits, depletion
+and first-use activation; they do not replay the original preview. A new preview
+lists unresolved committed renewals and offers **Retry committed renewal** to their
+owner. **Confirm separate renewal** explicitly applies another package instead.
+Local Xray application failures schedule the same restart recovery as panel edits;
+remote synchronization errors retain the node's existing recovery path.
 External reset delivery retains the existing acknowledged-outbox semantics;
 the database transaction is not a distributed transaction with Xray or sidecars.
+For local MTProto, an older binary that answers 404 to quota reset is restarted
+with its current limits and fresh runtime counters. Authentication, network and
+server errors remain failures, and an interrupted restart can be retried.
 
 A disabled, non-depleted client remains disabled. A currently exhausted client
 is enabled only after both quota and expiry permit it. The existing data model
@@ -181,8 +190,9 @@ the resulting status explicit and offers **Keep disabled after renewal** to
 preserve disabled status in that case. This choice also survives a restart.
 
 Confirmations expire after 20 minutes while pending. Receipts survive restarts
-and prevent replay; receipts older than 31 days are pruned in bounded batches as
+and prevent replay; completed or uncommitted receipts older than 31 days are pruned in bounded batches as
 new operations are prepared. Stale client or plan versions require a new preview.
+Unresolved committed receipts are retained until synchronization succeeds.
 Client creation inherits the existing service's per-inbound apply behavior. If it
 partly succeeds, the bot reports incomplete synchronization and retains the
 operation's identity for retry. An interrupted creation without a safely captured
