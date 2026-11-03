@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"net"
 	"net/url"
 	"regexp"
 	"slices"
@@ -208,17 +209,13 @@ func dropHostLocalKeys(v any) {
 
 func parseVmess(link string) (*ParseResult, error) {
 	b64 := strings.TrimPrefix(link, "vmess://")
-	// vmess:// base64(json)
-	raw, err := base64.StdEncoding.DecodeString(padBase64(b64))
-	if err != nil {
-		// Some providers use raw URL-safe
-		raw, err = base64.RawURLEncoding.DecodeString(b64)
-	}
+	// vmess:// base64(json), standard or URL-safe, padded or not
+	raw, err := base64DecodeFlexible(b64)
 	if err != nil {
 		return nil, fmt.Errorf("vmess decode: %w", err)
 	}
 	var j map[string]any
-	if err := json.Unmarshal(raw, &j); err != nil {
+	if err := json.Unmarshal([]byte(raw), &j); err != nil {
 		return nil, fmt.Errorf("vmess json: %w", err)
 	}
 
@@ -391,7 +388,7 @@ func parseVless(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "vless",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"address":    host,
 			"port":       port,
@@ -433,7 +430,7 @@ func parseTrojan(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "trojan",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"servers": []any{
 				map[string]any{"address": host, "port": port, "password": pw},
@@ -638,7 +635,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol":       "hysteria",
-		"tag":            decodeHash(u.Fragment),
+		"tag":            decodeHash(u.EscapedFragment()),
 		"settings":       map[string]any{"address": host, "port": port, "version": 2},
 		"streamSettings": stream,
 	}
@@ -661,7 +658,7 @@ func parseWireguard(link string) (*ParseResult, error) {
 	portStr := u.Port()
 	endpoint := host
 	if portStr != "" {
-		endpoint = host + ":" + portStr
+		endpoint = net.JoinHostPort(host, portStr)
 	}
 
 	addrRaw := firstParam(params, "address", "ip")
@@ -716,7 +713,7 @@ func parseWireguard(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "wireguard",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": settings,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil

@@ -312,7 +312,9 @@
         "pickInbound": "選擇一個入站",
         "matchAny": "任何",
         "destPlaceholder": "自動（子入站 listen:port）",
-        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。",
+        "decryptionConflict": "VLESS 伺服器端解密啟用時無法使用回落。請先刪除並儲存回落規則再啟用解密，或關閉解密。",
+        "saveFailed": "無法載入或儲存回落規則。草稿保持開啟；請檢查錯誤後重試。"
       },
       "protocol": "協議",
       "port": "連接埠",
@@ -2481,7 +2483,7 @@
         "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "嵌入 UUID 的單一 VLESS 路由值（0-65535），例如 443。留空表示無。",
         "mihomoX25519": "僅 Mihomo：REALITY 握手只使用一般 X25519，不帶 ML-KEM（support-x25519mlkem768: false）。適用於執行 Xray-core 26.9.8 以下、不要求 ML-KEM 的伺服器。",
-        "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
+        "remark": "此 Host 的純文字標籤。在備註範本中使用 {{HOST}} 可將其包含在設定名稱中。"
       },
       "remarkVars": {
         "title": "範本變數",

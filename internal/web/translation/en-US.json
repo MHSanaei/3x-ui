@@ -312,7 +312,9 @@
         "pickInbound": "Pick an inbound",
         "matchAny": "any",
         "destPlaceholder": "auto (child listen:port)",
-        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only).",
+        "decryptionConflict": "VLESS fallbacks cannot be used with active server decryption. Remove and save fallback rules before enabling VLESS decryption, or disable decryption.",
+        "saveFailed": "Could not load or save fallback rules. Your draft remains open; retry after checking the error."
       },
       "protocol": "Protocol",
       "port": "Port",
@@ -1197,7 +1199,7 @@
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Single VLESS route value (0-65535) baked into the UUID, e.g. 443. Leave blank for none.",
         "mihomoX25519": "Mihomo only: use a plain X25519 REALITY hello without ML-KEM (support-x25519mlkem768: false). For servers on Xray-core older than 26.9.8, which do not require ML-KEM.",
-        "remark": "A plain label for this host. Shown as the config name only when the inbound has no remark of its own."
+        "remark": "A plain label for this host. Insert {{HOST}} in the Remark Template to include it in configuration names."
       },
       "remarkVars": {
         "title": "Template Variables",

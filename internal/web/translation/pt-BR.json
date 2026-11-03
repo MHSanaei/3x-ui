@@ -312,7 +312,9 @@
         "pickInbound": "Escolha um inbound",
         "matchAny": "qualquer",
         "destPlaceholder": "automático (listen:porta do filho)",
-        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW)."
+        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW).",
+        "decryptionConflict": "Fallbacks não são compatíveis com a descriptografia VLESS ativa no servidor. Remova e salve as regras antes de ativá-la ou desative a descriptografia.",
+        "saveFailed": "Não foi possível carregar ou salvar as regras de fallback. O rascunho continua aberto; verifique o erro e tente novamente."
       },
       "protocol": "Protocolo",
       "port": "Porta",
@@ -2481,7 +2483,7 @@
         "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Um único valor de rota VLESS (0-65535) embutido no UUID, ex.: 443. Deixe em branco para nenhum.",
         "mihomoX25519": "Somente Mihomo: usa um handshake REALITY com X25519 simples, sem ML-KEM (support-x25519mlkem768: false). Para servidores com Xray-core anterior à 26.9.8, que não exigem ML-KEM.",
-        "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
+        "remark": "Um rótulo simples para este host. Insira {{HOST}} no modelo de observação para incluí-lo nos nomes de configuração."
       },
       "remarkVars": {
         "title": "Variáveis de Modelo",

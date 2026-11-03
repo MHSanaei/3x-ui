@@ -312,7 +312,9 @@
         "pickInbound": "インバウンドを選択",
         "matchAny": "任意",
         "destPlaceholder": "自動（子の listen:port）",
-        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。",
+        "decryptionConflict": "VLESS のサーバー復号が有効な場合、フォールバックは使用できません。復号を有効にする前にフォールバックルールを削除して保存するか、復号を無効にしてください。",
+        "saveFailed": "フォールバックルールを読み込みまたは保存できませんでした。下書きは開いたままです。エラーを確認して再試行してください。"
       },
       "protocol": "プロトコル",
       "port": "ポート",
@@ -2481,7 +2483,7 @@
         "allowInsecure": "TLS 証明書の検証をスキップします（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "UUID に埋め込まれる単一の VLESS ルート値（0〜65535）。例: 443。なしの場合は空欄にします。",
         "mihomoX25519": "Mihomo のみ: ML-KEM を使わず通常の X25519 で REALITY ハンドシェイクを行います (support-x25519mlkem768: false)。ML-KEM を必要としない Xray-core 26.9.8 未満のサーバー向けです。",
-        "remark": "このホストのプレーンなラベル。インバウンド自身に備考がない場合にのみ設定名として表示されます。"
+        "remark": "このホストのプレーンなラベル。設定名に含めるには、備考テンプレートに {{HOST}} を挿入します。"
       },
       "remarkVars": {
         "title": "テンプレート変数",

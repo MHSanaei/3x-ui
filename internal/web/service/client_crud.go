@@ -293,7 +293,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			// comment on the Attach path.
 			clientForInbound.AllowedIPs = nil
 		}
-		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
+		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}, ""); err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})
@@ -846,7 +846,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			// instead.
 			clientForInbound.AllowedIPs = nil
 		}
-		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}); err != nil {
+		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}, existing.Email); err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})

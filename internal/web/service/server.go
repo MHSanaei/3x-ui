@@ -880,34 +880,10 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 		return s.emaCPU, nil
 	}
 
-	// Compute busy and total deltas
-	// Note: Guest and GuestNice times are already included in User and Nice respectively,
-	// so we exclude them to avoid double-counting (Linux kernel accounting)
-	idleDelta := cur.Idle - s.lastCPUTimes.Idle
-	busyDelta := (cur.User - s.lastCPUTimes.User) +
-		(cur.System - s.lastCPUTimes.System) +
-		(cur.Nice - s.lastCPUTimes.Nice) +
-		(cur.Iowait - s.lastCPUTimes.Iowait) +
-		(cur.Irq - s.lastCPUTimes.Irq) +
-		(cur.Softirq - s.lastCPUTimes.Softirq) +
-		(cur.Steal - s.lastCPUTimes.Steal)
-
-	totalDelta := busyDelta + idleDelta
-
-	// Update last sample for next time
+	raw, ok := sys.CPUBusyPercent(s.lastCPUTimes, cur)
 	s.lastCPUTimes = cur
-
-	// Guard against division by zero or negative deltas (e.g., counter resets)
-	if totalDelta <= 0 {
+	if !ok {
 		return s.emaCPU, nil
-	}
-
-	raw := 100.0 * (busyDelta / totalDelta)
-	if raw < 0 {
-		raw = 0
-	}
-	if raw > 100 {
-		raw = 100
 	}
 
 	// Exponential moving average to smooth spikes
@@ -933,13 +909,16 @@ const (
 	maxXrayReleasesBytes = 32 << 20
 )
 
-func (s *ServerService) GetXrayVersions() ([]string, error) {
-	const (
-		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
-		bufferSize = 8192
-	)
+// Tests point these at a local server that stands in for GitHub.
+var (
+	xrayReleasesURL = "https://api.github.com/repos/XTLS/Xray-core/releases"
+	xrayDownloadURL = "https://github.com/XTLS/Xray-core/releases/download"
+)
 
-	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, XrayURL, nil)
+func (s *ServerService) GetXrayVersions() ([]string, error) {
+	const bufferSize = 8192
+
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, xrayReleasesURL, nil)
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -1041,7 +1020,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	}
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
-	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
+	url := fmt.Sprintf("%s/%s/%s", xrayDownloadURL, version, fileName)
 	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
@@ -1154,12 +1133,8 @@ func (s *ServerService) UpdateXray(version string) error {
 		return fmt.Errorf("xray version %q is not in the fetched release list", version)
 	}
 
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
-	}
-
-	// 2. Download the zip
+	// Keep the running core up until the swap. The download may need its panel egress
+	// bridge, and if the candidate fails the config check, clients stay on the old core.
 	zipFileName, err := s.downloadXRay(version)
 	if err != nil {
 		return err
@@ -1181,19 +1156,20 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	// 3. Helper to extract files
-	copyZipFile := func(zipName string, fileName string) error {
+	// Stage next to the target so the swap is an atomic rename on one filesystem, and
+	// keep the target's extension so Windows will run the staged file for the check.
+	stageZipFile := func(zipName string, fileName string) (string, error) {
 		zipFile, err := reader.Open(zipName)
 		if err != nil {
-			return err
+			return "", err
 		}
 		defer zipFile.Close()
 		if err := os.MkdirAll(filepath.Dir(fileName), 0o755); err != nil {
-			return err
+			return "", err
 		}
-		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
+		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*"+filepath.Ext(fileName))
 		if err != nil {
-			return err
+			return "", err
 		}
 		tmpPath := tmpFile.Name()
 		ok := false
@@ -1205,42 +1181,53 @@ func (s *ServerService) UpdateXray(version string) error {
 		}()
 		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
 		if err != nil {
-			return err
+			return "", err
 		}
 		if n > maxXrayBinaryBytes {
-			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+			return "", fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
 		}
 		if err := tmpFile.Chmod(0o755); err != nil {
-			return err
+			return "", err
 		}
 		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-		if runtime.GOOS == "windows" {
-			_ = os.Remove(fileName)
-		}
-		if err := os.Rename(tmpPath, fileName); err != nil {
-			return err
+			return "", err
 		}
 		ok = true
-		return nil
+		return tmpPath, nil
 	}
 
-	// 4. Extract correct binary
+	zipName, target := "xray", xray.GetBinaryPath()
 	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
-		err = copyZipFile("xray.exe", targetBinary)
-	} else {
-		err = copyZipFile("xray", xray.GetBinaryPath())
+		zipName, target = "xray.exe", filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
 	}
+	staged, err := stageZipFile(zipName, target)
 	if err != nil {
 		return err
 	}
+	defer os.Remove(staged)
 
-	// 5. Restart xray
+	xrayConfig, err := s.xrayService.GetXrayConfig()
+	if err != nil {
+		return err
+	}
+	if err := xray.CheckConfig(staged, xrayConfig); err != nil {
+		return fmt.Errorf("xray %s failed the config check and was not installed: %w", version, err)
+	}
+
+	if runtime.GOOS == "windows" {
+		// Windows cannot replace a running executable.
+		if err := s.StopXrayService(); err != nil {
+			logger.Warning("failed to stop xray before update:", err)
+		}
+		_ = os.Remove(target)
+	}
+	if err := os.Rename(staged, target); err != nil {
+		return err
+	}
+
 	if err := s.xrayService.RestartXray(true); err != nil {
 		logger.Error("start xray failed:", err)
-		return err
+		return fmt.Errorf("xray %s is installed, but the restart failed: %w", version, err)
 	}
 
 	return nil
@@ -2147,9 +2134,9 @@ func (s *ServerService) importPostgresDB(file multipart.File, keepHostSettings b
 	case importKindPgDump:
 		return s.restorePostgresDump(file, keepHostSettings)
 	case importKindSQLiteDB:
-		return s.migrateSQLiteIntoPostgres(file, false)
+		return s.migrateSQLiteIntoPostgres(file, false, keepHostSettings)
 	case importKindSQLiteDump:
-		return s.migrateSQLiteIntoPostgres(file, true)
+		return s.migrateSQLiteIntoPostgres(file, true, keepHostSettings)
 	default:
 		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) from this panel's Back Up, a SQLite database (.db), or a SQLite migration dump")
 	}
@@ -2231,7 +2218,7 @@ func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSetting
 	return nil
 }
 
-func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump bool) error {
+func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump, keepHostSettings bool) error {
 	tempDir, err := os.MkdirTemp("", "x-ui-pg-migrate-*")
 	if err != nil {
 		return common.NewErrorf("Error creating temporary folder: %v", err)
@@ -2272,6 +2259,11 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
 	}
 
+	var keptSettings hostBoundSnapshot
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
+	}
+
 	if errClose := database.CloseDB(); errClose != nil {
 		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
 	}
@@ -2280,6 +2272,9 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	if migrateErr == nil {
+		restoreHostBoundSettings(keptSettings)
 	}
 	s.inboundService.MigrateDB()
 
