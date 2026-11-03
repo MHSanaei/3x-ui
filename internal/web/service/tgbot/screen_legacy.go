@@ -140,6 +140,12 @@ func (t *Tgbot) clientRows(email string) [][]telego.InlineKeyboardButton {
 			t.btn("tgbot.buttons.setTGUser", t.encodeQuery("tg_user "+email)),
 			t.btn("tgbot.buttons.inviteLink", t.encodeQuery("client_invite_link "+email)),
 		),
+		// An invite link needs the client to reach Telegram; a subscription URL
+		// and a QR code do not, so they are the admin's way to hand one over.
+		tu.InlineKeyboardRow(
+			t.btn("tgbot.buttons.links", t.encodeQuery("client_sub_links "+email)),
+			t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email)),
+		),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.toggle", t.encodeQuery("toggle_enable "+email))),
 		t.backRow(),
 	}
