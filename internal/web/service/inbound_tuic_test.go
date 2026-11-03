@@ -359,6 +359,12 @@ func TestNormalizeTuicSettingsCanonicalizesCongestionAndPacketLimit(t *testing.T
 	if err := normalizeTuicSettings(ib); err == nil {
 		t.Fatal("unsupported congestion controller was accepted")
 	}
+	for _, settings := range []string{`{"max_idle_time":2199023255552}`, `{"server":{"authentication_timeout":86401}}`} {
+		ib.Settings = settings
+		if err := normalizeTuicSettings(ib); err == nil {
+			t.Fatalf("a timeout past a day was accepted: %s", settings)
+		}
+	}
 }
 
 func TestTuicRelayIdentitySurvivesNativeEligibilityChanges(t *testing.T) {

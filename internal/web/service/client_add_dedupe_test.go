@@ -2,12 +2,14 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func mustUnmarshal(t *testing.T, raw string, v any) {
@@ -91,5 +93,24 @@ func TestDedupeSettingsClients(t *testing.T) {
 	}
 	if _, changed := dedupeSettingsClients("{not json"); changed {
 		t.Fatal("invalid settings must not be rewritten")
+	}
+}
+
+// A node's settings blob may nest any value deeply beside its clients; decoding the whole
+// blob and re-indenting it cost the square of the depth for every one of these rewrites.
+func TestSettingsClientRewritesStayLinearInTheBlob(t *testing.T) {
+	deep := strings.Repeat("[", 5000) + strings.Repeat("]", 5000)
+	settings := `{"decoy":` + deep + `,"clients":[{"email":"a@x","expiryTime":-86400000,"enable":true},{"email":"A@x"}]}`
+	out, changed := dedupeSettingsClients(settings)
+	if !changed || len(out) > 2*len(settings) {
+		t.Fatalf("dedupe changed=%v, output %d bytes from %d", changed, len(out), len(settings))
+	}
+	lifted, changed := liftClientLifecycleInSettings(out, map[string]*xray.ClientTraffic{"a@x": {Email: "a@x", ExpiryTime: 1700000000000}})
+	if !changed || len(lifted) > 2*len(settings) || !strings.Contains(lifted, `"expiryTime":1700000000000`) || !strings.Contains(lifted, `"enable":false`) {
+		t.Fatalf("lift changed=%v, output %d bytes: %.120s", changed, len(lifted), lifted)
+	}
+	clients, err := ParseInboundSettingsClients(lifted)
+	if err != nil || len(clients) != 1 || clients[0].Email != "a@x" {
+		t.Fatalf("clients after the rewrites = %+v, %v", clients, err)
 	}
 }

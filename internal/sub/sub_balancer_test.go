@@ -2,11 +2,15 @@ package sub
 
 import (
 	"encoding/json"
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 )
 
 func seedSubBalancer(t *testing.T, b *model.SubBalancer) *model.SubBalancer {
@@ -506,5 +510,46 @@ func TestSubJson_BalancerCostsSkippedForNonLeastLoadStrategy(t *testing.T) {
 	strategy := balancerStrategy(t, parseSubJsonDocs(t, out), "misconfig")
 	if _, has := strategy["settings"]; has {
 		t.Fatalf("random balancer must never emit costs despite stored weights: %v", strategy)
+	}
+}
+
+// A node authors the endpoint list of its inbounds, so the member count is
+// not the admin's to bound; probing every taken suffix per member went quadratic.
+func TestSubJson_BalancerManySameProtocolMembers(t *testing.T) {
+	members := make([]map[string]any, 100_000)
+	for i := range members {
+		members[i] = map[string]any{"protocol": "vless", "tag": "proxy"}
+	}
+	// A protocol whose base collides with a suffixed tag must still be skipped.
+	members[0]["protocol"] = "vless-3"
+	members[4]["protocol"] = "trojan"
+
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
+	done := make(chan json_util.RawMessage, 1)
+	go func() {
+		done <- js.buildBalancerConfig(
+			&model.SubBalancer{Id: 1, Remark: "many", Strategy: "random", InboundIds: []int{7}},
+			[]subConfigEntry{{id: 7}},
+			[][]map[string]any{members},
+		)
+	}()
+	var raw json_util.RawMessage
+	select {
+	case raw = <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatalf("retagging %d same-protocol members did not finish in 30s", len(members))
+	}
+
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("balancer doc is not JSON: %v", err)
+	}
+	tags := docOutboundTags(doc)
+	want := []string{"bal-1-vless-3", "bal-1-vless", "bal-1-vless-2", "bal-1-vless-4", "bal-1-trojan", "bal-1-vless-5"}
+	if len(tags) < len(members) || !slices.Equal(tags[:len(want)], want) {
+		t.Fatalf("first member tags = %v, want %v", tags[:min(len(tags), len(want))], want)
+	}
+	if got, last := tags[len(members)-1], fmt.Sprintf("bal-1-vless-%d", len(members)-1); got != last {
+		t.Fatalf("last member tag = %q, want %q", got, last)
 	}
 }

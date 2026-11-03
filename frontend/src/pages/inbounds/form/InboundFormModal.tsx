@@ -226,11 +226,14 @@ export default function InboundFormModal({
   const getV = methods.getValues as unknown as (name?: string) => unknown;
   const control = methods.control;
   const [saving, setSaving] = useState(false);
+  const savedInboundId = useRef<number | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
   const {
     fallbacks,
+    hasStoredFallbacks,
+    fallbacksLoaded,
     fallbackChildOptions,
     loadFallbacks,
     saveFallbacks,
@@ -250,6 +253,7 @@ export default function InboundFormModal({
    * always empty. Offer it only then; `listen`/`custom` work for local inbounds.
    */
   const nodeShareOptionAvailable = selectableNodes.length > 0 && isNodeEligible;
+  const vlessDecryption = useWatch({ control, name: 'settings.decryption' }) ?? '';
   const vlessEncryption = useWatch({ control, name: 'settings.encryption' }) ?? '';
   const ssMethod = useWatch({ control, name: 'settings.method' });
   const isSSWith2022 = isSS2022({
@@ -296,7 +300,10 @@ export default function InboundFormModal({
     streamSettings: { network },
     settings: { network: wSsNetwork, allowedNetwork: wTunnelNetwork, udp: mixedUdpOn },
   });
+  const hasVlessDecryption =
+    protocol === Protocols.VLESS && vlessDecryption !== '' && vlessDecryption !== 'none';
   const isFallbackHost =
+    !hasVlessDecryption &&
     (protocol === Protocols.VLESS || protocol === Protocols.TROJAN) &&
     network === 'tcp' &&
     (security === 'tls' || security === 'reality');
@@ -439,6 +446,7 @@ export default function InboundFormModal({
         : buildAddModeValues();
     methods.reset(initial);
     realityWatchDraft.current = null;
+    savedInboundId.current = null;
     setScanResult(null);
     setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
@@ -575,27 +583,56 @@ export default function InboundFormModal({
       );
       return;
     }
+    if (saving) return;
+    if (!fallbacksLoaded) {
+      messageApi.error(t('pages.inbounds.fallbacks.saveFailed'));
+      return;
+    }
+    if (!isFallbackHost && fallbacks.length > 0) {
+      setActiveTab('protocol');
+      messageApi.error(
+        t(
+          hasVlessDecryption
+            ? 'pages.inbounds.fallbacks.decryptionConflict'
+            : 'pages.inbounds.fallbacks.needsTls',
+        ),
+      );
+      return;
+    }
     setSaving(true);
     try {
-      const payload = formValuesToWirePayload(parsed.data, { omitClients: mode === 'edit' });
-      const url =
-        mode === 'edit' && dbInbound
-          ? `/panel/api/inbounds/update/${dbInbound.id}`
-          : '/panel/api/inbounds/add';
+      // Persist an explicit removal before the backend checks the new decryption setting.
+      if (!isFallbackHost && hasStoredFallbacks && dbInbound) {
+        if (!(await saveFallbacks(dbInbound.id))) {
+          messageApi.error(t('pages.inbounds.fallbacks.saveFailed'));
+          return;
+        }
+      }
+      const existingId = mode === 'edit' ? dbInbound?.id : savedInboundId.current;
+      const payload = formValuesToWirePayload(parsed.data, { omitClients: !!existingId });
+      const url = existingId
+        ? `/panel/api/inbounds/update/${existingId}`
+        : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
         const obj = msg.obj as { id?: number; Id?: number } | null;
-        const savedId = mode === 'edit' ? dbInbound!.id : (obj?.id ?? obj?.Id ?? 0);
-        if (isFallbackHost && savedId) await saveFallbacks(savedId);
+        const masterId = existingId ?? obj?.id ?? obj?.Id ?? 0;
+        if (isFallbackHost && masterId) {
+          savedInboundId.current = masterId;
+          if (!(await saveFallbacks(masterId))) {
+            messageApi.error(t('pages.inbounds.fallbacks.saveFailed'));
+            return;
+          }
+        }
         const watch = realityWatchDraft.current;
         if (
           mode === 'add' &&
-          savedId &&
+          masterId &&
           parsed.data.streamSettings?.security === 'reality' &&
           watch &&
           (watch.auto || watch.spares.length)
         ) {
-          await HttpUtil.post(`/panel/api/realityWatch/save/${savedId}`, watch, {
+          await HttpUtil.post(`/panel/api/realityWatch/save/${masterId}`, watch, {
             headers: { 'Content-Type': 'application/json' },
           });
         }
@@ -795,6 +832,7 @@ export default function InboundFormModal({
 
   const fallbacksCard = (
     <FallbacksCard
+      canAdd={isFallbackHost && fallbacksLoaded}
       fallbacks={fallbacks}
       fallbackChildOptions={fallbackChildOptions}
       addFallback={addFallback}
@@ -846,9 +884,18 @@ export default function InboundFormModal({
         />
       )}
 
-      {isFallbackHost && fallbacksCard}
+      {(isFallbackHost || fallbacks.length > 0) && fallbacksCard}
+      {hasVlessDecryption && (
+        <Alert
+          className="mt-12"
+          type="warning"
+          showIcon
+          title={t('pages.inbounds.fallbacks.decryptionConflict')}
+        />
+      )}
       {(protocol === Protocols.VLESS || protocol === Protocols.TROJAN) &&
         network === 'tcp' &&
+        !hasVlessDecryption &&
         !isFallbackHost && (
           <Alert
             className="mt-12"
@@ -1193,7 +1240,9 @@ export default function InboundFormModal({
                     Protocols.TUIC,
                     Protocols.MASQUE,
                   ] as string[]
-                ).includes(protocol) || isFallbackHost
+                ).includes(protocol) ||
+                isFallbackHost ||
+                fallbacks.length > 0
                   ? [
                       {
                         key: 'protocol',
