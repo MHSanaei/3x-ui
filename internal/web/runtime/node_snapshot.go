@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -126,8 +125,8 @@ func (r *Remote) fetchCompactSnapshot(ctx context.Context) (*TrafficSnapshot, er
 	if err != nil {
 		return nil, err
 	}
-	var wire NodeTrafficSnapshotV1
-	if err := json.Unmarshal(env.Obj, &wire); err != nil {
+	wire, err := decodeNodeTrafficSnapshot(env.Obj)
+	if err != nil {
 		return nil, fmt.Errorf("decode traffic snapshot: %w", err)
 	}
 	if wire.Version != 1 || wire.Revision == "" || wire.Clients == nil || wire.InboundTraffic == nil {

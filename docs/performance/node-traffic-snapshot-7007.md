@@ -162,3 +162,60 @@ Focused regressions were observed failing without their protections: redundant s
 Token/lifecycle projections still scale with client/attachment count, and complete fresh counters cross the network each tick. Catalog memory scales per active node. Structural changes intentionally pay full reconciliation cost. SQLite structural edits incur a token-trigger update; PostgreSQL stamps the row before writing. Counter-only writes do not fire structural triggers. Migration adds two columns, initializes legacy tokens and installs triggers with normal database-owner migration privileges.
 
 The scale harness isolates fetch/merge and reaches two fanout peers. Real process/version/restart and nested-node behavior is tested separately; cadence-bound integration duration is not an isolated nested performance benchmark. Response-size limits remain unchanged.
+
+## Review hardening (#7014)
+
+Cached reconciliation retains the validated remote inbound ID → central inbound ID association, including deployed aliases whose tags differ. A cached poll validates the complete association and its membership coverage before restoring aliases. Missing, duplicate, foreign-node or incompatible targets force full reconciliation. Alias restoration occurs after lifecycle validation so a full tick still performs normal alias discovery and orphan protection. Counter resets, quota disablement and renewal continue through the existing traffic merge.
+
+The compact decoder enforces these limits before allocating typed collections:
+
+| Collection                                    |                                                 Limit |
+| --------------------------------------------- | ----------------------------------------------------: |
+| Structural inbounds and inbound counters      |                                   65,536 entries each |
+| Canonical client counters and attachments     |                                1,048,576 entries each |
+| Flat online email list                        |                                     1,048,576 entries |
+| Each GUID-keyed online/active/last-online map | 1,048,576 aggregate JSON values, including containers |
+
+The HTTP response byte limit remains in force. Embedded legacy `clientStats` lists in structural rows are bounded and discarded because the compact counter collection replaces them. Invalid collections, malformed responses and semantic protocol errors invalidate history and require a full catalog on recovery. Only HTTP 404/405 can enable legacy fallback; decode errors never downgrade to the legacy endpoint.
+
+Revision triggers use unscoped update events with actual-change guards. Bootstrap removes previous revision triggers before AutoMigrate and handwritten migrations, then recreates them afterwards. This also handles SQLite trigger bodies that mention retired columns. PostgreSQL type changes no longer encounter column dependencies from `UPDATE OF`. Counter-only, timestamp-only and no-op writes retain tokens; direct configuration writes change them. Database/process epochs still invalidate histories across migration or reopening.
+
+The review regressions cover cached alias traffic and resets, quota/disable/renewal state, whole-mapping fallback, unchanged-catalog reads, malicious and boundary collections, malformed-response recovery, and SQLite/PostgreSQL DDL, rollback and reopen behavior. The PostgreSQL CI step runs the new migration and alias cases with a required pass-count guard. `BenchmarkSnapshotRevisionSteadyState` compares scoped-event baseline triggers with generic-event triggers on both engines; `BenchmarkCompactSnapshotDecode` compares the original unbounded decoder with the bounded decoder on 20,000 counters.
+
+### Local hardening measurements
+
+The following are synthetic local measurements on the same Go 1.27.3 toolchain with `GOMAXPROCS=2`, PostgreSQL 16 and SQLite. Values are medians of three runs; trigger benchmarks used 500 ms per run and the decoder benchmark used one second. They measure the stated operation, rather than production latency.
+
+| Operation                                                                                           |    Scoped/unbounded baseline |     Hardened implementation |
+| --------------------------------------------------------------------------------------------------- | ---------------------------: | --------------------------: |
+| SQLite: update eight inbound counters, 4,042,344 bytes of configuration / 20,000 configured clients |                      4.54 ms |                     4.84 ms |
+| PostgreSQL: same eight-counter update                                                               |                     0.687 ms |                    1.412 ms |
+| Decode 20,000 compact client counters                                                               | 21.38 ms; 13.82 MB allocated | 42.78 ms; 6.56 MB allocated |
+
+Removing column-scoped events adds approximately 0.30 ms (SQLite) / 0.73 ms (PostgreSQL) per representative eight-inbound write. The decoder intentionally performs extra validation and counting passes before typed allocation; this halves allocated bytes in this fixture, at roughly 21 ms additional decode time per 20,000-client response. These are explicit validation costs, not claims that bounded decoding itself is faster. The optimization remains enabled and unchanged aliases are covered by assertions that reject full catalog reads.
+
+Repeat the isolated measurements with:
+
+```bash
+go test ./internal/database -run '^$' -bench '^BenchmarkSnapshotRevision(SteadyState|CatalogCounters)$' -benchtime=500ms -count=3
+go test ./internal/web/runtime -run '^$' -bench '^BenchmarkCompactSnapshotDecode$' -benchtime=1s -count=3
+```
+
+Set `XUI_TEST_PG_DSN` to an isolated PostgreSQL test database for its benchmark cases. The trigger benchmark builds a scoped-event baseline with the same change guards, isolating event-dispatch overhead; database migration and fixture construction are outside the timed region.
+
+Matched end-to-end fetch/merge reruns on SQLite used the same 20,000-client, eight-inbound fixture, one/two peers, two attachments/client, five warmups and twelve samples per scenario, with `GOMAXPROCS=2`:
+
+| Peers | Scenario | Legacy p50 / p95 | Compact p50 / p95 | Node/master SQL per cycle, legacy → compact | Full master structural polls, legacy → compact |
+| ----: | -------- | ---------------: | ----------------: | ------------------------------------------- | ---------------------------------------------: |
+|     1 | Idle     |   2538 / 2730 ms |      702 / 922 ms | 55/448 → 4/45                               |                                         12 → 0 |
+|     1 | Counters |   2489 / 2584 ms |      630 / 683 ms | 55/648 → 4/245                              |                                         12 → 0 |
+|     2 | Idle     |   5556 / 6621 ms |    5432 / 5506 ms | 110/896 → 8/900                             |                                        24 → 24 |
+|     2 | Counters |   5538 / 8187 ms |    5488 / 5693 ms | 110/1296 → 8/1300                           |                                        24 → 24 |
+
+The one-peer case keeps master caching active. The two-peer fixture shares every canonical client across peers; existing shared-claim safeguards intentionally require full master reconciliation, so it demonstrates reduced node query/wire work rather than a large master CPU reduction. Those safeguards are preserved. Compact idle wire traffic was 4,789,320 versus 23,001,295 bytes for one peer, and 9,578,640 versus 46,002,590 bytes for two peers. All compact unchanged samples avoided a full node catalog fetch. Add/remove/config events refreshed the affected peers in both cases.
+
+These current runs supersede any assumption that the earlier full-ladder speedup applies unchanged to shared-claim workloads after the upstream ownership hardening. The earlier CSVs and PostgreSQL 18 ladder remain historical measurements; the current trigger microbenchmarks used PostgreSQL 16, and the current end-to-end reruns above used SQLite only.
+
+```bash
+XUI_SCALE_TEST=1 XUI_SCALE_SIZES=20000 go test -run '^TestNodeSnapshotCycleScale/20000/8/(1|2)$' -count=1 -timeout=20m -v ./internal/web/service
+```

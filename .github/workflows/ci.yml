@@ -39,7 +39,8 @@ jobs:
       - name: Test
         run: |
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
-          go test -shuffle=on -count=1 $(cat /tmp/go-packages.txt)
+          mapfile -t go_packages < /tmp/go-packages.txt
+          go test -shuffle=on -count=1 "${go_packages[@]}"
 
   postgres-durable-first:
     runs-on: ubuntu-latest
@@ -113,10 +114,10 @@ jobs:
       - name: PostgreSQL node snapshot regressions
         run: |
           set -o pipefail
-          go test -p=1 ./internal/database ./internal/web/service -run '^(TestSnapshotRevisionsDirectWritesAndRollback|TestNodeSnapshotUnchangedAvoidsSettingsAndDetectsDirectEdits|TestNodeSnapshotMergeSkipsUnchangedStructureAndPreservesDeltas|TestNodeSnapshotReadDoesNotHoldTrafficWriter|TestNodeSnapshotCanceledReadReleasesConnection|TestNodeSnapshotReopenInvalidatesCatalog)$' -count=1 -v | tee /tmp/postgres-node-snapshot.log
+          go test -p=1 ./internal/database ./internal/web/service -run '^(TestSnapshotRevisionsDirectWritesAndRollback|TestNodeSnapshotUnchangedAvoidsSettingsAndDetectsDirectEdits|TestNodeSnapshotMergeSkipsUnchangedStructureAndPreservesDeltas|TestNodeSnapshotReadDoesNotHoldTrafficWriter|TestNodeSnapshotCanceledReadReleasesConnection|TestNodeSnapshotReopenInvalidatesCatalog|TestNodeSnapshotCachedAliasPreservesTraffic|TestNodeSnapshotAliasInvalidCacheFallsBack|TestNodeSnapshotAliasValidatesEntireMapping|TestNodeSnapshotAliasQuotaDisableAndRenewal|TestSnapshotRevisionPostgresTypeDDL|TestSnapshotRevisionMigrationRecreationAndReopen)$' -count=1 -v | tee /tmp/postgres-node-snapshot.log
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-node-snapshot.log || true)
-          if [ "$passed" -ne 6 ]; then
-            echo "expected 6 passing node snapshot tests, got $passed" >&2
+          if [ "$passed" -ne 12 ]; then
+            echo "expected 12 passing node snapshot tests, got $passed" >&2
             exit 1
           fi
 
@@ -260,7 +261,8 @@ jobs:
         run: |
           go list ./... | grep -v '/frontend/node_modules/' > /tmp/go-packages.txt
           # internal/web/service runs ~10x slower under -race and overruns the 10m default.
-          go test -race -shuffle=on -count=1 -timeout 25m $(cat /tmp/go-packages.txt)
+          mapfile -t go_packages < /tmp/go-packages.txt
+          go test -race -shuffle=on -count=1 -timeout 25m "${go_packages[@]}"
 
   # A real master and node panel, each its own process, driven through node sync.
   # A SKIP here means the binary was never handed over, so it fails the job.

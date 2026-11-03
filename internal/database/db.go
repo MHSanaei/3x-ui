@@ -129,6 +129,9 @@ func migrateClientKeepAliveRangeColumn() error {
 }
 
 func initModels() error {
+	if err := dropSnapshotRevisionTriggers(db); err != nil {
+		return err
+	}
 	if err := migrateClientKeepAliveRangeColumn(); err != nil {
 		return err
 	}

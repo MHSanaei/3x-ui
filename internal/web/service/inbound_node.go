@@ -537,6 +537,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	cached := s.snapshotMerges[nodeID]
 	skipStructure := !dirty && !justPushed && masterRevision != "" && cached != nil && cached.db == db && cached.revision == masterRevision
 	var central []model.Inbound
+	var cachedAliases map[string]*model.Inbound
 	if skipStructure {
 		central = append([]model.Inbound(nil), cached.central...)
 		totals := make(map[int]snapshotInboundVersion, len(versions))
@@ -547,8 +548,17 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			central[i].Up = totals[central[i].Id].Up
 			central[i].Down = totals[central[i].Id].Down
 		}
-	} else if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&central).Error; err != nil {
-		return false, err
+		var valid bool
+		cachedAliases, valid = cached.restoreInboundAliases(nodeID, snap, central)
+		if !valid {
+			skipStructure = false
+			delete(s.snapshotMerges, nodeID)
+		}
+	}
+	if !skipStructure {
+		if err := db.Model(model.Inbound{}).Where("node_id = ?", nodeID).Find(&central).Error; err != nil {
+			return false, err
+		}
 	}
 
 	// Index under the stored tag and its prefix-flipped form so a snap matches
@@ -587,6 +597,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 	if skipStructure && cached.lifecycleRevision != lifecycleRevision {
 		skipStructure = false
+	}
+	if skipStructure {
+		maps.Copy(tagToCentral, cachedAliases)
 	}
 
 	type csKey struct {
@@ -1539,11 +1552,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if valid && !skipStructure {
 				valid = snapshotMembershipMatches(db, nodeID, snap, tagToCentral, attached)
 			}
-			if valid {
+			ids, mapped := snapshotInboundMapping(snap, tagToCentral)
+			if valid && mapped {
 				if s.snapshotMerges == nil {
 					s.snapshotMerges = make(map[int]*nodeMergeCache)
 				}
-				s.snapshotMerges[nodeID] = &nodeMergeCache{db: db, revision: masterRevision, lifecycleRevision: lifecycleRevision, central: append([]model.Inbound(nil), central...), attached: attached}
+				s.snapshotMerges[nodeID] = &nodeMergeCache{db: db, revision: masterRevision, lifecycleRevision: lifecycleRevision, central: append([]model.Inbound(nil), central...), attached: attached, inboundIDs: ids}
 			}
 		}
 	}

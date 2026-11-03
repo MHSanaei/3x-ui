@@ -23,6 +23,56 @@ type nodeMergeCache struct {
 	lifecycleRevision string
 	central           []model.Inbound
 	attached          map[int]map[string]struct{}
+	inboundIDs        map[int]int
+}
+
+func snapshotInboundMapping(snap *runtime.TrafficSnapshot, central map[string]*model.Inbound) (map[int]int, bool) {
+	ids := make(map[int]int, len(snap.Inbounds))
+	seen := make(map[int]bool, len(snap.Inbounds))
+	for _, ib := range snap.Inbounds {
+		if ib == nil || ib.Id <= 0 || ids[ib.Id] != 0 {
+			return nil, false
+		}
+		c := central[ib.Tag]
+		if c == nil || seen[c.Id] {
+			return nil, false
+		}
+		ids[ib.Id], seen[c.Id] = c.Id, true
+	}
+	return ids, true
+}
+
+// Resolve the whole association before using any cached counters; tags may be deployed aliases.
+func (c *nodeMergeCache) restoreInboundAliases(nodeID int, snap *runtime.TrafficSnapshot, central []model.Inbound) (map[string]*model.Inbound, bool) {
+	if len(c.inboundIDs) != len(snap.Inbounds) || len(c.attached) != len(snap.Inbounds) {
+		return nil, false
+	}
+	byID := make(map[int]*model.Inbound, len(central))
+	for i := range central {
+		byID[central[i].Id] = &central[i]
+	}
+	aliases := make(map[string]*model.Inbound, len(snap.Inbounds))
+	seenIDs, seenCentral := map[int]bool{}, map[int]bool{}
+	for _, ib := range snap.Inbounds {
+		if ib == nil || ib.Id <= 0 || seenIDs[ib.Id] {
+			return nil, false
+		}
+		stored := byID[c.inboundIDs[ib.Id]]
+		if stored == nil || stored.NodeID == nil || *stored.NodeID != nodeID || seenCentral[stored.Id] {
+			return nil, false
+		}
+		if _, known := c.attached[ib.Id]; !known {
+			return nil, false
+		}
+		if _, duplicate := aliases[ib.Tag]; duplicate {
+			return nil, false
+		}
+		if stored.Port != ib.Port || stored.Protocol != ib.Protocol || strings.TrimSpace(stored.Listen) != strings.TrimSpace(ib.Listen) {
+			return nil, false
+		}
+		aliases[ib.Tag], seenIDs[ib.Id], seenCentral[stored.Id] = stored, true, true
+	}
+	return aliases, true
 }
 
 // Database revisions validate both sides before a structural cache can be reused.
