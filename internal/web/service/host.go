@@ -34,6 +34,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		GroupId:                groupId,
 		InboundIds:             []int{},
 		Hosts:                  []string{},
+		ClientGroupIds:         []int{},
 		SortOrder:              h.SortOrder,
 		Remark:                 h.Remark,
 		ServerDescription:      h.ServerDescription,
@@ -276,7 +277,11 @@ func attachHostGroupClientGroups(groups []*entity.HostGroup) error {
 		byGroup[row.HostGroupId] = append(byGroup[row.HostGroupId], row.ClientGroupId)
 	}
 	for _, group := range groups {
-		group.ClientGroupIds = byGroup[group.GroupId]
+		if ids, ok := byGroup[group.GroupId]; ok {
+			group.ClientGroupIds = ids
+		} else {
+			group.ClientGroupIds = []int{}
+		}
 	}
 	return nil
 }

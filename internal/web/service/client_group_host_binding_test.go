@@ -188,8 +188,15 @@ func TestHostGroup_ClientGroupBindings(t *testing.T) {
 	if _, err := svc.UpdateHostGroup("hg", req); err != nil {
 		t.Fatalf("UpdateHostGroup clear: %v", err)
 	}
-	if got, _ = svc.GetHostGroup("hg"); len(got.ClientGroupIds) != 0 {
-		t.Fatalf("bindings after clear = %v, want none", got.ClientGroupIds)
+	if got, _ = svc.GetHostGroup("hg"); got.ClientGroupIds == nil || len(got.ClientGroupIds) != 0 {
+		t.Fatalf("bindings after clear = %v, want a non-nil empty slice", got.ClientGroupIds)
+	}
+	rows, err := svc.GetHosts()
+	if err != nil {
+		t.Fatalf("GetHosts: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ClientGroupIds == nil {
+		t.Fatalf("list must render [] for unbound groups, got %+v", rows)
 	}
 
 	req.ClientGroupIds = []int{group.Id}
