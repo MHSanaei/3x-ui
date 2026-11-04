@@ -112,14 +112,14 @@ func (t *Tgbot) restartXrayFromScreen(query *telego.CallbackQuery) {
 
 // searchClientScreen renders the client card as a screen; every per-email
 // callback that used to post a message lands here.
-func (t *Tgbot) searchClientScreen(chatID int64, email string) {
+func (t *Tgbot) searchClientScreen(chatID int64, email string, delivery ...screenDelivery) {
 	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 	if err != nil || traffic == nil {
 		t.sendNotice(chatID, t.I18nBot("tgbot.noResult"))
 		return
 	}
 	body := t.clientInfoMsg(traffic, true, true, true, true, true, true)
-	t.renderScreen(chatID, t.newScreen("client", body, t.clientCardRows(chatID, email)...))
+	t.renderScreen(chatID, t.newScreen("client", body, t.clientCardRows(chatID, email)...), delivery...)
 }
 
 func (t *Tgbot) clientCardRows(chatID int64, email string) [][]telego.InlineKeyboardButton {

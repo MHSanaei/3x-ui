@@ -76,7 +76,7 @@ func (t *Tgbot) handleAdminWorkflowCommand(message *telego.Message) bool {
 	}
 	chatID, owner := message.Chat.ID, message.From.ID
 	if command == "plans" {
-		t.screenClientPlans(chatID, "", 0)
+		t.screenClientPlans(chatID, "", 0, screenSendNew)
 		return true
 	}
 	svc := &service.ClientAdminWorkflowService{}
@@ -101,7 +101,7 @@ func (t *Tgbot) handleAdminWorkflowCommand(message *telego.Message) bool {
 	if err != nil {
 		t.workflowError(chatID, err)
 	} else {
-		t.screenClientOperation(chatID, op)
+		t.screenClientOperation(chatID, op, screenSendNew)
 	}
 	return true
 }
@@ -310,7 +310,7 @@ func inboundIDLabels(ids []int) string {
 	return strings.Join(labels, ", ")
 }
 
-func (t *Tgbot) screenClientOperation(chatID int64, op *service.ClientAdminOperation) {
+func (t *Tgbot) screenClientOperation(chatID int64, op *service.ClientAdminOperation, delivery ...screenDelivery) {
 	p := op.Preview
 	mode := t.renewalModeLabel(op.Spec.Mode)
 	if op.Kind == "create" {
@@ -334,10 +334,10 @@ func (t *Tgbot) screenClientOperation(chatID int64, op *service.ClientAdminOpera
 		rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.keepDisabled", "admin_keepoff "+op.Token)))
 	}
 	rows = append(rows, t.backRow())
-	t.renderScreen(chatID, t.newScreen("client", body, rows...))
+	t.renderScreen(chatID, t.newScreen("client", body, rows...), delivery...)
 }
 
-func (t *Tgbot) screenClientPlans(chatID int64, email string, page int) {
+func (t *Tgbot) screenClientPlans(chatID int64, email string, page int, delivery ...screenDelivery) {
 	plans, err := (&service.ClientPlanService{}).List()
 	if err != nil {
 		t.workflowError(chatID, err)
@@ -379,7 +379,7 @@ func (t *Tgbot) screenClientPlans(chatID int64, email string, page int) {
 		rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.custom", t.encodeQuery("admin_renew_custom "+email))))
 	}
 	rows = append(rows, t.backRow())
-	t.renderScreen(chatID, t.newScreen("client", body, rows...))
+	t.renderScreen(chatID, t.newScreen("client", body, rows...), delivery...)
 }
 
 func (t *Tgbot) planBody(plan service.ClientPlan) string {

@@ -27,6 +27,46 @@ var awgTestPrivateKey, awgTestPublicKey = func() (string, string) {
 	return priv, pub
 }()
 
+func TestNormalizeAmneziaWGSettingsRejectsKernelSubnetMismatch(t *testing.T) {
+	setupConflictDB(t)
+	for _, remote := range []bool{false, true} {
+		t.Run(fmt.Sprintf("remote=%t", remote), func(t *testing.T) {
+			server, err := defaultAmneziaWGServer()
+			if err != nil {
+				t.Fatal(err)
+			}
+			server.SubnetIP = "10.9.1.0"
+			client := model.Client{Email: "restored@awg", Enable: true, PublicKey: awgTestPublicKey, AllowedIPs: []string{"10.8.1.2/32"}}
+			settings := amneziawg.InboundSettings{Server: server, Clients: []model.Client{client}}
+			marshal := func() string {
+				b, err := json.Marshal(settings)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return string(b)
+			}
+			old := &model.Inbound{Protocol: model.AmneziaWG, Enable: true, Settings: marshal()}
+			if remote {
+				old.NodeID = new(7)
+			}
+			if err := (&InboundService{}).normalizeAmneziaWGSettings(old, nil); err != nil {
+				t.Fatalf("embedded mode must remain editable: %v", err)
+			}
+			server.KernelMode = true
+			inbound := *old
+			inbound.Settings = marshal()
+			err = (&InboundService{}).normalizeAmneziaWGSettings(&inbound, old)
+			if err == nil || !strings.Contains(err.Error(), `peer "restored@awg" allowedIPs "10.8.1.2/32" is outside kernel interface subnets [10.9.1.0/24]`) {
+				t.Fatalf("kernel-mode save error = %v, want the mismatched peer and server subnet", err)
+			}
+			inbound.Enable = false
+			if err := (&InboundService{}).normalizeAmneziaWGSettings(&inbound, old); err != nil {
+				t.Fatalf("disabling a broken inbound must remain possible: %v", err)
+			}
+		})
+	}
+}
+
 func TestCheckForwardedPortsConflict_EmptySpecNoConflict(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
