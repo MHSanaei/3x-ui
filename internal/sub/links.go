@@ -40,7 +40,7 @@ func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email
 	svc.projectThroughFallbackMaster(inbound)
 	baseEps := svc.hostEndpoints(inbound, "raw")
 	if client, ok := svc.clientForLink(inbound, email); ok {
-		effectiveEps, bound := svc.clientHostEndpoints(inbound, client, "raw", baseEps)
+		effectiveEps, bound := svc.selectHostEndpoints(inbound, client, "raw", baseEps)
 		if bound && len(effectiveEps) == 0 {
 			return nil
 		}
