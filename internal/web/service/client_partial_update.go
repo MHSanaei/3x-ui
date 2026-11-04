@@ -28,16 +28,18 @@ func (s *ClientService) UpdateByEmailJSON(inboundSvc *InboundService, email stri
 	return s.update(inboundSvc, rec.Id, req.Client, req.LimitHwid, !keys.has("flow"), inboundFilter)
 }
 
-type payloadKeys []string
+// payloadKeys is a struct so tools/openapigen, which exports every named
+// non-struct type of this package, leaves it out of the generated frontend types.
+type payloadKeys struct{ names []string }
 
 func clientPayloadKeys(body []byte) payloadKeys {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil
+		return payloadKeys{}
 	}
-	keys := make(payloadKeys, 0, len(raw))
+	keys := payloadKeys{names: make([]string, 0, len(raw))}
 	for k := range raw {
-		keys = append(keys, k)
+		keys.names = append(keys.names, k)
 	}
 	return keys
 }
@@ -45,7 +47,7 @@ func clientPayloadKeys(body []byte) payloadKeys {
 // has matches keys the way encoding/json binds them to fields: case-insensitively,
 // so a body sending "limitIP" counts as carrying limitIp.
 func (k payloadKeys) has(name string) bool {
-	for _, key := range k {
+	for _, key := range k.names {
 		if strings.EqualFold(key, name) {
 			return true
 		}
