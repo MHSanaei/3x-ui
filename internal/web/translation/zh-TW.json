@@ -1071,8 +1071,8 @@
       "totalUpDown": "總上傳 / 下載",
       "addGroup": "新增群組",
       "createSuccess": "已建立群組「{name}」。",
-      "rename": "重新命名",
-      "renameTitle": "重新命名 {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "已存在名為「{name}」的群組。",
       "renameSuccess": "已為 {count} 個客戶端重新命名群組。",
       "deleteConfirmTitle": "刪除群組 {name}?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "移除客戶端…",
       "removeFromGroupTitle": "從群組「{name}」移除客戶端",
       "removeFromGroupDesc": "選擇要從此群組移除的成員。客戶端本身保留(用「刪除群組中的客戶端」完全移除)。",
-      "removeFromGroupResult": "已從 {name} 移除 {count} 個客戶端。"
+      "removeFromGroupResult": "已從 {name} 移除 {count} 個客戶端。",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "addNode": "新增節點",
@@ -2412,7 +2416,6 @@
         "remark": "備註",
         "serverDescription": "描述",
         "inbound": "入站",
-        "clientGroups": "Client groups",
         "address": "地址",
         "port": "連接埠",
         "endpoint": "端點",
@@ -2444,7 +2447,6 @@
         "inheritAddress": "繼承地址"
       },
       "hints": {
-        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "留空以繼承入站本身的地址。",
         "port": "0 表示繼承入站的連接埠。",
         "tags": "對終端使用者不可見；僅隨 RAW 訂閱傳送。只能使用大寫字母、數字、_ 和 :。",

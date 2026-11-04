@@ -29,6 +29,7 @@ import {
   EditOutlined,
   LinkOutlined,
   MoreOutlined,
+  PartitionOutlined,
   PieChartOutlined,
   PlusOutlined,
   RetweetOutlined,
@@ -56,6 +57,7 @@ import {
   type GroupSummary,
 } from '@/schemas/client';
 import { parseMsg } from '@/utils/zodValidate';
+import HostGroupSelect from './HostGroupSelect';
 
 const ClientRecordListSchema = z
   .array(ClientRecordSchema)
@@ -66,8 +68,15 @@ const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
 const GroupAddClientsModal = lazy(() => import('./GroupAddClientsModal'));
 const GroupRemoveClientsModal = lazy(() => import('./GroupRemoveClientsModal'));
+const GroupHostRulesModal = lazy(() => import('./GroupHostRulesModal'));
 
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
+function sameIds(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const ids = new Set(a);
+  return b.every((id) => ids.has(id));
+}
 
 async function fetchGroups(): Promise<GroupSummary[]> {
   const msg = await HttpUtil.get('/panel/api/clients/groups', undefined, { silent: true });
@@ -117,15 +126,15 @@ export default function GroupsPage() {
   }, [queryClient]);
 
   const createMut = useMutation({
-    mutationFn: (body: { name: string }) =>
+    mutationFn: (body: { name: string; hostGroupIds: string[] }) =>
       HttpUtil.post('/panel/api/clients/groups/create', body, JSON_HEADERS),
     onSuccess: (msg) => {
       if (msg?.success) invalidate();
     },
   });
 
-  const renameMut = useMutation({
-    mutationFn: (body: { oldName: string; newName: string }) =>
+  const editMut = useMutation({
+    mutationFn: (body: { oldName: string; newName: string; hostGroupIds: string[] }) =>
       HttpUtil.post('/panel/api/clients/groups/rename', body, JSON_HEADERS),
     onSuccess: (msg) => {
       if (msg?.success) invalidate();
@@ -148,14 +157,30 @@ export default function GroupsPage() {
     },
   });
 
+  const groupHostsMut = useMutation({
+    mutationFn: (body: { name: string; hostGroupIds: string[] }) =>
+      HttpUtil.post(
+        `/panel/api/clients/groups/${encodeURIComponent(body.name)}/hosts`,
+        { hostGroupIds: body.hostGroupIds },
+        JSON_HEADERS,
+      ),
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
+  });
+
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
+  const [createHostGroupIds, setCreateHostGroupIds] = useState<string[]>([]);
 
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<GroupSummary | null>(null);
-  const [renameValue, setRenameValue] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<GroupSummary | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editHostGroupIds, setEditHostGroupIds] = useState<string[]>([]);
 
   const [subLinksOpen, setSubLinksOpen] = useState(false);
+  const [hostRulesOpen, setHostRulesOpen] = useState(false);
+  const [hostRulesGroup, setHostRulesGroup] = useState<GroupSummary | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [addClientsOpen, setAddClientsOpen] = useState(false);
   const [removeClientsOpen, setRemoveClientsOpen] = useState(false);
@@ -189,6 +214,7 @@ export default function GroupsPage() {
 
   function openCreate() {
     setCreateName('');
+    setCreateHostGroupIds([]);
     setCreateOpen(true);
   }
 
@@ -199,39 +225,50 @@ export default function GroupsPage() {
       messageApi.error(t('pages.groups.renameCollision', { name }));
       return;
     }
-    const msg = await createMut.mutateAsync({ name });
+    const msg = await createMut.mutateAsync({ name, hostGroupIds: createHostGroupIds });
     if (msg?.success) {
       messageApi.success(t('pages.groups.createSuccess', { name }));
       setCreateOpen(false);
     }
   }
 
-  function openRename(g: GroupSummary) {
-    setRenameTarget(g);
-    setRenameValue(g.name);
-    setRenameOpen(true);
+  function openEdit(g: GroupSummary) {
+    setEditTarget(g);
+    setEditName(g.name);
+    setEditHostGroupIds(g.hostGroupIds ?? []);
+    setEditOpen(true);
   }
 
-  async function confirmRename() {
-    if (!renameTarget) return;
-    const next = renameValue.trim();
-    if (!next || next === renameTarget.name) {
-      setRenameOpen(false);
-      return;
-    }
+  async function confirmEdit() {
+    if (!editTarget) return;
+    const next = editName.trim();
+    if (!next) return;
+    const nameChanged = next !== editTarget.name;
     if (
-      groups.some(
-        (g) => g.name.toLowerCase() === next.toLowerCase() && g.name !== renameTarget.name,
-      )
+      nameChanged &&
+      groups.some((g) => g.name !== editTarget.name && g.name.toLowerCase() === next.toLowerCase())
     ) {
       messageApi.error(t('pages.groups.renameCollision', { name: next }));
       return;
     }
-    const msg = await renameMut.mutateAsync({ oldName: renameTarget.name, newName: next });
+    const previousHostGroupIds = editTarget.hostGroupIds ?? [];
+    if (!nameChanged && sameIds(previousHostGroupIds, editHostGroupIds)) {
+      setEditOpen(false);
+      return;
+    }
+    const msg = await editMut.mutateAsync({
+      oldName: editTarget.name,
+      newName: next,
+      hostGroupIds: editHostGroupIds,
+    });
     if (msg?.success) {
       const affected = (msg.obj as { affected?: number } | undefined)?.affected ?? 0;
-      messageApi.success(t('pages.groups.renameSuccess', { count: affected }));
-      setRenameOpen(false);
+      if (nameChanged) {
+        messageApi.success(t('pages.groups.renameSuccess', { count: affected }));
+      } else {
+        messageApi.success(t('pages.groups.hostRulesSaved', { name: next }));
+      }
+      setEditOpen(false);
     }
   }
 
@@ -285,6 +322,21 @@ export default function GroupsPage() {
   function openAddClientsFor(g: GroupSummary) {
     setGroupForAction(g);
     setAddClientsOpen(true);
+  }
+
+  function openHostRulesFor(g: GroupSummary) {
+    setHostRulesGroup(g);
+    setHostRulesOpen(true);
+  }
+
+  async function saveHostRules(name: string, hostGroupIds: string[]): Promise<boolean> {
+    const msg = await groupHostsMut.mutateAsync({ name, hostGroupIds });
+    if (msg?.success) {
+      messageApi.success(t('pages.groups.hostRulesSaved', { name }));
+      return true;
+    }
+    messageApi.error(msg?.msg || t('somethingWentWrong'));
+    return false;
   }
 
   function openRemoveClientsFor(g: GroupSummary) {
@@ -380,10 +432,16 @@ export default function GroupsPage() {
         onClick: () => openAddClientsFor(row),
       },
       {
-        key: 'rename',
+        key: 'hostRules',
+        icon: <PartitionOutlined aria-hidden />,
+        label: t('pages.groups.hostRules'),
+        onClick: () => openHostRulesFor(row),
+      },
+      {
+        key: 'edit',
         icon: <EditOutlined aria-hidden />,
-        label: t('pages.groups.rename'),
-        onClick: () => openRename(row),
+        label: t('pages.groups.editGroup'),
+        onClick: () => openEdit(row),
       },
       { type: 'divider' },
       {
@@ -416,7 +474,7 @@ export default function GroupsPage() {
     {
       title: t('pages.clients.actions'),
       key: 'actions',
-      width: 90,
+      width: 130,
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
@@ -428,14 +486,24 @@ export default function GroupsPage() {
               icon={<MoreOutlined aria-hidden />}
             />
           </Dropdown>
-          <Tooltip title={t('pages.groups.rename')}>
+          <Tooltip title={t('pages.groups.hostRules')}>
             <Button
-              aria-label={t('pages.groups.rename')}
+              aria-label={`${t('pages.groups.hostRules')}: ${row.name}`}
+              size="small"
+              type="text"
+              style={{ fontSize: 16 }}
+              icon={<PartitionOutlined aria-hidden />}
+              onClick={() => openHostRulesFor(row)}
+            />
+          </Tooltip>
+          <Tooltip title={t('pages.groups.editGroup')}>
+            <Button
+              aria-label={`${t('pages.groups.editGroup')}: ${row.name}`}
               size="small"
               type="text"
               style={{ fontSize: 16 }}
               icon={<EditOutlined aria-hidden />}
-              onClick={() => openRename(row)}
+              onClick={() => openEdit(row)}
             />
           </Tooltip>
         </Space>
@@ -457,6 +525,23 @@ export default function GroupsPage() {
       key: 'clientCount',
       width: 180,
       render: (count: number) => <span>{count || 0}</span>,
+    },
+    {
+      title: t('pages.groups.hostRules'),
+      dataIndex: 'hostGroupIds',
+      key: 'hostGroupIds',
+      width: 140,
+      render: (ids: string[] | null | undefined, row) => (
+        <Button
+          aria-label={`${t('pages.groups.hostRules')}: ${row.name}`}
+          type="link"
+          size="small"
+          style={{ paddingInline: 0 }}
+          onClick={() => openHostRulesFor(row)}
+        >
+          {ids?.length || 0}
+        </Button>
+      ),
     },
     {
       title: t('pages.groups.upload'),
@@ -623,32 +708,47 @@ export default function GroupsPage() {
                 autoFocus
               />
             </Form.Item>
+            <Form.Item label={t('pages.groups.hostRules')} extra={t('pages.groups.hostRulesHint')}>
+              <HostGroupSelect value={createHostGroupIds} onChange={setCreateHostGroupIds} />
+            </Form.Item>
           </Form>
         </Modal>
 
         <Modal
-          open={renameOpen}
-          title={renameTarget ? t('pages.groups.renameTitle', { name: renameTarget.name }) : ''}
+          open={editOpen}
+          title={editTarget ? t('pages.groups.editGroupTitle', { name: editTarget.name }) : ''}
           okText={t('save')}
           cancelText={t('cancel')}
-          confirmLoading={renameMut.isPending}
-          onCancel={() => setRenameOpen(false)}
-          onOk={confirmRename}
+          confirmLoading={editMut.isPending}
+          onCancel={() => setEditOpen(false)}
+          onOk={confirmEdit}
           destroyOnHidden
         >
           <Form layout="vertical">
-            <Form.Item label={t('pages.groups.name')} htmlFor={`${uid}-rename-name`}>
+            <Form.Item label={t('pages.groups.name')} htmlFor={`${uid}-edit-name`}>
               <Input
-                id={`${uid}-rename-name`}
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onPressEnter={confirmRename}
+                id={`${uid}-edit-name`}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onPressEnter={confirmEdit}
                 placeholder={t('pages.clients.groupPlaceholder')}
                 autoFocus
               />
             </Form.Item>
+            <Form.Item label={t('pages.groups.hostRules')} extra={t('pages.groups.hostRulesHint')}>
+              <HostGroupSelect value={editHostGroupIds} onChange={setEditHostGroupIds} />
+            </Form.Item>
           </Form>
         </Modal>
+
+        <LazyMount when={hostRulesOpen}>
+          <GroupHostRulesModal
+            open={hostRulesOpen}
+            group={hostRulesGroup}
+            onOpenChange={setHostRulesOpen}
+            save={saveHostRules}
+          />
+        </LazyMount>
 
         <LazyMount when={subLinksOpen}>
           <SubLinksModal

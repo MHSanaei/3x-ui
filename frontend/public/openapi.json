@@ -2936,16 +2936,6 @@
           "cipherSuites": {
             "type": "string"
           },
-          "clientGroupIds": {
-            "example": [
-              1,
-              2
-            ],
-            "items": {
-              "type": "integer"
-            },
-            "type": "array"
-          },
           "echConfigList": {
             "type": "string"
           },
@@ -3087,7 +3077,6 @@
           "allowInsecure",
           "alpn",
           "cipherSuites",
-          "clientGroupIds",
           "echConfigList",
           "excludeFromSubTypes",
           "finalMask",
@@ -10225,7 +10214,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List all client groups with their member counts. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).",
+        "summary": "List all client groups with their member counts and the host groups bound to each. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).",
         "operationId": "get_panel_api_clients_groups",
         "responses": {
           "200": {
@@ -10250,14 +10239,82 @@
                     {
                       "id": 1,
                       "name": "customer-a",
-                      "clientCount": 5
+                      "clientCount": 5,
+                      "hostGroupIds": [
+                        "cdn-front"
+                      ]
                     },
                     {
                       "id": 2,
                       "name": "internal",
-                      "clientCount": 0
+                      "clientCount": 0,
+                      "hostGroupIds": []
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/groups/{name}/hosts": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace the host groups attached to a client group. Clients in this group receive the bound host groups instead of the inbound default host pool; other clients are unaffected. An empty array clears the bindings. Returns the saved host group IDs.",
+        "operationId": "post_panel_api_clients_groups_name_hosts",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "hostGroupIds": [
+                  "cdn-front"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "hostGroupIds": [
+                      "cdn-front"
+                    ]
+                  }
                 }
               }
             }
@@ -10319,7 +10376,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.",
+        "summary": "Create a new group, optionally with host rules bound to it. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Host group IDs are validated before the group is created. Errors if a group with the same name already exists.",
         "operationId": "post_panel_api_clients_groups_create",
         "requestBody": {
           "required": true,
@@ -10329,7 +10386,10 @@
                 "type": "object"
               },
               "example": {
-                "name": "customer-a"
+                "name": "customer-a",
+                "hostGroupIds": [
+                  "cdn-front"
+                ]
               }
             }
           }
@@ -10368,7 +10428,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Rename a group. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON) in a single transaction. Returns the number of clients whose label was updated.",
+        "summary": "Rename a group and optionally replace its host rules in one transaction. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON). Omit hostGroupIds to leave the bindings unchanged; send an empty array to clear them. Returns the number of clients whose label was updated.",
         "operationId": "post_panel_api_clients_groups_rename",
         "requestBody": {
           "required": true,
@@ -10379,7 +10439,10 @@
               },
               "example": {
                 "oldName": "customer-a",
-                "newName": "tier-1"
+                "newName": "tier-1",
+                "hostGroupIds": [
+                  "cdn-front"
+                ]
               }
             }
           }
@@ -12221,10 +12284,6 @@
                         ""
                       ],
                       "cipherSuites": "",
-                      "clientGroupIds": [
-                        1,
-                        2
-                      ],
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -12417,10 +12476,6 @@
                       ""
                     ],
                     "cipherSuites": "",
-                    "clientGroupIds": [
-                      1,
-                      2
-                    ],
                     "echConfigList": "",
                     "excludeFromSubTypes": [
                       ""
@@ -12524,10 +12579,6 @@
                         ""
                       ],
                       "cipherSuites": "",
-                      "clientGroupIds": [
-                        1,
-                        2
-                      ],
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -12647,9 +12698,6 @@
                 "security": "same",
                 "tags": [
                   "CDN"
-                ],
-                "clientGroupIds": [
-                  1
                 ]
               }
             }
@@ -12777,9 +12825,6 @@
                 "security": "same",
                 "tags": [
                   "CDN"
-                ],
-                "clientGroupIds": [
-                  1
                 ]
               }
             }
@@ -13037,10 +13082,7 @@
                 "remark": "Cloudflare CDN",
                 "port": 0,
                 "security": "same",
-                "isDisabled": false,
-                "clientGroupIds": [
-                  1
-                ]
+                "isDisabled": false
               }
             }
           }

@@ -61,8 +61,6 @@ export const HostFormSchema = z.object({
 
   excludeFromSubTypes: z.array(SubTypeSchema).default([]),
 
-  clientGroupIds: z.array(z.number().int().positive()).default([]),
-
   nodeGuids: z.array(z.string()).default([]),
 
   mihomoIpVersion: z.preprocess(
@@ -110,7 +108,6 @@ export const HostRecordSchema = z
     finalMask: z.string().optional(),
     vlessRoute: z.string().optional(),
     excludeFromSubTypes: z.array(z.string()).nullish(),
-    clientGroupIds: z.array(z.number()).nullish(),
     nodeGuids: z.array(z.string()).nullish(),
     mihomoIpVersion: z.string().optional(),
     mihomoX25519: z.boolean().optional(),

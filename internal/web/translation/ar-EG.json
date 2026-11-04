@@ -1071,8 +1071,8 @@
       "totalUpDown": "إجمالي الرفع / التنزيل",
       "addGroup": "إضافة مجموعة",
       "createSuccess": "تم إنشاء المجموعة «{name}».",
-      "rename": "إعادة تسمية",
-      "renameTitle": "إعادة تسمية {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "مجموعة باسم «{name}» موجودة بالفعل.",
       "renameSuccess": "تمت إعادة تسمية المجموعة على {count} عميل.",
       "deleteConfirmTitle": "حذف المجموعة {name}؟",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "إزالة عملاء…",
       "removeFromGroupTitle": "إزالة عملاء من المجموعة «{name}»",
       "removeFromGroupDesc": "اختر الأعضاء لإزالتهم من هذه المجموعة. يُحفظ العملاء (استخدم «حذف عملاء المجموعة» للإزالة الكاملة).",
-      "removeFromGroupResult": "تمت إزالة {count} عميل من {name}."
+      "removeFromGroupResult": "تمت إزالة {count} عميل من {name}.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "addNode": "إضافة نود",
@@ -2412,7 +2416,6 @@
         "remark": "ملاحظة",
         "serverDescription": "الوصف",
         "inbound": "الواردات",
-        "clientGroups": "Client groups",
         "address": "العنوان",
         "port": "المنفذ",
         "endpoint": "النهاية",
@@ -2444,7 +2447,6 @@
         "inheritAddress": "يرث العنوان"
       },
       "hints": {
-        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "اتركه فارغاً ليرث عنوان الوارد نفسه.",
         "port": "0 يرث منفذ الوارد.",
         "tags": "غير مرئي للمستخدمين النهائيين؛ يُرسل مع اشتراك RAW فقط. أحرف كبيرة وأرقام و _ و : فقط.",

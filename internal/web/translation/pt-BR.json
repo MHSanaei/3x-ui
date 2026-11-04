@@ -1071,8 +1071,8 @@
       "totalUpDown": "Total de envio / recebimento",
       "addGroup": "Adicionar grupo",
       "createSuccess": "Grupo «{name}» criado.",
-      "rename": "Renomear",
-      "renameTitle": "Renomear {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "Já existe um grupo chamado «{name}».",
       "renameSuccess": "Grupo renomeado em {count} cliente(s).",
       "deleteConfirmTitle": "Excluir o grupo {name}?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "Remover clientes…",
       "removeFromGroupTitle": "Remover clientes do grupo «{name}»",
       "removeFromGroupDesc": "Selecione membros para remover deste grupo. Os clientes em si são mantidos (use «Excluir clientes do grupo» para removê-los por completo).",
-      "removeFromGroupResult": "Removidos {count} cliente(s) de {name}."
+      "removeFromGroupResult": "Removidos {count} cliente(s) de {name}.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "addNode": "Adicionar nó",
@@ -2412,7 +2416,6 @@
         "remark": "Observação",
         "serverDescription": "Descrição",
         "inbound": "Entradas",
-        "clientGroups": "Client groups",
         "address": "Endereço",
         "port": "Porta",
         "endpoint": "Endpoint",
@@ -2444,7 +2447,6 @@
         "inheritAddress": "Herda endereço"
       },
       "hints": {
-        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Deixe em branco para herdar o próprio endereço da entrada.",
         "port": "0 herda a porta da entrada.",
         "tags": "Não visível aos usuários finais; enviado apenas na assinatura RAW. Apenas letras maiúsculas, dígitos, _ e :.",

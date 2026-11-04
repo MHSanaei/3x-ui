@@ -1505,9 +1505,18 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/groups',
         summary:
-          'List all client groups with their member counts. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
+          'List all client groups with their member counts and the host groups bound to each. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
         response:
-          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "customer-a", "clientCount": 5 },\n    { "id": 2, "name": "internal", "clientCount": 0 }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "customer-a", "clientCount": 5, "hostGroupIds": ["cdn-front"] },\n    { "id": 2, "name": "internal", "clientCount": 0, "hostGroupIds": [] }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Replace the host groups attached to a client group. Clients in this group receive the bound host groups instead of the inbound default host pool; other clients are unaffected. An empty array clears the bindings. Returns the saved host group IDs.',
+        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        body: '{\n  "hostGroupIds": ["cdn-front"]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "hostGroupIds": ["cdn-front"]\n  }\n}',
       },
       {
         method: 'GET',
@@ -1521,16 +1530,16 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/groups/create',
         summary:
-          'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.',
-        body: '{\n  "name": "customer-a"\n}',
+          'Create a new group, optionally with host rules bound to it. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Host group IDs are validated before the group is created. Errors if a group with the same name already exists.',
+        body: '{\n  "name": "customer-a",\n  "hostGroupIds": ["cdn-front"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "name": "customer-a"\n  }\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/groups/rename',
         summary:
-          "Rename a group. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON) in a single transaction. Returns the number of clients whose label was updated.",
-        body: '{\n  "oldName": "customer-a",\n  "newName": "tier-1"\n}',
+          "Rename a group and optionally replace its host rules in one transaction. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON). Omit hostGroupIds to leave the bindings unchanged; send an empty array to clear them. Returns the number of clients whose label was updated.",
+        body: '{\n  "oldName": "customer-a",\n  "newName": "tier-1",\n  "hostGroupIds": ["cdn-front"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "affected": 5\n  }\n}',
       },
       {
@@ -1879,7 +1888,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/add',
         summary: 'Create a host group on inbounds.',
-        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"],\n  "clientGroupIds": [1]\n}',
+        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },
@@ -1888,7 +1897,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/hosts/update/:groupId',
         summary: 'Replace a host group’s content.',
         params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
-        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"],\n  "clientGroupIds": [1]\n}',
+        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },
@@ -1916,7 +1925,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/bulk/add',
         summary: 'Add a host group to inbounds (same as /add).',
-        body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false,\n  "clientGroupIds": [1]\n}',
+        body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },

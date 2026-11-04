@@ -722,7 +722,6 @@ export const HostGroupSchema = z.object({
   allowInsecure: z.boolean(),
   alpn: z.array(z.string()),
   cipherSuites: z.string(),
-  clientGroupIds: z.array(z.number().int()),
   echConfigList: z.string(),
   excludeFromSubTypes: z.array(z.string()),
   finalMask: z.string(),

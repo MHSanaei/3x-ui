@@ -1071,8 +1071,8 @@
       "totalUpDown": "Celkom odoslané / prijaté",
       "addGroup": "Pridať skupinu",
       "createSuccess": "Skupina „{name}“ bola vytvorená.",
-      "rename": "Premenovať",
-      "renameTitle": "Premenovať skupinu {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "Skupina s názvom „{name}“ už existuje.",
       "renameSuccess": "Názov skupiny bol zmenený pri klientoch: {count}.",
       "deleteConfirmTitle": "Odstrániť skupinu {name}?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "Odobrať klientov…",
       "removeFromGroupTitle": "Odobrať klientov zo skupiny „{name}“",
       "removeFromGroupDesc": "Vyberte členov, ktorých chcete odobrať zo skupiny. Samotní klienti zostanú zachovaní. Na ich úplné odstránenie použite akciu „Odstrániť klientov v skupine“.",
-      "removeFromGroupResult": "Odobraté zo skupiny {name}: {count}."
+      "removeFromGroupResult": "Odobraté zo skupiny {name}: {count}.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "hosts": {
       "addHost": "Pridať adresu servera",
@@ -1128,7 +1132,6 @@
         "remark": "Názov",
         "serverDescription": "Popis",
         "inbound": "Vstupy",
-        "clientGroups": "Client groups",
         "address": "Adresa",
         "port": "Port",
         "endpoint": "Koncový bod",
@@ -1160,7 +1163,6 @@
         "inheritAddress": "Preberá sa"
       },
       "hints": {
-        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Prázdne pole preberie adresu samotného vstupu.",
         "port": "Hodnota 0 preberie port vstupu.",
         "tags": "Koncovým používateľom sa nezobrazujú. Posielajú sa iba v surovom odbere RAW. Povolené sú iba veľké písmená, číslice, _ a :.",

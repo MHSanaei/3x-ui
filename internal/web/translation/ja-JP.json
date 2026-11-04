@@ -1071,8 +1071,8 @@
       "totalUpDown": "合計アップロード / ダウンロード",
       "addGroup": "グループ追加",
       "createSuccess": "グループ「{name}」を作成しました。",
-      "rename": "名前変更",
-      "renameTitle": "{name} の名前を変更",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "「{name}」という名前のグループは既に存在します。",
       "renameSuccess": "{count} クライアントのグループ名を変更しました。",
       "deleteConfirmTitle": "グループ {name} を削除?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "クライアントを削除…",
       "removeFromGroupTitle": "グループ「{name}」からクライアントを削除",
       "removeFromGroupDesc": "このグループから外すメンバーを選択してください。クライアント自体は保持されます (完全に削除するには「グループのクライアントを削除」を使用)。",
-      "removeFromGroupResult": "{count} クライアントを {name} から外しました。"
+      "removeFromGroupResult": "{count} クライアントを {name} から外しました。",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "addNode": "ノードを追加",
@@ -2412,7 +2416,6 @@
         "remark": "備考",
         "serverDescription": "説明",
         "inbound": "インバウンド",
-        "clientGroups": "Client groups",
         "address": "アドレス",
         "port": "ポート",
         "endpoint": "エンドポイント",
@@ -2444,7 +2447,6 @@
         "inheritAddress": "アドレス継承"
       },
       "hints": {
-        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "空欄にするとインバウンド自身のアドレスを継承します。",
         "port": "0 にするとインバウンドのポートを継承します。",
         "tags": "エンドユーザーには表示されません。RAW サブスクリプションでのみ送信されます。大文字、数字、_ と : のみ使用できます。",
