@@ -284,6 +284,7 @@ export const ActiveInboundsByNodeSchema = z
   .transform((v) => v ?? {});
 
 export const GroupSummarySchema = z.object({
+  id: z.number(),
   name: z.string(),
   clientCount: z.number(),
   trafficUsed: z

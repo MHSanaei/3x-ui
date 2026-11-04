@@ -2910,6 +2910,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "cipherSuites": {
         "type": "string"
       },
+      "clientGroupIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "echConfigList": {
         "type": "string"
       },
@@ -3051,6 +3061,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "allowInsecure",
       "alpn",
       "cipherSuites",
+      "clientGroupIds",
       "echConfigList",
       "excludeFromSubTypes",
       "finalMask",

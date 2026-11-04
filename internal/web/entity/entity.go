@@ -415,9 +415,10 @@ func isWildcardListen(listen string) bool {
 }
 
 type HostGroup struct {
-	GroupId    string   `json:"groupId"`
-	InboundIds []int    `json:"inboundIds" validate:"required,min=1"`
-	Hosts      []string `json:"hosts" validate:"omitempty"`
+	GroupId        string   `json:"groupId"`
+	InboundIds     []int    `json:"inboundIds" validate:"required,min=1"`
+	Hosts          []string `json:"hosts" validate:"omitempty"`
+	ClientGroupIds []int    `json:"clientGroupIds" validate:"omitempty,dive,gt=0" example:"[1,2]"`
 
 	SortOrder              int      `json:"sortOrder"`
 	Remark                 string   `json:"remark" validate:"required,max=256"`

@@ -678,6 +678,7 @@ export interface HostGroup {
   allowInsecure: boolean;
   alpn: string[];
   cipherSuites: string;
+  clientGroupIds: number[];
   echConfigList: string;
   excludeFromSubTypes: string[];
   finalMask: string;

@@ -1507,7 +1507,7 @@ export const sections: readonly Section[] = [
         summary:
           'List all client groups with their member counts. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
         response:
-          '{\n  "success": true,\n  "obj": [\n    { "name": "customer-a", "clientCount": 5 },\n    { "name": "internal", "clientCount": 0 }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "customer-a", "clientCount": 5 },\n    { "id": 2, "name": "internal", "clientCount": 0 }\n  ]\n}',
       },
       {
         method: 'GET',
@@ -1879,7 +1879,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/add',
         summary: 'Create a host group on inbounds.',
-        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
+        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"],\n  "clientGroupIds": [1]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },
@@ -1888,7 +1888,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/hosts/update/:groupId',
         summary: 'Replace a host group’s content.',
         params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],
-        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"]\n}',
+        body: '{\n  "inboundIds": [1],\n  "remark": "cdn-front",\n  "hosts": ["cdn.example.com"],\n  "port": 8443,\n  "security": "same",\n  "tags": ["CDN"],\n  "clientGroupIds": [1]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },
@@ -1916,7 +1916,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/hosts/bulk/add',
         summary: 'Add a host group to inbounds (same as /add).',
-        body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false\n}',
+        body: '{\n  "inboundIds": [1, 2],\n  "hosts": ["cdn.example.com", "cdn2.example.com:443"],\n  "remark": "Cloudflare CDN",\n  "port": 0,\n  "security": "same",\n  "isDisabled": false,\n  "clientGroupIds": [1]\n}',
         responseSchema: 'Host',
         responseSchemaArray: true,
       },

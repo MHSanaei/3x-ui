@@ -2936,6 +2936,16 @@
           "cipherSuites": {
             "type": "string"
           },
+          "clientGroupIds": {
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "echConfigList": {
             "type": "string"
           },
@@ -3077,6 +3087,7 @@
           "allowInsecure",
           "alpn",
           "cipherSuites",
+          "clientGroupIds",
           "echConfigList",
           "excludeFromSubTypes",
           "finalMask",
@@ -10237,10 +10248,12 @@
                   "success": true,
                   "obj": [
                     {
+                      "id": 1,
                       "name": "customer-a",
                       "clientCount": 5
                     },
                     {
+                      "id": 2,
                       "name": "internal",
                       "clientCount": 0
                     }
@@ -12208,6 +12221,10 @@
                         ""
                       ],
                       "cipherSuites": "",
+                      "clientGroupIds": [
+                        1,
+                        2
+                      ],
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -12400,6 +12417,10 @@
                       ""
                     ],
                     "cipherSuites": "",
+                    "clientGroupIds": [
+                      1,
+                      2
+                    ],
                     "echConfigList": "",
                     "excludeFromSubTypes": [
                       ""
@@ -12503,6 +12524,10 @@
                         ""
                       ],
                       "cipherSuites": "",
+                      "clientGroupIds": [
+                        1,
+                        2
+                      ],
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -12622,6 +12647,9 @@
                 "security": "same",
                 "tags": [
                   "CDN"
+                ],
+                "clientGroupIds": [
+                  1
                 ]
               }
             }
@@ -12749,6 +12777,9 @@
                 "security": "same",
                 "tags": [
                   "CDN"
+                ],
+                "clientGroupIds": [
+                  1
                 ]
               }
             }
@@ -13006,7 +13037,10 @@
                 "remark": "Cloudflare CDN",
                 "port": 0,
                 "security": "same",
-                "isDisabled": false
+                "isDisabled": false,
+                "clientGroupIds": [
+                  1
+                ]
               }
             }
           }

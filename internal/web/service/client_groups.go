@@ -14,6 +14,7 @@ import (
 )
 
 type GroupSummary struct {
+	Id          int    `json:"id"`
 	Name        string `json:"name"`
 	ClientCount int    `json:"clientCount"`
 	TrafficUsed int64  `json:"trafficUsed"`
@@ -40,11 +41,13 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	}
 	baseUp := make(map[string]int64, len(stored))
 	baseDown := make(map[string]int64, len(stored))
+	groupIDs := make(map[string]int, len(stored))
 	merged := make(map[string]groupAgg, len(derived)+len(stored))
 	for _, g := range stored {
 		merged[g.Name] = groupAgg{}
 		baseUp[g.Name] = g.ResetUp
 		baseDown[g.Name] = g.ResetDown
+		groupIDs[g.Name] = g.Id
 	}
 	for name, g := range derived {
 		merged[name] = groupAgg{count: g.clients, up: g.up, down: g.down}
@@ -53,7 +56,7 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	for name, agg := range merged {
 		up := max(clampedTrafficAdd(agg.up, -baseUp[name]), 0)
 		down := max(clampedTrafficAdd(agg.down, -baseDown[name]), 0)
-		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: clampedTrafficAdd(up, down), Up: up, Down: down})
+		out = append(out, GroupSummary{Id: groupIDs[name], Name: name, ClientCount: agg.count, TrafficUsed: clampedTrafficAdd(up, down), Up: up, Down: down})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
@@ -162,7 +165,7 @@ func (s *ClientService) CreateGroup(name string) error {
 	}
 	db := database.GetDB()
 	var count int64
-	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
+	if err := db.Model(&model.ClientGroup{}).Where("LOWER(name) = LOWER(?)", name).Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
@@ -206,21 +209,11 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	db := database.GetDB()
 
 	if group != "" {
-		var exists int64
-		if err := db.Model(&model.ClientGroup{}).Where("name = ?", group).Count(&exists).Error; err != nil {
+		record, err := database.EnsureClientGroup(db, group)
+		if err != nil {
 			return 0, err
 		}
-		if exists == 0 {
-			var derived int64
-			if err := db.Model(&model.ClientRecord{}).Where("group_name = ?", group).Count(&derived).Error; err != nil {
-				return 0, err
-			}
-			if derived == 0 {
-				if err := db.Create(&model.ClientGroup{Name: group}).Error; err != nil {
-					return 0, err
-				}
-			}
-		}
+		group = record.Name
 	}
 
 	var records []model.ClientRecord
@@ -334,103 +327,115 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 
 func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
 	db := database.GetDB()
-	if newName == "" {
-		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
-			return 0, err
+	affected := 0
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var group model.ClientGroup
+		groupErr := tx.Where("name = ?", oldName).First(&group).Error
+		if groupErr != nil && !errors.Is(groupErr, gorm.ErrRecordNotFound) {
+			return groupErr
 		}
-	} else {
-		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
-			return 0, err
-		}
-	}
-	var records []model.ClientRecord
-	if err := db.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
-		return 0, err
-	}
-	if len(records) == 0 {
-		return 0, nil
-	}
-	affectedEmails := make([]string, 0, len(records))
-	for _, r := range records {
-		affectedEmails = append(affectedEmails, r.Email)
-	}
-
-	tx := db.Begin()
-	if err := tx.Model(&model.ClientRecord{}).
-		Where("group_name = ?", oldName).
-		UpdateColumn("group_name", newName).Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	var inboundIDs []int
-	inboundIDSeen := make(map[int]struct{})
-	for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
-		var ids []int
-		if err := tx.Table("client_inbounds").
-			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-			Where("clients.email IN ?", batch).
-			Distinct("client_inbounds.inbound_id").
-			Pluck("inbound_id", &ids).Error; err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		for _, id := range ids {
-			if _, ok := inboundIDSeen[id]; !ok {
-				inboundIDSeen[id] = struct{}{}
-				inboundIDs = append(inboundIDs, id)
+		if groupErr == nil {
+			if newName == "" {
+				if err := tx.Where("client_group_id = ?", group.Id).
+					Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Delete(&group).Error; err != nil {
+					return err
+				}
+			} else if err := tx.Model(&group).Update("name", newName).Error; err != nil {
+				return err
+			}
+		} else if newName != "" {
+			if _, err := database.EnsureClientGroup(tx, newName); err != nil {
+				return err
 			}
 		}
-	}
 
-	for _, ibID := range inboundIDs {
-		var ib model.Inbound
-		if err := tx.First(&ib, ibID).Error; err != nil {
-			tx.Rollback()
-			return 0, err
+		var records []model.ClientRecord
+		if err := tx.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+			return err
 		}
-		var settings map[string]any
-		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
-			continue
+		affected = len(records)
+		if len(records) == 0 {
+			return nil
 		}
-		clients, ok := settings["clients"].([]any)
-		if !ok {
-			continue
+		affectedEmails := make([]string, 0, len(records))
+		for _, r := range records {
+			affectedEmails = append(affectedEmails, r.Email)
 		}
-		modified := false
-		for i := range clients {
-			cm, ok := clients[i].(map[string]any)
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("group_name = ?", oldName).
+			UpdateColumn("group_name", newName).Error; err != nil {
+			return err
+		}
+
+		var inboundIDs []int
+		inboundIDSeen := make(map[int]struct{})
+		for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
+			var ids []int
+			if err := tx.Table("client_inbounds").
+				Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+				Where("clients.email IN ?", batch).
+				Distinct("client_inbounds.inbound_id").
+				Pluck("inbound_id", &ids).Error; err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if _, ok := inboundIDSeen[id]; !ok {
+					inboundIDSeen[id] = struct{}{}
+					inboundIDs = append(inboundIDs, id)
+				}
+			}
+		}
+
+		for _, ibID := range inboundIDs {
+			var ib model.Inbound
+			if err := tx.First(&ib, ibID).Error; err != nil {
+				return err
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+				continue
+			}
+			clients, ok := settings["clients"].([]any)
 			if !ok {
 				continue
 			}
-			if g, ok := cm["group"].(string); ok && g == oldName {
-				if newName == "" {
-					delete(cm, "group")
-				} else {
-					cm["group"] = newName
+			modified := false
+			for i := range clients {
+				cm, ok := clients[i].(map[string]any)
+				if !ok {
+					continue
 				}
-				clients[i] = cm
-				modified = true
+				if g, ok := cm["group"].(string); ok && g == oldName {
+					if newName == "" {
+						delete(cm, "group")
+					} else {
+						cm["group"] = newName
+					}
+					clients[i] = cm
+					modified = true
+				}
+			}
+			if modified {
+				settings["clients"] = clients
+				newSettings, err := json.Marshal(settings)
+				if err != nil {
+					continue
+				}
+				ib.Settings = string(newSettings)
+				if err := tx.Save(&ib).Error; err != nil {
+					return err
+				}
 			}
 		}
-		if modified {
-			settings["clients"] = clients
-			newSettings, err := json.Marshal(settings)
-			if err != nil {
-				continue
-			}
-			ib.Settings = string(newSettings)
-			if err := tx.Save(&ib).Error; err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
+		return nil
+	})
+	if err != nil {
 		return 0, err
 	}
-	return len(records), nil
+	return affected, nil
 }
 
 // groupCounters is a group's summed traffic, held within ±TrafficMax.

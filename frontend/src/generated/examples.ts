@@ -745,6 +745,10 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "cipherSuites": "",
+    "clientGroupIds": [
+      1,
+      2
+    ],
     "echConfigList": "",
     "excludeFromSubTypes": [
       ""

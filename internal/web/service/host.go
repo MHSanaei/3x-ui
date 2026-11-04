@@ -249,7 +249,80 @@ func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	return groupHosts(hosts), nil
+	groups := groupHosts(hosts)
+	if err := attachHostGroupClientGroups(groups); err != nil {
+		return nil, err
+	}
+	return groups, nil
+}
+
+// attachHostGroupClientGroups fills the client-group bindings of a host-group
+// list in one query, so the host form can render them without an N+1.
+func attachHostGroupClientGroups(groups []*entity.HostGroup) error {
+	if len(groups) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(groups))
+	for _, group := range groups {
+		ids = append(ids, group.GroupId)
+	}
+	var rows []model.HostGroupClientGroup
+	if err := database.GetDB().Where("host_group_id IN ?", ids).
+		Order("client_group_id ASC").Find(&rows).Error; err != nil {
+		return err
+	}
+	byGroup := make(map[string][]int, len(rows))
+	for _, row := range rows {
+		byGroup[row.HostGroupId] = append(byGroup[row.HostGroupId], row.ClientGroupId)
+	}
+	for _, group := range groups {
+		group.ClientGroupIds = byGroup[group.GroupId]
+	}
+	return nil
+}
+
+func normalizeClientGroupIDs(ids []int) []int {
+	if len(ids) == 0 {
+		return nil
+	}
+	out := make([]int, 0, len(ids))
+	seen := make(map[int]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		if _, dup := seen[id]; dup {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
+}
+
+func replaceHostGroupClientGroups(tx *gorm.DB, hostGroupID string, ids []int) error {
+	ids = normalizeClientGroupIDs(ids)
+	if len(ids) > 0 {
+		var count int64
+		if err := tx.Model(&model.ClientGroup{}).Where("id IN ?", ids).Count(&count).Error; err != nil {
+			return err
+		}
+		if int(count) != len(ids) {
+			return common.NewError("client group not found")
+		}
+	}
+	if err := tx.Where("host_group_id = ?", hostGroupID).
+		Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	rows := make([]model.HostGroupClientGroup, 0, len(ids))
+	for _, id := range ids {
+		rows = append(rows, model.HostGroupClientGroup{HostGroupId: hostGroupID, ClientGroupId: id})
+	}
+	return tx.Create(&rows).Error
 }
 
 // GetRawHosts returns every host row with its numeric id, so callers that
@@ -275,7 +348,11 @@ func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, err
 	if err := database.GetDB().Where("group_id IN ?", groupIds).Order("sort_order asc, id asc").Find(&hosts).Error; err != nil {
 		return nil, err
 	}
-	return groupHosts(hosts), nil
+	groups := groupHosts(hosts)
+	if err := attachHostGroupClientGroups(groups); err != nil {
+		return nil, err
+	}
+	return groups, nil
 }
 
 func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
@@ -290,6 +367,9 @@ func (s *HostService) GetHostGroup(groupId string) (*entity.HostGroup, error) {
 	grouped := groupHosts(hosts)
 	if len(grouped) == 0 {
 		return nil, common.NewError("host not found")
+	}
+	if err := attachHostGroupClientGroups(grouped); err != nil {
+		return nil, err
 	}
 	return grouped[0], nil
 }
@@ -309,9 +389,11 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 			return err
 		}
 		if len(created) > 0 {
-			return tx.Create(&created).Error
+			if err := tx.Create(&created).Error; err != nil {
+				return err
+			}
 		}
-		return nil
+		return replaceHostGroupClientGroups(tx, groupId, req.ClientGroupIds)
 	})
 	if err != nil {
 		return nil, err
@@ -401,7 +483,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 				return err
 			}
 		}
-		return nil
+		return replaceHostGroupClientGroups(tx, groupId, req.ClientGroupIds)
 	})
 	if err != nil {
 		return nil, err
@@ -411,6 +493,10 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 
 func (s *HostService) DeleteHostGroup(groupId string) error {
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("host_group_id = ?", groupId).
+			Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)
 		return err
 	})
@@ -432,6 +518,10 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 		return nil
 	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("host_group_id IN ?", groupIds).
+			Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id IN ?", groupIds)
 		return err
 	})
