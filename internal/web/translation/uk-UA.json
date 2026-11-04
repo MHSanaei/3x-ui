@@ -2412,6 +2412,7 @@
         "remark": "Примітка",
         "serverDescription": "Опис",
         "inbound": "Вхідні",
+        "clientGroups": "Client groups",
         "address": "Адреса",
         "port": "Порт",
         "endpoint": "Кінцева точка",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Успадковує адресу"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Залиште порожнім, щоб успадкувати власну адресу вхідного.",
         "port": "0 успадковує порт вхідного.",
         "tags": "Не видно кінцевим користувачам; надсилається лише з RAW-підпискою. Лише великі літери, цифри, _ та :.",

@@ -2412,6 +2412,7 @@
         "remark": "Ghi chú",
         "serverDescription": "Mô tả",
         "inbound": "Inbounds",
+        "clientGroups": "Client groups",
         "address": "Địa chỉ",
         "port": "Cổng",
         "endpoint": "Endpoint",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Kế thừa địa chỉ"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Để trống để kế thừa địa chỉ của chính inbound.",
         "port": "0 sẽ kế thừa cổng của inbound.",
         "tags": "Không hiển thị cho người dùng cuối; chỉ gửi kèm đăng ký RAW. Chỉ chữ in hoa, chữ số, _ và :.",

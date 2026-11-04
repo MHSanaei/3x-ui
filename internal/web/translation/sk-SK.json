@@ -1128,6 +1128,7 @@
         "remark": "Názov",
         "serverDescription": "Popis",
         "inbound": "Vstupy",
+        "clientGroups": "Client groups",
         "address": "Adresa",
         "port": "Port",
         "endpoint": "Koncový bod",
@@ -1159,6 +1160,7 @@
         "inheritAddress": "Preberá sa"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Prázdne pole preberie adresu samotného vstupu.",
         "port": "Hodnota 0 preberie port vstupu.",
         "tags": "Koncovým používateľom sa nezobrazujú. Posielajú sa iba v surovom odbere RAW. Povolené sú iba veľké písmená, číslice, _ a :.",

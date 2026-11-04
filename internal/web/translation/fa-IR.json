@@ -2412,6 +2412,7 @@
         "remark": "نام",
         "serverDescription": "توضیحات",
         "inbound": "اینباندها",
+        "clientGroups": "Client groups",
         "address": "آدرس",
         "port": "پورت",
         "endpoint": "نقطه پایانی",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "ارث‌بری آدرس"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "برای ارث‌بری آدرس خودِ اینباند خالی بگذارید.",
         "port": "مقدار ۰ پورت اینباند را به ارث می‌برد.",
         "tags": "برای کاربران نهایی قابل مشاهده نیست؛ فقط با اشتراک RAW ارسال می‌شود. تنها حروف بزرگ، ارقام، _ و : مجاز است.",

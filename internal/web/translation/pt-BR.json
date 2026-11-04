@@ -2412,6 +2412,7 @@
         "remark": "Observação",
         "serverDescription": "Descrição",
         "inbound": "Entradas",
+        "clientGroups": "Client groups",
         "address": "Endereço",
         "port": "Porta",
         "endpoint": "Endpoint",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Herda endereço"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Deixe em branco para herdar o próprio endereço da entrada.",
         "port": "0 herda a porta da entrada.",
         "tags": "Não visível aos usuários finais; enviado apenas na assinatura RAW. Apenas letras maiúsculas, dígitos, _ e :.",

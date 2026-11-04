@@ -2412,6 +2412,7 @@
         "remark": "備考",
         "serverDescription": "説明",
         "inbound": "インバウンド",
+        "clientGroups": "Client groups",
         "address": "アドレス",
         "port": "ポート",
         "endpoint": "エンドポイント",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "アドレス継承"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "空欄にするとインバウンド自身のアドレスを継承します。",
         "port": "0 にするとインバウンドのポートを継承します。",
         "tags": "エンドユーザーには表示されません。RAW サブスクリプションでのみ送信されます。大文字、数字、_ と : のみ使用できます。",

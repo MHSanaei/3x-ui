@@ -2412,6 +2412,7 @@
         "remark": "Açıklama",
         "serverDescription": "Tanım",
         "inbound": "Gelen Bağlantılar",
+        "clientGroups": "Client groups",
         "address": "Adres",
         "port": "Port",
         "endpoint": "Uç Nokta",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Adresi devralır"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Gelen bağlantının kendi adresini devralmak için boş bırakın.",
         "port": "0 değeri gelen bağlantının portunu devralır.",
         "tags": "Son kullanıcılara görünmez; yalnızca RAW abonelikle gönderilir. Yalnızca büyük harf, rakam, _ ve : kullanılabilir.",

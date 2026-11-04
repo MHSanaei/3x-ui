@@ -2412,6 +2412,7 @@
         "remark": "Notas",
         "serverDescription": "Descripción",
         "inbound": "Inbounds",
+        "clientGroups": "Client groups",
         "address": "Dirección",
         "port": "Puerto",
         "endpoint": "Punto final",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Hereda dirección"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Déjalo en blanco para heredar la dirección propia del inbound.",
         "port": "0 hereda el puerto del inbound.",
         "tags": "No visible para los usuarios finales; se envía solo con la suscripción RAW. Solo letras mayúsculas, dígitos, _ y :.",

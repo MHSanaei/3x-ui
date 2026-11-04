@@ -1128,6 +1128,7 @@
         "remark": "Remark",
         "serverDescription": "Description",
         "inbound": "Inbounds",
+        "clientGroups": "Client groups",
         "address": "Address",
         "port": "Port",
         "endpoint": "Endpoint",
@@ -1159,6 +1160,7 @@
         "inheritAddress": "Inherits"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Leave blank to inherit the inbound's own address.",
         "port": "0 inherits the inbound's port.",
         "tags": "Not visible to end users; sent with RAW subscription only. Uppercase letters, digits, _ and : only.",

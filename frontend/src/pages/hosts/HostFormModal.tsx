@@ -35,6 +35,7 @@ import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
 import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
+import HostClientGroupsSelect from './HostClientGroupsSelect';
 
 type FormShape = Omit<BulkAddHostValues, 'isDisabled'> & {
   enable: boolean;
@@ -91,6 +92,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     vlessRoute: host?.vlessRoute ?? '',
     excludeFromSubTypes:
       (host?.excludeFromSubTypes as BulkAddHostValues['excludeFromSubTypes']) ?? [],
+    clientGroupIds: (host?.clientGroupIds as BulkAddHostValues['clientGroupIds'] | undefined) ?? [],
     nodeGuids: host?.nodeGuids ?? [],
     mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
@@ -297,6 +299,7 @@ export default function HostFormModal({
                         placeholder={t('pages.hosts.selectInbound')}
                       />
                     </FormField>
+                    <HostClientGroupsSelect />
                     <FormField
                       name="hosts"
                       label={t('pages.hosts.fields.address')}

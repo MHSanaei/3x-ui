@@ -2412,6 +2412,7 @@
         "remark": "Catatan",
         "serverDescription": "Deskripsi",
         "inbound": "Inbound",
+        "clientGroups": "Client groups",
         "address": "Alamat",
         "port": "Port",
         "endpoint": "Endpoint",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "Warisi alamat"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "Biarkan kosong untuk mewarisi alamat inbound itu sendiri.",
         "port": "0 mewarisi port inbound.",
         "tags": "Tidak terlihat oleh pengguna akhir; hanya dikirim dengan langganan RAW. Hanya huruf kapital, angka, _ dan :.",

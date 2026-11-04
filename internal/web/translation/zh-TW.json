@@ -2412,6 +2412,7 @@
         "remark": "備註",
         "serverDescription": "描述",
         "inbound": "入站",
+        "clientGroups": "Client groups",
         "address": "地址",
         "port": "連接埠",
         "endpoint": "端點",
@@ -2443,6 +2444,7 @@
         "inheritAddress": "繼承地址"
       },
       "hints": {
+        "clientGroups": "Only clients in this group receive these hosts; every other client keeps the inbound's normal host pool.",
         "address": "留空以繼承入站本身的地址。",
         "port": "0 表示繼承入站的連接埠。",
         "tags": "對終端使用者不可見；僅隨 RAW 訂閱傳送。只能使用大寫字母、數字、_ 和 :。",
