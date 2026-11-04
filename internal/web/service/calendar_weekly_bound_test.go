@@ -76,3 +76,21 @@ func TestWeeklyRenewalSearchFailsClosed(t *testing.T) {
 		})
 	}
 }
+
+// A node reports the renewal interval unchecked; one that wraps int64 when turned into
+// milliseconds made the catch-up loop step through time for seconds per client.
+func TestCatchUpClientRenewalRefusesAnOversizedInterval(t *testing.T) {
+	now := time.Now().UnixMilli()
+	for _, reset := range []int{106751991167, maxClientResetDays + 1} {
+		traffic := &xray.ClientTraffic{Email: "c", Reset: reset, ExpiryTime: now - 86400000}
+		start := time.Now()
+		expiry, renewals := catchUpClientRenewal(traffic, now, time.UTC)
+		if expiry != traffic.ExpiryTime || renewals != 0 || time.Since(start) > 100*time.Millisecond {
+			t.Fatalf("reset %d: expiry %d, renewals %d after %v; want no renewal", reset, expiry, renewals, time.Since(start))
+		}
+	}
+	traffic := &xray.ClientTraffic{Email: "c", Reset: maxClientResetDays, ExpiryTime: now - 86400000}
+	if _, renewals := catchUpClientRenewal(traffic, now, time.UTC); renewals != 1 {
+		t.Fatalf("a %d-day interval renewed %d times, want once", maxClientResetDays, renewals)
+	}
+}

@@ -1,11 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 )
 
 // checkForwardedPortsConflict only ran from the AmneziaWG save path, so an
@@ -131,5 +134,57 @@ func TestAddInboundAllowsANodeRowOnALocallyForwardedPort(t *testing.T) {
 		NodeID: &node.Id,
 	}); err != nil {
 		t.Fatalf("a node row does not bind here; the create must be allowed: %v", err)
+	}
+}
+
+// A forward bound on every interface holds a relay port no port column shows, so the
+// inbound whose id derives that relay port must not be created onto it.
+func TestAddInboundRefusesARelayPortAnAmneziaWGPeerForwards(t *testing.T) {
+	cases := []struct {
+		name      string
+		relayPort func(id int) int
+		inbound   func(t *testing.T) *model.Inbound
+	}{
+		{"amneziawg", amneziawgnet.SOCKSPortForInbound, func(t *testing.T) *model.Inbound {
+			return &model.Inbound{
+				Tag: "awg-next", Enable: true, Listen: "0.0.0.0", Port: 51821,
+				Protocol: model.AmneziaWG, Settings: awgRelayWindowSettings(t, "awg-next"),
+			}
+		}},
+		{"tuic", tuic.SOCKSPortForInbound, func(t *testing.T) *model.Inbound {
+			return &model.Inbound{
+				Tag: "tuic-next", Enable: true, Listen: "0.0.0.0", Port: 8443,
+				Protocol: model.TUIC, Settings: `{"clients":[]}`,
+			}
+		}},
+	}
+
+	for _, tc := range cases {
+		for _, held := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s held=%v", tc.name, held), func(t *testing.T) {
+				setupConflictDB(t)
+				// The holder takes id 1, so the create below derives its port from id 2.
+				forwarded := tc.relayPort(2)
+				if !held {
+					forwarded = tc.relayPort(3)
+				}
+				seedInboundConflict(t, "awg-forward", "0.0.0.0", 51820, model.AmneziaWG, ``,
+					awgRelayWindowSettingsWithForward(t, "awg-forward", fmt.Sprint(forwarded)))
+
+				_, _, err := (&InboundService{}).AddInbound(tc.inbound(t))
+				if !held {
+					if err != nil {
+						t.Fatalf("relay port %d is free; the create must be allowed: %v", tc.relayPort(2), err)
+					}
+					return
+				}
+				if err == nil {
+					t.Fatalf("relay port %d is forwarded by a peer of another inbound; the create must be refused", forwarded)
+				}
+				if !strings.Contains(err.Error(), "relay port") || !strings.Contains(err.Error(), "awg-forward@relay-window") {
+					t.Fatalf("the refusal must name the relay port and the peer holding it, got %v", err)
+				}
+			})
+		}
 	}
 }

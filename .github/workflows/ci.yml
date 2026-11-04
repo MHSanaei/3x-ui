@@ -9,8 +9,9 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
-      - ".github/workflows/ci.yml"
       - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
+      - ".github/workflows/ci.yml"
       - "x-ui.sh"
       - "scripts/lib/ip-ssl.sh"
       - "scripts/sync-ip-ssl-helpers.sh"
@@ -25,8 +26,9 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
-      - ".github/workflows/ci.yml"
       - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
+      - ".github/workflows/ci.yml"
       - "x-ui.sh"
       - "scripts/lib/ip-ssl.sh"
       - "scripts/sync-ip-ssl-helpers.sh"
@@ -81,12 +83,12 @@ jobs:
       - name: PostgreSQL durable-first tests
         run: |
           set -o pipefail
-          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$' -count=1 -v | tee /tmp/postgres-durable-first.log
+          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$|^TestVlessManagedFallbackConflictPostgres$' -count=1 -v | tee /tmp/postgres-durable-first.log
           # Count passes rather than assert no SKIP: a renamed or deleted test
           # prints "no tests to run" and exits 0, leaving the step green for nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-durable-first.log || true)
-          if [ "$passed" -lt 4 ]; then
-            echo "expected at least 4 passing durable-first tests, got $passed" >&2
+          if [ "$passed" -lt 5 ]; then
+            echo "expected at least 5 passing durable-first tests, got $passed" >&2
             exit 1
           fi
 
@@ -199,6 +201,15 @@ jobs:
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-migration.log || true)
           if [ "$passed" -lt 4 ]; then
             echo "expected at least 4 passing PostgreSQL migration tests, got $passed" >&2
+            exit 1
+          fi
+      - name: SQLite import host settings
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestImportSQLiteIntoPostgresHostSettings$' -count=1 -v | tee /tmp/postgres-import-host-settings.log
+          passed=$(grep -c -- '^--- PASS: TestImportSQLiteIntoPostgresHostSettings ' /tmp/postgres-import-host-settings.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected the SQLite import integration test to pass, got $passed" >&2
             exit 1
           fi
 
@@ -324,7 +335,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck socat
       - name: shellcheck
         run: |
-          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh
+          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh deploy/test/installer-panel-port.sh
           shellcheck --severity=error install.sh update.sh x-ui.sh
           shellcheck --severity=style -e SC1091 scripts/lib/ip-ssl.sh scripts/sync-ip-ssl-helpers.sh scripts/test/ip-ssl-*.sh
       - name: IP certificate regressions (no ACME orders)
@@ -336,6 +347,8 @@ jobs:
           bash scripts/test/ip-ssl-entrypoint-test.sh
           IP_SSL_LINUX_TEST=1 bash scripts/test/ip-ssl-listener-test.sh
           bash scripts/test/ip-ssl-certificate-test.sh
+      - name: Installer panel port regression tests
+        run: bash deploy/test/installer-panel-port.sh
 
   frontend:
     runs-on: ubuntu-latest

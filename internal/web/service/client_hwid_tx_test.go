@@ -96,6 +96,53 @@ func TestClientHwidTxRejectsUnserializedHandle(t *testing.T) {
 	assertHwidState(t, db, rec.Email, 1, 0)
 }
 
+func TestUnlimitedHwidTrackingCannotLandBehindNewLimit(t *testing.T) {
+	initClientHwidTestDB(t)
+	db := database.GetDB()
+	rec := seedHwidClient(t, 0)
+	svc := &ClientService{}
+	if _, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-one"}); err != nil {
+		t.Fatalf("track first device: %v", err)
+	}
+
+	// The limit write and its trim stay uncommitted while the gate reads "no limit".
+	written := make(chan struct{})
+	release := make(chan struct{})
+	limitDone := make(chan error, 1)
+	go func() {
+		limitDone <- runSerializedTx(func(tx *gorm.DB) error {
+			err := svc.setClientLimitHwidByEmailTx(tx, rec.Email, 1)
+			close(written)
+			<-release
+			return err
+		})
+	}()
+	<-written
+
+	type gate struct {
+		res HwidGateResult
+		err error
+	}
+	gateDone := make(chan gate, 1)
+	go func() {
+		res, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-two"})
+		gateDone <- gate{res, err}
+	}()
+	time.Sleep(100 * time.Millisecond)
+	close(release)
+	if err := <-limitDone; err != nil {
+		t.Fatalf("set limit: %v", err)
+	}
+	g := <-gateDone
+	if g.err != nil {
+		t.Fatalf("gate: %v", g.err)
+	}
+	if g.res.Allowed || !g.res.MaxDevicesReached || g.res.Limit != 1 {
+		t.Fatalf("second device must meet the new limit: %+v", g.res)
+	}
+	assertHwidState(t, db, rec.Email, 1, 1)
+}
+
 func TestBulkAdjustHwidRollsBackFailedTrim(t *testing.T) {
 	setupBulkDB(t)
 	db := database.GetDB()

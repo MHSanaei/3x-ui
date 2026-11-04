@@ -2,7 +2,6 @@ package tgbot
 
 import (
 	"context"
-	"html"
 	"slices"
 	"strconv"
 	"strings"
@@ -259,6 +258,12 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
 		if len(commandArgs) > 0 {
+			// A placeholder user can be neither throttled nor bound, so its claim is
+			// refused before it counts: the link works from the account's own chat.
+			if sentForChat(message) {
+				t.sendNotice(chatId, t.I18nBot("tgbot.messages.inviteInvalid"))
+				return
+			}
 			if !isAdmin && !t.allowInviteAttempt(message.From) {
 				t.sendNotice(chatId, t.I18nBot("tgbot.messages.inviteRateLimited"))
 				return
@@ -266,18 +271,18 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			t.claimInvite(chatId, message.From.ID, commandArgs[0])
 		}
 		// A stranger learns only its ChatID, which is what an admin needs to bind it.
-		if !isAdmin && t.levelOf(message.From.ID) == levelStranger {
+		if !isAdmin && (sentForChat(message) || t.levelOf(message.From.ID) == levelStranger) {
 			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
 			return
 		}
 		t.clearBroadcastPrompt(messageActor(*message))
-		t.screenHome(chatId, message.From.ID)
+		t.screenHome(chatId, message.From.ID, screenSendNew)
 		return
 	case "status":
 		// The full server screen carries the host addresses and versions, so it
 		// stays admin-only; a client asking for status gets liveness alone.
 		if isAdmin {
-			t.screenServer(chatId)
+			t.screenServer(chatId, screenSendNew)
 			return
 		}
 		t.sendNotice(chatId, t.I18nBot("tgbot.commands.statusOk"))
@@ -288,12 +293,12 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	case "usage":
 		if len(commandArgs) > 0 {
 			if isAdmin {
-				t.searchClientScreen(chatId, commandArgs[0])
+				t.searchClientScreen(chatId, commandArgs[0], screenSendNew)
 			} else {
-				t.getClientUsage(chatId, message.From.ID, commandArgs[0])
+				t.getClientUsage(chatId, message.From.ID, screenSendNew, commandArgs[0])
 			}
 		} else {
-			t.getClientUsage(chatId, message.From.ID)
+			t.getClientUsage(chatId, message.From.ID, screenSendNew)
 		}
 		return
 	case "inbound":
@@ -324,7 +329,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		}
 	case "clearall":
 		if isAdmin {
-			t.renderScreen(chatId, t.resetAllConfirm())
+			t.renderScreen(chatId, t.resetAllConfirm(), screenSendNew)
 			return
 		}
 		handleUnknownCommand()
@@ -1023,24 +1028,24 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.renderScreen(chatId, t.resetAllConfirm())
 	case "client_traffic":
 		t.answerSilent(callbackQuery.ID)
-		t.getClientUsage(chatId, callbackQuery.From.ID)
+		t.getClientUsage(chatId, callbackQuery.From.ID, screenEditOrReplace)
 	case "client_sub_links", "client_individual_links", "client_qr_links":
 		// A client tapped its own link button: its identity already says which
 		// subscription, so it opens directly. A second one still needs a choice.
 		t.openOwnClientScreen(chatId, callbackQuery.From.ID, callbackQuery.Data)
 	case "add_client_ch_default_email":
 		userStateMgr.set(actor, "awaiting_email")
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+html.EscapeString(draft.email)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+draft.email))
 	case "add_client_ch_default_comment":
 		userStateMgr.set(actor, "awaiting_comment")
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+html.EscapeString(draft.comment)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+draft.comment))
 	case "add_client_ch_default_tg_id":
 		userStateMgr.set(actor, "awaiting_tg_id")
 		current := draft.tgID
 		if current == "" {
 			current = "—"
 		}
-		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.tgid_prompt", "ClientTGID=="+html.EscapeString(current)))
+		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.tgid_prompt", "ClientTGID=="+current))
 	case "add_client_ch_default_traffic":
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1192,9 +1197,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 		report.WriteString(t.I18nBot("tgbot.messages.FinishProcess"))
 
-		// Escaped whole (a stray "<" makes Telegram reject a page) and paged:
-		// past ~80 clients the report exceeds one message.
-		t.sendPagedNotice(chatId, html.EscapeString(report.String()))
+		// Paged: past ~80 clients the report exceeds one message.
+		t.sendPagedNotice(chatId, report.String())
 		// The confirmation has served its purpose: leaving it on screen left the
 		// only button being the one just pressed.
 		t.screenHome(chatId, callbackQuery.From.ID)
@@ -1236,6 +1240,9 @@ func isClientSelfCallback(data string) bool {
 	// own (it is the message it sits on), so it is safe for anyone to reach.
 	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
+		return true
+	// Paging only turns the screen already tracked for the caller's own chat.
+	case cbPageNext, cbPagePrev, cbPageNone:
 		return true
 	}
 	_, _, ok := splitClientLinkCallback(data)

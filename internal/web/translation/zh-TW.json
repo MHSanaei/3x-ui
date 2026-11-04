@@ -10,6 +10,7 @@
   "create": "建立",
   "add": "新增",
   "remove": "移除",
+  "removeItem": "移除 {item}",
   "update": "更新",
   "copy": "複製",
   "copied": "已複製",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "儲存 geodata 設定？",
       "geodataConfirmContent": "將更新 Xray 設定範本並重啟 Xray。",
       "geodataInvalidUrl": "每個檔案都需要 HTTPS 位址。",
-      "geodataInvalidFile": "檔案名稱必須是純檔名，例如 geosite_custom.dat（不能包含路徑）。",
+      "geodataInvalidFile": "檔案名稱必須是純 .dat 檔名，例如 geosite_custom.dat（不能包含路徑）。",
       "geodataInvalidCron": "Cron 必須為 5 段，例如 0 4 * * *",
       "geodataEmpty": "尚未設定檔案。路由規則中可透過 ext:geosite_custom.dat:category 引用檔案。",
       "dontRefresh": "安裝中，請勿重新整理此頁面",
@@ -311,7 +312,9 @@
         "pickInbound": "選擇一個入站",
         "matchAny": "任何",
         "destPlaceholder": "自動（子入站 listen:port）",
-        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。",
+        "decryptionConflict": "VLESS 伺服器端解密啟用時無法使用回落。請先刪除並儲存回落規則再啟用解密，或關閉解密。",
+        "saveFailed": "無法載入或儲存回落規則。草稿保持開啟；請檢查錯誤後重試。"
       },
       "protocol": "協議",
       "port": "連接埠",
@@ -737,6 +740,14 @@
           "clientId": "用戶端 ID",
           "clientSecret": "用戶端密鑰",
           "refreshToken": "重新整理權杖",
+          "accessKeyId": "存取金鑰 ID",
+          "secretAccessKey": "秘密存取金鑰",
+          "sessionToken": "工作階段權杖",
+          "s3Endpoint": "端點",
+          "s3Region": "區域",
+          "s3Bucket": "儲存貯體",
+          "s3PathStyle": "路徑樣式定址",
+          "s3PathStyleDesc": "開啟：儲存貯體名稱放在 URL 路徑中。關閉：放在主機名稱中，需要使用網域端點。",
           "secrets": "密鑰",
           "secretsDesc": "範本中以 {secret0}、{secret1}… 引用的值",
           "template": "儲存範本",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "系統 DNS 指向閘道",
         "autoSystemDnsToGatewayTooltip": "僅限 Linux：將 systemd-resolved 指向 TUN 閘道，使系統解析經過 Xray。需要設定閘道，失敗時 TUN 不會啟動。",
         "autoSystemWfpBlockLeak": "阻止洩漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS 只走 TUN（需設定 DNS 伺服器），misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。",
+        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS（連接埠 53、853 及 DNS Client 服務）只走 TUN，需設定 DNS 伺服器；windnsclient 只針對該服務；其他連接埠請輸入 tcp/連接埠 或 udp/連接埠；misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。",
         "maxVersion": "最高版本",
         "headerName": "標頭名稱",
         "headerValue": "標頭值"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "略過 TLS 憑證驗證（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "嵌入 UUID 的單一 VLESS 路由值（0-65535），例如 443。留空表示無。",
         "mihomoX25519": "僅 Mihomo：REALITY 握手只使用一般 X25519，不帶 ML-KEM（support-x25519mlkem768: false）。適用於執行 Xray-core 26.9.8 以下、不要求 ML-KEM 的伺服器。",
-        "remark": "此 Host 的純文字標籤。僅當入站本身沒有備註時，才作為配置名稱顯示。"
+        "remark": "此 Host 的純文字標籤。在備註範本中使用 {{HOST}} 可將其包含在設定名稱中。"
       },
       "remarkVars": {
         "title": "範本變數",

@@ -4,6 +4,7 @@ import { AutoComplete, Button, Form, Input, InputNumber, Select, Switch } from '
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundDomainStrategies } from '@/schemas/primitives';
@@ -274,6 +275,7 @@ export default function FreedomFields() {
           <FormField label="IP / CIDR / geoip" name={['settings', 'finalRules', index, 'ip']}>
             <Select
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',', ' ']}
               placeholder="e.g. 10.0.0.0/8, geoip:private"
             />

@@ -21,7 +21,7 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { RandomUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
-import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
+import { DateTimePicker, SelectAllClearButtons, selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { useClients, type InboundOption } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
@@ -268,6 +268,7 @@ export default function ClientBulkAddModal({
               <Select
                 id={`${uid}-inbounds`}
                 mode="multiple"
+                tagRender={selectTagRender}
                 value={inboundIds}
                 onChange={(v) => methods.setValue('inboundIds', v)}
                 options={inboundOptions}

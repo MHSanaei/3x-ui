@@ -10,6 +10,7 @@
   "create": "Create",
   "add": "Add",
   "remove": "Remove",
+  "removeItem": "Remove {item}",
   "update": "Update",
   "copy": "Copy",
   "copied": "Copied",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Save geodata settings?",
       "geodataConfirmContent": "This updates the Xray config template and restarts Xray.",
       "geodataInvalidUrl": "Each file needs an HTTPS URL.",
-      "geodataInvalidFile": "File names must be plain names like geosite_custom.dat (no paths).",
+      "geodataInvalidFile": "File names must be plain .dat names like geosite_custom.dat (no paths).",
       "geodataInvalidCron": "Cron must have 5 fields, e.g. 0 4 * * *",
       "geodataEmpty": "No files configured. Reference files in routing rules as ext:geosite_custom.dat:category.",
       "dontRefresh": "Installation is in progress, please do not refresh this page",
@@ -311,7 +312,9 @@
         "pickInbound": "Pick an inbound",
         "matchAny": "any",
         "destPlaceholder": "auto (child listen:port)",
-        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only).",
+        "decryptionConflict": "VLESS fallbacks cannot be used with active server decryption. Remove and save fallback rules before enabling VLESS decryption, or disable decryption.",
+        "saveFailed": "Could not load or save fallback rules. Your draft remains open; retry after checking the error."
       },
       "protocol": "Protocol",
       "port": "Port",
@@ -738,6 +741,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client secret",
           "refreshToken": "Refresh token",
+          "accessKeyId": "Access key ID",
+          "secretAccessKey": "Secret access key",
+          "sessionToken": "Session token",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Region",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Path-style addressing",
+          "s3PathStyleDesc": "On: the bucket goes in the URL path. Off: in the host name, which needs a DNS endpoint.",
           "secrets": "Secrets",
           "secretsDesc": "Values the template reads as {secret0}, {secret1}, …",
           "template": "Storage template",
@@ -763,7 +774,7 @@
         "autoSystemDnsToGateway": "System DNS to gateway",
         "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
         "autoSystemWfpBlockLeak": "Block leaks (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS inside the TUN (needs DNS servers), misconfigtun blocks an IP version that no route sends into the TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS (ports 53 and 853 and the DNS Client service) inside the TUN and needs DNS servers; windnsclient covers only that service; type tcp/PORT or udp/PORT for any other port; misconfigtun blocks an IP version that no route sends into the TUN.",
         "maxVersion": "Max version",
         "headerName": "Header name",
         "headerValue": "Header value"
@@ -1156,7 +1167,7 @@
         "allowInsecure": "Skip TLS certificate verification (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Single VLESS route value (0-65535) baked into the UUID, e.g. 443. Leave blank for none.",
         "mihomoX25519": "Mihomo only: use a plain X25519 REALITY hello without ML-KEM (support-x25519mlkem768: false). For servers on Xray-core older than 26.9.8, which do not require ML-KEM.",
-        "remark": "A plain label for this host. Shown as the config name only when the inbound has no remark of its own."
+        "remark": "A plain label for this host. Insert {{HOST}} in the Remark Template to include it in configuration names."
       },
       "remarkVars": {
         "title": "Template Variables",
