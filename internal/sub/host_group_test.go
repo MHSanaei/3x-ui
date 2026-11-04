@@ -353,6 +353,28 @@ func TestSub_ClientGroup_LegacyFallbackPerInbound(t *testing.T) {
 	}
 }
 
+// Bindings on a case-duplicate group row still reach members of the canonical
+// group: the resolver folds both ids onto the first row loaded.
+func TestSub_ClientGroup_CaseDuplicateBinding(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cg", 4513, 1, tcpTLSStream)
+	canonical := seedClientGroup(t, "VIP")
+	duplicate := seedClientGroup(t, "vip")
+	setClientGroup(t, "cg@e", canonical.Name)
+	seedHost(t, &model.Host{GroupId: "ga", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls"})
+	seedHost(t, &model.Host{GroupId: "gb", InboundId: ib.Id, SortOrder: 2, Remark: "B", Address: "b.cdn.com", Port: 443, Security: "tls"})
+	bindHostGroup(t, "gb", duplicate.Id)
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if strings.Contains(joined, "a.cdn.com:443") || !strings.Contains(joined, "b.cdn.com:443") {
+		t.Fatalf("case-duplicate binding must be canonicalized, got: %s", joined)
+	}
+}
+
 // A group row without a binding must leave the default pool untouched.
 func TestSub_ClientGroup_NoBindingKeepsDefaultPool(t *testing.T) {
 	seedSubDB(t)

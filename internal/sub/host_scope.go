@@ -27,11 +27,15 @@ func (s *SubService) ensureClientGroupIndex() {
 		logger.Warning("SubService - ensureClientGroupIndex:", err)
 		return
 	}
+	canonicalByID := make(map[int]int, len(groups))
 	for _, group := range groups {
 		key := strings.ToLower(strings.TrimSpace(group.Name))
-		if _, exists := s.clientGroupIDsByName[key]; !exists {
-			s.clientGroupIDsByName[key] = group.Id
+		canonical, exists := s.clientGroupIDsByName[key]
+		if !exists {
+			canonical = group.Id
+			s.clientGroupIDsByName[key] = canonical
 		}
+		canonicalByID[group.Id] = canonical
 	}
 	var bindings []model.HostGroupClientGroup
 	if err := db.Find(&bindings).Error; err != nil {
@@ -39,10 +43,14 @@ func (s *SubService) ensureClientGroupIndex() {
 		return
 	}
 	for _, binding := range bindings {
-		bound := s.hostGroupsByClientGroup[binding.ClientGroupId]
+		groupID, ok := canonicalByID[binding.ClientGroupId]
+		if !ok {
+			continue
+		}
+		bound := s.hostGroupsByClientGroup[groupID]
 		if bound == nil {
 			bound = map[string]struct{}{}
-			s.hostGroupsByClientGroup[binding.ClientGroupId] = bound
+			s.hostGroupsByClientGroup[groupID] = bound
 		}
 		bound[binding.HostGroupId] = struct{}{}
 	}
