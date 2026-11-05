@@ -876,6 +876,7 @@
       "subIdDesc": "同時作為此用戶端的 Telegram 機器人邀請碼：任何人將其傳送給機器人即會綁定到此用戶端。請保持足夠長且隨機——過短或容易猜到的 ID 可能被他人搶先綁定。",
       "online": "上線",
       "email": "電子郵件",
+      "emailReservedName": "用戶端名稱不能僅為「.」或「..」",
       "emailInvalidChars": "電子郵件不能包含空格、'/'、'\\' 或控制字元",
       "subIdInvalidChars": "訂閱 ID 不能包含空格、'/'、'\\' 或控制字元",
       "group": "群組",
