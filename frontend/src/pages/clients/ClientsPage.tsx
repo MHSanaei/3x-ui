@@ -93,6 +93,7 @@ const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 import { ClientInboundChips, ClientRowActions } from './RowCells';
+import { useFitTableBodyHeight } from './useFitTableBodyHeight';
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -1241,6 +1242,9 @@ export default function ClientsPage() {
     ],
   );
 
+  const [tableBox, setTableBox] = useState<HTMLDivElement | null>(null);
+  const fitBodyHeight = useFitTableBodyHeight(tableBox);
+
   const tablePagination = {
     current: currentPage,
     pageSize: tablePageSize,
@@ -1702,28 +1706,30 @@ export default function ClientsPage() {
                       )}
 
                       {!isMobile ? (
-                        <Table<ClientRecord>
-                          columns={columns}
-                          dataSource={sortedClients}
-                          loading={transitioning}
-                          rowKey="email"
-                          rowSelection={rowSelection}
-                          pagination={tablePagination}
-                          size="small"
-                          scroll={{ x: 1200 }}
-                          onChange={onTableChange}
-                          locale={{
-                            emptyText: (
-                              <div className="clients-empty">
-                                <TeamOutlined
-                                  aria-hidden
-                                  style={{ fontSize: 32, marginBottom: 8 }}
-                                />
-                                <div>{t('noData')}</div>
-                              </div>
-                            ),
-                          }}
-                        />
+                        <div ref={setTableBox}>
+                          <Table<ClientRecord>
+                            columns={columns}
+                            dataSource={sortedClients}
+                            loading={transitioning}
+                            rowKey="email"
+                            rowSelection={rowSelection}
+                            pagination={tablePagination}
+                            size="small"
+                            scroll={{ x: 1200, y: fitBodyHeight }}
+                            onChange={onTableChange}
+                            locale={{
+                              emptyText: (
+                                <div className="clients-empty">
+                                  <TeamOutlined
+                                    aria-hidden
+                                    style={{ fontSize: 32, marginBottom: 8 }}
+                                  />
+                                  <div>{t('noData')}</div>
+                                </div>
+                              ),
+                            }}
+                          />
+                        </div>
                       ) : (
                         <Spin aria-live="off" spinning={transitioning}>
                           <div className="client-cards">
