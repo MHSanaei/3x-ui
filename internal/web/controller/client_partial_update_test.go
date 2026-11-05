@@ -51,3 +51,24 @@ func TestUpdateHandlerKeepsFieldsTheBodyOmits(t *testing.T) {
 		t.Fatalf("handler reset fields the body omitted: %+v", rec)
 	}
 }
+
+func TestClientQueryAliasPartialUpdateKeepsOmittedFields(t *testing.T) {
+	for _, email := range []string{".", ".."} {
+		t.Run(email, func(t *testing.T) {
+			router, rec, _ := seedLegacyDotClient(t, email)
+			db := database.GetDB()
+			if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).Updates(map[string]any{"limit_ip": 2, "total_gb": int64(10 << 30), "comment": "retained"}).Error; err != nil {
+				t.Fatal(err)
+			}
+			w := dotClientRequest(t, router, "POST", "update?email="+email, map[string]any{"email": "recovered-partial", "expiryTime": int64(1893456000000)})
+			assertDotClientSuccess(t, w)
+			var after model.ClientRecord
+			if err := db.First(&after, rec.Id).Error; err != nil {
+				t.Fatal(err)
+			}
+			if after.Email != "recovered-partial" || after.ExpiryTime != 1893456000000 || !after.Enable || after.UUID != rec.UUID || after.SubID != rec.SubID || after.LimitIP != 2 || after.TotalGB != 10<<30 || after.Comment != "retained" {
+				t.Fatalf("query alias partial update lost client state: %+v", after)
+			}
+		})
+	}
+}

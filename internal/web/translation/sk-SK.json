@@ -876,6 +876,7 @@
       "subIdDesc": "Slúži aj ako pozývací kód klienta do Telegram bota. Kto ho pošle botovi, priradí sa k tomuto klientovi. Použite dlhé náhodné ID. Krátke alebo odhadnuteľné ID si môže privlastniť niekto iný.",
       "online": "Online",
       "email": "Názov klienta",
+      "emailReservedName": "Názov klienta nesmie byť presne \".\" ani \"..\"",
       "emailInvalidChars": "Názov klienta nesmie obsahovať medzery, '/', '\\' ani riadiace znaky",
       "subIdInvalidChars": "ID odberu nesmie obsahovať medzery, '/', '\\' ani riadiace znaky",
       "group": "Skupina",

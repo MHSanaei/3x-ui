@@ -876,6 +876,7 @@
       "subIdDesc": "Também funciona como código de convite deste cliente no bot do Telegram: quem enviá-lo ao bot fica vinculado a este cliente. Mantenha-o longo e aleatório — um ID curto ou fácil de adivinhar pode ser reivindicado por outra pessoa.",
       "online": "Online",
       "email": "Email",
+      "emailReservedName": "O nome do cliente não pode ser exatamente \".\" ou \"..\"",
       "emailInvalidChars": "O e-mail não pode conter espaços, '/', '\\' ou caracteres de controle",
       "subIdInvalidChars": "O ID de assinatura não pode conter espaços, '/', '\\' ou caracteres de controle",
       "group": "Grupo",
