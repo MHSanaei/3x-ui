@@ -50,17 +50,22 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		needRestart = nr
 	}
 
-	// Enable only a client the quota switched off, once the counters are zero: a
-	// hand-disabled one stays off, and a still-depleted one would be switched off again.
+	// Restore quota-disabled clients after zeroing; preserve an operator
+	// disable, including when no inbound remains.
 	if !rec.Enable && len(quotaDisabled) > 0 {
-		updated := rec.ToClient()
-		updated.Enable = true
-		nr, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid)
-		if uErr != nil {
-			logger.Warning("Failed to auto-enable client during traffic reset:", uErr)
-		}
-		if nr {
-			needRestart = true
+		// Inbound resets already restored hosted clients. Only an unhosted
+		// record still needs the full update.
+		fresh, fErr := s.GetRecordByEmail(nil, email)
+		if fErr == nil && !fresh.Enable {
+			updated := fresh.ToClient()
+			updated.Enable = true
+			nr, uErr := s.Update(inboundSvc, fresh.Id, *updated, fresh.LimitHwid)
+			if uErr != nil {
+				logger.Warning("Failed to auto-enable client during traffic reset:", uErr)
+			}
+			if nr {
+				needRestart = true
+			}
 		}
 	}
 	return needRestart, nil

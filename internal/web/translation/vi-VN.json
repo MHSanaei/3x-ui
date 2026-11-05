@@ -878,6 +878,7 @@
       "subIdDesc": "Cũng được dùng làm mã mời bot Telegram của client này: ai gửi mã này cho bot sẽ được liên kết với client. Hãy để mã dài và ngẫu nhiên — ID ngắn hoặc dễ đoán có thể bị người khác chiếm.",
       "online": "Trực tuyến",
       "email": "Email",
+      "emailReservedName": "Tên máy khách không được chỉ là \".\" hoặc \"..\"",
       "emailInvalidChars": "Email không được chứa khoảng trắng, '/', '\\' hoặc ký tự điều khiển",
       "subIdInvalidChars": "ID đăng ký không được chứa khoảng trắng, '/', '\\' hoặc ký tự điều khiển",
       "group": "Nhóm",

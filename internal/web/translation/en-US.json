@@ -878,6 +878,7 @@
       "subIdDesc": "Also works as this client's Telegram bot invite code: whoever sends it to the bot is linked to this client. Keep it long and random — a short or guessable ID can be claimed by someone else.",
       "online": "Online",
       "email": "Email",
+      "emailReservedName": "Client name cannot be exactly \".\" or \"..\"",
       "emailInvalidChars": "Email cannot contain spaces, '/', '\\', or control characters",
       "subIdInvalidChars": "Subscription ID cannot contain spaces, '/', '\\', or control characters",
       "group": "Group",

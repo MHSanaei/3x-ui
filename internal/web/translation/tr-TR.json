@@ -878,6 +878,7 @@
       "subIdDesc": "Bu istemcinin Telegram botu davet kodu olarak da kullanılır: bunu bota gönderen kişi bu istemciye bağlanır. Uzun ve rastgele tutun — kısa veya tahmin edilebilir bir kimlik başkası tarafından sahiplenilebilir.",
       "online": "Çevrimiçi",
       "email": "E-posta",
+      "emailReservedName": "İstemci adı yalnızca \".\" veya \"..\" olamaz",
       "emailInvalidChars": "E-posta boşluk, '/', '\\' veya kontrol karakterleri içeremez",
       "subIdInvalidChars": "Abonelik kimliği boşluk, '/', '\\' veya kontrol karakterleri içeremez",
       "group": "Grup",
