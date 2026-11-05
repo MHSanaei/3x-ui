@@ -69,7 +69,7 @@ export default function TuicFields() {
       if (obj.webKeyFile) {
         setValue('settings.server.private_key', obj.webKeyFile);
       }
-      messageApi.success(t('pages.inbounds.setSuccess'));
+      messageApi.success(t('success'));
     } catch {
       messageApi.error(t('somethingWentWrong'));
     } finally {
