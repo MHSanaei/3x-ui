@@ -1071,8 +1071,8 @@
       "totalUpDown": "Всего отправлено / получено",
       "addGroup": "Добавить группу",
       "createSuccess": "Группа «{name}» создана.",
-      "rename": "Переименовать",
-      "renameTitle": "Переименовать {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "Группа с именем «{name}» уже существует.",
       "renameSuccess": "Группа переименована для {count} клиент(ов).",
       "deleteConfirmTitle": "Удалить группу {name}?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "Удалить клиентов…",
       "removeFromGroupTitle": "Удалить клиентов из группы «{name}»",
       "removeFromGroupDesc": "Выберите участников для удаления из этой группы. Сами клиенты сохраняются (используйте «Удалить клиентов группы» для полного удаления).",
-      "removeFromGroupResult": "Удалено {count} клиент(ов) из {name}."
+      "removeFromGroupResult": "Удалено {count} клиент(ов) из {name}.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "addNode": "Добавить узел",

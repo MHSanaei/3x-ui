@@ -188,27 +188,36 @@ _openapi:
         clients.
       url: '#zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients'
     - depth: 2
-      title: List all client groups with their member counts. Merges persisted groups
-        (rows in client_groups, including empty placeholders) with the distinct
-        group_name values currently set on clients. Sorted alphabetically
-        (case-insensitive).
-      url: '#list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive'
+      title: List all client groups with their member counts and the host groups bound
+        to each. Merges persisted groups (rows in client_groups, including empty
+        placeholders) with the distinct group_name values currently set on
+        clients. Sorted alphabetically (case-insensitive).
+      url: '#list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive'
+    - depth: 2
+      title: Replace the host groups attached to a client group. Clients in this group
+        receive the bound host groups instead of the inbound default host pool;
+        other clients are unaffected. An empty array clears the bindings.
+        Returns the saved host group IDs.
+      url: '#replace-the-host-groups-attached-to-a-client-group-clients-in-this-group-receive-the-bound-host-groups-instead-of-the-inbound-default-host-pool-other-clients-are-unaffected-an-empty-array-clears-the-bindings-returns-the-saved-host-group-ids'
     - depth: 2
       title: Return just the email list of clients that currently belong to the given
         group. Useful for fanning a single bulk action over an entire group
         without round-tripping the full client list.
       url: '#return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list'
     - depth: 2
-      title: Create a new empty (placeholder) group. The group becomes selectable in
-        client forms and the filter drawer even before any client is added to
-        it. Errors if a group with the same name already exists.
-      url: '#create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists'
+      title: Create a new group, optionally with host rules bound to it. The group
+        becomes selectable in client forms and the filter drawer even before any
+        client is added to it. Host group IDs are validated before the group is
+        created. Errors if a group with the same name already exists.
+      url: '#create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists'
     - depth: 2
-      title: Rename a group. The new name is applied to the client_groups row AND
-        propagated to every matching client (both clients.group_name and the
-        client entry inside every owning inbound's settings JSON) in a single
-        transaction. Returns the number of clients whose label was updated.
-      url: '#rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated'
+      title: Rename a group and optionally replace its host rules in one transaction.
+        The new name is applied to the client_groups row AND propagated to every
+        matching client (both clients.group_name and the client entry inside
+        every owning inbound's settings JSON). Omit hostGroupIds to leave the
+        bindings unchanged; send an empty array to clear them. Returns the
+        number of clients whose label was updated.
+      url: '#rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated'
     - depth: 2
       title: Remove a group. Deletes the client_groups row and clears the group label
         from every matching client (both clients.group_name and the inbound
@@ -464,24 +473,32 @@ _openapi:
           disabled by hand stays disabled. Returns the count of successfully
           reset clients.
         id: zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients
-      - content: List all client groups with their member counts. Merges persisted
-          groups (rows in client_groups, including empty placeholders) with the
-          distinct group_name values currently set on clients. Sorted
-          alphabetically (case-insensitive).
-        id: list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: List all client groups with their member counts and the host groups
+          bound to each. Merges persisted groups (rows in client_groups,
+          including empty placeholders) with the distinct group_name values
+          currently set on clients. Sorted alphabetically (case-insensitive).
+        id: list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: Replace the host groups attached to a client group. Clients in this
+          group receive the bound host groups instead of the inbound default
+          host pool; other clients are unaffected. An empty array clears the
+          bindings. Returns the saved host group IDs.
+        id: replace-the-host-groups-attached-to-a-client-group-clients-in-this-group-receive-the-bound-host-groups-instead-of-the-inbound-default-host-pool-other-clients-are-unaffected-an-empty-array-clears-the-bindings-returns-the-saved-host-group-ids
       - content: Return just the email list of clients that currently belong to the
           given group. Useful for fanning a single bulk action over an entire
           group without round-tripping the full client list.
         id: return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
-      - content: Create a new empty (placeholder) group. The group becomes selectable in
-          client forms and the filter drawer even before any client is added to
-          it. Errors if a group with the same name already exists.
-        id: create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
-      - content: Rename a group. The new name is applied to the client_groups row AND
+      - content: Create a new group, optionally with host rules bound to it. The group
+          becomes selectable in client forms and the filter drawer even before
+          any client is added to it. Host group IDs are validated before the
+          group is created. Errors if a group with the same name already exists.
+        id: create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
+      - content: Rename a group and optionally replace its host rules in one
+          transaction. The new name is applied to the client_groups row AND
           propagated to every matching client (both clients.group_name and the
-          client entry inside every owning inbound's settings JSON) in a single
-          transaction. Returns the number of clients whose label was updated.
-        id: rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+          client entry inside every owning inbound's settings JSON). Omit
+          hostGroupIds to leave the bindings unchanged; send an empty array to
+          clear them. Returns the number of clients whose label was updated.
+        id: rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
       - content: Remove a group. Deletes the client_groups row and clears the group
           label from every matching client (both clients.group_name and the
           inbound settings JSON). The clients themselves are NOT deleted — use
@@ -685,7 +702,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/hosts","method":"post"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

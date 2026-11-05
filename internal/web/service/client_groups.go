@@ -14,11 +14,13 @@ import (
 )
 
 type GroupSummary struct {
-	Name        string `json:"name"`
-	ClientCount int    `json:"clientCount"`
-	TrafficUsed int64  `json:"trafficUsed"`
-	Up          int64  `json:"up"`
-	Down        int64  `json:"down"`
+	Id           int      `json:"id"`
+	Name         string   `json:"name"`
+	ClientCount  int      `json:"clientCount"`
+	HostGroupIds []string `json:"hostGroupIds"`
+	TrafficUsed  int64    `json:"trafficUsed"`
+	Up           int64    `json:"up"`
+	Down         int64    `json:"down"`
 }
 
 func (s *ClientService) ListGroups() ([]GroupSummary, error) {
@@ -33,6 +35,14 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	if err := db.Find(&stored).Error; err != nil {
 		return nil, err
 	}
+	var bindings []model.HostGroupClientGroup
+	if err := db.Order("host_group_id ASC").Find(&bindings).Error; err != nil {
+		return nil, err
+	}
+	hostGroups := make(map[int][]string, len(bindings))
+	for _, binding := range bindings {
+		hostGroups[binding.ClientGroupId] = append(hostGroups[binding.ClientGroupId], binding.HostGroupId)
+	}
 	type groupAgg struct {
 		count int
 		up    int64
@@ -40,11 +50,13 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	}
 	baseUp := make(map[string]int64, len(stored))
 	baseDown := make(map[string]int64, len(stored))
+	groupIDs := make(map[string]int, len(stored))
 	merged := make(map[string]groupAgg, len(derived)+len(stored))
 	for _, g := range stored {
 		merged[g.Name] = groupAgg{}
 		baseUp[g.Name] = g.ResetUp
 		baseDown[g.Name] = g.ResetDown
+		groupIDs[g.Name] = g.Id
 	}
 	for name, g := range derived {
 		merged[name] = groupAgg{count: g.clients, up: g.up, down: g.down}
@@ -53,7 +65,11 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 	for name, agg := range merged {
 		up := max(clampedTrafficAdd(agg.up, -baseUp[name]), 0)
 		down := max(clampedTrafficAdd(agg.down, -baseDown[name]), 0)
-		out = append(out, GroupSummary{Name: name, ClientCount: agg.count, TrafficUsed: clampedTrafficAdd(up, down), Up: up, Down: down})
+		hostGroupIDs := hostGroups[groupIDs[name]]
+		if hostGroupIDs == nil {
+			hostGroupIDs = []string{}
+		}
+		out = append(out, GroupSummary{Id: groupIDs[name], Name: name, ClientCount: agg.count, HostGroupIds: hostGroupIDs, TrafficUsed: clampedTrafficAdd(up, down), Up: up, Down: down})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
@@ -155,20 +171,30 @@ func (s *ClientService) ResetGroupTraffic(name string) error {
 		Updates(map[string]any{"reset_up": agg.up, "reset_down": agg.down}).Error
 }
 
-func (s *ClientService) CreateGroup(name string) error {
+func (s *ClientService) CreateGroup(name string, hostGroupIDs []string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return common.NewError("group name is required")
 	}
+	hostGroupIDs = normalizeHostGroupIDs(hostGroupIDs)
 	db := database.GetDB()
-	var count int64
-	if err := db.Model(&model.ClientGroup{}).Where("name = ?", name).Count(&count).Error; err != nil {
-		return err
-	}
-	if count > 0 {
-		return common.NewError("group already exists")
-	}
-	return db.Create(&model.ClientGroup{Name: name}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := validateHostGroupIDs(tx, hostGroupIDs); err != nil {
+			return err
+		}
+		var count int64
+		if err := tx.Model(&model.ClientGroup{}).Where("LOWER(name) = LOWER(?)", name).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return common.NewError("group already exists")
+		}
+		group := &model.ClientGroup{Name: name}
+		if err := tx.Create(group).Error; err != nil {
+			return err
+		}
+		return replaceGroupHostGroups(tx, group.Id, hostGroupIDs)
+	})
 }
 
 func (s *ClientService) RenameGroup(oldName, newName string) (int, error) {
@@ -183,7 +209,32 @@ func (s *ClientService) RenameGroup(oldName, newName string) (int, error) {
 	if oldName == newName {
 		return 0, nil
 	}
-	return s.replaceGroupValue(oldName, newName)
+	return s.replaceGroupValue(oldName, newName, nil)
+}
+
+// UpdateGroup renames a group and replaces its host rules in one transaction.
+// Keeping the name unchanged updates only the host rules.
+func (s *ClientService) UpdateGroup(oldName, newName string, hostGroupIDs []string) (int, error) {
+	oldName = strings.TrimSpace(oldName)
+	newName = strings.TrimSpace(newName)
+	if oldName == "" {
+		return 0, common.NewError("old group name is required")
+	}
+	if newName == "" {
+		return 0, common.NewError("new group name is required")
+	}
+	if oldName == newName {
+		var count int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("group_name = ?", oldName).Count(&count).Error; err != nil {
+			return 0, err
+		}
+		if _, err := s.SetGroupHostGroups(oldName, hostGroupIDs); err != nil {
+			return 0, err
+		}
+		return int(count), nil
+	}
+	return s.replaceGroupValue(oldName, newName, &hostGroupIDs)
 }
 
 func (s *ClientService) DeleteGroup(name string) (int, error) {
@@ -191,7 +242,81 @@ func (s *ClientService) DeleteGroup(name string) (int, error) {
 	if name == "" {
 		return 0, common.NewError("group name is required")
 	}
-	return s.replaceGroupValue(name, "")
+	return s.replaceGroupValue(name, "", nil)
+}
+
+// SetGroupHostGroups replaces the host rules attached to one client group.
+func (s *ClientService) SetGroupHostGroups(name string, hostGroupIDs []string) ([]string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, common.NewError("group name is required")
+	}
+	hostGroupIDs = normalizeHostGroupIDs(hostGroupIDs)
+	db := database.GetDB()
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := validateHostGroupIDs(tx, hostGroupIDs); err != nil {
+			return err
+		}
+		group, err := database.EnsureClientGroup(tx, name)
+		if err != nil {
+			return err
+		}
+		return replaceGroupHostGroups(tx, group.Id, hostGroupIDs)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return hostGroupIDs, nil
+}
+
+func validateHostGroupIDs(db *gorm.DB, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	var found int64
+	if err := db.Model(&model.Host{}).
+		Where("group_id IN ?", ids).
+		Distinct("group_id").Count(&found).Error; err != nil {
+		return err
+	}
+	if int(found) != len(ids) {
+		return common.NewError("host group not found")
+	}
+	return nil
+}
+
+func replaceGroupHostGroups(tx *gorm.DB, clientGroupID int, hostGroupIDs []string) error {
+	if err := tx.Where("client_group_id = ?", clientGroupID).
+		Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+		return err
+	}
+	if len(hostGroupIDs) == 0 {
+		return nil
+	}
+	rows := make([]model.HostGroupClientGroup, 0, len(hostGroupIDs))
+	for _, hostGroupID := range hostGroupIDs {
+		rows = append(rows, model.HostGroupClientGroup{
+			HostGroupId: hostGroupID, ClientGroupId: clientGroupID,
+		})
+	}
+	return tx.Create(&rows).Error
+}
+
+func normalizeHostGroupIDs(ids []string) []string {
+	out := make([]string, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, dup := seen[id]; dup {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 func (s *ClientService) RemoveFromGroup(emails []string) (int, error) {
@@ -206,21 +331,11 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	db := database.GetDB()
 
 	if group != "" {
-		var exists int64
-		if err := db.Model(&model.ClientGroup{}).Where("name = ?", group).Count(&exists).Error; err != nil {
+		record, err := database.EnsureClientGroup(db, group)
+		if err != nil {
 			return 0, err
 		}
-		if exists == 0 {
-			var derived int64
-			if err := db.Model(&model.ClientRecord{}).Where("group_name = ?", group).Count(&derived).Error; err != nil {
-				return 0, err
-			}
-			if derived == 0 {
-				if err := db.Create(&model.ClientGroup{Name: group}).Error; err != nil {
-					return 0, err
-				}
-			}
-		}
+		group = record.Name
 	}
 
 	var records []model.ClientRecord
@@ -332,105 +447,135 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 	return int(affected), nil
 }
 
-func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
+func (s *ClientService) replaceGroupValue(oldName, newName string, hostGroupIDs *[]string) (int, error) {
 	db := database.GetDB()
-	if newName == "" {
-		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
-			return 0, err
-		}
-	} else {
-		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
-			return 0, err
-		}
-	}
-	var records []model.ClientRecord
-	if err := db.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
-		return 0, err
-	}
-	if len(records) == 0 {
-		return 0, nil
-	}
-	affectedEmails := make([]string, 0, len(records))
-	for _, r := range records {
-		affectedEmails = append(affectedEmails, r.Email)
-	}
-
-	tx := db.Begin()
-	if err := tx.Model(&model.ClientRecord{}).
-		Where("group_name = ?", oldName).
-		UpdateColumn("group_name", newName).Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	var inboundIDs []int
-	inboundIDSeen := make(map[int]struct{})
-	for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
-		var ids []int
-		if err := tx.Table("client_inbounds").
-			Joins("JOIN clients ON clients.id = client_inbounds.client_id").
-			Where("clients.email IN ?", batch).
-			Distinct("client_inbounds.inbound_id").
-			Pluck("inbound_id", &ids).Error; err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		for _, id := range ids {
-			if _, ok := inboundIDSeen[id]; !ok {
-				inboundIDSeen[id] = struct{}{}
-				inboundIDs = append(inboundIDs, id)
+	affected := 0
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var hostGroupValues []string
+		if hostGroupIDs != nil {
+			hostGroupValues = normalizeHostGroupIDs(*hostGroupIDs)
+			if err := validateHostGroupIDs(tx, hostGroupValues); err != nil {
+				return err
 			}
 		}
-	}
+		var group model.ClientGroup
+		groupErr := tx.Where("name = ?", oldName).First(&group).Error
+		if groupErr != nil && !errors.Is(groupErr, gorm.ErrRecordNotFound) {
+			return groupErr
+		}
+		groupID := 0
+		if groupErr == nil {
+			groupID = group.Id
+			if newName == "" {
+				if err := tx.Where("client_group_id = ?", group.Id).
+					Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Delete(&group).Error; err != nil {
+					return err
+				}
+				groupID = 0
+			} else if err := tx.Model(&group).Update("name", newName).Error; err != nil {
+				return err
+			}
+		} else if newName != "" {
+			record, err := database.EnsureClientGroup(tx, newName)
+			if err != nil {
+				return err
+			}
+			groupID = record.Id
+		}
 
-	for _, ibID := range inboundIDs {
-		var ib model.Inbound
-		if err := tx.First(&ib, ibID).Error; err != nil {
-			tx.Rollback()
-			return 0, err
+		if hostGroupIDs != nil && newName != "" {
+			if err := replaceGroupHostGroups(tx, groupID, hostGroupValues); err != nil {
+				return err
+			}
 		}
-		var settings map[string]any
-		if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
-			continue
+
+		var records []model.ClientRecord
+		if err := tx.Where("group_name = ?", oldName).Find(&records).Error; err != nil {
+			return err
 		}
-		clients, ok := settings["clients"].([]any)
-		if !ok {
-			continue
+		affected = len(records)
+		if len(records) == 0 {
+			return nil
 		}
-		modified := false
-		for i := range clients {
-			cm, ok := clients[i].(map[string]any)
+		affectedEmails := make([]string, 0, len(records))
+		for _, r := range records {
+			affectedEmails = append(affectedEmails, r.Email)
+		}
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("group_name = ?", oldName).
+			UpdateColumn("group_name", newName).Error; err != nil {
+			return err
+		}
+
+		var inboundIDs []int
+		inboundIDSeen := make(map[int]struct{})
+		for _, batch := range chunkStrings(affectedEmails, sqlInChunk) {
+			var ids []int
+			if err := tx.Table("client_inbounds").
+				Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+				Where("clients.email IN ?", batch).
+				Distinct("client_inbounds.inbound_id").
+				Pluck("inbound_id", &ids).Error; err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if _, ok := inboundIDSeen[id]; !ok {
+					inboundIDSeen[id] = struct{}{}
+					inboundIDs = append(inboundIDs, id)
+				}
+			}
+		}
+
+		for _, ibID := range inboundIDs {
+			var ib model.Inbound
+			if err := tx.First(&ib, ibID).Error; err != nil {
+				return err
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+				continue
+			}
+			clients, ok := settings["clients"].([]any)
 			if !ok {
 				continue
 			}
-			if g, ok := cm["group"].(string); ok && g == oldName {
-				if newName == "" {
-					delete(cm, "group")
-				} else {
-					cm["group"] = newName
+			modified := false
+			for i := range clients {
+				cm, ok := clients[i].(map[string]any)
+				if !ok {
+					continue
 				}
-				clients[i] = cm
-				modified = true
+				if g, ok := cm["group"].(string); ok && g == oldName {
+					if newName == "" {
+						delete(cm, "group")
+					} else {
+						cm["group"] = newName
+					}
+					clients[i] = cm
+					modified = true
+				}
+			}
+			if modified {
+				settings["clients"] = clients
+				newSettings, err := json.Marshal(settings)
+				if err != nil {
+					continue
+				}
+				ib.Settings = string(newSettings)
+				if err := tx.Save(&ib).Error; err != nil {
+					return err
+				}
 			}
 		}
-		if modified {
-			settings["clients"] = clients
-			newSettings, err := json.Marshal(settings)
-			if err != nil {
-				continue
-			}
-			ib.Settings = string(newSettings)
-			if err := tx.Save(&ib).Error; err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
+		return nil
+	})
+	if err != nil {
 		return 0, err
 	}
-	return len(records), nil
+	return affected, nil
 }
 
 // groupCounters is a group's summed traffic, held within ±TrafficMax.

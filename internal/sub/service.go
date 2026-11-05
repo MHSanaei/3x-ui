@@ -88,9 +88,15 @@ type SubService struct {
 	// subscription bodies read through it, never panel link rendering.
 	settingsCache   *inboundSettingsCache
 	hostsByInbound  map[int][]*model.Host
+	hostsLoaded     map[int]bool
 	hostGroupOrders map[string]hostEntryOrder
 	hostsFirst      bool
 	sharedGroupSni  map[string]string
+	// clientGroupIDsByName and hostGroupsByClientGroup are loaded once per request;
+	// membership itself stays on clients.group_name.
+	clientGroupIDsByName    map[string]int
+	hostGroupsByClientGroup map[int]map[string]struct{}
+	clientGroupIndexLoaded  bool
 	// tuicByInbound and amneziaWGServerByInbound are the typed equivalents of
 	// settingsByInbound: one decode per request, not one per link of a subId.
 	tuicByInbound            map[int]*tuicLinkInstance
@@ -148,8 +154,12 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.tuicByInbound = map[int]*tuicLinkInstance{}
 	s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
 	s.hostsByInbound = nil
+	s.hostsLoaded = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
+	s.clientGroupIDsByName = nil
+	s.hostGroupsByClientGroup = nil
+	s.clientGroupIndexLoaded = false
 	s.rendered = 0
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
@@ -600,7 +610,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			}
 			var link string
 			if s.hostsFirst {
-				variants, closed := s.clientHostVariants(inbound, client, "raw")
+				variants, closed := s.selectHostVariants(inbound, client, "raw")
 				if closed {
 					seenEmails[client.Email] = struct{}{}
 					continue
@@ -614,7 +624,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 					}
 					ordered = append(ordered, orderedSubEntry[func() string]{variant.order, render})
 				}
-			} else if effectiveEps, bound := s.clientHostEndpoints(inbound, client, "raw", hostEps); bound && len(effectiveEps) == 0 {
+			} else if effectiveEps, bound := s.selectHostEndpoints(inbound, client, "raw", hostEps); bound && len(effectiveEps) == 0 {
 				seenEmails[client.Email] = struct{}{}
 				continue
 			} else if len(effectiveEps) > 0 {
@@ -704,7 +714,7 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 			continue
 		}
 		seen[key] = struct{}{}
-		effectiveEps, bound := s.clientHostEndpoints(inbound, client, "raw", hostEps)
+		effectiveEps, bound := s.selectHostEndpoints(inbound, client, "raw", hostEps)
 		if bound && len(effectiveEps) == 0 {
 			continue
 		}

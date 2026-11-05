@@ -1505,9 +1505,18 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/groups',
         summary:
-          'List all client groups with their member counts. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
+          'List all client groups with their member counts and the host groups bound to each. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
         response:
-          '{\n  "success": true,\n  "obj": [\n    { "name": "customer-a", "clientCount": 5 },\n    { "name": "internal", "clientCount": 0 }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "customer-a", "clientCount": 5, "hostGroupIds": ["cdn-front"] },\n    { "id": 2, "name": "internal", "clientCount": 0, "hostGroupIds": [] }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Replace the host groups attached to a client group. Clients in this group receive the bound host groups instead of the inbound default host pool; other clients are unaffected. An empty array clears the bindings. Returns the saved host group IDs.',
+        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        body: '{\n  "hostGroupIds": ["cdn-front"]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "hostGroupIds": ["cdn-front"]\n  }\n}',
       },
       {
         method: 'GET',
@@ -1521,16 +1530,16 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/groups/create',
         summary:
-          'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.',
-        body: '{\n  "name": "customer-a"\n}',
+          'Create a new group, optionally with host rules bound to it. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Host group IDs are validated before the group is created. Errors if a group with the same name already exists.',
+        body: '{\n  "name": "customer-a",\n  "hostGroupIds": ["cdn-front"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "name": "customer-a"\n  }\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/groups/rename',
         summary:
-          "Rename a group. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON) in a single transaction. Returns the number of clients whose label was updated.",
-        body: '{\n  "oldName": "customer-a",\n  "newName": "tier-1"\n}',
+          "Rename a group and optionally replace its host rules in one transaction. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound's settings JSON). Omit hostGroupIds to leave the bindings unchanged; send an empty array to clear them. Returns the number of clients whose label was updated.",
+        body: '{\n  "oldName": "customer-a",\n  "newName": "tier-1",\n  "hostGroupIds": ["cdn-front"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "affected": 5\n  }\n}',
       },
       {

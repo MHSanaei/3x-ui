@@ -745,6 +745,13 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	normalizeClientTrafficReset(&updated)
 	updated.ClientHostRuleIds = model.NormalizeClientHostRuleIds(updated.ClientHostRuleIds)
+	if groupName := strings.TrimSpace(updated.Group); groupName != "" {
+		group, err := database.EnsureClientGroup(database.GetDB(), groupName)
+		if err != nil {
+			return false, err
+		}
+		updated.Group = group.Name
+	}
 	if updated.SubID == "" {
 		updated.SubID = existing.SubID
 	}

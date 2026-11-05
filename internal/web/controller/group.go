@@ -27,6 +27,7 @@ func (a *GroupController) initRouter(g *gin.RouterGroup) {
 	g.POST("/groups/rename", a.rename)
 	g.POST("/groups/delete", a.delete)
 	g.POST("/groups/resetTraffic", a.resetTraffic)
+	g.POST("/groups/:name/hosts", a.setHosts)
 	g.POST("/groups/bulkAdd", a.bulkAdd)
 	g.POST("/groups/bulkRemove", a.bulkRemove)
 }
@@ -51,7 +52,8 @@ func (a *GroupController) emails(c *gin.Context) {
 }
 
 type groupCreateBody struct {
-	Name string `json:"name"`
+	Name         string   `json:"name"`
+	HostGroupIds []string `json:"hostGroupIds"`
 }
 
 func (a *GroupController) create(c *gin.Context) {
@@ -60,7 +62,7 @@ func (a *GroupController) create(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	if err := a.clientService.CreateGroup(body.Name); err != nil {
+	if err := a.clientService.CreateGroup(body.Name, body.HostGroupIds); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
@@ -69,8 +71,9 @@ func (a *GroupController) create(c *gin.Context) {
 }
 
 type groupRenameBody struct {
-	OldName string `json:"oldName"`
-	NewName string `json:"newName"`
+	OldName      string    `json:"oldName"`
+	NewName      string    `json:"newName"`
+	HostGroupIds *[]string `json:"hostGroupIds"`
 }
 
 func (a *GroupController) rename(c *gin.Context) {
@@ -79,12 +82,20 @@ func (a *GroupController) rename(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	affected, err := a.clientService.RenameGroup(body.OldName, body.NewName)
+	var affected int
+	var err error
+	if body.HostGroupIds != nil {
+		affected, err = a.clientService.UpdateGroup(body.OldName, body.NewName, *body.HostGroupIds)
+	} else {
+		affected, err = a.clientService.RenameGroup(body.OldName, body.NewName)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	a.xrayService.SetToNeedRestart()
+	if strings.TrimSpace(body.OldName) != strings.TrimSpace(body.NewName) {
+		a.xrayService.SetToNeedRestart()
+	}
 	jsonObj(c, gin.H{"affected": affected}, nil)
 	notifyClientsChanged()
 }
@@ -111,6 +122,25 @@ func (a *GroupController) delete(c *gin.Context) {
 
 type groupResetTrafficBody struct {
 	Name string `json:"name"`
+}
+
+type groupHostsBody struct {
+	HostGroupIds []string `json:"hostGroupIds"`
+}
+
+func (a *GroupController) setHosts(c *gin.Context) {
+	var body groupHostsBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	ids, err := a.clientService.SetGroupHostGroups(c.Param("name"), body.HostGroupIds)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"hostGroupIds": ids}, nil)
+	notifyClientsChanged()
 }
 
 func (a *GroupController) resetTraffic(c *gin.Context) {

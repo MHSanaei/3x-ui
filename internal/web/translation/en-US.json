@@ -1071,8 +1071,8 @@
       "totalUpDown": "Total upload / download",
       "addGroup": "Add Group",
       "createSuccess": "Group \"{name}\" created.",
-      "rename": "Rename",
-      "renameTitle": "Rename {name}",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "A group named \"{name}\" already exists.",
       "renameSuccess": "Renamed group on {count} client(s).",
       "deleteConfirmTitle": "Delete group {name}?",
@@ -1098,7 +1098,11 @@
       "removeFromGroup": "Remove clients…",
       "removeFromGroupTitle": "Remove clients from group \"{name}\"",
       "removeFromGroupDesc": "Select members to remove from this group. Clients themselves are kept (use \"Delete clients in group\" to remove them entirely).",
-      "removeFromGroupResult": "Removed {count} client(s) from {name}."
+      "removeFromGroupResult": "Removed {count} client(s) from {name}.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "hosts": {
       "addHost": "Add Host",
