@@ -851,6 +851,7 @@
       "has": "Tem",
       "hasNot": "Não tem",
       "actions": "Ações",
+      "columns": "Colunas",
       "totalGB": "Limite de tráfego (GB)",
       "totalGBDesc": "Cota de dados para este cliente. 0 = ilimitado.",
       "expiryTime": "Expiração",

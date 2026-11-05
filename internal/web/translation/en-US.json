@@ -851,6 +851,7 @@
       "has": "Has",
       "hasNot": "Doesn't have",
       "actions": "Actions",
+      "columns": "Columns",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
       "expiryTime": "Expiry",

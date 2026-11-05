@@ -851,6 +851,7 @@
       "has": "あり",
       "hasNot": "なし",
       "actions": "操作",
+      "columns": "列",
       "totalGB": "トラフィック上限 (GB)",
       "totalGBDesc": "このクライアントのデータ割当量。0 = 無制限。",
       "expiryTime": "有効期限",
