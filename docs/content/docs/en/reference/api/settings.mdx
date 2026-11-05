@@ -57,6 +57,11 @@ _openapi:
         channel.
       url: '#test-discord-bot-connection-by-sending-a-test-embed-to-the-configured-channel'
     - depth: 2
+      title: Send a text test notification using the saved WeChat destination.
+        Supports WeCom group robots and compatible personal WeChat webhook
+        gateways. Requires WeChat notifications to be enabled.
+      url: '#send-a-text-test-notification-using-the-saved-wechat-destination-supports-wecom-group-robots-and-compatible-personal-wechat-webhook-gateways-requires-wechat-notifications-to-be-enabled'
+    - depth: 2
       title: Return the built-in default Xray JSON config template that ships with
         this panel version.
       url: '#return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version'
@@ -100,6 +105,10 @@ _openapi:
       - content: Test Discord bot connection by sending a test embed to the configured
           channel.
         id: test-discord-bot-connection-by-sending-a-test-embed-to-the-configured-channel
+      - content: Send a text test notification using the saved WeChat destination.
+          Supports WeCom group robots and compatible personal WeChat webhook
+          gateways. Requires WeChat notifications to be enabled.
+        id: send-a-text-test-notification-using-the-saved-wechat-destination-supports-wecom-group-robots-and-compatible-personal-wechat-webhook-gateways-requires-wechat-notifications-to-be-enabled
       - content: Return the built-in default Xray JSON config template that ships with
           this panel version.
         id: return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
@@ -113,7 +122,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/tgBotCapabilities","method":"post"},{"path":"/panel/api/setting/testDiscord","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/tgBotCapabilities","method":"post"},{"path":"/panel/api/setting/testDiscord","method":"post"},{"path":"/panel/api/setting/testWechat","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
     </>
   );
 }

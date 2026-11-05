@@ -28,6 +28,7 @@ import SecurityTab from './SecurityTab';
 import TelegramTab from './TelegramTab';
 import EmailTab from './EmailTab';
 import DiscordTab from './DiscordTab';
+import WechatTab from './WechatTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
 import SubscriptionBalancersTab from './SubscriptionBalancersTab';
@@ -43,6 +44,7 @@ const tabSlugs = [
   'telegram',
   'email',
   'discord',
+  'wechat',
   'subscription',
   'subscription-formats',
   'subscription-balancers',
@@ -221,6 +223,14 @@ export default function SettingsPage() {
         return <EmailTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'discord':
         return <DiscordTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'wechat':
+        return (
+          <WechatTab
+            allSetting={allSetting}
+            updateSetting={updateSetting}
+            hasPendingChanges={!saveDisabled}
+          />
+        );
       case 'subscription':
         return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription-formats':
@@ -230,7 +240,7 @@ export default function SettingsPage() {
       default:
         return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
     }
-  }, [activeSlug, allSetting, updateSetting, savePayload]);
+  }, [activeSlug, allSetting, updateSetting, savePayload, saveDisabled]);
 
   return (
     <ConfigProvider theme={antdThemeConfig}>

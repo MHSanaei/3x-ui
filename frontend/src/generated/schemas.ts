@@ -581,6 +581,40 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "wechatCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatEnable": {
+        "type": "boolean"
+      },
+      "wechatEnabledEvents": {
+        "type": "string"
+      },
+      "wechatLang": {
+        "type": "string"
+      },
+      "wechatMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatMode": {
+        "type": "string"
+      },
+      "wechatReportEnable": {
+        "type": "boolean"
+      },
+      "wechatRunTime": {
+        "type": "string"
+      },
+      "wechatToken": {
+        "type": "string"
+      },
+      "wechatWebhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -763,7 +797,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "wechatCpu",
+      "wechatEnable",
+      "wechatEnabledEvents",
+      "wechatLang",
+      "wechatMemory",
+      "wechatMode",
+      "wechatReportEnable",
+      "wechatRunTime",
+      "wechatToken",
+      "wechatWebhookURL"
     ],
     "type": "object"
   },
@@ -844,6 +888,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "hasWarpSecret": {
+        "type": "boolean"
+      },
+      "hasWechatToken": {
+        "type": "boolean"
+      },
+      "hasWechatWebhookURL": {
         "type": "boolean"
       },
       "ipLimitAllowlist": {
@@ -1372,6 +1422,40 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "wechatCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatEnable": {
+        "type": "boolean"
+      },
+      "wechatEnabledEvents": {
+        "type": "string"
+      },
+      "wechatLang": {
+        "type": "string"
+      },
+      "wechatMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatMode": {
+        "type": "string"
+      },
+      "wechatReportEnable": {
+        "type": "boolean"
+      },
+      "wechatRunTime": {
+        "type": "string"
+      },
+      "wechatToken": {
+        "type": "string"
+      },
+      "wechatWebhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -1399,6 +1483,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "hasWechatToken",
+      "hasWechatWebhookURL",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -1562,7 +1648,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "wechatCpu",
+      "wechatEnable",
+      "wechatEnabledEvents",
+      "wechatLang",
+      "wechatMemory",
+      "wechatMode",
+      "wechatReportEnable",
+      "wechatRunTime",
+      "wechatToken",
+      "wechatWebhookURL"
     ],
     "type": "object"
   },

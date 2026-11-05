@@ -1853,7 +1853,33 @@
       "subHostSortMode": "订阅节点排序",
       "subHostSortInbound": "入站顺序（默认）",
       "subHostSortHosts": "主机顺序",
-      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。",
+      "wechatSettings": "微信通知",
+      "wechatEnable": "启用微信通知",
+      "wechatEnableDesc": "通过企业微信群机器人或兼容的 Webhook 网关发送面板告警。",
+      "wechatMode": "发送方式",
+      "wechatModeDesc": "选择接收端支持的消息格式。",
+      "wechatModeWecom": "企业微信群机器人",
+      "wechatModeWebhook": "自定义 Webhook 网关",
+      "wechatPersonalGateway": "个人微信需要兼容的网关。企业微信机器人只向企业微信群发送消息，不能直接发送到个人微信。",
+      "wechatWebhookURL": "Webhook 地址",
+      "wechatWebhookURLConfigured": "已保存 Webhook 地址，留空可保留原值。",
+      "wechatWebhookURLDesc": "使用 HTTPS 接收地址。地址可能包含密钥，面板不会返回已保存的原值。",
+      "wechatSecretPlaceholder": "留空可保留已保存的值",
+      "wechatToken": "Bearer 令牌",
+      "wechatTokenConfigured": "已保存 Bearer 令牌，留空可保留原值。",
+      "wechatTokenDesc": "自定义网关的可选身份认证；接收端不需要时请留空。",
+      "wechatLanguage": "消息语言",
+      "wechatSaveBeforeTest": "请先保存修改再测试。测试使用服务器已保存的配置。",
+      "wechatTest": "发送测试通知",
+      "wechatTestSuccess": "测试通知发送成功",
+      "wechatTestFailed": "测试通知发送失败",
+      "wechatReportEnable": "定时报告",
+      "wechatReportEnableDesc": "独立于事件告警发送定期文字摘要，不附带数据库或配置文件。",
+      "wechatReportTime": "报告时间",
+      "wechatReportTimeDesc": "使用 Cron 表达式或 @daily 等预设。",
+      "wechatEvents": "事件告警",
+      "wechatEventsDesc": "选择需要发送微信通知的面板事件，并设置告警阈值。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2868,5 +2894,18 @@
     "restartXray": "重启 Xray 服务",
     "restartXraySuccess": "Xray 服务已成功重启",
     "settings": "设置"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui 微信通知测试",
+      "body": "这是一条来自 3x-ui 的测试通知，不包含数据库或配置文件。"
+    },
+    "report": {
+      "title": "3x-ui 状态报告",
+      "counts": "总计：{{ .Total }} | 已禁用：{{ .Disabled }} | 已过期：{{ .Expired }} | 流量耗尽：{{ .Depleted }}",
+      "trafficUsed": "3x-ui 已用流量",
+      "trafficRemaining": "3x-ui 剩余流量",
+      "trafficQuotaUnset": "未配置额度"
+    }
   }
 }

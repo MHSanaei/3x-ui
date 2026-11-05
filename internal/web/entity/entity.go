@@ -69,6 +69,17 @@ type AllSetting struct {
 	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
 
+	WechatEnable        bool   `json:"wechatEnable" form:"wechatEnable"`
+	WechatMode          string `json:"wechatMode" form:"wechatMode"`
+	WechatWebhookURL    string `json:"wechatWebhookURL" form:"wechatWebhookURL"`
+	WechatToken         string `json:"wechatToken" form:"wechatToken"`
+	WechatLang          string `json:"wechatLang" form:"wechatLang"`
+	WechatReportEnable  bool   `json:"wechatReportEnable" form:"wechatReportEnable"`
+	WechatRunTime       string `json:"wechatRunTime" form:"wechatRunTime"`
+	WechatEnabledEvents string `json:"wechatEnabledEvents" form:"wechatEnabledEvents"`
+	WechatCpu           int    `json:"wechatCpu" form:"wechatCpu" validate:"gte=0,lte=100"`
+	WechatMemory        int    `json:"wechatMemory" form:"wechatMemory" validate:"gte=0,lte=100"`
+
 	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
 	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
 	DiscordChannelId     string `json:"discordChannelId" form:"discordChannelId"`
@@ -219,14 +230,16 @@ type AllSetting struct {
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken      bool `json:"hasTgBotToken"`
-	HasTwoFactorToken  bool `json:"hasTwoFactorToken"`
-	HasLdapPassword    bool `json:"hasLdapPassword"`
-	HasApiToken        bool `json:"hasApiToken"`
-	HasWarpSecret      bool `json:"hasWarpSecret"`
-	HasNordSecret      bool `json:"hasNordSecret"`
-	HasSmtpPassword    bool `json:"hasSmtpPassword"`
-	HasDiscordBotToken bool `json:"hasDiscordBotToken"`
+	HasTgBotToken       bool `json:"hasTgBotToken"`
+	HasTwoFactorToken   bool `json:"hasTwoFactorToken"`
+	HasLdapPassword     bool `json:"hasLdapPassword"`
+	HasApiToken         bool `json:"hasApiToken"`
+	HasWarpSecret       bool `json:"hasWarpSecret"`
+	HasNordSecret       bool `json:"hasNordSecret"`
+	HasSmtpPassword     bool `json:"hasSmtpPassword"`
+	HasDiscordBotToken  bool `json:"hasDiscordBotToken"`
+	HasWechatWebhookURL bool `json:"hasWechatWebhookURL"`
+	HasWechatToken      bool `json:"hasWechatToken"`
 }
 
 func pathHasForbiddenChar(s string) bool {

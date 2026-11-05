@@ -1974,7 +1974,33 @@
       "subHostSortMode": "Poradie uzlov v predplatnom",
       "subHostSortInbound": "Poradie inboundov (predvolené)",
       "subHostSortHosts": "Poradie hostiteľov",
-      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
+      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie.",
+      "wechatSettings": "Oznámenia WeChat",
+      "wechatEnable": "Zapnúť oznámenia WeChat",
+      "wechatEnableDesc": "Posielať upozornenia cez robota skupiny WeCom alebo kompatibilnú webhook bránu.",
+      "wechatMode": "Spôsob doručenia",
+      "wechatModeDesc": "Vyberte formát správ podporovaný cieľom.",
+      "wechatModeWecom": "Robot skupiny WeCom",
+      "wechatModeWebhook": "Vlastná webhook brána",
+      "wechatPersonalGateway": "Osobný WeChat vyžaduje kompatibilnú bránu. Robot WeCom posiela do skupín WeCom, nie priamo do osobného WeChatu.",
+      "wechatWebhookURL": "URL webhooku",
+      "wechatWebhookURLConfigured": "URL je uložená. Prázdne pole ju zachová.",
+      "wechatWebhookURLDesc": "Použite HTTPS. URL môže obsahovať tajný údaj a panel uloženú hodnotu nevracia.",
+      "wechatSecretPlaceholder": "Prázdne pole zachová uloženú hodnotu",
+      "wechatToken": "Bearer token",
+      "wechatTokenConfigured": "Token je uložený. Prázdne pole ho zachová.",
+      "wechatTokenDesc": "Voliteľné overenie brány. Ak nie je potrebné, nechajte prázdne.",
+      "wechatLanguage": "Jazyk správ",
+      "wechatSaveBeforeTest": "Pred testom uložte zmeny. Test používa uloženú konfiguráciu.",
+      "wechatTest": "Odoslať testovacie oznámenie",
+      "wechatTestSuccess": "Skúšobné oznámenie bolo úspešne odoslané",
+      "wechatTestFailed": "Skúšobné oznámenie sa nepodarilo odoslať",
+      "wechatReportEnable": "Plánované prehľady",
+      "wechatReportEnableDesc": "Pravidelné textové prehľady nezávislé od upozornení. Databázy ani konfiguračné súbory sa neprikladajú.",
+      "wechatReportTime": "Plán prehľadov",
+      "wechatReportTimeDesc": "Použite výraz cron alebo predvoľbu ako @daily.",
+      "wechatEvents": "Upozornenia na udalosti",
+      "wechatEventsDesc": "Vyberte udalosti pre oznámenia a nastavte prahy upozornení."
     },
     "xray": {
       "save": "Uložiť",
@@ -2868,5 +2894,18 @@
     "restartXray": "Reštartovať službu Xray",
     "restartXraySuccess": "Xray bol úspešne reštartovaný",
     "settings": "Nastavenia"
+  },
+  "wechat": {
+    "test": {
+      "title": "Test oznámení WeChat z 3x-ui",
+      "body": "Toto je skúšobné oznámenie z 3x-ui. Neobsahuje súbory databázy ani konfigurácie."
+    },
+    "report": {
+      "title": "Správa o stave 3x-ui",
+      "counts": "Celkom: {{ .Total }} | Zakázané: {{ .Disabled }} | Platnosť skončila: {{ .Expired }} | Vyčerpané: {{ .Depleted }}",
+      "trafficUsed": "Použitý prenos 3x-ui",
+      "trafficRemaining": "Zostávajúci prenos 3x-ui",
+      "trafficQuotaUnset": "Limit nie je nastavený"
+    }
   }
 }

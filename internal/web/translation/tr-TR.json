@@ -1853,7 +1853,33 @@
       "subHostSortMode": "Abonelik düğümü sıralaması",
       "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
       "subHostSortHosts": "Ana bilgisayar sırası",
-      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
+      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir.",
+      "wechatSettings": "WeChat bildirimleri",
+      "wechatEnable": "WeChat bildirimlerini etkinleştir",
+      "wechatEnableDesc": "WeCom grup robotu veya uyumlu webhook ağ geçidi üzerinden uyarı gönderin.",
+      "wechatMode": "Gönderim modu",
+      "wechatModeDesc": "Hedefin desteklediği mesaj biçimini seçin.",
+      "wechatModeWecom": "WeCom grup robotu",
+      "wechatModeWebhook": "Özel webhook ağ geçidi",
+      "wechatPersonalGateway": "Kişisel WeChat uyumlu bir ağ geçidi gerektirir. WeCom robotu, kişisel WeChat yerine WeCom gruplarına gönderir.",
+      "wechatWebhookURL": "Webhook URL’si",
+      "wechatWebhookURLConfigured": "Bir URL kaydedildi. Korumak için boş bırakın.",
+      "wechatWebhookURLDesc": "HTTPS hedefi kullanın. URL gizli bilgi içerebilir; panel kayıtlı değeri geri döndürmez.",
+      "wechatSecretPlaceholder": "Kayıtlı değeri korumak için boş bırakın",
+      "wechatToken": "Bearer belirteci",
+      "wechatTokenConfigured": "Bir belirteç kaydedildi. Korumak için boş bırakın.",
+      "wechatTokenDesc": "Ağ geçidi için isteğe bağlı kimlik doğrulama. Gerekmiyorsa boş bırakın.",
+      "wechatLanguage": "Mesaj dili",
+      "wechatSaveBeforeTest": "Testten önce değişiklikleri kaydedin. Test kayıtlı yapılandırmayı kullanır.",
+      "wechatTest": "Test bildirimi gönder",
+      "wechatTestSuccess": "Test bildirimi başarıyla gönderildi",
+      "wechatTestFailed": "Test bildirimi gönderilemedi",
+      "wechatReportEnable": "Zamanlanmış raporlar",
+      "wechatReportEnableDesc": "Olay uyarılarından bağımsız düzenli metin özetleri gönderin. Veritabanı ve yapılandırma dosyaları eklenmez.",
+      "wechatReportTime": "Rapor zamanlaması",
+      "wechatReportTimeDesc": "Cron ifadesi veya @daily gibi bir ön ayar kullanın.",
+      "wechatEvents": "Olay uyarıları",
+      "wechatEventsDesc": "Bildirim gönderecek olayları seçin ve uyarı eşiklerini ayarlayın."
     },
     "xray": {
       "save": "Kaydet",
@@ -2868,5 +2894,18 @@
     "restartXray": "Xray Hizmetini Yeniden Başlat",
     "restartXraySuccess": "Xray hizmeti başarıyla yeniden başlatıldı",
     "settings": "Ayarlar"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui WeChat Bildirim Testi",
+      "body": "Bu, 3x-ui tarafından gönderilen bir test bildirimidir. Veritabanı veya yapılandırma dosyası içermez."
+    },
+    "report": {
+      "title": "3x-ui Durum Raporu",
+      "counts": "Toplam: {{ .Total }} | Devre dışı: {{ .Disabled }} | Süresi dolan: {{ .Expired }} | Kotası tükenen: {{ .Depleted }}",
+      "trafficUsed": "3x-ui kullanılan trafik",
+      "trafficRemaining": "3x-ui kalan trafik",
+      "trafficQuotaUnset": "Kota yapılandırılmamış"
+    }
   }
 }

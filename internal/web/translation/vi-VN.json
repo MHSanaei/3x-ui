@@ -1853,7 +1853,33 @@
       "subHostSortMode": "Thứ tự nút đăng ký",
       "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
       "subHostSortHosts": "Thứ tự máy chủ",
-      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
+      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại.",
+      "wechatSettings": "Thông báo WeChat",
+      "wechatEnable": "Bật thông báo WeChat",
+      "wechatEnableDesc": "Gửi cảnh báo qua robot nhóm WeCom hoặc cổng webhook tương thích.",
+      "wechatMode": "Phương thức gửi",
+      "wechatModeDesc": "Chọn định dạng tin nhắn mà đích hỗ trợ.",
+      "wechatModeWecom": "Robot nhóm WeCom",
+      "wechatModeWebhook": "Cổng webhook tùy chỉnh",
+      "wechatPersonalGateway": "WeChat cá nhân cần cổng tương thích. Robot WeCom gửi tới nhóm WeCom, không gửi trực tiếp tới WeChat cá nhân.",
+      "wechatWebhookURL": "URL webhook",
+      "wechatWebhookURLConfigured": "URL đã được lưu. Để trống để giữ giá trị cũ.",
+      "wechatWebhookURLDesc": "Dùng địa chỉ HTTPS. URL có thể chứa bí mật và bảng điều khiển không trả lại giá trị đã lưu.",
+      "wechatSecretPlaceholder": "Để trống để giữ giá trị đã lưu",
+      "wechatToken": "Mã Bearer",
+      "wechatTokenConfigured": "Mã đã được lưu. Để trống để giữ lại.",
+      "wechatTokenDesc": "Xác thực tùy chọn cho cổng. Để trống nếu không cần.",
+      "wechatLanguage": "Ngôn ngữ tin nhắn",
+      "wechatSaveBeforeTest": "Lưu thay đổi trước khi thử. Phép thử dùng cấu hình đã lưu.",
+      "wechatTest": "Gửi thông báo thử",
+      "wechatTestSuccess": "Đã gửi thông báo thử nghiệm",
+      "wechatTestFailed": "Không thể gửi thông báo thử nghiệm",
+      "wechatReportEnable": "Báo cáo định kỳ",
+      "wechatReportEnableDesc": "Gửi tóm tắt văn bản định kỳ độc lập với cảnh báo. Không đính kèm cơ sở dữ liệu hay tệp cấu hình.",
+      "wechatReportTime": "Lịch báo cáo",
+      "wechatReportTimeDesc": "Dùng biểu thức cron hoặc giá trị như @daily.",
+      "wechatEvents": "Cảnh báo sự kiện",
+      "wechatEventsDesc": "Chọn sự kiện gửi thông báo và đặt ngưỡng cảnh báo."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2868,5 +2894,18 @@
     "restartXray": "Khởi động lại dịch vụ Xray",
     "restartXraySuccess": "Dịch vụ Xray đã được khởi động lại thành công",
     "settings": "Cài đặt"
+  },
+  "wechat": {
+    "test": {
+      "title": "Kiểm tra thông báo WeChat của 3x-ui",
+      "body": "Đây là thông báo thử nghiệm từ 3x-ui. Không bao gồm tệp cơ sở dữ liệu hoặc cấu hình."
+    },
+    "report": {
+      "title": "Báo cáo trạng thái 3x-ui",
+      "counts": "Tổng: {{ .Total }} | Đã tắt: {{ .Disabled }} | Hết hạn: {{ .Expired }} | Hết lưu lượng: {{ .Depleted }}",
+      "trafficUsed": "Lưu lượng 3x-ui đã dùng",
+      "trafficRemaining": "Lưu lượng 3x-ui còn lại",
+      "trafficQuotaUnset": "Chưa đặt hạn mức"
+    }
   }
 }

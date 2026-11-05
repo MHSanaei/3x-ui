@@ -607,6 +607,40 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "wechatCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatEnable": {
+            "type": "boolean"
+          },
+          "wechatEnabledEvents": {
+            "type": "string"
+          },
+          "wechatLang": {
+            "type": "string"
+          },
+          "wechatMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatMode": {
+            "type": "string"
+          },
+          "wechatReportEnable": {
+            "type": "boolean"
+          },
+          "wechatRunTime": {
+            "type": "string"
+          },
+          "wechatToken": {
+            "type": "string"
+          },
+          "wechatWebhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -789,7 +823,17 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "wechatCpu",
+          "wechatEnable",
+          "wechatEnabledEvents",
+          "wechatLang",
+          "wechatMemory",
+          "wechatMode",
+          "wechatReportEnable",
+          "wechatRunTime",
+          "wechatToken",
+          "wechatWebhookURL"
         ],
         "type": "object"
       },
@@ -870,6 +914,12 @@
             "type": "boolean"
           },
           "hasWarpSecret": {
+            "type": "boolean"
+          },
+          "hasWechatToken": {
+            "type": "boolean"
+          },
+          "hasWechatWebhookURL": {
             "type": "boolean"
           },
           "ipLimitAllowlist": {
@@ -1398,6 +1448,40 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "wechatCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatEnable": {
+            "type": "boolean"
+          },
+          "wechatEnabledEvents": {
+            "type": "string"
+          },
+          "wechatLang": {
+            "type": "string"
+          },
+          "wechatMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatMode": {
+            "type": "string"
+          },
+          "wechatReportEnable": {
+            "type": "boolean"
+          },
+          "wechatRunTime": {
+            "type": "string"
+          },
+          "wechatToken": {
+            "type": "string"
+          },
+          "wechatWebhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -1425,6 +1509,8 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "hasWechatToken",
+          "hasWechatWebhookURL",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -1588,7 +1674,17 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "wechatCpu",
+          "wechatEnable",
+          "wechatEnabledEvents",
+          "wechatLang",
+          "wechatMemory",
+          "wechatMode",
+          "wechatReportEnable",
+          "wechatRunTime",
+          "wechatToken",
+          "wechatWebhookURL"
         ],
         "type": "object"
       },
@@ -13794,6 +13890,36 @@
                 "example": {
                   "success": true,
                   "msg": "Test notification sent successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testWechat": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Send a text test notification using the saved WeChat destination. Supports WeCom group robots and compatible personal WeChat webhook gateways. Requires WeChat notifications to be enabled.",
+        "operationId": "post_panel_api_setting_testWechat",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
