@@ -3,6 +3,7 @@
 .inbounds-page,
 .xray-page,
 .settings-page,
+.tunnels-page,
 .nodes-page,
 .groups-page,
 .api-docs-page,
@@ -18,6 +19,7 @@
 .inbounds-page.is-dark,
 .xray-page.is-dark,
 .settings-page.is-dark,
+.tunnels-page.is-dark,
 .nodes-page.is-dark,
 .groups-page.is-dark,
 .api-docs-page.is-dark,
@@ -31,6 +33,7 @@
 .inbounds-page.is-dark.is-ultra,
 .xray-page.is-dark.is-ultra,
 .settings-page.is-dark.is-ultra,
+.tunnels-page.is-dark.is-ultra,
 .nodes-page.is-dark.is-ultra,
 .groups-page.is-dark.is-ultra,
 .api-docs-page.is-dark.is-ultra,
@@ -49,6 +52,8 @@
 .xray-page .ant-layout-content,
 .settings-page .ant-layout,
 .settings-page .ant-layout-content,
+.tunnels-page .ant-layout,
+.tunnels-page .ant-layout-content,
 .nodes-page .ant-layout,
 .nodes-page .ant-layout-content,
 .groups-page .ant-layout,
@@ -63,6 +68,7 @@
 .inbounds-page .content-shell,
 .xray-page .content-shell,
 .settings-page .content-shell,
+.tunnels-page .content-shell,
 .nodes-page .content-shell,
 .groups-page .content-shell,
 .api-docs-page .content-shell {
@@ -74,6 +80,7 @@
 .inbounds-page .content-area,
 .xray-page .content-area,
 .settings-page .content-area,
+.tunnels-page .content-area,
 .nodes-page .content-area,
 .groups-page .content-area {
   padding: 24px;
@@ -82,6 +89,7 @@
 @media (max-width: 768px) {
   .clients-page .content-area,
   .inbounds-page .content-area,
+  .tunnels-page .content-area,
   .nodes-page .content-area,
   .groups-page .content-area {
     padding: 8px;

@@ -2,6 +2,9 @@ package web
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/wattunnel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -55,7 +59,7 @@ func startContractNode(t *testing.T) *nodeUnderContract {
 		t.Fatalf("initRouter: %v", err)
 	}
 	n := &nodeUnderContract{}
-	n.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	n.srv = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		engine.ServeHTTP(rec, r)
 		if rec.status == http.StatusUnauthorized || rec.status == http.StatusForbidden {
@@ -96,8 +100,10 @@ func (n *nodeUnderContract) masterWithToken(t *testing.T, scope string) *runtime
 	}
 	u, _ := url.Parse(n.srv.URL)
 	port, _ := strconv.Atoi(u.Port())
+	fingerprint := sha256.Sum256(n.srv.Certificate().Raw)
 	return runtime.NewRemote(&model.Node{
-		Id: 1, Name: "contract-node", Scheme: "http", Address: u.Hostname(), Port: port,
+		Id: 1, Name: "contract-node", Scheme: "https", Address: u.Hostname(), Port: port,
+		TlsVerifyMode: "pin", PinnedCertSha256: hex.EncodeToString(fingerprint[:]),
 		BasePath: "/", ApiToken: token, Enable: true, AllowPrivateAddress: true,
 	}, nil)
 }
@@ -180,6 +186,25 @@ func TestMasterNodeContract(t *testing.T) {
 				run    func() error
 				check  func(t *testing.T)
 			}{
+				{"TunnelCapabilities uses authenticated node API", []string{"TunnelCapabilities"}, func() error {
+					caps, err := master.TunnelCapabilities(ctx)
+					if err == nil && caps.Version != wattunnel.Version {
+						return fmt.Errorf("unexpected tunnel version %s", caps.Version)
+					}
+					return err
+				}, func(t *testing.T) {}},
+				{"ApplyTunnel persists an encrypted stopped tunnel", []string{"ApplyTunnel"}, func() error {
+					_, err := master.ApplyTunnel(ctx, wattunnel.Spec{GUID: "b249d121-7fa6-4e7e-9299-c08df8ab6d12", Owner: "contract-master", Name: "contract tunnel", Revision: 1, Secret: "contract-secret", Config: wattunnel.Config{Role: "server", Carrier: "tcp", Endpoint: "192.0.2.1", Port: 54443, Ports: []wattunnel.Port{{Listen: 443, Target: 443, Protocol: "tcp"}}}})
+					return err
+				}, func(t *testing.T) {
+					var row model.ManagedTunnel
+					if err := database.GetDB().Where("guid = ?", "b249d121-7fa6-4e7e-9299-c08df8ab6d12").First(&row).Error; err != nil {
+						t.Fatal(err)
+					}
+					if row.Enabled || row.AuthOwner == "" || !strings.HasPrefix(row.Secret, "enc:v1:") {
+						t.Fatal("node lost stopped state, owner, or encryption")
+					}
+				}},
 				{"AddInbound creates the inbound with its clients", []string{"AddInbound"}, func() error {
 					return master.AddInbound(ctx, masterInbound("added", true, "c0", "c1"))
 				}, func(t *testing.T) {

@@ -4,6 +4,7 @@
   "pages": [
     "reverse-proxy",
     "multi-node",
+    "wattunnel",
     "outbounds-routing",
     "backup-restore",
     "telegram-bot",

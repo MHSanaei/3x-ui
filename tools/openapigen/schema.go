@@ -20,6 +20,7 @@ type Alias struct {
 }
 
 type Field struct {
+	Embedded bool
 	JSONName string
 	GoName   string
 	Type     TypeRef
@@ -152,7 +153,7 @@ func flattenEmbedded(schemas []Schema) []Schema {
 		seen := make(map[string]bool, len(s.Fields))
 		for _, f := range s.Fields {
 			if f.Type.Kind == KindRef && f.Type.Name != "nullable" {
-				if embedded, ok := byName[f.Type.Name]; ok && f.GoName == f.Type.Name {
+				if embedded, ok := byName[f.Type.Name]; ok && f.Embedded {
 					for _, ef := range embedded.Fields {
 						if seen[ef.JSONName] {
 							continue

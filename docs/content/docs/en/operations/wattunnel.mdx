@@ -1,0 +1,78 @@
+---
+title: WatTunnel tunnels
+description: Managed inter-server TCP/UDP forwarding with direct and reverse transports.
+---
+
+## Connection model
+
+The user connects with an ordinary Xray client to the public address of the entrance server. A WatTunnel **Client** forwards those TCP/UDP ports to a WatTunnel **Server**, which connects only to allowed ports on its own `127.0.0.1`. Run the existing Xray inbound there. Set the entrance address in the panel's existing Host/subscription settings; Tunnels does not create or modify Xray inbounds.
+
+Roles describe forwarding, not countries. **Reverse** changes who establishes the carrier connection: Server dials Client, but Client still accepts users. Both ends need the same key, transport, direction and allowed target ports.
+
+## Platforms and installation
+
+3x-ui bundles pinned WatTunnel **3.3.0** for Linux amd64/arm64 and Windows amd64. The build verifies upstream RSA-signed `SHA256SUMS`; runtime verifies the binary and version before execution. Windows supports TCP, UDP, TLS and WSS, including reverse; ICMP requires Linux with `CAP_NET_RAW`. Other panel platforms can manage supported remote nodes.
+
+Linux package installation creates the `x-ui-wattunnel` service account. For a manual installation, create it before running a root panel:
+
+```sh
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin x-ui-wattunnel
+```
+
+The panel drops the child's UID and retains only the capabilities required by its selected transports and privileged listener ports. For a non-root panel, provision the necessary permissions before starting it. It does not invoke sudo or change the firewall/sysctl settings. Docker needs `NET_RAW` for ICMP and `NET_BIND_SERVICE` for low ports; publish the chosen carrier/public ports or use host networking on Linux. Runtime data resides under the binary folder in `wattunnel-runtime`. Engine counters reset when its process restarts.
+
+## Configure two servers
+
+1. On the exit VPS, configure an existing Xray inbound reachable on `127.0.0.1:443`.
+2. In **Tunnels**, create Server, choose its advertised IP/domain and TCP transport port `4443`. Generate a key and allow TCP target `443`. Enable and save it.
+3. Export its connection token. It contains the key and must be kept private.
+4. On the entrance VPS, create a tunnel using that token, disable key generation, and map public TCP `8443` to target `443`. Enable it. Import uses the token's connection settings; explicit forwarding mappings remain editable.
+5. Point the ordinary Xray client at the entrance IP and port `8443`, preserving the inbound's authentication, TLS/Reality and SNI settings.
+
+For a UDP service add a separate UDP mapping on both sides. TCP and UDP may use the same port number. WatTunnel can carry UDP inside a TCP/TLS/WSS carrier. It is not restricted to forwarding the carrier's own protocol.
+
+For reverse, enable Reverse on both ends. Set **Client address for reverse dialing** on Server, expose the carrier port on Client, and keep the same forwarding mappings. If the client is behind NAT, configure a reachable forwarding endpoint yourself.
+
+## Auto and health
+
+Auto is the panel's availability selector, not upstream's bandwidth benchmark. Server keeps its configured carrier listeners available; Client uses one. The initial order is UDP, TCP, TLS, WSS, ICMP; unavailable platform/capability options are excluded. After a restart, the last working carrier is tried first. The current working carrier is retained until failure. Client retries after 45 seconds without authenticated health, with bounded backoff. A switch or structural configuration edit can interrupt active connections. Auto does not discover a reverse peer, switch direction, run speed tests or claim DPI bypass.
+
+The UI separates desired enablement, process/connection state, transport and diagnostics. RTT, wire-byte totals, loss estimates and send errors come from the engine. Loss is the engine's estimate, not independent route measurement. A server without a connected client is waiting, not necessarily faulty. Unavailable metrics are shown as unknown, not zero.
+
+TLS/WSS follow upstream's PSK-authenticated transport behavior; a self-signed transport certificate is not a publicly verified identity. Use **TLS SHA-256** to pin the peer certificate where needed. `wat1:` has no certificate-pin field: configure the pin separately on the dialing side. Certificate/key paths refer to the target node and must be readable by its WatTunnel service account. Use end-to-end TLS/Reality for the user-to-Xray connection.
+
+## Nodes and secrets
+
+Select the hosting node in the form. Secret synchronization requires verified HTTPS, certificate pinning or mTLS; insecure HTTP/skip-verification nodes cannot receive tunnels. Older nodes report unsupported capability. Only the owning panel edits a synchronized tunnel. Node outages retain pending desired state and deletion tombstones; reconciliation retries after reconnect. Moving a tunnel requires deleting and recreating it on the other node.
+
+Secrets are encrypted in the database using a separate keyring at `<XUI_DB_FOLDER>/wattunnel-secrets/keyring.json`. Back up this file securely **alongside** database backups: the database alone cannot restore tunnel keys. Linux files are owner-only; Windows uses protected ACLs. Missing keyrings do not trigger plaintext fallback. Runtime key/configuration files are private, and command lines contain only a config path. Do not expose the loopback metrics endpoint through a proxy; it also hosts upstream administrative/debug handlers.
+
+Ordinary list/update responses do not include keys. Token export is a separate admin-only POST with `Cache-Control: no-store`. To rotate a tunnel PSK, generate/import a replacement on both sides and restart them; independent peers do not rotate automatically.
+
+## Updating, stopping and removing
+
+WatTunnel updates and rolls back with the panel package, not independently through the upstream manager. Stop is persisted and survives panel/server restart. Delete stops the owned process, removes its generated files and retains a tombstone for offline nodes. It does not remove an existing Xray inbound or third-party WatTunnel installation. Keep the keyring and database together when restoring an older package. Uninstalling the panel should remove its own runtime directory only after stopping it; retain backups until no longer needed.
+
+## Verification
+
+```sh
+# A TCP probe only checks the public listener, not Xray authentication.
+nc -vz ENTRANCE_IP 8443
+
+# Configure your Xray client normally, then exercise the actual proxy.
+curl --proxy socks5h://127.0.0.1:1080 https://example.com/
+```
+
+Run the repository's real-process matrix with `WATTUN_E2E_BINARY=/path/to/wattun go test -v ./internal/wattunnel`. Add `XRAY_E2E_BINARY` for the Xray cascade test. `make node-e2e` exercises real panel synchronization. Linux CI additionally runs ICMP with privileges; Windows CI runs the supported matrix. The isolated Linux namespace lab under `scripts/wattunnel-lab.sh` covers packet loss and carrier blocking without altering the host firewall. External VPS/DPI results must be recorded separately; a simulated block does not establish censorship resistance on a real route.
+
+### Disposable Ubuntu laboratory
+
+The lab image contains Ubuntu 24.04 and a verified pinned release. It requires namespace privileges and no external network:
+
+```sh
+docker build -f deploy/test/wattunnel-lab.Dockerfile -t xui-wattunnel-lab .
+docker run --rm --network none --privileged \
+  -v "$PWD/wattunnel-lab-results:/results" xui-wattunnel-lab
+```
+
+Run this in a disposable test environment. Results are written to `results.jsonl`; only the two newly created namespaces receive firewall and loss rules. The results directory also contains generated test keys and logs. The lab is independent of your panel DB and existing network configuration.

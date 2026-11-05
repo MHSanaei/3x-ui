@@ -11,15 +11,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/childproc"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -220,41 +219,9 @@ func (p *Process) Stop() error {
 		return errors.New("mtg is not running")
 	}
 
-	if runtime.GOOS == "windows" {
-		if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-			return err
-		}
-		return waitForExit(done, forceStopTimeout)
-	}
-
-	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		if errors.Is(err, os.ErrProcessDone) {
-			return waitForExit(done, forceStopTimeout)
-		}
-		return err
-	}
-
-	if err := waitForExit(done, gracefulStopTimeout); err == nil {
-		return nil
-	}
-
-	logger.Warning("mtproto: mtg did not stop after SIGTERM, killing process")
-	if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-		return err
-	}
-	return waitForExit(done, forceStopTimeout)
+	return childproc.Stop(cmd, done, gracefulStopTimeout, forceStopTimeout)
 }
 
 func waitForExit(done <-chan struct{}, timeout time.Duration) error {
-	if done == nil {
-		return nil
-	}
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-	select {
-	case <-done:
-		return nil
-	case <-timer.C:
-		return fmt.Errorf("timed out waiting for mtg process to stop after %s", timeout)
-	}
+	return childproc.Wait(done, timeout)
 }

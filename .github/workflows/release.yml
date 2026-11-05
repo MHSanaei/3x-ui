@@ -173,6 +173,10 @@ jobs:
           esac
           cd ../..
 
+      - name: Bundle verified WatTunnel
+        if: matrix.platform == 'amd64' || matrix.platform == 'arm64'
+        run: go run ./tools/wattunnel-release -target linux-${{ matrix.platform }} -out x-ui/bin
+
       - name: Package
         run: |
           tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
@@ -311,6 +315,10 @@ jobs:
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse
           cd ..
+
+      - name: Bundle verified WatTunnel
+        shell: pwsh
+        run: go run ./tools/wattunnel-release -target windows-amd64 -out x-ui/bin
 
       - name: Package to Zip
         shell: pwsh

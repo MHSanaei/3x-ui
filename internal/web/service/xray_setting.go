@@ -55,6 +55,8 @@ var legacyPrivateIPPrefixes = []netip.Prefix{
 }
 
 func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
+	tunnelMu.Lock()
+	defer tunnelMu.Unlock()
 	// The frontend round-trips the whole getXraySetting response back
 	// through the textarea, so if it has ever received a wrapped
 	// payload (see UnwrapXrayTemplateConfig) it sends that same wrapper
@@ -72,6 +74,9 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	}
 	if spelled, changed, err := database.RewriteDNSOutboundQTypeZero(newXraySettings); err == nil && changed {
 		newXraySettings = spelled
+	}
+	if err := checkTemplateTunnelPorts(newXraySettings); err != nil {
+		return err
 	}
 	return s.saveSetting("xrayTemplateConfig", newXraySettings)
 }
