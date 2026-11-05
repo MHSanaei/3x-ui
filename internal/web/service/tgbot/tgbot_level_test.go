@@ -79,6 +79,24 @@ func TestGateCommand(t *testing.T) {
 	}
 }
 
+// Regression test: a message sent on behalf of a chat carries a placeholder user
+// shared by everybody, so whatever that id is bound to, its sender is a stranger.
+func TestGateCommandIgnoresPlaceholderSender(t *testing.T) {
+	tb, calls := newLevelTgbot(t)
+
+	for _, from := range []int64{ownerTgID, 1} {
+		message := commandFrom(from, "/usage "+ownerMail)
+		message.Chat = telego.Chat{ID: -100200, Type: telego.ChatTypeSupergroup}
+		message.SenderChat = &message.Chat
+		if isAdmin, ok := tb.gateCommand(message); ok || isAdmin {
+			t.Errorf("gateCommand(%d for a chat) = (%v, %v), want (false, false)", from, isAdmin, ok)
+		}
+	}
+	if n := calls("sendMessage"); n != 0 {
+		t.Errorf("sendMessage calls = %d, want 0", n)
+	}
+}
+
 // Regression test: a stranger's forged callback must be answered, so the button
 // stops spinning, and must never reach answerCallback.
 func TestGateCallbackStopsStrangers(t *testing.T) {

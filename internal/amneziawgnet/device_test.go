@@ -39,7 +39,7 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 		t.Fatalf("generate client keypair: %v", err)
 	}
 
-	const listenPort = 58712 // fixed loopback test port, matches the validated Phase 0 spike approach
+	listenPort := freeUDPPort(t)
 	const wantEmail = "test-peer@example.com"
 
 	inst := amneziawg.Instance{
@@ -80,14 +80,9 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 	// purely from the decapsulated packet, not from any routing table.
 	wantDest := netip.MustParseAddrPort("10.201.9.9:9999")
 
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		defer conn.Close()
-		srcAddrPort, parseErr := netip.ParseAddrPort(conn.RemoteAddr().String())
-		var peer amneziawg.Peer
-		var ok bool
-		if parseErr == nil {
-			peer, ok = idx.Lookup(srcAddrPort.Addr().Unmap())
-		}
+		peer, ok := idx.Lookup(src.Addr().Unmap())
 		got <- recovered{email: peer.Email, ok: ok, dest: dest}
 		io.Copy(io.Discard, conn)
 	})
@@ -248,7 +243,7 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 		t.Fatalf("generate header protection key: %v", err)
 	}
 
-	const listenPort = 58713 // fixed loopback test port, distinct from the handshake test above
+	listenPort := freeUDPPort(t)
 	const contentPaddingAddition = "20-40"
 
 	inst := amneziawg.Instance{
@@ -283,7 +278,7 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 	const wantRequest = "hello from client"
 	const wantReply = "hello from server"
 	serverDone := make(chan error, 1)
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		buf := make([]byte, len(wantRequest))
 		if _, err := io.ReadFull(conn, buf); err != nil {
@@ -434,7 +429,7 @@ func TestNewDeviceRandomTrailersAndDisableCookiesRoundTrip(t *testing.T) {
 		t.Fatalf("generate client keypair: %v", err)
 	}
 
-	const listenPort = 58721 // fixed loopback test port, distinct from every other test in this package
+	listenPort := freeUDPPort(t)
 
 	inst := amneziawg.Instance{
 		Id:            3,
@@ -461,7 +456,7 @@ func TestNewDeviceRandomTrailersAndDisableCookiesRoundTrip(t *testing.T) {
 	const wantRequest = "hello from client, with a trailer"
 	const wantReply = "hello from server, with a trailer"
 	serverDone := make(chan error, 1)
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		buf := make([]byte, len(wantRequest))
 		if _, err := io.ReadFull(conn, buf); err != nil {
@@ -596,7 +591,7 @@ func TestValidatedObfuscationAlwaysApplies(t *testing.T) {
 		}},
 	}
 
-	for i, tc := range cases {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			o := base
 			tc.mut(&o)
@@ -604,7 +599,7 @@ func TestValidatedObfuscationAlwaysApplies(t *testing.T) {
 				return // rejected before saving, which is the whole point
 			}
 			inst := amneziawg.Instance{
-				Id: 88, InterfaceName: "awgcontract", ListenPort: 58900 + i,
+				Id: 88, InterfaceName: "awgcontract", ListenPort: 0,
 				PrivateKey: priv, PublicKey: pub,
 				Address: []string{"10.198.0.1/24"}, MTU: 1420,
 				Obfuscation: o,
@@ -677,5 +672,18 @@ func TestBuildUAPIConfigClearedHeaderProtectionKeyIsSentAsZero(t *testing.T) {
 	}
 	if strings.Contains(withKey, zero) {
 		t.Fatalf("a configured key must not be emitted as zero, got:\n%s", withKey)
+	}
+}
+
+// A row stored before the handshake bounds existed must fail its own device setup instead
+// of allocating without limit at the next handshake, which ended the whole panel.
+func TestBuildUAPIConfigRefusesAStoredUnboundedPreamble(t *testing.T) {
+	priv, _, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	inst := amneziawg.Instance{PrivateKey: priv, Obfuscation: amneziawg.Obfuscation31{Jc: 1 << 31, Jmin: 10, Jmax: 20}}
+	if _, err := buildUAPIConfig(inst, DeviceOptions{}); err == nil {
+		t.Fatal("a stored Jc of 2^31 reached the device")
 	}
 }

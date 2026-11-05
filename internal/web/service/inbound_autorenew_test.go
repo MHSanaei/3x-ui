@@ -102,3 +102,93 @@ func TestAutoRenewClients_MultiInbound(t *testing.T) {
 		}
 	}
 }
+
+// Every state is reached through the calls that produce it on a live panel: both
+// operator paths clear client_traffics.enable as well, which a hand-seeded row hides.
+func TestAutoRenewClients_RestoresOnlyWhatTheLifecycleJobDisabled(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+
+	ib, _, err := inboundSvc.AddInbound(&model.Inbound{
+		UserId: 1, Enable: true, Port: 30301, Protocol: model.VLESS, Tag: "in-30301",
+		Settings:       `{"clients":[],"decryption":"none"}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	})
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	// A whole second, as autoRenewClients compares against those, and far enough
+	// away for the operator's calls below to land before it.
+	deadline := (time.Now().Unix() + 3) * 1000
+	wantEnable := map[string]bool{
+		"bulk-banned@x": false,
+		"edit-banned@x": false,
+		"quota-spent@x": true,
+		"time-up@x":     true,
+	}
+	for email := range wantEnable {
+		if _, err := clientSvc.Create(inboundSvc, &ClientCreatePayload{
+			Client:     model.Client{Email: email, Enable: true, Reset: 30, ExpiryTime: deadline, TotalGB: 100},
+			InboundIds: []int{ib.Id},
+		}); err != nil {
+			t.Fatalf("Create %s: %v", email, err)
+		}
+	}
+	record := func(email string) *model.ClientRecord {
+		t.Helper()
+		rec, err := clientSvc.GetRecordByEmail(nil, email)
+		if err != nil {
+			t.Fatalf("GetRecordByEmail %s: %v", email, err)
+		}
+		return rec
+	}
+
+	if _, _, err := clientSvc.BulkSetEnable(inboundSvc, []string{"bulk-banned@x"}, false); err != nil {
+		t.Fatalf("BulkSetEnable: %v", err)
+	}
+	rec := record("edit-banned@x")
+	edited := rec.ToClient()
+	edited.Enable = false
+	if _, err := clientSvc.Update(inboundSvc, rec.Id, *edited, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if _, _, err := inboundSvc.AddTraffic(nil, []*xray.ClientTraffic{{Email: "quota-spent@x", Up: 60, Down: 60}}); err != nil {
+		t.Fatalf("AddTraffic: %v", err)
+	}
+	if time.Now().UnixMilli() >= deadline {
+		t.Fatal("the operator's calls landed after the deadline; the setup is too slow")
+	}
+
+	time.Sleep(time.Until(time.UnixMilli(deadline)))
+	// A tick this close to the deadline disables what the next one renews.
+	if _, _, _, err := inboundSvc.disableInvalidClients(database.GetDB(), newTrafficMutationBatch()); err != nil {
+		t.Fatalf("disableInvalidClients: %v", err)
+	}
+	for email := range wantEnable {
+		if record(email).Enable {
+			t.Fatalf("%s is still enabled before the renewal", email)
+		}
+	}
+
+	time.Sleep(time.Until(time.UnixMilli(deadline + 1000)))
+	if _, _, err := inboundSvc.AddTraffic(nil, nil); err != nil {
+		t.Fatalf("AddTraffic: %v", err)
+	}
+	for email, want := range wantEnable {
+		rec := record(email)
+		if rec.ExpiryTime <= deadline {
+			t.Errorf("%s was not renewed: expiry = %d", email, rec.ExpiryTime)
+		}
+		if rec.Enable != want {
+			t.Errorf("%s enable after the renewal = %v, want %v", email, rec.Enable, want)
+		}
+		var traffic xray.ClientTraffic
+		if err := database.GetDB().Where("email = ?", email).First(&traffic).Error; err != nil {
+			t.Fatalf("read client_traffics %s: %v", email, err)
+		}
+		if traffic.Enable != want {
+			t.Errorf("%s client_traffics.enable after the renewal = %v, want %v", email, traffic.Enable, want)
+		}
+	}
+}

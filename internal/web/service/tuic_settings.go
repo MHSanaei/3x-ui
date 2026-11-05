@@ -90,6 +90,19 @@ func normalizeTuicSettingsBlock(settings map[string]json.RawMessage) error {
 		encoded, _ := json.Marshal(value)
 		settings["udp_relay_mode"] = encoded
 	}
+	for _, key := range []string{"max_idle_time", "authentication_timeout"} {
+		raw, ok := settings[key]
+		if !ok {
+			continue
+		}
+		var value int64
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return fmt.Errorf("TUIC %s must be an integer: %w", key, err)
+		}
+		if value > tuic.MaxTimeoutSeconds {
+			return fmt.Errorf("TUIC %s must not exceed %d seconds", key, tuic.MaxTimeoutSeconds)
+		}
+	}
 	if raw, ok := settings["max_udp_relay_packet_size"]; ok {
 		var value int
 		if err := json.Unmarshal(raw, &value); err != nil {

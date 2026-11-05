@@ -109,3 +109,80 @@ func TestProductionHTTPServersUseServeHTTPWrapper(t *testing.T) {
 		t.Fatalf("scan production Go files: %v", err)
 	}
 }
+
+// queueListener hands out conns from a channel, each claiming the given remote address.
+type queueListener struct{ conns chan net.Conn }
+
+func (l queueListener) Accept() (net.Conn, error) {
+	c, ok := <-l.conns
+	if !ok {
+		return nil, net.ErrClosed
+	}
+	return c, nil
+}
+func (queueListener) Close() error   { return nil }
+func (queueListener) Addr() net.Addr { return testAddr("queue") }
+
+type remoteConn struct {
+	net.Conn
+	remote net.Addr
+	closed chan struct{}
+}
+
+func (c *remoteConn) RemoteAddr() net.Addr { return c.remote }
+func (c *remoteConn) Close() error         { close(c.closed); return nil }
+
+func newRemoteConn(addr string) *remoteConn {
+	return &remoteConn{remote: &net.TCPAddr{IP: net.ParseIP(addr), Port: 40000}, closed: make(chan struct{})}
+}
+
+// Every panel connection holds buffers before any login, so one source opening
+// thousands of them used to take the whole panel's memory.
+func TestLimitListenerCapsConnectionsPerSourceAndInTotal(t *testing.T) {
+	queue := queueListener{conns: make(chan net.Conn, 16)}
+	l := NewLimitListener(queue, 4, 2)
+	accept := func(c *remoteConn) net.Conn {
+		t.Helper()
+		queue.conns <- c
+		accepted, err := l.Accept()
+		if err != nil {
+			t.Fatalf("Accept: %v", err)
+		}
+		return accepted
+	}
+
+	first := accept(newRemoteConn("203.0.113.1"))
+	accept(newRemoteConn("203.0.113.1"))
+	refused := newRemoteConn("203.0.113.1")
+	queue.conns <- refused
+	other := accept(newRemoteConn("2001:db8::1"))
+	select {
+	case <-refused.closed:
+	default:
+		t.Fatal("a source past its share was accepted")
+	}
+	if other.RemoteAddr().String() != "[2001:db8::1]:40000" {
+		t.Fatalf("accepted %s, want the other source", other.RemoteAddr())
+	}
+
+	// Loopback is exempt from the per-source share but counts toward the total.
+	accept(newRemoteConn("127.0.0.1"))
+	overTotal := newRemoteConn("127.0.0.1")
+	queue.conns <- overTotal
+	next := make(chan net.Conn, 1)
+	go func() {
+		c, _ := l.Accept()
+		next <- c
+	}()
+	select {
+	case <-overTotal.closed:
+	case c := <-next:
+		t.Fatalf("a connection past the total was accepted: %s", c.RemoteAddr())
+	}
+	_ = first.Close()
+	queue.conns <- newRemoteConn("203.0.113.1")
+	again := <-next
+	if again.RemoteAddr().String() != "203.0.113.1:40000" {
+		t.Fatalf("a closed connection did not free its slot: accepted %s", again.RemoteAddr())
+	}
+}

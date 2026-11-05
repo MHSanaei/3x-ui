@@ -10,6 +10,7 @@
   "create": "Buat",
   "add": "Tambah",
   "remove": "Hapus",
+  "removeItem": "Hapus {item}",
   "update": "Perbarui",
   "copy": "Salin",
   "copied": "Tersalin",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Simpan pengaturan geodata?",
       "geodataConfirmContent": "Templat konfigurasi Xray akan diperbarui dan Xray akan dimulai ulang.",
       "geodataInvalidUrl": "Setiap berkas memerlukan URL HTTPS.",
-      "geodataInvalidFile": "Nama berkas harus berupa nama sederhana, mis. geosite_custom.dat (tanpa path).",
+      "geodataInvalidFile": "Nama berkas harus berupa nama .dat sederhana, mis. geosite_custom.dat (tanpa path).",
       "geodataInvalidCron": "Cron harus terdiri dari 5 bagian, mis. 0 4 * * *",
       "geodataEmpty": "Belum ada berkas yang dikonfigurasi. Pada aturan routing, rujuk berkas sebagai ext:geosite_custom.dat:category.",
       "dontRefresh": "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini",
@@ -311,7 +312,9 @@
         "pickInbound": "Pilih inbound",
         "matchAny": "apa pun",
         "destPlaceholder": "otomatis (listen:port child)",
-        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW).",
+        "decryptionConflict": "Fallback tidak dapat digunakan dengan dekripsi VLESS server yang aktif. Hapus dan simpan aturan fallback sebelum mengaktifkan dekripsi, atau nonaktifkan dekripsi.",
+        "saveFailed": "Aturan fallback gagal dimuat atau disimpan. Draf tetap terbuka; periksa kesalahan lalu coba lagi."
       },
       "protocol": "Protokol",
       "port": "Port",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "ID kunci akses",
+          "secretAccessKey": "Kunci akses rahasia",
+          "sessionToken": "Token sesi",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Region",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Pengalamatan gaya path",
+          "s3PathStyleDesc": "Aktif: bucket ditaruh di path URL. Nonaktif: di nama host, yang membutuhkan endpoint DNS.",
           "secrets": "Rahasia",
           "secretsDesc": "Nilai yang dibaca template sebagai {secret0}, {secret1}, …",
           "template": "Template penyimpanan",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "DNS sistem ke gateway",
         "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
         "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS (port 53 dan 853 serta layanan DNS Client) tetap di dalam TUN dan butuh server DNS; windnsclient hanya mencakup layanan itu; ketik tcp/PORT atau udp/PORT untuk port lain; misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN.",
         "maxVersion": "Versi maksimum",
         "headerName": "Nama header",
         "headerValue": "Nilai header"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Satu nilai rute VLESS (0-65535) yang disisipkan ke UUID, mis. 443. Biarkan kosong jika tidak ada.",
         "mihomoX25519": "Hanya Mihomo: gunakan handshake REALITY dengan X25519 biasa tanpa ML-KEM (support-x25519mlkem768: false). Untuk server dengan Xray-core lebih lama dari 26.9.8 yang tidak mewajibkan ML-KEM.",
-        "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
+        "remark": "Label sederhana untuk host ini. Masukkan {{HOST}} di Templat Remark untuk menyertakannya dalam nama konfigurasi."
       },
       "remarkVars": {
         "title": "Variabel Templat",

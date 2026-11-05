@@ -28,7 +28,7 @@ import type { HostRecord } from '@/api/queries/useHostsQuery';
 import { BulkAddHostSchema, type BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
-import { CipherSuitesSelect } from '@/components/form';
+import { CipherSuitesSelect, selectTagRender } from '@/components/form';
 import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
@@ -291,6 +291,7 @@ export default function HostFormModal({
                     >
                       <Select
                         mode="multiple"
+                        tagRender={selectTagRender}
                         options={inboundSelectOptions}
                         showSearch={{ optionFilterProp: 'label' }}
                         placeholder={t('pages.hosts.selectInbound')}
@@ -304,6 +305,7 @@ export default function HostFormModal({
                     >
                       <Select
                         mode="tags"
+                        tagRender={selectTagRender}
                         options={hostOptions}
                         tokenSeparators={[',', ';', ' ']}
                         placeholder="cdn.example.com, cdn2.example.com:443"
@@ -326,7 +328,12 @@ export default function HostFormModal({
                       label={t('pages.hosts.fields.tags')}
                       tooltip={t('pages.hosts.hints.tags')}
                     >
-                      <Select mode="tags" allowClear tokenSeparators={[',']} />
+                      <Select
+                        mode="tags"
+                        tagRender={selectTagRender}
+                        allowClear
+                        tokenSeparators={[',']}
+                      />
                     </FormField>
                     <FormField
                       name="nodeGuids"
@@ -335,6 +342,7 @@ export default function HostFormModal({
                     >
                       <Select
                         mode="multiple"
+                        tagRender={selectTagRender}
                         allowClear
                         options={nodeSelectOptions}
                         showSearch={{ optionFilterProp: 'label' }}
@@ -377,6 +385,7 @@ export default function HostFormModal({
                         >
                           <Select
                             mode="tags"
+                            tagRender={selectTagRender}
                             options={sniOptions}
                             tokenSeparators={[',', ';', ' ']}
                             placeholder="sni.example.com, sni2.example.com"
@@ -413,7 +422,12 @@ export default function HostFormModal({
                     {showTlsExtras && (
                       <>
                         <FormField name="alpn" label={t('pages.hosts.fields.alpn')}>
-                          <Select mode="multiple" allowClear options={alpnOptions} />
+                          <Select
+                            mode="multiple"
+                            tagRender={selectTagRender}
+                            allowClear
+                            options={alpnOptions}
+                          />
                         </FormField>
                         <FormField
                           name="cipherSuites"
@@ -425,7 +439,12 @@ export default function HostFormModal({
                           />
                         </FormField>
                         <FormField name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
-                          <Select mode="tags" allowClear tokenSeparators={[',']} />
+                          <Select
+                            mode="tags"
+                            tagRender={selectTagRender}
+                            allowClear
+                            tokenSeparators={[',']}
+                          />
                         </FormField>
                         <FormField
                           name="verifyPeerCertByName"
@@ -519,6 +538,7 @@ export default function HostFormModal({
                             >
                               <Select
                                 mode="multiple"
+                                tagRender={selectTagRender}
                                 allowClear
                                 options={['raw', 'json', 'clash'].map((v) => ({
                                   value: v,

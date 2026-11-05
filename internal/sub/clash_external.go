@@ -131,17 +131,9 @@ func clashHysteriaFromExternal(settings, stream map[string]any, name string) map
 		"password": auth,
 		"udp":      true,
 	}
-	if tls, _ := stream["tlsSettings"].(map[string]any); tls != nil {
-		if sni, _ := tls["serverName"].(string); sni != "" {
-			proxy["sni"] = sni
-		}
-		if alpn := clashStringList(tls["alpn"]); len(alpn) > 0 {
-			proxy["alpn"] = alpn
-		}
-		if fp, _ := tls["fingerprint"].(string); fp != "" {
-			proxy["client-fingerprint"] = fp
-		}
-	}
+	tls, _ := stream["tlsSettings"].(map[string]any)
+	applyHysteriaTLS(proxy, tls, tls)
+	applyHysteriaFinalMask(proxy, stream)
 	return proxy
 }
 

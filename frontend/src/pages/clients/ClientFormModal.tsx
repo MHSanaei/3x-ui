@@ -38,7 +38,7 @@ import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { useRawHostsQuery } from '@/api/queries/useRawHostsQuery';
-import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
+import { DateTimePicker, SelectAllClearButtons, selectTagRender } from '@/components/form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
@@ -1168,11 +1168,11 @@ export default function ClientFormModal({
                             <Select
                               id={`${uid}-host-rule-override`}
                               mode="multiple"
+                              tagRender={selectTagRender}
                               value={clientHostRuleIds || []}
                               onChange={(v) => methods.setValue('clientHostRuleIds', v)}
                               options={hostRuleOptions}
                               placeholder={t('pages.clients.hostRuleOverridePlaceholder')}
-                              maxTagCount="responsive"
                               placement="topLeft"
                               listHeight={220}
                               allowClear
@@ -1226,11 +1226,11 @@ export default function ClientFormModal({
                         <Select
                           id={`${uid}-inbounds`}
                           mode="multiple"
+                          tagRender={selectTagRender}
                           value={inboundIds}
                           onChange={handleInboundChange}
                           options={inboundOptions}
                           placeholder={t('pages.clients.selectInbound')}
-                          maxTagCount="responsive"
                           placement="topLeft"
                           listHeight={220}
                           showSearch={{

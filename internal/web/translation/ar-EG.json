@@ -10,6 +10,7 @@
   "create": "إنشاء",
   "add": "إضافة",
   "remove": "إزالة",
+  "removeItem": "إزالة {item}",
   "update": "تحديث",
   "copy": "نسخ",
   "copied": "اتنسخ",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "حفظ إعدادات geodata؟",
       "geodataConfirmContent": "سيتم تحديث قالب إعدادات Xray وإعادة تشغيل Xray.",
       "geodataInvalidUrl": "كل ملف يحتاج إلى رابط HTTPS.",
-      "geodataInvalidFile": "يجب أن يكون اسم الملف اسماً بسيطاً مثل geosite_custom.dat (بدون مسارات).",
+      "geodataInvalidFile": "يجب أن يكون اسم الملف اسماً بسيطاً بامتداد ‎.dat مثل geosite_custom.dat (بدون مسارات).",
       "geodataInvalidCron": "يجب أن يتكون cron من 5 حقول، مثل 0 4 * * *",
       "geodataEmpty": "لا توجد ملفات مهيأة. في قواعد التوجيه يُشار إلى الملفات بالشكل ext:geosite_custom.dat:category.",
       "dontRefresh": "التثبيت شغال، متعملش Refresh للصفحة",
@@ -311,7 +312,9 @@
         "pickInbound": "اختر inbound",
         "matchAny": "أي",
         "destPlaceholder": "تلقائي (listen:port للفرع)",
-        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW).",
+        "decryptionConflict": "لا يمكن استخدام fallbacks مع فك تشفير VLESS النشط على الخادم. احذف قواعد fallback واحفظها قبل تفعيل فك التشفير، أو عطّل فك التشفير.",
+        "saveFailed": "تعذر تحميل قواعد fallback أو حفظها. بقيت المسودة مفتوحة؛ أعد المحاولة بعد مراجعة الخطأ."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "معرّف مفتاح الوصول",
+          "secretAccessKey": "مفتاح الوصول السري",
+          "sessionToken": "رمز الجلسة",
+          "s3Endpoint": "نقطة النهاية",
+          "s3Region": "المنطقة",
+          "s3Bucket": "الحاوية (Bucket)",
+          "s3PathStyle": "عنونة بنمط المسار",
+          "s3PathStyleDesc": "مفعّل: اسم الحاوية بيتحط في مسار الرابط. مقفول: بيتحط في اسم المضيف، وده محتاج endpoint باسم DNS.",
           "secrets": "الأسرار",
           "secretsDesc": "قيم يقرؤها القالب باسم {secret0} و{secret1} …",
           "template": "قالب التخزين",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "DNS النظام إلى البوابة",
         "autoSystemDnsToGatewayTooltip": "على لينكس بس: بيوجّه systemd-resolved لبوابة TUN عشان استعلامات النظام تعدّي من Xray. محتاج بوابة، والـTUN مش هيشتغل لو ده فشل.",
         "autoSystemWfpBlockLeak": "منع التسريب (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "على ويندوز بس، مع Auto system routes: ‏dns بيخلّي DNS جوّه الـTUN (محتاج سيرفرات DNS)، وmisconfigtun بيمنع نسخة IP مفيش مسار بيوديها للـTUN.",
+        "autoSystemWfpBlockLeakTooltip": "على ويندوز بس، مع Auto system routes: ‏dns بيخلّي DNS (البورتات 53 و853 وخدمة DNS Client) جوّه الـTUN ومحتاج سيرفرات DNS؛ ‏windnsclient بيغطي الخدمة دي بس؛ اكتب tcp/PORT أو udp/PORT لأي بورت تاني؛ وmisconfigtun بيمنع نسخة IP مفيش مسار بيوديها للـTUN.",
         "maxVersion": "الحد الأقصى للإصدار",
         "headerName": "اسم الترويسة",
         "headerValue": "قيمة الترويسة"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "تخطّي التحقق من شهادة TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "قيمة مسار VLESS واحدة (0-65535) تُدمَج في UUID، مثل 443. اتركه فارغاً لعدم وجود أي منها.",
         "mihomoX25519": "Mihomo فقط: مصافحة REALITY باستخدام X25519 العادي بدون ML-KEM (support-x25519mlkem768: false). للخوادم التي تعمل بإصدار Xray-core أقدم من 26.9.8 ولا تتطلب ML-KEM.",
-        "remark": "تسمية بسيطة لهذا المضيف. تظهر كاسم للإعداد فقط عندما لا يكون للوارد ملاحظة خاصة به."
+        "remark": "تسمية بسيطة لهذا المضيف. أدخل {{HOST}} في قالب الملاحظة لتضمينها في أسماء التكوينات."
       },
       "remarkVars": {
         "title": "متغيرات القالب",
