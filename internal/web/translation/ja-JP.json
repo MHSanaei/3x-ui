@@ -10,6 +10,7 @@
   "create": "作成",
   "add": "追加",
   "remove": "削除",
+  "removeItem": "{item} を削除",
   "update": "更新",
   "copy": "コピー",
   "copied": "コピー済み",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "geodata 設定を保存しますか？",
       "geodataConfirmContent": "Xray 設定テンプレートを更新し、Xray を再起動します。",
       "geodataInvalidUrl": "各ファイルには HTTPS URL が必要です。",
-      "geodataInvalidFile": "ファイル名はパスを含まない単純な名前にしてください（例: geosite_custom.dat）。",
+      "geodataInvalidFile": "ファイル名はパスを含まない単純な .dat 名にしてください（例: geosite_custom.dat）。",
       "geodataInvalidCron": "Cron は 5 フィールド必要です（例: 0 4 * * *）",
       "geodataEmpty": "ファイルが設定されていません。ルーティングルールでは ext:geosite_custom.dat:category の形式で参照します。",
       "dontRefresh": "インストール中、このページをリロードしないでください",
@@ -311,7 +312,9 @@
         "pickInbound": "インバウンドを選択",
         "matchAny": "任意",
         "destPlaceholder": "自動（子の listen:port）",
-        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。",
+        "decryptionConflict": "VLESS のサーバー復号が有効な場合、フォールバックは使用できません。復号を有効にする前にフォールバックルールを削除して保存するか、復号を無効にしてください。",
+        "saveFailed": "フォールバックルールを読み込みまたは保存できませんでした。下書きは開いたままです。エラーを確認して再試行してください。"
       },
       "protocol": "プロトコル",
       "port": "ポート",
@@ -737,6 +740,14 @@
           "clientId": "クライアント ID",
           "clientSecret": "クライアントシークレット",
           "refreshToken": "リフレッシュトークン",
+          "accessKeyId": "アクセスキー ID",
+          "secretAccessKey": "シークレットアクセスキー",
+          "sessionToken": "セッショントークン",
+          "s3Endpoint": "エンドポイント",
+          "s3Region": "リージョン",
+          "s3Bucket": "バケット",
+          "s3PathStyle": "パス形式のアドレス指定",
+          "s3PathStyleDesc": "オン：バケットを URL のパスに入れます。オフ：ホスト名に入れます（DNS 名のエンドポイントが必要）。",
           "secrets": "シークレット",
           "secretsDesc": "テンプレートで {secret0}、{secret1}、… として参照される値",
           "template": "ストレージテンプレート",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
         "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
         "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS を TUN 内に留め（DNS サーバーが必要）、misconfigtun は TUN へのルートがない IP バージョンを遮断します。",
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS（ポート 53・853 と DNS Client サービス）を TUN 内に留め、DNS サーバーが必要です。windnsclient はそのサービスのみを対象にします。その他のポートは tcp/ポート または udp/ポート と入力します。misconfigtun は TUN へのルートがない IP バージョンを遮断します。",
         "maxVersion": "最大バージョン",
         "headerName": "ヘッダー名",
         "headerValue": "ヘッダー値"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "TLS 証明書の検証をスキップします（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "UUID に埋め込まれる単一の VLESS ルート値（0〜65535）。例: 443。なしの場合は空欄にします。",
         "mihomoX25519": "Mihomo のみ: ML-KEM を使わず通常の X25519 で REALITY ハンドシェイクを行います (support-x25519mlkem768: false)。ML-KEM を必要としない Xray-core 26.9.8 未満のサーバー向けです。",
-        "remark": "このホストのプレーンなラベル。インバウンド自身に備考がない場合にのみ設定名として表示されます。"
+        "remark": "このホストのプレーンなラベル。設定名に含めるには、備考テンプレートに {{HOST}} を挿入します。"
       },
       "remarkVars": {
         "title": "テンプレート変数",

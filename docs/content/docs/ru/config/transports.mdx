@@ -135,10 +135,11 @@ Mux. Панель предлагает XDRIVE только для VLESS, не с
 
 | Поле           | По умолчанию   | Значение |
 | -------------- | -------------- | -------- |
-| `service`      | `google-drive` | `google-drive`, `local` (папка на диске) или `template` (любой HTTP API хранилища). Старое написание `Google Drive` по-прежнему читается. |
+| `service`      | `google-drive` | `google-drive`, `local` (папка на диске), `template` (любой HTTP API хранилища) или `s3` (S3-совместимое хранилище). Старое написание `Google Drive` по-прежнему читается. |
 | `remoteFolder` | —              | Папка с файлами сессий. |
-| `secrets`      | —              | Google Drive: ровно три значения — ClientID, ClientSecret, RefreshToken, в этом порядке. Template: значения, доступные как `{secret0}`, `{secret1}`, …. |
+| `secrets`      | —              | Google Drive: ровно три значения — ClientID, ClientSecret, RefreshToken, в этом порядке. Template: значения, доступные как `{secret0}`, `{secret1}`, …. S3: AccessKeyID, SecretAccessKey и при необходимости SessionToken. |
 | `template`     | —              | Только для template: операции `auth`, `put`, `get`, `list` и `delete` API хранилища. |
+| `s3`           | —              | Только для s3: `endpoint` (URL http(s)), `region`, `bucket` и `pathStyle` (по умолчанию `true`; `false` переносит бакет в имя хоста). `remoteFolder` — префикс объектов. |
 | тонкая настройка | значения ядра | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
 
 Необязательные **адрес/порт фронтинга** (`address`/`port` на уровне stream) — домен-фронт,

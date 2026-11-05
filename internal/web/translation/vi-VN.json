@@ -10,6 +10,7 @@
   "create": "Tạo",
   "add": "Thêm",
   "remove": "Xóa",
+  "removeItem": "Xóa {item}",
   "update": "Cập nhật",
   "copy": "Sao chép",
   "copied": "Đã sao chép",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Lưu cài đặt geodata?",
       "geodataConfirmContent": "Mẫu cấu hình Xray sẽ được cập nhật và Xray sẽ khởi động lại.",
       "geodataInvalidUrl": "Mỗi tệp cần một URL HTTPS.",
-      "geodataInvalidFile": "Tên tệp phải là tên đơn giản, ví dụ geosite_custom.dat (không chứa đường dẫn).",
+      "geodataInvalidFile": "Tên tệp phải là tên .dat đơn giản, ví dụ geosite_custom.dat (không chứa đường dẫn).",
       "geodataInvalidCron": "Cron phải có 5 trường, ví dụ 0 4 * * *",
       "geodataEmpty": "Chưa cấu hình tệp nào. Trong quy tắc định tuyến, tham chiếu tệp dạng ext:geosite_custom.dat:category.",
       "dontRefresh": "Đang tiến hành cài đặt, vui lòng không làm mới trang này.",
@@ -311,7 +312,9 @@
         "pickInbound": "Chọn một inbound",
         "matchAny": "bất kỳ",
         "destPlaceholder": "tự động (listen:port của child)",
-        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW)."
+        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW).",
+        "decryptionConflict": "Không thể dùng fallback khi bật giải mã VLESS phía máy chủ. Hãy xóa và lưu các quy tắc fallback trước khi bật giải mã, hoặc tắt giải mã.",
+        "saveFailed": "Không thể tải hoặc lưu quy tắc fallback. Bản nháp vẫn mở; hãy kiểm tra lỗi rồi thử lại."
       },
       "protocol": "Giao thức",
       "port": "Cổng",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "ID khóa truy cập",
+          "secretAccessKey": "Khóa truy cập bí mật",
+          "sessionToken": "Token phiên",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Vùng",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Định địa chỉ kiểu đường dẫn",
+          "s3PathStyleDesc": "Bật: bucket nằm trong đường dẫn URL. Tắt: nằm trong tên máy chủ, cần endpoint dạng DNS.",
           "secrets": "Giá trị bí mật",
           "secretsDesc": "Các giá trị template đọc dưới dạng {secret0}, {secret1}, …",
           "template": "Template lưu trữ",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
         "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
         "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS (cổng 53 và 853 và dịch vụ DNS Client) bên trong TUN và cần máy chủ DNS; windnsclient chỉ áp dụng cho dịch vụ đó; nhập tcp/CỔNG hoặc udp/CỔNG cho cổng khác; misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN.",
         "maxVersion": "Phiên bản tối đa",
         "headerName": "Tên header",
         "headerValue": "Giá trị header"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "Bỏ qua xác minh chứng chỉ TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Một giá trị định tuyến VLESS (0-65535) được nhúng vào UUID, ví dụ 443. Để trống nếu không dùng.",
         "mihomoX25519": "Chỉ Mihomo: dùng bắt tay REALITY với X25519 thường, không có ML-KEM (support-x25519mlkem768: false). Dành cho máy chủ chạy Xray-core cũ hơn 26.9.8, không yêu cầu ML-KEM.",
-        "remark": "Nhãn đơn giản cho host này. Chỉ hiển thị làm tên cấu hình khi inbound không có ghi chú riêng."
+        "remark": "Nhãn đơn giản cho host này. Chèn {{HOST}} vào Mẫu ghi chú để đưa nó vào tên cấu hình."
       },
       "remarkVars": {
         "title": "Biến mẫu",

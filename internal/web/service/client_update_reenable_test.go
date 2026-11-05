@@ -258,11 +258,10 @@ func TestResetTrafficByEmail_ReenablesEveryInboundOfTheClient(t *testing.T) {
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
 
-	now := time.Now().UnixMilli()
 	email := "renew-multi@x"
 	c := model.Client{
 		Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email,
-		Enable: false, ExpiryTime: now - 2*renewalReenableDay,
+		Enable: false, TotalGB: 1000,
 	}
 	ibA := mkInbound(t, 53201, model.VLESS, clientsSettings(t, []model.Client{c}))
 	ibB := mkInbound(t, 53202, model.VLESS, clientsSettings(t, []model.Client{c}))
@@ -271,7 +270,7 @@ func TestResetTrafficByEmail_ReenablesEveryInboundOfTheClient(t *testing.T) {
 			t.Fatalf("SyncInbound %d: %v", ib.Id, err)
 		}
 	}
-	mkTraffic(t, ibA.Id, email, 0, 0, 0, now-2*renewalReenableDay, false)
+	mkTraffic(t, ibA.Id, email, 600, 500, 1000, 0, false)
 	forceRecordDisabled(t, svc, email)
 
 	if _, err := svc.ResetTrafficByEmail(inboundSvc, email); err != nil {

@@ -10,6 +10,7 @@
   "create": "Vytvoriť",
   "add": "Pridať",
   "remove": "Odstrániť",
+  "removeItem": "Odstrániť {item}",
   "update": "Aktualizovať",
   "copy": "Kopírovať",
   "copied": "Skopírované",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Uložiť nastavenia geodát?",
       "geodataConfirmContent": "Zmení sa šablóna konfigurácie Xray a Xray sa reštartuje.",
       "geodataInvalidUrl": "Pre každý súbor zadajte odkaz HTTPS.",
-      "geodataInvalidFile": "Použite samotný názov súboru, napr. geosite_custom.dat, bez cesty.",
+      "geodataInvalidFile": "Použite samotný názov súboru .dat, napr. geosite_custom.dat, bez cesty.",
       "geodataInvalidCron": "Výraz cron musí mať 5 polí, napr. 0 4 * * *",
       "geodataEmpty": "Nie sú nastavené žiadne súbory. V pravidlách smerovania na ne odkazujte ako ext:geosite_custom.dat:category.",
       "dontRefresh": "Prebieha inštalácia. Neobnovujte stránku.",
@@ -311,7 +312,9 @@
         "pickInbound": "Vyberte vstup",
         "matchAny": "ľubovoľné",
         "destPlaceholder": "automaticky (adresa:port vnoreného vstupu)",
-        "needsTls": "Náhradné ciele sú dostupné po výbere TLS alebo Reality na karte Bezpečnosť (iba VLESS/Trojan cez RAW)."
+        "needsTls": "Náhradné ciele sú dostupné po výbere TLS alebo Reality na karte Bezpečnosť (iba VLESS/Trojan cez RAW).",
+        "decryptionConflict": "Fallback nemožno použiť s aktívnym serverovým dešifrovaním VLESS. Pred jeho zapnutím odstráňte a uložte pravidlá fallback alebo vypnite dešifrovanie.",
+        "saveFailed": "Pravidlá fallback sa nepodarilo načítať alebo uložiť. Koncept zostáva otvorený; skontrolujte chybu a skúste to znova."
       },
       "protocol": "Protokol",
       "port": "Port",
@@ -738,6 +741,14 @@
           "clientId": "ID klienta",
           "clientSecret": "Tajný kľúč klienta",
           "refreshToken": "Obnovovací token",
+          "accessKeyId": "ID prístupového kľúča",
+          "secretAccessKey": "Tajný prístupový kľúč",
+          "sessionToken": "Token relácie",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Región",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Adresovanie cez cestu",
+          "s3PathStyleDesc": "Zapnuté: bucket je v ceste URL. Vypnuté: v názve hostiteľa, čo vyžaduje DNS endpoint.",
           "secrets": "Tajné hodnoty",
           "secretsDesc": "Hodnoty, ktoré šablóna číta ako {secret0}, {secret1}, …",
           "template": "Šablóna úložiska",
@@ -763,7 +774,7 @@
         "autoSystemDnsToGateway": "Systémové DNS cez bránu",
         "autoSystemDnsToGatewayTooltip": "Iba pre Linux: nasmerovať systemd-resolved na bránu TUN, aby systémové DNS dotazy prechádzali cez Xray. Vyžaduje bránu. Ak nastavenie zlyhá, TUN sa nespustí.",
         "autoSystemWfpBlockLeak": "Blokovať úniky (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Iba pre Windows s automatickými systémovými trasami: dns ponechá DNS v TUN (vyžaduje DNS servery), misconfigtun zablokuje verziu IP, pre ktorú nevedie žiadna trasa do TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Iba pre Windows s automatickými systémovými trasami: dns ponechá DNS (porty 53 a 853 a službu DNS Client) v TUN a vyžaduje DNS servery; windnsclient pokrýva iba túto službu; pre akýkoľvek iný port zadajte tcp/PORT alebo udp/PORT; misconfigtun zablokuje verziu IP, pre ktorú nevedie žiadna trasa do TUN.",
         "maxVersion": "Maximálna verzia",
         "headerName": "Názov hlavičky",
         "headerValue": "Hodnota hlavičky"
@@ -1156,7 +1167,7 @@
         "allowInsecure": "Vynechať overenie certifikátu TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Jedna hodnota trasy VLESS (0-65535) vložená do UUID, napr. 443. Prázdne pole znamená žiadnu trasu.",
         "mihomoX25519": "Len pre Mihomo: použiť obyčajný REALITY hello s X25519 bez ML-KEM (support-x25519mlkem768: false). Pre servery s Xray-core starším ako 26.9.8, ktoré ML-KEM nevyžadujú.",
-        "remark": "Bežný názov tejto adresy servera. Ako názov konfigurácie sa zobrazí iba vtedy, ak samotný vstup nemá vlastný názov."
+        "remark": "Bežný názov tejto adresy servera. Vložte {{HOST}} do šablóny poznámky, aby sa zahrnul do názvov konfigurácií."
       },
       "remarkVars": {
         "title": "Premenné šablóny",

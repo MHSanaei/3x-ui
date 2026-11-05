@@ -307,3 +307,53 @@ func (s *InboundService) PruneStaleClientIps() error {
 	}
 	return pruneStaleNodeClientIps(cutoff)
 }
+
+// nodeAttachedEmails is every client linked to one of the node's inbounds here: what a
+// node reports about any other client (online state, source IPs) is not its to report.
+func nodeAttachedEmails(db *gorm.DB, nodeID int) (map[string]struct{}, error) {
+	var emails []string
+	err := db.Table("clients").
+		Joins("JOIN client_inbounds ON client_inbounds.client_id = clients.id").
+		Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
+		Where("inbounds.node_id = ?", nodeID).
+		Distinct().Pluck("clients.email", &emails).Error
+	attached := make(map[string]struct{}, len(emails))
+	for _, email := range emails {
+		attached[email] = struct{}{}
+	}
+	return attached, err
+}
+
+// MergeNodeClientIps merges one node's flat client-IP report, cut to the node's clients.
+func (s *InboundService) MergeNodeClientIps(nodeID int, rows []model.InboundClientIps) error {
+	attached, err := nodeAttachedEmails(database.GetDB(), nodeID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().Unix()
+	kept := make([]model.InboundClientIps, 0, len(rows))
+	for _, row := range rows {
+		if _, ok := attached[row.ClientEmail]; !ok {
+			continue
+		}
+		var entries []model.ClientIpEntry
+		if json.Unmarshal([]byte(row.Ips), &entries) != nil {
+			continue
+		}
+		clampClientIpEntries(entries, now)
+		row.Ips, _ = model.MarshalClientIpEntries(entries)
+		kept = append(kept, row)
+	}
+	if len(kept) == 0 {
+		return nil
+	}
+	return s.MergeInboundClientIps(kept)
+}
+
+// clampClientIpEntries caps reported timestamps at now: a future-dated entry would never
+// age out of the retention window and would keep counting toward the IP limit.
+func clampClientIpEntries(entries []model.ClientIpEntry, now int64) {
+	for i := range entries {
+		entries[i].Timestamp = min(entries[i].Timestamp, now)
+	}
+}

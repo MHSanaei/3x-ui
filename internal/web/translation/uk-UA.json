@@ -10,6 +10,7 @@
   "create": "Створити",
   "add": "Додати",
   "remove": "Видалити",
+  "removeItem": "Видалити {item}",
   "update": "Оновити",
   "copy": "Копіювати",
   "copied": "Скопійовано",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Зберегти налаштування geodata?",
       "geodataConfirmContent": "Шаблон конфігурації Xray буде оновлено, а Xray перезапущено.",
       "geodataInvalidUrl": "Для кожного файлу потрібен HTTPS URL.",
-      "geodataInvalidFile": "Ім’я файлу має бути простим, напр. geosite_custom.dat (без шляхів).",
+      "geodataInvalidFile": "Ім’я файлу має бути простим ім’ям .dat, напр. geosite_custom.dat (без шляхів).",
       "geodataInvalidCron": "Cron має містити 5 полів, напр. 0 4 * * *",
       "geodataEmpty": "Файли не налаштовано. У правилах маршрутизації файли вказуються як ext:geosite_custom.dat:category.",
       "dontRefresh": "Інсталяція триває, будь ласка, не оновлюйте цю сторінку",
@@ -311,7 +312,9 @@
         "pickInbound": "Оберіть інбаунд",
         "matchAny": "будь-який",
         "destPlaceholder": "авто (listen:порт дочірнього)",
-        "needsTls": "Fallbacks стануть доступні після вибору TLS або Reality на вкладці «Безпека» (лише VLESS/Trojan поверх RAW)."
+        "needsTls": "Fallbacks стануть доступні після вибору TLS або Reality на вкладці «Безпека» (лише VLESS/Trojan поверх RAW).",
+        "decryptionConflict": "Fallback несумісний з активним серверним розшифруванням VLESS. Перед його ввімкненням видаліть і збережіть правила fallback або вимкніть розшифрування.",
+        "saveFailed": "Не вдалося завантажити або зберегти правила fallback. Чернетка залишається відкритою; перевірте помилку та повторіть спробу."
       },
       "protocol": "Протокол",
       "port": "Порт",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "ID ключа доступу",
+          "secretAccessKey": "Секретний ключ доступу",
+          "sessionToken": "Токен сесії",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Регіон",
+          "s3Bucket": "Бакет",
+          "s3PathStyle": "Адресація через шлях",
+          "s3PathStyleDesc": "Увімк.: бакет вказується в шляху URL. Вимк.: в імені хоста, для чого потрібен DNS-endpoint.",
           "secrets": "Секрети",
           "secretsDesc": "Значення, які шаблон читає як {secret0}, {secret1}, …",
           "template": "Шаблон сховища",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "Системний DNS на шлюз",
         "autoSystemDnsToGatewayTooltip": "Лише Linux: спрямовує systemd-resolved на шлюз TUN, щоб системні запити йшли через Xray. Потрібен шлюз; у разі помилки TUN не запуститься.",
         "autoSystemWfpBlockLeak": "Блокування витоків (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Лише Windows, разом з авто-маршрутами системи: dns утримує DNS усередині TUN (потрібні DNS-сервери), misconfigtun блокує версію IP, яку жоден маршрут не веде в TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Лише Windows, разом з авто-маршрутами системи: dns утримує DNS (порти 53 і 853 та службу DNS-клієнта) усередині TUN, потрібні DNS-сервери; windnsclient охоплює лише цю службу; для будь-якого іншого порту введіть tcp/ПОРТ або udp/ПОРТ; misconfigtun блокує версію IP, яку жоден маршрут не веде в TUN.",
         "maxVersion": "Максимальна версія",
         "headerName": "Назва заголовка",
         "headerValue": "Значення заголовка"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "Пропускати перевірку TLS-сертифіката (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Одне значення маршруту VLESS (0-65535), що вбудовується в UUID, напр. 443. Залиште порожнім, щоб не використовувати.",
         "mihomoX25519": "Лише для Mihomo: рукостискання REALITY зі звичайним X25519, без ML-KEM (support-x25519mlkem768: false). Для серверів на Xray-core нижче 26.9.8, яким ML-KEM не потрібен.",
-        "remark": "Звичайна мітка для цього хоста. Показується як назва конфігурації лише тоді, коли вхідний не має власної примітки."
+        "remark": "Звичайна мітка для цього хоста. Вставте {{HOST}} у шаблон примітки, щоб включити її в назву конфігурації."
       },
       "remarkVars": {
         "title": "Змінні шаблону",
