@@ -210,3 +210,79 @@ func TestUdpAssociationTouchDoesNotRefreshReusedID(t *testing.T) {
 		t.Fatal("replacement association timestamp changed after stale touch")
 	}
 }
+
+// A response relay blocked on stream credit the client never grants must still end when
+// its association is dissociated; otherwise each Packet/Dissociate round leaves one behind.
+func TestDissociateStopsAResponseRelayBlockedOnTheClient(t *testing.T) {
+	socksAddr, cleanup := startMockSocks5Server(t, "udp-dissociate@x", "lifecycle-socks-password")
+	defer cleanup()
+	server, _, clientID, _ := startLifecycleTestServer(t, socksAddr, "udp-dissociate@x")
+	serverConn, user := authenticatedServerConnection(t, server, clientID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session, err := server.relay.DialUDP(ctx, user.Email)
+	if err != nil {
+		t.Fatalf("open SOCKS UDP session: %v", err)
+	}
+	const associationID uint16 = 61245
+	association := &udpAssociation{
+		responseTransport: packetTransportStream,
+		relay:             &udpRelaySession{relay: session, responseTransport: packetTransportStream},
+		lastActive:        time.Now(),
+	}
+	registry := newUdpAssociationRegistry(maxUdpRelayPacketSize)
+	registry.associations[associationID] = association
+	responseDone := make(chan struct{})
+	go func() {
+		defer close(responseDone)
+		server.relayUDPResponses(ctx, serverConn, user, associationID, association, registry, association.relay)
+	}()
+	target := &Address{Type: AddrTypeIPv4, IP: net.IPv4(8, 8, 8, 8), Port: 53}
+	for range 150 {
+		if _, err := session.Send(target, []byte("echo")); err != nil {
+			t.Fatalf("send SOCKS datagram: %v", err)
+		}
+	}
+	time.Sleep(300 * time.Millisecond)
+	registry.dissociate(associationID)
+	select {
+	case <-responseDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the response relay is still running after its association was dissociated")
+	}
+}
+
+// The per-connection association cap means nothing if one credential may open any number
+// of connections: each UDP relay holds a host port, so the host's whole range ran out.
+func TestOneClientsSessionsAndUDPRelaysAreBounded(t *testing.T) {
+	socksAddr, cleanup := startMockSocks5Server(t, "udp-bound@x", "lifecycle-socks-password")
+	defer cleanup()
+	server, _, clientID, _ := startLifecycleTestServer(t, socksAddr, "udp-bound@x")
+	_, user := authenticatedServerConnection(t, server, clientID)
+
+	for range maxUserSessions + 5 {
+		server.registerConn(user, nil)
+	}
+	if got := user.sessions.Load(); got > maxUserSessions {
+		t.Fatalf("one client holds %d sessions, want at most %d", got, maxUserSessions)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	registry := newUdpAssociationRegistry(maxUdpRelayPacketSize)
+	user.udpRelays.Store(maxUserUdpRelays)
+	association := &udpAssociation{responseTransport: packetTransportDatagram, lastActive: time.Now()}
+	registry.associations[1] = association
+	if _, _, err := registry.ensureRelay(ctx, 1, association, user, server.relay); err == nil {
+		t.Fatal("a client past its UDP relay budget opened another relay")
+	}
+	user.udpRelays.Store(0)
+	if _, created, err := registry.ensureRelay(ctx, 1, association, user, server.relay); err != nil || !created {
+		t.Fatalf("ensureRelay under budget = %v, %v", created, err)
+	}
+	registry.dissociate(1)
+	if got := user.udpRelays.Load(); got != 0 {
+		t.Fatalf("closed relay still counted: %d", got)
+	}
+}

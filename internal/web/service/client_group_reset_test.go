@@ -227,3 +227,21 @@ func TestGroupResetStillZeroesAfterBaselineAdjustments(t *testing.T) {
 		t.Fatalf("group reset did not zero adjusted baselines: got %+v", g)
 	}
 }
+
+// Counters are stored up to TrafficMax (a node can report that much); adding two in SQL
+// overflowed and failed every group listing, reset and baseline shift for the panel.
+func TestGroupTrafficSurvivesCountersAtTheCap(t *testing.T) {
+	initTrafficTestDB(t)
+	svc := &ClientService{}
+	seedGroupedClient(t, "huge-a", "vip", database.TrafficMax, database.TrafficMax)
+	seedGroupedClient(t, "huge-b", "vip", database.TrafficMax, database.TrafficMax)
+	if g := groupByName(t, svc, "vip"); g.Up != database.TrafficMax || g.ClientCount != 2 {
+		t.Fatalf("group = %+v, want its counters held at TrafficMax", g)
+	}
+	if err := svc.ResetGroupTraffic("vip"); err != nil {
+		t.Fatalf("ResetGroupTraffic: %v", err)
+	}
+	if err := adjustGroupBaselinesForRemovedTraffic(database.GetDB(), []string{"huge-a", "huge-b"}); err != nil {
+		t.Fatalf("shift baselines: %v", err)
+	}
+}

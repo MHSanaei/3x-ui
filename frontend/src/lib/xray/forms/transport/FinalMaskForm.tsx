@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import type { FormInstance } from 'antd/es/form';
 import type { NamePath } from 'antd/es/form/interface';
 
+import { selectTagRender } from '@/components/form/SelectTag';
 import { RandomUtil } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
@@ -609,6 +610,7 @@ function FilterMaskSettings({ fieldName }: { fieldName: number }) {
         <Select
           aria-describedby={`${uid}-allowed-hint`}
           mode="tags"
+          tagRender={selectTagRender}
           style={{ width: '100%' }}
           tokenSeparators={[',', ' ']}
           placeholder="10.0.0.0/8, geoip:ir"
@@ -625,6 +627,7 @@ function FilterMaskSettings({ fieldName }: { fieldName: number }) {
         <Select
           aria-describedby={`${uid}-blocked-hint`}
           mode="tags"
+          tagRender={selectTagRender}
           style={{ width: '100%' }}
           tokenSeparators={[',', ' ']}
           placeholder="203.0.113.7, geoip:cn"
@@ -650,7 +653,12 @@ function SudokuSettings({ fieldName }: { fieldName: number }) {
         <Input />
       </Form.Item>
       <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
-        <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+        <Select
+          mode="tags"
+          tagRender={selectTagRender}
+          style={{ width: '100%' }}
+          tokenSeparators={[',']}
+        />
       </Form.Item>
       <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
         <InputNumber min={0} />
@@ -1176,7 +1184,12 @@ function UdpMaskItem({
                   <Switch />
                 </Form.Item>
                 <Form.Item label="IPs" name={[fieldName, 'settings', 'ips']}>
-                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+                  <Select
+                    mode="tags"
+                    tagRender={selectTagRender}
+                    style={{ width: '100%' }}
+                    tokenSeparators={[',']}
+                  />
                 </Form.Item>
               </>
             );
@@ -1190,6 +1203,7 @@ function UdpMaskItem({
                 <Form.Item label="STUN Servers" name={[fieldName, 'settings', 'stunServers']}>
                   <Select
                     mode="tags"
+                    tagRender={selectTagRender}
                     style={{ width: '100%' }}
                     tokenSeparators={[',']}
                     placeholder="host:port"
@@ -1237,6 +1251,7 @@ function UdpMaskItem({
                 <Form.Item label="ALPN" name={[fieldName, 'settings', 'tlsConfig', 'alpn']}>
                   <Select
                     mode="multiple"
+                    tagRender={selectTagRender}
                     style={{ width: '100%' }}
                     options={[
                       { value: 'h3', label: 'h3' },
@@ -1530,6 +1545,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
                 <Form.Item label="Names" name={[domain.name, 'names']}>
                   <Select
                     mode="tags"
+                    tagRender={selectTagRender}
                     style={{ width: '100%' }}
                     tokenSeparators={[',']}
                     placeholder="t.example.com"
@@ -1538,6 +1554,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
                 <Form.Item label="Record Types" name={[domain.name, 'types']}>
                   <Select
                     mode="multiple"
+                    tagRender={selectTagRender}
                     options={XDNS_RECORD_TYPE_OPTIONS}
                     placeholder="TXT (client), all (server)"
                   />
@@ -1584,6 +1601,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
                 <Form.Item label="Addresses" name={[resolver.name, 'addrs']}>
                   <Select
                     mode="tags"
+                    tagRender={selectTagRender}
                     style={{ width: '100%' }}
                     tokenSeparators={[',', ' ']}
                     placeholder="udp://8.8.8.8:53, https://dns.google/dns-query"
@@ -1671,7 +1689,7 @@ function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
         normalize={(value: string[]) => value.join(',')}
         rules={[{ required: true, message: 'pick at least one mode' }]}
       >
-        <Select mode="multiple" options={UDP_HOP_MODES} />
+        <Select mode="multiple" tagRender={selectTagRender} options={UDP_HOP_MODES} />
       </Form.Item>
       <Form.Item
         label="Interval (s)"
@@ -1684,7 +1702,12 @@ function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
         <Input placeholder="20000-50000" />
       </Form.Item>
       <Form.Item label="Remote IPs" name={[udpFieldName, 'settings', 'remoteIPs']}>
-        <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',', ' ']} />
+        <Select
+          mode="tags"
+          tagRender={selectTagRender}
+          style={{ width: '100%' }}
+          tokenSeparators={[',', ' ']}
+        />
       </Form.Item>
     </>
   );

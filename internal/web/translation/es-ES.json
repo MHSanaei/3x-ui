@@ -10,6 +10,7 @@
   "create": "Crear",
   "add": "Añadir",
   "remove": "Quitar",
+  "removeItem": "Quitar {item}",
   "update": "Actualizar",
   "copy": "Copiar",
   "copied": "Copiado",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "¿Guardar la configuración de geodata?",
       "geodataConfirmContent": "Se actualizará la plantilla de configuración de Xray y se reiniciará Xray.",
       "geodataInvalidUrl": "Cada archivo necesita una URL HTTPS.",
-      "geodataInvalidFile": "El nombre de archivo debe ser simple, p. ej. geosite_custom.dat (sin rutas).",
+      "geodataInvalidFile": "El nombre de archivo debe ser un nombre .dat simple, p. ej. geosite_custom.dat (sin rutas).",
       "geodataInvalidCron": "Cron debe tener 5 campos, p. ej. 0 4 * * *",
       "geodataEmpty": "No hay archivos configurados. En las reglas de enrutamiento se referencian como ext:geosite_custom.dat:category.",
       "dontRefresh": "La instalación está en progreso, por favor no actualices esta página.",
@@ -311,7 +312,9 @@
         "pickInbound": "Selecciona un inbound",
         "matchAny": "cualquiera",
         "destPlaceholder": "automático (listen:puerto del hijo)",
-        "needsTls": "Los fallbacks estarán disponibles al seleccionar TLS o Reality en la pestaña de Seguridad (solo VLESS/Trojan sobre RAW)."
+        "needsTls": "Los fallbacks estarán disponibles al seleccionar TLS o Reality en la pestaña de Seguridad (solo VLESS/Trojan sobre RAW).",
+        "decryptionConflict": "Los fallbacks no son compatibles con el descifrado VLESS activo del servidor. Elimina y guarda las reglas antes de activarlo, o desactiva el descifrado.",
+        "saveFailed": "No se pudieron cargar o guardar las reglas de fallback. El borrador sigue abierto; revisa el error y vuelve a intentarlo."
       },
       "protocol": "Protocolo",
       "port": "Puerto",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "ID de clave de acceso",
+          "secretAccessKey": "Clave de acceso secreta",
+          "sessionToken": "Token de sesión",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Región",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Direccionamiento por ruta",
+          "s3PathStyleDesc": "Activado: el bucket va en la ruta de la URL. Desactivado: en el nombre de host, lo que requiere un endpoint DNS.",
           "secrets": "Secretos",
           "secretsDesc": "Valores que la plantilla lee como {secret0}, {secret1}, …",
           "template": "Plantilla de almacenamiento",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
         "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
         "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS (puertos 53 y 853 y el servicio Cliente DNS) dentro del TUN y necesita servidores DNS; windnsclient cubre solo ese servicio; escribe tcp/PUERTO o udp/PUERTO para cualquier otro puerto; misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN.",
         "maxVersion": "Versión máxima",
         "headerName": "Nombre de cabecera",
         "headerValue": "Valor de cabecera"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "Omitir la verificación del certificado TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Un único valor de ruta VLESS (0-65535) incrustado en el UUID, p. ej. 443. Déjalo en blanco para ninguno.",
         "mihomoX25519": "Solo Mihomo: usa un saludo REALITY con X25519 simple, sin ML-KEM (support-x25519mlkem768: false). Para servidores con Xray-core anterior a 26.9.8, que no exigen ML-KEM.",
-        "remark": "Una etiqueta simple para este host. Se muestra como nombre de la configuración solo cuando el inbound no tiene notas propias."
+        "remark": "Una etiqueta simple para este host. Inserte {{HOST}} en la plantilla de remark para incluirlo en los nombres de configuración."
       },
       "remarkVars": {
         "title": "Variables de plantilla",

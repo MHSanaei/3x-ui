@@ -1,6 +1,7 @@
 package service
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -181,5 +182,104 @@ func TestUpdateInboundAllowsUntouchedLegacyTLSCertificates(t *testing.T) {
 				t.Fatalf("UpdateInbound: remark = %q, want %q", reloaded.Remark, "renamed")
 			}
 		})
+	}
+}
+
+// A push names any path on this host, and xray-core reads it whole in the panel process
+// (a device never ends, /dev/zero never stops growing), so it is refused before storing.
+func TestAddInboundRefusesACertificatePathThatIsNoRegularFile(t *testing.T) {
+	setupConflictDB(t)
+	mgr := useTestRuntimeManager(t)
+	fake := &fakeNodeRuntime{}
+	mgr.SetLocalRuntimeOverride(fake)
+
+	dir := filepath.ToSlash(t.TempDir())
+	inbound := &model.Inbound{
+		Tag:            "tls-device-44311",
+		Enable:         true,
+		Listen:         "0.0.0.0",
+		Port:           44311,
+		Protocol:       model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"` + dir + `","KeyFile":"` + dir + `"}]}}`,
+		Settings:       `{"clients":[]}`,
+	}
+	_, _, err := (&InboundService{FromNodeSync: true}).AddInbound(inbound)
+	if err == nil || !strings.Contains(err.Error(), "regular file") {
+		t.Fatalf("AddInbound = %v, want the certificate path refused", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.Inbound{}).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("refused push stored %d row(s) (%v)", count, err)
+	}
+	if fake.addInbound.Load() != 0 {
+		t.Fatal("refused push reached the runtime")
+	}
+}
+
+// A node-sync token or the master's certificate pushes inbounds into this node's core,
+// which runs as root: a push must not reach this host's files, sockets or own services.
+func TestAddInboundRefusesPushedFieldsThatReachThisHost(t *testing.T) {
+	setupConflictDB(t)
+	mgr := useTestRuntimeManager(t)
+	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	push := &InboundService{FromNodeSync: true}
+	if _, _, err := push.AddInbound(&model.Inbound{Tag: "web", Enable: true, Port: 44400, Protocol: model.VLESS, Settings: `{"clients":[]}`}); err != nil {
+		t.Fatalf("seed a local inbound: %v", err)
+	}
+	vless := func(settings, stream string) *model.Inbound {
+		return &model.Inbound{Enable: true, Port: 44401, Protocol: model.VLESS, Settings: settings, StreamSettings: stream}
+	}
+	for name, ib := range map[string]*model.Inbound{
+		"file masquerade behind a repeated key": {
+			Enable: true, Port: 44401, Protocol: model.Hysteria, Settings: `{"clients":[]}`,
+			StreamSettings: `{"network":"hysteria","HysteriaSettings":{"masquerade":{"Type":"FILE","dir":"/"}},"hysteriaSettings":{"masquerade":{"type":"404"}}}`,
+		},
+		"masterKeyLog":               vless(`{"clients":[]}`, `{"network":"tcp","security":"tls","tlsSettings":{"masterKeyLog":"/root/.ssh/authorized_keys"}}`),
+		"tun inbound":                {Enable: true, Port: 44401, Protocol: model.Protocol("tun"), Settings: `{}`},
+		"fallback to the core API":   vless(`{"clients":[],"fallbacks":[{"dest":62789}]}`, `{"network":"tcp"}`),
+		"REALITY target on loopback": vless(`{"clients":[]}`, `{"network":"tcp","security":"reality","realitySettings":{"target":"127.0.0.1:2053"}}`),
+		"local xdrive storage":       vless(`{"clients":[]}`, `{"network":"xdrive","xdriveSettings":{"service":"local","remoteFolder":"/etc/x-ui"}}`),
+	} {
+		if _, _, err := push.AddInbound(ib); err == nil {
+			t.Errorf("%s: pushed inbound accepted", name)
+		}
+	}
+	for name, ib := range map[string]*model.Inbound{
+		"fallback to another inbound here": vless(`{"clients":[],"fallbacks":[{"dest":44400}]}`, `{"network":"tcp"}`),
+		"public REALITY target":            {Enable: true, Port: 44402, Protocol: model.VLESS, Settings: `{"clients":[]}`, StreamSettings: `{"network":"tcp","security":"reality","realitySettings":{"target":"www.example.com:443"}}`},
+	} {
+		if _, _, err := push.AddInbound(ib); err != nil && strings.Contains(err.Error(), "pushed") {
+			t.Errorf("%s: refused: %v", name, err)
+		}
+	}
+	s3 := xdriveInbound(44404, `{"service":"s3","remoteFolder":"x","secrets":["AKID","SECRET"],"s3":{"endpoint":"http://127.0.0.1:2053","region":"r","bucket":"b"}}`)
+	if _, _, err := push.AddInbound(s3); err == nil || !strings.Contains(err.Error(), "may not set xdrive service") {
+		t.Fatalf("pushed S3 storage on this host's own port = %v, want refused by the push guard", err)
+	}
+	if _, _, err := (&InboundService{}).AddInbound(&model.Inbound{Enable: true, Listen: "env:XUI_DB_DSN", Port: 44403, Protocol: model.VLESS, Settings: `{"clients":[]}`}); err == nil || !strings.Contains(err.Error(), "env:") {
+		t.Fatalf("env: listen = %v, want refused for every caller", err)
+	}
+}
+
+// What this node's own admin configured stays pushable: the master echoes the stored row
+// back, and refusing it would stop that inbound syncing at all.
+func TestUpdateInboundKeepsAHostReachTheNodeAlreadyStores(t *testing.T) {
+	setupConflictDB(t)
+	mgr := useTestRuntimeManager(t)
+	mgr.SetLocalRuntimeOverride(&fakeNodeRuntime{})
+	stream := `{"network":"hysteria","hysteriaSettings":{"masquerade":{"type":"proxy","url":"https://news.example.com"}}}`
+	stored, _, err := (&InboundService{}).AddInbound(&model.Inbound{Tag: "hy", Enable: true, Port: 44410, Protocol: model.Hysteria, Settings: `{"clients":[]}`, StreamSettings: stream})
+	if err != nil {
+		t.Fatalf("admin add: %v", err)
+	}
+	push := &InboundService{FromNodeSync: true}
+	echo := *stored
+	if _, _, err := push.UpdateInbound(&echo); err != nil {
+		t.Fatalf("pushing back the stored row: %v", err)
+	}
+	changed := *stored
+	changed.StreamSettings = `{"network":"hysteria","hysteriaSettings":{"masquerade":{"type":"proxy","url":"http://127.0.0.1:2053"}}}`
+	if _, _, err := push.UpdateInbound(&changed); err == nil {
+		t.Fatal("a push moved the masquerade proxy to the panel's own port")
 	}
 }

@@ -10,6 +10,7 @@
   "create": "Oluştur",
   "add": "Ekle",
   "remove": "Kaldır",
+  "removeItem": "{item} öğesini kaldır",
   "update": "Güncelle",
   "copy": "Kopyala",
   "copied": "Kopyalandı",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Geodata ayarları kaydedilsin mi?",
       "geodataConfirmContent": "Xray yapılandırma şablonu güncellenecek ve Xray yeniden başlatılacak.",
       "geodataInvalidUrl": "Her dosya için bir HTTPS URL gerekir.",
-      "geodataInvalidFile": "Dosya adı yalnızca dosya adı olmalıdır, örn. geosite_custom.dat (yol içermemeli).",
+      "geodataInvalidFile": "Dosya adı yalnızca .dat uzantılı bir dosya adı olmalıdır, örn. geosite_custom.dat (yol içermemeli).",
       "geodataInvalidCron": "Cron 5 alandan oluşmalıdır, örn. 0 4 * * *",
       "geodataEmpty": "Yapılandırılmış dosya yok. Yönlendirme kurallarında dosyalar ext:geosite_custom.dat:category olarak kullanılır.",
       "dontRefresh": "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin",
@@ -311,7 +312,9 @@
         "pickInbound": "Bir Gelen Bağlantı Seç",
         "matchAny": "herhangi",
         "destPlaceholder": "otomatik (child listen:port)",
-        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan)."
+        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan).",
+        "decryptionConflict": "Fallback, etkin sunucu tarafı VLESS şifre çözme ile kullanılamaz. Şifre çözmeyi etkinleştirmeden önce fallback kurallarını silip kaydedin veya şifre çözmeyi kapatın.",
+        "saveFailed": "Fallback kuralları yüklenemedi veya kaydedilemedi. Taslak açık kaldı; hatayı kontrol edip tekrar deneyin."
       },
       "protocol": "Protokol",
       "port": "Port",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "Erişim anahtarı kimliği",
+          "secretAccessKey": "Gizli erişim anahtarı",
+          "sessionToken": "Oturum belirteci",
+          "s3Endpoint": "Uç nokta",
+          "s3Region": "Bölge",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Yol tarzı adresleme",
+          "s3PathStyleDesc": "Açık: bucket URL yoluna yazılır. Kapalı: ana bilgisayar adına yazılır, bu da DNS uç noktası gerektirir.",
           "secrets": "Gizli değerler",
           "secretsDesc": "Şablonun {secret0}, {secret1}, … olarak okuduğu değerler",
           "template": "Depolama şablonu",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
         "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
         "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i (53 ve 853 portları ile DNS İstemcisi hizmeti) TUN içinde tutar ve DNS sunucuları gerekir; windnsclient yalnızca o hizmeti kapsar; başka bir port için tcp/PORT veya udp/PORT yazın; misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
         "maxVersion": "Maksimum sürüm",
         "headerName": "Başlık adı",
         "headerValue": "Başlık değeri"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "TLS sertifika doğrulamasını atla (allowInsecure / skip-cert-verify).",
         "vlessRoute": "UUID'ye gömülen tek bir VLESS rota değeri (0-65535), örn. 443. Hiçbiri için boş bırakın.",
         "mihomoX25519": "Yalnızca Mihomo: ML-KEM olmadan düz X25519 ile REALITY el sıkışması kullanır (support-x25519mlkem768: false). ML-KEM gerektirmeyen, 26.9.8'den eski Xray-core sunucuları için.",
-        "remark": "Bu host için düz bir etiket. Yalnızca gelen bağlantının kendi açıklaması yoksa yapılandırma adı olarak gösterilir."
+        "remark": "Bu ana bilgisayar için düz bir etiket. Yapılandırma adlarına eklemek için Açıklama Şablonuna {{HOST}} ekleyin."
       },
       "remarkVars": {
         "title": "Şablon Değişkenleri",

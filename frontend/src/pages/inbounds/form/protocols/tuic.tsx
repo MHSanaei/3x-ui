@@ -17,6 +17,7 @@ import {
 import { CloudDownloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { HttpUtil } from '@/utils';
 
@@ -211,6 +212,7 @@ export default function TuicFields() {
       <FormField name={['settings', 'server', 'alpn']} label={t('pages.xray.tuic.alpn')}>
         <Select
           mode="tags"
+          tagRender={selectTagRender}
           tokenSeparators={[',']}
           options={[
             { label: 'h3', value: 'h3' },

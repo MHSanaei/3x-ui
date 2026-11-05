@@ -10,6 +10,7 @@
   "create": "Criar",
   "add": "Adicionar",
   "remove": "Remover",
+  "removeItem": "Remover {item}",
   "update": "Atualizar",
   "copy": "Copiar",
   "copied": "Copiado",
@@ -238,7 +239,7 @@
       "geodataConfirmTitle": "Salvar configurações de geodata?",
       "geodataConfirmContent": "O modelo de configuração do Xray será atualizado e o Xray será reiniciado.",
       "geodataInvalidUrl": "Cada arquivo precisa de uma URL HTTPS.",
-      "geodataInvalidFile": "O nome do arquivo deve ser simples, ex.: geosite_custom.dat (sem caminhos).",
+      "geodataInvalidFile": "O nome do arquivo deve ser um nome .dat simples, ex.: geosite_custom.dat (sem caminhos).",
       "geodataInvalidCron": "O cron deve ter 5 campos, ex.: 0 4 * * *",
       "geodataEmpty": "Nenhum arquivo configurado. Nas regras de roteamento, referencie como ext:geosite_custom.dat:category.",
       "dontRefresh": "Instalação em andamento, por favor não atualize a página",
@@ -311,7 +312,9 @@
         "pickInbound": "Escolha um inbound",
         "matchAny": "qualquer",
         "destPlaceholder": "automático (listen:porta do filho)",
-        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW)."
+        "needsTls": "Os fallbacks ficam disponíveis após selecionar TLS ou Reality na aba Segurança (apenas VLESS/Trojan sobre RAW).",
+        "decryptionConflict": "Fallbacks não são compatíveis com a descriptografia VLESS ativa no servidor. Remova e salve as regras antes de ativá-la ou desative a descriptografia.",
+        "saveFailed": "Não foi possível carregar ou salvar as regras de fallback. O rascunho continua aberto; verifique o erro e tente novamente."
       },
       "protocol": "Protocolo",
       "port": "Porta",
@@ -737,6 +740,14 @@
           "clientId": "Client ID",
           "clientSecret": "Client Secret",
           "refreshToken": "Refresh Token",
+          "accessKeyId": "ID da chave de acesso",
+          "secretAccessKey": "Chave de acesso secreta",
+          "sessionToken": "Token de sessão",
+          "s3Endpoint": "Endpoint",
+          "s3Region": "Região",
+          "s3Bucket": "Bucket",
+          "s3PathStyle": "Endereçamento por caminho",
+          "s3PathStyleDesc": "Ligado: o bucket vai no caminho da URL. Desligado: no nome do host, o que exige um endpoint DNS.",
           "secrets": "Segredos",
           "secretsDesc": "Valores que o template lê como {secret0}, {secret1}, …",
           "template": "Template de armazenamento",
@@ -762,7 +773,7 @@
         "autoSystemDnsToGateway": "DNS do sistema para o gateway",
         "autoSystemDnsToGatewayTooltip": "Somente Linux: aponta o systemd-resolved para o gateway do TUN para que as consultas do sistema passem pelo Xray. Precisa de um gateway, e o TUN não inicia se isso falhar.",
         "autoSystemWfpBlockLeak": "Bloquear vazamentos (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS dentro do TUN (precisa de servidores DNS) e misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS (portas 53 e 853 e o serviço Cliente DNS) dentro do TUN e precisa de servidores DNS; windnsclient cobre só esse serviço; digite tcp/PORTA ou udp/PORTA para qualquer outra porta; misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN.",
         "maxVersion": "Versão máxima",
         "headerName": "Nome do cabeçalho",
         "headerValue": "Valor do cabeçalho"
@@ -2440,7 +2451,7 @@
         "allowInsecure": "Ignorar a verificação do certificado TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Um único valor de rota VLESS (0-65535) embutido no UUID, ex.: 443. Deixe em branco para nenhum.",
         "mihomoX25519": "Somente Mihomo: usa um handshake REALITY com X25519 simples, sem ML-KEM (support-x25519mlkem768: false). Para servidores com Xray-core anterior à 26.9.8, que não exigem ML-KEM.",
-        "remark": "Um rótulo simples para este host. Mostrado como nome da configuração apenas quando a entrada não tem observação própria."
+        "remark": "Um rótulo simples para este host. Insira {{HOST}} no modelo de observação para incluí-lo nos nomes de configuração."
       },
       "remarkVars": {
         "title": "Variáveis de Modelo",

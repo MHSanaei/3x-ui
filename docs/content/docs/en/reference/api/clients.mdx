@@ -182,10 +182,11 @@ _openapi:
       url: '#mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running'
     - depth: 2
       title: Zero up/down counters for many clients in one call. Loops the
-        single-reset path so each client is re-enabled across its attached
-        inbounds and pushed to Xray/remote nodes. Returns the count of
-        successfully reset clients.
-      url: '#zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients'
+        single-reset path so each client its quota had disabled is re-enabled
+        across its attached inbounds and pushed to Xray/remote nodes; a client
+        disabled by hand stays disabled. Returns the count of successfully reset
+        clients.
+      url: '#zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients'
     - depth: 2
       title: List all client groups with their member counts. Merges persisted groups
         (rows in client_groups, including empty placeholders) with the distinct
@@ -223,10 +224,11 @@ _openapi:
         client_groups row if the group exists only as a derived label.
       url: '#reset-only-the-group-level-traffic-counter-shown-on-the-groups-page-snapshots-the-current-updown-sum-of-the-groups-members-as-a-baseline-so-the-group-total-reads-zero-while-leaving-each-clients-own-counters-and-their-quotas-untouched-no-xray-restart-is-triggered-creates-the-client_groups-row-if-the-group-exists-only-as-a-derived-label'
     - depth: 2
-      title: Zero out a single client’s up/down counters. Re-enables the client across
-        every attached inbound and pushes the change to Xray (or the remote
-        node) so depleted users can connect again immediately.
-      url: '#zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately'
+      title: Zero out a single client’s up/down counters. Re-enables a client its
+        quota had disabled across every attached inbound and pushes the change
+        to Xray (or the remote node) so depleted users can connect again
+        immediately; a client disabled by hand stays disabled.
+      url: '#zero-out-a-single-clients-updown-counters-re-enables-a-client-its-quota-had-disabled-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately-a-client-disabled-by-hand-stays-disabled'
     - depth: 2
       title: Manually adjust a client’s upload + download counters. Useful for
         migrations from external accounting systems.
@@ -457,10 +459,11 @@ _openapi:
           any target inbound was running."
         id: mirror-of-bulkattach-detach-many-existing-clients-from-many-inbounds-in-one-call-for-each-email-intersects-the-clients-current-inbounds-with-the-requested-set-and-detaches-from-those-only-email-inbound-pairs-where-the-client-is-not-currently-attached-are-silently-no-ops-emails-not-attached-to-any-of-the-requested-inbounds-are-reported-under-skipped-client-records-are-kept-even-if-they-become-orphaned--use-bulkdel-for-full-removal-returns-per-email-detachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
       - content: Zero up/down counters for many clients in one call. Loops the
-          single-reset path so each client is re-enabled across its attached
-          inbounds and pushed to Xray/remote nodes. Returns the count of
-          successfully reset clients.
-        id: zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-returns-the-count-of-successfully-reset-clients
+          single-reset path so each client its quota had disabled is re-enabled
+          across its attached inbounds and pushed to Xray/remote nodes; a client
+          disabled by hand stays disabled. Returns the count of successfully
+          reset clients.
+        id: zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients
       - content: List all client groups with their member counts. Merges persisted
           groups (rows in client_groups, including empty placeholders) with the
           distinct group_name values currently set on clients. Sorted
@@ -492,10 +495,11 @@ _openapi:
           Creates the client_groups row if the group exists only as a derived
           label.
         id: reset-only-the-group-level-traffic-counter-shown-on-the-groups-page-snapshots-the-current-updown-sum-of-the-groups-members-as-a-baseline-so-the-group-total-reads-zero-while-leaving-each-clients-own-counters-and-their-quotas-untouched-no-xray-restart-is-triggered-creates-the-client_groups-row-if-the-group-exists-only-as-a-derived-label
-      - content: Zero out a single client’s up/down counters. Re-enables the client
-          across every attached inbound and pushes the change to Xray (or the
-          remote node) so depleted users can connect again immediately.
-        id: zero-out-a-single-clients-updown-counters-re-enables-the-client-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately
+      - content: Zero out a single client’s up/down counters. Re-enables a client its
+          quota had disabled across every attached inbound and pushes the change
+          to Xray (or the remote node) so depleted users can connect again
+          immediately; a client disabled by hand stays disabled.
+        id: zero-out-a-single-clients-updown-counters-re-enables-a-client-its-quota-had-disabled-across-every-attached-inbound-and-pushes-the-change-to-xray-or-the-remote-node-so-depleted-users-can-connect-again-immediately-a-client-disabled-by-hand-stays-disabled
       - content: Manually adjust a client’s upload + download counters. Useful for
           migrations from external accounting systems.
         id: manually-adjust-a-clients-upload--download-counters-useful-for-migrations-from-external-accounting-systems
@@ -609,9 +613,11 @@ _openapi:
           different client of that same inbound holds, or `... used by a client
           on <inbound>` when the holder sits on another WireGuard or AmneziaWG
           inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides
-          with `10.0.0.5/32`; a `0.0.0.0/0` or `::/0` default route claims no
-          address. Allocation likewise skips every address inside a prefix
-          another client holds. The same validation runs on POST
+          with `10.0.0.5/32`; a `/0` entry collides with every address of its
+          family another client holds, and only a `0.0.0.0/0` or `::/0` default
+          route that is already stored (legacy peers) keeps nobody out.
+          Allocation likewise skips every address inside a prefix another client
+          holds. The same validation runs on POST
           /panel/api/clients/{email}/attach, where a client that already carries
           an address brings it along.
 

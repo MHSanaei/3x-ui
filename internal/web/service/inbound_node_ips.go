@@ -1,13 +1,16 @@
 package service
 
 import (
+	"cmp"
 	"encoding/json"
+	"slices"
 	"sort"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -138,7 +141,18 @@ func (s *InboundService) MergeClientIpsByGuid(node *model.Node, trees map[string
 			}
 		}
 	}
+	if node != nil {
+		scoped, err := scopeNodeClientIps(database.GetDB(), node, trees)
+		if err != nil {
+			return err
+		}
+		trees = scoped
+	}
 	for guid, perEmail := range trees {
+		// Stored once per email: an oversized key would multiply into every row.
+		if len(guid) > maxPanelGuidLen {
+			continue
+		}
 		if err := upsertNodeClientIps(guid, perEmail); err != nil {
 			return err
 		}
@@ -329,4 +343,59 @@ func pruneStaleNodeClientIps(cutoff int64) error {
 		}
 	}
 	return nil
+}
+
+// maxReportedIpsPerClient bounds one (node, client) list; the newest entries are kept.
+const maxReportedIpsPerClient = 256
+
+// scopeNodeClientIps keeps only what a node may report: its own key and its sub-nodes'
+// origins (never this panel's or another node's), its own clients, and no future dates.
+func scopeNodeClientIps(db *gorm.DB, node *model.Node, trees map[string]map[string][]model.ClientIpEntry) (map[string]map[string][]model.ClientIpEntry, error) {
+	allowed := map[string]struct{}{effectiveNodeKey(node): {}}
+	var origins []string
+	if err := db.Model(&model.Inbound{}).Where("node_id = ? AND origin_node_guid <> ''", node.Id).
+		Distinct().Pluck("origin_node_guid", &origins).Error; err != nil {
+		return nil, err
+	}
+	for _, origin := range origins {
+		allowed[origin] = struct{}{}
+	}
+	var others []*model.Node
+	if err := db.Where("id <> ?", node.Id).Find(&others).Error; err != nil {
+		return nil, err
+	}
+	for _, other := range others {
+		delete(allowed, effectiveNodeKey(other))
+		delete(allowed, other.Guid)
+	}
+	if panelGuid, err := (&SettingService{}).GetPanelGuid(); err == nil {
+		delete(allowed, panelGuid)
+	}
+	attached, err := nodeAttachedEmails(db, node.Id)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().Unix()
+	scoped := make(map[string]map[string][]model.ClientIpEntry, len(trees))
+	for guid, perEmail := range trees {
+		if _, ok := allowed[guid]; !ok {
+			continue
+		}
+		kept := make(map[string][]model.ClientIpEntry, len(perEmail))
+		for email, entries := range perEmail {
+			if _, ok := attached[email]; !ok {
+				continue
+			}
+			clampClientIpEntries(entries, now)
+			if len(entries) > maxReportedIpsPerClient {
+				slices.SortFunc(entries, func(a, b model.ClientIpEntry) int { return cmp.Compare(b.Timestamp, a.Timestamp) })
+				entries = entries[:maxReportedIpsPerClient]
+			}
+			kept[email] = entries
+		}
+		if len(kept) > 0 {
+			scoped[guid] = kept
+		}
+	}
+	return scoped, nil
 }

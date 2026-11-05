@@ -18,6 +18,7 @@ import {
 import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
 import {
@@ -211,7 +212,12 @@ export default function RealityForm({
         </Form.Item>
       )}
       <FormField label="SNI" name={['streamSettings', 'realitySettings', 'serverNames']}>
-        <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+        <Select
+          mode="tags"
+          tagRender={selectTagRender}
+          tokenSeparators={[',']}
+          style={{ width: '100%' }}
+        />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'maxTimediff']}
@@ -254,6 +260,7 @@ export default function RealityForm({
             <Select
               id={`${uid}-shortIds`}
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',']}
               style={{ flex: 1 }}
             />
