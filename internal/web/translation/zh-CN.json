@@ -876,6 +876,7 @@
       "subIdDesc": "同时用作该客户端的 Telegram 机器人邀请码：任何人将其发送给机器人即会绑定到此客户端。请保持足够长且随机——过短或易猜的 ID 可能被他人抢先绑定。",
       "online": "在线",
       "email": "邮箱",
+      "emailReservedName": "客户端名称不能仅为“.”或“..”",
       "emailInvalidChars": "邮箱不能包含空格、'/'、'\\' 或控制字符",
       "subIdInvalidChars": "订阅 ID 不能包含空格、'/'、'\\' 或控制字符",
       "group": "分组",

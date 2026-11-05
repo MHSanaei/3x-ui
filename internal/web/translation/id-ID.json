@@ -876,6 +876,7 @@
       "subIdDesc": "Juga berfungsi sebagai kode undangan bot Telegram untuk klien ini: siapa pun yang mengirimkannya ke bot akan ditautkan ke klien ini. Buat panjang dan acak — ID yang pendek atau mudah ditebak bisa diklaim orang lain.",
       "online": "Online",
       "email": "Email",
+      "emailReservedName": "Nama klien tidak boleh hanya \".\" atau \"..\"",
       "emailInvalidChars": "Email tidak boleh mengandung spasi, '/', '\\', atau karakter kontrol",
       "subIdInvalidChars": "ID langganan tidak boleh mengandung spasi, '/', '\\', atau karakter kontrol",
       "group": "Grup",

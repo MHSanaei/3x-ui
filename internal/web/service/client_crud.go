@@ -37,6 +37,9 @@ func hasForbiddenClientChar(s string) bool {
 }
 
 func validateClientEmail(email string) error {
+	if email == "." || email == ".." {
+		return common.NewError("client email must not be '.' or '..'")
+	}
 	if hasForbiddenClientChar(email) {
 		return common.NewError("client email contains an invalid character:", email)
 	}
@@ -672,6 +675,12 @@ func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 }
 
 func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, limitHwid int, inboundFilter ...int) (bool, error) {
+	return s.update(inboundSvc, id, updated, limitHwid, false, inboundFilter)
+}
+
+// keepInboundFlows: the caller sent no flow, so every inbound keeps its own and an
+// unlinked record keeps its stored one.
+func (s *ClientService) update(inboundSvc *InboundService, id int, updated model.Client, limitHwid int, keepInboundFlows bool, inboundFilter []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -803,6 +812,14 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	var inboundFlows map[int]string
+	if keepInboundFlows {
+		updated.Flow = existing.Flow
+		if inboundFlows, err = inboundFlowOverrides(id); err != nil {
+			return false, err
+		}
+	}
+
 	tunnelCount, tcErr := tunnelInboundCount(inboundIds)
 	if tcErr != nil {
 		return false, tcErr
@@ -831,6 +848,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			return false, err
 		}
 		clientForInbound := updated
+		if keepInboundFlows {
+			clientForInbound.Flow = inboundFlows[ibId]
+		}
 		if ips, ok := updated.AllowedIPsByInbound[ibId]; ok {
 			clientForInbound.AllowedIPs = ips
 		} else if tunnelCount > 1 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
