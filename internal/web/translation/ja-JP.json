@@ -1853,7 +1853,33 @@
       "subHostSortMode": "サブスクリプションのノード順序",
       "subHostSortInbound": "インバウンド順（既定）",
       "subHostSortHosts": "ホスト順",
-      "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。"
+      "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。",
+      "wechatSettings": "WeChat 通知",
+      "wechatEnable": "WeChat 通知を有効化",
+      "wechatEnableDesc": "WeCom グループのボットまたは互換 Webhook ゲートウェイでアラートを送信します。",
+      "wechatMode": "配信方式",
+      "wechatModeDesc": "宛先が対応するメッセージ形式を選択します。",
+      "wechatModeWecom": "WeCom グループボット",
+      "wechatModeWebhook": "カスタム Webhook ゲートウェイ",
+      "wechatPersonalGateway": "個人用 WeChat には互換ゲートウェイが必要です。WeCom ボットは WeCom グループに送信し、個人用 WeChat には直接送信できません。",
+      "wechatWebhookURL": "Webhook URL",
+      "wechatWebhookURLConfigured": "Webhook URL は保存済みです。空欄で現在の値を保持します。",
+      "wechatWebhookURLDesc": "HTTPS の宛先を使用します。URL に含まれる秘密情報は保存後に返されません。",
+      "wechatSecretPlaceholder": "空欄で保存済みの値を保持",
+      "wechatToken": "Bearer トークン",
+      "wechatTokenConfigured": "Bearer トークンは保存済みです。空欄で現在の値を保持します。",
+      "wechatTokenDesc": "カスタムゲートウェイの任意の認証です。不要なら空欄にします。",
+      "wechatLanguage": "メッセージ言語",
+      "wechatSaveBeforeTest": "テスト前に変更を保存してください。テストは保存済みの設定を使用します。",
+      "wechatTest": "テスト通知を送信",
+      "wechatTestSuccess": "テスト通知を送信しました",
+      "wechatTestFailed": "テスト通知を送信できませんでした",
+      "wechatReportEnable": "定期レポート",
+      "wechatReportEnableDesc": "イベントアラートとは別に定期的なテキスト概要を送信します。データベースや設定ファイルは添付しません。",
+      "wechatReportTime": "レポートのスケジュール",
+      "wechatReportTimeDesc": "Cron 式または @daily などのプリセットを使用します。",
+      "wechatEvents": "イベントアラート",
+      "wechatEventsDesc": "WeChat 通知を送信するイベントとアラートのしきい値を選択します。"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -2868,5 +2894,18 @@
     "restartXray": "Xrayサービスを再起動",
     "restartXraySuccess": "Xrayサービスが正常に再起動されました",
     "settings": "設定"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui WeChat 通知テスト",
+      "body": "これは 3x-ui からのテスト通知です。データベースや設定ファイルは含まれません。"
+    },
+    "report": {
+      "title": "3x-ui ステータスレポート",
+      "counts": "合計：{{ .Total }} | 無効：{{ .Disabled }} | 期限切れ：{{ .Expired }} | 容量消尽：{{ .Depleted }}",
+      "trafficUsed": "3x-ui 使用済み通信量",
+      "trafficRemaining": "3x-ui 残りの通信量",
+      "trafficQuotaUnset": "上限未設定"
+    }
   }
 }

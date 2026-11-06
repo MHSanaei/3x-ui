@@ -190,6 +190,16 @@ export interface AllSetting {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  wechatCpu: number;
+  wechatEnable: boolean;
+  wechatEnabledEvents: string;
+  wechatLang: string;
+  wechatMemory: number;
+  wechatMode: string;
+  wechatReportEnable: boolean;
+  wechatRunTime: string;
+  wechatToken: string;
+  wechatWebhookURL: string;
 }
 
 export interface AllSettingView {
@@ -217,6 +227,8 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  hasWechatToken: boolean;
+  hasWechatWebhookURL: boolean;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -381,6 +393,16 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  wechatCpu: number;
+  wechatEnable: boolean;
+  wechatEnabledEvents: string;
+  wechatLang: string;
+  wechatMemory: number;
+  wechatMode: string;
+  wechatReportEnable: boolean;
+  wechatRunTime: string;
+  wechatToken: string;
+  wechatWebhookURL: string;
 }
 
 export interface AmneziaWGLogs {

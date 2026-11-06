@@ -1853,7 +1853,33 @@
       "subHostSortMode": "Urutan node langganan",
       "subHostSortInbound": "Urutan inbound (bawaan)",
       "subHostSortHosts": "Urutan host",
-      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
+      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri.",
+      "wechatSettings": "Notifikasi WeChat",
+      "wechatEnable": "Aktifkan notifikasi WeChat",
+      "wechatEnableDesc": "Kirim peringatan melalui robot grup WeCom atau gateway webhook yang kompatibel.",
+      "wechatMode": "Mode pengiriman",
+      "wechatModeDesc": "Pilih format pesan yang didukung tujuan.",
+      "wechatModeWecom": "Robot grup WeCom",
+      "wechatModeWebhook": "Gateway webhook khusus",
+      "wechatPersonalGateway": "WeChat pribadi memerlukan gateway yang kompatibel. Robot WeCom mengirim ke grup WeCom, bukan langsung ke WeChat pribadi.",
+      "wechatWebhookURL": "URL webhook",
+      "wechatWebhookURLConfigured": "URL sudah disimpan. Kosongkan untuk mempertahankannya.",
+      "wechatWebhookURLDesc": "Gunakan tujuan HTTPS. URL mungkin berisi rahasia dan nilai tersimpan tidak dikembalikan oleh panel.",
+      "wechatSecretPlaceholder": "Kosongkan untuk mempertahankan nilai tersimpan",
+      "wechatToken": "Token Bearer",
+      "wechatTokenConfigured": "Token sudah disimpan. Kosongkan untuk mempertahankannya.",
+      "wechatTokenDesc": "Autentikasi gateway opsional. Kosongkan jika tidak diperlukan.",
+      "wechatLanguage": "Bahasa pesan",
+      "wechatSaveBeforeTest": "Simpan perubahan sebelum menguji. Pengujian memakai konfigurasi tersimpan.",
+      "wechatTest": "Kirim notifikasi uji",
+      "wechatTestSuccess": "Notifikasi uji berhasil dikirim",
+      "wechatTestFailed": "Gagal mengirim notifikasi uji",
+      "wechatReportEnable": "Laporan terjadwal",
+      "wechatReportEnableDesc": "Kirim ringkasan teks berkala terpisah dari peringatan. Basis data dan berkas konfigurasi tidak dilampirkan.",
+      "wechatReportTime": "Jadwal laporan",
+      "wechatReportTimeDesc": "Gunakan ekspresi cron atau preset seperti @daily.",
+      "wechatEvents": "Peringatan peristiwa",
+      "wechatEventsDesc": "Pilih peristiwa yang mengirim notifikasi dan atur ambang peringatan."
     },
     "xray": {
       "save": "Simpan",
@@ -2868,5 +2894,18 @@
     "restartXray": "Mulai Ulang Layanan Xray",
     "restartXraySuccess": "Layanan Xray berhasil dimulai ulang",
     "settings": "Pengaturan"
+  },
+  "wechat": {
+    "test": {
+      "title": "Uji Notifikasi WeChat 3x-ui",
+      "body": "Ini adalah notifikasi uji dari 3x-ui. Tidak menyertakan berkas basis data atau konfigurasi."
+    },
+    "report": {
+      "title": "Laporan Status 3x-ui",
+      "counts": "Total: {{ .Total }} | Dinonaktifkan: {{ .Disabled }} | Kedaluwarsa: {{ .Expired }} | Kuota habis: {{ .Depleted }}",
+      "trafficUsed": "Trafik terpakai 3x-ui",
+      "trafficRemaining": "Sisa trafik 3x-ui",
+      "trafficQuotaUnset": "Kuota belum dikonfigurasi"
+    }
   }
 }

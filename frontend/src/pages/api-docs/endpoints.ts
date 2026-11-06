@@ -2086,6 +2086,12 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/setting/testWechat',
+        summary:
+          'Send a text test notification using the saved WeChat destination. Supports WeCom group robots and compatible personal WeChat webhook gateways. Requires WeChat notifications to be enabled.',
+      },
+      {
         method: 'GET',
         path: '/panel/api/setting/getDefaultJsonConfig',
         summary:
