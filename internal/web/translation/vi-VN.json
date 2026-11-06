@@ -851,6 +851,7 @@
       "has": "Có",
       "hasNot": "Không có",
       "actions": "Hành động",
+      "columns": "Cột",
       "totalGB": "Giới hạn lưu lượng (GB)",
       "totalGBDesc": "Hạn mức dữ liệu cho khách hàng này. 0 = không giới hạn.",
       "expiryTime": "Hết hạn",

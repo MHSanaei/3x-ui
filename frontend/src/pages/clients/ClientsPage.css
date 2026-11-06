@@ -332,3 +332,8 @@
   text-align: center;
   color: var(--ant-color-text-secondary);
 }
+
+/* The menu item owns the click, so the box only shows the state. */
+.column-picker-check {
+  pointer-events: none;
+}
