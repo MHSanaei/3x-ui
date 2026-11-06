@@ -691,20 +691,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				if oldInbound.Protocol == "shadowsocks" {
 					cipher, _ = oldSettings["method"].(string)
 				}
-				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-					"email":        client.Email,
-					"id":           client.ID,
-					"auth":         client.Auth,
-					"security":     client.Security,
-					"flow":         client.Flow,
-					"password":     client.Password,
-					"cipher":       cipher,
-					"publicKey":    client.PublicKey,
-					"allowedIPs":   client.AllowedIPs,
-					"preSharedKey": client.PreSharedKey,
-					"keepAlive":    keepAliveStr(client.KeepAliveSeconds()),
-					"reverse":      client.Reverse,
-				})
+				err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&client, cipher))
 				if err1 == nil {
 					logger.Debug("Client added on", rt.Name(), ":", client.Email)
 				} else {
@@ -1154,20 +1141,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					if oldInbound.Protocol == "shadowsocks" {
 						cipher, _ = oldSettings["method"].(string)
 					}
-					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":        clients[0].Email,
-						"id":           clients[0].ID,
-						"security":     clients[0].Security,
-						"flow":         clients[0].Flow,
-						"auth":         clients[0].Auth,
-						"password":     clients[0].Password,
-						"cipher":       cipher,
-						"publicKey":    clients[0].PublicKey,
-						"allowedIPs":   clients[0].AllowedIPs,
-						"preSharedKey": clients[0].PreSharedKey,
-						"keepAlive":    keepAliveStr(clients[0].KeepAliveSeconds()),
-						"reverse":      clients[0].Reverse,
-					})
+					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&clients[0], cipher))
 					if err1 == nil {
 						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
 					} else {

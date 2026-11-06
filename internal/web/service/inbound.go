@@ -1375,6 +1375,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
 		return inbound, false, err
 	}
+	// The names the client API refuses; a master's push may carry a legacy one.
+	if !s.FromNodeSync {
+		if err := validateClientsNames(clients); err != nil {
+			return inbound, false, err
+		}
+	}
 	for _, traffic := range inbound.ClientStats {
 		if err := validateClientRenewal(model.Client{Reset: traffic.Reset, ResetDay: traffic.ResetDay, ResetWeekday: traffic.ResetWeekday}); err != nil {
 			return inbound, false, err
