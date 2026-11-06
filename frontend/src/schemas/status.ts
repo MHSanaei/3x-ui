@@ -43,7 +43,7 @@ export const StatusSchema = z.object({
   logicalPro: z.number().optional(),
   cpuSpeedMhz: z.number().optional(),
   disk: CurTotalInputSchema.optional(),
-  loads: z.array(z.number()).optional(),
+  loads: z.array(z.number()).nullish(),
   mem: CurTotalInputSchema.optional(),
   netIO: NetIOSchema.optional(),
   netTraffic: NetTrafficSchema.optional(),
