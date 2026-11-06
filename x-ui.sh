@@ -364,22 +364,111 @@ gen_random_string() {
         | head -c "$length"
 }
 
+normalize_menu_webbasepath() {
+    local path="$1" LC_ALL=C
+    [[ "$path" =~ ^/?[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*/?$ ]] || return 1
+    path="/${path#/}"
+    printf '%s/\n' "${path%/}"
+}
+
+confirm_menu_webbasepath() {
+    local answer
+    while true; do
+        IFS= read -rp "$1 (y/N): " answer || return 1
+        answer="${answer#"${answer%%[![:space:]]*}"}"
+        answer="${answer%"${answer##*[![:space:]]}"}"
+        case "${answer,,}" in
+            y | yes) return 0 ;;
+            n | no | '') return 1 ;;
+            *) echo 'Please answer yes or no (Enter defaults to No).' >&2 ;;
+        esac
+    done
+}
+
+# The CLI can report database/getter errors with exit status zero. Require one
+# absolute, normalized path record and reject reported getter failures as well.
+read_menu_webbasepath() {
+    local settings path
+    settings=$("${xui_folder}/x-ui" setting -show 2>&1) || return 1
+    path=$(awk '
+        /^(Database initialization failed:|get .* failed, error info:)/ {failed = 1}
+        /^webBasePath: / {count++; value = $0; sub(/^webBasePath: /, "", value)}
+        END {if (failed || count != 1) exit 1; print value}
+    ' <<< "$settings") || return 1
+    [[ "$path" == /* && "$path" == */ ]] || return 1
+    printf '%s\n' "$path"
+}
+
 reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
-
-    read -rp "Are you sure you want to reset the web base path? (y/n): " confirm
-    if [[ $confirm != "y" && $confirm != "Y" ]]; then
+    if ! confirm_menu_webbasepath 'Are you sure you want to change the web base path?'; then
         echo -e "${yellow}Operation canceled.${plain}"
-        return
+        return 0
     fi
 
-    config_webBasePath=$(gen_random_string 18)
+    local selection config_webBasePath current_path saved_path settings_output
+    echo 'Choose Web Base Path configuration:'
+    echo '1. Generate a random Web Base Path'
+    echo '2. Set a custom Web Base Path'
+    echo '0. Cancel'
+    while true; do
+        if ! read -rp 'Please enter your selection [0-2]: ' selection; then
+            echo 'Operation canceled.'
+            return 0
+        fi
+        case "$selection" in
+            1)
+                if ! config_webBasePath=$(gen_random_string 18) || [[ ! "$config_webBasePath" =~ ^[A-Za-z0-9]{18}$ ]]; then
+                    echo 'Failed to generate a random Web Base Path.' >&2
+                    return 1
+                fi
+                config_webBasePath=$(normalize_menu_webbasepath "$config_webBasePath") || return 1
+                break
+                ;;
+            2)
+                while true; do
+                    if ! IFS= read -rp 'Enter your custom Web Base Path: ' config_webBasePath; then
+                        echo 'Operation canceled.'
+                        return 0
+                    fi
+                    if config_webBasePath=$(normalize_menu_webbasepath "$config_webBasePath"); then
+                        break
+                    fi
+                    echo 'Invalid Web Base Path. Use letters, digits, hyphens or underscores in nonempty segments separated by single slashes.' >&2
+                done
+                break
+                ;;
+            0) echo 'Operation canceled.'; return 0 ;;
+            *) echo 'Invalid selection. Choose 0, 1 or 2.' >&2 ;;
+        esac
+    done
 
-    # Apply the new web base path setting
-    ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}" > /dev/null 2>&1
+    if ! current_path=$(read_menu_webbasepath); then
+        echo 'Failed to read the current Web Base Path; no settings changed.' >&2
+        return 1
+    fi
+    if [[ "$current_path" == "$config_webBasePath" ]]; then
+        echo 'No change is necessary; this Web Base Path is already configured.'
+        return 0
+    fi
+    echo -e "Your Web Base Path will be: ${green}${config_webBasePath}${plain}"
+    if ! confirm_menu_webbasepath 'Apply this Web Base Path?'; then
+        echo 'Operation canceled.'
+        return 0
+    fi
 
-    echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
-    echo -e "${green}Please use the new web base path to access the panel.${plain}"
+    if ! settings_output=$("${xui_folder}/x-ui" setting -webBasePath "${config_webBasePath}" 2>&1) ||
+        ! grep -Fxq 'Base URI path set successfully' <<< "$settings_output"; then
+        printf '%s\n' "$settings_output" >&2
+        echo 'Failed to update the Web Base Path; the panel was not restarted.' >&2
+        return 1
+    fi
+    if ! saved_path=$(read_menu_webbasepath) || [[ "$saved_path" != "$config_webBasePath" ]]; then
+        echo 'Could not verify the saved Web Base Path; the panel was not restarted.' >&2
+        return 1
+    fi
+    echo 'Web Base Path updated successfully.'
+    echo -e "${green}Please use ${config_webBasePath} to access the panel.${plain}"
     restart
 }
 
