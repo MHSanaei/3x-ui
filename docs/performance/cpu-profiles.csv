@@ -1,0 +1,9 @@
+database,scenario,mode,sampled_cpu_seconds
+sqlite,idle,legacy,56.94
+sqlite,idle,compact,14.34
+sqlite,counters,legacy,56.38
+sqlite,counters,compact,14.64
+postgres,idle,legacy,55.20
+postgres,idle,compact,14.49
+postgres,counters,legacy,55.23
+postgres,counters,compact,15.25
