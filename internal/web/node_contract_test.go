@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -173,6 +174,9 @@ func TestMasterNodeContract(t *testing.T) {
 			node := startContractNode(t)
 			master := node.masterWithToken(t, scope)
 			ctx := context.Background()
+			restarts := make(chan struct{}, 1)
+			global.SetRestartHook(func() { restarts <- struct{}{} })
+			t.Cleanup(func() { global.SetRestartHook(func() {}) })
 
 			cells := []struct {
 				name   string
@@ -307,6 +311,36 @@ func TestMasterNodeContract(t *testing.T) {
 						return err
 					}
 					return nil
+				}, nil},
+				{"RestartPanel respects enrollment authority and schedules a restart", []string{"RestartPanel"}, func() error {
+					err := master.RestartPanel(ctx)
+					if scope == model.ApiScopeNodeSync {
+						if err == nil {
+							return fmt.Errorf("node-sync unexpectedly restarted the panel")
+						}
+						if !strings.Contains(err.Error(), "HTTP 403") {
+							return fmt.Errorf("node-sync restart should return HTTP 403: %w", err)
+						}
+						refused := node.takeRefused()
+						if len(refused) != 1 || refused[0] != "POST /panel/api/setting/restartPanel -> 403" {
+							return fmt.Errorf("refused requests = %v", refused)
+						}
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+					select {
+					case <-restarts:
+						return fmt.Errorf("panel restarted before the response")
+					default:
+					}
+					select {
+					case <-restarts:
+						return nil
+					case <-time.After(6 * time.Second):
+						return fmt.Errorf("panel restart was not scheduled")
+					}
 				}, nil},
 				{"DeleteUser detaches the client from the inbound", []string{"DeleteUser"}, func() error {
 					return master.DeleteUser(ctx, masterInbound("updated", false), "c3")
