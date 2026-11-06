@@ -393,6 +393,10 @@ func apiUserFromClient(client map[string]any, cipher string) map[string]any {
 	if cipher != "" {
 		user["cipher"] = cipher
 	}
+	// Stored JSON holds keepAlive as a number; the core's builder takes a string.
+	if seconds, ok := user["keepAlive"].(float64); ok {
+		user["keepAlive"] = keepAliveStr(int(seconds))
+	}
 	return user
 }
 

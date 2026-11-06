@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -143,4 +145,36 @@ func settingsClientEnabled(t *testing.T, settings, email string) bool {
 		}
 	}
 	return false
+}
+
+// The stored JSON keeps keepAlive as a number, which the core's account builder
+// rejects; every auto-renew of such a WireGuard peer restarted Xray.
+func TestAutoRenewOfWireGuardPeerWithKeepAliveNeedsNoRestart(t *testing.T) {
+	const email = "wg-renew@x"
+	ib, probe := seedQuotaDisabledClient(t, 51842, model.WireGuard, model.Client{
+		Email: email, SubID: "sub-" + email, PublicKey: resetProbePeerKey,
+		AllowedIPs: []string{"10.0.0.8/32"}, KeepAlive: model.KeepAlivePtr(25),
+		Reset: 30, ExpiryTime: time.Now().Add(-48 * time.Hour).UnixMilli(),
+	})
+	db := database.GetDB()
+	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"reset": 30, "expiry_time": time.Now().Add(-48 * time.Hour).UnixMilli()}).Error; err != nil {
+		t.Fatalf("make the traffic row renewable: %v", err)
+	}
+	svc := &InboundService{}
+	batch := newTrafficMutationBatch()
+	if _, count, err := svc.autoRenewClients(db, batch); err != nil || count != 1 {
+		t.Fatalf("autoRenewClients: renewed %d, err %v; want 1 renewal", count, err)
+	}
+
+	needRestart := svc.applyTrafficMutationBatch(batch)
+	probe.mu.Lock()
+	errs := probe.addErrs
+	probe.mu.Unlock()
+	if len(errs) != 1 || errs[0] != nil {
+		t.Fatalf("core re-adds of %s on inbound %d: %v, want one accepted add", email, ib.Id, errs)
+	}
+	if needRestart {
+		t.Fatal("auto-renewing a WireGuard peer asked for an Xray restart")
+	}
 }
