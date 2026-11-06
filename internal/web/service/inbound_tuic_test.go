@@ -320,11 +320,11 @@ func TestTuicSocksSelfConflict(t *testing.T) {
 }
 
 func TestInboundTuicServerParsesLegacyFlatSettings(t *testing.T) {
-	server := inboundTuicServer(string(model.TUIC), `{"certificate":"/cert.pem","private_key":"/secret-key.pem","congestion_control":" CuBiC ","udp_relay_mode":"quic","sni":"profile.example"}`)
+	server := inboundTuicServer(string(model.TUIC), `{"certificate":"/cert.pem","private_key":"/secret-key.pem","congestion_control":" CuBiC ","udp_relay_mode":"quic","sni":"profile.example","disable_sni":true}`)
 	if server == nil {
 		t.Fatal("expected legacy flat TUIC settings")
 	}
-	if server.CongestionControl != "cubic" || server.UDPRelayMode != "quic" || server.SNI != "profile.example" {
+	if server.CongestionControl != "cubic" || server.UDPRelayMode != "quic" || server.SNI != "profile.example" || !server.DisableSNI {
 		t.Fatalf("legacy flat fields were not normalized: %+v", server)
 	}
 	if server.PrivateKey != "" {

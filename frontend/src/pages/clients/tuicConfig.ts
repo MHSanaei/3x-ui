@@ -63,6 +63,13 @@ export function buildTuicClientConfig(
     `    udp-relay-mode: ${udpRelay}`,
     `    reduce-rtt: ${reduceRtt}`,
   ];
+  if (tuicServer?.disable_sni) {
+    lines.push('    disable-sni: true');
+    if (!hostEndpoint?.allowInsecure) {
+      const verifyName = /["'\\#\s]/.test(sni) ? yamlQuote(sni) : sni;
+      lines.push(`    name-cert-verify: ${verifyName}`);
+    }
+  }
   if (hostEndpoint?.allowInsecure) lines.push('    skip-cert-verify: true');
 
   return lines.join('\n');
