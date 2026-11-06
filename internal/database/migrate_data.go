@@ -41,6 +41,7 @@ func migrationModels() []any {
 		&model.Setting{},
 		&model.HistoryOfSeeders{},
 		&model.Node{},
+		&model.ManagedTunnel{},
 		&model.ApiToken{},
 		&model.Inbound{},
 		&xray.ClientTraffic{},

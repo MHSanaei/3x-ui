@@ -3,6 +3,7 @@
 .inbounds-page .ant-card,
 .xray-page .ant-card,
 .settings-page .ant-card,
+.tunnels-page .ant-card,
 .nodes-page .ant-card,
 .groups-page .ant-card,
 .api-docs-page .ant-card {
@@ -19,6 +20,7 @@
 .inbounds-page.is-dark .ant-card,
 .xray-page.is-dark .ant-card,
 .settings-page.is-dark .ant-card,
+.tunnels-page.is-dark .ant-card,
 .nodes-page.is-dark .ant-card,
 .groups-page.is-dark .ant-card,
 .api-docs-page.is-dark .ant-card {
@@ -32,6 +34,7 @@
 .inbounds-page.is-dark.is-ultra .ant-card,
 .xray-page.is-dark.is-ultra .ant-card,
 .settings-page.is-dark.is-ultra .ant-card,
+.tunnels-page.is-dark.is-ultra .ant-card,
 .nodes-page.is-dark.is-ultra .ant-card,
 .groups-page.is-dark.is-ultra .ant-card,
 .api-docs-page.is-dark.is-ultra .ant-card {
@@ -45,6 +48,7 @@
 .inbounds-page .ant-card.ant-card-hoverable:hover,
 .xray-page .ant-card.ant-card-hoverable:hover,
 .settings-page .ant-card.ant-card-hoverable:hover,
+.tunnels-page .ant-card.ant-card-hoverable:hover,
 .nodes-page .ant-card.ant-card-hoverable:hover,
 .groups-page .ant-card.ant-card-hoverable:hover,
 .api-docs-page .ant-card.ant-card-hoverable:hover {
@@ -57,6 +61,7 @@
 .inbounds-page.is-dark .ant-card.ant-card-hoverable:hover,
 .xray-page.is-dark .ant-card.ant-card-hoverable:hover,
 .settings-page.is-dark .ant-card.ant-card-hoverable:hover,
+.tunnels-page.is-dark .ant-card.ant-card-hoverable:hover,
 .nodes-page.is-dark .ant-card.ant-card-hoverable:hover,
 .groups-page.is-dark .ant-card.ant-card-hoverable:hover,
 .api-docs-page.is-dark .ant-card.ant-card-hoverable:hover {
@@ -70,6 +75,7 @@
 .inbounds-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
 .xray-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
 .settings-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
+.tunnels-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
 .nodes-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
 .groups-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover,
 .api-docs-page.is-dark.is-ultra .ant-card.ant-card-hoverable:hover {
@@ -83,6 +89,7 @@
 .inbounds-page .ant-card .ant-card-actions,
 .xray-page .ant-card .ant-card-actions,
 .settings-page .ant-card .ant-card-actions,
+.tunnels-page .ant-card .ant-card-actions,
 .nodes-page .ant-card .ant-card-actions,
 .groups-page .ant-card .ant-card-actions,
 .api-docs-page .ant-card .ant-card-actions {

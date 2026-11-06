@@ -198,6 +198,85 @@ const hwidStatusErrorResponses = {
 
 export const sections: readonly Section[] = [
   {
+    id: 'tunnels',
+    title: 'Tunnels',
+    description:
+      'Managed WatTunnel processes. Client accepts user traffic; Server forwards to allowed loopback ports. Reverse changes the connection initiator.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/tunnels/list',
+        summary: 'List managed tunnels without secrets',
+        responseSchema: 'TunnelView',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/tunnels/capabilities',
+        summary: 'Inspect local or target-node WatTunnel capabilities',
+        responseSchema: 'Capabilities',
+        params: [{ name: 'nodeId', in: 'query', type: 'integer', optional: true }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/add',
+        summary: 'Create a tunnel; persist desired state before applying it',
+        responseSchema: 'TunnelView',
+        requestSchema: { $ref: '#/components/schemas/TunnelMutation' },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/update/:id',
+        summary: 'Update a tunnel using its current revision',
+        responseSchema: 'TunnelView',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+        requestSchema: { $ref: '#/components/schemas/TunnelMutation' },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/start/:id',
+        summary: 'Persist started state',
+        responseSchema: 'TunnelView',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/stop/:id',
+        summary: 'Persist stopped state',
+        responseSchema: 'TunnelView',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/restart/:id',
+        summary: 'Restart a tunnel',
+        responseSchema: 'TunnelView',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/del/:id',
+        summary: 'Persist a deletion tombstone and stop the tunnel',
+        responseSchema: 'TunnelView',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/export/:id',
+        summary: 'Export a secret connection token (admin; no-store)',
+        responseSchema: 'TunnelToken',
+        params: [{ name: 'id', in: 'path', type: 'integer' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/tunnels/sync',
+        summary: 'Idempotent owner-bound node synchronization',
+        responseSchema: 'Status',
+        requestSchema: { $ref: '#/components/schemas/Spec' },
+      },
+    ],
+  },
+  {
     id: 'authentication',
     title: 'Authentication',
     description:

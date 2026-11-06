@@ -161,6 +161,7 @@ func buildFields(fld *ast.Field, overrides []walkOverride) []Field {
 		fields = append(fields, Field{
 			JSONName: fname,
 			GoName:   exprIdentName(fld.Type),
+			Embedded: jsonTag == "",
 			Type:     t,
 			Optional: omitempty || isPointer(fld.Type),
 			Validate: validate,

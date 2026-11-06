@@ -162,7 +162,7 @@ var defaultNodeHTTPClient = &http.Client{Transport: newNodeTransport(nil), Check
 // NoCrossHostRedirect keeps a request on the host:port it was sent to: the master presents
 // the same credentials to every node, so a node's Location must not carry them elsewhere.
 func NoCrossHostRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 10 || !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+	if len(via) >= 10 || !strings.EqualFold(req.URL.Host, via[0].URL.Host) || (via[0].URL.Scheme == "https" && req.URL.Scheme != "https") {
 		return http.ErrUseLastResponse
 	}
 	return nil

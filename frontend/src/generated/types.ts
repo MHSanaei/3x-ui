@@ -414,6 +414,21 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface Capabilities {
+  arch: string;
+  carriers: string[];
+  error: string;
+  os: string;
+  rawSocket: boolean;
+  supported: boolean;
+  version: string;
+}
+
+export interface CarrierEndpoint {
+  carrier: string;
+  port: number;
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
@@ -580,6 +595,30 @@ export interface ClientsSummary {
   online: string[];
   onlineCount: number;
   total: number;
+}
+
+export interface Config {
+  bind: string;
+  candidates: CarrierEndpoint[];
+  carrier: string;
+  conns: number;
+  endpoint: string;
+  fec: boolean;
+  icmpType: string;
+  listen: string;
+  memoryMB: number;
+  mtu: number;
+  path: string;
+  port: number;
+  ports: Port[];
+  reverse: boolean;
+  reversePeer: string;
+  role: string;
+  sessions: number;
+  sni: string;
+  tlsCert: string;
+  tlsKey: string;
+  tlsPin: string;
 }
 
 export interface FallbackParentInfo {
@@ -819,6 +858,16 @@ export interface MLKEM768Response {
   seed: string;
 }
 
+export interface Metrics {
+  alive: boolean;
+  bytes_in_total: number;
+  bytes_out_total: number;
+  last_rx_age_ms: number;
+  loss_pct?: number | null;
+  send_errors: number;
+  srtt_ms?: number | null;
+}
+
 export interface Msg {
   msg: string;
   obj: unknown;
@@ -965,6 +1014,12 @@ export interface PeerActivity {
   up: number;
 }
 
+export interface Port {
+  listen: number;
+  protocol: string;
+  target: number;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;
@@ -1056,6 +1111,18 @@ export interface Setting {
   value: string;
 }
 
+export interface Spec {
+  config: Config;
+  deleted: boolean;
+  enabled: boolean;
+  guid: string;
+  name: string;
+  owner: string;
+  restart: number;
+  revision: number;
+  secret: string;
+}
+
 export interface Sponsor {
   enable?: boolean | null;
   from?: string | null;
@@ -1072,6 +1139,14 @@ export interface Sponsor {
 export interface SponsorList {
   contact?: string;
   sponsors: Sponsor[];
+}
+
+export interface Status {
+  carrier: string;
+  metrics?: Metrics | null;
+  reason: string;
+  revision: number;
+  state: string;
 }
 
 export interface SubBalancer {
@@ -1119,6 +1194,33 @@ export interface TuicServerSettings {
   sni?: string;
   udp_relay_mode: string;
   zero_rtt_handshake: boolean;
+}
+
+export interface TunnelMutation {
+  config: Config;
+  enabled: boolean;
+  generateKey: boolean;
+  name: string;
+  nodeId?: number | null;
+  revision: number;
+  secret: string;
+  token: string;
+}
+
+export interface TunnelToken {
+  token: string;
+}
+
+export interface TunnelView {
+  config: Config;
+  enabled: boolean;
+  guid: string;
+  id: number;
+  managed: boolean;
+  name: string;
+  nodeId?: number | null;
+  revision: number;
+  status: Status;
 }
 
 export interface User {

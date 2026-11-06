@@ -84,7 +84,9 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 # reads worked before the sandbox because the panel is root.
 # DAC_READ_SEARCH is deliberately absent: directory search is already covered by
 # DAC_OVERRIDE, so it would only widen the set without adding anything.
-CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+# WatTunnel drops its child to a service UID: CHOWN/FOWNER manage private
+# runtime files, SETUID/SETGID drop credentials, KILL stops that child.
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_KILL CAP_SETGID CAP_SETUID CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 SystemCallArchitectures=native
 # No seccomp whitelist here on purpose. @system-service needs systemd >= 239
 # (other @-named groups exist since 231), and older systemd does not ignore an

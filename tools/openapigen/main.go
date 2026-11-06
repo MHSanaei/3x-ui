@@ -21,6 +21,7 @@ func main() {
 
 func run(root, outDir string) error {
 	requests := []packageRequest{
+		{Path: resolveRel(root, "internal/wattunnel"), StructAllow: setOf("Config", "Port", "CarrierEndpoint", "Status", "Metrics", "Capabilities", "Spec")},
 		{
 			Path: resolveRel(root, "internal/database/model"),
 			StructAllow: setOf(
@@ -107,6 +108,7 @@ func run(root, outDir string) error {
 				"MLDSA65Response",
 				"MLKEM768Response",
 				"NodeMutationRequest",
+				"TunnelMutation", "TunnelView", "TunnelToken",
 				"NodeView",
 				"ProbeResultUI",
 				"RealityScanResult",

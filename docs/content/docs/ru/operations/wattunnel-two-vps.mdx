@@ -1,0 +1,273 @@
+---
+title: Проверка WatTunnel на двух VPS
+description: Локальная тестовая сборка, замена бинарников и каскад через РФ-мост на зарубежный Xray.
+---
+
+## Какой способ установки выбрать
+
+Права мейнтейнера для своей сборки не нужны. Можно установить обычную 3x-ui на оба тестовых VPS, остановить её и заменить исполняемый файл панели нашей сборкой. Дополнительно нужны бинарник WatTunnel, подписанный manifest и служебный пользователь. Новый frontend и переводы встроены в бинарник панели.
+
+Для первого теста используйте две отдельные панели: РФ — WatTunnel **Client**, зарубежный VPS — WatTunnel **Server**. В каждой форме выберите локальную ноду. Master/node пока не нужен: он добавит отдельную настройку HTTPS и авторизации синхронизации.
+
+Ниже предполагаются Ubuntu 24.04/Debian, systemd, обычная root-служба `x-ui`, SQLite в `/etc/x-ui` и установка в `/usr/local/x-ui`. Это инструкция для двух тестовых VPS. Для нестандартных путей или PostgreSQL сначала адаптируйте резервирование и команды установки.
+
+## 1. Проверить архитектуру обоих VPS
+
+На каждом VPS:
+
+```sh
+uname -m
+systemctl show x-ui -p User -p WorkingDirectory -p ExecStart -p EnvironmentFiles
+systemctl cat x-ui
+```
+
+- `x86_64` — нужен пакет `linux-amd64`.
+- `aarch64`/`arm64` — нужен пакет `linux-arm64`.
+- Пустой `User=` у системной службы означает root. Для настроенной непривилегированной службы команды ниже не подходят без адаптации.
+
+Не путайте архитектуру VPS с архитектурой Mac. Если оба VPS x86_64, для обоих нужен один amd64-пакет.
+
+## 2. Собрать пакет локально на Mac через Docker
+
+Собирать нужно текущую локальную копию проекта с изменениями WatTunnel: их ещё нет в официальном dev-канале. Коммит и публикация для этой сборки не требуются.
+
+В терминале Mac, с Node 26 и работающим Docker:
+
+```sh
+cd /Users/egormullaarov/WebstormProjects/fork/3x-ui
+npm --prefix frontend ci
+npm --prefix frontend run build
+mkdir -p .cache/wattunnel-vps
+```
+
+Затем для x86_64 VPS:
+
+```sh
+docker run --rm --platform linux/amd64 \
+  -v "$PWD:/src" -w /src \
+  golang:1.27-alpine sh -ec '
+    apk add --no-cache build-base file
+    export CGO_ENABLED=1
+    export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+    out=".cache/wattunnel-vps/linux-$(go env GOARCH)"
+    mkdir -p "$out/bin"
+    go build -trimpath \
+      -ldflags="-w -s -linkmode external -extldflags=-static" \
+      -o "$out/x-ui" .
+    file "$out/x-ui"
+    go run ./tools/wattunnel-release -target "linux-$(go env GOARCH)" -out "$out/bin"
+    tar -czf "$out.tar.gz" -C "$out" x-ui bin
+  '
+```
+
+Для arm64 замените только `--platform linux/amd64` на `--platform linux/arm64`. Проверка `file` должна показать **statically linked**. SQLite требует CGO: не заменяйте этот процесс на сборку с `CGO_ENABLED=0`.
+
+Результат для amd64:
+
+```text
+.cache/wattunnel-vps/linux-amd64.tar.gz
+  x-ui
+  bin/wattun-linux-amd64
+  bin/wattunnel-SHA256SUMS
+  bin/wattunnel-SHA256SUMS.sig
+  bin/wattunnel-LICENSE
+```
+
+Не извлекайте `/app/x-ui` из обычного Alpine Docker-образа для запуска непосредственно на Ubuntu: такая сборка может зависеть от musl-загрузчика. Команда выше специально собирает статический исполняемый файл. Вариант с полноценным Docker-образом также возможен, но тогда панель нужно запускать внутри контейнера.
+
+## 3. Передать один и тот же пакет на оба VPS
+
+На Mac замените `RF_IP` и `EXIT_IP` реальными адресами:
+
+```sh
+scp .cache/wattunnel-vps/linux-amd64.tar.gz root@RF_IP:/root/wattunnel-test.tar.gz
+scp .cache/wattunnel-vps/linux-amd64.tar.gz root@EXIT_IP:/root/wattunnel-test.tar.gz
+```
+
+Если архитектуры разные, передайте каждому соответствующий пакет. При входе не через root используйте своего SSH-пользователя и затем `sudo` для установки.
+
+## 4. Установить тестовый пакет на каждом VPS
+
+Сначала установите обычную 3x-ui привычным способом и убедитесь, что панель открывается. Затем на **каждом** VPS войдите в root shell: `sudo -i`.
+
+Проверьте свободное место для копии каталога `bin`. Следующий блок рассчитан на стандартные пути, указанные выше:
+
+```sh
+set -eu
+case "$(uname -m)" in
+  x86_64) wat_arch=amd64 ;;
+  aarch64|arm64) wat_arch=arm64 ;;
+  *) echo 'Неподдерживаемая архитектура' >&2; exit 1 ;;
+esac
+
+wat_stage=$(mktemp -d /root/wattunnel-stage.XXXXXX)
+tar -xzf /root/wattunnel-test.tar.gz -C "$wat_stage"
+test -x "$wat_stage/x-ui"
+test -x "$wat_stage/bin/wattun-linux-$wat_arch"
+"$wat_stage/bin/wattun-linux-$wat_arch" -version
+
+wat_backup="/root/x-ui-before-wattunnel-$(date +%Y%m%d-%H%M%S)"
+install -d -m 700 "$wat_backup"
+systemctl stop x-ui
+cp -a /etc/x-ui "$wat_backup/db"
+cp -a /usr/local/x-ui/x-ui "$wat_backup/x-ui"
+cp -a /usr/local/x-ui/bin "$wat_backup/bin"
+systemctl cat x-ui > "$wat_backup/service.txt"
+
+if ! id x-ui-wattunnel >/dev/null 2>&1; then
+  useradd --system --no-create-home --shell /usr/sbin/nologin x-ui-wattunnel
+fi
+
+install -m 755 "$wat_stage/x-ui" /usr/local/x-ui/x-ui.next
+mv -f /usr/local/x-ui/x-ui.next /usr/local/x-ui/x-ui
+install -m 755 "$wat_stage/bin/wattun-linux-$wat_arch" /usr/local/x-ui/bin/
+install -m 644 "$wat_stage/bin/wattunnel-SHA256SUMS" /usr/local/x-ui/bin/
+install -m 644 "$wat_stage/bin/wattunnel-SHA256SUMS.sig" /usr/local/x-ui/bin/
+install -m 644 "$wat_stage/bin/wattunnel-LICENSE" /usr/local/x-ui/bin/
+
+install -d -m 755 /etc/systemd/system/x-ui.service.d
+cat > /etc/systemd/system/x-ui.service.d/30-wattunnel-vps-test.conf <<'UNIT'
+[Service]
+CapabilityBoundingSet=
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_KILL CAP_SETGID CAP_SETUID CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+UNIT
+
+systemctl daemon-reload
+systemctl start x-ui
+systemctl is-active x-ui
+printf 'Резервная копия: %s\n' "$wat_backup"
+```
+
+Если команда остановилась с ошибкой, не продолжайте установку вслепую: панель могла остаться остановленной. Журнал:
+
+```sh
+journalctl -u x-ui -n 100 --no-pager
+```
+
+Drop-in нужен для старых service-файлов: панель меняет владельца приватных файлов, запускает `wattun` под отдельным UID/GID и должна иметь возможность его остановить. Сам дочерний процесс получает только необходимые сетевые capabilities. `NoNewPrivileges` отключать не требуется. Семантика ограничения описана в [systemd.exec](https://www.freedesktop.org/software/systemd/man/258/systemd.exec.html), назначение прав — в [capabilities(7)](https://man7.org/linux/man-pages/man7/capabilities.7.html).
+
+Откройте панель с принудительным обновлением страницы: должен появиться раздел **Tunnels**. Штатное обновление панели заменит тестовую сборку, поэтому во время проверки его не запускайте.
+
+## 5. Схема первого теста: TCP, direct
+
+```text
+Обычный Xray-клиент
+  → RF_IP:8443
+  → WatTunnel Client на РФ VPS
+  → TCP EXIT_IP:4443
+  → WatTunnel Server за рубежом
+  → существующий Xray inbound 127.0.0.1:24443
+  → интернет
+```
+
+Входной порт пользователя `8443`, межсерверный порт `4443` и порт Xray `24443` имеют разные назначения.
+
+| Параметр | РФ-мост | Зарубежный VPS |
+| --- | --- | --- |
+| Нода | Local | Local |
+| Роль WatTunnel | Client | Server |
+| Транспорт | TCP | TCP |
+| Reverse | Выключен | Выключен |
+| Endpoint | `EXIT_IP` | `EXIT_IP` |
+| Порт транспорта | `4443` | `4443` |
+| Listen транспорта | Не используется в direct | `0.0.0.0` |
+| Bind пробросов | `0.0.0.0` | Не является адресом Xray; цели всегда loopback |
+| TCP mapping | `8443 → 24443` | Разрешить целевой `24443` |
+
+### Зарубежный VPS
+
+1. Подготовьте рабочий Xray inbound, например VLESS + Reality. Сохраните UUID, public key, short ID, SNI и остальные параметры клиента.
+2. Используйте порт `24443` и listen `127.0.0.1`. Если inbound уже существует на другом порту, подставьте его порт во все target-поля ниже. Не меняйте протокол inbound ради WatTunnel.
+3. Создайте Tunnels → Server по таблице. В строке TCP mapping можно указать `24443` в обоих полях: на Server используется target как разрешённый loopback-порт.
+4. Сгенерируйте ключ, включите туннель, сохраните. Пока Client не подключился, состояние ожидания нормально.
+5. Экспортируйте `wat1:` токен. Он содержит общий секрет, не публикуйте его.
+
+### РФ-мост
+
+1. Создайте Tunnel, выберите Client и Local.
+2. Отключите генерацию ключа и вставьте токен зарубежной стороны. Не создавайте второй независимый ключ.
+3. Укажите TCP mapping `8443 → 24443`, bind `0.0.0.0`. При импорте проверьте mapping: локальный порт задаётся отдельно от параметров токена.
+4. Включите и сохраните. Дождитесь состояния соединения; один запущенный PID ещё не доказывает работающий туннель.
+
+В firewall VPS и в security groups провайдера разрешите:
+
+- На РФ VPS: входящий TCP `8443` для ваших Xray-клиентов.
+- На зарубежном: входящий TCP `4443` от IP РФ VPS.
+- Исходящие подключения РФ → зарубежный `4443/TCP` и ответный трафик.
+
+Не публикуйте наружу loopback Xray `24443` и metrics. Правила SSH и доступа к панелям оставьте рабочими. Для первого теста не включайте новый firewall с политикой deny без подготовленных разрешений SSH.
+
+### Обычный Xray-клиент
+
+Возьмите профиль зарубежного inbound и замените только адрес подключения и порт:
+
+```text
+address: RF_IP
+port: 8443
+```
+
+UUID, public key, short ID, SNI/serverName, flow и остальные параметры Xray остаются от зарубежного inbound. Не подставляйте IP моста в SNI. Приложение WatTunnel на пользовательском устройстве не требуется.
+
+## 6. Проверить результат и восстановление
+
+На зарубежном VPS:
+
+```sh
+ss -lntp | grep -E ':24443|:4443'
+```
+
+На РФ VPS:
+
+```sh
+ss -lntp | grep ':8443'
+journalctl -u x-ui -n 80 --no-pager
+```
+
+На компьютере, где обычный Xray-клиент предоставляет SOCKS на `127.0.0.1:1080`:
+
+```sh
+curl --max-time 20 --proxy socks5h://127.0.0.1:1080 https://api.ipify.org
+```
+
+Ожидается внешний IP зарубежного VPS, если Xray там использует обычный direct outbound. Если настроен другой outbound, должен быть адрес его выхода. Если у приложения другой SOCKS-порт, замените `1080`.
+
+Проверьте по порядку:
+
+1. Страницы открываются, в Tunnels растут счётчики и появляется RTT на Client.
+2. Stop на РФ стороне прекращает новые подключения через `8443`; Start восстанавливает их.
+3. Stop → `systemctl restart x-ui` на РФ стороне: туннель остаётся остановленным.
+4. Start → `systemctl restart x-ui`: желаемое включённое состояние восстанавливается; дождитесь повторного соединения.
+5. Перезапустите зарубежную панель и убедитесь, что новые подключения снова проходят.
+
+Для диагностики пришлите состояния обоих туннелей, архитектуры, используемый транспорт, время проверки и обезличенную ошибку. Токен `wat1:`, ключи и бэкап БД для этого не нужны.
+
+## 7. Проверить другие транспорты и reverse
+
+После успешного TCP/direct меняйте по одному параметру на обеих сторонах, сохраняя один общий ключ:
+
+| Транспорт | Что разрешить между VPS |
+| --- | --- |
+| UDP | UDP на выбранном транспортном порту |
+| TCP/TLS/WSS | TCP на выбранном транспортном порту |
+| ICMP | IPv4 ICMP; это не TCP/UDP-порт |
+
+Проброс `8443 → 24443/TCP` при этом остаётся TCP. Транспорт UDP не требует переводить VLESS inbound в UDP. Для TLS/WSS согласуйте SNI/path; pin, если используете его, задаётся отдельно и не переносится токеном.
+
+Затем протестируйте **reverse**:
+
+- Роли сохраняются: РФ — Client, зарубежный VPS — Server.
+- Включите Reverse на обеих сторонах.
+- На зарубежном Server явно укажите reverse peer `RF_IP`.
+- РФ Client теперь слушает транспортный `4443`; разрешите этот порт от IP зарубежного VPS.
+- Зарубежный Server инициирует соединение к `RF_IP:4443`.
+- Пользователь по-прежнему подключается к `RF_IP:8443`, target по-прежнему `24443`.
+
+Проверяйте reverse сначала на TCP. Обратный dialer движка может повторять подключение с паузой до 30 секунд; учитывайте это при ожидании восстановления.
+
+Auto проверяйте последним, с одинаковым набором транспортов и портов на обеих сторонах. Для TCP, TLS и WSS задайте разные listener-порты, например TCP `4443`, TLS `4444`, WSS `4445`; UDP может использовать `4443/UDP`. Сначала подтвердите каждый транспорт отдельно. Смена Auto-транспорта может оборвать активные соединения.
+
+## 8. Откат
+
+До отката остановите туннели в панели, затем `systemctl stop x-ui`. Из сохранённого каталога `/root/x-ui-before-wattunnel-...` восстановите **старый бинарник, каталог bin и БД вместе**. Не возвращайте старую панель поверх мигрировавшей БД без её резервной копии. Текущие каталоги сначала перенесите в отдельный архив, чтобы не потерять результаты теста.
+
+Удалите созданный только для этого теста drop-in `30-wattunnel-vps-test.conf`, выполните `systemctl daemon-reload` и `systemctl start x-ui`. Если сохраняете новую версию и туннели, делайте бэкап всей `/etc/x-ui`, включая `wattunnel-secrets/keyring.json`: одной SQLite-БД для восстановления секретов недостаточно.
