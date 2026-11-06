@@ -7,7 +7,7 @@ import type { Dayjs } from 'dayjs';
 import { PersianDateTimePicker } from 'persian-calendar-suite';
 
 import { useDatepicker } from '@/hooks/useDatepicker';
-import { useTheme } from '@/hooks/useTheme';
+import { accentPrimary, useTheme } from '@/hooks/useTheme';
 import './DateTimePicker.css';
 
 interface DateTimePickerProps {
@@ -66,7 +66,7 @@ export default function DateTimePicker({
 }: DateTimePickerProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
-  const { isDark, isUltra } = useTheme();
+  const { isDark, isUltra, accent } = useTheme();
   const jalaliRef = useRef<HTMLDivElement>(null);
   // Bumped on clear: persian-calendar-suite reads `value` only on mount, so
   // remounting via key is the only way to reflect an externally cleared value.
@@ -83,10 +83,11 @@ export default function DateTimePicker({
   }, [clearNonce]);
 
   const persianTheme = useMemo(() => {
-    if (isUltra) return ULTRA_DARK_THEME;
-    if (isDark) return DARK_THEME;
-    return LIGHT_THEME;
-  }, [isDark, isUltra]);
+    const base = isUltra ? ULTRA_DARK_THEME : isDark ? DARK_THEME : LIGHT_THEME;
+    if (accent === 'default') return base;
+    const primaryColor = accentPrimary(accent, isDark);
+    return { ...base, primaryColor, hoverColor: `${primaryColor}${isDark ? '2e' : '1a'}` };
+  }, [isDark, isUltra, accent]);
 
   const commitChange = (next: Dayjs | null) => {
     if (next && maxDate && next.isAfter(maxDate)) {

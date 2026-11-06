@@ -1,6 +1,7 @@
 import { NumberFormatter } from '@/utils';
 import type { StatusInput as ParsedStatusInput } from '@/schemas/status';
 
+export const USAGE_OK_COLOR = '#1677ff';
 export const USAGE_WARN_PERCENT = 80;
 export const USAGE_CRIT_PERCENT = 90;
 export const USAGE_WARN_COLOR = '#faad14';
@@ -22,7 +23,7 @@ export class CurTotal {
 
   get color(): string {
     const p = this.percent;
-    if (p < USAGE_WARN_PERCENT) return '#1677ff';
+    if (p < USAGE_WARN_PERCENT) return USAGE_OK_COLOR;
     if (p < USAGE_CRIT_PERCENT) return USAGE_WARN_COLOR;
     return USAGE_CRIT_COLOR;
   }
