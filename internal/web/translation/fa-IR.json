@@ -1385,6 +1385,8 @@
       "externalTrafficInformEnableDesc": "به API خارجی در هر به‌روزرسانی ترافیک اطلاع بده.",
       "externalTrafficInformURI": "لینک اطلاع رسانی خارجی مصرف ترافیک",
       "externalTrafficInformURIDesc": "ترافیک های مصرفی به این لینک هم ارسال می شود",
+      "externalTrafficInformInterval": "فاصله زمانی اطلاع‌رسانی ترافیک خارجی",
+      "externalTrafficInformIntervalDesc": "بازه زمانی به ثانیه برای ارسال ترافیک تجمیع‌شده به API خارجی (حداقل ۵ ثانیه).",
       "restartXrayOnClientDisable": "ری‌استارت Xray پس از غیرفعال‌سازی کلاینت",
       "restartXrayOnClientDisableDesc": "وقتی دیگر به کاربر سرویس داده نمی‌شود — غیرفعال شدن خودکار به‌خاطر اتمام زمان یا محدودیت ترافیک، یا غیرفعال/حذف دستی — Xray ری‌استارت شود تا اتصال‌های فعالش بسته شوند.",
       "fragment": "فرگمنت",

@@ -200,9 +200,10 @@ var defaultValueMap = map[string]string{
 	"warpUpdateInterval":          "0",
 	"nord":                        "",
 	"pia":                         "",
-	"externalTrafficInformEnable": "false",
-	"externalTrafficInformURI":    "",
-	"restartXrayOnClientDisable":  "true",
+	"externalTrafficInformEnable":   "false",
+	"externalTrafficInformURI":      "",
+	"externalTrafficInformInterval": "5",
+	"restartXrayOnClientDisable":    "true",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
 	"panelOutbound":               "",
 	"devChannelEnable":            "false",
@@ -1323,6 +1324,14 @@ func (s *SettingService) GetExternalTrafficInformURI() (string, error) {
 
 func (s *SettingService) SetExternalTrafficInformURI(InformURI string) error {
 	return s.setString("externalTrafficInformURI", InformURI)
+}
+
+func (s *SettingService) GetExternalTrafficInformInterval() (int, error) {
+	return s.getInt("externalTrafficInformInterval")
+}
+
+func (s *SettingService) SetExternalTrafficInformInterval(value int) error {
+	return s.setInt("externalTrafficInformInterval", value)
 }
 
 func (s *SettingService) GetRestartXrayOnClientDisable() (bool, error) {
