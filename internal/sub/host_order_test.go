@@ -250,6 +250,8 @@ func TestSub_GlobalHostOrder(t *testing.T) {
 			}
 		}
 	}
+	assertAll([]string{"b.example.com", "a.example.com", "shared1.example.com", "shared2.example.com", "shared1.example.com", "c.example.com", "203.0.113.5"})
+	setHostSortMode(t, "inbound-first")
 	assertAll([]string{"203.0.113.5", "a.example.com", "shared1.example.com", "shared2.example.com", "b.example.com", "shared1.example.com", "c.example.com"})
 	setHostSortMode(t, "hosts-first")
 	assertAll([]string{"b.example.com", "a.example.com", "shared1.example.com", "shared2.example.com", "shared1.example.com", "c.example.com", "203.0.113.5"})
