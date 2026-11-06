@@ -360,6 +360,25 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 	return dbClientTraffics, newExpiryByEmail, nil
 }
 
+// coreUserFromClient is the account map the runtime AddUser expects; WireGuard
+// peers fail it without publicKey/allowedIPs, and a failed add restarts Xray.
+func coreUserFromClient(c *model.Client, cipher string) map[string]any {
+	return map[string]any{
+		"email":        c.Email,
+		"id":           c.ID,
+		"auth":         c.Auth,
+		"security":     c.Security,
+		"flow":         c.Flow,
+		"password":     c.Password,
+		"cipher":       cipher,
+		"publicKey":    c.PublicKey,
+		"allowedIPs":   c.AllowedIPs,
+		"preSharedKey": c.PreSharedKey,
+		"keepAlive":    keepAliveStr(c.KeepAliveSeconds()),
+		"reverse":      c.Reverse,
+	}
+}
+
 // apiUserFromClient prepares a stored client object for the runtime AddUser
 // call. The copy matters twice over: the stored object keeps being mutated and
 // marshalled back into the inbound's settings, which must not gain an API-only
@@ -763,20 +782,10 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			}
 			cipher, _ = oldSettings["method"].(string)
 		}
-		clientMap := map[string]any{
-			"email":    entry.Email,
-			"id":       entry.ID,
-			"auth":     entry.Auth,
-			"security": entry.Security,
-			"flow":     entry.Flow,
-			"password": entry.Password,
-			"cipher":   cipher,
-			"reverse":  entry.Reverse,
-		}
 		if inbound.NodeID != nil {
 			reenableNodeID = inbound.NodeID
 		} else {
-			reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
+			reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: coreUserFromClient(entry, cipher)}
 		}
 	}
 
@@ -835,15 +844,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	}
 
 	if reenablePlan != nil {
-		rt, err := s.runtimeFor(&reenablePlan.inbound)
-		if err != nil {
-			needRestart = true
-		} else if err := rt.AddUser(context.Background(), &reenablePlan.inbound, reenablePlan.client); err != nil {
-			logger.Debug("Error in enabling client on", rt.Name(), ":", err)
-			needRestart = true
-		} else {
-			logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
-		}
+		// The batch routes MTProto/AmneziaWG/TUIC to their own reconcilers; their
+		// AddUser is a no-op, so a quota-disabled peer would never come back.
+		needRestart = s.applyTrafficMutationBatch(&trafficMutationBatch{localPlans: []trafficLocalApplyPlan{*reenablePlan}})
 	}
 
 	return needRestart, inbound.NodeID, nil
