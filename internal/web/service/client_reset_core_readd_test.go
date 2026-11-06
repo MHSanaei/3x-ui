@@ -178,3 +178,67 @@ func TestAutoRenewOfWireGuardPeerWithKeepAliveNeedsNoRestart(t *testing.T) {
 		t.Fatal("auto-renewing a WireGuard peer asked for an Xray restart")
 	}
 }
+
+// Bulk enable built its own account map without the WireGuard keys, so
+// enabling a peer restarted Xray for every user.
+func TestBulkEnableOfWireGuardPeerNeedsNoRestart(t *testing.T) {
+	const email = "wg-bulk@x"
+	_, probe := seedQuotaDisabledClient(t, 51843, model.WireGuard, model.Client{
+		Email: email, SubID: "sub-" + email, PublicKey: resetProbePeerKey,
+		AllowedIPs: []string{"10.0.0.9/32"},
+	})
+	liftQuota(t, email)
+
+	_, needRestart, err := (&ClientService{}).BulkSetEnable(&InboundService{}, []string{email}, true)
+	if err != nil {
+		t.Fatalf("BulkSetEnable: %v", err)
+	}
+	probe.mu.Lock()
+	errs := probe.addErrs
+	probe.mu.Unlock()
+	if len(errs) != 1 || errs[0] != nil {
+		t.Fatalf("core adds of %s: %v, want one accepted add", email, errs)
+	}
+	if needRestart {
+		t.Fatal("bulk-enabling a WireGuard peer asked for an Xray restart")
+	}
+}
+
+// AmneziaWG AddUser/RemoveUser are no-ops, so a bulk toggle must reach the
+// device through the inbound reconcile, in both directions.
+func TestBulkSetEnableOfAmneziaWGPeerReachesTheDevice(t *testing.T) {
+	const email = "awg-bulk@x"
+	ib, probe := seedQuotaDisabledClient(t, 51844, model.AmneziaWG, model.Client{
+		Email: email, SubID: "sub-" + email, PublicKey: resetProbePeerKey,
+		AllowedIPs: []string{"10.8.1.9/32"},
+	})
+	liftQuota(t, email)
+	for _, enable := range []bool{true, false} {
+		if _, _, err := (&ClientService{}).BulkSetEnable(&InboundService{}, []string{email}, enable); err != nil {
+			t.Fatalf("BulkSetEnable(%v): %v", enable, err)
+		}
+		probe.mu.Lock()
+		updated := probe.updated
+		probe.updated = nil
+		probe.mu.Unlock()
+		reached := false
+		for _, pushed := range updated {
+			if pushed.Id == ib.Id && settingsClientEnabled(t, pushed.Settings, email) == enable {
+				reached = true
+			}
+		}
+		if !reached {
+			t.Fatalf("bulk enable=%v never reached the AmneziaWG device; pushed %d updates", enable, len(updated))
+		}
+	}
+}
+
+// liftQuota leaves the client switched off by hand only, the state bulk enable
+// turns back on; a depleted one stays off the runtime whatever its flag says.
+func liftQuota(t *testing.T, email string) {
+	t.Helper()
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
+		t.Fatalf("lift quota of %s: %v", email, err)
+	}
+}

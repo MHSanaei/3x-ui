@@ -1807,19 +1807,16 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	if oldInbound.NodeID == nil {
 		if !push {
 			res.needRestart = true
+		} else if oldInbound.Protocol == model.MTProto {
+			inboundSvc.applyLocalMtproto(oldInbound.Id)
+		} else if oldInbound.Protocol == model.AmneziaWG {
+			inboundSvc.applyLocalAmneziaWG(oldInbound.Id)
+		} else if oldInbound.Protocol == model.TUIC {
+			inboundSvc.applyLocalTuic(oldInbound.Id)
 		} else {
 			for _, ch := range changed {
 				if enable {
-					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":    ch.client.Email,
-						"id":       ch.client.ID,
-						"security": ch.client.Security,
-						"flow":     ch.client.Flow,
-						"auth":     ch.client.Auth,
-						"password": ch.client.Password,
-						"cipher":   cipher,
-						"reverse":  ch.client.Reverse,
-					})
+					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&ch.client, cipher))
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
 						res.needRestart = true
