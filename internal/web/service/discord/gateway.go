@@ -504,6 +504,12 @@ func (g *GatewayClient) sendStatus(ctx context.Context) {
 	}
 
 	tr := translator(g.settingService)
+	sentTraffic := common.FormatTraffic(int64(status.NetTraffic.Sent))
+	receivedTraffic := common.FormatTraffic(int64(status.NetTraffic.Recv))
+	if !status.MetricAvailable("netTraffic") {
+		sentTraffic = tr("pages.settings.networkTrafficUnavailable")
+		receivedTraffic = sentTraffic
+	}
 	embed := Embed{
 		Title:       tr("discord.commands.statusTitle"),
 		Description: tr("discord.commands.statusDescription", "Host=="+hostname),
@@ -517,8 +523,8 @@ func (g *GatewayClient) sendStatus(ctx context.Context) {
 			{Name: tr("pages.index.memory"), Value: fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total))), Inline: true},
 			{Name: tr("pages.index.historyTitleOnline"), Value: strconv.Itoa(len(onlines)), Inline: true},
 			{Name: tr("pages.index.historyTabConnections"), Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
-			{Name: tr("pages.index.sent"), Value: common.FormatTraffic(int64(status.NetTraffic.Sent)), Inline: true},
-			{Name: tr("pages.index.received"), Value: common.FormatTraffic(int64(status.NetTraffic.Recv)), Inline: true},
+			{Name: tr("pages.index.sent"), Value: sentTraffic, Inline: true},
+			{Name: tr("pages.index.received"), Value: receivedTraffic, Inline: true},
 		},
 		Footer: &EmbedFooter{Text: tr("discord.footer")},
 	}

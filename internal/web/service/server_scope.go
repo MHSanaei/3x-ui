@@ -51,7 +51,7 @@ func appendScopedMetric(status *Status, metric string, t time.Time, value float6
 	if !status.MetricAvailable(metric) {
 		return
 	}
-	if status.ResourceScope != "" {
+	if status.ResourceScope != "" && scopedMetric(metric) {
 		metric = containerHistoryPrefix + metric
 	}
 	systemMetrics.append(metric, t, value)

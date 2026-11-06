@@ -68,6 +68,7 @@ export interface AmneziaWGInfo {
 }
 
 interface StatusInput extends Pick<ParsedStatusInput, 'resourceScope' | 'unavailableMetrics'> {
+  networkInterface?: ParsedStatusInput['networkInterface'];
   cpu?: number;
   cpuCores?: number;
   logicalPro?: number;
@@ -89,6 +90,7 @@ interface StatusInput extends Pick<ParsedStatusInput, 'resourceScope' | 'unavail
 }
 
 export class Status {
+  networkInterface: ParsedStatusInput['networkInterface'];
   resourceScope = '';
   unavailableMetrics: string[] = [];
 
@@ -119,6 +121,7 @@ export class Status {
     if (data == null) return;
 
     this.resourceScope = data.resourceScope ?? '';
+    this.networkInterface = data.networkInterface;
     this.unavailableMetrics = data.unavailableMetrics ?? [];
     this.cpu = new CurTotal(data.cpu ?? 0, 100);
     this.cpuCores = data.cpuCores ?? 0;

@@ -6,7 +6,7 @@ import { parseMsg } from '@/utils/zodValidate';
 import { AllSetting } from '@/models/setting';
 import {
   AllSettingResponseSchema,
-  AllSettingSchema,
+  AllSettingFieldsSchema,
   type AllSettingInput,
 } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
@@ -63,7 +63,7 @@ export function useAllSettings() {
       saved?: AllSetting;
     }): Promise<SettingSaveResult> => {
       const next = { ...payload };
-      const body = AllSettingSchema.partial().safeParse(next);
+      const body = AllSettingFieldsSchema.partial().safeParse(next);
       if (!body.success) {
         console.warn('[zod] setting/update body failed validation', body.error.issues);
       }
