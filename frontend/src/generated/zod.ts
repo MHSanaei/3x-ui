@@ -438,6 +438,26 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const BulkAdjustReportSchema = z.object({
+  email: z.string(),
+  reason: z.string(),
+});
+export type BulkAdjustReport = z.infer<typeof BulkAdjustReportSchema>;
+
+export const BulkAdjustResultSchema = z.object({
+  adjusted: z.number().int(),
+  externalLinks: z.lazy(() => BulkExternalLinksResultSchema).nullable().optional(),
+  skipped: z.array(z.lazy(() => BulkAdjustReportSchema)).optional(),
+});
+export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
+
+export const BulkExternalLinksResultSchema = z.object({
+  added: z.number().int(),
+  errors: z.number().int(),
+  skipped: z.number().int(),
+});
+export type BulkExternalLinksResult = z.infer<typeof BulkExternalLinksResultSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
@@ -615,6 +635,16 @@ export const ClientsSummarySchema = z.object({
   total: z.number().int(),
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
+
+export const ExternalLinkInputSchema = z.object({
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int().optional(),
+  kind: z.string().optional(),
+  namePrefix: z.string().optional(),
+  remark: z.string().optional(),
+  value: z.string(),
+});
+export type ExternalLinkInput = z.infer<typeof ExternalLinkInputSchema>;
 
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
