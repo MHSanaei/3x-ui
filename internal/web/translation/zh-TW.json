@@ -2495,7 +2495,15 @@
         "descRESET_DAY": "按月續期的日期",
         "descPROTOCOL": "入站協定（VLESS、VMess、Trojan…）",
         "descTRANSPORT": "傳輸網路（tcp、ws、grpc…）",
-        "descSECURITY": "傳輸安全（TLS、REALITY、NONE）"
+        "descSECURITY": "傳輸安全（TLS、REALITY、NONE）",
+        "descINBOUND_TRAFFIC_USED": "入站已用流量",
+        "descINBOUND_TRAFFIC_LEFT": "入站剩餘流量（無限制時隱藏）",
+        "descINBOUND_TRAFFIC_TOTAL": "入站總流量（無限制時隱藏）",
+        "descINBOUND_TRAFFIC_USED_BYTES": "入站已用流量（位元組）",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "入站剩餘流量（位元組）",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "入站總流量（位元組）",
+        "descINBOUND_UP": "入站上傳流量",
+        "descINBOUND_DOWN": "入站下載流量"
       },
       "toasts": {
         "list": "載入 Host 失敗",

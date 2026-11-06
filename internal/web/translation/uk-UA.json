@@ -2495,7 +2495,15 @@
         "descRESET_DAY": "Число місяця, у яке подовжується доступ",
         "descPROTOCOL": "Протокол вхідного (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Транспортна мережа (tcp, ws, grpc, …)",
-        "descSECURITY": "Безпека транспорту (TLS, REALITY, NONE)"
+        "descSECURITY": "Безпека транспорту (TLS, REALITY, NONE)",
+        "descINBOUND_TRAFFIC_USED": "Використаний трафік вхідного підключення",
+        "descINBOUND_TRAFFIC_LEFT": "Залишок трафіку вхідного підключення (прихований, якщо безлімітний)",
+        "descINBOUND_TRAFFIC_TOTAL": "Загальний трафік вхідного підключення (прихований, якщо безлімітний)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "Використаний трафік вхідного підключення у байтах",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "Залишок трафіку вхідного підключення у байтах",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "Загальний трафік вхідного підключення у байтах",
+        "descINBOUND_UP": "Вихідний трафік вхідного підключення",
+        "descINBOUND_DOWN": "Вхідний трафік вхідного підключення"
       },
       "toasts": {
         "list": "Не вдалося завантажити хости",

@@ -2495,7 +2495,15 @@
         "descRESET_DAY": "يوم الشهر الذي يتم فيه التجديد",
         "descPROTOCOL": "بروتوكول الوارد (VLESS، VMess، Trojan، …)",
         "descTRANSPORT": "شبكة النقل (tcp، ws، grpc، …)",
-        "descSECURITY": "أمان النقل (TLS، REALITY، NONE)"
+        "descSECURITY": "أمان النقل (TLS، REALITY، NONE)",
+        "descINBOUND_TRAFFIC_USED": "حركة المرور المستخدمة للوارد",
+        "descINBOUND_TRAFFIC_LEFT": "حركة المرور المتبقية للوارد (مخفية إذا كانت غير محدودة)",
+        "descINBOUND_TRAFFIC_TOTAL": "إجمالي حركة المرور للوارد (مخفية إذا كانت غير محدودة)",
+        "descINBOUND_TRAFFIC_USED_BYTES": "حركة المرور المستخدمة للوارد بالبايت",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "حركة المرور المتبقية للوارد بالبايت",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "إجمالي حركة المرور للوارد بالبايت",
+        "descINBOUND_UP": "حركة مرور الرفع للوارد",
+        "descINBOUND_DOWN": "حركة مرور التنزيل للوارد"
       },
       "toasts": {
         "list": "فشل تحميل المضيفات",

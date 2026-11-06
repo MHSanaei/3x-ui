@@ -69,29 +69,39 @@ const unlimitedMark = "∞"
 // client. A "|"-separated segment whose only value comes from one of these is
 // dropped whole when unlimited, so the operator never sees "📊∞|⏳∞D".
 var unlimitedDropTokens = map[string]bool{
-	"TRAFFIC_LEFT":  true,
-	"TRAFFIC_TOTAL": true,
-	"DAYS_LEFT":     true,
-	"TIME_LEFT":     true,
+	"TRAFFIC_LEFT":          true,
+	"TRAFFIC_TOTAL":         true,
+	"INBOUND_TRAFFIC_LEFT":  true,
+	"INBOUND_TRAFFIC_TOTAL": true,
+	"DAYS_LEFT":             true,
+	"TIME_LEFT":             true,
 }
 
 // uiTokenMap translates user-friendly single-brace tokens (used in the frontend
 // Remark/Host Name fields) to their internal double-brace equivalents. Tokens
 // not present in this map are left untouched.
 var uiTokenMap = map[string]string{
-	"EMAIL":              "EMAIL",
-	"DATA_USAGE":         "TRAFFIC_USED",
-	"DATA_LEFT":          "TRAFFIC_LEFT",
-	"DATA_LIMIT":         "TRAFFIC_TOTAL",
-	"DAYS_LEFT":          "DAYS_LEFT",
-	"EXPIRE_DATE":        "EXPIRE_DATE",
-	"JALALI_EXPIRE_DATE": "JALALI_EXPIRE_DATE",
-	"TIME_LEFT":          "TIME_LEFT",
-	"STATUS_EMOJI":       "STATUS_EMOJI",
-	"USAGE_PERCENTAGE":   "USAGE_PERCENTAGE",
-	"PROTOCOL":           "PROTOCOL",
-	"TRANSPORT":          "TRANSPORT",
-	"SECURITY":           "SECURITY",
+	"EMAIL":                       "EMAIL",
+	"INBOUND_TRAFFIC_USED":        "INBOUND_TRAFFIC_USED",
+	"INBOUND_TRAFFIC_LEFT":        "INBOUND_TRAFFIC_LEFT",
+	"INBOUND_TRAFFIC_TOTAL":       "INBOUND_TRAFFIC_TOTAL",
+	"INBOUND_TRAFFIC_USED_BYTES":  "INBOUND_TRAFFIC_USED_BYTES",
+	"INBOUND_TRAFFIC_LEFT_BYTES":  "INBOUND_TRAFFIC_LEFT_BYTES",
+	"INBOUND_TRAFFIC_TOTAL_BYTES": "INBOUND_TRAFFIC_TOTAL_BYTES",
+	"INBOUND_UP":                  "INBOUND_UP",
+	"INBOUND_DOWN":                "INBOUND_DOWN",
+	"DATA_USAGE":                  "TRAFFIC_USED",
+	"DATA_LEFT":                   "TRAFFIC_LEFT",
+	"DATA_LIMIT":                  "TRAFFIC_TOTAL",
+	"DAYS_LEFT":                   "DAYS_LEFT",
+	"EXPIRE_DATE":                 "EXPIRE_DATE",
+	"JALALI_EXPIRE_DATE":          "JALALI_EXPIRE_DATE",
+	"TIME_LEFT":                   "TIME_LEFT",
+	"STATUS_EMOJI":                "STATUS_EMOJI",
+	"USAGE_PERCENTAGE":            "USAGE_PERCENTAGE",
+	"PROTOCOL":                    "PROTOCOL",
+	"TRANSPORT":                   "TRANSPORT",
+	"SECURITY":                    "SECURITY",
 }
 
 // translateUISingleBrackets converts user-friendly single-brace tokens to the
@@ -258,6 +268,57 @@ func remarkVarValue(token string, ctx remarkContext) string {
 		return common.FormatTraffic(st.Up)
 	case "DOWN":
 		return common.FormatTraffic(st.Down)
+	case "INBOUND_TRAFFIC_USED":
+		if ctx.inbound == nil {
+			return ""
+		}
+		return common.FormatTraffic(ctx.inbound.Up + ctx.inbound.Down)
+	case "INBOUND_TRAFFIC_LEFT":
+		if ctx.inbound == nil {
+			return ""
+		}
+		if ctx.inbound.Total <= 0 {
+			return unlimitedMark
+		}
+		inboundUsed := ctx.inbound.Up + ctx.inbound.Down
+		return common.FormatTraffic(max64(ctx.inbound.Total-inboundUsed, 0))
+	case "INBOUND_TRAFFIC_TOTAL":
+		if ctx.inbound == nil {
+			return ""
+		}
+		if ctx.inbound.Total <= 0 {
+			return unlimitedMark
+		}
+		return common.FormatTraffic(ctx.inbound.Total)
+	case "INBOUND_TRAFFIC_USED_BYTES":
+		if ctx.inbound == nil {
+			return ""
+		}
+		return strconv.FormatInt(ctx.inbound.Up+ctx.inbound.Down, 10)
+	case "INBOUND_TRAFFIC_LEFT_BYTES":
+		if ctx.inbound == nil {
+			return ""
+		}
+		if ctx.inbound.Total <= 0 {
+			return "0"
+		}
+		inboundUsed := ctx.inbound.Up + ctx.inbound.Down
+		return strconv.FormatInt(max64(ctx.inbound.Total-inboundUsed, 0), 10)
+	case "INBOUND_TRAFFIC_TOTAL_BYTES":
+		if ctx.inbound == nil {
+			return ""
+		}
+		return strconv.FormatInt(ctx.inbound.Total, 10)
+	case "INBOUND_UP":
+		if ctx.inbound == nil {
+			return ""
+		}
+		return common.FormatTraffic(ctx.inbound.Up)
+	case "INBOUND_DOWN":
+		if ctx.inbound == nil {
+			return ""
+		}
+		return common.FormatTraffic(ctx.inbound.Down)
 	case "RESET_DAYS":
 		if c.Reset > 0 {
 			return strconv.Itoa(c.Reset)
@@ -538,12 +599,25 @@ var connectionTokens = map[string]bool{
 	"SECURITY":  true,
 }
 
-var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens)
+var inboundTrafficTokens = map[string]bool{
+	"INBOUND_TRAFFIC_USED":        true,
+	"INBOUND_TRAFFIC_LEFT":        true,
+	"INBOUND_TRAFFIC_TOTAL":       true,
+	"INBOUND_TRAFFIC_USED_BYTES":  true,
+	"INBOUND_TRAFFIC_LEFT_BYTES":  true,
+	"INBOUND_TRAFFIC_TOTAL_BYTES": true,
+	"INBOUND_UP":                  true,
+	"INBOUND_DOWN":                true,
+}
+
+var displayRemoveTokens = mergeTokenSets(usageInfoTokens, connectionTokens, inboundTrafficTokens)
 
 // firstLinkOnlyBodyTokens are stripped from every subscription-body link after a
 // client's first one: the usage/info tokens plus the per-client EMAIL/USERNAME
 // identity. A client app needs the email once, so repeating it on every link of
 // the same subscription is noise — show it on the first link only, like traffic.
+// Note: per-inbound traffic tokens (inboundTrafficTokens) are deliberately kept on
+// each link because each inbound has distinct traffic metrics.
 var firstLinkOnlyBodyTokens = mergeTokenSets(usageInfoTokens, map[string]bool{
 	"EMAIL":    true,
 	"USERNAME": true,

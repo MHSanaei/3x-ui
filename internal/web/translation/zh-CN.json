@@ -2495,7 +2495,15 @@
         "descRESET_DAY": "按月续期的日期",
         "descPROTOCOL": "入站协议（VLESS、VMess、Trojan……）",
         "descTRANSPORT": "传输网络（tcp、ws、grpc……）",
-        "descSECURITY": "传输安全（TLS、REALITY、NONE）"
+        "descSECURITY": "传输安全（TLS、REALITY、NONE）",
+        "descINBOUND_TRAFFIC_USED": "入站已用流量",
+        "descINBOUND_TRAFFIC_LEFT": "入站剩余流量（无限制时隐藏）",
+        "descINBOUND_TRAFFIC_TOTAL": "入站总流量（无限制时隐藏）",
+        "descINBOUND_TRAFFIC_USED_BYTES": "入站已用流量（字节）",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "入站剩余流量（字节）",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "入站总流量（字节）",
+        "descINBOUND_UP": "入站上传流量",
+        "descINBOUND_DOWN": "入站下载流量"
       },
       "toasts": {
         "list": "加载主机失败",

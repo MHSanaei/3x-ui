@@ -2495,7 +2495,15 @@
         "descRESET_DAY": "毎月の更新日",
         "descPROTOCOL": "インバウンドのプロトコル（VLESS、VMess、Trojan など）",
         "descTRANSPORT": "トランスポートネットワーク（tcp、ws、grpc など）",
-        "descSECURITY": "トランスポートのセキュリティ（TLS、REALITY、NONE）"
+        "descSECURITY": "トランスポートのセキュリティ（TLS、REALITY、NONE）",
+        "descINBOUND_TRAFFIC_USED": "インバウンド使用済みトラフィック",
+        "descINBOUND_TRAFFIC_LEFT": "インバウンド残りトラフィック（無制限の場合は非表示）",
+        "descINBOUND_TRAFFIC_TOTAL": "インバウンド合計トラフィック（無制限の場合は非表示）",
+        "descINBOUND_TRAFFIC_USED_BYTES": "インバウンド使用済みトラフィック（バイト）",
+        "descINBOUND_TRAFFIC_LEFT_BYTES": "インバウンド残りトラフィック（バイト）",
+        "descINBOUND_TRAFFIC_TOTAL_BYTES": "インバウンド合計トラフィック（バイト）",
+        "descINBOUND_UP": "インバウンドアップロードトラフィック",
+        "descINBOUND_DOWN": "インバウンドダウンロードトラフィック"
       },
       "toasts": {
         "list": "ホストの読み込みに失敗しました",
