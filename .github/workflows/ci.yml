@@ -12,6 +12,10 @@ on:
       - "install.sh"
       - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
+      - "x-ui.sh"
+      - "scripts/lib/ip-ssl.sh"
+      - "scripts/sync-ip-ssl-helpers.sh"
+      - "scripts/test/**"
   push:
     branches:
       - main
@@ -25,6 +29,10 @@ on:
       - "install.sh"
       - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
+      - "x-ui.sh"
+      - "scripts/lib/ip-ssl.sh"
+      - "scripts/sync-ip-ssl-helpers.sh"
+      - "scripts/test/**"
 
 permissions:
   contents: read
@@ -324,11 +332,21 @@ jobs:
         # the panel ships are linted by the shellcheck step below.
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color -shellcheck=
       - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck socat
       - name: shellcheck
         run: |
           shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh deploy/test/installer-panel-port.sh
           shellcheck --severity=error install.sh update.sh x-ui.sh
+          shellcheck --severity=style -e SC1091 scripts/lib/ip-ssl.sh scripts/sync-ip-ssl-helpers.sh scripts/test/ip-ssl-*.sh
+      - name: IP certificate regressions (no ACME orders)
+        run: |
+          bash -n install.sh
+          bash -n x-ui.sh
+          bash scripts/sync-ip-ssl-helpers.sh --check
+          bash scripts/test/ip-ssl-test.sh
+          bash scripts/test/ip-ssl-entrypoint-test.sh
+          IP_SSL_LINUX_TEST=1 bash scripts/test/ip-ssl-listener-test.sh
+          bash scripts/test/ip-ssl-certificate-test.sh
       - name: Installer panel port regression tests
         run: bash deploy/test/installer-panel-port.sh
 
