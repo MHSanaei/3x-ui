@@ -88,3 +88,32 @@ func TestResolveHostIgnoresRealIPFromTrustedProxy(t *testing.T) {
 		t.Fatalf("resolveHost = %q, want request host (not X-Real-IP)", got)
 	}
 }
+
+// The clean IP command is fetched from this URL: forwarded headers only count from a
+// trusted proxy, and its Host must be the one the browser used (with its port).
+func TestPanelBaseURLTrustsForwardedHeadersOnlyFromAProxy(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, tc := range []struct {
+		name, remote, proto, fwdHost, want string
+	}{
+		{"untrusted caller", "203.0.113.10:5555", "https", "evil.example.net", "http://panel.example.com:2053/x/"},
+		{"trusted proxy", "127.0.0.1:5555", "https", "panel.example.net", "https://panel.example.net/x/"},
+		{"trusted proxy, no host", "127.0.0.1:5555", "https", "", "https://panel.example.com:2053/x/"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+			c.Request.Host = "panel.example.com:2053"
+			c.Request.RemoteAddr = tc.remote
+			c.Request.Header.Set("X-Forwarded-Proto", tc.proto)
+			if tc.fwdHost != "" {
+				c.Request.Header.Set("X-Forwarded-Host", tc.fwdHost)
+			}
+			c.Set("base_path", "/x/")
+
+			if got := panelBaseURL(c); got != tc.want {
+				t.Errorf("panelBaseURL = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

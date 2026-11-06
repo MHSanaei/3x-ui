@@ -13,6 +13,8 @@
     "subscription-server",
     "subscription-balancers",
     "hosts",
+    "clean-ip-scanner",
+    "dns-tunnel",
     "nodes",
     "backup",
     "websocket"
