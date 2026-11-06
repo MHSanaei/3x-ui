@@ -23,7 +23,7 @@ func (acceptingHandler) AlterInbound(context.Context, *command.AlterInboundReque
 }
 
 // coreReAddProbe behaves like runtime.Local: Xray protocols go through the real
-// account builder, AmneziaWG and MTProto only change through UpdateInbound.
+// account builder, sidecar protocols only change through UpdateInbound.
 type coreReAddProbe struct {
 	fakeNodeRuntime
 	mu       sync.Mutex
@@ -33,7 +33,7 @@ type coreReAddProbe struct {
 }
 
 func (p *coreReAddProbe) AddUser(_ context.Context, ib *model.Inbound, user map[string]any) error {
-	if ib.Protocol == model.AmneziaWG || ib.Protocol == model.MTProto {
+	if servedOutsideXray(ib.Protocol) {
 		return nil
 	}
 	var core command.HandlerServiceClient = acceptingHandler{}
@@ -204,32 +204,50 @@ func TestBulkEnableOfWireGuardPeerNeedsNoRestart(t *testing.T) {
 	}
 }
 
-// AmneziaWG AddUser/RemoveUser are no-ops, so a bulk toggle must reach the
-// device through the inbound reconcile, in both directions.
-func TestBulkSetEnableOfAmneziaWGPeerReachesTheDevice(t *testing.T) {
-	const email = "awg-bulk@x"
-	ib, probe := seedQuotaDisabledClient(t, 51844, model.AmneziaWG, model.Client{
-		Email: email, SubID: "sub-" + email, PublicKey: resetProbePeerKey,
-		AllowedIPs: []string{"10.8.1.9/32"},
-	})
-	liftQuota(t, email)
-	for _, enable := range []bool{true, false} {
-		if _, _, err := (&ClientService{}).BulkSetEnable(&InboundService{}, []string{email}, enable); err != nil {
-			t.Fatalf("BulkSetEnable(%v): %v", enable, err)
-		}
-		probe.mu.Lock()
-		updated := probe.updated
-		probe.updated = nil
-		probe.mu.Unlock()
-		reached := false
-		for _, pushed := range updated {
-			if pushed.Id == ib.Id && settingsClientEnabled(t, pushed.Settings, email) == enable {
-				reached = true
+// Sidecar AddUser/RemoveUser are no-ops, so a bulk toggle must reach the device
+// through the inbound reconcile, in both directions, from a hand-disabled client.
+func TestBulkSetEnableOfSidecarClientReachesTheDevice(t *testing.T) {
+	cases := []struct {
+		proto  model.Protocol
+		port   int
+		client model.Client
+	}{
+		{model.AmneziaWG, 51844, model.Client{PublicKey: resetProbePeerKey, AllowedIPs: []string{"10.8.1.9/32"}}},
+		{model.MTProto, 51845, model.Client{Secret: "ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"}},
+		{model.TUIC, 51846, model.Client{ID: "11111111-1111-1111-1111-111111111146", Password: "tuic-pass"}},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.proto), func(t *testing.T) {
+			email := string(tc.proto) + "-bulk@x"
+			c := tc.client
+			c.Email, c.SubID, c.Enable, c.TotalGB = email, "sub-"+email, true, 1000
+			setupBulkDB(t)
+			probe := &coreReAddProbe{}
+			useTestRuntimeManager(t).SetLocalRuntimeOverride(probe)
+			ib := mkInbound(t, tc.port, tc.proto, clientsSettings(t, []model.Client{c}))
+			if err := (&ClientService{}).SyncInbound(nil, ib.Id, []model.Client{c}); err != nil {
+				t.Fatalf("SyncInbound: %v", err)
 			}
-		}
-		if !reached {
-			t.Fatalf("bulk enable=%v never reached the AmneziaWG device; pushed %d updates", enable, len(updated))
-		}
+			mkTraffic(t, ib.Id, email, 0, 0, 1000, 0, true)
+			for _, enable := range []bool{false, true} {
+				if _, _, err := (&ClientService{}).BulkSetEnable(&InboundService{}, []string{email}, enable); err != nil {
+					t.Fatalf("BulkSetEnable(%v): %v", enable, err)
+				}
+				probe.mu.Lock()
+				updated := probe.updated
+				probe.updated = nil
+				probe.mu.Unlock()
+				reached := false
+				for _, pushed := range updated {
+					if pushed.Id == ib.Id && settingsClientEnabled(t, pushed.Settings, email) == enable {
+						reached = true
+					}
+				}
+				if !reached {
+					t.Fatalf("bulk enable=%v never reached the %s sidecar; pushed %d updates", enable, tc.proto, len(updated))
+				}
+			}
+		})
 	}
 }
 
