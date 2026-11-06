@@ -18,6 +18,9 @@ export type Protocol = z.infer<typeof ProtocolSchema>;
 export const addrFamilySchema = z.number().int();
 export type addrFamily = z.infer<typeof addrFamilySchema>;
 
+export const lineVisitorSchema = z.unknown();
+export type lineVisitor = z.infer<typeof lineVisitorSchema>;
+
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
@@ -850,6 +853,20 @@ export const InboundTrafficSummarySchema = z.object({
 });
 export type InboundTrafficSummary = z.infer<typeof InboundTrafficSummarySchema>;
 
+export const LogBucketSchema = z.object({
+  errors: z.number().int(),
+  start: z.number().int(),
+  total: z.number().int(),
+  warnings: z.number().int(),
+});
+export type LogBucket = z.infer<typeof LogBucketSchema>;
+
+export const LogCountSchema = z.object({
+  count: z.number().int(),
+  value: z.string(),
+});
+export type LogCount = z.infer<typeof LogCountSchema>;
+
 export const LogEntrySchema = z.object({
   DateTime: z.string(),
   Email: z.string(),
@@ -860,6 +877,90 @@ export const LogEntrySchema = z.object({
   ToAddress: z.string(),
 });
 export type LogEntry = z.infer<typeof LogEntrySchema>;
+
+export const LogExternalPathSchema = z.object({
+  kind: z.string(),
+  path: z.string(),
+  suggested: z.string(),
+});
+export type LogExternalPath = z.infer<typeof LogExternalPathSchema>;
+
+export const LogFileSchema = z.object({
+  compressed: z.boolean(),
+  modTime: z.number().int(),
+  name: z.string(),
+  size: z.number().int(),
+});
+export type LogFile = z.infer<typeof LogFileSchema>;
+
+export const LogFileListSchema = z.object({
+  external: z.array(z.lazy(() => LogExternalPathSchema)),
+  files: z.array(z.lazy(() => LogFileSchema)),
+  folder: z.string(),
+});
+export type LogFileList = z.infer<typeof LogFileListSchema>;
+
+export const LogLineSchema = z.object({
+  category: z.string(),
+  country: z.string(),
+  host: z.string(),
+  inbound: z.string(),
+  ip: z.string(),
+  level: z.string(),
+  message: z.string(),
+  offset: z.number().int(),
+  outbound: z.string(),
+  protocol: z.string(),
+  raw: z.string(),
+  status: z.string(),
+  time: z.number().int(),
+  truncated: z.boolean(),
+  user: z.string(),
+});
+export type LogLine = z.infer<typeof LogLineSchema>;
+
+export const LogPageSchema = z.object({
+  budgetExhausted: z.boolean(),
+  file: z.string(),
+  fileSize: z.number().int(),
+  lines: z.array(z.lazy(() => LogLineSchema)),
+  nextCursor: z.number().int(),
+  scannedBytes: z.number().int(),
+});
+export type LogPage = z.infer<typeof LogPageSchema>;
+
+export const LogStatsSchema = z.object({
+  bucketMillis: z.number().int(),
+  budgetExhausted: z.boolean(),
+  countries: z.array(z.lazy(() => LogCountSchema)),
+  debugs: z.number().int(),
+  errors: z.number().int(),
+  file: z.string(),
+  fileSize: z.number().int(),
+  firstTime: z.number().int(),
+  geoAvailable: z.boolean(),
+  infos: z.number().int(),
+  lastTime: z.number().int(),
+  matchedLines: z.number().int(),
+  scannedBytes: z.number().int(),
+  scannedLines: z.number().int(),
+  timeline: z.array(z.lazy(() => LogBucketSchema)),
+  topErrorCategories: z.array(z.lazy(() => LogCountSchema)),
+  topHosts: z.array(z.lazy(() => LogCountSchema)),
+  topInbounds: z.array(z.lazy(() => LogCountSchema)),
+  topIps: z.array(z.lazy(() => LogCountSchema)),
+  topProtocols: z.array(z.lazy(() => LogCountSchema)),
+  topStatuses: z.array(z.lazy(() => LogCountSchema)),
+  topUsers: z.array(z.lazy(() => LogCountSchema)),
+  uniqueCapped: z.boolean(),
+  uniqueHosts: z.number().int(),
+  uniqueIps: z.number().int(),
+  uniqueUsers: z.number().int(),
+  unknown: z.number().int(),
+  unlocatedLines: z.number().int(),
+  warnings: z.number().int(),
+});
+export type LogStats = z.infer<typeof LogStatsSchema>;
 
 export const MLDSA65ResponseSchema = z.object({
   seed: z.string(),

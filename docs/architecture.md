@@ -169,6 +169,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   ├── node.go         #   /panel/api/nodes   (multi-node management)
 │   │   │   ├── host.go         #   /panel/api/hosts   (per-inbound subscription host overrides)
 │   │   │   ├── server.go       #   /panel/api/server  (status, xray version, certs, logs, DB import/export)
+│   │   │   ├── logs.go         #   /panel/api/logs    (read-only viewer over XUI_LOG_FOLDER; service/logview, countries from geoip.dat)
 │   │   │   ├── setting.go      #   /panel/api/setting (settings + API tokens)
 │   │   │   ├── xray_setting.go #   /panel/api/xray    (raw Xray config editor, WARP/Nord/PIA, geodata)
 │   │   │   ├── api.go          #   /panel/api gateway (token auth, envelope + CSRF wiring)
@@ -549,6 +550,7 @@ for AutoMigrate in `internal/database/db.go`.
 | **MTProto** proxy issues                                                          | `internal/mtproto/manager.go`, `mtproto/process*.go`                         | `job/mtproto_job.go`                                                                                |
 | **DB migration** / new column                                                     | `internal/database/db.go` (AutoMigrate list), `migrate_data.go`              | `model/model.go`                                                                                    |
 | **Cron schedule** changes                                                         | `web.go` → `startTask()`                                                     | the specific `job/*.go`                                                                             |
+| **Logs page: file missing, line misparsed, stats wrong**                          | `controller/logs.go`, `service/logview/`                                     | `frontend/src/pages/logs/`                                                                          |
 | **CORS / security headers / HTTPS**                                               | `middleware/`, `web.go` (`initRouter`, TLS setup)                            | `config/` (env)                                                                                     |
 | **Env vars / paths / DB type**                                                    | `internal/config/config.go`                                                  | `.env.example`                                                                                      |
 | **Frontend route / screen**                                                       | `frontend/src/pages/<area>/`, `frontend/src/routes.tsx`                      | `frontend/src/api/queries/`                                                                         |

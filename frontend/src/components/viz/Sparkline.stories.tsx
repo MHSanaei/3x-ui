@@ -32,6 +32,8 @@ const meta = {
     showGrid: { description: 'Draw horizontal grid lines.' },
     showTooltip: { description: 'Show a value tooltip on hover.' },
     extrema: { description: 'Highlight the min and max points (single-series only).' },
+    onPointClick: { description: 'Called with the index of the point under the cursor on click.' },
+    rightPadding: { description: 'Space kept right of the plot, for a long last x-axis label.' },
   },
 } satisfies Meta<typeof Sparkline>;
 
