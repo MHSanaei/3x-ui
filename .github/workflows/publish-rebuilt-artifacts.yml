@@ -25,6 +25,7 @@ jobs:
       - name: Publish stable release and compatibility channel
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           SOURCE_COMMIT: 113176375a1d72a1bc2434a19f064af067e5c50a
           RELEASE_TAG: 3x-ui-20261107
         run: |
