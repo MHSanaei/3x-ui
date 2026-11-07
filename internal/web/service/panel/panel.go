@@ -41,9 +41,9 @@ type PanelUpdateInfo struct {
 }
 
 const (
-	panelRepository     = "jrangus/3x-ui"
-	panelRepositoryAPI  = "https://api.github.com/repos/" + panelRepository
-	panelRepositoryRaw  = "https://raw.githubusercontent.com/" + panelRepository
+	panelRepository      = "jrangus/3x-ui"
+	panelRepositoryAPI   = "https://api.github.com/repos/" + panelRepository
+	panelRepositoryRaw   = "https://raw.githubusercontent.com/" + panelRepository
 	maxPanelUpdaterBytes = 2 << 20
 	// devReleaseTag is the fixed-tag rolling pre-release the CI force-moves to the
 	// newest main commit; the dev update channel installs from it.
@@ -99,6 +99,7 @@ var (
 	updateStarted time.Time
 	updateRunID   int64
 	updatePID     int
+	updateUnit    string
 )
 
 const (
@@ -285,6 +286,7 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 			logger.Warning("systemd-run is unavailable, falling back to detached update process:", output)
 		} else {
 			logger.Infof("started panel update job via systemd-run unit %s", unitName)
+			recordUpdateUnit(unitName)
 			launched = true
 			return runID, nil
 		}
@@ -338,12 +340,26 @@ func acquireUpdateSlot(runID int64) bool {
 	updateMu.Lock()
 	defer updateMu.Unlock()
 	if updateRunning && !previousRunIsTerminal() {
-		elapsed := time.Since(updateStarted)
-		if elapsed < updateHardCeiling {
-			stale := elapsed >= updateStaleAfter
-			alive := updatePID > 0 && processAlive(updatePID)
-			if !stale || alive {
-				return false
+		// A failed updater does not always get far enough to write its status
+		// file. In that case the process/unit we launched is authoritative: once
+		// it has exited, keeping the in-memory slot for the stale timeout only
+		// turns a recoverable update error into an unnecessary lockout.
+		processEnded := updatePID > 0 && !processAlive(updatePID)
+		unitEnded := false
+		unitRunning := false
+		unitKnown := false
+		if updateUnit != "" {
+			unitRunning, unitKnown = panelUpdateUnitRunning(updateUnit)
+			unitEnded = unitKnown && !unitRunning
+		}
+		if !processEnded && !unitEnded {
+			elapsed := time.Since(updateStarted)
+			if elapsed < updateHardCeiling {
+				stale := elapsed >= updateStaleAfter
+				alive := (updatePID > 0 && processAlive(updatePID)) || (unitKnown && unitRunning)
+				if !stale || alive {
+					return false
+				}
 			}
 		}
 	}
@@ -351,6 +367,7 @@ func acquireUpdateSlot(runID int64) bool {
 	updateStarted = time.Now()
 	updateRunID = runID
 	updatePID = 0
+	updateUnit = ""
 	return true
 }
 
@@ -366,6 +383,52 @@ func recordUpdatePID(pid int) {
 	updateMu.Unlock()
 }
 
+func recordUpdateUnit(unit string) {
+	updateMu.Lock()
+	updateUnit = unit
+	updateMu.Unlock()
+}
+
+// panelUpdateUnitRunning reports the liveness of a transient systemd update
+// unit. The second return value is false when systemd itself cannot be queried;
+// an unknown result must keep the concurrency lock rather than risk launching
+// two updaters. A known inactive/failed/not-found unit has finished and may be
+// retried immediately even if update.sh failed before writing its status file.
+var panelUpdateUnitRunning = queryPanelUpdateUnitRunning
+
+func queryPanelUpdateUnitRunning(unit string) (bool, bool) {
+	if strings.TrimSpace(unit) == "" {
+		return false, false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "systemctl", "show", unit,
+		"--property=LoadState", "--property=ActiveState", "--value").CombinedOutput()
+	text := strings.ToLower(strings.TrimSpace(string(out)))
+	if err != nil {
+		if strings.Contains(text, "not found") || strings.Contains(text, "could not be found") {
+			return false, true
+		}
+		return false, false
+	}
+	fields := strings.Fields(text)
+	if len(fields) == 0 {
+		return false, false
+	}
+	for _, field := range fields {
+		if field == "not-found" || field == "inactive" || field == "failed" {
+			return false, true
+		}
+	}
+	for _, field := range fields {
+		switch field {
+		case "active", "activating", "reloading", "deactivating":
+			return true, true
+		}
+	}
+	return false, false
+}
+
 // previousRunIsTerminal reports whether the run currently recorded in
 // updateRunID has reached success or failure per its status file. Must be
 // called with updateMu held.
@@ -377,6 +440,8 @@ func previousRunIsTerminal() bool {
 func releaseUpdateSlot() {
 	updateMu.Lock()
 	updateRunning = false
+	updatePID = 0
+	updateUnit = ""
 	updateMu.Unlock()
 }
 
@@ -552,3 +617,4 @@ func isNewerVersion(latest string, current string) bool {
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
+

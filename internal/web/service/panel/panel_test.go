@@ -3,6 +3,7 @@ package panel
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -157,6 +158,8 @@ func resetUpdateSlot(t *testing.T) {
 		updateRunning = false
 		updateRunID = 0
 		updatePID = 0
+		updateUnit = ""
+		panelUpdateUnitRunning = queryPanelUpdateUnitRunning
 		updateMu.Unlock()
 	})
 }
@@ -200,6 +203,56 @@ func TestAcquireUpdateSlotExpiresAfterStaleWindow(t *testing.T) {
 
 	if !acquireUpdateSlot(2) {
 		t.Fatal("acquire after stale window elapsed: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+func TestAcquireUpdateSlotReleasesWhenDetachedProcessExitedWithoutStatus(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("process liveness is only tracked on Linux")
+	}
+	resetUpdateSlot(t)
+	if !acquireUpdateSlot(1) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	cmd := exec.Command("/bin/true")
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+	recordUpdatePID(cmd.Process.Pid)
+	if !acquireUpdateSlot(2) {
+		t.Fatal("acquire after updater process exited without status: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+func TestAcquireUpdateSlotReleasesWhenSystemdUnitEndedWithoutStatus(t *testing.T) {
+	resetUpdateSlot(t)
+	panelUpdateUnitRunning = func(unit string) (bool, bool) {
+		if unit != "x-ui-web-update-test" {
+			t.Fatalf("unit = %q, want x-ui-web-update-test", unit)
+		}
+		return false, true
+	}
+	if !acquireUpdateSlot(1) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	recordUpdateUnit("x-ui-web-update-test")
+	if !acquireUpdateSlot(2) {
+		t.Fatal("acquire after systemd unit ended without status: got false, want true")
+	}
+	releaseUpdateSlot()
+}
+
+func TestAcquireUpdateSlotWaitsWhileSystemdUnitIsRunning(t *testing.T) {
+	resetUpdateSlot(t)
+	panelUpdateUnitRunning = func(string) (bool, bool) { return true, true }
+	if !acquireUpdateSlot(1) {
+		t.Fatal("first acquire: got false, want true")
+	}
+	recordUpdateUnit("x-ui-web-update-test")
+	if acquireUpdateSlot(2) {
+		t.Fatal("acquire while systemd unit is active: got true, want false")
 	}
 	releaseUpdateSlot()
 }
@@ -353,3 +406,4 @@ func TestGetUpdateStatus(t *testing.T) {
 		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
 }
+
