@@ -1,0 +1,67 @@
+name: Publish 3x-ui-20261107
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-3x-ui-20261107.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'ci: publish 3x-ui-20261107 release'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: "42334874143"
+      RELEASE_TAG: 3x-ui-20261107
+      RELEASE_TITLE: 3x-ui-20261107
+      RELEASE_COMMIT: 5ed94e4d3eaabd368d055a4dd517a6b194e606e5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download the verified multi-platform build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq .conclusion)" = success
+          gh run download "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
+          test "$(find release-artifacts -type f | wc -l)" -eq 16
+          test "$(find release-artifacts -type f -name '*.sha256' | wc -l)" -eq 8
+          while IFS= read -r checksum; do
+            (
+              cd "$(dirname "${checksum}")"
+              sha256sum -c "$(basename "${checksum}")"
+            )
+          done < <(find release-artifacts -type f -name '*.sha256' -print)
+
+      - name: Create the permanent dated release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push origin "refs/tags/${RELEASE_TAG}"
+          cat > release-notes.md <<'EOF'
+          Permanent dated snapshot of the IPv6/DNS privacy hardening build.
+
+          - Source commit: `5ed94e4d3eaabd368d055a4dd517a6b194e606e5`
+          - Source branch: `3x-ui-20261107`
+          - Adds explicit IPv4/IPv6 TCP+UDP port 53 nftables protection.
+          - Covers host output and forwarded/container DNS traffic.
+          - Includes dual-stack subscription tests and upgrade/rollback guidance.
+
+          For panel-based updates, use the Dev channel (`dev-latest`). This dated
+          release is the permanent rollback/audit snapshot of the same build.
+          EOF
+          gh release create "${RELEASE_TAG}" release-artifacts/*/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${RELEASE_TITLE}" \
+            --notes-file release-notes.md \
+            --prerelease \
+            --latest=false
+
