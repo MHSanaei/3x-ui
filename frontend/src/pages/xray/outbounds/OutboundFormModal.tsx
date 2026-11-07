@@ -127,13 +127,13 @@ export default function OutboundFormModal({
 
   /*
    * Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
-   * hysteria2:// / wireguard://) and replace form state with the result.
+   * hysteria2:// / wireguard:// / vpn://) and replace form state with the result.
    * The current tag is preserved when the parsed link doesn't carry one.
    */
-  function importLink() {
+  async function importLink() {
     const link = linkInput.trim();
     if (!link) return;
-    const parsed = parseOutboundLink(link);
+    const parsed = await parseOutboundLink(link);
     if (!parsed) {
       messageApi.error('Wrong Link!');
       return;
