@@ -21,6 +21,31 @@ func TestDefaultJSON_UsesEncryptedDNSWithoutHostnameBootstrap(t *testing.T) {
 	if address != "https://8.8.8.8/dns-query" {
 		t.Fatalf("default DNS address = %q, want encrypted IP endpoint", address)
 	}
+	if strategy, _ := dns["queryStrategy"].(string); strategy != "UseIP" {
+		t.Fatalf("default DNS queryStrategy = %q, want dual-stack UseIP", strategy)
+	}
+}
+
+// The catch-all proxy rule has no IPv4-only matcher. UDP, including IPv6
+// STUN/ICE and DNS traffic that reaches Xray's local SOCKS inbound, therefore
+// follows the proxy outbound instead of falling through to direct.
+func TestDefaultJSON_ProxiesTCPAndUDPWithoutIPFamilyRestriction(t *testing.T) {
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(defaultJson), &cfg); err != nil {
+		t.Fatalf("unmarshal embedded default.json: %v", err)
+	}
+	routing, _ := cfg["routing"].(map[string]any)
+	rules, _ := routing["rules"].([]any)
+	if len(rules) == 0 {
+		t.Fatal("embedded default.json has no routing rules")
+	}
+	rule, _ := rules[len(rules)-1].(map[string]any)
+	if rule["network"] != "tcp,udp" || rule["outboundTag"] != "proxy" {
+		t.Fatalf("final routing rule = %v, want family-neutral tcp,udp -> proxy", rule)
+	}
+	if _, limitedToIPs := rule["ip"]; limitedToIPs {
+		t.Fatalf("final proxy rule unexpectedly limits IP families: %v", rule)
+	}
 }
 
 // xray-core moves freedom settings.domainStrategy to sockopt with a warning on
@@ -54,3 +79,4 @@ func TestDefaultJSON_FreedomOutboundHasNoLegacyDomainStrategy(t *testing.T) {
 		t.Fatal("embedded default.json has no freedom outbound to check")
 	}
 }
+
