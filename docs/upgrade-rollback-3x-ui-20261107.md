@@ -96,7 +96,7 @@ the update:
 
 ```bash
 sudo systemctl stop x-ui
-sudo rm -rf /usr/local/x-ui.failed-3x-ui-20261107
+sudo test ! -e /usr/local/x-ui.failed-3x-ui-20261107
 sudo mv /usr/local/x-ui /usr/local/x-ui.failed-3x-ui-20261107
 sudo cp -a /usr/local/x-ui.before-3x-ui-20261107 /usr/local/x-ui
 sudo cp -a /usr/bin/x-ui.before-3x-ui-20261107 /usr/bin/x-ui
