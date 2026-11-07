@@ -60,6 +60,7 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 	var outbounds []Outbound
 	var identities []string
 	seen := map[string]int{}
+	inflateBudget := maxSubscriptionInflatedBytes
 
 	for _, ln := range lines {
 		if len(outbounds) >= MaxSubscriptionOutbounds {
@@ -69,7 +70,7 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 		if ln == "" || strings.HasPrefix(ln, "#") {
 			continue
 		}
-		res, err := ParseLink(ln)
+		res, err := parseLink(ln, &inflateBudget)
 		if err != nil || res == nil {
 			// Ignore unparseable lines (comments, unsupported protocols, etc.)
 			continue
@@ -131,7 +132,13 @@ func splitLines(s string) []string {
 //   - wireguard:// (also wg://)
 //   - vpn:// (AmneziaWG: 3x-ui plain .conf or AmneziaVPN app key)
 func ParseLink(link string) (*ParseResult, error) {
-	res, err := parseLinkByScheme(strings.TrimSpace(link))
+	return parseLink(link, nil)
+}
+
+// parseLink draws inflated vpn:// bytes from inflateBudget when non-nil, so a whole
+// subscription stays bounded, not just each key.
+func parseLink(link string, inflateBudget *int) (*ParseResult, error) {
+	res, err := parseLinkByScheme(strings.TrimSpace(link), inflateBudget)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +174,7 @@ func nestsWithin(v any, depth int) bool {
 	return true
 }
 
-func parseLinkByScheme(link string) (*ParseResult, error) {
+func parseLinkByScheme(link string, inflateBudget *int) (*ParseResult, error) {
 	switch {
 	case strings.HasPrefix(link, "vmess://"):
 		return parseVmess(link)
@@ -182,7 +189,7 @@ func parseLinkByScheme(link string) (*ParseResult, error) {
 	case strings.HasPrefix(link, "wireguard://"), strings.HasPrefix(link, "wg://"):
 		return parseWireguard(link)
 	case strings.HasPrefix(link, "vpn://"):
-		return parseAmneziaVPN(link)
+		return parseAmneziaVPN(link, inflateBudget)
 	default:
 		return nil, fmt.Errorf("unsupported link scheme")
 	}
@@ -730,34 +737,45 @@ func parseWireguard(link string) (*ParseResult, error) {
 // maxAmneziaVPNPayload bounds the inflated AmneziaVPN key; a real one is a few KiB.
 const maxAmneziaVPNPayload = 1 << 20
 
+// maxSubscriptionInflatedBytes bounds the vpn:// bytes one subscription inflates: without it
+// 2000 links at the per-key cap would expand an 8 MiB body to 2 GB.
+const maxSubscriptionInflatedBytes = 8 << 20
+
 // parseAmneziaVPN reads a vpn:// link: 3x-ui writes base64url(.conf text), the AmneziaVPN
 // app base64url(qCompress(JSON)) with the .conf in containers[].awg.last_config.
-func parseAmneziaVPN(link string) (*ParseResult, error) {
+func parseAmneziaVPN(link string, inflateBudget *int) (*ParseResult, error) {
 	payload, err := base64DecodeFlexible(strings.TrimPrefix(link, "vpn://"))
 	if err != nil {
 		return nil, err
 	}
 	conf, description := payload, ""
 	if len(payload) > 6 && payload[4] == 0x78 {
-		if conf, description, err = amneziaVPNKeyConf([]byte(payload[4:])); err != nil {
+		if conf, description, err = amneziaVPNKeyConf([]byte(payload[4:]), inflateBudget); err != nil {
 			return nil, err
 		}
 	}
 	return amneziaWGOutboundFromConf(conf, description)
 }
 
-func amneziaVPNKeyConf(zlibData []byte) (conf, description string, err error) {
+func amneziaVPNKeyConf(zlibData []byte, inflateBudget *int) (conf, description string, err error) {
+	limit := maxAmneziaVPNPayload
+	if inflateBudget != nil {
+		limit = min(limit, *inflateBudget)
+	}
 	zr, err := zlib.NewReader(bytes.NewReader(zlibData))
 	if err != nil {
 		return "", "", err
 	}
 	defer zr.Close()
-	raw, err := io.ReadAll(io.LimitReader(zr, maxAmneziaVPNPayload+1))
+	raw, err := io.ReadAll(io.LimitReader(zr, int64(limit)+1))
 	if err != nil {
 		return "", "", err
 	}
-	if len(raw) > maxAmneziaVPNPayload {
-		return "", "", fmt.Errorf("amneziavpn key exceeds %d bytes", maxAmneziaVPNPayload)
+	if len(raw) > limit {
+		return "", "", fmt.Errorf("amneziavpn key exceeds the %d bytes left to inflate", limit)
+	}
+	if inflateBudget != nil {
+		*inflateBudget -= len(raw)
 	}
 	var key struct {
 		Description string `json:"description"`
@@ -851,8 +869,9 @@ func amneziaWGOutboundFromConf(conf, fallbackTag string) (*ParseResult, error) {
 		case "endpoint":
 			peer["endpoint"] = v
 		case "persistentkeepalive":
-			// A ranged keepalive ("20-30") has no slot in the outbound's int field.
-			if n, err := strconv.Atoi(v); err == nil {
+			// The outbound holds one interval; a ranged "20-30" keeps its lower bound so NAT refresh survives.
+			lo, _, _ := strings.Cut(v, "-")
+			if n, err := strconv.Atoi(strings.TrimSpace(lo)); err == nil {
 				peer["keepAlive"] = n
 			}
 		}
@@ -865,7 +884,9 @@ func amneziaWGOutboundFromConf(conf, fallbackTag string) (*ParseResult, error) {
 		tag = fallbackTag
 	}
 	ob := Outbound{"protocol": "amneziawg", "tag": tag, "settings": settings}
-	return &ParseResult{Outbound: ob, Identity: fmt.Sprintf("amneziawg:%s@%s", peer["publicKey"], peer["endpoint"])}, nil
+	// The private key tells apart clients of one server, as in the WireGuard identity.
+	identity := fmt.Sprintf("amneziawg:%s:%s@%s", settings["secretKey"], peer["publicKey"], peer["endpoint"])
+	return &ParseResult{Outbound: ob, Identity: identity}, nil
 }
 
 // --- helpers ---
