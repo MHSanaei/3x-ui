@@ -138,7 +138,7 @@ func TestSubJsonDns_InvalidSettingKeepsTemplateDns(t *testing.T) {
 				t.Fatalf("template servers = %v", servers)
 			}
 			first, _ := servers[0].(map[string]any)
-			if first["address"] != "8.8.8.8" {
+			if first["address"] != "https://8.8.8.8/dns-query" {
 				t.Fatalf("template server = %v", first)
 			}
 		})
@@ -155,7 +155,7 @@ func TestSubJsonDns_BlankKeepsTemplateDns(t *testing.T) {
 	dns := docDnsBlock(t, onlySubJsonDoc(t, js, "s1"))
 	servers, _ := dns["servers"].([]any)
 	first, _ := servers[0].(map[string]any)
-	if first["address"] != "8.8.8.8" {
+	if first["address"] != "https://8.8.8.8/dns-query" {
 		t.Fatalf("template server = %v", first)
 	}
 }
@@ -198,7 +198,7 @@ func TestSubJsonDns_BrokenBlockKeepsTemplateDns(t *testing.T) {
 	dns := docDnsBlock(t, onlySubJsonDoc(t, js, "s1"))
 	servers, _ := dns["servers"].([]any)
 	first, _ := servers[0].(map[string]any)
-	if len(servers) != 1 || first["address"] != "8.8.8.8" {
+	if len(servers) != 1 || first["address"] != "https://8.8.8.8/dns-query" {
 		t.Fatalf("template dns = %v", dns)
 	}
 }
@@ -265,3 +265,4 @@ func TestSubJsonDns_AppliesToInfoNodeDocument(t *testing.T) {
 		t.Fatalf("info node dns servers = %v", servers)
 	}
 }
+
