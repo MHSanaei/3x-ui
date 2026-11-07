@@ -10,10 +10,12 @@ func TestNextWeeklyRenewal_RepeatedMidnight(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A past transition: tzdata 2026f cancelled Cuba's November 2026 fallback,
+	// so a future one makes the result depend on the host's tzdata version.
 	for _, tt := range []struct{ expiry, want string }{
-		{"2026-10-25T00:00:00-04:00", "2026-11-01T00:00:00-04:00"},
-		{"2026-11-01T00:00:00-04:00", "2026-11-08T00:00:00-05:00"},
-		{"2026-11-01T00:00:00-05:00", "2026-11-08T00:00:00-05:00"},
+		{"2020-10-25T00:00:00-04:00", "2020-11-01T00:00:00-04:00"},
+		{"2020-11-01T00:00:00-04:00", "2020-11-08T00:00:00-05:00"},
+		{"2020-11-01T00:00:00-05:00", "2020-11-08T00:00:00-05:00"},
 	} {
 		from, err := time.Parse(time.RFC3339, tt.expiry)
 		if err != nil {
