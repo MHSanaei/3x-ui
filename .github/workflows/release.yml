@@ -414,6 +414,15 @@ jobs:
           The original dev+6d205a91 binaries are preserved under
           dev-6d205a91-backup. This channel installs the recommended stable release."
 
+          # Override the legacy prose above; keep the channel metadata machine-readable.
+          notes="Compatibility update channel for historical dev installations.
+
+          commit=${COMMIT}
+          release=${RELEASE_TAG}
+
+          The original dev+6d205a91 binaries are preserved permanently under
+          dev-6d205a91-backup. This channel installs the recommended stable release."
+
           # The release exists on every run but the first; edit-first avoids an
           # existence probe that can 503 and mis-route into create (422).
           if ! retry gh release edit dev-latest --prerelease --latest=false \
