@@ -140,8 +140,6 @@ func recordingServer(t *testing.T, failEdit bool, overrides ...map[string]any) (
 	}
 }
 
-// newScreenTgbot points the package bot at a recording server and clears the
-// process-wide screen state the previous test may have left behind.
 // multipartPayload exposes an upload's form fields as a payload; the uploaded
 // document's file name is under "filename".
 func multipartPayload(r *http.Request) map[string]any {
@@ -158,6 +156,8 @@ func multipartPayload(r *http.Request) map[string]any {
 	return payload
 }
 
+// newScreenTgbot points the package bot at a recording server and clears the
+// process-wide screen state the previous test may have left behind.
 func newScreenTgbot(t *testing.T, failEdit bool) (*Tgbot, func() []apiCall) {
 	t.Helper()
 	srv, calls := recordingServer(t, failEdit)
