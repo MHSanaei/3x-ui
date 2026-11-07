@@ -5,7 +5,7 @@ import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { AntdRootConfig } from '@/i18n/AntdRootConfig';
-import { HttpUtil } from '@/utils';
+import { HttpUtil, Msg } from '@/utils';
 
 import {
   renderWithProviders,
@@ -22,7 +22,7 @@ vi.mock('antd', async (importOriginal) => {
     ...actual,
     message: {
       ...actual.message,
-      useMessage: () => [{ error: messageError }, null],
+      useMessage: () => [{ error: messageError, success: vi.fn() }, null],
     },
   };
 });
@@ -558,6 +558,100 @@ describe('InboundFormModal', () => {
     const payload = post.mock.calls[0][1] as { settings: string };
     expect(JSON.parse(payload.settings)).not.toHaveProperty('clients');
   });
+
+  // The finder's pick replaces the target, so the old target's scan (feasible, cert chain
+  // size) must not stay on screen as if it judged the new one.
+  it('drops the old target scan when a target is picked from the device finder', async () => {
+    const realPost = vi.mocked(HttpUtil.post).getMockImplementation();
+    const realGet = vi.mocked(HttpUtil.get).getMockImplementation();
+    onTestFinished(() => {
+      vi.mocked(HttpUtil.post).mockImplementation(realPost!);
+      vi.mocked(HttpUtil.get).mockImplementation(realGet!);
+    });
+    vi.mocked(HttpUtil.post).mockImplementation(async (url: string) => {
+      if (url === '/panel/api/server/scanRealityTarget') {
+        return new Msg(true, '', {
+          target: 'example.com:443',
+          host: 'example.com',
+          feasible: true,
+          privateTarget: false,
+          reason: '',
+          tlsVersion: '1.3',
+          alpn: 'h2',
+          curveID: 'X25519',
+          certChainBytes: 5200,
+          latencyMs: 181,
+          serverNames: ['example.com'],
+        });
+      }
+      if (url === '/panel/api/server/realityFinder/command') {
+        return new Msg(true, '', {
+          token: 'tok',
+          expiresAt: 4102444800,
+          server: '203.0.113.10',
+          scriptUrl: 'https://panel.example.com/realityfinder/run/tok/script.py',
+          unix: 'python3 -c "run-unix"',
+          windows: 'python -c "run-windows"',
+        });
+      }
+      return new Msg(true, '', {});
+    });
+    vi.mocked(HttpUtil.get).mockImplementation(async (url: string) => {
+      if (url.startsWith('/panel/api/server/realityFinder/command/')) {
+        return new Msg(true, '', [
+          {
+            at: 1793000100,
+            network: {
+              ip: '5.120.1.2',
+              asn: 197207,
+              org: 'MCI',
+              country: 'IR',
+            },
+            warning: '',
+            router: false,
+            tested: 10,
+            server: {
+              ip: '203.0.113.10',
+              asn: 24940,
+              holder: 'H',
+              prefix: '203.0.113.0/24',
+            },
+            port: 443,
+            filterTested: true,
+            targets: [
+              {
+                sni: 'open.example.com',
+                ip: '203.0.113.20',
+                score: 96,
+                ms: 240,
+                filtered: false,
+                same24: true,
+                sameAsn: true,
+                cdn: '',
+                dnsMatch: true,
+                issuer: 'Sectigo',
+                expires: '',
+              },
+            ],
+          },
+        ]);
+      }
+      return realGet!(url);
+    });
+    sessionStorage.clear();
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Scan$/ }));
+    expect(await screen.findByText('181 ms')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Find Targets/ }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'From my internet' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Make command' }));
+    const useButtons = await screen.findAllByRole('button', { name: 'Use' }, { timeout: 10_000 });
+    fireEvent.click(useButtons[0]);
+
+    await waitFor(() => expect(screen.queryByText('181 ms')).toBeNull());
+  }, 20_000);
 
   it('offers the enable switch when adding an inbound but not when editing one', async () => {
     renderModal();

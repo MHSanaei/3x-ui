@@ -173,6 +173,18 @@ _openapi:
         setting is empty).
       url: '#probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-the-realityscancandidates-setting-is-probed-the-built-in-seed-list-if-that-setting-is-empty'
     - depth: 2
+      title: "Make a one-day command that finds REALITY targets from a device on the
+        users' ISP: it reads the certificates of the server's neighbours, checks
+        each name (TLS 1.3, X25519, h2, valid certificate) and sends it as SNI
+        to the inbound's port to see whether the ISP cuts it. This server sends
+        no probes; the script reports back with the token alone. An empty server
+        is this server's public IPv4; port 0 skips the filter test."
+      url: '#make-a-one-day-command-that-finds-reality-targets-from-a-device-on-the-users-isp-it-reads-the-certificates-of-the-servers-neighbours-checks-each-name-tls-13-x25519-h2-valid-certificate-and-sends-it-as-sni-to-the-inbounds-port-to-see-whether-the-isp-cuts-it-this-server-sends-no-probes-the-script-reports-back-with-the-token-alone-an-empty-server-is-this-servers-public-ipv4-port-0-skips-the-filter-test'
+    - depth: 2
+      title: The reports the runs of a REALITY finder command sent back so far, oldest
+        first.
+      url: '#the-reports-the-runs-of-a-reality-finder-command-sent-back-so-far-oldest-first'
+    - depth: 2
       title: Fetch the fully aggregated inbound_client_ips database table. Used by
         nodes to sync recently active IPs across the cluster.
       url: '#fetch-the-fully-aggregated-inbound_client_ips-database-table-used-by-nodes-to-sync-recently-active-ips-across-the-cluster'
@@ -309,6 +321,17 @@ _openapi:
           realityScanCandidates setting is probed (the built-in seed list if
           that setting is empty).
         id: probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-the-realityscancandidates-setting-is-probed-the-built-in-seed-list-if-that-setting-is-empty
+      - content: "Make a one-day command that finds REALITY targets from a device on the
+          users' ISP: it reads the certificates of the server's neighbours,
+          checks each name (TLS 1.3, X25519, h2, valid certificate) and sends it
+          as SNI to the inbound's port to see whether the ISP cuts it. This
+          server sends no probes; the script reports back with the token alone.
+          An empty server is this server's public IPv4; port 0 skips the filter
+          test."
+        id: make-a-one-day-command-that-finds-reality-targets-from-a-device-on-the-users-isp-it-reads-the-certificates-of-the-servers-neighbours-checks-each-name-tls-13-x25519-h2-valid-certificate-and-sends-it-as-sni-to-the-inbounds-port-to-see-whether-the-isp-cuts-it-this-server-sends-no-probes-the-script-reports-back-with-the-token-alone-an-empty-server-is-this-servers-public-ipv4-port-0-skips-the-filter-test
+      - content: The reports the runs of a REALITY finder command sent back so far,
+          oldest first.
+        id: the-reports-the-runs-of-a-reality-finder-command-sent-back-so-far-oldest-first
       - content: Fetch the fully aggregated inbound_client_ips database table. Used by
           nodes to sync recently active IPs across the cluster.
         id: fetch-the-fully-aggregated-inbound_client_ips-database-table-used-by-nodes-to-sync-recently-active-ips-across-the-cluster
@@ -325,7 +348,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/openapi.json","method":"get"},{"path":"/panel/api/server/status","method":"get"},{"path":"/panel/api/server/fail2banStatus","method":"get"},{"path":"/panel/api/server/cpuHistory/{bucket}","method":"get"},{"path":"/panel/api/server/history/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayMetricsState","method":"get"},{"path":"/panel/api/server/xrayMetricsHistory/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayObservatory","method":"get"},{"path":"/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}","method":"get"},{"path":"/panel/api/server/getXrayVersion","method":"get"},{"path":"/panel/api/server/getPanelUpdateInfo","method":"get"},{"path":"/panel/api/server/getUpdateStatus","method":"get"},{"path":"/panel/api/server/getConfigJson","method":"get"},{"path":"/panel/api/server/getDb","method":"get"},{"path":"/panel/api/server/getMigration","method":"get"},{"path":"/panel/api/server/getNewUUID","method":"get"},{"path":"/panel/api/server/getWebCertFiles","method":"get"},{"path":"/panel/api/server/descendants","method":"get"},{"path":"/panel/api/server/getNewX25519Cert","method":"get"},{"path":"/panel/api/server/getNewmldsa65","method":"get"},{"path":"/panel/api/server/getNewmlkem768","method":"get"},{"path":"/panel/api/server/getNewVlessEnc","method":"get"},{"path":"/panel/api/server/stopXrayService","method":"post"},{"path":"/panel/api/server/restartXrayService","method":"post"},{"path":"/panel/api/server/installXray/{version}","method":"post"},{"path":"/panel/api/server/updatePanel","method":"post"},{"path":"/panel/api/server/setUpdateChannel","method":"post"},{"path":"/panel/api/server/updateGeofile","method":"post"},{"path":"/panel/api/server/updateGeofile/{fileName}","method":"post"},{"path":"/panel/api/server/logs/{count}","method":"post"},{"path":"/panel/api/server/xraylogs/{count}","method":"post"},{"path":"/panel/api/server/amneziawglogs/{count}","method":"post"},{"path":"/panel/api/server/importDB","method":"post"},{"path":"/panel/api/server/getNewEchCert","method":"post"},{"path":"/panel/api/server/getCertHash","method":"post"},{"path":"/panel/api/server/getRemoteCertHash","method":"post"},{"path":"/panel/api/server/scanRealityTarget","method":"post"},{"path":"/panel/api/server/scanRealityTargets","method":"post"},{"path":"/panel/api/server/clientIps","method":"get"},{"path":"/panel/api/server/clientIps","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/openapi.json","method":"get"},{"path":"/panel/api/server/status","method":"get"},{"path":"/panel/api/server/fail2banStatus","method":"get"},{"path":"/panel/api/server/cpuHistory/{bucket}","method":"get"},{"path":"/panel/api/server/history/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayMetricsState","method":"get"},{"path":"/panel/api/server/xrayMetricsHistory/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayObservatory","method":"get"},{"path":"/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}","method":"get"},{"path":"/panel/api/server/getXrayVersion","method":"get"},{"path":"/panel/api/server/getPanelUpdateInfo","method":"get"},{"path":"/panel/api/server/getUpdateStatus","method":"get"},{"path":"/panel/api/server/getConfigJson","method":"get"},{"path":"/panel/api/server/getDb","method":"get"},{"path":"/panel/api/server/getMigration","method":"get"},{"path":"/panel/api/server/getNewUUID","method":"get"},{"path":"/panel/api/server/getWebCertFiles","method":"get"},{"path":"/panel/api/server/descendants","method":"get"},{"path":"/panel/api/server/getNewX25519Cert","method":"get"},{"path":"/panel/api/server/getNewmldsa65","method":"get"},{"path":"/panel/api/server/getNewmlkem768","method":"get"},{"path":"/panel/api/server/getNewVlessEnc","method":"get"},{"path":"/panel/api/server/stopXrayService","method":"post"},{"path":"/panel/api/server/restartXrayService","method":"post"},{"path":"/panel/api/server/installXray/{version}","method":"post"},{"path":"/panel/api/server/updatePanel","method":"post"},{"path":"/panel/api/server/setUpdateChannel","method":"post"},{"path":"/panel/api/server/updateGeofile","method":"post"},{"path":"/panel/api/server/updateGeofile/{fileName}","method":"post"},{"path":"/panel/api/server/logs/{count}","method":"post"},{"path":"/panel/api/server/xraylogs/{count}","method":"post"},{"path":"/panel/api/server/amneziawglogs/{count}","method":"post"},{"path":"/panel/api/server/importDB","method":"post"},{"path":"/panel/api/server/getNewEchCert","method":"post"},{"path":"/panel/api/server/getCertHash","method":"post"},{"path":"/panel/api/server/getRemoteCertHash","method":"post"},{"path":"/panel/api/server/scanRealityTarget","method":"post"},{"path":"/panel/api/server/scanRealityTargets","method":"post"},{"path":"/panel/api/server/realityFinder/command","method":"post"},{"path":"/panel/api/server/realityFinder/command/{token}","method":"get"},{"path":"/panel/api/server/clientIps","method":"get"},{"path":"/panel/api/server/clientIps","method":"post"}]} showTitle />
     </>
   );
 }

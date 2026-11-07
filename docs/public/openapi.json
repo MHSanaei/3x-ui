@@ -4380,6 +4380,245 @@
         ],
         "type": "object"
       },
+      "RealityFinderCommand": {
+        "properties": {
+          "expiresAt": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "scriptUrl": {
+            "example": "https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+            "type": "string"
+          },
+          "server": {
+            "example": "203.0.113.10",
+            "type": "string"
+          },
+          "token": {
+            "example": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+            "type": "string"
+          },
+          "unix": {
+            "example": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
+            "type": "string"
+          },
+          "windows": {
+            "example": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "scriptUrl",
+          "server",
+          "token",
+          "unix",
+          "windows"
+        ],
+        "type": "object"
+      },
+      "RealityFinderCommandRequest": {
+        "description": "RealityFinderCommandRequest is what the device scans: the server's neighbours (scope) and,\nthrough the inbound's port, whether each name gets past the ISP. Port 0 skips that test.",
+        "properties": {
+          "current": {
+            "example": "www.example.com",
+            "type": "string"
+          },
+          "nodeId": {
+            "example": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "port": {
+            "example": 443,
+            "type": "integer"
+          },
+          "scope": {
+            "example": "24",
+            "type": "string"
+          },
+          "server": {
+            "example": "203.0.113.10",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current",
+          "port",
+          "scope",
+          "server"
+        ],
+        "type": "object"
+      },
+      "RealityFinderNetwork": {
+        "properties": {
+          "asn": {
+            "example": 197207,
+            "type": "integer"
+          },
+          "country": {
+            "example": "IR",
+            "type": "string"
+          },
+          "ip": {
+            "example": "5.120.1.2",
+            "type": "string"
+          },
+          "org": {
+            "example": "Mobile Communication Company of Iran PLC",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asn",
+          "country",
+          "ip",
+          "org"
+        ],
+        "type": "object"
+      },
+      "RealityFinderReport": {
+        "properties": {
+          "at": {
+            "example": 1793000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "filterTested": {
+            "example": true,
+            "type": "boolean"
+          },
+          "network": {
+            "$ref": "#/components/schemas/RealityFinderNetwork"
+          },
+          "port": {
+            "example": 443,
+            "type": "integer"
+          },
+          "router": {
+            "example": false,
+            "type": "boolean"
+          },
+          "server": {
+            "$ref": "#/components/schemas/RealityFinderServer"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/RealityFinderTarget"
+            },
+            "type": "array"
+          },
+          "tested": {
+            "example": 253,
+            "type": "integer"
+          },
+          "warning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "filterTested",
+          "network",
+          "port",
+          "router",
+          "server",
+          "targets",
+          "tested",
+          "warning"
+        ],
+        "type": "object"
+      },
+      "RealityFinderServer": {
+        "properties": {
+          "asn": {
+            "example": 24940,
+            "type": "integer"
+          },
+          "holder": {
+            "example": "HETZNER-AS",
+            "type": "string"
+          },
+          "ip": {
+            "example": "203.0.113.10",
+            "type": "string"
+          },
+          "prefix": {
+            "example": "203.0.113.0/24",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asn",
+          "holder",
+          "ip",
+          "prefix"
+        ],
+        "type": "object"
+      },
+      "RealityFinderTarget": {
+        "description": "RealityFinderTarget is a name that passed TLS 1.3, X25519, h2 and a valid certificate from\nthe device. Filtered is null when the filter test did not run.",
+        "properties": {
+          "cdn": {
+            "type": "string"
+          },
+          "dnsMatch": {
+            "example": true,
+            "type": "boolean"
+          },
+          "expires": {
+            "example": "Jan 30 12:00:00 2027 GMT",
+            "type": "string"
+          },
+          "filtered": {
+            "example": false,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "ip": {
+            "example": "203.0.113.20",
+            "type": "string"
+          },
+          "issuer": {
+            "example": "Let's Encrypt",
+            "type": "string"
+          },
+          "ms": {
+            "example": 240,
+            "type": "integer"
+          },
+          "same24": {
+            "example": true,
+            "type": "boolean"
+          },
+          "sameAsn": {
+            "example": true,
+            "type": "boolean"
+          },
+          "score": {
+            "example": 96,
+            "type": "integer"
+          },
+          "sni": {
+            "example": "www.example.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cdn",
+          "dnsMatch",
+          "expires",
+          "ip",
+          "issuer",
+          "ms",
+          "same24",
+          "sameAsn",
+          "score",
+          "sni"
+        ],
+        "type": "object"
+      },
       "RealityScanResult": {
         "properties": {
           "alpn": {
@@ -8244,6 +8483,151 @@
                       "tls13": true,
                       "tlsVersion": "1.3",
                       "x25519": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/realityFinder/command": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Make a one-day command that finds REALITY targets from a device on the users' ISP: it reads the certificates of the server's neighbours, checks each name (TLS 1.3, X25519, h2, valid certificate) and sends it as SNI to the inbound's port to see whether the ISP cuts it. This server sends no probes; the script reports back with the token alone. An empty server is this server's public IPv4; port 0 skips the filter test.",
+        "operationId": "post_panel_api_server_realityFinder_command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "server": "203.0.113.10",
+                "port": 443,
+                "scope": "24",
+                "current": "www.example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/RealityFinderCommand"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "expiresAt": 1793000000,
+                    "scriptUrl": "https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+                    "server": "203.0.113.10",
+                    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+                    "unix": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\"",
+                    "windows": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/realityfinder/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui REALITY finder)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one in the REALITY target scanner.')\""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/realityFinder/command/{token}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "The reports the runs of a REALITY finder command sent back so far, oldest first.",
+        "operationId": "get_panel_api_server_realityFinder_command_token",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "The command token.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RealityFinderReport"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "at": 1793000000,
+                      "filterTested": true,
+                      "network": {
+                        "asn": 197207,
+                        "country": "IR",
+                        "ip": "5.120.1.2",
+                        "org": "Mobile Communication Company of Iran PLC"
+                      },
+                      "port": 443,
+                      "router": false,
+                      "server": {
+                        "asn": 24940,
+                        "holder": "HETZNER-AS",
+                        "ip": "203.0.113.10",
+                        "prefix": "203.0.113.0/24"
+                      },
+                      "targets": [
+                        {
+                          "cdn": "",
+                          "dnsMatch": true,
+                          "expires": "Jan 30 12:00:00 2027 GMT",
+                          "filtered": false,
+                          "ip": "203.0.113.20",
+                          "issuer": "Let's Encrypt",
+                          "ms": 240,
+                          "same24": true,
+                          "sameAsn": true,
+                          "score": 96,
+                          "sni": "www.example.com"
+                        }
+                      ],
+                      "tested": 253,
+                      "warning": ""
                     }
                   ]
                 }

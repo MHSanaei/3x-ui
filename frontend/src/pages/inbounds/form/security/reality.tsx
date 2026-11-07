@@ -38,6 +38,7 @@ interface RealityFormProps {
   scanRealityTarget: (allowPrivate?: boolean) => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   applyRealityScanResult: (result: RealityScanResult, replaceServerNames?: boolean) => void;
+  pickRealityTarget: (target: string, serverNames: string[]) => void;
   randomizeShortIds: () => void;
   randomizeSpiderX: () => void;
   genRealityKeypair: () => void;
@@ -53,6 +54,7 @@ export default function RealityForm({
   scanRealityTarget,
   scanRealityCandidates,
   applyRealityScanResult,
+  pickRealityTarget,
   randomizeShortIds,
   randomizeSpiderX,
   genRealityKeypair,
@@ -63,8 +65,15 @@ export default function RealityForm({
   const { t } = useTranslation();
   const uid = useId();
   const { getFieldState, trigger } = useFormContext();
+  const inboundPort = Number(useWatch({ name: 'port' })) || 0;
+  const listen = (useWatch({ name: 'listen' }) as string | undefined) ?? '';
+  const nodeId = (useWatch({ name: 'nodeId' }) as number | null | undefined) ?? null;
+  const currentTarget =
+    (useWatch({ name: 'streamSettings.realitySettings.target' }) as string | undefined) ?? '';
   const [scannerOpen, setScannerOpen] = useState(false);
-  const mldsa65Seed = useWatch({ name: 'streamSettings.realitySettings.mldsa65Seed' });
+  const mldsa65Seed = useWatch({
+    name: 'streamSettings.realitySettings.mldsa65Seed',
+  });
   const mldsa65Verify = useWatch({
     name: 'streamSettings.realitySettings.settings.mldsa65Verify',
   });
@@ -392,6 +401,11 @@ export default function RealityForm({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => applyRealityScanResult(r, true)}
+        onPickTarget={pickRealityTarget}
+        inboundPort={inboundPort}
+        listen={listen}
+        nodeId={nodeId}
+        currentTarget={currentTarget}
         mldsa65Enabled={mldsa65Enabled}
       />
     </>

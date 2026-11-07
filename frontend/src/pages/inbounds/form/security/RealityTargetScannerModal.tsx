@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Input, Modal, Space, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import type { RealityScanResult } from '@/generated/types';
+import RealityFinderPanel from './RealityFinderPanel';
 
 // xray-core ML-DSA-65 REALITY min peer cert-chain size (not defined in this repo).
 export const MLDSA65_MIN_CERT_CHAIN_BYTES = 3500;
@@ -13,6 +14,11 @@ interface RealityTargetScannerModalProps {
   onClose: () => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   onPick: (result: RealityScanResult) => void;
+  onPickTarget: (target: string, serverNames: string[]) => void;
+  inboundPort: number;
+  listen: string;
+  nodeId?: number | null;
+  currentTarget: string;
   mldsa65Enabled?: boolean;
 }
 
@@ -21,11 +27,17 @@ export default function RealityTargetScannerModal({
   onClose,
   scanRealityCandidates,
   onPick,
+  onPickTarget,
+  inboundPort,
+  listen,
+  nodeId = null,
+  currentTarget,
   mldsa65Enabled = false,
 }: RealityTargetScannerModalProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [tab, setTab] = useState('server');
   const [results, setResults] = useState<RealityScanResult[]>([]);
   const scanRef = useRef(scanRealityCandidates);
   useEffect(() => {
@@ -73,7 +85,13 @@ export default function RealityTargetScannerModal({
       render: (target: string, row) => (
         <Tooltip title={row.ip ? `${target} — ${row.ip}` : target}>
           <div style={{ lineHeight: 1.25 }}>
-            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {target}
             </div>
             {row.ip ? <div style={{ color: '#999', fontSize: 12 }}>{row.ip}</div> : null}
@@ -184,9 +202,11 @@ export default function RealityTargetScannerModal({
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="rescan" onClick={() => runScan(query.trim() || undefined)} loading={loading}>
-          {t('pages.inbounds.form.scanRescan')}
-        </Button>,
+        tab === 'server' ? (
+          <Button key="rescan" onClick={() => runScan(query.trim() || undefined)} loading={loading}>
+            {t('pages.inbounds.form.scanRescan')}
+          </Button>
+        ) : null,
         <Button key="close" type="primary" onClick={onClose}>
           {t('close')}
         </Button>,
@@ -194,30 +214,58 @@ export default function RealityTargetScannerModal({
       title={t('pages.inbounds.form.scanModalTitle')}
       width={1080}
     >
-      <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          {t('pages.inbounds.form.scanModalDesc')}
-        </Typography.Paragraph>
-        <Input.Search
-          aria-label={t('pages.inbounds.form.scanDiscoverPlaceholder')}
-          allowClear
-          enterButton={t('pages.inbounds.form.scan')}
-          loading={loading}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onSearch={() => runScan(query.trim() || undefined)}
-          placeholder={t('pages.inbounds.form.scanDiscoverPlaceholder')}
-        />
-        <Table<RealityScanResult>
-          size="small"
-          rowKey="target"
-          loading={loading}
-          columns={columns}
-          dataSource={results}
-          pagination={false}
-          scroll={{ y: 360 }}
-        />
-      </Space>
+      <Tabs
+        activeKey={tab}
+        onChange={setTab}
+        items={[
+          {
+            key: 'server',
+            label: t('pages.inbounds.form.scanTabServer'),
+            children: (
+              <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                  {t('pages.inbounds.form.scanModalDesc')}
+                </Typography.Paragraph>
+                <Input.Search
+                  aria-label={t('pages.inbounds.form.scanDiscoverPlaceholder')}
+                  allowClear
+                  enterButton={t('pages.inbounds.form.scan')}
+                  loading={loading}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onSearch={() => runScan(query.trim() || undefined)}
+                  placeholder={t('pages.inbounds.form.scanDiscoverPlaceholder')}
+                />
+                <Table<RealityScanResult>
+                  size="small"
+                  rowKey="target"
+                  loading={loading}
+                  columns={columns}
+                  dataSource={results}
+                  pagination={false}
+                  scroll={{ y: 360 }}
+                />
+              </Space>
+            ),
+          },
+          {
+            key: 'device',
+            label: t('pages.inbounds.form.scanTabDevice'),
+            children: (
+              <RealityFinderPanel
+                inboundPort={inboundPort}
+                listen={listen}
+                nodeId={nodeId}
+                currentTarget={currentTarget}
+                onPick={(target, serverNames) => {
+                  onPickTarget(target, serverNames);
+                  onClose();
+                }}
+              />
+            ),
+          },
+        ]}
+      />
     </Modal>
   );
 }

@@ -86,6 +86,17 @@ export function useSecurityActions({
    * replaceServerNames is for picking a target wholesale: keeping the previous
    * target's SNI would leave a REALITY config that cannot work.
    */
+  // A target picked without a scan: the shown scan judged the old target, so it goes too.
+  const pickRealityTarget = (target: string, serverNames: string[]) => {
+    setScanResult(null);
+    methods.setValue('streamSettings.realitySettings.target' as never, target as never, {
+      shouldDirty: true,
+    });
+    methods.setValue('streamSettings.realitySettings.serverNames' as never, serverNames as never, {
+      shouldDirty: true,
+    });
+  };
+
   const applyRealityScanResult = (r: RealityScanResult, replaceServerNames = false) => {
     setScanResult(r);
     setValue('streamSettings.realitySettings.target', r.target);
@@ -381,6 +392,7 @@ export function useSecurityActions({
     scanRealityTarget,
     scanRealityCandidates,
     applyRealityScanResult,
+    pickRealityTarget,
     randomizeShortIds,
     randomizeSpiderX,
     getNewEchCert,
