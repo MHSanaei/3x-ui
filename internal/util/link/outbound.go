@@ -5,9 +5,12 @@
 package link
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"math"
 	"net"
@@ -126,6 +129,7 @@ func splitLines(s string) []string {
 //   - ss:// (modern and legacy)
 //   - hysteria2:// (also hy2://)
 //   - wireguard:// (also wg://)
+//   - vpn:// (AmneziaWG: 3x-ui plain .conf or AmneziaVPN app key)
 func ParseLink(link string) (*ParseResult, error) {
 	res, err := parseLinkByScheme(strings.TrimSpace(link))
 	if err != nil {
@@ -177,6 +181,8 @@ func parseLinkByScheme(link string) (*ParseResult, error) {
 		return parseHysteria2(link)
 	case strings.HasPrefix(link, "wireguard://"), strings.HasPrefix(link, "wg://"):
 		return parseWireguard(link)
+	case strings.HasPrefix(link, "vpn://"):
+		return parseAmneziaVPN(link)
 	default:
 		return nil, fmt.Errorf("unsupported link scheme")
 	}
@@ -717,6 +723,149 @@ func parseWireguard(link string) (*ParseResult, error) {
 		"settings": settings,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
+}
+
+// --- amneziawg (vpn://) ---
+
+// maxAmneziaVPNPayload bounds the inflated AmneziaVPN key; a real one is a few KiB.
+const maxAmneziaVPNPayload = 1 << 20
+
+// parseAmneziaVPN reads a vpn:// link: 3x-ui writes base64url(.conf text), the AmneziaVPN
+// app base64url(qCompress(JSON)) with the .conf in containers[].awg.last_config.
+func parseAmneziaVPN(link string) (*ParseResult, error) {
+	payload, err := base64DecodeFlexible(strings.TrimPrefix(link, "vpn://"))
+	if err != nil {
+		return nil, err
+	}
+	conf, description := payload, ""
+	if len(payload) > 6 && payload[4] == 0x78 {
+		if conf, description, err = amneziaVPNKeyConf([]byte(payload[4:])); err != nil {
+			return nil, err
+		}
+	}
+	return amneziaWGOutboundFromConf(conf, description)
+}
+
+func amneziaVPNKeyConf(zlibData []byte) (conf, description string, err error) {
+	zr, err := zlib.NewReader(bytes.NewReader(zlibData))
+	if err != nil {
+		return "", "", err
+	}
+	defer zr.Close()
+	raw, err := io.ReadAll(io.LimitReader(zr, maxAmneziaVPNPayload+1))
+	if err != nil {
+		return "", "", err
+	}
+	if len(raw) > maxAmneziaVPNPayload {
+		return "", "", fmt.Errorf("amneziavpn key exceeds %d bytes", maxAmneziaVPNPayload)
+	}
+	var key struct {
+		Description string `json:"description"`
+		Containers  []struct {
+			Awg *struct {
+				LastConfig string `json:"last_config"`
+			} `json:"awg"`
+		} `json:"containers"`
+	}
+	if err := json.Unmarshal(raw, &key); err != nil {
+		return "", "", err
+	}
+	for _, c := range key.Containers {
+		if c.Awg == nil || c.Awg.LastConfig == "" {
+			continue
+		}
+		var last struct {
+			Config string `json:"config"`
+		}
+		if err := json.Unmarshal([]byte(c.Awg.LastConfig), &last); err != nil {
+			return "", "", err
+		}
+		if last.Config != "" {
+			return last.Config, key.Description, nil
+		}
+	}
+	return "", "", fmt.Errorf("amneziavpn key has no amneziawg container")
+}
+
+// amneziaWGConfInts are the .conf keys the outbound stores as numbers.
+var amneziaWGConfInts = map[string]string{
+	"mtu": "mtu", "jc": "jc", "jmin": "jmin", "jmax": "jmax",
+	"s1": "s1", "s2": "s2", "s3": "s3", "s4": "s4",
+}
+
+var amneziaWGConfStrings = map[string]string{
+	"h1": "h1", "h2": "h2", "h3": "h3", "h4": "h4",
+	"i1": "i1", "i2": "i2", "i3": "i3", "i4": "i4", "i5": "i5",
+	"headerprotectionkey": "headerProtectionKey", "contentpaddingaddition": "contentPaddingAddition",
+	"rekeyaftertime": "rekeyAfterTime", "rekeytimeout": "rekeyTimeout", "rejectaftertime": "rejectAfterTime",
+	"keepalivetimeout": "keepaliveTimeout", "maxhandshakeattempts": "maxHandshakeAttempts",
+}
+
+// amneziaWGOutboundFromConf keeps only known keys, so wg-quick hooks (PostUp...) never survive.
+func amneziaWGOutboundFromConf(conf, fallbackTag string) (*ParseResult, error) {
+	settings := map[string]any{"randomTrailers": false, "disableCookies": false}
+	peer := map[string]any{"allowedIPs": []string{"0.0.0.0/0", "::/0"}}
+	tag := ""
+	for line := range strings.SplitSeq(conf, "\n") {
+		line = strings.TrimSpace(line)
+		if rest, ok := strings.CutPrefix(line, "#"); ok {
+			if tag == "" {
+				tag = strings.TrimSpace(rest)
+			}
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		key, v := strings.ToLower(strings.TrimSpace(k)), strings.TrimSpace(v)
+		if f, ok := amneziaWGConfInts[key]; ok {
+			if n, err := strconv.Atoi(v); err == nil {
+				settings[f] = n
+			}
+			continue
+		}
+		if f, ok := amneziaWGConfStrings[key]; ok {
+			settings[f] = v
+			continue
+		}
+		switch key {
+		case "privatekey":
+			settings["secretKey"] = v
+		case "address":
+			settings["address"] = splitComma(v)
+		case "dns":
+			if dns := splitComma(v); len(dns) > 0 {
+				settings["dns"] = dns[0]
+			}
+		case "randomtrailers":
+			settings["randomTrailers"] = strings.EqualFold(v, "on")
+		case "disablecookies":
+			settings["disableCookies"] = strings.EqualFold(v, "on")
+		case "publickey":
+			peer["publicKey"] = v
+		case "presharedkey":
+			peer["presharedKey"] = v
+		case "allowedips":
+			peer["allowedIPs"] = splitComma(v)
+		case "endpoint":
+			peer["endpoint"] = v
+		case "persistentkeepalive":
+			// A ranged keepalive ("20-30") has no slot in the outbound's int field.
+			if n, err := strconv.Atoi(v); err == nil {
+				peer["keepAlive"] = n
+			}
+		}
+	}
+	if settings["secretKey"] == nil || peer["publicKey"] == nil || peer["endpoint"] == nil {
+		return nil, fmt.Errorf("amneziawg config lacks PrivateKey, PublicKey or Endpoint")
+	}
+	settings["peers"] = []any{peer}
+	if tag == "" {
+		tag = fallbackTag
+	}
+	ob := Outbound{"protocol": "amneziawg", "tag": tag, "settings": settings}
+	return &ParseResult{Outbound: ob, Identity: fmt.Sprintf("amneziawg:%s@%s", peer["publicKey"], peer["endpoint"])}, nil
 }
 
 // --- helpers ---
