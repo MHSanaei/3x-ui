@@ -1212,6 +1212,20 @@ describe('parseOutboundLink — AmneziaWG vpn://', () => {
     });
     expect((await parseOutboundLink(link))?.tag).toBe('my-awg');
   });
+
+  it('keeps the lower bound of a ranged PersistentKeepalive', async () => {
+    const ranged = conf.replace('PersistentKeepalive = 25', 'PersistentKeepalive = 20-30');
+    const out = await parseOutboundLink(`vpn://${b64url(new TextEncoder().encode(ranged))}`);
+    expect(out).toMatchObject({ settings: { peers: [{ keepAlive: 20 }] } });
+  });
+
+  it('rejects a key that inflates past 1 MiB', async () => {
+    const link = await amneziaVPNKey({
+      description: 'a'.repeat(1_100_000),
+      containers: [{ awg: { last_config: JSON.stringify({ config: conf }) } }],
+    });
+    expect(await parseOutboundLink(link)).toBeNull();
+  });
 });
 
 describe('obfs=gecko packetSize validation', () => {

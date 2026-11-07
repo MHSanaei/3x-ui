@@ -927,12 +927,36 @@ function amneziaWGOutboundFromConf(conf: string, fallbackTag: string): Raw | nul
     else if (key === 'presharedkey') peer.presharedKey = v;
     else if (key === 'allowedips') peer.allowedIPs = splitList(v);
     else if (key === 'endpoint') peer.endpoint = v;
-    // A ranged keepalive ("20-30") has no slot in the outbound's int field.
-    else if (key === 'persistentkeepalive' && /^\d+$/.test(v)) peer.keepAlive = Number(v);
+    // The outbound holds one interval; a ranged "20-30" keeps its lower bound so NAT refresh survives.
+    else if (key === 'persistentkeepalive' && /^\d+\s*(-\s*\d+)?$/.test(v))
+      peer.keepAlive = parseInt(v, 10);
   }
   if (!settings.secretKey || !peer.publicKey || !peer.endpoint) return null;
   settings.peers = [peer];
   return { protocol: 'amneziawg', tag: tag || fallbackTag, settings };
+}
+
+// Same per-key cap as Go's maxAmneziaVPNPayload; a real key is a few KiB.
+const MAX_AMNEZIAVPN_PAYLOAD = 1 << 20;
+
+// inflateBounded stops reading once the cap is passed, so a zip bomb never lands in memory.
+async function inflateBounded(zlib: Uint8Array<ArrayBuffer>, cap: number): Promise<string | null> {
+  const reader = new Blob([zlib])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate'))
+    .getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let total = 0;
+  for (let r = await reader.read(); !r.done; r = await reader.read()) {
+    total += r.value.length;
+    if (total > cap) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(r.value, { stream: true });
+  }
+  return text + decoder.decode();
 }
 
 const AmneziaVPNKeySchema = z.object({
@@ -955,10 +979,9 @@ export async function parseAmneziaVPNLink(link: string): Promise<Raw | null> {
     if (bytes.length <= 6 || bytes[4] !== 0x78) {
       return amneziaWGOutboundFromConf(new TextDecoder().decode(bytes), '');
     }
-    const inflated = new Blob([bytes.slice(4)])
-      .stream()
-      .pipeThrough(new DecompressionStream('deflate'));
-    const key = AmneziaVPNKeySchema.parse(JSON.parse(await new Response(inflated).text()));
+    const json = await inflateBounded(bytes.slice(4), MAX_AMNEZIAVPN_PAYLOAD);
+    if (json === null) return null;
+    const key = AmneziaVPNKeySchema.parse(JSON.parse(json));
     for (const c of key.containers) {
       if (!c.awg?.last_config) continue;
       const { config } = AmneziaVPNLastConfigSchema.parse(JSON.parse(c.awg.last_config));
