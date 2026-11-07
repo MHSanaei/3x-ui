@@ -74,9 +74,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		}
 		subReq.projectThroughFallbackMaster(inbound)
 		var baseEps []map[string]any
+		var hostsClosed bool
 		baseStream := inbound.StreamSettings
 		if !subReq.hostsFirst {
-			if baseEps = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
+			if baseEps, hostsClosed = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}
@@ -85,6 +86,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
+			if hostsClosed {
+				hasBoundClosed = true
+				continue
+			}
 			if subReq.hostsFirst {
 				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed

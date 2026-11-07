@@ -17,7 +17,7 @@ import {
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
-import { withHostEndpoints } from '@/lib/hosts/host-link';
+import { hostLinksClosed, withHostEndpoints } from '@/lib/hosts/host-link';
 
 import {
   buildInboundInfo,
@@ -150,14 +150,21 @@ export default function InboundInfoModal({
       window.location.hostname,
       subSettings?.publicHost ?? '',
     );
+    const baseInbound = inboundFromDb(dbInbound);
     const inboundForLinks = withHostEndpoints(
-      inboundFromDb(dbInbound),
+      baseInbound,
       dbInbound.id,
       hosts,
       nodeAddress,
       fallbackHostname,
     );
-    if (info.protocol === Protocols.WIREGUARD) {
+    if (hostLinksClosed(baseInbound, dbInbound.id, hosts)) {
+      setWireguardConfigs([]);
+      setWireguardLinks([]);
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
+      setLinks([]);
+    } else if (info.protocol === Protocols.WIREGUARD) {
       setWireguardConfigs(
         genWireguardPeerConfigs({
           inbound: inboundForLinks,

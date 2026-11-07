@@ -587,14 +587,15 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		// Host overrides apply AFTER fallback projection so a host's
 		// address/TLS wins over the projected master stream.
 		var hostEps []map[string]any
+		var hostsClosed bool
 		if !s.hostsFirst {
-			hostEps = s.hostEndpoints(inbound, "raw")
+			hostEps, hostsClosed = s.hostEndpoints(inbound, "raw")
 		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
-			if s.rendered.spent() {
+			if hostsClosed || s.rendered.spent() {
 				seenEmails[client.Email] = struct{}{}
 				continue
 			}
@@ -695,7 +696,10 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 	}
 	s.primeLinkClients(inbound.Id, clients, true)
 	s.projectThroughFallbackMaster(inbound)
-	hostEps := s.hostEndpoints(inbound, "raw")
+	hostEps, hostsClosed := s.hostEndpoints(inbound, "raw")
+	if hostsClosed {
+		return nil
+	}
 	var out []string
 	seen := make(map[string]struct{}, len(clients))
 	for _, client := range clients {

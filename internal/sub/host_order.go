@@ -84,17 +84,24 @@ func hostOrderGroupID(h *model.Host) string {
 	return fmt.Sprintf("fallback_%d", h.Id)
 }
 
+// subscriptionHostVariants returns one variant per enabled host not excluded from format, a single
+// host-less variant for an inbound with no enabled host, and none when all its hosts are excluded.
 func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format string) []subscriptionHostVariant {
 	var variants []subscriptionHostVariant
+	enabled := 0
 	for _, h := range s.hostsByInbound[inbound.Id] {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+		if h.IsDisabled {
+			continue
+		}
+		enabled++
+		if slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
 		order := s.hostGroupOrders[hostOrderGroupID(h)]
 		order.inboundSort, order.inboundID, order.hostID = inbound.SubSortIndex, inbound.Id, h.Id
 		variants = append(variants, subscriptionHostVariant{h, &order})
 	}
-	if len(variants) == 0 {
+	if enabled == 0 {
 		return []subscriptionHostVariant{{}}
 	}
 	return variants
