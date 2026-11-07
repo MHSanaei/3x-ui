@@ -652,4 +652,3 @@ func parseDatedRelease(value string) (date, revision int, ok bool) {
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
-

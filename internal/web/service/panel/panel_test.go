@@ -425,4 +425,3 @@ func TestGetUpdateStatus(t *testing.T) {
 		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
 }
-
