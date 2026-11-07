@@ -1,4 +1,4 @@
-name: Republish 3x-ui-20261107 as stable
+name: Clean accidental main release
 
 on:
   push:
@@ -7,69 +7,17 @@ on:
       - ".github/workflows/publish-3x-ui-20261107-stable.yml"
 
 permissions:
-  actions: write
   contents: write
 
 jobs:
-  publish:
-    if: "${{ github.event.head_commit.message == 'release: republish 3x-ui-20261107 as stable' }}"
+  cleanup:
+    if: "${{ github.event.head_commit.message == 'chore: remove accidental main release' }}"
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: 3x-ui-20261107
-      RELEASE_COMMIT: 601dc488974d0a1df82e72ac806c07e3547a4157
-      BUILD_BRANCH: 3x-ui-20261107-stable-build
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Build tagged stable identity
+      - name: Remove accidental release and tag
         run: |
           set -euo pipefail
-          test "$(git rev-parse "origin/${BUILD_BRANCH}")" = "${RELEASE_COMMIT}"
-          previous="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow release.yml \
-            --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
-          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main \
-            -f source_ref="${RELEASE_COMMIT}" -f release_tag="${RELEASE_TAG}"
-          run_id=""
-          for _ in $(seq 1 60); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow release.yml \
-              --event workflow_dispatch --limit 1 --json databaseId \
-              --jq '.[0].databaseId // 0')"
-            [[ "${run_id}" != "0" && "${run_id}" != "${previous}" ]] && break
-            sleep 5
-          done
-          [[ -n "${run_id}" && "${run_id}" != "0" && "${run_id}" != "${previous}" ]]
-          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
-          gh run download "${run_id}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
-          test "$(find release-artifacts -type f | wc -l)" -eq 16
-          test "$(find release-artifacts -type f -name '*.sha256' | wc -l)" -eq 8
-          while IFS= read -r checksum; do
-            (
-              cd "$(dirname "${checksum}")"
-              sha256sum -c "$(basename "${checksum}")"
-            )
-          done < <(find release-artifacts -type f -name '*.sha256' -print)
-
-      - name: Replace release assets
-        run: |
-          set -euo pipefail
-          git tag --force "${RELEASE_TAG}" "${RELEASE_COMMIT}"
-          git push --force origin "refs/tags/${RELEASE_TAG}"
-          notes="Stable dated IPv6/DNS leak-prevention release, updated in place on 2026-11-07.
-
-          - Reports its stable identity as 3x-ui-20261107 instead of a dev commit.
-          - Future dated stable releases are detected through GitHub releases/latest and shown in the panel.
-          - Uses its own immutable tag when downloading the updater.
-          - Fixes stale panel update locks after a failed updater exits.
-          - Keeps the existing IPv6 and DNS leak-prevention changes.
-          - dev-latest remains frozen at dev+6d205a91."
-          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-            --title "${RELEASE_TAG}" --notes "${notes}" \
-            --latest=true --prerelease=false
-          gh release upload "${RELEASE_TAG}" release-artifacts/*/* \
-            --repo "${GITHUB_REPOSITORY}" --clobber
-          test "$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')" -eq 16
-          test "$(git ls-remote origin "refs/tags/${RELEASE_TAG}" | cut -f1)" = "${RELEASE_COMMIT}"
-          git push origin --delete "${BUILD_BRANCH}"
+          gh release delete main --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
+          ! gh release view main --repo "${GITHUB_REPOSITORY}"
