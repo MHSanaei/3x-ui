@@ -1000,6 +1000,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "bkp", "get_backup":
 		t.answerSilent(callbackQuery.ID)
 		t.sendBackupScreen(chatId)
+		// The files landed under the menu; bring it back below them so it stays in view.
+		t.screenCategory(chatId, "maintenance", screenSendNew)
 	case "ban", "get_banlogs":
 		t.answerSilent(callbackQuery.ID)
 		t.screenBanLogs(chatId)

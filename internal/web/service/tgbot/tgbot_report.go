@@ -123,10 +123,10 @@ func (t *Tgbot) SendBackupToAdmins() {
 		if dbData == nil {
 			t.sendNotice(adminId, t.I18nBot("tgbot.messages.backupFailed"))
 		} else {
-			t.sendDocumentWithCaption(adminId, dbData, dbFilename, t.backupSummary())
+			t.sendBackupFile(adminId, dbData, dbFilename, t.backupSummary())
 			time.Sleep(500 * time.Millisecond)
 			if configErr == nil {
-				t.sendDocumentWithCaption(adminId, config, "config.json", "")
+				t.sendBackupFile(adminId, config, "config.json", "")
 			}
 		}
 		// Add delay between sends to avoid Telegram rate limits
