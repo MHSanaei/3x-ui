@@ -106,8 +106,8 @@ var (
 )
 
 const (
-	updateStaleAfter  = 20 * time.Minute
-	updateHardCeiling = 2 * time.Hour
+	updateStaleAfter  = 5 * time.Minute
+	updateHardCeiling = 25 * time.Minute
 )
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
@@ -223,8 +223,12 @@ func (s *PanelService) GetUpdateStatus() *PanelUpdateStatus {
 
 func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	runID := time.Now().UnixNano()
-	if !acquireUpdateSlot(runID) {
-		return 0, fmt.Errorf("a panel update is already in progress")
+	activeRunID, acquired := acquireOrJoinUpdateSlot(runID)
+	if !acquired {
+		// Treat a repeated click (or a click after refreshing the page) as an
+		// idempotent request: return the already-running job so the UI can resume
+		// polling it instead of showing a dead-end "already in progress" error.
+		return activeRunID, nil
 	}
 	launched := false
 	defer func() {
@@ -258,7 +262,11 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	if useDev {
 		updateTag = devReleaseTag
 	}
-	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
+	updateCommand := fmt.Sprintf("%s %s", shellQuote(bash), shellQuote(scriptPath))
+	if timeoutBin, timeoutErr := exec.LookPath("timeout"); timeoutErr == nil {
+		updateCommand = fmt.Sprintf("%s --signal=TERM --kill-after=30s 20m %s", shellQuote(timeoutBin), updateCommand)
+	}
+	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s", shellQuote(scriptPath), updateCommand)
 	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
 	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
 	proxyEnv := updateProxyEnvVars()
@@ -340,6 +348,14 @@ func updateProxyEnvVars() []string {
 // slot unconditionally regardless of liveness, so a truly wedged run can
 // never lock out retries forever.
 func acquireUpdateSlot(runID int64) bool {
+	_, acquired := acquireOrJoinUpdateSlot(runID)
+	return acquired
+}
+
+// acquireOrJoinUpdateSlot either claims the update slot or returns the run ID
+// already occupying it. Returning the active ID makes repeated web requests
+// idempotent and lets a refreshed UI reconnect to the original update job.
+func acquireOrJoinUpdateSlot(runID int64) (int64, bool) {
 	updateMu.Lock()
 	defer updateMu.Unlock()
 	if updateRunning && !previousRunIsTerminal() {
@@ -361,7 +377,7 @@ func acquireUpdateSlot(runID int64) bool {
 				stale := elapsed >= updateStaleAfter
 				alive := (updatePID > 0 && processAlive(updatePID)) || (unitKnown && unitRunning)
 				if !stale || alive {
-					return false
+					return updateRunID, false
 				}
 			}
 		}
@@ -371,7 +387,7 @@ func acquireUpdateSlot(runID int64) bool {
 	updateRunID = runID
 	updatePID = 0
 	updateUnit = ""
-	return true
+	return runID, true
 }
 
 // recordUpdatePID notes the PID of the detached update.sh process the
@@ -497,6 +513,12 @@ func downloadPanelUpdater() (string, error) {
 // binary. This avoids executing a mutable main-branch script as root from the
 // web updater. Stable builds fall back to their own version tag.
 func panelUpdaterDownloadURL() string {
+	// A rolling development build must also be able to receive updater fixes.
+	// Pinning it to its old build commit permanently trapped broken updater
+	// scripts. Stable dated releases remain pinned to immutable source.
+	if config.IsDevBuild() {
+		return panelRepositoryRaw + "/main/update.sh"
+	}
 	ref := panelUpdaterRef(config.GetBuildCommit(), config.GetBuildRelease(), config.GetBaseVersion())
 	return panelRepositoryRaw + "/" + ref + "/update.sh"
 }

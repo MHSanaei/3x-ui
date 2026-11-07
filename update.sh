@@ -40,6 +40,40 @@ _fail() {
 xui_update_run_id="${XUI_UPDATE_RUN_ID:-0}"
 [[ "${xui_update_run_id}" =~ ^[0-9]+$ ]] || xui_update_run_id="0"
 xui_update_status_file="${XUI_UPDATE_STATUS_FILE:-/etc/x-ui/update-status.json}"
+rollback_active=0
+rollback_dir=""
+rollback_cli=""
+rollback_unit=""
+rollback_db=""
+
+_restore_update_backup() {
+    [[ "${rollback_active}" -eq 1 ]] || return 0
+    echo -e "${yellow}Update failed; restoring the previous panel version...${plain}"
+    if [[ -n "${rollback_dir}" && -d "${rollback_dir}" ]]; then
+        rm -rf -- "${xui_folder}"
+        mv -- "${rollback_dir}" "${xui_folder}"
+    fi
+    if [[ -n "${rollback_cli}" && -f "${rollback_cli}" ]]; then
+        cp -a -- "${rollback_cli}" /usr/bin/x-ui
+    fi
+    if [[ -n "${rollback_db}" && -f "${rollback_db}" ]]; then
+        local db_dir="${XUI_DB_FOLDER:-/etc/x-ui}"
+        mkdir -p "${db_dir}"
+        cp -a -- "${rollback_db}" "${db_dir}/x-ui.db"
+        rm -f -- "${db_dir}/x-ui.db-wal" "${db_dir}/x-ui.db-shm"
+    fi
+    if [[ "${release:-}" == "alpine" ]]; then
+        [[ -n "${rollback_unit}" && -f "${rollback_unit}" ]] && cp -a -- "${rollback_unit}" /etc/init.d/x-ui
+        rc-update add x-ui > /dev/null 2>&1 || true
+        rc-service x-ui start > /dev/null 2>&1 || true
+    else
+        [[ -n "${rollback_unit}" && -f "${rollback_unit}" ]] && cp -a -- "${rollback_unit}" "${xui_service}/x-ui.service"
+        systemctl daemon-reload > /dev/null 2>&1 || true
+        systemctl enable x-ui > /dev/null 2>&1 || true
+        systemctl restart x-ui > /dev/null 2>&1 || true
+    fi
+    rollback_active=0
+}
 
 _write_update_status() {
     local state="$1"
@@ -58,6 +92,7 @@ _report_update_exit() {
     if [[ "${code}" -eq 0 ]]; then
         _write_update_status "success" "0"
     else
+        _restore_update_backup
         _write_update_status "failed" "${code}"
     fi
 }
@@ -164,12 +199,35 @@ install_base() {
     esac
 }
 
+# Normal updates already have the tools that installed the running panel. Do
+# not run a full repository refresh on every web update: apt/dnf mirrors are a
+# common source of multi-minute hangs and they are unrelated to replacing the
+# panel binary. Only invoke the package manager when an actually required tool
+# is missing.
+ensure_update_dependencies() {
+    local command missing=""
+    for command in curl tar sha256sum openssl; do
+        if ! _command_exists "$command"; then
+            missing="${missing:+$missing }$command"
+        fi
+    done
+    if [[ -z "$missing" ]]; then
+        echo -e "${green}Update dependencies are already installed; skipping package-manager refresh.${plain}"
+        return 0
+    fi
+    echo -e "${yellow}Missing update dependencies: ${missing}; installing them now.${plain}"
+    install_base
+    for command in curl tar sha256sum openssl; do
+        _command_exists "$command" || _fail "ERROR: Required update command '$command' is still unavailable after dependency installation."
+    done
+}
+
 config_after_update() {
     local panel_needs_restart=0
 
     echo -e "${yellow}x-ui settings:${plain}"
-    ${xui_folder}/x-ui setting -show true
-    ${xui_folder}/x-ui migrate
+    ${xui_folder}/x-ui setting -show true || return 1
+    ${xui_folder}/x-ui migrate || return 1
 
     # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
@@ -499,7 +557,9 @@ require_repo_files() {
 }
 
 update_x-ui() {
-    cd ${xui_folder%/x-ui}/
+    local install_parent="${xui_folder%/*}"
+    local staging_dir="" staged_panel="" new_xui_version=""
+    cd "${install_parent}" || _fail "ERROR: Cannot access panel installation directory: ${install_parent}"
 
     load_xui_env
 
@@ -538,7 +598,7 @@ update_x-ui() {
     local required_files=("x-ui.sh")
     [[ $release == "alpine" ]] && required_files+=("x-ui.rc")
     require_repo_files "${script_ref}" "${required_files[@]}"
-    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/jrangus/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
+    ${curl_bin} -fLR --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 600 -o "${xui_folder}-linux-$(arch).tar.gz" "https://github.com/jrangus/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz" 2> /dev/null
     if [[ $? -ne 0 ]]; then
         _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
     fi
@@ -568,6 +628,59 @@ update_x-ui() {
         rm -f "${archive}.sha256" "${archive}"
         _fail "ERROR: Failed to download the checksum for x-ui-linux-$(arch).tar.gz (HTTP ${sidecar_code})"
     fi
+
+    # Fully extract and validate the release before stopping the running panel.
+    # Reject absolute/traversal paths even though release archives are trusted:
+    # this also catches a malformed artifact before it can touch the host.
+    if ! tar -tzf "${archive}" | awk '
+        /^\// { bad=1 }
+        /(^|\/)\.\.($|\/)/ { bad=1 }
+        END { exit bad }
+    '; then
+        rm -f "${archive}"
+        _fail "ERROR: Release archive contains an unsafe or invalid path. The current installation is untouched."
+    fi
+    staging_dir=$(mktemp -d "${install_parent}/.x-ui-update-stage.XXXXXX") || _fail "ERROR: Failed to create update staging directory."
+    if ! tar -xzf "${archive}" -C "${staging_dir}"; then
+        rm -rf -- "${staging_dir}"
+        rm -f "${archive}"
+        _fail "ERROR: Failed to extract the release archive. The current installation is untouched."
+    fi
+    rm -f "${archive}"
+    staged_panel="${staging_dir}/x-ui"
+    if [[ ! -s "${staged_panel}/x-ui" ]]; then
+        rm -rf -- "${staging_dir}"
+        _fail "ERROR: Release archive is missing the x-ui binary. The current installation is untouched."
+    fi
+    chmod +x "${staged_panel}/x-ui"
+    new_xui_version=$("${staged_panel}/x-ui" -v 2>/dev/null) || {
+        rm -rf -- "${staging_dir}"
+        _fail "ERROR: The downloaded x-ui binary cannot run on this host. The current installation is untouched."
+    }
+    if [[ -z "${new_xui_version}" ]]; then
+        rm -rf -- "${staging_dir}"
+        _fail "ERROR: The downloaded x-ui binary did not report a version. The current installation is untouched."
+    fi
+    echo -e "${green}Validated new x-ui version: ${new_xui_version}${plain}"
+
+    # Prepare a complete rollback copy before making the first destructive
+    # change. The database stays in /etc/x-ui and is never removed here.
+    rollback_dir="${xui_folder}.rollback.${xui_update_run_id:-$$}"
+    rollback_cli="${staging_dir}/x-ui-cli.rollback"
+    rollback_unit="${staging_dir}/x-ui-service.rollback"
+    rollback_db="${staging_dir}/x-ui-db.rollback"
+    rm -rf -- "${rollback_dir}"
+    cp -a -- "${xui_folder}" "${rollback_dir}" || {
+        rm -rf -- "${staging_dir}"
+        _fail "ERROR: Failed to create a rollback copy. The current installation is untouched."
+    }
+    [[ -f /usr/bin/x-ui ]] && cp -a -- /usr/bin/x-ui "${rollback_cli}"
+    if [[ "${release}" == "alpine" ]]; then
+        [[ -f /etc/init.d/x-ui ]] && cp -a -- /etc/init.d/x-ui "${rollback_unit}"
+    else
+        [[ -f "${xui_service}/x-ui.service" ]] && cp -a -- "${xui_service}/x-ui.service" "${rollback_unit}"
+    fi
+    rollback_active=1
 
     if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
@@ -599,39 +712,19 @@ update_x-ui() {
         # The new panel respawns a clean mtg per inbound on next start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
         pkill -f 'tuic-server.*-c .*bin/tuic/tuic_[0-9]+\.json' > /dev/null 2>&1 || true
-        echo -e "${green}Removing old x-ui version...${plain}"
-        rm ${xui_folder} -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.debian -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.arch -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.service.rhel -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui -f > /dev/null 2>&1
-        rm ${xui_folder}/x-ui.sh -f > /dev/null 2>&1
-        echo -e "${green}Removing old mtg version...${plain}"
-        rm ${xui_folder}/bin/mtg-linux-$(arch) -f > /dev/null 2>&1
-        echo -e "${green}Removing old xray version...${plain}"
-        rm ${xui_folder}/bin/xray-linux-$(arch) -f > /dev/null 2>&1
-        echo -e "${green}Removing old README and LICENSE file...${plain}"
-        rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
-        rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
-        rm ${xui_folder}/bin/tuic-server -f > /dev/null 2>&1
-        rm ${xui_folder}/bin/tuic -rf > /dev/null 2>&1
+        if [[ "${XUI_DB_TYPE:-sqlite}" != "postgres" && -f "${XUI_DB_FOLDER:-/etc/x-ui}/x-ui.db" ]]; then
+            cp -a -- "${XUI_DB_FOLDER:-/etc/x-ui}/x-ui.db" "${rollback_db}" || _fail "ERROR: Failed to back up the panel database."
+        fi
+        echo -e "${green}Activating new x-ui version...${plain}"
+        rm -rf -- "${xui_folder}"
+        mv -- "${staged_panel}" "${xui_folder}" || _fail "ERROR: Failed to activate the staged panel."
     else
         rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
         _fail "ERROR: x-ui not installed."
     fi
 
     echo -e "${green}Installing new x-ui version...${plain}"
-    tar zxvf x-ui-linux-$(arch).tar.gz > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-        _fail "ERROR: Failed to extract the x-ui release archive -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
-    fi
-    rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
-    cd x-ui > /dev/null 2>&1
-    if [[ $? -ne 0 || ! -s x-ui ]]; then
-        _fail "ERROR: Extracted x-ui archive is missing the x-ui binary -- the previous installation has already been removed, so the panel will not start until this is fixed; try running the update again"
-    fi
+    cd "${xui_folder}" || _fail "ERROR: Failed to enter the activated panel directory."
     chmod +x x-ui > /dev/null 2>&1
 
     # Check the system's architecture and rename the file accordingly.
@@ -656,7 +749,7 @@ update_x-ui() {
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
     rm -f "${xui_script_temp}"
-    ${curl_bin} -fLRo "${xui_script_temp}" "https://raw.githubusercontent.com/jrangus/3x-ui/${script_ref}/x-ui.sh" > /dev/null 2>&1
+    ${curl_bin} -fLR --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 120 -o "${xui_script_temp}" "https://raw.githubusercontent.com/jrangus/3x-ui/${script_ref}/x-ui.sh" > /dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         rm -f "${xui_script_temp}"
         _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
@@ -686,7 +779,7 @@ update_x-ui() {
     # Finish the schema/data migrations before the service starts, so the service and
     # config_after_update's CLI calls never run them on the same database at once (#6728).
     echo -e "${green}Migrating database...${plain}"
-    "${xui_folder}/x-ui" migrate
+    "${xui_folder}/x-ui" migrate || _fail "ERROR: Database migration failed. The previous panel version will be restored."
 
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
@@ -709,7 +802,8 @@ update_x-ui() {
         chmod +x /etc/init.d/x-ui > /dev/null 2>&1
         chown root:root /etc/init.d/x-ui > /dev/null 2>&1
         rc-update add x-ui > /dev/null 2>&1
-        rc-service x-ui start > /dev/null 2>&1
+        rc-service x-ui start > /dev/null 2>&1 || _fail "ERROR: Failed to start x-ui after updating."
+        rc-service x-ui status > /dev/null 2>&1 || _fail "ERROR: x-ui did not remain running after updating."
     else
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Installing systemd unit...${plain}"
@@ -771,10 +865,11 @@ update_x-ui() {
         chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
         systemctl daemon-reload > /dev/null 2>&1
         systemctl enable x-ui > /dev/null 2>&1
-        systemctl start x-ui > /dev/null 2>&1
+        systemctl start x-ui > /dev/null 2>&1 || _fail "ERROR: Failed to start x-ui after updating."
+        systemctl is-active --quiet x-ui || _fail "ERROR: x-ui did not remain active after updating."
     fi
 
-    config_after_update
+    config_after_update || _fail "ERROR: Post-update configuration failed. The previous panel version will be restored."
 
     # Existing xnvgatebox installations must not keep a public management
     # listener now that the console is proxied through authenticated 3x-ui.
@@ -786,6 +881,11 @@ update_x-ui() {
     # works out of the box on update too (no-op when XUI_ENABLE_FAIL2BAN=false).
     # Never fatal.
     setup_fail2ban
+
+    # The new service is healthy. From this point onward a later shell cleanup
+    # error must not roll the installation back.
+    rollback_active=0
+    rm -rf -- "${rollback_dir}" "${staging_dir}"
 
     echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
     echo -e ""
@@ -811,5 +911,5 @@ update_x-ui() {
 
 echo -e "${green}Running...${plain}"
 require_writable_update_paths
-install_base
+ensure_update_dependencies
 update_x-ui $1

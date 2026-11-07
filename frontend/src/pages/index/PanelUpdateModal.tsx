@@ -49,7 +49,10 @@ export default function PanelUpdateModal({
 
   async function pollUpdateStatus(expectedRunId: string): Promise<UpdateOutcome> {
     await PromiseUtil.sleep(5000);
-    const deadline = Date.now() + 90_000;
+    // Package downloads and migrations can legitimately exceed 90 seconds on
+    // small VPS instances. Keep watching the same run instead of declaring an
+    // unknown result while the backend is still updating.
+    const deadline = Date.now() + 20 * 60_000;
     while (Date.now() < deadline) {
       try {
         const msg = await HttpUtil.get<PanelUpdateStatus>(

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "**.go"
+      - "**.sh"
       - "go.mod"
       - "go.sum"
       - "frontend/**"
@@ -15,6 +16,7 @@ on:
       - main
     paths:
       - "**.go"
+      - "**.sh"
       - "go.mod"
       - "go.sum"
       - "frontend/**"
@@ -26,6 +28,47 @@ permissions:
   contents: read
 
 jobs:
+  updater-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Bash syntax
+        run: bash -n update.sh install.sh x-ui.sh
+      - name: ShellCheck fatal errors
+        run: shellcheck --severity=error update.sh
+
+  panel-update-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stub embedded frontend
+        run: mkdir -p internal/web/dist && touch internal/web/dist/.gitkeep
+      - name: Update service and API regression tests
+        run: go test -count=1 ./internal/web/service/panel ./internal/web/controller
+
+  panel-update-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci
+        working-directory: frontend
+      - name: Typecheck update UI
+        run: npm run typecheck
+        working-directory: frontend
+      - name: Build update UI
+        run: npm run build
+        working-directory: frontend
+
   go-test:
     runs-on: ubuntu-latest
     steps:

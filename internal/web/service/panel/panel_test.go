@@ -210,6 +210,20 @@ func TestAcquireUpdateSlot(t *testing.T) {
 	releaseUpdateSlot()
 }
 
+func TestAcquireOrJoinUpdateSlotReturnsActiveRun(t *testing.T) {
+	resetUpdateSlot(t)
+
+	active, acquired := acquireOrJoinUpdateSlot(101)
+	if !acquired || active != 101 {
+		t.Fatalf("first acquire = (%d, %v), want (101, true)", active, acquired)
+	}
+	active, acquired = acquireOrJoinUpdateSlot(202)
+	if acquired || active != 101 {
+		t.Fatalf("repeated request = (%d, %v), want existing run (101, false)", active, acquired)
+	}
+	releaseUpdateSlot()
+}
+
 func TestAcquireUpdateSlotExpiresAfterStaleWindow(t *testing.T) {
 	resetUpdateSlot(t)
 
