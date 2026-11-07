@@ -1,4 +1,4 @@
-name: Publish 3x-ui-20261107-r2
+name: Replace 3x-ui-20261107 with fixed build
 
 on:
   push:
@@ -7,45 +7,30 @@ on:
       - ".github/workflows/publish-3x-ui-20261107-r2.yml"
 
 permissions:
-  actions: write
+  actions: read
   contents: write
 
 jobs:
-  publish-tag:
-    if: "${{ github.event.head_commit.message == 'release: publish 3x-ui-20261107-r2' }}"
+  replace-release:
+    if: "${{ github.event.head_commit.message == 'release: replace 3x-ui-20261107 with fixed build' }}"
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: 3x-ui-20261107-r2
+      SOURCE_RUN_ID: "42350566796"
+      RELEASE_TAG: 3x-ui-20261107
+      STAGING_TAG: 3x-ui-20261107-r2
       RELEASE_COMMIT: af90cd02bba27564dcb0acde158b9c1031b0a11f
-      BUILD_BRANCH: 3x-ui-20261107-r2-build
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Start the isolated release build
+      - name: Download and verify fixed build
         run: |
           set -euo pipefail
-          test "$(git rev-parse "origin/${BUILD_BRANCH}")" = "${RELEASE_COMMIT}"
-          test "$(git rev-parse "refs/tags/${RELEASE_TAG}")" = "${RELEASE_COMMIT}"
-          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref "${BUILD_BRANCH}"
-
-      - name: Wait for release build and set release notes
-        run: |
-          set -euo pipefail
-          run_id=""
-          for _ in $(seq 1 60); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" \
-              --workflow release.yml --branch "${BUILD_BRANCH}" --event workflow_dispatch \
-              --limit 5 --json databaseId,headSha \
-              --jq ".[] | select(.headSha == \"${RELEASE_COMMIT}\") | .databaseId" | head -n 1)"
-            [[ -n "${run_id}" ]] && break
-            sleep 5
-          done
-          [[ -n "${run_id}" ]]
-          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
-          gh run download "${run_id}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
+          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')" = "success"
+          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json headSha --jq '.headSha')" = "${RELEASE_COMMIT}"
+          gh run download "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
           test "$(find release-artifacts -type f | wc -l)" -eq 16
           test "$(find release-artifacts -type f -name '*.sha256' | wc -l)" -eq 8
           while IFS= read -r checksum; do
@@ -54,22 +39,24 @@ jobs:
               sha256sum -c "$(basename "${checksum}")"
             )
           done < <(find release-artifacts -type f -name '*.sha256' -print)
-          notes="Independent immutable update based on the IPv6/DNS hardening release.
 
+      - name: Replace dated release and remove staging release
+        run: |
+          set -euo pipefail
+          git tag --force "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push --force origin "refs/tags/${RELEASE_TAG}"
+          notes="IPv6/DNS leak-prevention build, updated in place on 2026-11-07.
+
+          - Keeps the existing IPv6 and DNS leak-prevention changes.
           - Fixes the panel update lock remaining busy after a failed updater process or systemd unit exits without writing a final status.
-          - Preserves dev-latest at dev+6d205a91.
-          - Does not move or overwrite 3x-ui-20261107.
-          - Includes Linux regression and race tests for the update lock."
-          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-              --title "${RELEASE_TAG}" --notes "${notes}" \
-              --prerelease --latest=false
-          else
-            gh release create "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-              --verify-tag --title "${RELEASE_TAG}" --notes "${notes}" \
-              --prerelease --latest=false
-          fi
+          - Allows an immediate retry after the failed updater has actually stopped.
+          - Includes regression tests and a Go race test for the update-lock state.
+          - dev-latest remains frozen at dev+6d205a91."
+          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --title "${RELEASE_TAG}" --notes "${notes}" \
+            --latest=true --prerelease=false
           gh release upload "${RELEASE_TAG}" release-artifacts/*/* \
             --repo "${GITHUB_REPOSITORY}" --clobber
-          git push origin --delete "${BUILD_BRANCH}"
-
+          test "$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')" -eq 16
+          test "$(git ls-remote origin "refs/tags/${RELEASE_TAG}" | cut -f1)" = "${RELEASE_COMMIT}"
+          gh release delete "${STAGING_TAG}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
