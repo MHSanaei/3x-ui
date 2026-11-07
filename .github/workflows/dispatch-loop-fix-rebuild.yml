@@ -1,0 +1,24 @@
+name: Dispatch loop-fix rebuild
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dispatch-loop-fix-rebuild.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch corrected stable release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref main \
+            -f source_ref=f1dd16c959748b72cfc0b271769bdf22b0663878 \
+            -f release_tag=3x-ui-20261107
