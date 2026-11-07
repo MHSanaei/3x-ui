@@ -7,7 +7,7 @@ on:
       - ".github/workflows/publish-3x-ui-20261107-r2.yml"
 
 permissions:
-  actions: read
+  actions: write
   contents: write
 
 jobs:
