@@ -160,8 +160,27 @@ func devChannelActive() bool {
 	if config.IsDevBuild() {
 		return true
 	}
-	enabled, err := (&service.SettingService{}).GetDevChannelEnable()
+	settings := &service.SettingService{}
+	enabled, err := settings.GetDevChannelEnable()
+	// dev-latest is a compatibility transport for historical dev installs, but
+	// its payload can be an immutable dated stable release. Once that release is
+	// running it must leave the dev channel even if the old database still says
+	// devChannelEnable=true; stable builds have no buildCommit, so comparing them
+	// as dev builds would advertise the same payload forever and create an
+	// update/install loop.
+	if isDatedStableRelease(config.GetBuildRelease()) {
+		if err == nil && enabled {
+			if setErr := settings.SetDevChannelEnable(false); setErr != nil {
+				logger.Warning("failed to clear legacy dev update channel after stable upgrade:", setErr)
+			}
+		}
+		return false
+	}
 	return err == nil && enabled
+}
+
+func isDatedStableRelease(release string) bool {
+	return datedReleaseRegex.MatchString(strings.TrimSpace(release))
 }
 
 // getDevUpdateInfo compares the running commit against the commit recorded in the

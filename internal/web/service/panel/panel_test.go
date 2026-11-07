@@ -38,6 +38,25 @@ func TestIsNewerVersion(t *testing.T) {
 	}
 }
 
+func TestIsDatedStableRelease(t *testing.T) {
+	cases := []struct {
+		release string
+		want    bool
+	}{
+		{"3x-ui-20261107", true},
+		{"3x-ui-20261107-r2", true},
+		{" 3x-ui-20261107 ", true},
+		{"dev-latest", false},
+		{"v3.11.0", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		if got := isDatedStableRelease(tc.release); got != tc.want {
+			t.Fatalf("isDatedStableRelease(%q) = %v, want %v", tc.release, got, tc.want)
+		}
+	}
+}
+
 func TestPanelUpdaterDownloadURL(t *testing.T) {
 	cases := []struct {
 		commit, release, base, want string
