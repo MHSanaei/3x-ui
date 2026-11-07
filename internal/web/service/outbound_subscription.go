@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -30,7 +31,8 @@ import (
 // vless/trojan outbounds to public addresses — because one such outbound in
 // the merged config would keep the whole core from starting. When the running
 // core predates that rejection, unencrypted outbounds are kept, mirroring
-// CheckXrayConfig's version gate.
+// CheckXrayConfig's version gate. The core has no amneziawg protocol (it gets a
+// socks bridge), so those are checked by amneziawg's own validator instead.
 func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []string) {
 	coreVersion := "Unknown"
 	if process := currentXrayProcess(); process != nil {
@@ -41,7 +43,13 @@ func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []stri
 	for _, ob := range outbounds {
 		raw, err := json.Marshal(ob)
 		if err == nil {
-			if buildErr := xray.ValidateOutboundConfig(raw); buildErr != nil && !shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, raw, buildErr) {
+			var buildErr error
+			if amneziawg.IsAmneziaWGOutbound(raw) {
+				buildErr = amneziawg.ValidateAmneziaWGOutbound("subscription", raw) // tags may be unassigned yet
+			} else if buildErr = xray.ValidateOutboundConfig(raw); buildErr != nil && shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, raw, buildErr) {
+				buildErr = nil
+			}
+			if buildErr != nil {
 				tag := ""
 				if m, ok := ob.(map[string]any); ok {
 					tag, _ = m["tag"].(string)
