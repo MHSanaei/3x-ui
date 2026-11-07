@@ -2,13 +2,12 @@ name: Release 3X-UI
 
 on:
   workflow_dispatch:
-  # Only main (dev channel) and version tags ship binaries; build any other
-  # branch on demand via workflow_dispatch.
+  # dev-latest is an immutable historical build. New binaries ship only from
+  # explicit version tags; branches can still be built via workflow_dispatch.
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
+      - "3x-ui-*"
     paths:
       - "**.go"
       - "go.mod"
@@ -343,20 +342,15 @@ jobs:
           prerelease: true
 
   # =================================
-  #  Rolling dev channel (per-commit)
+  #  Frozen historical dev channel
   # =================================
-  # Publishes/overwrites the build artifacts to a single fixed-tag pre-release
-  # `dev-latest`, force-moved to the new commit on every push to main. The panel's
-  # "Dev" update channel installs from this tag. `--latest=false` is load-bearing:
-  # it keeps releases/latest pointing at the real stable tag, so the stable
-  # channel is unaffected.
+  # dev-latest is deliberately frozen at dev+6d205a91. Keep the old publisher
+  # in the file for provenance, but never run it: all new releases use their own
+  # 3x-ui-<date> tag and assets instead of overwriting the historical build.
   publish-dev:
     name: Publish rolling dev release
     needs: [build, build-windows]
-    # A fork's first release is commonly started with workflow_dispatch. Treat
-    # a manual run on main exactly like a push so it publishes dev-latest rather
-    # than leaving installable archives only in short-lived Actions artifacts.
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -410,4 +404,5 @@ jobs:
           fi
 
           retry gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip dev-artifacts/*.sha256 --clobber
+
 

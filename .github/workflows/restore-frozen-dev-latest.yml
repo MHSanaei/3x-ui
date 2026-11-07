@@ -1,0 +1,54 @@
+name: Restore frozen dev-latest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/restore-frozen-dev-latest.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  restore:
+    if: "${{ github.event.head_commit.message == 'release: freeze dev-latest at dev+6d205a91' }}"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: "40156125029"
+      DEV_COMMIT: 6d205a91bd8b0dac38077e78db5d9990fb12cc48
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Restore tag and original verified assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq .conclusion)" = success
+          gh run download "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir dev-artifacts
+          test "$(find dev-artifacts -type f | wc -l)" -eq 16
+          test "$(find dev-artifacts -type f -name '*.sha256' | wc -l)" -eq 8
+          while IFS= read -r checksum; do
+            (
+              cd "$(dirname "${checksum}")"
+              sha256sum -c "$(basename "${checksum}")"
+            )
+          done < <(find dev-artifacts -type f -name '*.sha256' -print)
+
+          git tag -f dev-latest "${DEV_COMMIT}"
+          git push -f origin refs/tags/dev-latest
+
+          notes="Frozen historical build. This release intentionally remains at dev+6d205a91.
+
+          commit=${DEV_COMMIT}
+
+          New versions are published under independent 3x-ui-<date> tags and do not overwrite this release."
+          gh release edit dev-latest --repo "${GITHUB_REPOSITORY}" \
+            --prerelease --latest=false \
+            --title "Dev build 6d205a91" --notes "${notes}"
+          gh release upload dev-latest dev-artifacts/*/* \
+            --repo "${GITHUB_REPOSITORY}" --clobber
+
