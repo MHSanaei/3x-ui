@@ -5,6 +5,9 @@ on:
   push:
     paths:
       - ".github/workflows/dispatch-stable-rebuild.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/dispatch-stable-rebuild.yml"
 
 permissions:
   actions: write
