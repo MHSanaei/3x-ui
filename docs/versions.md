@@ -1,12 +1,14 @@
 # 3X-UI version layout
 
-The repository keeps three published versions with separate purposes:
+The repository keeps each published version immutable and gives every new
+build its own release:
 
 | Version | Type | Purpose | Update path |
 | --- | --- | --- | --- |
 | `v3.7.0-xnvgatebox-pool.1` | Historical prerelease | Previous fixed xnvgatebox/exit-pool build | Install its release tag explicitly |
 | `dev-latest` | Frozen historical build | Permanently preserves `dev+6d205a91`; it is never overwritten by later releases | Panel Dev channel or `x-ui update-dev` installs this historical build |
 | `3x-ui-20261107` | Permanent dated prerelease | Auditable snapshot of the IPv6/DNS hardening build and its checksums | Install the dated release asset explicitly |
+| `3x-ui-20261107-r2` | Permanent dated revision | Adds immediate recovery from a failed panel-update job without changing any earlier release | Install this release asset explicitly |
 
 Source branches are retained separately:
 
