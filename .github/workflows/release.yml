@@ -57,7 +57,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      # Frontend dist must be built BEFORE go build 閳?Go's //go:embed
+      # Frontend dist must be built BEFORE go build 鈥?Go's //go:embed
       # all:dist directive in internal/web/web.go requires internal/web/dist/ to exist
       # at compile time. internal/web/dist/ is .gitignored, so on a fresh CI
       # checkout it doesn't exist until vite emits it.
@@ -176,10 +176,10 @@ jobs:
           mv xray xray-linux-${{ matrix.platform }}
           # mtg-multi (MTProto sidecar) ships prebuilt release binaries whose
           # platform labels match our matrix, so download and unpack the matching
-          # archive. Only the platforms the fork publishes are packaged 閳?the tag
+          # archive. Only the platforms the fork publishes are packaged 鈥?the tag
           # lookup lives inside that branch so unpackaged platforms (s390x) never
           # depend on it. The tag comes from the release-page redirect on
-          # github.com 閳?the host the downloads need anyway 閳?because api.github.com
+          # github.com 鈥?the host the downloads need anyway 鈥?because api.github.com
           # has 503'd whole release runs while asset downloads kept working.
           case "${{ matrix.platform }}" in
             amd64|arm64|armv7|armv6|386)
@@ -209,10 +209,10 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ inputs.release_tag || github.ref_name }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz*
           file_glob: true
           overwrite: true
@@ -242,7 +242,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      # Frontend dist must be built BEFORE go build 閳?see comment on the
+      # Frontend dist must be built BEFORE go build 鈥?see comment on the
       # Linux job above. This step is identical except npm runs on the
       # Windows runner here.
       - name: Setup Node.js
@@ -324,7 +324,7 @@ jobs:
 
           # mtg-multi (MTProto sidecar) publishes a prebuilt Windows binary, so
           # download and unpack it instead of compiling. The tag comes from the
-          # release-page redirect on github.com 閳?not api.github.com, whose
+          # release-page redirect on github.com 鈥?not api.github.com, whose
           # outages have failed release runs while asset downloads kept working.
           $MTG_MULTI_VER = (curl.exe -sf --retry 5 --retry-all-errors --retry-delay 3 -o NUL -w '%{redirect_url}' "https://github.com/mhsanaei/mtg-multi/releases/latest") -replace '^.*/releases/tag/', ''
           if (-not $MTG_MULTI_VER -or $MTG_MULTI_VER -notmatch '^v[\d.]+$') { throw "could not resolve the latest mtg-multi release tag" }
@@ -355,10 +355,10 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ inputs.release_tag || github.ref_name }}
           file: x-ui-windows-amd64.zip*
           file_glob: true
           overwrite: true
@@ -372,7 +372,9 @@ jobs:
   publish-update-channel:
     name: Refresh compatibility update channel
     needs: [build, build-windows]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/3x-ui-')
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/3x-ui-')) ||
+      (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, '3x-ui-'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -384,6 +386,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v8
@@ -394,10 +398,10 @@ jobs:
       - name: Refresh dev-latest update alias
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT: ${{ github.sha }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
           set -e
+          COMMIT="$(git rev-parse HEAD)"
           retry() {
             for i in 1 2 3 4 5; do
               "$@" && return 0
@@ -406,7 +410,7 @@ jobs:
             done
             return 1
           }
-          notes="Rolling development build 閳?installs via the panel's Dev update channel.
+          notes="Rolling development build 鈥?installs via the panel's Dev update channel.
 
           commit=${COMMIT}
           release=${RELEASE_TAG}
