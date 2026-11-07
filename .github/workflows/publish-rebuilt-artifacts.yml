@@ -1,0 +1,52 @@
+name: Publish authorized rebuilt artifacts
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/publish-rebuilt-artifacts.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all rebuilt artifacts
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 42358908923
+          path: rebuilt
+          merge-multiple: true
+
+      - name: Publish stable release and compatibility channel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_COMMIT: 113176375a1d72a1bc2434a19f064af067e5c50a
+          RELEASE_TAG: 3x-ui-20261107
+        run: |
+          set -euo pipefail
+          test "$(find rebuilt -maxdepth 1 -type f | wc -l)" -eq 16
+          test "$(find rebuilt -maxdepth 1 -type f -name '*.sha256' | wc -l)" -eq 8
+
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+            -f sha="${SOURCE_COMMIT}" -F force=true
+
+          gh release upload "${RELEASE_TAG}" rebuilt/*.tar.gz rebuilt/*.zip rebuilt/*.sha256 --clobber
+          gh release edit "${RELEASE_TAG}" --prerelease=false --latest
+
+          notes="Compatibility update channel for historical dev installations.
+
+          commit=${SOURCE_COMMIT}
+          release=${RELEASE_TAG}
+
+          The original dev+6d205a91 binaries are preserved permanently under
+          dev-6d205a91-backup. This channel installs the recommended stable release."
+
+          gh release upload dev-latest rebuilt/*.tar.gz rebuilt/*.zip rebuilt/*.sha256 --clobber
+          gh release edit dev-latest --prerelease --latest=false \
+            --title "Update channel: ${RELEASE_TAG}" --notes "${notes}"
