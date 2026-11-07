@@ -100,7 +100,7 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 	state, hosts := s.clientHostBinding(inbound, client)
 	switch state {
 	case hostBindingNone:
-		return all, false
+		return all, len(all) == 0
 	case hostBindingClosed:
 		return nil, true
 	}
@@ -115,10 +115,11 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 // hostEndpoints loads an inbound's enabled hosts for the given subscription
 // format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
 // the existing per-format renderers can fan out one link/proxy per host. Returns
-// nil when the inbound has no applicable host — the caller then uses the legacy
-// inbound/externalProxy path, preserving byte-identical output for zero-host
-// inbounds.
-func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
+// nil endpoints when the inbound has no enabled host — the caller then uses the
+// legacy inbound/externalProxy path, byte-identical for zero-host inbounds.
+// closed reports enabled hosts that are all excluded from this format: the
+// inbound renders nothing there.
+func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) (eps []map[string]any, closed bool) {
 	var hosts []*model.Host
 	if s.hostsByInbound != nil {
 		hosts = s.hostsByInbound[inbound.Id]
@@ -127,20 +128,24 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 		Order("sort_order asc, id asc").
 		Find(&hosts).Error; err != nil {
 		logger.Warning("SubService - hostEndpoints:", err)
-		return nil
+		return nil, false
 	}
 	if len(hosts) == 0 {
-		return nil
+		return nil, false
 	}
 	defaultDest := s.resolveInboundAddress(inbound)
-	eps := make([]map[string]any, 0, len(hosts))
+	enabled := 0
 	for _, h := range hosts {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+		if h.IsDisabled {
+			continue
+		}
+		enabled++
+		if slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
 		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
-	return eps
+	return eps, enabled > 0 && len(eps) == 0
 }
 
 // hostEndpointMaps is one host's externalProxy entries: a CIDR address expands into RandomCount
