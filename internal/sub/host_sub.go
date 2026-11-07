@@ -112,13 +112,8 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 	return variants, len(variants) == 0
 }
 
-// hostEndpoints loads an inbound's enabled hosts for the given subscription
-// format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
-// the existing per-format renderers can fan out one link/proxy per host. Returns
-// nil endpoints when the inbound has no enabled host — the caller then uses the
-// legacy inbound/externalProxy path, byte-identical for zero-host inbounds.
-// closed reports enabled hosts that are all excluded from this format: the
-// inbound renders nothing there.
+// hostEndpoints returns the externalProxy-shaped endpoints of the inbound's enabled hosts for format, nil without any;
+// closed reports that all of them are excluded from format, so the inbound renders nothing there.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) (eps []map[string]any, closed bool) {
 	var hosts []*model.Host
 	if s.hostsByInbound != nil {
