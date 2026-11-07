@@ -2002,6 +2002,7 @@
         "localIpPlaceholder": "yerel IP",
         "dialerProxyPlaceholder": "Zincirlemek için bir giden bağlantı seçin",
         "dialerProxyHint": "Bir proxy zinciri oluşturmak için bu giden bağlantıyı başka bir giden bağlantı (etikete göre) üzerinden bağlayın. Doğrudan bağlanmak için boş bırakın.",
+        "dialerProxyMissing": "Bu etikete sahip, zincirleme kullanılabilecek bir giden bağlantı yok.",
         "targetStrategyHint": "Bağlanmadan önce hedef alan adının nasıl çözümleneceği: AsIs (varsayılan) olduğu gibi gönderir, UseIP… çözümler ve başarısızsa geri döner, ForceIP… çözümleme zorunludur.",
         "addressRequired": "Adres zorunludur",
         "portRequired": "Port zorunludur",

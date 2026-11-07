@@ -2002,6 +2002,7 @@
         "localIpPlaceholder": "IP local",
         "dialerProxyPlaceholder": "Selecione uma saída para encadear",
         "dialerProxyHint": "Conecte esta saída através de outra saída (por tag) para criar uma cadeia de proxy. Deixe vazio para conectar diretamente.",
+        "dialerProxyMissing": "Nenhuma saída com esta tag está disponível para encadear.",
         "targetStrategyHint": "Como o domínio de destino é resolvido antes de conectar: AsIs (padrão) envia sem resolver, UseIP… resolve com fallback, ForceIP… exige resolução.",
         "addressRequired": "Endereço é obrigatório",
         "portRequired": "Porta é obrigatória",
