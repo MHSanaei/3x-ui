@@ -134,6 +134,23 @@ describe('withHostEndpoints', () => {
           excludeFromSubTypes: ['raw'],
         },
         { groupId: 'other', inboundIds: [8], hosts: ['c.example.com:443'] },
+        { groupId: 'served', inboundIds: [7], hosts: ['d.example.com:443'] },
+      ],
+      '',
+      'panel.example.com',
+    );
+    expect(got.streamSettings?.externalProxy).toEqual([
+      { forceTls: 'same', dest: 'd.example.com', port: 443, remark: '' },
+    ]);
+  });
+
+  it('keeps the inbound as is when it has no enabled Host of its own', () => {
+    const got = withHostEndpoints(
+      inbound,
+      7,
+      [
+        { groupId: 'disabled', inboundIds: [7], hosts: ['a.example.com:443'], isDisabled: true },
+        { groupId: 'other', inboundIds: [8], hosts: ['c.example.com:443'] },
       ],
       '',
       'panel.example.com',
