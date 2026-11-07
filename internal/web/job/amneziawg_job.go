@@ -17,7 +17,7 @@ import (
 const endpointWindow = 30 * time.Minute
 
 // AmneziaWGJob converges AmneziaWG interfaces (inbounds on either datapath AND
-// the template's "amneziawg" outbounds) every 10s; only kernel mode needs stats.
+// "amneziawg" outbounds from the template or subscriptions) every 10s; only kernel mode needs stats.
 type AmneziaWGJob struct {
 	inboundService service.InboundService
 	settingService service.SettingService
@@ -126,25 +126,32 @@ func reconcileAmneziaWGDatapaths(embedded []amneziawgnet.Desired, kernel []amnez
 	embeddedManager.Reconcile(readyEmbedded)
 }
 
-// desiredOutboundInstances derives client instances per template "amneziawg" outbound.
+// desiredOutboundInstances derives client instances per template or subscription "amneziawg" outbound.
 func (j *AmneziaWGJob) desiredOutboundInstances() ([]amneziawgnet.OutboundDesired, error) {
 	template, err := j.settingService.GetXrayConfigTemplate()
 	if err != nil {
 		return nil, err
 	}
-	if template == "" {
-		return nil, nil
-	}
-	cfg := &xray.Config{}
-	if err := json.Unmarshal([]byte(template), cfg); err != nil {
-		return nil, err
-	}
-	if len(cfg.OutboundConfigs) == 0 {
-		return nil, nil
-	}
 	var raws []json.RawMessage
-	if err := json.Unmarshal(cfg.OutboundConfigs, &raws); err != nil {
+	if template != "" {
+		cfg := &xray.Config{}
+		if err := json.Unmarshal([]byte(template), cfg); err != nil {
+			return nil, err
+		}
+		if len(cfg.OutboundConfigs) > 0 {
+			if err := json.Unmarshal(cfg.OutboundConfigs, &raws); err != nil {
+				return nil, err
+			}
+		}
+	}
+	subscribed, err := (&service.OutboundSubscriptionService{}).AllActiveOutbounds()
+	if err != nil {
 		return nil, err
+	}
+	for _, ob := range subscribed {
+		if raw, err := json.Marshal(ob); err == nil {
+			raws = append(raws, raw)
+		}
 	}
 	out := make([]amneziawgnet.OutboundDesired, 0, len(raws))
 	for _, raw := range raws {

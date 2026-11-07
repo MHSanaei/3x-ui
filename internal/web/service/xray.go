@@ -434,6 +434,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	subSvc := &OutboundSubscriptionService{}
 	if prepend, appendList, err := subSvc.activeOutboundsSplit(); err == nil && (len(prepend) > 0 || len(appendList) > 0) {
 		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
+		if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	// Route opted-in local mtproto inbounds through the core's router. Each one

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -22,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func TestOutboundSubscriptionCreatePropagatesAllocationDatabaseFailures(t *testing.T) {
@@ -732,4 +734,45 @@ func TestOutboundSubscriptionRefreshDropsXhttpDownloadSettingsTheCorePanicsOn(t 
 	if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, want) {
 		t.Fatalf("tags by address = %v, want %v", got, want)
 	}
+}
+
+// A vpn:// AmneziaWG link must survive refresh (the core cannot build "amneziawg") and
+// reach the core only as its socks bridge, which the core would otherwise refuse.
+func TestOutboundSubscriptionAmneziaWGLinkReachesConfigAsBridge(t *testing.T) {
+	setupSettingTestDB(t)
+	priv, pub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := "[Interface]\nPrivateKey = " + priv + "\nAddress = 10.8.1.2/32\nJc = 4\nJmin = 10\nJmax = 50\nS1 = 30\nS2 = 40\n" +
+		"H1 = 1\nH2 = 2\nH3 = 3\nH4 = 4\n# awg\n[Peer]\nPublicKey = " + pub + "\nAllowedIPs = 0.0.0.0/0\nEndpoint = 8.8.8.8:51820"
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(conf))
+	})
+	obs, err := (&OutboundSubscriptionService{}).Refresh(subID)
+	if err != nil || len(obs) != 1 {
+		sub, _ := (&OutboundSubscriptionService{}).Get(subID)
+		t.Fatalf("Refresh = %v, %v (lastError %q), want the amneziawg outbound kept", obs, err, sub.LastError)
+	}
+	tag, _ := obs[0].(map[string]any)["tag"].(string)
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Update("enabled", true).Error; err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatalf("GetXrayConfig: %v", err)
+	}
+	var outbounds []map[string]any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	for _, ob := range outbounds {
+		if ob["tag"] == tag {
+			if ob["protocol"] != "socks" {
+				t.Fatalf("subscribed amneziawg outbound emitted as %v, want socks", ob["protocol"])
+			}
+			return
+		}
+	}
+	t.Fatalf("outbound %q missing from generated config", tag)
 }
