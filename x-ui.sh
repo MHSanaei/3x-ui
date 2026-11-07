@@ -828,10 +828,15 @@ bbr_menu() {
 
 privacy_status() {
     echo -e "${green}Server privacy status${plain}"
-    if command -v nft > /dev/null 2>&1 && nft list table inet xui_dns_guard > /dev/null 2>&1; then
+    if dns_egress_guard_healthy; then
         echo "DNS egress guard: enabled"
     else
         echo "DNS egress guard: disabled"
+    fi
+    if command -v ip > /dev/null 2>&1 && ip -6 route show default 2> /dev/null | grep -q .; then
+        echo "IPv6 default route: detected (covered by the inet DNS guard)"
+    else
+        echo "IPv6 default route: not detected"
     fi
     echo "Configured resolvers:"
     awk '/^[[:space:]]*nameserver[[:space:]]+/ {print "  " $2}' /etc/resolv.conf 2> /dev/null || true
@@ -846,11 +851,72 @@ privacy_status() {
     else
         echo "Managed host firewall: not detected"
     fi
-    echo -e "${yellow}WebRTC traffic that bypasses the client tunnel never reaches this server; use TUN and a client kill switch.${plain}"
+    echo -e "${yellow}WebRTC protection is client/browser dependent. Verify it after every client or network change; TUN plus a kill switch provides the strongest fallback.${plain}"
+}
+
+dns_guard_chain_has_rejects() {
+    local chain="$1" rules
+    rules="$(nft -nn list chain inet xui_dns_guard "${chain}" 2> /dev/null)" || return 1
+    grep -Eq 'hook[[:space:]]+'"${chain}"'([[:space:]]|;)' <<< "${rules}" || return 1
+    grep -Eq 'meta nfproto ipv4 udp dport 53( counter[^;]*)? reject' <<< "${rules}" || return 1
+    grep -Eq 'meta nfproto ipv4 tcp dport 53( counter[^;]*)? reject' <<< "${rules}" || return 1
+    grep -Eq 'meta nfproto ipv6 udp dport 53( counter[^;]*)? reject' <<< "${rules}" || return 1
+    grep -Eq 'meta nfproto ipv6 tcp dport 53( counter[^;]*)? reject' <<< "${rules}" || return 1
+    if [[ "${chain}" == "output" ]]; then
+        grep -Eq 'oifname "lo" udp dport 53 accept' <<< "${rules}" || return 1
+        grep -Eq 'oifname "lo" tcp dport 53 accept' <<< "${rules}" || return 1
+        grep -Eq 'ip daddr 127\.0\.0\.0/8 udp dport 53 accept' <<< "${rules}" || return 1
+        grep -Eq 'ip daddr 127\.0\.0\.0/8 tcp dport 53 accept' <<< "${rules}" || return 1
+        grep -Eq 'ip6 daddr ::1 udp dport 53 accept' <<< "${rules}" || return 1
+        grep -Eq 'ip6 daddr ::1 tcp dport 53 accept' <<< "${rules}" || return 1
+    fi
+}
+
+dns_egress_guard_healthy() {
+    command -v nft > /dev/null 2>&1 || return 1
+    command -v systemctl > /dev/null 2>&1 || return 1
+    systemctl is-active --quiet xui-dns-guard.service || return 1
+    systemctl is-enabled --quiet xui-dns-guard.service || return 1
+    dns_guard_chain_has_rejects output || return 1
+    dns_guard_chain_has_rejects forward || return 1
+}
+
+loopback_dns_listener_present() {
+    local resolver="$1"
+    ss -H -lntu '( sport = :53 )' 2> /dev/null | awk -v resolver="${resolver}" '
+        {
+            localAddress = $5
+            sub(/%[^:]+:/, ":", localAddress)
+            if (resolver == "::1") {
+                if (localAddress == "[::1]:53" || localAddress == "::1:53") found = 1
+            } else if (localAddress == resolver ":53") {
+                found = 1
+            }
+        }
+        END { exit(found ? 0 : 1) }
+    '
+}
+
+probe_loopback_dns() {
+    local resolver="$1" probe_name="${2:-example.com}"
+    if command -v dig > /dev/null 2>&1; then
+        dig +time=2 +tries=1 +short @"${resolver}" "${probe_name}" A 2> /dev/null | grep -q .
+        return
+    fi
+    if command -v timeout > /dev/null 2>&1 && command -v drill > /dev/null 2>&1; then
+        timeout 5 drill -Q @"${resolver}" "${probe_name}" A 2> /dev/null | grep -Eq '(^|[[:space:]])IN[[:space:]]+A[[:space:]]+'
+        return
+    fi
+    if command -v timeout > /dev/null 2>&1 && command -v getent > /dev/null 2>&1; then
+        timeout 5 getent ahostsv4 "${probe_name}" > /dev/null 2>&1
+        return
+    fi
+    return 2
 }
 
 enable_dns_egress_guard() {
-    local resolver bad=0
+    local resolver nft_path probe_status resolver_count=0
+    local -a resolvers=()
     if ! command -v nft > /dev/null 2>&1; then
         echo -e "${red}nftables is required. Install it before enabling the DNS guard.${plain}"
         return 1
@@ -859,21 +925,54 @@ enable_dns_egress_guard() {
         echo -e "${red}Persistent DNS guard currently requires systemd.${plain}"
         return 1
     fi
+    if ! command -v ss > /dev/null 2>&1; then
+        echo -e "${red}iproute2/ss is required to verify the loopback DNS listener.${plain}"
+        return 1
+    fi
 
     # Blocking external port 53 is safe only when the host already uses a local
     # encrypted/caching resolver. Otherwise package updates, ACME and the panel
     # could all lose name resolution.
     while read -r resolver; do
         [[ -z "${resolver}" ]] && continue
+        ((resolver_count += 1))
         case "${resolver}" in
-            127.* | ::1) ;;
-            *) bad=1 ;;
+            127.* | ::1) resolvers+=("${resolver}") ;;
+            *)
+                echo -e "${red}Refusing to enable: /etc/resolv.conf contains a non-loopback resolver (${resolver}).${plain}"
+                return 1
+                ;;
         esac
     done < <(awk '/^[[:space:]]*nameserver[[:space:]]+/ {print $2}' /etc/resolv.conf 2> /dev/null)
-    if [[ "${bad}" -ne 0 ]] || ! ss -H -lntu '( sport = :53 )' 2> /dev/null | grep -q .; then
-        echo -e "${red}Refusing to enable: no working loopback DNS stub was detected.${plain}"
-        echo "Configure an encrypted local resolver (for example systemd-resolved with DNS-over-TLS),"
-        echo "point /etc/resolv.conf at 127.0.0.1 or ::1, then retry. This safety check prevents a VPS lockout."
+
+    if ((resolver_count == 0)); then
+        echo -e "${red}Refusing to enable: /etc/resolv.conf contains no loopback nameserver.${plain}"
+        return 1
+    fi
+
+    for resolver in "${resolvers[@]}"; do
+        if ! loopback_dns_listener_present "${resolver}"; then
+            echo -e "${red}Refusing to enable: no port-53 listener is bound to ${resolver}.${plain}"
+            return 1
+        fi
+        if probe_loopback_dns "${resolver}"; then
+            probe_status=0
+        else
+            probe_status=$?
+        fi
+        if [[ "${probe_status}" -eq 2 ]]; then
+            echo -e "${red}Refusing to enable: install dig, drill, or getent+timeout so the resolver can be tested.${plain}"
+            return 1
+        fi
+        if [[ "${probe_status}" -ne 0 ]]; then
+            echo -e "${red}Refusing to enable: the DNS resolver at ${resolver} did not answer a test query.${plain}"
+            return 1
+        fi
+    done
+
+    nft_path="$(command -v nft)"
+    if [[ "${nft_path}" != /* ]]; then
+        echo -e "${red}Refusing to enable: nft executable path is not absolute.${plain}"
         return 1
     fi
 
@@ -887,12 +986,21 @@ table inet xui_dns_guard {
         ip daddr 127.0.0.0/8 tcp dport 53 accept
         ip6 daddr ::1 udp dport 53 accept
         ip6 daddr ::1 tcp dport 53 accept
-        udp dport 53 reject
-        tcp dport 53 reject with tcp reset
+        meta nfproto ipv4 udp dport 53 counter reject
+        meta nfproto ipv4 tcp dport 53 counter reject with tcp reset
+        meta nfproto ipv6 udp dport 53 counter reject
+        meta nfproto ipv6 tcp dport 53 counter reject with tcp reset
+    }
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+        meta nfproto ipv4 udp dport 53 counter reject
+        meta nfproto ipv4 tcp dport 53 counter reject with tcp reset
+        meta nfproto ipv6 udp dport 53 counter reject
+        meta nfproto ipv6 tcp dport 53 counter reject with tcp reset
     }
 }
 EOF
-    cat > /etc/systemd/system/xui-dns-guard.service <<'EOF'
+    cat > /etc/systemd/system/xui-dns-guard.service <<EOF
 [Unit]
 Description=x-ui DNS egress leak guard
 After=network.target
@@ -901,9 +1009,9 @@ Before=x-ui.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStartPre=-/usr/sbin/nft delete table inet xui_dns_guard
-ExecStart=/usr/sbin/nft -f /etc/x-ui-dns-guard.nft
-ExecStop=-/usr/sbin/nft delete table inet xui_dns_guard
+ExecStartPre=-${nft_path} delete table inet xui_dns_guard
+ExecStart=${nft_path} -f /etc/x-ui-dns-guard.nft
+ExecStop=-${nft_path} delete table inet xui_dns_guard
 
 [Install]
 WantedBy=multi-user.target
@@ -911,7 +1019,19 @@ EOF
     nft delete table inet xui_dns_guard > /dev/null 2>&1 || true
     systemctl daemon-reload
     if systemctl enable --now xui-dns-guard.service; then
-        echo -e "${green}External plaintext DNS (TCP/UDP 53) is now blocked; loopback DNS remains allowed.${plain}"
+        if ! dns_egress_guard_healthy; then
+            echo -e "${red}DNS guard service started without the complete expected rules; rolling back.${plain}"
+            disable_dns_egress_guard
+            return 1
+        fi
+        for resolver in "${resolvers[@]}"; do
+            if ! probe_loopback_dns "${resolver}" example.net; then
+                echo -e "${red}The loopback resolver stopped working after plaintext DNS was blocked; rolling back.${plain}"
+                disable_dns_egress_guard
+                return 1
+            fi
+        done
+        echo -e "${green}External IPv4 and IPv6 plaintext DNS (TCP/UDP 53) is now blocked for host and forwarded/container traffic; loopback DNS remains allowed.${plain}"
     else
         echo -e "${red}Failed to enable the DNS guard; rolling back.${plain}"
         disable_dns_egress_guard
@@ -4179,3 +4299,4 @@ if [[ $# > 0 ]]; then
 else
     show_menu
 fi
+
