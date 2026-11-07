@@ -894,7 +894,12 @@ function splitList(v: string): string[] {
 
 // Mirrors Go's amneziaWGOutboundFromConf: only known keys survive, so wg-quick hooks never do.
 function amneziaWGOutboundFromConf(conf: string, fallbackTag: string): Raw | null {
-  const settings: Raw = { randomTrailers: false, disableCookies: false };
+  // An absent .conf line means 0 (as in Go); the form adapter would default S3/S4 to 12.
+  const settings: Raw = {
+    ...Object.fromEntries(Object.values(AWG_CONF_INTS).map((f) => [f, 0])),
+    randomTrailers: false,
+    disableCookies: false,
+  };
   const peer: Raw = { allowedIPs: ['0.0.0.0/0', '::/0'] };
   let tag = '';
   for (const rawLine of conf.split('\n')) {
@@ -932,7 +937,9 @@ function amneziaWGOutboundFromConf(conf: string, fallbackTag: string): Raw | nul
 
 const AmneziaVPNKeySchema = z.object({
   description: z.string().optional(),
-  containers: z.array(z.object({ awg: z.object({ last_config: z.string() }).optional() })),
+  containers: z.array(
+    z.object({ awg: z.object({ last_config: z.string().optional() }).optional() }),
+  ),
 });
 const AmneziaVPNLastConfigSchema = z.object({ config: z.string() });
 
@@ -953,7 +960,7 @@ export async function parseAmneziaVPNLink(link: string): Promise<Raw | null> {
       .pipeThrough(new DecompressionStream('deflate'));
     const key = AmneziaVPNKeySchema.parse(JSON.parse(await new Response(inflated).text()));
     for (const c of key.containers) {
-      if (!c.awg) continue;
+      if (!c.awg?.last_config) continue;
       const { config } = AmneziaVPNLastConfigSchema.parse(JSON.parse(c.awg.last_config));
       if (config) return amneziaWGOutboundFromConf(config, key.description ?? '');
     }

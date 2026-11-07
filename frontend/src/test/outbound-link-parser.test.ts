@@ -1132,6 +1132,8 @@ describe('parseOutboundLink — AmneziaWG vpn://', () => {
     jmax: 50,
     s1: 30,
     s2: 40,
+    s3: 0,
+    s4: 0,
     h1: '100-200',
     h2: '300',
     h3: '400',
@@ -1191,6 +1193,24 @@ describe('parseOutboundLink — AmneziaWG vpn://', () => {
       containers: [{ container: 'amnezia-openvpn', openvpn: { last_config: '{}' } }],
     });
     expect(await parseOutboundLink(link)).toBeNull();
+  });
+
+  // 3x-ui omits S3/S4 when 0 and legacy AmneziaWG never sends them; the form must not
+  // fall back to its own 12, or the outbound never completes a handshake with its server.
+  it('keeps an absent S3/S4 at 0 through the outbound form', async () => {
+    const parsed = await parseOutboundLink(`vpn://${b64url(new TextEncoder().encode(conf))}`);
+    const form = rawOutboundToFormValues(parsed!);
+    expect(form.protocol === 'amneziawg' && [form.settings.s3, form.settings.s4]).toEqual([0, 0]);
+  });
+
+  it('skips an AmneziaWG container without last_config, like the Go parser', async () => {
+    const link = await amneziaVPNKey({
+      containers: [
+        { container: 'amnezia-awg', awg: {} },
+        { container: 'amnezia-awg2', awg: { last_config: JSON.stringify({ config: conf }) } },
+      ],
+    });
+    expect((await parseOutboundLink(link))?.tag).toBe('my-awg');
   });
 });
 
