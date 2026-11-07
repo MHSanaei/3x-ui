@@ -40,7 +40,7 @@ export default function HostSockoptForm({
    * drops the traffic).
    */
   const { data: tagGroups } = useOutboundTagGroups({ excludeBlackhole: true });
-  const outboundTags = tagGroups?.outbounds;
+  const outboundTags = tagGroups?.outbounds ?? [];
   return (
     <OutboundSubtreeJsonForm
       value={value}

@@ -15,12 +15,18 @@ import { ADDRESS_PORT_STRATEGY_OPTIONS } from '../outbound-form-constants';
 
 interface SockoptFormProps {
   outboundTags?: string[];
+  // Only valid where outboundTags is the set the dial actually resolves against.
+  warnMissingDialerProxy?: boolean;
   showDomainStrategy?: boolean;
 }
 
 // Freedom's own card writes the strategy into this same sockopt key, so it hides
 // this field rather than letting two controls fight over one value.
-export default function SockoptForm({ outboundTags, showDomainStrategy = true }: SockoptFormProps) {
+export default function SockoptForm({
+  outboundTags,
+  warnMissingDialerProxy = false,
+  showDomainStrategy = true,
+}: SockoptFormProps) {
   const { t } = useTranslation();
   const uid = useId();
   const { control, setValue } = useFormContext();
@@ -31,7 +37,11 @@ export default function SockoptForm({ outboundTags, showDomainStrategy = true }:
   const happyEyeballs = useWatch({ control, name: 'streamSettings.sockopt.happyEyeballs' });
   const hasHe = happyEyeballs != null;
   // Unknown tags (still loading) must not read as missing, so only warn on a real list.
-  const dialerProxyMissing = !!dialerProxy && !!outboundTags && !outboundTags.includes(dialerProxy);
+  const dialerProxyMissing =
+    warnMissingDialerProxy &&
+    !!dialerProxy &&
+    !!outboundTags &&
+    !outboundTags.includes(dialerProxy);
   const dialerProxyOptions = Array.from(
     new Set([...(outboundTags ?? []), dialerProxy].filter(Boolean)),
   ).map((tg) => ({ value: tg, label: tg }));

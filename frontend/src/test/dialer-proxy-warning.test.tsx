@@ -14,12 +14,20 @@ afterEach(() => {
 
 const WARNING = 'No outbound with this tag is available to chain through.';
 
-function Harness({ dialerProxy, outboundTags }: { dialerProxy: string; outboundTags?: string[] }) {
+function Harness({
+  dialerProxy,
+  outboundTags,
+  warn = true,
+}: {
+  dialerProxy: string;
+  outboundTags?: string[];
+  warn?: boolean;
+}) {
   const methods = useForm({ defaultValues: { streamSettings: { sockopt: { dialerProxy } } } });
   return (
     <FormProvider {...methods}>
       <Form>
-        <SockoptForm outboundTags={outboundTags} />
+        <SockoptForm outboundTags={outboundTags} warnMissingDialerProxy={warn} />
       </Form>
     </FormProvider>
   );
@@ -49,23 +57,21 @@ describe('Dialer Proxy warning', () => {
   });
 });
 
-// The host form loads the tags asynchronously, so an empty list while loading
-// must not read as "no outbound exists".
+// A host's Dialer Proxy resolves inside the subscriber's client config, not the
+// server's outbounds, so the server-side list must never produce a verdict there.
 describe('Dialer Proxy warning in the host form', () => {
-  it('warns only once the outbound tags have loaded', async () => {
-    const payload = {
-      xraySetting: {
-        outbounds: [
-          { tag: 'direct', protocol: 'freedom' },
-          { tag: 'warp', protocol: 'wireguard' },
-        ],
-      },
-    };
+  it('does not warn against the server outbound list', async () => {
+    const payload = { xraySetting: { outbounds: [{ tag: 'direct', protocol: 'freedom' }] } };
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', JSON.stringify(payload)));
 
     renderWithProviders(<HostSockoptForm value='{"dialerProxy":"gone"}' />);
 
+    await screen.findByText('direct', {}, { timeout: 500 }).catch(() => undefined);
     expect(screen.queryByText(WARNING)).toBeNull();
-    expect(await screen.findByText(WARNING)).toBeTruthy();
+  });
+
+  it('does not warn when the caller does not opt in', () => {
+    renderWithProviders(<Harness dialerProxy="gone" outboundTags={['direct']} warn={false} />);
+    expect(screen.queryByText(WARNING)).toBeNull();
   });
 });
