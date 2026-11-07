@@ -155,6 +155,41 @@ describe('client summary always reflects the server, never a client_stats recomp
     expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 10, down: 5 });
   });
 
+  it('keeps node-sourced speeds separate from local Xray samples', async () => {
+    const result = await loadedHook();
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTrafficSource: 'node',
+        clientTrafficIntervalMs: 5_000,
+        clientTraffics: [{ email: 'shared@example.test', up: 500, down: 1_000 }],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 100, down: 200 });
+
+    // A local Xray poll with no movement must not wipe the node sample.
+    act(() => {
+      result.current.applyTrafficEvent({ clientTraffics: [] });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 100, down: 200 });
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTraffics: [{ email: 'shared@example.test', up: 50, down: 50 }],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 110, down: 210 });
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTrafficSource: 'node',
+        clientTrafficIntervalMs: 5_000,
+        clientTraffics: [],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 10, down: 10 });
+  });
+
   it('expires stale per-source speeds without clearing the other source', async () => {
     const result = await loadedHook();
     vi.useFakeTimers();
