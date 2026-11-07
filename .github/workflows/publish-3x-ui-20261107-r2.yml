@@ -1,0 +1,55 @@
+name: Publish 3x-ui-20261107-r2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-3x-ui-20261107-r2.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-tag:
+    if: "${{ github.event.head_commit.message == 'release: publish 3x-ui-20261107-r2' }}"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: 3x-ui-20261107-r2
+      RELEASE_COMMIT: af90cd02bba27564dcb0acde158b9c1031b0a11f
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create immutable version tag
+        run: |
+          set -euo pipefail
+          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push origin "refs/tags/${RELEASE_TAG}"
+
+      - name: Wait for release build and set release notes
+        run: |
+          set -euo pipefail
+          run_id=""
+          for _ in $(seq 1 60); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" \
+              --workflow release.yml --branch "${RELEASE_TAG}" --event push \
+              --limit 5 --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"${RELEASE_COMMIT}\") | .databaseId" | head -n 1)"
+            [[ -n "${run_id}" ]] && break
+            sleep 5
+          done
+          [[ -n "${run_id}" ]]
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
+          notes="Independent immutable update based on the IPv6/DNS hardening release.
+
+          - Fixes the panel update lock remaining busy after a failed updater process or systemd unit exits without writing a final status.
+          - Preserves dev-latest at dev+6d205a91.
+          - Does not move or overwrite 3x-ui-20261107.
+          - Includes Linux regression and race tests for the update lock."
+          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --title "${RELEASE_TAG}" --notes "${notes}" \
+            --prerelease --latest=false
+
