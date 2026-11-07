@@ -364,23 +364,22 @@ jobs:
           overwrite: true
           prerelease: true
 
-  # =================================
-  #  Frozen historical dev channel
-  # =================================
-  # dev-latest is deliberately frozen at dev+6d205a91. Keep the old publisher
-  # in the file for provenance, but never run it: all new releases use their own
-  # 3x-ui-<date> tag and assets instead of overwriting the historical build.
-  publish-dev:
-    name: Publish rolling dev release
+  # ========================================
+  #  Compatibility update channel
+  # ========================================
+  # Each dated stable release stays independent. dev-latest is an update alias
+  # for historical dev installs; the original build has its own backup tag.
+  publish-update-channel:
+    name: Refresh compatibility update channel
     needs: [build, build-windows]
-    if: ${{ false }}
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/3x-ui-')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     # Serialize racing pushes; never cancel an in-flight upload, or the dev
     # release could be left with a partial asset set.
     concurrency:
-      group: dev-release
+      group: compatibility-update-channel
       cancel-in-progress: false
     steps:
       - name: Checkout repository
@@ -392,10 +391,11 @@ jobs:
           path: dev-artifacts
           merge-multiple: true
 
-      - name: Publish dev-latest pre-release
+      - name: Refresh dev-latest update alias
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT: ${{ github.sha }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -e
           retry() {
@@ -406,24 +406,20 @@ jobs:
             done
             return 1
           }
-          short="${COMMIT::8}"
           notes="Rolling development build 閳?installs via the panel's Dev update channel.
 
           commit=${COMMIT}
-          built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          release=${RELEASE_TAG}
 
-          Automated per-commit build from main. Not a stable release."
-
-          # Force-move the dev-latest tag to this commit so the release tracks it.
-          git tag -f dev-latest "${COMMIT}"
-          retry git push -f origin refs/tags/dev-latest
+          The original dev+6d205a91 binaries are preserved under
+          dev-6d205a91-backup. This channel installs the recommended stable release."
 
           # The release exists on every run but the first; edit-first avoids an
           # existence probe that can 503 and mis-route into create (422).
           if ! retry gh release edit dev-latest --prerelease --latest=false \
-              --title "Dev build ${short}" --notes "${notes}"; then
+              --title "Update channel: ${RELEASE_TAG}" --notes "${notes}"; then
             retry gh release create dev-latest --prerelease --latest=false \
-              --target "${COMMIT}" --title "Dev build ${short}" --notes "${notes}"
+              --target "${COMMIT}" --title "Update channel: ${RELEASE_TAG}" --notes "${notes}"
           fi
 
           retry gh release upload dev-latest dev-artifacts/*.tar.gz dev-artifacts/*.zip dev-artifacts/*.sha256 --clobber
