@@ -2002,6 +2002,7 @@
         "localIpPlaceholder": "ローカル IP",
         "dialerProxyPlaceholder": "経由するアウトバウンドを選択",
         "dialerProxyHint": "このアウトバウンドを別のアウトバウンド（タグ指定）経由で接続し、プロキシチェーンを構成します。直接接続する場合は空のままにします。",
+        "dialerProxyMissing": "このタグのアウトバウンドがないため、チェーンできません。",
         "targetStrategyHint": "接続前に宛先ドメインをどう解決するか：AsIs（既定）はそのまま送信、UseIP… は解決を試み失敗時はフォールバック、ForceIP… は解決必須。",
         "addressRequired": "アドレスは必須です",
         "portRequired": "ポートは必須です",
