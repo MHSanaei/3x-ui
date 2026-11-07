@@ -1,0 +1,89 @@
+name: Preserve dev backup and open update channel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/migrate-dev-update-channel.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: "${{ github.event.head_commit.message == 'release: preserve dev backup and open update channel' }}"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BACKUP_TAG: dev-6d205a91-backup
+      BACKUP_COMMIT: 6d205a91bd8b0dac38077e78db5d9990fb12cc48
+      CHANNEL_TAG: dev-latest
+      STABLE_TAG: 3x-ui-20261107
+      STABLE_COMMIT: 601dc488974d0a1df82e72ac806c07e3547a4157
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Preserve the exact frozen dev build
+        run: |
+          set -euo pipefail
+          gh release download "${CHANNEL_TAG}" --repo "${GITHUB_REPOSITORY}" --dir backup-assets
+          test "$(find backup-assets -type f | wc -l)" -eq 16
+          test "$(find backup-assets -type f -name '*.sha256' | wc -l)" -eq 8
+          while IFS= read -r checksum; do
+            (
+              cd "$(dirname "${checksum}")"
+              sha256sum -c "$(basename "${checksum}")"
+            )
+          done < <(find backup-assets -type f -name '*.sha256' -print)
+          if git ls-remote --exit-code origin "refs/tags/${BACKUP_TAG}" >/dev/null 2>&1; then
+            test "$(git ls-remote origin "refs/tags/${BACKUP_TAG}" | cut -f1)" = "${BACKUP_COMMIT}"
+          else
+            git tag "${BACKUP_TAG}" "${BACKUP_COMMIT}"
+            git push origin "refs/tags/${BACKUP_TAG}"
+          fi
+          notes="Permanent byte-for-byte backup of the known-good dev+6d205a91 build.
+
+          - Source commit: ${BACKUP_COMMIT}
+          - This backup tag and its 16 assets must never be moved or overwritten.
+          - Install explicitly when a rollback to the historical stable build is required."
+          if gh release view "${BACKUP_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "${BACKUP_TAG}" --repo "${GITHUB_REPOSITORY}" \
+              --title "Backup dev+6d205a91" --notes "${notes}" \
+              --prerelease --latest=false
+          else
+            gh release create "${BACKUP_TAG}" --repo "${GITHUB_REPOSITORY}" \
+              --verify-tag --title "Backup dev+6d205a91" --notes "${notes}" \
+              --prerelease --latest=false
+          fi
+          gh release upload "${BACKUP_TAG}" backup-assets/* \
+            --repo "${GITHUB_REPOSITORY}" --clobber
+          test "$(gh release view "${BACKUP_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')" -eq 16
+
+      - name: Point the dev channel at the recommended stable release
+        run: |
+          set -euo pipefail
+          gh release download "${STABLE_TAG}" --repo "${GITHUB_REPOSITORY}" --dir stable-assets
+          test "$(find stable-assets -type f | wc -l)" -eq 16
+          test "$(find stable-assets -type f -name '*.sha256' | wc -l)" -eq 8
+          while IFS= read -r checksum; do
+            (
+              cd "$(dirname "${checksum}")"
+              sha256sum -c "$(basename "${checksum}")"
+            )
+          done < <(find stable-assets -type f -name '*.sha256' -print)
+          notes="Compatibility update channel for panels installed from historical dev builds.
+
+          commit=${STABLE_COMMIT}
+          release=${STABLE_TAG}
+
+          The original dev+6d205a91 binaries are preserved permanently under ${BACKUP_TAG}.
+          Updating through this channel installs the current recommended stable dated release."
+          gh release edit "${CHANNEL_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --title "Update channel: ${STABLE_TAG}" --notes "${notes}" \
+            --prerelease --latest=false
+          gh release upload "${CHANNEL_TAG}" stable-assets/* \
+            --repo "${GITHUB_REPOSITORY}" --clobber
+          test "$(gh release view "${CHANNEL_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')" -eq 16
+          test "$(git ls-remote origin "refs/tags/${CHANNEL_TAG}" | cut -f1)" = "${BACKUP_COMMIT}"
