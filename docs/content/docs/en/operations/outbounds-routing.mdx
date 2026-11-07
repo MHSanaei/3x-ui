@@ -128,7 +128,8 @@ Imported outbounds get **stable tags**: the same server keeps the same tag acros
 refreshes, so exact-tag routing/balancer selectors stay pinned — while
 prefix/wildcard selectors (e.g. `hk-*`) automatically pick up new servers as the
 pool changes. Supported link schemes: `vmess`, `vless`, `trojan`, `ss`,
-`hysteria2` (`hy2`), and `wireguard` (`wg`). The panel refreshes enabled
+`hysteria2` (`hy2`), `wireguard` (`wg`), and `vpn` (AmneziaWG, from a 3x-ui
+panel or an AmneziaVPN app key). The panel refreshes enabled
 subscriptions on a timer and reloads Xray when something changes.
 
 ## Routing rules
