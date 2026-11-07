@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.head_commit.message == 'ci: publish 3x-ui-20261107 release'
+    if: "${{ github.event.head_commit.message == 'ci: publish 3x-ui-20261107 release' }}"
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
