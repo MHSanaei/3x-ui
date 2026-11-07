@@ -17,7 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: 3x-ui-20261107-r2
-      RELEASE_COMMIT: af90cd02bba27564dcb0acde158b9c1031b0a11f
+      RELEASE_COMMIT: 54a0793287f051d3cc800975733114aca0e49722
     steps:
       - uses: actions/checkout@v7
         with:
@@ -26,8 +26,9 @@ jobs:
       - name: Create immutable version tag
         run: |
           set -euo pipefail
-          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
-          git push origin "refs/tags/${RELEASE_TAG}"
+          git tag -f "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push -f origin "refs/tags/${RELEASE_TAG}"
+          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref "${RELEASE_TAG}"
 
       - name: Wait for release build and set release notes
         run: |
@@ -35,7 +36,7 @@ jobs:
           run_id=""
           for _ in $(seq 1 60); do
             run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" \
-              --workflow release.yml --branch "${RELEASE_TAG}" --event push \
+              --workflow release.yml --branch "${RELEASE_TAG}" --event workflow_dispatch \
               --limit 5 --json databaseId,headSha \
               --jq ".[] | select(.headSha == \"${RELEASE_COMMIT}\") | .databaseId" | head -n 1)"
             [[ -n "${run_id}" ]] && break
