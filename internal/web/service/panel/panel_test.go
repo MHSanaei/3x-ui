@@ -25,11 +25,30 @@ func TestIsNewerVersion(t *testing.T) {
 		{"v2.9.3", "2.9.3", false},
 		{"v2.9.2", "2.9.3", false},
 		{"v3.0.0", "2.9.3", true},
+		{"3x-ui-20261107", "3x-ui-20261107", false},
+		{"3x-ui-20261108", "3x-ui-20261107", true},
+		{"3x-ui-20261106", "3x-ui-20261107", false},
+		{"3x-ui-20261107-r2", "3x-ui-20261107", true},
 	}
 
 	for _, tc := range cases {
 		if got := isNewerVersion(tc.latest, tc.current); got != tc.want {
 			t.Fatalf("isNewerVersion(%q, %q) = %v, want %v", tc.latest, tc.current, got, tc.want)
+		}
+	}
+}
+
+func TestPanelUpdaterDownloadURL(t *testing.T) {
+	cases := []struct {
+		commit, release, base, want string
+	}{
+		{"c5b23e29", "3x-ui-20261107", "3.9.0", "c5b23e29"},
+		{"", "3x-ui-20261107", "3.9.0", "3x-ui-20261107"},
+		{"", "", "3.9.0", "v3.9.0"},
+	}
+	for _, tc := range cases {
+		if got := panelUpdaterRef(tc.commit, tc.release, tc.base); got != tc.want {
+			t.Fatalf("panelUpdaterRef(%q, %q, %q) = %q, want %q", tc.commit, tc.release, tc.base, got, tc.want)
 		}
 	}
 }

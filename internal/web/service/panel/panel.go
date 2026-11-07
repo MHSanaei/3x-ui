@@ -69,7 +69,10 @@ type PanelUpdateStatus struct {
 	FinishedAt int64  `json:"finishedAt" example:"1735689612"`
 }
 
-var releaseCommitRegex = regexp.MustCompile(`(?i)commit=([0-9a-f]{7,40})`)
+var (
+	releaseCommitRegex = regexp.MustCompile(`(?i)commit=([0-9a-f]{7,40})`)
+	datedReleaseRegex  = regexp.MustCompile(`^3x-ui-(\d{8})(?:-r(\d+))?$`)
+)
 
 // updateMu guards updateRunning/updateStarted/updateRunID/updatePID, which
 // stop a second self-update from launching while one is still in flight (two
@@ -140,7 +143,7 @@ func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	current := config.GetBaseVersion()
+	current := config.GetPanelVersion()
 	return &PanelUpdateInfo{
 		Channel:         "stable",
 		CurrentVersion:  current,
@@ -494,11 +497,19 @@ func downloadPanelUpdater() (string, error) {
 // binary. This avoids executing a mutable main-branch script as root from the
 // web updater. Stable builds fall back to their own version tag.
 func panelUpdaterDownloadURL() string {
-	ref := strings.TrimSpace(config.GetBuildCommit())
-	if !isCommitSHA(ref) {
-		ref = "v" + strings.TrimPrefix(config.GetBaseVersion(), "v")
-	}
+	ref := panelUpdaterRef(config.GetBuildCommit(), config.GetBuildRelease(), config.GetBaseVersion())
 	return panelRepositoryRaw + "/" + ref + "/update.sh"
+}
+
+func panelUpdaterRef(commit, release, baseVersion string) string {
+	ref := strings.TrimSpace(commit)
+	if !isCommitSHA(ref) {
+		ref = strings.TrimSpace(release)
+	}
+	if ref == "" {
+		ref = "v" + strings.TrimPrefix(strings.TrimSpace(baseVersion), "v")
+	}
+	return ref
 }
 
 func fetchLatestPanelVersion() (string, error) {
@@ -609,9 +620,33 @@ func resolveUpdateFolders() (string, string) {
 func isNewerVersion(latest string, current string) bool {
 	cmp, ok := version.Compare(latest, current)
 	if !ok {
+		if latestDate, latestRevision, latestOK := parseDatedRelease(latest); latestOK {
+			if currentDate, currentRevision, currentOK := parseDatedRelease(current); currentOK {
+				return latestDate > currentDate ||
+					(latestDate == currentDate && latestRevision > currentRevision)
+			}
+		}
 		return version.Normalize(latest) != version.Normalize(current)
 	}
 	return cmp > 0
+}
+
+func parseDatedRelease(value string) (date, revision int, ok bool) {
+	match := datedReleaseRegex.FindStringSubmatch(strings.TrimSpace(value))
+	if match == nil {
+		return 0, 0, false
+	}
+	date, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0, 0, false
+	}
+	if match[2] != "" {
+		revision, err = strconv.Atoi(match[2])
+		if err != nil {
+			return 0, 0, false
+		}
+	}
+	return date, revision, true
 }
 
 func shellQuote(value string) string {

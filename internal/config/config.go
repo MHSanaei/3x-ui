@@ -20,13 +20,13 @@ var version string
 //go:embed name
 var name string
 
-// buildCommit and buildDate are injected at build time via `-ldflags -X` for
-// CI per-commit (dev channel) builds; see .github/workflows/release.yml. They
-// stay empty for a plain `go build` and for stable tagged releases, which is how
-// IsDevBuild tells a rolling dev build apart from a stable/local one.
+// Build metadata is injected with `-ldflags -X`; buildCommit/buildDate identify
+// per-commit dev builds, while buildRelease identifies an immutable stable tag.
+// All stay empty for a plain local build.
 var (
-	buildCommit string
-	buildDate   string
+	buildCommit  string
+	buildDate    string
+	buildRelease string
 )
 
 // LogLevel represents the logging level for the application.
@@ -65,6 +65,13 @@ func GetBuildDate() string {
 	return strings.TrimSpace(buildDate)
 }
 
+// GetBuildRelease returns the immutable GitHub release tag injected into a
+// tagged stable build. It stays separate from the base semantic version,
+// which other compatibility checks still rely on.
+func GetBuildRelease() string {
+	return strings.TrimSpace(buildRelease)
+}
+
 // IsDevBuild reports whether this binary is a CI per-commit (dev channel) build,
 // detected by the injected commit. Stable releases and local builds return false.
 func IsDevBuild() bool {
@@ -72,19 +79,22 @@ func IsDevBuild() bool {
 }
 
 // GetPanelVersion returns the version a panel advertises to a managing master
-// node and displays in the UI: the plain version for stable builds, or
-// "dev+<short commit>" for dev builds. The dev form mirrors the master's
+// node and displays in the UI: the release tag (or base version for legacy
+// builds) for stable builds, or "dev+<short commit>" for dev builds. The dev form mirrors the master's
 // getPanelUpdateInfo latestVersion so a node on the current dev commit compares
 // as up to date instead of always showing "update available".
 func GetPanelVersion() string {
-	if !IsDevBuild() {
-		return GetBaseVersion()
+	if IsDevBuild() {
+		commit := GetBuildCommit()
+		if len(commit) > 8 {
+			commit = commit[:8]
+		}
+		return "dev+" + commit
 	}
-	commit := GetBuildCommit()
-	if len(commit) > 8 {
-		commit = commit[:8]
+	if release := GetBuildRelease(); release != "" {
+		return release
 	}
-	return "dev+" + commit
+	return GetBaseVersion()
 }
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.
@@ -287,3 +297,4 @@ func init() {
 	}
 	_ = copyFile(oldDBPath, newDBPath) // ignore error
 }
+

@@ -6,12 +6,21 @@ import (
 )
 
 func TestGetPanelVersion(t *testing.T) {
-	orig := buildCommit
-	t.Cleanup(func() { buildCommit = orig })
+	origCommit, origRelease := buildCommit, buildRelease
+	t.Cleanup(func() {
+		buildCommit = origCommit
+		buildRelease = origRelease
+	})
 
 	buildCommit = ""
+	buildRelease = ""
 	if got := GetPanelVersion(); got != GetBaseVersion() {
 		t.Fatalf("stable build: GetPanelVersion = %q, want %q", got, GetBaseVersion())
+	}
+
+	buildRelease = "3x-ui-20261107"
+	if got := GetPanelVersion(); got != "3x-ui-20261107" {
+		t.Fatalf("dated stable build: GetPanelVersion = %q, want %q", got, "3x-ui-20261107")
 	}
 
 	buildCommit = "1d1128cf"
@@ -79,3 +88,4 @@ func TestGetPortOverride(t *testing.T) {
 		})
 	}
 }
+
