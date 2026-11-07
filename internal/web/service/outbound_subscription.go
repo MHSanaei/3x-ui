@@ -674,6 +674,33 @@ func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
 	return append(prepend, appendList...), nil
 }
 
+// ActiveAmneziaWGOutbounds returns the subscribed amneziawg outbounds config generation keeps,
+// without xray-core builds or drop logs: the AmneziaWG job calls it every tick.
+func (s *OutboundSubscriptionService) ActiveAmneziaWGOutbounds() ([]json.RawMessage, error) {
+	var subs []*model.OutboundSubscription
+	if err := database.GetDB().Where("enabled = ?", true).Find(&subs).Error; err != nil {
+		return nil, err
+	}
+	ownPorts := xrayOwnPorts()
+	var out []json.RawMessage
+	for _, sub := range subs {
+		var stored []json.RawMessage
+		if json.Unmarshal([]byte(sub.LastFetchedOutbounds), &stored) != nil {
+			continue
+		}
+		for _, raw := range stored {
+			if !amneziawg.IsAmneziaWGOutbound(raw) || amneziawg.ValidateAmneziaWGOutbound("subscription", raw) != nil {
+				continue
+			}
+			var ob map[string]any
+			if json.Unmarshal(raw, &ob) == nil && internalDialTarget(ob, sub.AllowPrivate, ownPorts) == "" {
+				out = append(out, raw)
+			}
+		}
+	}
+	return out, nil
+}
+
 // activeOutboundsSplit returns the active subscription outbounds split into those
 // that should be placed BEFORE the manual template outbounds (Prepend) and those
 // placed AFTER. Within each group, subscriptions are ordered by Priority (then id)

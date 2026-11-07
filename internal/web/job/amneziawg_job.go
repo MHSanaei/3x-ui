@@ -144,15 +144,11 @@ func (j *AmneziaWGJob) desiredOutboundInstances() ([]amneziawgnet.OutboundDesire
 			}
 		}
 	}
-	subscribed, err := (&service.OutboundSubscriptionService{}).AllActiveOutbounds()
+	subscribed, err := (&service.OutboundSubscriptionService{}).ActiveAmneziaWGOutbounds()
 	if err != nil {
 		return nil, err
 	}
-	for _, ob := range subscribed {
-		if raw, err := json.Marshal(ob); err == nil {
-			raws = append(raws, raw)
-		}
-	}
+	raws = append(raws, subscribed...)
 	out := make([]amneziawgnet.OutboundDesired, 0, len(raws))
 	for _, raw := range raws {
 		if !amneziawg.IsAmneziaWGOutbound(raw) {
