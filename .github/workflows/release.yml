@@ -216,7 +216,7 @@ jobs:
           file: x-ui-linux-${{ matrix.platform }}.tar.gz*
           file_glob: true
           overwrite: true
-          prerelease: true
+          prerelease: false
 
   # =================================
   #  Windows Build
@@ -362,7 +362,7 @@ jobs:
           file: x-ui-windows-amd64.zip*
           file_glob: true
           overwrite: true
-          prerelease: true
+          prerelease: false
 
   # ========================================
   #  Compatibility update channel
