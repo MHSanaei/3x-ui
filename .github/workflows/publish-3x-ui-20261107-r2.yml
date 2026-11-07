@@ -7,30 +7,41 @@ on:
       - ".github/workflows/publish-3x-ui-20261107-r2.yml"
 
 permissions:
-  actions: read
+  actions: write
   contents: write
 
 jobs:
   replace-release:
-    if: "${{ github.event.head_commit.message == 'release: replace 3x-ui-20261107 with fixed build' }}"
+    if: "${{ github.event.head_commit.message == 'release: publish clean fixed 3x-ui-20261107 build' }}"
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: "42350566796"
+      BUILD_BRANCH: 3x-ui-20261107-fix-build
       RELEASE_TAG: 3x-ui-20261107
       STAGING_TAG: 3x-ui-20261107-r2
-      RELEASE_COMMIT: af90cd02bba27564dcb0acde158b9c1031b0a11f
+      RELEASE_COMMIT: c5b23e292ac2fac9099ece8faf4012f5330702f1
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Download and verify fixed build
+      - name: Build the clean fixed commit
         run: |
           set -euo pipefail
-          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')" = "success"
-          test "$(gh run view "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json headSha --jq '.headSha')" = "${RELEASE_COMMIT}"
-          gh run download "${SOURCE_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
+          test "$(git rev-parse "origin/${BUILD_BRANCH}")" = "${RELEASE_COMMIT}"
+          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref "${BUILD_BRANCH}"
+          run_id=""
+          for _ in $(seq 1 60); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" \
+              --workflow release.yml --branch "${BUILD_BRANCH}" --event workflow_dispatch \
+              --limit 5 --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"${RELEASE_COMMIT}\") | .databaseId" | head -n 1)"
+            [[ -n "${run_id}" ]] && break
+            sleep 5
+          done
+          [[ -n "${run_id}" ]]
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
+          gh run download "${run_id}" --repo "${GITHUB_REPOSITORY}" --dir release-artifacts
           test "$(find release-artifacts -type f | wc -l)" -eq 16
           test "$(find release-artifacts -type f -name '*.sha256' | wc -l)" -eq 8
           while IFS= read -r checksum; do
@@ -60,3 +71,4 @@ jobs:
           test "$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')" -eq 16
           test "$(git ls-remote origin "refs/tags/${RELEASE_TAG}" | cut -f1)" = "${RELEASE_COMMIT}"
           gh release delete "${STAGING_TAG}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
+          git push origin --delete "${BUILD_BRANCH}"
