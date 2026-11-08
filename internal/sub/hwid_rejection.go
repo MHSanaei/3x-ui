@@ -2,9 +2,7 @@ package sub
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 
@@ -37,20 +35,27 @@ func (a *SUBController) writeHwidRejection(c *gin.Context, result service.HwidGa
 	if result.NotSupported {
 		remark = "HWID required"
 	}
+	node := statusNode{remark: remark, blocked: true}
 	contentType := "text/plain; charset=utf-8"
 	var body string
 	switch format {
 	case hwidJSON, hwidJSONArray:
 		contentType = "application/json; charset=utf-8"
-		body = fmt.Sprintf(`{"remarks":%q,"inbounds":[{"listen":"127.0.0.1","port":10808,"protocol":"socks","settings":{"auth":"noauth","udp":true}}],"outbounds":[{"tag":"blocked","protocol":"blackhole","settings":{}}]}`, remark)
+		body = string(a.subJsonService.genStatusNodeConfig(node))
 		if format == hwidJSONArray || a.jsonAlwaysArray {
 			body = "[" + body + "]"
 		}
 	case hwidClash:
 		contentType = "application/yaml; charset=utf-8"
-		body = fmt.Sprintf("mode: rule\nproxies:\n  - name: %q\n    type: vmess\n    server: 192.0.2.1\n    port: 1\n    uuid: 00000000-0000-4000-8000-000000000001\n    alterId: 0\n    cipher: auto\nproxy-groups:\n  - name: HWID-BLOCKED\n    type: select\n    proxies:\n      - %q\nrules:\n  - MATCH,HWID-BLOCKED\n", remark, remark)
+		config := newClashConfig([]map[string]any{node.clashProxy()}, false)
+		yaml, err := marshalClashYAML(config)
+		if err != nil {
+			writeSubError(c, err)
+			return
+		}
+		body = string(yaml)
 	default:
-		body = "vless://00000000-0000-4000-8000-000000000001@192.0.2.1:1?encryption=none&type=tcp&security=none#" + url.PathEscape(remark) + "\n"
+		body = node.link() + "\n"
 		if a.subEncrypt {
 			body = base64.StdEncoding.EncodeToString([]byte(body))
 		}

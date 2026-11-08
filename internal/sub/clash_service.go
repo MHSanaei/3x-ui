@@ -157,12 +157,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	header := subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(proxies) > 0); mode != infoNodeNone {
-		dummyProxy := map[string]any{
-			"name":   remark,
-			"type":   "socks5",
-			"server": "127.0.0.1",
-			"port":   1080,
-		}
+		dummyProxy := (statusNode{remark: remark}).clashProxy()
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			proxies = []map[string]any{dummyProxy}
 		} else {
@@ -174,28 +169,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		return "", header, nil
 	}
 
-	ensureUniqueProxyNames(proxies)
-
-	proxyNames := make([]string, 0, len(proxies)+1)
-	for _, proxy := range proxies {
-		if isDummyProxy(proxy) && len(proxies) > 1 {
-			continue
-		}
-		if name, ok := proxy["name"].(string); ok && name != "" {
-			proxyNames = append(proxyNames, name)
-		}
-	}
-	proxyNames = append(proxyNames, "DIRECT")
-
-	config := map[string]any{
-		"proxies": proxies,
-		"proxy-groups": []map[string]any{{
-			"name":    "PROXY",
-			"type":    "select",
-			"proxies": proxyNames,
-		}},
-		"rules": []string{"MATCH,PROXY"},
-	}
+	config := newClashConfig(proxies, true)
 
 	// Custom Clash routing can inject Mihomo-only groups, rules, providers or a
 	// top-level proxies key — exactly what the legacy filter just removed.
@@ -218,6 +192,37 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	}
 
 	return string(finalYAML), header, nil
+}
+
+func newClashConfig(proxies []map[string]any, allowDirect bool) map[string]any {
+	ensureUniqueProxyNames(proxies)
+	proxyNames := make([]string, 0, len(proxies)+1)
+	for _, proxy := range proxies {
+		if isDummyProxy(proxy) && len(proxies) > 1 {
+			continue
+		}
+		if name, ok := proxy["name"].(string); ok && name != "" {
+			proxyNames = append(proxyNames, name)
+		}
+	}
+	if allowDirect {
+		proxyNames = append(proxyNames, "DIRECT")
+	}
+
+	config := map[string]any{
+		"proxies": proxies,
+		"proxy-groups": []map[string]any{{
+			"name":    "PROXY",
+			"type":    "select",
+			"proxies": proxyNames,
+		}},
+		"rules": []string{"MATCH,PROXY"},
+	}
+
+	if !allowDirect {
+		config["mode"] = "rule"
+	}
+	return config
 }
 
 func legacyClashProxies(proxies []map[string]any) []map[string]any {
@@ -353,7 +358,8 @@ func isDummyProxy(proxy map[string]any) bool {
 	case float64:
 		port = int(p)
 	}
-	return typ == "socks5" && server == "127.0.0.1" && port == 1080
+	dummyAddress, dummyPort := (statusNode{}).endpoint()
+	return typ == "socks5" && server == dummyAddress && port == dummyPort
 }
 
 func fallbackProxyName(proxy map[string]any, idx int) string {

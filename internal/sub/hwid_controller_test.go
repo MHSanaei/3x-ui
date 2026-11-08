@@ -81,7 +81,7 @@ func TestSubscriptionHwidReplacementRemovesRealNodes(t *testing.T) {
 					t.Fatal(err)
 				}
 				body = string(link)
-				if !strings.HasPrefix(body, "vless://") || !strings.Contains(body, "@192.0.2.1:1?") {
+				if !strings.HasPrefix(body, "socks://192.0.2.1:1#") {
 					t.Fatalf("replacement link = %s", body)
 				}
 			case "json", "json-array":
@@ -113,7 +113,7 @@ func TestSubscriptionHwidReplacementRemovesRealNodes(t *testing.T) {
 				if err := yaml.Unmarshal(rec.Body.Bytes(), &profile); err != nil {
 					t.Fatal(err)
 				}
-				if len(profile.Proxies) != 1 || profile.Proxies[0].Server != "192.0.2.1" || profile.Proxies[0].Port != 1 || !reflect.DeepEqual(profile.Rules, []string{"MATCH,HWID-BLOCKED"}) || strings.Contains(body, "DIRECT") {
+				if len(profile.Proxies) != 1 || profile.Proxies[0].Server != "192.0.2.1" || profile.Proxies[0].Port != 1 || !reflect.DeepEqual(profile.Rules, []string{"MATCH,PROXY"}) || strings.Contains(body, "DIRECT") {
 					t.Fatalf("Clash must only route to the dummy node: %s", body)
 				}
 			}
@@ -200,7 +200,7 @@ func TestSubscriptionHwidReplacementForMissingHwidAndAutoJSON(t *testing.T) {
 		if rec.Code != http.StatusOK || rec.Header().Get("X-Hwid-Active") != "true" || rec.Header().Get("X-Hwid-Not-Supported") != "" {
 			t.Fatalf("%s missing HWID = %d %v", path, rec.Code, rec.Header())
 		}
-		if path == "/sub/" && !strings.HasPrefix(rec.Body.String(), "vless://") {
+		if path == "/sub/" && !strings.HasPrefix(rec.Body.String(), "socks://192.0.2.1:1#") {
 			t.Fatalf("unencrypted replacement = %s", rec.Body)
 		}
 		if path == "/json/" && !strings.HasPrefix(rec.Body.String(), "[") {
@@ -220,6 +220,47 @@ func TestSubscriptionHwidReplacementForMissingHwidAndAutoJSON(t *testing.T) {
 		t.Fatalf("auto JSON = %s, error=%v", rec.Body, err)
 	}
 	assertHwidStatus(t, requestSub(t, router, http.MethodGet, "/sub/"+subID+"/hwid-status", "", ""), true, 1, 0, 1, false)
+}
+
+func TestSubscriptionHwidReplacementPreservesJSONTemplateWithoutDirectRoutes(t *testing.T) {
+	router, subID := initHwidSubRouter(t, 1,
+		WithSUBJsonDns(`["https://dns.google/dns-query"]`),
+		WithSUBJsonRules(`[{"type":"field","network":"tcp,udp","outboundTag":"direct"}]`),
+	)
+	if err := database.GetDB().Create(&model.Setting{Key: "subHwidRejectWithConfig", Value: "true"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	readConfig := func(hwid string) map[string]any {
+		t.Helper()
+		rec := requestSub(t, router, http.MethodGet, "/json/"+subID, hwid, "")
+		if rec.Code != http.StatusOK {
+			t.Fatalf("JSON subscription = %d %s", rec.Code, rec.Body)
+		}
+		var config map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &config); err != nil {
+			t.Fatal(err)
+		}
+		return config
+	}
+	owner := readConfig("device-owner")
+	rejected := readConfig("device-rejected")
+	for _, key := range []string{"dns", "inbounds", "policy", "log", "stats"} {
+		if !reflect.DeepEqual(rejected[key], owner[key]) {
+			t.Fatalf("rejected JSON lost template %s: got %#v, want %#v", key, rejected[key], owner[key])
+		}
+	}
+	if _, exists := rejected["routing"]; exists {
+		t.Fatalf("rejected JSON retained template routing: %#v", rejected["routing"])
+	}
+	if outbounds, ok := rejected["outbounds"].([]any); !ok || len(outbounds) != 1 || outbounds[0].(map[string]any)["protocol"] != "blackhole" {
+		t.Fatalf("rejected JSON can bypass the block: %#v", rejected["outbounds"])
+	}
+	ownerAfter := readConfig("device-owner")
+	for _, key := range []string{"dns", "inbounds", "routing", "outbounds"} {
+		if !reflect.DeepEqual(ownerAfter[key], owner[key]) {
+			t.Fatalf("rejection mutated owner's %s: got %#v, want %#v", key, ownerAfter[key], owner[key])
+		}
+	}
 }
 
 func requestSub(t *testing.T, router *gin.Engine, method string, path string, hwid string, accept string) *httptest.ResponseRecorder {
