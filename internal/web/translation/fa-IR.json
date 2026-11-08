@@ -1641,6 +1641,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "جایگزینی پیکربندی هنگام رد شدن HWID",
+      "subHwidRejectWithConfigDesc": "اگر HWID موجود نباشد یا ظرفیت دستگاه‌ها پر شده باشد، به‌جای 404 پاسخ HTTP 200 با یک گره غیرفعال ارسال شود. برنامه‌های سازگار می‌توانند هنگام به‌روزرسانی گره‌های ذخیره‌شده را جایگزین کنند؛ پیکربندی‌های کپی‌شده معتبر می‌مانند. حذف دستگاه یک جایگاه آزاد می‌کند، اما آن را برای همیشه مسدود نمی‌کند.",
       "subInfoNodeEnable": "کانفیگ جداگانه اطلاعات / نود نمایشی",
       "subInfoNodeEnableDesc": "در صورت فعال بودن، مشخصات و حجم/روزهای باقیمانده به عنوان یک کانفیگ مجزای ساکس در بالای لیست نمایش داده می‌شود و در صورت انقضا یا اتمام حجم فقط پیام وضعیت ارسال می‌شود.",
       "subExpiredTemplate": "قالب پیام انقضا",

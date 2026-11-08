@@ -1641,6 +1641,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Ganti konfigurasi saat HWID ditolak",
+      "subHwidRejectWithConfigDesc": "Kembalikan HTTP 200 dengan node yang tidak berfungsi alih-alih 404 jika HWID tidak ada atau batas perangkat tercapai. Aplikasi yang kompatibel dapat mengganti node tersimpan saat pembaruan; konfigurasi yang disalin tetap berlaku. Menghapus perangkat membebaskan slot, tetapi tidak memblokirnya secara permanen.",
       "subInfoNodeEnable": "Konfigurasi Info Terpisah / Node Dummy",
       "subInfoNodeEnableDesc": "Saat diaktifkan, catatan dan sisa kuota/hari disajikan sebagai konfigurasi SOCKS dummy terpisah di bagian atas, dan langganan kedaluwarsa/habis hanya mengembalikan status.",
       "subExpiredTemplate": "Templat Kedaluwarsa",

@@ -1641,6 +1641,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Substituir configurações quando o HWID for rejeitado",
+      "subHwidRejectWithConfigDesc": "Retornar HTTP 200 com um nó sem conexão em vez de 404 quando faltar o HWID ou o limite de dispositivos for atingido. Aplicativos compatíveis podem substituir os nós salvos ao atualizar; configurações copiadas continuam válidas. Excluir um dispositivo libera uma vaga, mas não o bloqueia permanentemente.",
       "subInfoNodeEnable": "Configuração de informações separada / Nó fictício",
       "subInfoNodeEnableDesc": "Quando ativado, observações e tráfego/dias restantes são exibidos em uma configuração SOCKS fictícia no topo, e assinaturas expiradas/esgotadas retornam apenas o status.",
       "subExpiredTemplate": "Modelo expirado",

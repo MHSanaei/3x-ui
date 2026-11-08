@@ -38,6 +38,22 @@ URLs and preview both bodies here:
 
 <SubscriptionBuilder />
 
+## Replacing nodes after an HWID rejection
+
+In **Panel settings → Subscription**, enable **Replace configs when HWID is
+rejected** (`subHwidRejectWithConfig`, off by default). When HWID is missing or
+the device limit is reached, the server returns HTTP 200 with a non-working
+node instead of 404. This supports raw/base64 links, Xray JSON, Clash/Mihomo,
+legacy Clash, and automatic format detection. Compatible apps can accept the
+update and replace previously downloaded nodes. With this option off, the
+existing 404 response and HWID error headers are preserved.
+
+Replacement requires the app to refresh and accept the subscription. It does
+not revoke copied credentials or immediately terminate existing connections.
+Deleting a device only frees its slot: it can register again if a slot is
+available. To reject it after deletion, the remaining devices must fill the
+configured limit.
+
 ## Output formats
 
 The **format is chosen by path**, each with its own enable toggle:

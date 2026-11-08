@@ -83,6 +83,7 @@ var defaultValueMap = map[string]string{
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
+	"subHwidRejectWithConfig":     "false",
 	"subHostSortMode":             "inbound-first",
 	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
@@ -769,6 +770,10 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubHwidRejectWithConfig() (bool, error) {
+	return s.getBool("subHwidRejectWithConfig")
 }
 
 func (s *SettingService) GetSubHostSortMode() (string, error) {

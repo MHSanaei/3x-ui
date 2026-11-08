@@ -354,6 +354,9 @@
             "example": "inbound-first",
             "type": "string"
           },
+          "subHwidRejectWithConfig": {
+            "type": "boolean"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -710,6 +713,7 @@
           "subHappTunType",
           "subHideSettings",
           "subHostSortMode",
+          "subHwidRejectWithConfig",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -1145,6 +1149,9 @@
             "example": "inbound-first",
             "type": "string"
           },
+          "subHwidRejectWithConfig": {
+            "type": "boolean"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -1509,6 +1516,7 @@
           "subHappTunType",
           "subHideSettings",
           "subHostSortMode",
+          "subHwidRejectWithConfig",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
