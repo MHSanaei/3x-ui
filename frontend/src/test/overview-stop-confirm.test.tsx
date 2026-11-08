@@ -61,3 +61,23 @@ describe('OverviewActionBar stop confirmation', () => {
     await waitFor(() => expect(onStopXray).toHaveBeenCalledOnce());
   });
 });
+
+// Stop on a non-running core errors AND sets the manual-stop flag, silencing crash recovery.
+describe('OverviewActionBar start / disabled stop', () => {
+  it('offers Start and disables Stop when the core is stopped', () => {
+    const onRestartXray = vi.fn();
+    renderBar('stop', { onRestartXray });
+
+    expect(screen.queryByRole('button', { name: 'Restart' })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(onRestartXray).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Restart and disables Stop when the core errored', () => {
+    renderBar('error');
+
+    expect(screen.getByRole('button', { name: 'Restart' })).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+});

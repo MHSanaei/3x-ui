@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Detener",
       "restartXray": "Reiniciar",
+      "startXray": "Iniciar",
+      "stopXrayDisabledHint": "Xray no se está ejecutando",
       "stopXrayConfirmTitle": "¿Detener Xray?",
       "stopXrayConfirmContent": "Detener Xray interrumpirá de inmediato todas las conexiones proxy. ¿Seguro que quieres continuar?",
       "stopXrayConfirmOk": "Detener Xray",

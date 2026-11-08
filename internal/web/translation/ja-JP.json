@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "停止",
       "restartXray": "再起動",
+      "startXray": "開始",
+      "stopXrayDisabledHint": "Xray は実行されていません",
       "stopXrayConfirmTitle": "Xray を停止しますか?",
       "stopXrayConfirmContent": "Xray を停止すると、すべてのプロキシ接続が直ちに切断されます。続行しますか?",
       "stopXrayConfirmOk": "Xray を停止",

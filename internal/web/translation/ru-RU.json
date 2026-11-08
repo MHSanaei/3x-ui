@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Стоп",
       "restartXray": "Перезапуск",
+      "startXray": "Запуск",
+      "stopXrayDisabledHint": "Xray не запущен",
       "stopXrayConfirmTitle": "Остановить Xray?",
       "stopXrayConfirmContent": "Остановка Xray немедленно разорвёт все прокси-соединения. Продолжить?",
       "stopXrayConfirmOk": "Остановить Xray",

@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Stop",
       "restartXray": "Restart",
+      "startXray": "Start",
+      "stopXrayDisabledHint": "Xray is not running",
       "stopXrayConfirmTitle": "Stop Xray?",
       "stopXrayConfirmContent": "Stopping Xray will immediately interrupt all proxy connections. Are you sure you want to continue?",
       "stopXrayConfirmOk": "Stop Xray",

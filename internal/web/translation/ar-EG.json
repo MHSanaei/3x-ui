@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "إيقاف",
       "restartXray": "إعادة تشغيل",
+      "startXray": "تشغيل",
+      "stopXrayDisabledHint": "Xray غير قيد التشغيل",
       "stopXrayConfirmTitle": "إيقاف Xray؟",
       "stopXrayConfirmContent": "سيؤدي إيقاف Xray إلى قطع جميع اتصالات البروكسي فورًا. هل تريد المتابعة؟",
       "stopXrayConfirmOk": "إيقاف Xray",

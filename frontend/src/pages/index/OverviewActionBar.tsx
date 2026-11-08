@@ -11,6 +11,7 @@ import {
   CloudServerOutlined,
   ControlOutlined,
   FileTextOutlined,
+  PlayCircleOutlined,
   PoweroffOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
@@ -46,6 +47,8 @@ interface BarAction {
   onClick: () => void;
   primary?: boolean;
   danger?: boolean;
+  disabled?: boolean;
+  hint?: string;
 }
 
 const XRAY_STATE_KEYS: Record<string, string> = {
@@ -78,13 +81,15 @@ export default function OverviewActionBar({
   const stateText = t(XRAY_STATE_KEYS[status.xray.state] ?? 'pages.index.xrayStatusUnknown');
   const hasVersion = !!status.xray.version && status.xray.version !== 'Unknown';
   const size = isMobile ? ('small' as const) : ('middle' as const);
+  const isStopped = status.xray.state === 'stop';
+  const isRunning = status.xray.state === 'running';
 
   const actionGroups: BarAction[][] = [
     [
       {
         key: 'restart',
-        icon: <ReloadOutlined aria-hidden />,
-        text: t('pages.index.restartXray'),
+        icon: isStopped ? <PlayCircleOutlined aria-hidden /> : <ReloadOutlined aria-hidden />,
+        text: t(isStopped ? 'pages.index.startXray' : 'pages.index.restartXray'),
         onClick: onRestartXray,
         primary: true,
       },
@@ -93,6 +98,8 @@ export default function OverviewActionBar({
         icon: <PoweroffOutlined aria-hidden />,
         text: t('pages.index.stopXray'),
         danger: true,
+        disabled: !isRunning,
+        hint: isRunning ? undefined : t('pages.index.stopXrayDisabledHint'),
         onClick: () =>
           modal.confirm({
             title: t('pages.index.stopXrayConfirmTitle'),
@@ -217,19 +224,21 @@ export default function OverviewActionBar({
           <Fragment key={group[0].key}>
             {groupIndex > 0 && <span className="ov-bar-sep" />}
             {group.map((action) => (
-              <Button
-                key={action.key}
-                type={action.primary ? undefined : 'text'}
-                color={action.primary ? 'primary' : undefined}
-                variant={action.primary ? 'outlined' : undefined}
-                size={size}
-                danger={action.danger}
-                icon={action.icon}
-                aria-label={action.text}
-                onClick={action.onClick}
-              >
-                {isMobile ? undefined : action.text}
-              </Button>
+              <Tooltip key={action.key} title={action.hint}>
+                <Button
+                  type={action.primary ? undefined : 'text'}
+                  color={action.primary ? 'primary' : undefined}
+                  variant={action.primary ? 'outlined' : undefined}
+                  size={size}
+                  danger={action.danger}
+                  disabled={action.disabled}
+                  icon={action.icon}
+                  aria-label={action.text}
+                  onClick={action.onClick}
+                >
+                  {isMobile ? undefined : action.text}
+                </Button>
+              </Tooltip>
             ))}
           </Fragment>
         ))}

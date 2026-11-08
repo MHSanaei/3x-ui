@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "停止",
       "restartXray": "重启",
+      "startXray": "启动",
+      "stopXrayDisabledHint": "Xray 未运行",
       "stopXrayConfirmTitle": "停止 Xray?",
       "stopXrayConfirmContent": "停止 Xray 将立即中断所有代理连接。确定要继续吗?",
       "stopXrayConfirmOk": "停止 Xray",

@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Zastaviť",
       "restartXray": "Reštartovať",
+      "startXray": "Spustiť",
+      "stopXrayDisabledHint": "Xray nebeží",
       "stopXrayConfirmTitle": "Zastaviť Xray?",
       "stopXrayConfirmContent": "Zastavenie Xray okamžite preruší všetky proxy spojenia. Naozaj chcete pokračovať?",
       "stopXrayConfirmOk": "Zastaviť Xray",

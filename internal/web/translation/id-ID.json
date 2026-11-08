@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Hentikan",
       "restartXray": "Mulai ulang",
+      "startXray": "Mulai",
+      "stopXrayDisabledHint": "Xray tidak berjalan",
       "stopXrayConfirmTitle": "Hentikan Xray?",
       "stopXrayConfirmContent": "Menghentikan Xray akan langsung memutus semua koneksi proxy. Yakin ingin melanjutkan?",
       "stopXrayConfirmOk": "Hentikan Xray",

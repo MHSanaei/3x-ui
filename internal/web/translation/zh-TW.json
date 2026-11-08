@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "停止",
       "restartXray": "重新啟動",
+      "startXray": "啟動",
+      "stopXrayDisabledHint": "Xray 未執行",
       "stopXrayConfirmTitle": "停止 Xray?",
       "stopXrayConfirmContent": "停止 Xray 將立即中斷所有代理連線。確定要繼續嗎?",
       "stopXrayConfirmOk": "停止 Xray",

@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Стоп",
       "restartXray": "Перезапуск",
+      "startXray": "Запуск",
+      "stopXrayDisabledHint": "Xray не запущено",
       "stopXrayConfirmTitle": "Зупинити Xray?",
       "stopXrayConfirmContent": "Зупинка Xray негайно розірве всі проксі-з'єднання. Продовжити?",
       "stopXrayConfirmOk": "Зупинити Xray",

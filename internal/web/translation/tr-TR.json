@@ -151,6 +151,8 @@
       "xrayStatus": "Xray",
       "stopXray": "Durdur",
       "restartXray": "Yeniden Başlat",
+      "startXray": "Başlat",
+      "stopXrayDisabledHint": "Xray çalışmıyor",
       "stopXrayConfirmTitle": "Xray durdurulsun mu?",
       "stopXrayConfirmContent": "Xray'i durdurmak tüm proxy bağlantılarını anında keser. Devam etmek istediğinizden emin misiniz?",
       "stopXrayConfirmOk": "Xray'i durdur",
