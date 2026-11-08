@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Tag, Tooltip } from 'antd';
+import { Button, Modal, Tag, Tooltip } from 'antd';
 import {
   ApiOutlined,
   ArrowUpOutlined,
@@ -26,7 +26,7 @@ interface OverviewActionBarProps {
   panelVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
-  onStopXray: () => void;
+  onStopXray: () => void | Promise<void>;
   onRestartXray: () => void;
   onOpenLogs: () => void;
   onOpenXrayLogs: () => void;
@@ -45,6 +45,7 @@ interface BarAction {
   text: string;
   onClick: () => void;
   primary?: boolean;
+  danger?: boolean;
 }
 
 const XRAY_STATE_KEYS: Record<string, string> = {
@@ -73,6 +74,7 @@ export default function OverviewActionBar({
   onOpenVersionSwitch,
 }: OverviewActionBarProps) {
   const { t } = useTranslation();
+  const [modal, modalContextHolder] = Modal.useModal();
   const stateText = t(XRAY_STATE_KEYS[status.xray.state] ?? 'pages.index.xrayStatusUnknown');
   const hasVersion = !!status.xray.version && status.xray.version !== 'Unknown';
   const size = isMobile ? ('small' as const) : ('middle' as const);
@@ -90,7 +92,17 @@ export default function OverviewActionBar({
         key: 'stop',
         icon: <PoweroffOutlined aria-hidden />,
         text: t('pages.index.stopXray'),
-        onClick: onStopXray,
+        danger: true,
+        onClick: () =>
+          modal.confirm({
+            title: t('pages.index.stopXrayConfirmTitle'),
+            content: t('pages.index.stopXrayConfirmContent'),
+            okText: t('pages.index.stopXrayConfirmOk'),
+            okType: 'danger',
+            cancelText: t('cancel'),
+            focusable: { autoFocusButton: 'cancel' },
+            onOk: onStopXray,
+          }),
       },
     ],
     [
@@ -165,6 +177,7 @@ export default function OverviewActionBar({
 
   return (
     <div className="ov-bar">
+      {modalContextHolder}
       {status.xray.errorMsg ? (
         <Tooltip title={<span className="ov-error-detail">{status.xray.errorMsg}</span>}>
           {statePill}
@@ -210,6 +223,7 @@ export default function OverviewActionBar({
                 color={action.primary ? 'primary' : undefined}
                 variant={action.primary ? 'outlined' : undefined}
                 size={size}
+                danger={action.danger}
                 icon={action.icon}
                 aria-label={action.text}
                 onClick={action.onClick}
