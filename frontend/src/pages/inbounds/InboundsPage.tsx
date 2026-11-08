@@ -55,9 +55,11 @@ const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
 const AttachExistingClientsModal = lazy(() => import('./clients/AttachExistingClientsModal'));
 const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
 const AddClientsToGroupModal = lazy(() => import('./clients/AddClientsToGroupModal'));
+const ChangeInboundIdModal = lazy(() => import('./ChangeInboundIdModal'));
 
 type RowAction =
   | 'edit'
+  | 'changeId'
   | 'showInfo'
   | 'export'
   | 'subs'
@@ -177,6 +179,9 @@ export default function InboundsPage() {
 
   const [cloneOpen, setCloneOpen] = useState(false);
   const [cloneSource, setCloneSource] = useState<DBInbound | null>(null);
+
+  const [changeIdOpen, setChangeIdOpen] = useState(false);
+  const [changeIdTarget, setChangeIdTarget] = useState<DBInbound | null>(null);
 
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
@@ -631,6 +636,7 @@ export default function InboundsPage() {
       // and then operate on the rehydrated record.
       const hydratingKeys: RowAction[] = [
         'edit',
+        'changeId',
         'showInfo',
         'export',
         'subs',
@@ -647,6 +653,10 @@ export default function InboundsPage() {
       switch (key) {
         case 'edit':
           openEdit(target);
+          break;
+        case 'changeId':
+          setChangeIdTarget(target);
+          setChangeIdOpen(true);
           break;
         case 'showInfo':
           setInfoDbInbound(checkFallback(target));
@@ -881,6 +891,14 @@ export default function InboundsPage() {
             dbInbound={cloneSource}
             nodes={nodesList || []}
             portsInUse={clonePortsInUse}
+          />
+        </LazyMount>
+        <LazyMount when={changeIdOpen}>
+          <ChangeInboundIdModal
+            open={changeIdOpen}
+            onClose={() => setChangeIdOpen(false)}
+            onSaved={refresh}
+            dbInbound={changeIdTarget}
           />
         </LazyMount>
 

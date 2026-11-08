@@ -749,6 +749,66 @@ type staticEgressResolver string
 
 func (r staticEgressResolver) NodeEgressProxyURL(int) string { return string(r) }
 
+// NodeRoutingApplyResult is one node's outcome in a bulk routing apply; a
+// failed node never blocks the rest, each row carries its own error.
+type NodeRoutingApplyResult struct {
+	NodeId  int    `json:"nodeId" example:"1"`
+	Name    string `json:"name" example:"edge-1"`
+	Applied bool   `json:"applied" example:"true"`
+	Error   string `json:"error"`
+}
+
+// ApplyRoutingControl pushes a routing policy (JSON array of Xray routing
+// rules, "" clears) to the given nodes and mirrors it on their rows for the
+// central panel's display. Each node is pushed through its egress bridge when
+// it has one, like the other master-driven node calls.
+func (s *NodeService) ApplyRoutingControl(nodeIDs []int, rules string) ([]NodeRoutingApplyResult, error) {
+	if len(nodeIDs) == 0 {
+		return nil, errors.New("no nodes selected")
+	}
+	if err := validateNodeRoutingRules(rules); err != nil {
+		return nil, err
+	}
+	rules = strings.TrimSpace(rules)
+	results := make([]NodeRoutingApplyResult, 0, len(nodeIDs))
+	for _, id := range nodeIDs {
+		result := NodeRoutingApplyResult{NodeId: id}
+		n, err := s.GetById(id)
+		if err != nil {
+			result.Error = err.Error()
+			results = append(results, result)
+			continue
+		}
+		result.Name = n.Name
+		if err := s.normalize(n); err != nil {
+			result.Error = err.Error()
+			results = append(results, result)
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		var pushErr error
+		s.withOutboundBridge(n.Id, n.OutboundTag, func(proxyURL string) {
+			pushErr = runtime.NewRemote(n, staticEgressResolver(proxyURL)).PushRoutingRules(ctx, rules)
+		})
+		cancel()
+		if pushErr != nil {
+			result.Error = pushErr.Error()
+			results = append(results, result)
+			continue
+		}
+		result.Applied = true
+		// Mirror for the central panel's display; the node's own stored policy
+		// stays the source of truth.
+		if err := database.GetDB().Model(&model.Node{}).Where("id = ?", n.Id).
+			Update("master_routing_rules", rules).Error; err != nil {
+			result.Error = err.Error()
+			result.Applied = false
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 // EnsureInboundTagAllowed adds a panel-managed inbound's tag to the node's
 // selection when the node syncs in "selected" mode. Without it, the next
 // traffic sync would filter the tag out of the snapshot and the orphan sweep

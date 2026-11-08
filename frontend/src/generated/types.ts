@@ -26,6 +26,7 @@ export interface AllSetting {
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
+  inboundListOrder: string;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -49,6 +50,8 @@ export interface AllSetting {
   ldapUserFilter: string;
   ldapVlessField: string;
   nodeDownThreshold: number;
+  nodeRoutingControl: boolean;
+  nodeRoutingRules: string;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -217,6 +220,7 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  inboundListOrder: string;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -240,6 +244,8 @@ export interface AllSettingView {
   ldapUserFilter: string;
   ldapVlessField: string;
   nodeDownThreshold: number;
+  nodeRoutingControl: boolean;
+  nodeRoutingRules: string;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
@@ -791,6 +797,14 @@ export interface InboundOption {
   wgPublicKey?: string;
 }
 
+export interface InboundTagChangeCheck {
+  nodeTagConflict: boolean;
+  reason: string;
+  routingRefs: number;
+  unchanged: boolean;
+  valid: boolean;
+}
+
 export interface InboundTrafficSummary {
   down: number;
   enable: boolean;
@@ -892,6 +906,13 @@ export interface NodeMutationRequest {
   tlsVerifyMode: string;
 }
 
+export interface NodeRoutingApplyResult {
+  applied: boolean;
+  error: string;
+  name: string;
+  nodeId: number;
+}
+
 export interface NodeView {
   activeCount: number;
   address: string;
@@ -914,6 +935,7 @@ export interface NodeView {
   lastError: string;
   lastHeartbeat: number;
   latencyMs: number;
+  masterRoutingRules: string;
   memPct: number;
   name: string;
   netDown: number;

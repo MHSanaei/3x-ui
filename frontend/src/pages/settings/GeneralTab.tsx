@@ -12,6 +12,7 @@ import {
 import { selectTagRender } from '@/components/form';
 import type { AllSetting } from '@/models/setting';
 import { isOutboundProtocol } from '@/schemas/primitives';
+import type { InboundListOrder } from '@/schemas/setting';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
@@ -338,6 +339,50 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 <Switch
                   checked={allSetting.restartXrayOnClientDisable}
                   onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.inboundListOrder')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="inboundListOrder"
+                    value={allSetting.inboundListOrder}
+                  />
+                }
+                description={t('pages.settings.inboundListOrderDesc')}
+              >
+                <Select
+                  style={{ width: '100%' }}
+                  value={allSetting.inboundListOrder || 'id'}
+                  onChange={(v) =>
+                    updateSetting({ inboundListOrder: (v as InboundListOrder) || 'id' })
+                  }
+                  options={[
+                    { value: 'id', label: t('pages.settings.inboundListOrderOptionId') },
+                    { value: 'remark', label: t('pages.settings.inboundListOrderOptionRemark') },
+                    { value: 'port', label: t('pages.settings.inboundListOrderOptionPort') },
+                    {
+                      value: 'protocol',
+                      label: t('pages.settings.inboundListOrderOptionProtocol'),
+                    },
+                    {
+                      value: 'subSortIndex',
+                      label: t('pages.settings.inboundListOrderOptionSubSortIndex'),
+                    },
+                  ]}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.nodeRoutingControl')}
+                description={t('pages.settings.nodeRoutingControlDesc')}
+              >
+                <Switch
+                  checked={allSetting.nodeRoutingControl}
+                  onChange={(v) => updateSetting({ nodeRoutingControl: v })}
                 />
               </SettingListItem>
 

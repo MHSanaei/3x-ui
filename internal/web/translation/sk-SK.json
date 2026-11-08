@@ -128,7 +128,8 @@
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
     "unpinSidebar": "Odopnúť bočné menu",
-    "subFormats": "Formáty odberu"
+    "subFormats": "Formáty odberu",
+    "nodeRouting": "Node Routing"
   },
   "pages": {
     "login": {
@@ -475,7 +476,9 @@
         "invalidClientField": "Klient {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "invalidCertificate": "Certifikát TLS {index}: {reason}",
-        "moreIssues": "{message}  (ďalšie: +{count})"
+        "moreIssues": "{message}  (ďalšie: +{count})",
+        "changeIdSuccess": "Inbound ID changed",
+        "changeIdFailed": "Inbound ID change failed: {reason}"
       },
       "form": {
         "autoFill": "Vyplniť automaticky",
@@ -798,7 +801,17 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfigurácia peeru {n}"
       },
-      "sniffingDestOverride": "Prepísať cieľ"
+      "sniffingDestOverride": "Prepísať cieľ",
+      "changeId": "Change ID",
+      "changeIdTitle": "Change inbound ID — {tag}",
+      "changeIdDesc": "Changing the inbound ID updates every routing rule and node reference that points at the current ID. The check below runs before anything is saved.",
+      "changeIdLabel": "New inbound ID (tag)",
+      "changeIdApply": "Apply",
+      "changeIdValid": "The new ID is available.",
+      "changeIdUnchanged": "The ID is unchanged.",
+      "changeIdInvalid": "The new ID is unavailable ({reason}).",
+      "changeIdRoutingRefs": "{count} routing rule(s) point at the current ID and will be updated.",
+      "changeIdNodeConflict": "The hosting node already has an inbound with this name."
     },
     "clients": {
       "tabBasics": "Základné údaje",
@@ -1307,7 +1320,9 @@
         "updateResult": "Aktualizácia spustená na serveroch: {ok}, neúspešné: {failed}",
         "updateNoneEligible": "Vyberte aspoň jeden dostupný a zapnutý server",
         "saveMtls": "Uložiť mTLS servera",
-        "reloadMtls": "Znova načítať prihlasovací údaj mTLS hlavného panelu"
+        "reloadMtls": "Znova načítať prihlasovací údaj mTLS hlavného panelu",
+        "routingControl": "Node routing policy",
+        "routingApply": "Apply node routing policy"
       },
       "tlsVerifyMode": "Overovanie TLS",
       "tlsVerifyModeHint": "Spôsob overenia certifikátu HTTPS vzdialeného servera. Pri certifikáte podpísanom sebou samým použite pevný odtlačok alebo vynechanie overenia (iba servery HTTPS).",
@@ -1974,7 +1989,16 @@
       "subHostSortMode": "Poradie uzlov v predplatnom",
       "subHostSortInbound": "Poradie inboundov (predvolené)",
       "subHostSortHosts": "Poradie hostiteľov",
-      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
+      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie.",
+      "inboundListOrder": "Inbound list order",
+      "inboundListOrderDesc": "Default order of the inbound list in the panel. Applies to local inbounds and to inbounds adopted from all nodes.",
+      "inboundListOrderOptionId": "ID",
+      "inboundListOrderOptionRemark": "Remark",
+      "inboundListOrderOptionPort": "Port",
+      "inboundListOrderOptionProtocol": "Protocol",
+      "inboundListOrderOptionSubSortIndex": "Subscription order",
+      "nodeRoutingControl": "Node routing control",
+      "nodeRoutingControlDesc": "Let this panel control the routing of connected nodes. When enabled, the Node Routing page can push a shared routing policy to each node."
     },
     "xray": {
       "save": "Uložiť",
@@ -2516,6 +2540,36 @@
       "visit": "Navštíviť",
       "yourBrand": "Miesto pre vašu značku",
       "yourBrandText": "Predstavte svoju spoločnosť tisícom správcov serverov, ktorí denne otvárajú 3X-UI."
+    },
+    "nodeRouting": {
+      "title": "Node routing control",
+      "control": "Control",
+      "controlDisabled": "Node routing control is disabled. Enable it to push routing policies to nodes.",
+      "policyTitle": "Shared routing policy",
+      "policyDesc": "JSON array of Xray routing rules (the same shape as the routing rules on the Routing page). When applied, a node runs these rules ahead of its own rules; the node's internal stats rule is always kept first.",
+      "policyInvalid": "The policy must be a JSON array of routing rule objects.",
+      "policySaved": "Routing policy saved",
+      "savePolicy": "Save policy",
+      "clearPolicy": "Clear policy",
+      "ruleCount": "{count} rule(s)",
+      "nodesTitle": "Nodes",
+      "applyAll": "Apply to all online nodes",
+      "apply": "Apply",
+      "clear": "Clear",
+      "applied": "Routing policy applied to {name}.",
+      "cleared": "Routing policy cleared on {name}.",
+      "applyFailed": "Apply failed on {name}: {reason}",
+      "appliedAll": "Routing policy applied to {count} node(s).",
+      "appliedMixed": "Routing policy applied to {ok} node(s), {failed} failed.",
+      "noNodes": "No online, enabled nodes to apply to.",
+      "node": "Node",
+      "status": "Status",
+      "egress": "Egress",
+      "direct": "direct",
+      "policy": "Master policy",
+      "policyActive": "active",
+      "none": "none",
+      "actions": "Actions"
     }
   },
   "tgbot": {

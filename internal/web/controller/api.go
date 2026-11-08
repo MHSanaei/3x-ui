@@ -124,6 +124,7 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
 	"/clients/clientIpsByGuid":     {http.MethodPost: {}},
 	"/hosts/list":                  {http.MethodGet: {}},
+	"/nodes/routing/control":       {http.MethodPost: {}},
 }
 
 var nodeAdminScopeAllow = map[string]map[string]struct{}{

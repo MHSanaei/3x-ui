@@ -128,7 +128,8 @@
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
     "unpinSidebar": "取消固定侧边栏",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "nodeRouting": "Node Routing"
   },
   "pages": {
     "login": {
@@ -474,7 +475,9 @@
         "invalidClientField": "客户端 {client}：字段 {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "invalidCertificate": "第 {index} 组 TLS 证书：{reason}",
-        "moreIssues": "{message}  (另有 {count} 项)"
+        "moreIssues": "{message}  (另有 {count} 项)",
+        "changeIdSuccess": "Inbound ID changed",
+        "changeIdFailed": "Inbound ID change failed: {reason}"
       },
       "form": {
         "echSockopt": "ECH Sockopt",
@@ -798,7 +801,17 @@
         "peerNumberConfig": "Peer {n} 配置"
       },
       "sniffingDestOverride": "目标覆盖",
-      "advancedTitle": "高级设置"
+      "advancedTitle": "高级设置",
+      "changeId": "Change ID",
+      "changeIdTitle": "Change inbound ID — {tag}",
+      "changeIdDesc": "Changing the inbound ID updates every routing rule and node reference that points at the current ID. The check below runs before anything is saved.",
+      "changeIdLabel": "New inbound ID (tag)",
+      "changeIdApply": "Apply",
+      "changeIdValid": "The new ID is available.",
+      "changeIdUnchanged": "The ID is unchanged.",
+      "changeIdInvalid": "The new ID is unavailable ({reason}).",
+      "changeIdRoutingRefs": "{count} routing rule(s) point at the current ID and will be updated.",
+      "changeIdNodeConflict": "The hosting node already has an inbound with this name."
     },
     "clients": {
       "tabBasics": "基本",
@@ -1186,7 +1199,9 @@
         "updateResult": "已在 {ok} 个节点上触发更新，{failed} 个失败",
         "updateNoneEligible": "请至少选择一个在线且已启用的节点",
         "saveMtls": "保存节点 mTLS",
-        "reloadMtls": "Reload master mTLS credential"
+        "reloadMtls": "Reload master mTLS credential",
+        "routingControl": "Node routing policy",
+        "routingApply": "Apply node routing policy"
       },
       "tlsVerifyMode": "TLS 校验",
       "tlsVerifyModeHint": "面板如何校验节点的 HTTPS 证书。固定或跳过用于自签名证书（仅 https 节点）。",
@@ -1853,7 +1868,16 @@
       "subHostSortMode": "订阅节点排序",
       "subHostSortInbound": "入站顺序（默认）",
       "subHostSortHosts": "主机顺序",
-      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。",
+      "inboundListOrder": "Inbound list order",
+      "inboundListOrderDesc": "Default order of the inbound list in the panel. Applies to local inbounds and to inbounds adopted from all nodes.",
+      "inboundListOrderOptionId": "ID",
+      "inboundListOrderOptionRemark": "Remark",
+      "inboundListOrderOptionPort": "Port",
+      "inboundListOrderOptionProtocol": "Protocol",
+      "inboundListOrderOptionSubSortIndex": "Subscription order",
+      "nodeRoutingControl": "Node routing control",
+      "nodeRoutingControlDesc": "Let this panel control the routing of connected nodes. When enabled, the Node Routing page can push a shared routing policy to each node."
     },
     "xray": {
       "importRules": "导入规则",
@@ -2516,6 +2540,36 @@
       "visit": "访问",
       "yourBrand": "您的品牌展示位",
       "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。"
+    },
+    "nodeRouting": {
+      "title": "Node routing control",
+      "control": "Control",
+      "controlDisabled": "Node routing control is disabled. Enable it to push routing policies to nodes.",
+      "policyTitle": "Shared routing policy",
+      "policyDesc": "JSON array of Xray routing rules (the same shape as the routing rules on the Routing page). When applied, a node runs these rules ahead of its own rules; the node's internal stats rule is always kept first.",
+      "policyInvalid": "The policy must be a JSON array of routing rule objects.",
+      "policySaved": "Routing policy saved",
+      "savePolicy": "Save policy",
+      "clearPolicy": "Clear policy",
+      "ruleCount": "{count} rule(s)",
+      "nodesTitle": "Nodes",
+      "applyAll": "Apply to all online nodes",
+      "apply": "Apply",
+      "clear": "Clear",
+      "applied": "Routing policy applied to {name}.",
+      "cleared": "Routing policy cleared on {name}.",
+      "applyFailed": "Apply failed on {name}: {reason}",
+      "appliedAll": "Routing policy applied to {count} node(s).",
+      "appliedMixed": "Routing policy applied to {ok} node(s), {failed} failed.",
+      "noNodes": "No online, enabled nodes to apply to.",
+      "node": "Node",
+      "status": "Status",
+      "egress": "Egress",
+      "direct": "direct",
+      "policy": "Master policy",
+      "policyActive": "active",
+      "none": "none",
+      "actions": "Actions"
     }
   },
   "tgbot": {

@@ -338,6 +338,23 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/checkTag',
+        summary:
+          'Pre-flight check for changing an inbound’s ID (tag): reports whether the target is usable and what a rename would touch. Writes nothing.',
+        body: '{\n  "inboundId": 1,\n  "newTag": "n1-in-443-tcp"\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "unchanged": false,\n    "valid": true,\n    "reason": "",\n    "routingRefs": 2,\n    "nodeTagConflict": false\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/inbounds/changeTag/:id',
+        summary:
+          'Safely rename an inbound’s ID (tag). Rewrites routing rules and loopback outbounds that point at the old tag, re-pushes the node when the inbound is node-hosted, and flags an xray restart when routing changed.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: '{\n  "newTag": "n1-in-443-tcp"\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/setEnable/:id',
         summary:
           'Toggle only the enable flag without serialising the whole settings JSON. Recommended for UI switches on large inbounds.',
@@ -1877,6 +1894,22 @@ export const sections: readonly Section[] = [
             desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
           },
         ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/routing/apply',
+        summary:
+          'Push this panel’s shared node routing policy to the given nodes (Node Routing page). Each node stores the policy and re-applies its Xray so the rules take effect. Omit rules to use the stored policy; clear=true wipes the policy on the targets. Returns a per-node result list.',
+        body: '{\n  "nodeIds": [1, 2],\n  "rules": "[{ \\"type\\": \\"field\\", \\"network\\": \\"tcp\\", \\"port\\": 443, \\"outboundTag\\": \\"direct\\" }]",\n  "clear": false\n}',
+        response:
+          '{\n  "success": true,\n  "obj": [\n    { "nodeId": 1, "name": "de-1", "applied": true },\n    { "nodeId": 2, "name": "fr-1", "applied": false, "error": "node unreachable" }\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/routing/control',
+        summary:
+          'Master-only node endpoint: store (or clear with an empty payload) the routing policy a master panel pushed to this node, then re-apply Xray. Refused for panel users without a master push.',
+        body: '{\n  "rules": "[{ \\"type\\": \\"field\\", \\"outboundTag\\": \\"direct\\" }]"\n}',
       },
     ],
   },
