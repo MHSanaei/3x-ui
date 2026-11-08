@@ -62,7 +62,8 @@ describe('OverviewActionBar stop confirmation', () => {
   });
 });
 
-// Stop on a non-running core errors AND sets the manual-stop flag, silencing crash recovery.
+// Stop on a stopped core only errors and sets the manual-stop flag. In the crash
+// state Stop is the one dashboard control that halts the restart loop.
 describe('OverviewActionBar start / disabled stop', () => {
   it('offers Start and disables Stop when the core is stopped', () => {
     const onRestartXray = vi.fn();
@@ -74,10 +75,15 @@ describe('OverviewActionBar start / disabled stop', () => {
     expect(onRestartXray).toHaveBeenCalledOnce();
   });
 
-  it('keeps Restart and disables Stop when the core errored', () => {
-    renderBar('error');
+  it('keeps Restart and leaves Stop usable when the core errored', async () => {
+    const onStopXray = vi.fn();
+    renderBar('error', { onStopXray });
 
     expect(screen.getByRole('button', { name: 'Restart' })).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement).disabled).toBe(true);
+    const stop = screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement;
+    expect(stop.disabled).toBe(false);
+    fireEvent.click(stop);
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop Xray' }));
+    await waitFor(() => expect(onStopXray).toHaveBeenCalledOnce());
   });
 });

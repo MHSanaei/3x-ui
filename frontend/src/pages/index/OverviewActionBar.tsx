@@ -82,7 +82,6 @@ export default function OverviewActionBar({
   const hasVersion = !!status.xray.version && status.xray.version !== 'Unknown';
   const size = isMobile ? ('small' as const) : ('middle' as const);
   const isStopped = status.xray.state === 'stop';
-  const isRunning = status.xray.state === 'running';
 
   const actionGroups: BarAction[][] = [
     [
@@ -98,8 +97,8 @@ export default function OverviewActionBar({
         icon: <PoweroffOutlined aria-hidden />,
         text: t('pages.index.stopXray'),
         danger: true,
-        disabled: !isRunning,
-        hint: isRunning ? undefined : t('pages.index.stopXrayDisabledHint'),
+        disabled: isStopped,
+        hint: isStopped ? t('pages.index.stopXrayDisabledHint') : undefined,
         onClick: () =>
           modal.confirm({
             title: t('pages.index.stopXrayConfirmTitle'),
