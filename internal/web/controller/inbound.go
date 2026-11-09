@@ -289,7 +289,7 @@ func (a *InboundController) checkTag(c *gin.Context) {
 		NewTag    string `json:"newTag" form:"newTag"`
 	}
 	if err := c.ShouldBind(&req); err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	result, err := a.inboundService.CheckTagChange(user.Id, req.InboundId, req.NewTag)
@@ -302,20 +302,20 @@ func (a *InboundController) checkTag(c *gin.Context) {
 func (a *InboundController) changeTag(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	var req struct {
 		NewTag string `json:"newTag" form:"newTag"`
 	}
 	if err := c.ShouldBind(&req); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	user := session.GetLoginUser(c)
 	needRestart, err := a.inboundService.ChangeInboundTag(user.Id, id, req.NewTag)
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
