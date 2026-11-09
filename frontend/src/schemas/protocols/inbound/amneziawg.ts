@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AWGPingPolicySchema } from '@/schemas/primitives/awg-ping';
 import { OptionalClientKeepAliveSchema } from '@/schemas/primitives/keepalive';
 
 // AntD InputNumber emits null (not undefined) when the user clears it, and
@@ -25,6 +26,7 @@ export const AmneziawgClientSchema = z.object({
   preSharedKey: z.string().optional(),
   allowedIPs: z.array(z.string()).default([]),
   keepAlive: OptionalClientKeepAliveSchema,
+  awgPing: AWGPingPolicySchema.nullable().optional(),
   forwardedPorts: z.string().default(''),
   email: z.string().min(1),
   limitIp: z.number().int().min(0).default(0),

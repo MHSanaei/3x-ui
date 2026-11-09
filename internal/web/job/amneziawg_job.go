@@ -38,6 +38,9 @@ func (j *AmneziaWGJob) Run() {
 	}
 
 	embedded, kernel := splitAmneziaWGDatapaths(desired)
+	for i := range embedded {
+		embedded[i].EchoGate = j.inboundService.RecordAWGPing
+	}
 	// Counters first: reconcile drops disabled peers and removed interfaces,
 	// and their counters with them.
 	j.collectKernelTraffic(kernel)

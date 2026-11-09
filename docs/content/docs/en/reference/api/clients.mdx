@@ -603,12 +603,23 @@ _openapi:
       - content: >-
           Client email must not be exactly `.` or `..`. Existing reserved-name
           clients can be read, renamed to a valid name, or deleted using the
-          query-parameter /get, /update and /del aliases. Fields the server
-          fills in when they are omitted — a valid value sent by the caller is
-          never overwritten. Re-adding an email that already exists, with its
-          stored `subId`, reuses the stored `id`, `password`, `auth` and
-          `secret` instead of minting new ones, so the identity stays in sync
-          across its inbounds.
+          query-parameter /get, /update and /del aliases.
+
+
+          Optional client.awgPing = {enabled, allow: IPv4/CIDR[], deny:
+          IPv4/CIDR[]} grants embedded AWG remote IPv4 Echo independently of
+          TCP/UDP routing. Existing tunnel-local health replies remain
+          independent of this forwarding grant. Defaults disabled; empty allow
+          denies all; deny wins. Omitted on update preserves, explicit empty
+          lists clear. Lists have at most 256 entries each. Kernel mode and
+          nodes without awg-ping4 support reject enabling.
+
+
+          Fields the server fills in when they are omitted — a valid value sent
+          by the caller is never overwritten. Re-adding an email that already
+          exists, with its stored `subId`, reuses the stored `id`, `password`,
+          `auth` and `secret` instead of minting new ones, so the identity stays
+          in sync across its inbounds.
 
 
           - **VLESS / VMess** — `id`, a fresh UUID
