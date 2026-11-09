@@ -128,7 +128,7 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
-        <Form.Item label={t('inbounds')} htmlFor={`${uid}-inbounds`}>
+        <Form.Item label={t('pages.clients.attachedInbounds')} htmlFor={`${uid}-inbounds`}>
           <Select
             id={`${uid}-inbounds`}
             mode="multiple"
@@ -136,7 +136,7 @@ export default function FilterDrawer({
             value={filters.inboundIds}
             onChange={(v) => patch('inboundIds', v as number[])}
             options={inboundOptions}
-            placeholder={t('inbounds')}
+            placeholder={t('pages.clients.attachedInbounds')}
             allowClear
             showSearch={{ optionFilterProp: 'label' }}
             listHeight={220}

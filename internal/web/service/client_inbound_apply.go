@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ func droppedClientNeedsRestart() bool {
 	return on
 }
 
-func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client) error {
+func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client, previousEmail string) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
 	}
@@ -65,15 +66,47 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 		return nil
 	}
 	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
+	v4Base, _, err := defaultAmneziaWGSubnetBases(inbound.Settings)
+	if err != nil {
+		return err
+	}
+	inst.Address = []string{v4Base}
 	for _, client := range clients {
 		inst.Peers = append(inst.Peers, amneziawg.Peer{
-			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPortsSpec(),
+			Email: client.Email, AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPortsSpec(),
 		})
 	}
 	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
 		return err
 	}
-	return nil
+	if !inbound.Enable {
+		return nil
+	}
+	inst.Peers = nil
+	for _, client := range clients {
+		if !client.Enable {
+			continue
+		}
+		allowedIPs := client.AllowedIPs
+		for _, old := range settings.Clients {
+			if previousEmail == "" || !strings.EqualFold(old.Email, previousEmail) {
+				continue
+			}
+			if len(allowedIPs) == 0 {
+				allowedIPs = old.AllowedIPs
+			}
+			// Preserve legacy addresses on active peers; validate newly added
+			// addresses, or every address when enabling a disabled peer.
+			if old.Enable {
+				allowedIPs = slices.DeleteFunc(slices.Clone(allowedIPs), func(ip string) bool {
+					return slices.Contains(old.AllowedIPs, ip)
+				})
+			}
+			break
+		}
+		inst.Peers = append(inst.Peers, amneziawg.Peer{Email: client.Email, AllowedIPs: allowedIPs})
+	}
+	return amneziawgkern.ValidatePeerSubnets(inst)
 }
 
 func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {
@@ -493,7 +526,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			return false, err
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, ""); err != nil {
 		return false, err
 	}
 
@@ -870,7 +903,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			return false, err
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, oldEmail); err != nil {
 		return false, err
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
@@ -1524,9 +1557,31 @@ func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, cl
 	})
 }
 
+// renewalReenableFor projects the post-renewal limits for a single-field
+// renewal (nil side keeps the stored limit; no row means no quota state).
+func (s *ClientService) renewalReenableFor(email string, setExpiry *int64, setTotal *int64) bool {
+	total, expiry, ok := storedTrafficLimits(email)
+	if !ok {
+		return false
+	}
+	if setExpiry != nil {
+		expiry = *setExpiry
+	}
+	if setTotal != nil {
+		total = *setTotal
+	}
+	return s.renewalReenables(email, total, expiry)
+}
+
 func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+	reenable := s.renewalReenableFor(clientEmail, &expiry_time, nil)
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["expiryTime"] = expiry_time
+		if reenable {
+			// A renewed client that the quota loop had switched off comes back
+			// with the renewal instead of waiting for a manual enable (#5619).
+			c["enable"] = true
+		}
 	})
 }
 
@@ -1534,7 +1589,12 @@ func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundServic
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
 	}
+	newTotal := int64(totalGB) * 1024 * 1024 * 1024
+	reenable := s.renewalReenableFor(clientEmail, nil, &newTotal)
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
-		c["totalGB"] = totalGB * 1024 * 1024 * 1024
+		c["totalGB"] = newTotal
+		if reenable {
+			c["enable"] = true
+		}
 	})
 }
