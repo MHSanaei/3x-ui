@@ -77,6 +77,9 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	// publicHost resolves configuredPublicHost once per prepared request; it is the
+	// last resort of every link's address chain and would otherwise hit the DB per link.
+	publicHost func() string
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -99,8 +102,9 @@ func (s *SubService) ForRequest(host string) *SubService {
 // SubService instance. HTTP handlers should call ForRequest instead so the
 // controller's shared base service is never mutated by concurrent requests.
 func (s *SubService) PrepareForRequest(host string) {
+	s.publicHost = sync.OnceValue(s.configuredPublicHost)
 	if !isRoutableHost(host) {
-		if d := s.configuredPublicHost(); d != "" {
+		if d := s.publicHost(); d != "" {
 			host = d
 		} else if isLoopbackHost(host) {
 			host = "localhost"
@@ -1680,7 +1684,11 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 			return c
 		}
 	}
-	if d := s.configuredPublicHost(); d != "" {
+	publicHost := s.publicHost
+	if publicHost == nil {
+		publicHost = s.configuredPublicHost
+	}
+	if d := publicHost(); d != "" {
 		return d
 	}
 	return s.address
