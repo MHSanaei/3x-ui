@@ -306,7 +306,12 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		if ok {
 			var newClients []any
 			for client_index := range clients {
-				c := clients[client_index].(map[string]any)
+				c, isObject := clients[client_index].(map[string]any)
+				if !isObject {
+					// Keep a malformed entry verbatim instead of panicking on it.
+					newClients = append(newClients, clients[client_index])
+					continue
+				}
 				email, _ := c["email"].(string)
 				if newExpiry, ok := newExpiryByEmail[email]; ok {
 					c["expiryTime"] = newExpiry
@@ -484,7 +489,10 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			cipher, _ = settings["method"].(string)
 		}
 		for client_index := range clients {
-			c := clients[client_index].(map[string]any)
+			c, isObject := clients[client_index].(map[string]any)
+			if !isObject {
+				continue
+			}
 			email, _ := c["email"].(string)
 			traffic, ok := trafficByEmail[email]
 			if !ok {
