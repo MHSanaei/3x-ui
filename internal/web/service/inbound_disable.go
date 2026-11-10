@@ -107,7 +107,10 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		Email     string
 	}
 	var targets []target
-	if len(depletedEmails) > 0 {
+	// Chunked: more depleted emails than the driver's bind-parameter cap made the
+	// whole disable pass fail, so every over-quota client stayed enabled.
+	for _, batch := range chunkStrings(depletedEmails, sqliteMaxVars) {
+		var rows []target
 		err = tx.Raw(`
 			SELECT inbounds.id AS inbound_id, inbounds.node_id AS node_id,
 			       inbounds.tag AS tag, clients.email AS email
@@ -115,10 +118,11 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 			JOIN client_inbounds ON client_inbounds.client_id = clients.id
 			JOIN inbounds        ON inbounds.id = client_inbounds.inbound_id
 			WHERE clients.email IN ?
-		`, depletedEmails).Scan(&targets).Error
+		`, batch).Scan(&rows).Error
 		if err != nil {
 			return false, 0, nil, err
 		}
+		targets = append(targets, rows...)
 	}
 
 	byInbound := make(map[int][]target)
@@ -169,9 +173,9 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *traff
 		count += result.RowsAffected
 	}
 
-	if len(depletedEmails) > 0 {
+	for _, batch := range chunkStrings(depletedEmails, sqliteMaxVars) {
 		if err := tx.Model(&model.ClientRecord{}).
-			Where("email IN ?", depletedEmails).
+			Where("email IN ?", batch).
 			Updates(map[string]any{"enable": false, "updated_at": now}).Error; err != nil {
 			return false, count, nil, err
 		}

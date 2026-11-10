@@ -152,12 +152,20 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// shared row then carried the node inbound's id (AddClientStat used to use
 	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
 	// conflict, but this filter was removed rather than relying on that ordering).
-	err = tx.Model(xray.ClientTraffic{}).
-		Where("email IN (?)", emails).
-		Order("id").
-		Find(&dbClientTraffics).Error
-	if err != nil {
-		return err
+	// Chunked: a panel with more clients than SQLite's 32766 bind-parameter cap
+	// failed this query on every tick, so no client traffic was ever recorded.
+	for _, batch := range chunkStrings(emails, sqliteMaxVars) {
+		var rows []*xray.ClientTraffic
+		if err := tx.Model(xray.ClientTraffic{}).
+			Where("email IN (?)", batch).
+			Order("id").
+			Find(&rows).Error; err != nil {
+			return err
+		}
+		dbClientTraffics = append(dbClientTraffics, rows...)
+	}
+	if len(dbClientTraffics) > 1 {
+		slices.SortFunc(dbClientTraffics, func(a, b *xray.ClientTraffic) int { return a.Id - b.Id })
 	}
 
 	// Avoid empty slice error
