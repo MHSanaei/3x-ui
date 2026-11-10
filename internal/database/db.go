@@ -3065,6 +3065,17 @@ func InitDB(dbPath string) error {
 	}
 
 	var err error
+	// The pool size decides how the per-connection SQLite cache budget is
+	// divided, so it is resolved before the database is opened.
+	var maxOpen, maxIdle int
+	switch config.GetDBKind() {
+	case "postgres":
+		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 25)
+		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 25)
+	default:
+		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 8)
+		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 4)
+	}
 	switch config.GetDBKind() {
 	case "postgres":
 		dsn := config.GetDBDSN()
@@ -3087,45 +3098,21 @@ func InitDB(dbPath string) error {
 		sync := sqliteSynchronous()
 		journal := sqliteJournalMode()
 		dsn := dbPath + "?_journal_mode=" + journal + "&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
-		db, err = gorm.Open(sqlite.Open(dsn), c)
+		// Connection-scoped PRAGMAs must be installed for every pooled
+		// connection; executing them once on the pool tuned exactly one of them.
+		setSQLiteConnPragmas(sqliteConnPragmaStatements(sync, maxOpen))
+		db, err = gorm.Open(sqlite.New(sqlite.Config{DriverName: sqliteConnDriverName(), DSN: dsn}), c)
 		if err != nil {
 			return err
 		}
 		if err := restrictSQLiteFilePerms(dbPath); err != nil {
 			log.Printf("restrict SQLite file permissions: %v", err)
 		}
-		sqlDB, err := db.DB()
-		if err != nil {
-			return err
-		}
-
-		pragmas := []string{
-			"PRAGMA journal_mode=" + journal,
-			"PRAGMA busy_timeout=10000",
-			"PRAGMA synchronous=" + sync,
-			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
-			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
-			"PRAGMA temp_store=MEMORY",
-		}
-		for _, p := range pragmas {
-			if _, err := sqlDB.ExecContext(context.Background(), p); err != nil {
-				return err
-			}
-		}
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
-	}
-	var maxOpen, maxIdle int
-	switch config.GetDBKind() {
-	case "postgres":
-		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 25)
-		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 25)
-	default:
-		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 8)
-		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 4)
 	}
 	sqlDB.SetMaxOpenConns(maxOpen)
 	sqlDB.SetMaxIdleConns(maxIdle)
