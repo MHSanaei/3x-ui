@@ -94,14 +94,22 @@ func mergeClientIpEntries(old, incoming []clientIpEntry, cutoff int64) []clientI
 // local id.
 func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClientIps) error {
 	db := database.GetDB()
-	var currentIps []model.InboundClientIps
-	if err := db.Model(&model.InboundClientIps{}).Find(&currentIps).Error; err != nil {
-		return err
+	emails := make([]string, 0, len(incomingIps))
+	for _, incoming := range incomingIps {
+		emails = append(emails, incoming.ClientEmail)
 	}
-
-	currentMap := make(map[string]*model.InboundClientIps, len(currentIps))
-	for i := range currentIps {
-		currentMap[currentIps[i].ClientEmail] = &currentIps[i]
+	currentIDs := make(map[string]int, len(emails))
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqlInChunk) {
+		var rows []model.InboundClientIps
+		if err := db.Model(&model.InboundClientIps{}).
+			Select("id", "client_email").
+			Where("client_email IN ?", batch).
+			Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, row := range rows {
+			currentIDs[row.ClientEmail] = row.Id
+		}
 	}
 
 	now := time.Now().Unix()
@@ -116,6 +124,9 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 	})
 
 	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -130,7 +141,7 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 		var incomingEntries []clientIpEntry
 		_ = json.Unmarshal([]byte(incoming.Ips), &incomingEntries)
 
-		current, exists := currentMap[incoming.ClientEmail]
+		currentID, exists := currentIDs[incoming.ClientEmail]
 		if !exists {
 			// New client we've never seen locally. Drop stale entries up front and
 			// skip the row entirely if nothing is fresh, so we don't persist a row
@@ -159,7 +170,7 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 
 		// check_client_ip_job rewrites this blob too; an unconditional Update loses
 		// whichever writer commits second and its remote IPs with it (#6587).
-		if err := mergeExistingClientIps(tx, current.Id, incomingEntries, cutoff); err != nil {
+		if err := mergeExistingClientIps(tx, currentID, incomingEntries, cutoff); err != nil {
 			tx.Rollback()
 			return err
 		}

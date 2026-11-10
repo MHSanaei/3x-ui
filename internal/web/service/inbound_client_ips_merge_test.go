@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"path/filepath"
+	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -314,5 +316,51 @@ func TestMergeInboundClientIps_RetriesAfterConcurrentWriter(t *testing.T) {
 	}
 	if _, ok := ips["10.0.0.1"]; ok {
 		t.Fatalf("pre-job IP should not resurrect after job replaced the blob: %v", ips)
+	}
+}
+
+// Every online node merges every 10s. Loading the whole table per merge made the
+// cost nodes x rows; only the rows of the emails a node reports are needed.
+func TestMergeInboundClientIps_ReadsOnlyReportedClients(t *testing.T) {
+	setupClientIpTestDB(t)
+	db := database.GetDB()
+	now := time.Now().Unix()
+
+	rows := []model.InboundClientIps{{ClientEmail: "reported@x", Ips: marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now})}}
+	for i := range 20 {
+		rows = append(rows, model.InboundClientIps{
+			ClientEmail: "bystander-" + strconv.Itoa(i) + "@x",
+			Ips:         marshalIps(t, clientIpEntry{IP: "9.9.9.9", Timestamp: now}),
+		})
+	}
+	if err := db.Create(&rows).Error; err != nil {
+		t.Fatalf("seed rows: %v", err)
+	}
+
+	var rowsRead atomic.Int64
+	const hook = "test:count_client_ip_rows_read"
+	if err := db.Callback().Query().After("gorm:query").Register(hook, func(tx *gorm.DB) {
+		if tx.Statement.Table == "inbound_client_ips" {
+			rowsRead.Add(tx.Statement.RowsAffected)
+		}
+	}); err != nil {
+		t.Fatalf("register query hook: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove(hook) })
+
+	incoming := []model.InboundClientIps{{
+		ClientEmail: "reported@x",
+		Ips:         marshalIps(t, clientIpEntry{IP: "2.2.2.2", Timestamp: now}),
+	}}
+	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+
+	// One lookup of the reported row, one re-read by the compare-and-set merge.
+	if got := rowsRead.Load(); got != 2 {
+		t.Fatalf("merge read %d inbound_client_ips rows for one reported client, want 2", got)
+	}
+	if ips, _ := readClientIps(t, "reported@x"); len(ips) != 2 {
+		t.Fatalf("reported@x ips = %v, want both the stored and the merged ip", ips)
 	}
 }
