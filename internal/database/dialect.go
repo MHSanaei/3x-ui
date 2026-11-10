@@ -30,6 +30,17 @@ func JSONFieldText(expr, key string) string {
 	return fmt.Sprintf("TRIM(JSON_EXTRACT(%s, '$.%s'), '\"')", expr, key)
 }
 
+// ClampedDeltaSumExpr derives a new outbound total from the counters as they
+// were before an UPDATE that also adds the two deltas. Placeholders, in order:
+// upDelta, downDelta. Computing it inside that UPDATE is what keeps a
+// concurrent reset from being resurrected by a stale read-modify-write.
+func ClampedDeltaSumExpr() string {
+	if IsPostgres() {
+		return fmt.Sprintf("LEAST(up + ? + down + ?, %d)", TrafficMax)
+	}
+	return fmt.Sprintf("MIN(up + ? + down + ?, %d)", TrafficMax)
+}
+
 func GreatestExpr(a, b string) string {
 	if IsPostgres() {
 		return fmt.Sprintf("GREATEST(%s::bigint, %s::bigint)", a, b)

@@ -17,6 +17,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // OutboundService provides business logic for managing Xray outbound configurations.
@@ -45,28 +46,32 @@ func (s *OutboundService) addOutboundTraffic(tx *gorm.DB, traffics []*xray.Traff
 		return nil
 	}
 
-	var err error
-
 	for _, traffic := range traffics {
-		if traffic.IsOutbound {
-
-			var outbound model.OutboundTraffics
-
-			err = tx.Model(&model.OutboundTraffics{}).Where("tag = ?", traffic.Tag).
-				FirstOrCreate(&outbound).Error
-			if err != nil {
-				return err
-			}
-
-			outbound.Tag = traffic.Tag
-			outbound.Up = saturatingAdd(outbound.Up, traffic.Up)
-			outbound.Down = saturatingAdd(outbound.Down, traffic.Down)
-			outbound.Total = saturatingAdd(outbound.Up, outbound.Down)
-
-			err = tx.Save(&outbound).Error
-			if err != nil {
-				return err
-			}
+		if !traffic.IsOutbound || (traffic.Up == 0 && traffic.Down == 0) {
+			// An idle core still reports a zero row for every outbound; writing it
+			// cost an fsync per outbound per tick and changed nothing.
+			continue
+		}
+		// Atomic increments instead of FirstOrCreate+Save: the read-modify-write
+		// held a stale copy across the round trip, so a reset that committed in
+		// between was overwritten with the pre-reset counters.
+		result := tx.Model(&model.OutboundTraffics{}).
+			Where("tag = ?", traffic.Tag).
+			Updates(map[string]any{
+				"up":    gorm.Expr(database.ClampedAddExpr("up"), traffic.Up),
+				"down":  gorm.Expr(database.ClampedAddExpr("down"), traffic.Down),
+				"total": gorm.Expr(database.ClampedDeltaSumExpr(), traffic.Up, traffic.Down),
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 0 {
+			continue
+		}
+		row := &model.OutboundTraffics{Tag: traffic.Tag, Up: traffic.Up, Down: traffic.Down}
+		row.Total = saturatingAdd(row.Up, row.Down)
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(row).Error; err != nil {
+			return err
 		}
 	}
 	return nil
