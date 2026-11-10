@@ -115,7 +115,7 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 	var err error
 
 	for _, traffic := range traffics {
-		if traffic.IsInbound {
+		if traffic.IsInbound && (traffic.Up != 0 || traffic.Down != 0) {
 			err = tx.Model(&model.Inbound{}).Where("tag = ? AND node_id IS NULL", traffic.Tag).
 				Updates(map[string]any{
 					"up":   gorm.Expr(database.ClampedAddExpr("up"), traffic.Up),
