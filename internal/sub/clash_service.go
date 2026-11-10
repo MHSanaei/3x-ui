@@ -60,7 +60,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients, err := subReq.matchingClients(inbound, subId)
+		if err != nil {
+			return "", "", err
+		}
 		if len(clients) == 0 {
 			continue
 		}

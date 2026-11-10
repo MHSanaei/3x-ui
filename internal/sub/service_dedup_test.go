@@ -94,7 +94,10 @@ func TestMatchingClients_DedupsCaseInsensitiveEmail(t *testing.T) {
 	}
 
 	s := &SubService{}
-	got := s.matchingClients(ib, subId)
+	got, err := s.matchingClients(ib, subId)
+	if err != nil {
+		t.Fatalf("matchingClients: %v", err)
+	}
 	if len(got) != 1 {
 		t.Fatalf("case-differing duplicate emails must dedup to 1 client, got %d", len(got))
 	}
@@ -102,7 +105,7 @@ func TestMatchingClients_DedupsCaseInsensitiveEmail(t *testing.T) {
 		t.Fatalf("first occurrence must be kept, got %q", got[0].Email)
 	}
 	// A wrong subId must still be excluded (guards the SQL subId filter).
-	if other := s.matchingClients(ib, "nope"); len(other) != 0 {
+	if other, err := s.matchingClients(ib, "nope"); err != nil || len(other) != 0 {
 		t.Fatalf("non-matching subId must yield 0 clients, got %d", len(other))
 	}
 }

@@ -307,11 +307,11 @@ func listenIsInternalOnly(listen string) bool {
 
 // matchingClients selects normalized subId members (email-deduped, #5134).
 // WG/AWG copy this inbound's settings tunnel identity first so shared wg_* columns cannot leak (#6641).
-func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []model.Client {
+func (s *SubService) matchingClients(inbound *model.Inbound, subId string) ([]model.Client, error) {
 	clients, err := s.inboundService.GetClientsBySubId(inbound.Id, subId)
 	if err != nil {
-		logger.Error("SubService - GetClientsBySubId: Unable to get clients from inbound")
-		return nil
+		logger.Error("SubService - GetClientsBySubId: Unable to get clients from inbound:", err)
+		return nil, err
 	}
 	var out []model.Client
 	seen := make(map[string]struct{}, len(clients))
@@ -326,13 +326,16 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 	if len(out) > 0 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
 		overlaid, settingsErr := s.overlayInboundTunnelIdentity(inbound, out)
 		if settingsErr != nil {
+			// Inbound-local settings damage only disqualifies this inbound (it
+			// cannot produce a correct tunnel identity); it must not fail a
+			// subscription that other inbounds still serve.
 			logger.Errorf("SubService - matchingClients: inbound %d tunnel settings: %v", inbound.Id, settingsErr)
-			return nil
+			return nil, nil
 		}
 		out = overlaid
 	}
 	s.primeLinkClients(inbound.Id, out, false)
-	return out
+	return out, nil
 }
 
 // countHiddenClients adds an excludeFromSub inbound's clients to the usage set:
@@ -486,7 +489,10 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := s.matchingClients(inbound, subId)
+		clients, err := s.matchingClients(inbound, subId)
+		if err != nil {
+			return nil, nil, 0, traffic, err
+		}
 		if len(clients) == 0 {
 			continue
 		}

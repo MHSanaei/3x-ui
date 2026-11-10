@@ -138,7 +138,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	entries := make([]subConfigEntry, 0, len(inbounds))
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients, err := subReq.matchingClients(inbound, subId)
+		if err != nil {
+			return "", "", err
+		}
 		if len(clients) == 0 {
 			continue
 		}

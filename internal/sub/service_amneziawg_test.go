@@ -611,7 +611,10 @@ func TestMatchingClients_TunnelMetadataStaysNormalized(t *testing.T) {
 			}
 
 			s := &SubService{}
-			got := s.matchingClients(ib, subID)
+			got, err := s.matchingClients(ib, subID)
+			if err != nil {
+				t.Fatalf("matchingClients: %v", err)
+			}
 			if len(got) != 1 {
 				t.Fatalf("clients = %d, want the one normalized member: %+v", len(got), got)
 			}
@@ -629,7 +632,7 @@ func TestMatchingClients_TunnelMetadataStaysNormalized(t *testing.T) {
 			if !ok || cached.PrivateKey != settingsKey || cached.PreSharedKey != "settings-psk" || cached.KeepAliveSeconds() != 15 || !slices.Equal(cached.AllowedIPs, c.AllowedIPs) {
 				t.Fatalf("primed cache = %+v, ok %v", cached, ok)
 			}
-			if extra := s.matchingClients(ib, "nope"); len(extra) != 0 {
+			if extra, err := s.matchingClients(ib, "nope"); err != nil || len(extra) != 0 {
 				t.Fatalf("non-matching subId must yield 0 clients, got %d", len(extra))
 			}
 		})
