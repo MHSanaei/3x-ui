@@ -28,7 +28,6 @@ type IndexController struct {
 
 	settingService service.SettingService
 	userService    panel.UserService
-	panelService   panel.PanelService
 	tgbot          tgbot.Tgbot
 }
 

@@ -211,12 +211,22 @@ func exitPoolPublicIPv4(ip net.IP) bool {
 	if len(ip) != net.IPv4len || ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 		return false
 	}
-	return ip[0] != 0 && ip[0] != 127 && ip[0] < 224 &&
-		!(ip[0] == 100 && ip[1]&0xc0 == 64) &&
-		!(ip[0] == 169 && ip[1] == 254) &&
-		!(ip[0] == 192 && (ip[1] == 0 || ip[1] == 2)) &&
-		!(ip[0] == 198 && (ip[1] == 18 || ip[1] == 19 || ip[1] == 51)) &&
-		!(ip[0] == 203 && ip[1] == 0)
+	switch {
+	case ip[0] == 0, ip[0] == 127, ip[0] >= 224:
+		return false
+	case ip[0] == 100 && ip[1]&0xc0 == 64:
+		return false
+	case ip[0] == 169 && ip[1] == 254:
+		return false
+	case ip[0] == 192 && (ip[1] == 0 || ip[1] == 2):
+		return false
+	case ip[0] == 198 && (ip[1] == 18 || ip[1] == 19 || ip[1] == 51):
+		return false
+	case ip[0] == 203 && ip[1] == 0:
+		return false
+	default:
+		return true
+	}
 }
 
 func exitPoolSOCKSServer(e ExitPoolExit) map[string]any {

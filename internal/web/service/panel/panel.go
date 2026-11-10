@@ -269,7 +269,9 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if output, syntaxErr := exec.Command(bash, "-n", scriptPath).CombinedOutput(); syntaxErr != nil {
+	checkCtx, cancelCheck := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelCheck()
+	if output, syntaxErr := exec.CommandContext(checkCtx, bash, "-n", scriptPath).CombinedOutput(); syntaxErr != nil {
 		_ = os.Remove(scriptPath)
 		return 0, fmt.Errorf("downloaded panel updater failed syntax validation: %w: %s", syntaxErr, strings.TrimSpace(string(output)))
 	}

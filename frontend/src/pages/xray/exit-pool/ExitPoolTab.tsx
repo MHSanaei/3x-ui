@@ -54,10 +54,7 @@ interface MemberRow {
   email: string;
 }
 
-type ExitSourceCategory =
-  | 'xnvgatebox_stable'
-  | 'new_residential'
-  | 'new_native_datacenter';
+type ExitSourceCategory = 'xnvgatebox_stable' | 'new_residential' | 'new_native_datacenter';
 type ExitSourceFilter = ExitSourceCategory | 'all';
 
 const SOURCE_LABELS: Record<ExitSourceCategory, string> = {
@@ -98,8 +95,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
   const [name, setName] = useState('Multi-region');
   const [subId, setSubId] = useState('');
   const [exitSort, setExitSort] = useState<'region' | 'latency'>('region');
-  const [sourceFilter, setSourceFilter] =
-    useState<ExitSourceFilter>('xnvgatebox_stable');
+  const [sourceFilter, setSourceFilter] = useState<ExitSourceFilter>('xnvgatebox_stable');
   const [showConsole, setShowConsole] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -150,8 +146,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
       sortedExits.filter(
         (exit) =>
           exit.status === 'up' &&
-          (sourceFilter === 'all' ||
-            (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter),
+          (sourceFilter === 'all' || (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter),
       ),
     [sortedExits, sourceFilter],
   );
@@ -159,8 +154,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
     () =>
       sortedExits.filter(
         (exit) =>
-          sourceFilter === 'all' ||
-          (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter,
+          sourceFilter === 'all' || (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter,
       ),
     [sortedExits, sourceFilter],
   );
@@ -376,7 +370,15 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
             {
               title: '分类',
               render: (_, row: ExitRow) => (
-                <Tag color={row.sourceCategory === 'xnvgatebox_stable' ? 'blue' : row.sourceCategory === 'new_residential' ? 'green' : 'gold'}>
+                <Tag
+                  color={
+                    row.sourceCategory === 'xnvgatebox_stable'
+                      ? 'blue'
+                      : row.sourceCategory === 'new_residential'
+                        ? 'green'
+                        : 'gold'
+                  }
+                >
                   {sourceLabel(row.sourceCategory)}
                 </Tag>
               ),
@@ -414,7 +416,8 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
                 <Space wrap>
                   {row.members.map((member) => (
                     <Tag key={member.slot}>
-                      {sourceLabel(member.sourceCategory)} · {member.country || member.region || `Slot ${member.slot}`}
+                      {sourceLabel(member.sourceCategory)} ·{' '}
+                      {member.country || member.region || `Slot ${member.slot}`}
                     </Tag>
                   ))}
                 </Space>
