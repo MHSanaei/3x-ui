@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // Remote sources reuse the existing settings fields (one HTTPS URL = remote,
@@ -637,5 +638,7 @@ func (r *remoteRoutingResolver) persistEntry(kind remoteRoutingKind, entry remot
 	}
 	if err != nil {
 		logger.Warningf("Could not persist the last valid %s remote routing value", kind)
+		return
 	}
+	service.InvalidateSettingCache()
 }

@@ -392,7 +392,7 @@ func getEnv(key, fallback string) string {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("1 = 1").Delete(model.Setting{}).Error; err != nil {
 			return err
 		}
@@ -403,6 +403,11 @@ func (s *SettingService) ResetSettings() error {
 		}
 		return tx.Create(&paths).Error
 	})
+	if err != nil {
+		return err
+	}
+	settingsSnapshot.invalidate()
+	return nil
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -419,19 +424,34 @@ func (s *SettingService) saveSetting(key string, value string) error {
 	setting, err := s.getSetting(key)
 	db := database.GetDB()
 	if database.IsNotFound(err) {
-		return db.Create(&model.Setting{
+		if err := db.Create(&model.Setting{
 			Key:   key,
 			Value: value,
-		}).Error
+		}).Error; err != nil {
+			return err
+		}
+		settingsSnapshot.store(key, value)
+		return nil
 	} else if err != nil {
 		return err
 	}
 	setting.Key = key
 	setting.Value = value
-	return db.Save(setting).Error
+	if err := db.Save(setting).Error; err != nil {
+		return err
+	}
+	settingsSnapshot.store(key, value)
+	return nil
 }
 
 func (s *SettingService) getString(key string) (string, error) {
+	// A hit covers the common case; a miss falls through to the per-key read so
+	// a setting that has no row keeps resolving through defaultValueMap.
+	if value, ok, err := settingsSnapshot.get(key); err != nil {
+		return "", err
+	} else if ok {
+		return value, nil
+	}
 	setting, err := s.getSetting(key)
 	if database.IsNotFound(err) {
 		value, ok := defaultValueMap[key]
@@ -1679,7 +1699,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	fields := reflect_util.GetFields(t)
 
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	err := db.Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Setting
 		if err := tx.Find(&existing).Error; err != nil {
 			return err
@@ -1708,6 +1728,11 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	settingsSnapshot.invalidate()
+	return nil
 }
 
 func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {

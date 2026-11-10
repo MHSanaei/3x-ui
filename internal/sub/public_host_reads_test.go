@@ -48,6 +48,11 @@ func TestSubSettingReadsDoNotGrowWithInboundCount(t *testing.T) {
 	}
 	reads := countSettingReads(t)
 	svc := NewSubService("")
+	// The settings snapshot is filled on first use; warm it so the measurement
+	// covers the per-request reads instead of that one initial load.
+	if _, _, _, _, err := svc.GetSubs("one", "198.51.100.7"); err != nil {
+		t.Fatalf("warm GetSubs: %v", err)
+	}
 
 	readsFor := func(subId string, wantLinks int) int32 {
 		t.Helper()
