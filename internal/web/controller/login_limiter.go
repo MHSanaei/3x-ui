@@ -28,7 +28,9 @@ type loginLimiter struct {
 }
 
 type loginLimitRecord struct {
-	failures     []time.Time
+	failures []time.Time
+	// inFlight are admitted attempts whose outcome is not known yet.
+	inFlight     []time.Time
 	blockedUntil time.Time
 }
 
@@ -42,24 +44,31 @@ func newLoginLimiter(maxFailures int, window, cooldown time.Duration) *loginLimi
 	}
 }
 
-func (l *loginLimiter) allow(ip, username string) (time.Time, bool) {
+// admit reserves a slot for one login attempt, counting unverified attempts as
+// failures so a parallel burst cannot outrun the limit. Denied until the returned time.
+func (l *loginLimiter) admit(ip, username string) (time.Time, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	now := l.now()
 	key := loginLimitKey(ip, username)
 	record := l.attempts[key]
 	if record == nil {
-		return time.Time{}, true
+		l.evictForRoom(now)
+		record = &loginLimitRecord{}
+		l.attempts[key] = record
 	}
-	now := l.now()
 	if now.Before(record.blockedUntil) {
 		return record.blockedUntil, false
 	}
 	record.blockedUntil = time.Time{}
-	record.failures = pruneLoginFailures(record.failures, now.Add(-l.window))
-	if len(record.failures) == 0 {
-		delete(l.attempts, key)
+	cutoff := now.Add(-l.window)
+	record.failures = pruneLoginFailures(record.failures, cutoff)
+	record.inFlight = pruneLoginFailures(record.inFlight, cutoff)
+	if len(record.failures)+len(record.inFlight) >= l.maxFailures {
+		return oldestLoginAttempt(record, now).Add(l.window), false
 	}
+	record.inFlight = append(record.inFlight, now)
 	return time.Time{}, true
 }
 
@@ -75,10 +84,14 @@ func (l *loginLimiter) registerFailure(ip, username string) (time.Time, bool) {
 		record = &loginLimitRecord{}
 		l.attempts[key] = record
 	}
+	if len(record.inFlight) > 0 {
+		record.inFlight = record.inFlight[1:]
+	}
 	record.failures = pruneLoginFailures(record.failures, now.Add(-l.window))
 	record.failures = append(record.failures, now)
 	if len(record.failures) >= l.maxFailures {
 		record.failures = nil
+		record.inFlight = nil
 		record.blockedUntil = now.Add(l.cooldown)
 		return record.blockedUntil, true
 	}
@@ -106,7 +119,8 @@ func (l *loginLimiter) evictForRoom(now time.Time) {
 			continue
 		}
 		record.failures = pruneLoginFailures(record.failures, cutoff)
-		if len(record.failures) == 0 {
+		record.inFlight = pruneLoginFailures(record.inFlight, cutoff)
+		if len(record.failures)+len(record.inFlight) == 0 {
 			delete(l.attempts, key)
 		}
 	}
@@ -124,6 +138,16 @@ func (l *loginLimiter) evictForRoom(now time.Time) {
 		delete(l.attempts, key)
 		return
 	}
+}
+
+func oldestLoginAttempt(record *loginLimitRecord, fallback time.Time) time.Time {
+	oldest := fallback
+	for _, attempts := range [][]time.Time{record.failures, record.inFlight} {
+		if len(attempts) > 0 && attempts[0].Before(oldest) {
+			oldest = attempts[0]
+		}
+	}
+	return oldest
 }
 
 func loginLimitKey(ip, username string) string {

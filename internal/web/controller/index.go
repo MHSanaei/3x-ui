@@ -78,7 +78,7 @@ func (a *IndexController) login(c *gin.Context) {
 	remoteIP := getRemoteIp(c)
 	safeUser := template.HTMLEscapeString(form.Username)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
-	if blockedUntil, ok := defaultLoginLimiter.allow(remoteIP, form.Username); !ok {
+	if blockedUntil, ok := defaultLoginLimiter.admit(remoteIP, form.Username); !ok {
 		reason := "too many failed attempts"
 		logger.Warningf("failed login: username=%q, IP=%q, reason=%q, blocked_until=%s", form.Username, remoteIP, reason, blockedUntil.Format(time.RFC3339))
 		a.tgbot.UserLoginNotify(tgbot.LoginAttempt{

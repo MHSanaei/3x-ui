@@ -60,7 +60,7 @@ func TestLoginLimiterBlocksAfterConfiguredFailures(t *testing.T) {
 		if _, blocked := limiter.registerFailure("192.0.2.10", "Admin"); blocked {
 			t.Fatalf("failure %d should not block yet", i+1)
 		}
-		if _, ok := limiter.allow("192.0.2.10", "admin"); !ok {
+		if _, ok := limiter.admit("192.0.2.10", "admin"); !ok {
 			t.Fatalf("failure %d should still allow login attempts", i+1)
 		}
 	}
@@ -72,12 +72,12 @@ func TestLoginLimiterBlocksAfterConfiguredFailures(t *testing.T) {
 	if want := now.Add(15 * time.Minute); !blockedUntil.Equal(want) {
 		t.Fatalf("blocked until %s, want %s", blockedUntil, want)
 	}
-	if _, ok := limiter.allow("192.0.2.10", "admin"); ok {
+	if _, ok := limiter.admit("192.0.2.10", "admin"); ok {
 		t.Fatal("login should be blocked during cooldown")
 	}
 
 	now = blockedUntil
-	if _, ok := limiter.allow("192.0.2.10", "admin"); !ok {
+	if _, ok := limiter.admit("192.0.2.10", "admin"); !ok {
 		t.Fatal("login should be allowed after cooldown")
 	}
 }
@@ -103,6 +103,50 @@ func TestLoginLimiterPrunesOldFailuresAndResetsOnSuccess(t *testing.T) {
 	}
 }
 
+// Checking the limit and recording the failure used to be separate steps around a
+// slow bcrypt, so a parallel burst from one IP all passed before any failure counted.
+func TestLoginLimiterCountsAttemptsStillInFlight(t *testing.T) {
+	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
+	limiter := newLoginLimiter(3, 5*time.Minute, 15*time.Minute)
+	limiter.now = func() time.Time { return now }
+
+	for i := range 3 {
+		if _, ok := limiter.admit("192.0.2.10", "admin"); !ok {
+			t.Fatalf("attempt %d is within the limit and should be admitted", i+1)
+		}
+	}
+	retryAt, ok := limiter.admit("192.0.2.10", "admin")
+	if ok {
+		t.Fatal("a fourth attempt was admitted while three were still unverified")
+	}
+	if want := now.Add(5 * time.Minute); !retryAt.Equal(want) {
+		t.Fatalf("retry at %s, want %s when the oldest in-flight attempt leaves the window", retryAt, want)
+	}
+
+	for i := range 2 {
+		if _, blocked := limiter.registerFailure("192.0.2.10", "admin"); blocked {
+			t.Fatalf("failure %d should not start the cooldown yet", i+1)
+		}
+	}
+	if _, blocked := limiter.registerFailure("192.0.2.10", "admin"); !blocked {
+		t.Fatal("the third verified failure should start the cooldown")
+	}
+}
+
+func TestLoginLimiterForgetsAbandonedAttemptsAfterWindow(t *testing.T) {
+	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
+	limiter := newLoginLimiter(3, 5*time.Minute, 15*time.Minute)
+	limiter.now = func() time.Time { return now }
+
+	for range 3 {
+		limiter.admit("192.0.2.10", "admin")
+	}
+	now = now.Add(5*time.Minute + time.Second)
+	if _, ok := limiter.admit("192.0.2.10", "admin"); !ok {
+		t.Fatal("attempts that never reported an outcome must expire with the window, not lock the key forever")
+	}
+}
+
 func TestLoginLimiterSeparatesIPAndUsername(t *testing.T) {
 	now := time.Date(2026, 5, 6, 12, 0, 0, 0, time.UTC)
 	limiter := newLoginLimiter(5, 5*time.Minute, 15*time.Minute)
@@ -111,10 +155,10 @@ func TestLoginLimiterSeparatesIPAndUsername(t *testing.T) {
 	for range 5 {
 		limiter.registerFailure("192.0.2.10", "admin")
 	}
-	if _, ok := limiter.allow("192.0.2.11", "admin"); !ok {
+	if _, ok := limiter.admit("192.0.2.11", "admin"); !ok {
 		t.Fatal("different IP should not be blocked")
 	}
-	if _, ok := limiter.allow("192.0.2.10", "other-admin"); !ok {
+	if _, ok := limiter.admit("192.0.2.10", "other-admin"); !ok {
 		t.Fatal("different username should not be blocked")
 	}
 }
