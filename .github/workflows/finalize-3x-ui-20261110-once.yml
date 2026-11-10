@@ -1,0 +1,32 @@
+name: Finalize 3x-ui-20261110 once
+
+on:
+  push:
+    paths:
+      - .github/workflows/finalize-3x-ui-20261110-once.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: 155e2b0e5cf078a9d2e17e41c242e35dc02bee59
+      RELEASE_TAG: 3x-ui-20261110
+    steps:
+      - name: Move new tag to final source and rebuild assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$RELEASE_TAG"             -f sha="$SOURCE_SHA" -F force=true >/dev/null
+          gh workflow run release.yml --ref main -f source_ref="$SOURCE_SHA" -f release_tag="$RELEASE_TAG"
+          sleep 10
+          RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          echo "Final release run: $RUN_ID"
+          gh run watch "$RUN_ID" --exit-status
