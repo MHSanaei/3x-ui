@@ -265,4 +265,3 @@ func TestSubJsonDns_AppliesToInfoNodeDocument(t *testing.T) {
 		t.Fatalf("info node dns servers = %v", servers)
 	}
 }
-

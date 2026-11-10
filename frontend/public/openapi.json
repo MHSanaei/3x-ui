@@ -13443,6 +13443,92 @@
         }
       }
     },
+    "/panel/api/exit-pool/console/*path": {
+      "get": {
+        "tags": [
+          "Multi-country Exit Pool"
+        ],
+        "summary": "Read the authenticated, loopback-only xnvgatebox embedded console or one of its read-only resources.",
+        "operationId": "get_panel_api_exit_pool_console_path",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "Multi-country Exit Pool"
+        ],
+        "summary": "Read response metadata from the authenticated xnvgatebox embedded console proxy.",
+        "operationId": "head_panel_api_exit_pool_console_path",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Multi-country Exit Pool"
+        ],
+        "summary": "Submit an authenticated embedded-console operation. Network settings and xnvgatebox self-update endpoints remain blocked by policy.",
+        "operationId": "post_panel_api_exit_pool_console_path",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/": {
       "post": {
         "tags": [

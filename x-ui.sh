@@ -99,7 +99,7 @@ iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
 confirm() {
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
         echo && read -rp "$1 [Default $2]: " temp
         if [[ "${temp}" == "" ]]; then
             temp=$2
@@ -3401,7 +3401,7 @@ pg_install_local() {
         opensuse-tumbleweed | opensuse-leap)
             zypper -q install -y postgresql-server postgresql-contrib >&2 || return 1
             if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
-                install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
+                command install -d -o postgres -g postgres -m 700 /var/lib/pgsql/data >&2 || return 1
                 su - postgres -c "initdb -D /var/lib/pgsql/data" >&2 || return 1
             fi
             ;;
@@ -3597,7 +3597,7 @@ pg_upgrade_client() {
 pg_write_env() {
     local dsn="$1" envfile
     envfile="$(xui_env_file_path)"
-    install -d -m 755 "$(dirname "$envfile")"
+    command install -d -m 755 "$(dirname "$envfile")"
     touch "$envfile"
     sed -i '/^XUI_DB_TYPE=/d; /^XUI_DB_DSN=/d' "$envfile"
     {
@@ -3899,8 +3899,8 @@ PY
         LOGE "Failed to restrict the xnvgatebox management listener."
         return 1
     fi
-    install -d -m 0755 "$dropin_dir"
-    if ! install -m 0644 /dev/stdin "$dropin" <<'EOF'
+    command install -d -m 0755 "$dropin_dir"
+    if ! command install -m 0644 /dev/stdin "$dropin" <<'EOF'
 [Service]
 # Keep the privileged network-namespace worker functional while removing
 # unrelated privilege-escalation and host-inspection surfaces.
@@ -3935,10 +3935,10 @@ EOF
 }
 
 exit_pool_install() (
-    local version="v0.9.5"
-    local installer_revision="d7b76f4fa4dc563808991a9ea84e4ae3baae5e69"
+    local version="v0.9.7"
+    local installer_revision="94154917da8955838289d2994249ae91ceb9fff0"
     local installer_sha256="b0815ea91bb005f7b8c9614dd669cb1da399545b6242c72ac914c572293fd6f3"
-    local package_sha256="8a07f1746f32cc7af91fab31f786d1c92a76493a2ab13d2ebe346555461bedc2"
+    local package_sha256="d8b962f89dda95cdd6fa815d6b7257c6806a0d044d60d63a97b44ea0f2ff8b5d"
     local task_dir installer package release_url
 
     if [[ "${running_in_docker}" == "true" ]]; then
@@ -3957,9 +3957,9 @@ exit_pool_install() (
     trap 'rm -rf -- "$task_dir"' EXIT
     installer="${task_dir}/install.sh"
     package="${task_dir}/xnvgatebox-linux-amd64.tar.gz"
-    release_url="https://github.com/hanhaoops/xnvgatebox/releases/download/${version}"
+    release_url="https://github.com/jrangus/xnvgatebox/releases/download/${version}"
     if ! curl -fLsS --retry 3 --connect-timeout 15 --max-time 120 \
-        "https://raw.githubusercontent.com/hanhaoops/xnvgatebox/${installer_revision}/vps/install.sh" -o "$installer"; then
+        "https://raw.githubusercontent.com/jrangus/xnvgatebox/${installer_revision}/vps/install.sh" -o "$installer"; then
         LOGE "Failed to download the pinned xnvgatebox installer (${version})."
         return 1
     fi
@@ -4220,7 +4220,7 @@ show_menu() {
     esac
 }
 
-if [[ $# > 0 ]]; then
+if [[ $# -gt 0 ]]; then
     case $1 in
         "start")
             check_install 0 && start 0
@@ -4299,4 +4299,3 @@ if [[ $# > 0 ]]; then
 else
     show_menu
 fi
-

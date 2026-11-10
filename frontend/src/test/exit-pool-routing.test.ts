@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { bindExitPoolRoute, listExitPoolBindings, unbindExitPoolRoute } from './exit-pool-routing';
+import {
+  bindExitPoolRoute,
+  listExitPoolBindings,
+  unbindExitPoolRoute,
+} from '../pages/xray/exit-pool/exit-pool-routing';
 
 describe('exit-pool routing', () => {
-  it('binds one inbound without changing unrelated routing rules', () => {
+  it('binds TCP and UDP without changing unrelated routing rules', () => {
     const original = {
       outbounds: [{ tag: 'fanout-jp-1', protocol: 'socks' }],
       routing: {
@@ -17,7 +21,12 @@ describe('exit-pool routing', () => {
     const next = bindExitPoolRoute(original, 'in-a', 'fanout-jp-1');
 
     expect(next.routing.rules).toEqual([
-      { type: 'field', network: 'tcp', inboundTag: ['in-a'], outboundTag: 'fanout-jp-1' },
+      {
+        type: 'field',
+        network: 'tcp,udp',
+        inboundTag: ['in-a'],
+        outboundTag: 'fanout-jp-1',
+      },
       { type: 'field', inboundTag: ['in-b'], outboundTag: 'fanout-us-1' },
       { type: 'field', domain: ['geosite:private'], outboundTag: 'direct' },
     ]);

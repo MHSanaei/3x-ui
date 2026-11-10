@@ -19,7 +19,12 @@ func NewExitPoolController(g *gin.RouterGroup) *ExitPoolController {
 	g.GET("", a.state)
 	g.POST("/sync", a.sync)
 	g.POST("/delete/:subId", a.delete)
-	g.Any("/console/*path", a.console)
+	// The embedded console currently needs only reads and form/API POSTs.
+	// Do not use gin.Any here: that would unnecessarily expose CONNECT, TRACE,
+	// PUT, PATCH, DELETE and OPTIONS through the authenticated reverse proxy.
+	g.GET("/console/*path", a.console)
+	g.HEAD("/console/*path", a.console)
+	g.POST("/console/*path", a.console)
 	return a
 }
 

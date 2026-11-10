@@ -79,4 +79,3 @@ func TestDefaultJSON_FreedomOutboundHasNoLegacyDomainStrategy(t *testing.T) {
 		t.Fatal("embedded default.json has no freedom outbound to check")
 	}
 }
-

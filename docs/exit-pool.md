@@ -1,6 +1,7 @@
 # Multi-country exit subscription groups
 
-This optional integration combines 3x-ui with
+This optional integration combines 3x-ui with the reviewed
+[`jrangus/xnvgatebox`](https://github.com/jrangus/xnvgatebox) fork of
 [`hanhaoops/xnvgatebox`](https://github.com/hanhaoops/xnvgatebox). The companion
 is installed automatically on supported hosts, but it does not alter existing
 clients or routes until an administrator creates an exit-pool subscription group.
@@ -48,6 +49,53 @@ node assignment is performed in the 3x-ui panel.
 5. Open the 3x-ui **Clients** page, search for the displayed subscription ID,
    and copy its subscription URL.
 
+## Exit source isolation
+
+The panel treats the source as a routing boundary, not merely as a display
+label. Existing reviewed xnvgatebox exits always remain in **xnvgatebox stable
+pool**. Optional providers are kept in separate **new residential** and **new
+native datacenter** pools. The stable pool is selected by default when creating
+or editing a group.
+
+An old group created before source isolation is automatically interpreted as a
+stable-pool group; no database rewrite is required. New residential exits are
+rejected unless xnvgatebox supplies current `strict_residential` or
+`likely_residential` evidence. New native datacenter exits are rejected unless
+both the native-country check and the datacenter/business-ISP classification
+are present. Unknown, expired or mismatched evidence is never promoted into
+either optional pool.
+
+Disabling or removing an optional provider does not delete stable exits, stable
+groups, ordinary inbounds, clients or routes. A group can deliberately combine
+categories, but its members retain their source category so the distinction is
+visible later.
+
+### Free verified supplemental pool
+
+Open the embedded xnvgatebox console, choose **Proxy resources → Free verified
+pool**, and click **Fetch and verify on VPS**. Public SOCKS5 lists are used only
+as untrusted candidate input. Every accepted endpoint must independently pass,
+from the VPS:
+
+- two HTTPS exit-IP observations with one unchanged public IPv4;
+- an HTTPS content and certificate check through remote SOCKS DNS;
+- current country and IP-type intelligence;
+- `strict_residential` or `likely_residential` classification for the new
+  residential pool; or verified native-country evidence plus `datacenter` or
+  `business_isp` classification for the new native-datacenter pool.
+
+Unknown, mobile, stale, private, hostname-only and failed candidates are not
+published. Candidate labels and claimed countries are never trusted. A
+successful refresh is stored atomically and uses deterministic slots in the
+reserved `100000-999999` range. A failed or empty refresh preserves the last
+unexpired supplemental pool. Once enabled, it refreshes automatically near
+expiry. **Disable supplemental pool** cancels and joins an active refresh, then
+renames the optional manifest for recovery; it never changes stable tunnels.
+
+Free public proxies are short-lived and operated by unknown third parties.
+They are suitable only for disposable, non-sensitive traffic. Do not send
+credentials, payments, private messages or unencrypted data through them.
+
 3x-ui creates one dedicated client identity per selected region inside the same
 inbound. Those identities share one `subId`, so one subscription contains
 separate US, JP, SG, or other regional entries while they all use the mother
@@ -60,11 +108,14 @@ outbounds.
 
 ## Network behavior
 
-The public VPN Gate path is TCP-only. Managed rules capture both TCP and UDP for
-their generated identities: TCP is forwarded through the selected exit, while
-unsupported UDP fails at that exit instead of silently falling back to the VPS
-public IP. Hysteria2, TUIC, QUIC and IPv6 are therefore not supported by these
-groups.
+Managed rules capture both TCP and UDP and do not distinguish IPv4 from IPv6.
+TCP, client DNS packets, WebRTC UDP and IPv6 destinations are therefore sent to
+the selected SOCKS exit. If that exit does not support UDP or IPv6, the request
+fails there; no alternate/direct outbound is configured and it cannot silently
+fall back to the VPS public IPv4 or IPv6. This prevents fallback leakage but
+does not manufacture IPv6 support. Hysteria2, TUIC and QUIC should be treated
+as unsupported unless the selected exit has been independently verified for
+the required UDP behavior.
 
 The integration reads xnvgatebox only through its authenticated loopback API.
 SOCKS credentials are never returned to the browser.
@@ -106,6 +157,6 @@ engine. VPN Gate exits are operated by third parties, can disappear without
 notice, and should not be trusted with sensitive unencrypted traffic.
 
 `xnvgatebox` is GPL-3.0-only and remains a separately distributed component.
-The helper downloads its pinned upstream release rather than embedding the
+The helper downloads its pinned reviewed release rather than embedding the
 binary in 3x-ui.
 

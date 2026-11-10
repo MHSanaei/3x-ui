@@ -121,4 +121,3 @@ sudo systemctl --no-pager --full status x-ui
 The failed installation is retained at
 `/usr/local/x-ui.failed-3x-ui-20261107` for diagnosis. Remove it only after the
 restored version has been confirmed healthy.
-

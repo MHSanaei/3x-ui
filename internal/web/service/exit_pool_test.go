@@ -21,6 +21,37 @@ func TestExitPoolClientDisplayName(t *testing.T) {
 	}
 }
 
+func TestExitPoolSourceCategoriesAreIsolatedAndBackwardCompatible(t *testing.T) {
+	old, ok := parseExitPoolComment("xnv3:7:JP:Japan:203.0.113.7")
+	if !ok || old.SourceCategory != exitPoolSourceStable {
+		t.Fatalf("legacy member source = %q, %v", old.SourceCategory, ok)
+	}
+
+	home, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100101, SourceCategory: exitPoolSourceHome, IPType: "strict_residential", ProxyAddress: "8.8.8.8", ProxyPort: 1080})
+	if err != nil || home.Stable {
+		t.Fatalf("verified new residential exit rejected or marked stable: %+v, %v", home, err)
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100102, SourceCategory: exitPoolSourceHome, IPType: "datacenter", ProxyAddress: "8.8.8.8", ProxyPort: 1080}); err == nil {
+		t.Fatal("datacenter exit admitted to the new residential category")
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100103, SourceCategory: exitPoolSourceNativeDC, IPType: "datacenter", ProxyAddress: "8.8.8.8", ProxyPort: 1080}); err == nil {
+		t.Fatal("unverified native datacenter exit admitted")
+	}
+	native, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100104, SourceCategory: exitPoolSourceNativeDC, IPType: "datacenter", Native: true, ProxyAddress: "8.8.8.8", ProxyPort: 1080})
+	if err != nil || native.Stable {
+		t.Fatalf("verified new native datacenter exit rejected or marked stable: %+v, %v", native, err)
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100105, SourceCategory: exitPoolSourceHome, IPType: "strict_residential", ProxyAddress: "127.0.0.1", ProxyPort: 1080}); err == nil {
+		t.Fatal("private supplemental proxy was accepted")
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100106, SourceCategory: exitPoolSourceHome, IPType: "strict_residential", ProxyAddress: "2001:4860:4860::8888", ProxyPort: 1080}); err == nil {
+		t.Fatal("IPv6 supplemental proxy was accepted before IPv6 egress verification is supported")
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 1, Port: 1080, SourceCategory: exitPoolSourceStable, ProxyAddress: "8.8.8.8", ProxyPort: 1080}); err == nil {
+		t.Fatal("stable category accepted an external proxy")
+	}
+}
+
 func TestValidateExitPoolListenAddr(t *testing.T) {
 	if err := validateExitPoolListenAddr("127.0.0.1"); err != nil {
 		t.Fatalf("loopback listener rejected: %v", err)
@@ -29,6 +60,21 @@ func TestValidateExitPoolListenAddr(t *testing.T) {
 		if err := validateExitPoolListenAddr(value); err == nil {
 			t.Fatalf("unsafe listener %q accepted", value)
 		}
+	}
+}
+
+func TestExitPoolRoutingUsesIsolatedProxyAndFailsClosed(t *testing.T) {
+	stable := exitPoolSOCKSServer(ExitPoolExit{SourceCategory: exitPoolSourceStable, Port: 20001, SocksUser: "u", SocksPass: "p"})
+	if stable["address"] != "127.0.0.1" || stable["port"] != 20001 || stable["users"] == nil {
+		t.Fatalf("unexpected stable SOCKS server: %#v", stable)
+	}
+	extra := exitPoolSOCKSServer(ExitPoolExit{SourceCategory: exitPoolSourceHome, ProxyAddress: "8.8.8.8", ProxyPort: 1080})
+	if extra["address"] != "8.8.8.8" || extra["port"] != 1080 || extra["users"] != nil {
+		t.Fatalf("unexpected supplemental SOCKS server: %#v", extra)
+	}
+	rule := exitPoolRoutingRule("inbound-1", "pool@example", "xnv3-exit-100001")
+	if rule["network"] != "tcp,udp" || rule["outboundTag"] != "xnv3-exit-100001" {
+		t.Fatalf("routing can bypass selected exit: %#v", rule)
 	}
 }
 
@@ -50,4 +96,3 @@ func TestExitPoolConsoleOperationAllowed(t *testing.T) {
 		}
 	}
 }
-

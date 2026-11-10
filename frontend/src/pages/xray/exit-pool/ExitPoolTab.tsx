@@ -32,6 +32,11 @@ interface ExitRow {
   exitIp: string;
   status: string;
   latencyMs?: number;
+  sourceCategory: ExitSourceCategory;
+  sourceName?: string;
+  ipType?: string;
+  native?: boolean;
+  stable: boolean;
 }
 interface InboundRow {
   id: number;
@@ -45,7 +50,24 @@ interface MemberRow {
   region: string;
   country: string;
   exitIp: string;
+  sourceCategory: ExitSourceCategory;
   email: string;
+}
+
+type ExitSourceCategory =
+  | 'xnvgatebox_stable'
+  | 'new_residential'
+  | 'new_native_datacenter';
+type ExitSourceFilter = ExitSourceCategory | 'all';
+
+const SOURCE_LABELS: Record<ExitSourceCategory, string> = {
+  xnvgatebox_stable: 'xnvgatebox 稳定池',
+  new_residential: '新增住宅池',
+  new_native_datacenter: '新增原生机房池',
+};
+
+function sourceLabel(source: ExitSourceCategory | undefined) {
+  return SOURCE_LABELS[source || 'xnvgatebox_stable'];
 }
 interface GroupRow {
   subId: string;
@@ -76,6 +98,8 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
   const [name, setName] = useState('Multi-region');
   const [subId, setSubId] = useState('');
   const [exitSort, setExitSort] = useState<'region' | 'latency'>('region');
+  const [sourceFilter, setSourceFilter] =
+    useState<ExitSourceFilter>('xnvgatebox_stable');
   const [showConsole, setShowConsole] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -122,8 +146,23 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
   }, [exitSort, state?.exits]);
 
   const readyExits = useMemo(
-    () => sortedExits.filter((exit) => exit.status === 'up'),
-    [sortedExits],
+    () =>
+      sortedExits.filter(
+        (exit) =>
+          exit.status === 'up' &&
+          (sourceFilter === 'all' ||
+            (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter),
+      ),
+    [sortedExits, sourceFilter],
+  );
+  const visibleExits = useMemo(
+    () =>
+      sortedExits.filter(
+        (exit) =>
+          sourceFilter === 'all' ||
+          (exit.sourceCategory || 'xnvgatebox_stable') === sourceFilter,
+      ),
+    [sortedExits, sourceFilter],
   );
   const orderedSlots = useMemo(() => {
     const rank = new Map(readyExits.map((exit, index) => [exit.slot, index]));
@@ -165,6 +204,8 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
     setName(group.name);
     setInboundId(group.inboundId);
     setSlots(group.members.map((member) => member.slot));
+    const categories = new Set(group.members.map((member) => member.sourceCategory));
+    setSourceFilter(categories.size === 1 ? [...categories][0] : 'all');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -232,6 +273,22 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
             ]}
             style={{ width: 210 }}
           />
+          <Typography.Text strong>出口分类：</Typography.Text>
+          <Select
+            aria-label="出口分类"
+            value={sourceFilter}
+            onChange={(value) => {
+              setSourceFilter(value);
+              setSlots([]);
+            }}
+            options={[
+              { value: 'xnvgatebox_stable', label: 'xnvgatebox 稳定池（推荐）' },
+              { value: 'new_residential', label: '新增住宅池' },
+              { value: 'new_native_datacenter', label: '新增原生机房池' },
+              { value: 'all', label: '全部分类' },
+            ]}
+            style={{ width: 230 }}
+          />
           <Typography.Text type="secondary">此设置同时控制下方选择框和可用出口列表</Typography.Text>
         </Space>
         <Row gutter={[12, 12]}>
@@ -263,7 +320,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
               placeholder="选择多个国家或地区出口"
               options={readyExits.map((exit) => ({
                 value: exit.slot,
-                label: `${exit.country || exit.region || 'Unknown'} · ${exit.exitIp || exit.host} · ${Math.round(exit.latencyMs || 0)}ms`,
+                label: `${sourceLabel(exit.sourceCategory)} · ${exit.country || exit.region || 'Unknown'} · ${exit.exitIp || exit.host} · ${Math.round(exit.latencyMs || 0)}ms`,
               }))}
               onChange={(next) => {
                 const selected = new Set(next);
@@ -314,8 +371,16 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
           size="small"
           loading={loading}
           pagination={false}
-          dataSource={sortedExits}
+          dataSource={visibleExits}
           columns={[
+            {
+              title: '分类',
+              render: (_, row: ExitRow) => (
+                <Tag color={row.sourceCategory === 'xnvgatebox_stable' ? 'blue' : row.sourceCategory === 'new_residential' ? 'green' : 'gold'}>
+                  {sourceLabel(row.sourceCategory)}
+                </Tag>
+              ),
+            },
             { title: '地区', render: (_, row: ExitRow) => row.country || row.region || '-' },
             { title: '出口 IP', dataIndex: 'exitIp' },
             {
@@ -349,7 +414,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
                 <Space wrap>
                   {row.members.map((member) => (
                     <Tag key={member.slot}>
-                      {member.country || member.region || `Slot ${member.slot}`}
+                      {sourceLabel(member.sourceCategory)} · {member.country || member.region || `Slot ${member.slot}`}
                     </Tag>
                   ))}
                 </Space>

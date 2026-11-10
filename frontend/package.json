@@ -54,7 +54,7 @@
     "react-router": "^8.4.0",
     "swagger-ui-react": "^5.33.1",
     "uplot": "^1.6.32",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.1",
@@ -83,11 +83,13 @@
     "vitest": "^5.0.3"
   },
   "overrides": {
-    "dompurify": "^3.4.15",
+    "dompurify": "^3.4.17",
+    "follow-redirects": "^1.16.3",
+    "minimatch": "^11.0.5",
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",
-    "seroval": "^1.6.8",
-    "seroval-plugins": "^1.6.8",
+    "seroval": "^1.8.0",
+    "seroval-plugins": "^1.8.0",
     "react-debounce-input": {
       "react": "^19.0.0"
     },

@@ -76,7 +76,9 @@ export function bindExitPoolRoute<T extends ExitPoolTemplate>(
   const rules = next.routing?.rules || [];
   rules.unshift({
     type: 'field',
-    network: 'tcp',
+    // Keep every transport on the selected exit.  TCP-only rules allow UDP
+    // DNS, QUIC and WebRTC/STUN to fall through to a later direct rule.
+    network: 'tcp,udp',
     inboundTag: [inboundTag],
     outboundTag,
   });

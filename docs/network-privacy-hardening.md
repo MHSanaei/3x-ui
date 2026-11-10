@@ -84,4 +84,3 @@ neutral, so IPv6 DNS and WebRTC UDP that actually reaches Xray follows the same
 proxy path as IPv4. It cannot capture traffic that the client or browser sends
 outside Xray; test on a network that really provides public IPv6, since testing
 on an IPv4-only network cannot demonstrate IPv6 leak protection.
-

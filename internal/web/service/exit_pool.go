@@ -30,6 +30,9 @@ const (
 	exitPoolClientDomain   = "@exit.local"
 	exitPoolOutboundPrefix = "xnv3-exit-"
 	exitPoolGroupPrefix    = "Exit Pool / "
+	exitPoolSourceStable   = "xnvgatebox_stable"
+	exitPoolSourceHome     = "new_residential"
+	exitPoolSourceNativeDC = "new_native_datacenter"
 )
 
 var exitPoolSubIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{6,40}$`)
@@ -53,8 +56,21 @@ type ExitPoolExit struct {
 	ExitIP    string  `json:"exitIp"`
 	Status    string  `json:"status"`
 	LatencyMS float64 `json:"latencyMs,omitempty"`
-	SocksUser string  `json:"-"`
-	SocksPass string  `json:"-"`
+	// SourceCategory is an isolation boundary, not a presentation-only label.
+	// Existing xnvgatebox slots default to the stable category. Additional
+	// providers must explicitly identify themselves and pass the category's
+	// evidence checks before they are exposed to the panel.
+	SourceCategory string `json:"sourceCategory"`
+	SourceName     string `json:"sourceName,omitempty"`
+	IPType         string `json:"ipType,omitempty"`
+	Native         bool   `json:"native,omitempty"`
+	Stable         bool   `json:"stable"`
+	// ProxyAddress/ProxyPort are present only for verified supplemental exits.
+	// Stable xnvgatebox exits always use their loopback listener in Port.
+	ProxyAddress string `json:"-"`
+	ProxyPort    int    `json:"-"`
+	SocksUser    string `json:"-"`
+	SocksPass    string `json:"-"`
 }
 
 type ExitPoolInbound struct {
@@ -66,11 +82,12 @@ type ExitPoolInbound struct {
 }
 
 type ExitPoolMember struct {
-	Slot    int    `json:"slot"`
-	Region  string `json:"region"`
-	Country string `json:"country"`
-	ExitIP  string `json:"exitIp"`
-	Email   string `json:"email"`
+	Slot           int    `json:"slot"`
+	Region         string `json:"region"`
+	Country        string `json:"country"`
+	ExitIP         string `json:"exitIp"`
+	SourceCategory string `json:"sourceCategory"`
+	Email          string `json:"email"`
 }
 
 type ExitPoolGroup struct {
@@ -121,19 +138,104 @@ func exitPoolOutboundTag(slot int) string {
 }
 
 func exitPoolComment(e ExitPoolExit) string {
-	return fmt.Sprintf("xnv3:%d:%s:%s:%s", e.Slot, e.Region, e.Country, e.ExitIP)
+	return fmt.Sprintf("xnv3:%d:%s:%s:%s:%s", e.Slot, e.Region, e.Country, e.ExitIP, e.SourceCategory)
 }
 
 func parseExitPoolComment(value string) (ExitPoolMember, bool) {
-	p := strings.SplitN(value, ":", 5)
-	if len(p) != 5 || p[0] != "xnv3" {
+	p := strings.SplitN(value, ":", 6)
+	if (len(p) != 5 && len(p) != 6) || p[0] != "xnv3" {
 		return ExitPoolMember{}, false
 	}
 	slot, err := strconv.Atoi(p[1])
 	if err != nil || slot < 1 {
 		return ExitPoolMember{}, false
 	}
-	return ExitPoolMember{Slot: slot, Region: p[2], Country: p[3], ExitIP: p[4]}, true
+	source := exitPoolSourceStable
+	if len(p) == 6 {
+		source = p[5]
+	}
+	if !validExitPoolSource(source) {
+		return ExitPoolMember{}, false
+	}
+	return ExitPoolMember{Slot: slot, Region: p[2], Country: p[3], ExitIP: p[4], SourceCategory: source}, true
+}
+
+func validExitPoolSource(source string) bool {
+	switch source {
+	case exitPoolSourceStable, exitPoolSourceHome, exitPoolSourceNativeDC:
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeExitPoolExit(e ExitPoolExit) (ExitPoolExit, error) {
+	if e.SourceCategory == "" {
+		e.SourceCategory = exitPoolSourceStable
+	}
+	if !validExitPoolSource(e.SourceCategory) {
+		return ExitPoolExit{}, fmt.Errorf("unrecognized exit-pool source category %q", e.SourceCategory)
+	}
+	e.Stable = e.SourceCategory == exitPoolSourceStable
+	switch e.SourceCategory {
+	case exitPoolSourceStable:
+		if e.ProxyAddress != "" || e.ProxyPort != 0 || e.Port < 1 || e.Port > 65535 {
+			return ExitPoolExit{}, fmt.Errorf("stable exit slot %d has an invalid listener", e.Slot)
+		}
+	case exitPoolSourceHome:
+		if e.IPType != "strict_residential" && e.IPType != "likely_residential" {
+			return ExitPoolExit{}, fmt.Errorf("new residential exit slot %d lacks residential evidence", e.Slot)
+		}
+	case exitPoolSourceNativeDC:
+		if !e.Native || (e.IPType != "datacenter" && e.IPType != "business_isp") {
+			return ExitPoolExit{}, fmt.Errorf("new native datacenter exit slot %d lacks native datacenter evidence", e.Slot)
+		}
+	}
+	if e.SourceCategory != exitPoolSourceStable {
+		if e.Slot < 100000 || e.Slot > 999999 || e.Port != 0 || e.ProxyPort < 1 || e.ProxyPort > 65535 {
+			return ExitPoolExit{}, fmt.Errorf("supplemental exit slot %d has an invalid reserved slot or listener", e.Slot)
+		}
+		ip := net.ParseIP(strings.TrimSpace(e.ProxyAddress))
+		if ip == nil || ip.To4() == nil || !exitPoolPublicIPv4(ip.To4()) {
+			return ExitPoolExit{}, fmt.Errorf("supplemental exit slot %d requires a public literal IPv4 proxy", e.Slot)
+		}
+		e.ProxyAddress = ip.To4().String()
+	}
+	if (e.SocksUser == "") != (e.SocksPass == "") {
+		return ExitPoolExit{}, fmt.Errorf("exit slot %d has incomplete SOCKS credentials", e.Slot)
+	}
+	return e, nil
+}
+
+func exitPoolPublicIPv4(ip net.IP) bool {
+	if len(ip) != net.IPv4len || ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return false
+	}
+	return ip[0] != 0 && ip[0] != 127 && ip[0] < 224 &&
+		!(ip[0] == 100 && ip[1]&0xc0 == 64) &&
+		!(ip[0] == 169 && ip[1] == 254) &&
+		!(ip[0] == 192 && (ip[1] == 0 || ip[1] == 2)) &&
+		!(ip[0] == 198 && (ip[1] == 18 || ip[1] == 19 || ip[1] == 51)) &&
+		!(ip[0] == 203 && ip[1] == 0)
+}
+
+func exitPoolSOCKSServer(e ExitPoolExit) map[string]any {
+	address, port := "127.0.0.1", e.Port
+	if e.SourceCategory != exitPoolSourceStable {
+		address, port = e.ProxyAddress, e.ProxyPort
+	}
+	server := map[string]any{"address": address, "port": port}
+	if e.SocksUser != "" {
+		server["users"] = []any{map[string]any{"user": e.SocksUser, "pass": e.SocksPass}}
+	}
+	return server
+}
+
+func exitPoolRoutingRule(inboundTag, email, outboundTag string) map[string]any {
+	// Both address families and UDP (including client DNS packets) are forced
+	// through the selected SOCKS outbound. Xray has no alternate outbound in
+	// this rule, so an unavailable/UDP-incapable proxy fails closed.
+	return map[string]any{"type": "field", "network": "tcp,udp", "inboundTag": []any{inboundTag}, "user": []any{email}, "outboundTag": outboundTag}
 }
 
 // ExitPoolClientDisplayName returns the stable, region-aware name used by
@@ -273,16 +375,24 @@ func (s *ExitPoolService) loadExits() ([]ExitPoolExit, error) {
 	}
 	var view struct {
 		Exits []struct {
-			Slot      int     `json:"slot"`
-			Port      int     `json:"port"`
-			Host      string  `json:"host"`
-			Region    string  `json:"region"`
-			Country   string  `json:"country"`
-			ExitIP    string  `json:"exit_ip"`
-			Status    string  `json:"status"`
-			LatencyMS float64 `json:"latency_ms"`
-			SocksUser string  `json:"socks_user"`
-			SocksPass string  `json:"socks_pass"`
+			Slot           int     `json:"slot"`
+			Port           int     `json:"port"`
+			Host           string  `json:"host"`
+			Region         string  `json:"region"`
+			Country        string  `json:"country"`
+			ExitIP         string  `json:"exit_ip"`
+			Status         string  `json:"status"`
+			LatencyMS      float64 `json:"latency_ms"`
+			SourceCategory string  `json:"source_category"`
+			SourceName     string  `json:"source_name"`
+			Native         bool    `json:"native"`
+			ProxyAddress   string  `json:"proxy_address"`
+			ProxyPort      int     `json:"proxy_port"`
+			Egress         *struct {
+				IPType string `json:"ip_type"`
+			} `json:"egress"`
+			SocksUser string `json:"socks_user"`
+			SocksPass string `json:"socks_pass"`
 		} `json:"exits"`
 	}
 	decoder := json.NewDecoder(io.LimitReader(resp.Body, 2<<20))
@@ -291,7 +401,22 @@ func (s *ExitPoolService) loadExits() ([]ExitPoolExit, error) {
 	}
 	exits := make([]ExitPoolExit, 0, len(view.Exits))
 	for _, e := range view.Exits {
-		exits = append(exits, ExitPoolExit{Slot: e.Slot, Port: e.Port, Host: e.Host, Region: e.Region, Country: e.Country, ExitIP: e.ExitIP, Status: e.Status, LatencyMS: e.LatencyMS, SocksUser: e.SocksUser, SocksPass: e.SocksPass})
+		ipType := ""
+		if e.Egress != nil {
+			ipType = e.Egress.IPType
+		}
+		exit, err := normalizeExitPoolExit(ExitPoolExit{
+			Slot: e.Slot, Port: e.Port, Host: e.Host, Region: e.Region,
+			Country: e.Country, ExitIP: e.ExitIP, Status: e.Status,
+			LatencyMS: e.LatencyMS, SourceCategory: e.SourceCategory,
+			SourceName: e.SourceName, IPType: ipType, Native: e.Native,
+			ProxyAddress: e.ProxyAddress, ProxyPort: e.ProxyPort,
+			SocksUser: e.SocksUser, SocksPass: e.SocksPass,
+		})
+		if err != nil {
+			return nil, err
+		}
+		exits = append(exits, exit)
 	}
 	return exits, nil
 }
@@ -632,10 +757,7 @@ func (s *ExitPoolService) writeRoutingForSub(inbound *model.Inbound, subID strin
 		}
 	}
 	for _, e := range desired {
-		server := map[string]any{"address": "127.0.0.1", "port": e.Port}
-		if e.SocksUser != "" {
-			server["users"] = []any{map[string]any{"user": e.SocksUser, "pass": e.SocksPass}}
-		}
+		server := exitPoolSOCKSServer(e)
 		byTag[exitPoolOutboundTag(e.Slot)] = map[string]any{"tag": exitPoolOutboundTag(e.Slot), "protocol": "socks", "settings": map[string]any{"servers": []any{server}}}
 	}
 	tags := make([]string, 0, len(byTag))
@@ -673,7 +795,7 @@ func (s *ExitPoolService) writeRoutingForSub(inbound *model.Inbound, subID strin
 	for i := len(desired) - 1; i >= 0; i-- {
 		e := desired[i]
 		email := exitPoolEmail(subID, e)
-		cleaned = append([]any{map[string]any{"type": "field", "network": "tcp,udp", "inboundTag": []any{inbound.Tag}, "user": []any{email}, "outboundTag": exitPoolOutboundTag(e.Slot)}}, cleaned...)
+		cleaned = append([]any{exitPoolRoutingRule(inbound.Tag, email, exitPoolOutboundTag(e.Slot))}, cleaned...)
 	}
 	routing["rules"] = cleaned
 	cfg["routing"] = routing
@@ -770,4 +892,3 @@ func (s *ExitPoolService) Delete(subID string) error {
 	}
 	return nil
 }
-

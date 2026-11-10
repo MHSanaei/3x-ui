@@ -2102,6 +2102,23 @@ export const sections: readonly Section[] = [
           },
         ],
       },
+      {
+        method: 'GET',
+        path: '/panel/api/exit-pool/console/*path',
+        summary:
+          'Read the authenticated, loopback-only xnvgatebox embedded console or one of its read-only resources.',
+      },
+      {
+        method: 'HEAD',
+        path: '/panel/api/exit-pool/console/*path',
+        summary: 'Read response metadata from the authenticated xnvgatebox embedded console proxy.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/exit-pool/console/*path',
+        summary:
+          'Submit an authenticated embedded-console operation. Network settings and xnvgatebox self-update endpoints remain blocked by policy.',
+      },
     ],
   },
 
