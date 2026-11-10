@@ -1425,14 +1425,7 @@ func (s *ServerService) GetXrayLogs(
 	freedoms []string,
 	blackholes []string,
 ) []LogEntry {
-	const (
-		Direct = iota
-		Blocked
-		Proxied
-	)
-
 	countInt, _ := strconv.Atoi(count)
-	var entries []LogEntry
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
@@ -1445,7 +1438,38 @@ func (s *ServerService) GetXrayLogs(
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	entries, err := tailXrayLogEntries(file, countInt, filter, showDirect, showBlocked, showProxy, freedoms, blackholes)
+	if err != nil {
+		return nil
+	}
+	return entries
+}
+
+// tailXrayLogEntries returns the newest limit matching entries in file order,
+// holding at most limit of them however long the log is.
+func tailXrayLogEntries(
+	r io.Reader,
+	limit int,
+	filter string,
+	showDirect string,
+	showBlocked string,
+	showProxy string,
+	freedoms []string,
+	blackholes []string,
+) ([]LogEntry, error) {
+	const (
+		Direct = iota
+		Blocked
+		Proxied
+	)
+
+	if limit <= 0 {
+		return nil, nil
+	}
+	var entries []LogEntry
+	oldest := 0
+
+	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -1479,18 +1503,19 @@ func (s *ServerService) GetXrayLogs(
 			entry.Event = Proxied
 		}
 
-		entries = append(entries, entry)
+		if len(entries) < limit {
+			entries = append(entries, entry)
+			continue
+		}
+		entries[oldest] = entry
+		oldest = (oldest + 1) % limit
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil
+		return nil, err
 	}
 
-	if len(entries) > countInt {
-		entries = entries[len(entries)-countInt:]
-	}
-
-	return entries
+	return append(entries[oldest:], entries[:oldest]...), nil
 }
 
 // isVirtualInterface returns true for loopback and virtual/tunnel interfaces
