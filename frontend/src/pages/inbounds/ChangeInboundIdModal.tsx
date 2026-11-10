@@ -36,10 +36,12 @@ export default function ChangeInboundIdModal({
 
   // Reset when the dialog opens for a different inbound.
   useEffect(() => {
-    if (open && dbInbound) {
+    if (!open || !dbInbound) return;
+    const t = setTimeout(() => {
       setNewTag(dbInbound.tag);
       setCheck(null);
-    }
+    }, 0);
+    return () => clearTimeout(t);
   }, [open, dbInbound]);
 
   // Live pre-flight check, debounced so typing stays responsive.
@@ -48,16 +50,18 @@ export default function ChangeInboundIdModal({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const value = newTag.trim();
     if (value === '' || value === dbInbound.tag) {
-      setCheck({
-        unchanged: value === dbInbound.tag && value !== '',
-        valid: value !== '',
-        reason: '',
-        routingRefs: 0,
-        nodeTagConflict: false,
-      });
-      return;
+      const t = setTimeout(() => {
+        setCheck({
+          unchanged: value === dbInbound.tag && value !== '',
+          valid: value !== '',
+          reason: '',
+          routingRefs: 0,
+          nodeTagConflict: false,
+        });
+      }, 0);
+      return () => clearTimeout(t);
     }
-    setChecking(true);
+    const t = setTimeout(() => setChecking(true), 0);
     debounceRef.current = setTimeout(async () => {
       const msg = await HttpUtil.post(
         '/panel/api/inbounds/checkTag',
@@ -70,6 +74,7 @@ export default function ChangeInboundIdModal({
       }
     }, 400);
     return () => {
+      clearTimeout(t);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [newTag, open, dbInbound]);

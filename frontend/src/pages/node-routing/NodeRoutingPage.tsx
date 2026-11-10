@@ -54,7 +54,8 @@ export default function NodeRoutingPage() {
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
-    setPolicyText(allSetting.nodeRoutingRules || '');
+    const t = setTimeout(() => setPolicyText(allSetting.nodeRoutingRules || ''), 0);
+    return () => clearTimeout(t);
   }, [allSetting.nodeRoutingRules]);
 
   const policyValid = useMemo(() => {
