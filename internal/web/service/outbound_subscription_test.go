@@ -387,6 +387,17 @@ func TestAssignStableTags(t *testing.T) {
 			t.Fatalf("got[1] = %q, want %q", got[1], base+"-1")
 		}
 	})
+
+	t.Run("regenerates tags with new prefix when tagPrefix changed (#7110)", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "canada-1"}}
+		prev := map[string]string{"id-canada": "gh-canada-1"}
+		prevPos := map[int]string{0: "gh-canada-1"}
+		got := assignStableTags(parsed, []string{"id-canada"}, prev, prevPos, 1, "gh1-")
+		want := "gh1-canada-1"
+		if got[0] != want {
+			t.Fatalf("got %q, want %q (old tag with old prefix must not be preserved)", got[0], want)
+		}
+	})
 }
 
 // TestOutboundsContainTag covers the guard that ensures the outbound under test

@@ -601,10 +601,22 @@ func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscriptio
 // written back into parsed[i]["tag"]. The returned slice holds the assigned tags
 // in order. When tagPrefix is empty a "sub<subID>-" prefix is used for fresh tags.
 func assignStableTags(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string) []string {
+	prefix := tagPrefix
+	if prefix == "" {
+		prefix = fmt.Sprintf("sub%d-", subID)
+	}
+	expectedPrefix := prefix
+	if p := strings.TrimSuffix(expectedPrefix, "-"); p != "" {
+		expectedPrefix = p + "-"
+	}
+
 	reservedStableTags := map[string]bool{}
 	for i := range parsed {
 		if i < len(identities) && prev[identities[i]] != "" {
-			reservedStableTags[prev[identities[i]]] = true
+			tag := prev[identities[i]]
+			if strings.HasPrefix(tag, expectedPrefix) {
+				reservedStableTags[tag] = true
+			}
 		}
 	}
 
@@ -617,22 +629,18 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 		}
 		candidate := ""
 		identityTag := ""
-		if old, ok := prev[id]; ok && old != "" {
+		if old, ok := prev[id]; ok && old != "" && strings.HasPrefix(old, expectedPrefix) {
 			candidate = old
 			identityTag = old
 		}
 		if candidate == "" {
 			// try to reuse by rough positional match from previous fetch (best effort)
-			if old, ok := prevTagByIndex[i]; ok && old != "" && !reservedStableTags[old] {
+			if old, ok := prevTagByIndex[i]; ok && old != "" && strings.HasPrefix(old, expectedPrefix) && !reservedStableTags[old] {
 				candidate = old
 			}
 		}
 		if candidate == "" {
 			// fresh allocation
-			prefix := tagPrefix
-			if prefix == "" {
-				prefix = fmt.Sprintf("sub%d-", subID)
-			}
 			remark := ""
 			if m, ok := parsed[i]["tag"].(string); ok {
 				remark = m

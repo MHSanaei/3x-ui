@@ -1133,10 +1133,58 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
+
+	// Template outbounds take tag priority (must not be altered by injected subscriptions).
+	usedTags := make(map[string]bool)
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				usedTags[tag] = true
+			}
+		}
+	}
+
+	dedupeTags := func(list []any) []any {
+		out := make([]any, len(list))
+		for i, item := range list {
+			ob, ok := item.(map[string]any)
+			if !ok {
+				out[i] = item
+				continue
+			}
+			tag, _ := ob["tag"].(string)
+			if tag == "" {
+				out[i] = item
+				continue
+			}
+			if !usedTags[tag] {
+				usedTags[tag] = true
+				out[i] = item
+				continue
+			}
+			// Clone map to avoid mutating caller/shared data
+			cloned := make(map[string]any, len(ob))
+			for k, v := range ob {
+				cloned[k] = v
+			}
+			final := tag
+			for k := 1; usedTags[final]; k++ {
+				final = fmt.Sprintf("%s-%d", tag, k)
+			}
+			usedTags[final] = true
+			cloned["tag"] = final
+			out[i] = cloned
+		}
+		return out
+	}
+
+	prependClean := dedupeTags(prepend)
+	appendClean := dedupeTags(appendList)
+
 	var merged []any
-	merged = append(merged, prepend...)
+	merged = append(merged, prependClean...)
 	merged = append(merged, templateOutbounds...)
-	merged = append(merged, appendList...)
+	merged = append(merged, appendClean...)
 	combined, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return
