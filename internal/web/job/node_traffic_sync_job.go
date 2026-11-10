@@ -80,6 +80,18 @@ func NewNodeTrafficSyncJob() *NodeTrafficSyncJob {
 	return &NodeTrafficSyncJob{}
 }
 
+// applyDepletionOutcome acts on AddTraffic's result: needRestart means a local
+// runtime removal failed after the DB commit and only a restart drops the client.
+func (j *NodeTrafficSyncJob) applyDepletionOutcome(needRestart, clientsDisabled bool) {
+	if needRestart {
+		j.xrayService.SetToNeedRestart()
+	}
+	if clientsDisabled {
+		j.xrayService.ReconcileAfterClientsDisabled()
+		j.structural.set()
+	}
+}
+
 func (j *NodeTrafficSyncJob) Run() {
 	if !j.running.TryLock() {
 		return
@@ -134,21 +146,11 @@ func (j *NodeTrafficSyncJob) Run() {
 	}
 	wg.Wait()
 
-	_, clientsDisabled, err := j.inboundService.AddTraffic(nil, nil)
+	needRestart, clientsDisabled, err := j.inboundService.AddTraffic(nil, nil)
 	if err != nil {
 		logger.Warning("node traffic sync: depletion check failed:", err)
 	}
-	if clientsDisabled {
-		if restartOnDisable, settingErr := j.settingService.GetRestartXrayOnClientDisable(); settingErr == nil && restartOnDisable {
-			if err := j.xrayService.RestartXray(true); err != nil {
-				logger.Warning("node traffic sync: restart xray after disabling clients failed:", err)
-				j.xrayService.SetToNeedRestart()
-			}
-		} else if settingErr != nil {
-			logger.Warning("node traffic sync: get RestartXrayOnClientDisable failed:", settingErr)
-		}
-		j.structural.set()
-	}
+	j.applyDepletionOutcome(needRestart, clientsDisabled)
 
 	j.maybePushGlobals(mgr, nodes)
 

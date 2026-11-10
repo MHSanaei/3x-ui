@@ -70,6 +70,23 @@ func TestAtomicBool_ConcurrentSettersExactlyOneTakeWins(t *testing.T) {
 	}
 }
 
+// AddTraffic reports needRestart when a depleted client's local removal failed
+// after the DB commit; dropping it left that client connectable indefinitely.
+func TestApplyDepletionOutcomeKeepsPendingRestart(t *testing.T) {
+	j := NewNodeTrafficSyncJob()
+	j.xrayService.IsNeedRestartAndSetFalse()
+	t.Cleanup(func() { j.xrayService.IsNeedRestartAndSetFalse() })
+
+	j.applyDepletionOutcome(true, false)
+
+	if !j.xrayService.IsNeedRestartAndSetFalse() {
+		t.Fatal("a failed local removal must leave a pending xray restart")
+	}
+	if j.structural.takeAndReset() {
+		t.Fatal("no client was disabled, so no structural node push is due")
+	}
+}
+
 // Regression (#6283): a node onboarded in selected mode with an empty tag
 // list empties its snapshot via FilterNodeSnapshot before the merge sees it,
 // so that sync adopts nothing and must not stamp InboundsAdoptedAt.

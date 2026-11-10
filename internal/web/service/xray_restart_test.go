@@ -19,6 +19,30 @@ func TestRestartXrayRespectsManualStop(t *testing.T) {
 	}
 }
 
+// The node traffic sync used to force this restart, which starts a core the
+// operator stopped whenever a node-hosted client depletes.
+func TestReconcileAfterClientsDisabledRespectsManualStop(t *testing.T) {
+	setupSettingTestDB(t)
+	settings := &SettingService{}
+	if err := settings.saveSetting("xrayTemplateConfig", "{ not valid json"); err != nil {
+		t.Fatalf("seed template: %v", err)
+	}
+	if err := settings.SetRestartXrayOnClientDisable(true); err != nil {
+		t.Fatalf("enable restartXrayOnClientDisable: %v", err)
+	}
+	t.Cleanup(func() {
+		isManuallyStopped.Store(false)
+		isNeedXrayRestart.Store(false)
+	})
+
+	isManuallyStopped.Store(true)
+	(&XrayService{}).ReconcileAfterClientsDisabled()
+
+	if !isManuallyStopped.Load() {
+		t.Fatal("reconciling disabled clients cleared a deliberate manual stop and would revive xray")
+	}
+}
+
 func TestApplyPendingRestartReArmsFlagOnFailure(t *testing.T) {
 	setupSettingTestDB(t)
 	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", "{ not valid json"); err != nil {

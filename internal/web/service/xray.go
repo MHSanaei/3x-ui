@@ -1646,6 +1646,23 @@ func (s *XrayService) ApplyPendingRestart() {
 	}
 }
 
+// ReconcileAfterClientsDisabled drops auto-disabled clients from the running core when the
+// operator opted in. Never forced, so live connections and a manual stop survive (#5712).
+func (s *XrayService) ReconcileAfterClientsDisabled() {
+	restartOnDisable, err := s.settingService.GetRestartXrayOnClientDisable()
+	if err != nil {
+		logger.Warning("get RestartXrayOnClientDisable failed:", err)
+		return
+	}
+	if !restartOnDisable {
+		return
+	}
+	if err := s.RestartXray(false); err != nil {
+		logger.Warning("reconcile xray after disabling clients failed:", err)
+		s.SetToNeedRestart()
+	}
+}
+
 // DidXrayCrash checks if Xray crashed by verifying it's not running and wasn't manually stopped.
 func (s *XrayService) DidXrayCrash() bool {
 	return !s.IsXrayRunning() && !isManuallyStopped.Load()
