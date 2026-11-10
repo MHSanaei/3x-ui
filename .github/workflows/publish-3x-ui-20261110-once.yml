@@ -1,0 +1,35 @@
+name: Publish 3x-ui-20261110 once
+
+on:
+  push:
+    paths:
+      - .github/workflows/publish-3x-ui-20261110-once.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: 701a2953e9d01f8e7cad424a9ea511b66391953d
+      RELEASE_TAG: 3x-ui-20261110
+    steps:
+      - name: Dispatch tested dated release and update channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run release.yml --ref main -f source_ref="$SOURCE_SHA" -f release_tag="$RELEASE_TAG"
+          RUN_ID=""
+          for attempt in $(seq 1 30); do
+            RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 10 --json databaseId --jq '.[0].databaseId // empty')"
+            [[ -n "$RUN_ID" ]] && break
+            sleep 5
+          done
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          echo "3x-ui release run: $RUN_ID"
+          gh run watch "$RUN_ID" --exit-status
