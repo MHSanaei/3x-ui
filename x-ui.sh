@@ -3938,7 +3938,7 @@ exit_pool_install() (
     local version="v0.9.7"
     local installer_revision="94154917da8955838289d2994249ae91ceb9fff0"
     local installer_sha256="b0815ea91bb005f7b8c9614dd669cb1da399545b6242c72ac914c572293fd6f3"
-    local package_sha256="d8b962f89dda95cdd6fa815d6b7257c6806a0d044d60d63a97b44ea0f2ff8b5d"
+    local package_sha256="8f49a8a9b9e60c8596566efeebeca8cd52ba7e41237747ac57b470512f3d143d"
     local task_dir installer package release_url
 
     if [[ "${running_in_docker}" == "true" ]]; then
