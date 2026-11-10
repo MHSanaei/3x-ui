@@ -119,15 +119,25 @@ func decryptToken(n *model.Node) {
 	n.ApiToken = pt
 }
 
-func (s *NodeService) GetAll() ([]*model.Node, error) {
-	db := database.GetDB()
+// List returns every node row with a usable token and none of the dashboard
+// counters, so the 5s sync jobs do not pay for GetAll's client joins.
+func (s *NodeService) List() ([]*model.Node, error) {
 	var nodes []*model.Node
-	err := db.Model(model.Node{}).Order("id asc").Find(&nodes).Error
-	if err != nil || len(nodes) == 0 {
+	if err := database.GetDB().Model(model.Node{}).Order("id asc").Find(&nodes).Error; err != nil {
 		return nodes, err
 	}
 	for _, n := range nodes {
 		decryptToken(n)
+	}
+	return nodes, nil
+}
+
+// GetAll is List plus the per-node inbound/client/online counters the node page shows.
+func (s *NodeService) GetAll() ([]*model.Node, error) {
+	db := database.GetDB()
+	nodes, err := s.List()
+	if err != nil || len(nodes) == 0 {
+		return nodes, err
 	}
 
 	type inboundRow struct {

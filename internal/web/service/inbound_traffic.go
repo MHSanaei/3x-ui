@@ -848,7 +848,7 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 // remoteHTTPTimeout, and holding the single serial writer across N such calls
 // stalls traffic accounting and drops the deltas of every concurrent poll.
 func (s *InboundService) propagateResetAllTrafficsToNodes() {
-	nodes, err := (&NodeService{}).GetAll()
+	nodes, err := (&NodeService{}).List()
 	if err != nil {
 		return
 	}

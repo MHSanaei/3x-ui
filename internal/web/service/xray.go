@@ -464,7 +464,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectPanelEgress(xrayConfig, egressTag)
 	}
 
-	nodes, err := s.nodeService.GetAll()
+	nodes, err := s.nodeService.List()
 	if err != nil {
 		logger.Warning("read nodes for egress injection failed:", err)
 	} else {
