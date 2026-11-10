@@ -7,7 +7,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -19,17 +19,16 @@ jobs:
       SOURCE_SHA: 701a2953e9d01f8e7cad424a9ea511b66391953d
       RELEASE_TAG: 3x-ui-20261110
     steps:
-      - name: Dispatch tested dated release and update channel
+      - name: Create draft and dispatch tested dated release
         shell: bash
         run: |
           set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --target "$SOURCE_SHA" --draft               --title "$RELEASE_TAG"               --notes "Verified update based on the preserved dev+6d205a91 line. Adds isolated supplemental residential/native datacenter exits, IPv6-safe TCP/UDP routing, update-loop fixes, and security hardening. The immutable backup remains dev-6d205a91-backup."
+          fi
           gh workflow run release.yml --ref main -f source_ref="$SOURCE_SHA" -f release_tag="$RELEASE_TAG"
-          RUN_ID=""
-          for attempt in $(seq 1 30); do
-            RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 10 --json databaseId --jq '.[0].databaseId // empty')"
-            [[ -n "$RUN_ID" ]] && break
-            sleep 5
-          done
+          sleep 10
+          RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
           [[ "$RUN_ID" =~ ^[0-9]+$ ]]
           echo "3x-ui release run: $RUN_ID"
           gh run watch "$RUN_ID" --exit-status
