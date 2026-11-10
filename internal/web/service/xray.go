@@ -1321,13 +1321,15 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 		}
 		return statuses, nil
 	}
-	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
+	// Handlers share one XrayService, so each call dials its own client.
+	api := xray.XrayAPI{}
+	if err := api.Init(process.GetAPIPort()); err != nil {
 		return nil, err
 	}
-	defer s.xrayAPI.Close()
+	defer api.Close()
 
 	for _, tag := range tags {
-		info, err := s.xrayAPI.GetBalancerInfo(tag)
+		info, err := api.GetBalancerInfo(tag)
 		if err != nil {
 			logger.Debug("get balancer info [", tag, "] failed:", err)
 			statuses = append(statuses, BalancerStatus{Tag: tag})
@@ -1367,11 +1369,12 @@ func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResul
 	if process == nil || !process.IsRunning() {
 		return nil, errors.New("xray is not running")
 	}
-	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
+	api := xray.XrayAPI{}
+	if err := api.Init(process.GetAPIPort()); err != nil {
 		return nil, err
 	}
-	defer s.xrayAPI.Close()
-	return s.xrayAPI.TestRoute(req)
+	defer api.Close()
+	return api.TestRoute(req)
 }
 
 // RestartXray reconciles the running Xray process with the current desired

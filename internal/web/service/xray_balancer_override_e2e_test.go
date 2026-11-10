@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -174,6 +176,34 @@ func saveDuringTest(t *testing.T, process *xray.Process, cfg *xray.Config) {
 	if !(&XrayService{}).tryHotApply(process, cfg) {
 		t.Fatal("tryHotApply = false, want the change applied live")
 	}
+}
+
+// The controller keeps one XrayService for every request. Status polls and route
+// tests used to dial through its shared API client, closing it under each other.
+func TestBalancerStatusAndRouteTestAreSafeForConcurrentRequests(t *testing.T) {
+	startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	svc := &XrayService{}
+
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for range 10 {
+				statuses, err := svc.GetBalancersStatus([]string{"b1"})
+				if err != nil || len(statuses) != 1 || !statuses[0].Running {
+					t.Errorf("GetBalancersStatus = %+v, %v; want b1 running", statuses, err)
+				}
+			}
+		})
+		wg.Go(func() {
+			for range 10 {
+				result, err := svc.TestRoute(xray.RouteTestRequest{IP: "203.0.113.1", Port: 7777})
+				if err != nil || !strings.HasPrefix(result.OutboundTag, "proxy-") {
+					t.Errorf("TestRoute = %+v, %v; want a b1 balancer target", result, err)
+				}
+			}
+		})
+	}
+	wg.Wait()
 }
 
 // Every routing save is hot-applied with AddRule(shouldAppend=false), which
