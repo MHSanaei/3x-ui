@@ -1393,6 +1393,12 @@ func mergeMasterRoutingRules(routerCfg json_util.RawMessage, masterRules string)
 	merged := make([]any, 0, len(rules)+len(policy))
 	merged = append(merged, rules[:insertAt]...)
 	for _, rule := range policy {
+		// Honour the per-rule "enabled" flag the same way stripDisabledRules
+		// does for the node's own rules: a rule explicitly disabled in the
+		// policy must not become live on the node.
+		if enabled, ok := rule["enabled"].(bool); ok && !enabled {
+			continue
+		}
 		// Panel-only keys are stripped the same way stripDisabledRules does.
 		delete(rule, "enabled")
 		delete(rule, "comment")

@@ -261,7 +261,7 @@ func TestMergeMasterRoutingRules(t *testing.T) {
 		t.Fatalf("broken policy changed the config: %s", got)
 	}
 
-	policy := `[{"type":"field","network":"udp","outboundTag":"direct","comment":"panel key","enabled":false}]`
+	policy := `[{"type":"field","network":"udp","outboundTag":"direct","comment":"panel key","enabled":false},{"type":"field","domain":["y.test"],"outboundTag":"direct"}]`
 	got := mergeMasterRoutingRules(json_util.RawMessage(base), policy)
 	var merged struct {
 		Rules []map[string]any `json:"rules"`
@@ -269,8 +269,15 @@ func TestMergeMasterRoutingRules(t *testing.T) {
 	if err := json.Unmarshal(got, &merged); err != nil {
 		t.Fatalf("merge produced unparseable routing: %v", err)
 	}
+	// The disabled rule is dropped; only the enabled one is merged in.
 	if len(merged.Rules) != 3 {
-		t.Fatalf("merged rule count = %d, want 3", len(merged.Rules))
+		t.Fatalf("merged rule count = %d, want 3 (api + 1 enabled policy + original)", len(merged.Rules))
+	}
+	// Ensure the disabled rule (network:udp) did not make it through.
+	for _, r := range merged.Rules {
+		if n, _ := r["network"].(string); n == "udp" {
+			t.Fatalf("disabled policy rule leaked into merged config: %v", r)
+		}
 	}
 	if merged.Rules[0]["outboundTag"] != "api" {
 		t.Fatalf("api stats rule no longer pinned first: %v", merged.Rules[0])

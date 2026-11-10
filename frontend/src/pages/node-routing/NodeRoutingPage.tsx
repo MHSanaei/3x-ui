@@ -234,6 +234,7 @@ export default function NodeRoutingPage() {
                             {t('pages.nodeRouting.control')}
                           </Typography.Text>
                           <Switch
+                            aria-label={t('pages.nodeRouting.control')}
                             checked={enabled}
                             onChange={(v) => {
                               updateSetting({ nodeRoutingControl: v });
