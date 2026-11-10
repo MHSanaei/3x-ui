@@ -136,6 +136,57 @@ func TestTrafficWriterConcurrentStopDuringSubmitDoesNotHang(t *testing.T) {
 	}
 }
 
+// A submitter parked on a full queue used to hold twMu for the whole submit
+// timeout, convoying every other submitter and Start/StopTrafficWriter behind it.
+func TestTrafficWriterFullQueueDoesNotHoldWriterLock(t *testing.T) {
+	resetTrafficWriterForTest(t)
+	prevTimeout := trafficWriterSubmitTimeout
+	trafficWriterSubmitTimeout = time.Minute
+	t.Cleanup(func() { trafficWriterSubmitTimeout = prevTimeout })
+
+	StartTrafficWriter()
+	started := make(chan struct{})
+	release := make(chan struct{})
+	released := false
+	t.Cleanup(func() {
+		if !released {
+			close(release)
+		}
+	})
+	results := make(chan error, trafficWriterQueueSize+2)
+	go func() {
+		results <- submitTrafficWrite(func() error {
+			close(started)
+			<-release
+			return nil
+		})
+	}()
+	waitTrafficWriterSignal(t, started, "blocking write did not start")
+
+	for range trafficWriterQueueSize {
+		go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	}
+	waitTrafficWriterQueueLen(t, trafficWriterQueueSize)
+
+	go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	time.Sleep(50 * time.Millisecond)
+
+	lockFree := make(chan struct{})
+	go func() {
+		StartTrafficWriter()
+		close(lockFree)
+	}()
+	waitTrafficWriterSignal(t, lockFree, "twMu stayed held while a submitter waited on the full queue")
+
+	close(release)
+	released = true
+	for range trafficWriterQueueSize + 2 {
+		if err := waitTrafficWriterErr(t, results); err != nil {
+			t.Fatalf("submitTrafficWrite: %v", err)
+		}
+	}
+}
+
 func resetTrafficWriterForTest(t *testing.T) {
 	t.Helper()
 	StopTrafficWriter()
@@ -152,6 +203,11 @@ func resetTrafficWriterForTest(t *testing.T) {
 
 func waitTrafficWriterQueued(t *testing.T) {
 	t.Helper()
+	waitTrafficWriterQueueLen(t, 1)
+}
+
+func waitTrafficWriterQueueLen(t *testing.T, want int) {
+	t.Helper()
 
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
@@ -161,12 +217,12 @@ func waitTrafficWriterQueued(t *testing.T) {
 			queued = len(twQueue)
 		}
 		twMu.Unlock()
-		if queued > 0 {
+		if queued >= want {
 			return
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatal("write was not queued")
+	t.Fatalf("fewer than %d writes were queued", want)
 }
 
 func waitTrafficWriterSignal(t *testing.T, ch <-chan struct{}, msg string) {

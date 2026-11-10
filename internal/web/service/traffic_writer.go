@@ -13,10 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	trafficWriterQueueSize     = 256
-	trafficWriterSubmitTimeout = 5 * time.Second
-)
+const trafficWriterQueueSize = 256
+
+// A var so tests can park a submitter on a full queue without waiting it out.
+var trafficWriterSubmitTimeout = 5 * time.Second
 
 type trafficWriteRequest struct {
 	apply func() error
@@ -159,25 +159,25 @@ func submitTrafficWrite(fn func() error) error {
 	queue := twQueue
 	ctx := twCtx
 	done := twDone
+	twMu.Unlock()
 	if queue == nil || ctx == nil || done == nil {
-		twMu.Unlock()
 		return safeApply(fn)
 	}
 
-	select {
-	case <-ctx.Done():
-		twMu.Unlock()
+	// A stopping writer still drains its queue; run inline only once it has exited.
+	if ctx.Err() != nil {
+		<-done
 		return safeApply(fn)
-	default:
 	}
 
 	timer := time.NewTimer(trafficWriterSubmitTimeout)
 	defer timer.Stop()
 	select {
 	case queue <- req:
-		twMu.Unlock()
+	case <-ctx.Done():
+		<-done
+		return safeApply(fn)
 	case <-timer.C:
-		twMu.Unlock()
 		return errors.New("traffic writer queue full")
 	}
 
@@ -185,11 +185,12 @@ func submitTrafficWrite(fn func() error) error {
 	case err := <-req.done:
 		return err
 	case <-done:
+		// The writer answers before it exits, so an empty done means it never ran req.
 		select {
 		case err := <-req.done:
 			return err
 		default:
-			return errors.New("traffic writer stopped before write completed")
+			return safeApply(fn)
 		}
 	}
 }
