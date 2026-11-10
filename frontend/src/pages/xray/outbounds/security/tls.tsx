@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Input, Select, Switch } from 'antd';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 
 import { ALPN_OPTIONS, UTLS_OPTIONS } from '../outbound-form-constants';
@@ -20,7 +21,7 @@ export default function TlsForm() {
         />
       </FormField>
       <FormField label="ALPN" name={['streamSettings', 'tlsSettings', 'alpn']}>
-        <Select mode="multiple" options={ALPN_OPTIONS} />
+        <Select mode="multiple" tagRender={selectTagRender} options={ALPN_OPTIONS} />
       </FormField>
       <FormField label="ECH" name={['streamSettings', 'tlsSettings', 'echConfigList']}>
         <Input />

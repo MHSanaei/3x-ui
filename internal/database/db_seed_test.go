@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -107,6 +108,56 @@ func TestEnsureFirstUserCreatesOneWorkingCredential(t *testing.T) {
 	}
 }
 
+// Old releases drew the cookie-signing secret from a clock-seeded math/rand, and a
+// stored value cannot tell its generator, so an upgrade must replace it exactly once.
+func TestSessionSecretRotatesOnceOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	reopen := func() []string {
+		t.Helper()
+		if err := CloseDB(); err != nil {
+			t.Fatalf("CloseDB: %v", err)
+		}
+		if err := InitDB(dbPath); err != nil {
+			t.Fatalf("reopen InitDB: %v", err)
+		}
+		var secrets []string
+		if err := db.Model(&model.Setting{}).Where("key = ?", "secret").Pluck("value", &secrets).Error; err != nil {
+			t.Fatalf("read secret: %v", err)
+		}
+		return secrets
+	}
+	storeSecret := func(value string) {
+		t.Helper()
+		if err := db.Where("key = ?", "secret").Delete(&model.Setting{}).Error; err != nil {
+			t.Fatalf("clear secret: %v", err)
+		}
+		if err := db.Create(&model.Setting{Key: "secret", Value: value}).Error; err != nil {
+			t.Fatalf("store secret: %v", err)
+		}
+	}
+
+	storeSecret("kept-on-a-fresh-install")
+	if got := reopen(); len(got) != 1 || got[0] != "kept-on-a-fresh-install" {
+		t.Fatalf("fresh install secret = %q after restart, want it kept", got)
+	}
+
+	storeSecret("rfBd56ti2SMtYvSgD5xAV0YU99zampta")
+	if err := db.Where("seeder_name = ?", "SessionSecretRotation").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if got := reopen(); len(got) != 0 {
+		t.Fatalf("secret = %q after upgrade, want the pre-upgrade secret dropped", got)
+	}
+	storeSecret("drawn-after-upgrade")
+	if got := reopen(); len(got) != 1 || got[0] != "drawn-after-upgrade" {
+		t.Fatalf("secret = %q, want the rotated secret kept so restarts do not log everyone out", got)
+	}
+}
+
 func TestSeedClientsFromInboundJSON_IsIdempotentAgainstExistingClients(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
@@ -166,6 +217,47 @@ func TestSeedClientsFromInboundJSON_IsIdempotentAgainstExistingClients(t *testin
 	}
 	if count != 1 {
 		t.Fatalf("alice@example.com should resolve to exactly one row, got %d", count)
+	}
+}
+
+func TestSeedClientsFromInboundJSON_KeepsTheManualSwitch(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	inbound := model.Inbound{
+		UserId:   1,
+		Port:     12345,
+		Protocol: model.VLESS,
+		Settings: `{"clients": [
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c001", "email": "paying", "enable": true},
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c002", "email": "banned", "enable": false},
+			{"id": "ce8d33df-3a64-4f10-8f9b-91c3a8e0c003", "email": "no-switch"}
+		]}`,
+		Tag: "test-inbound",
+	}
+	if err := db.Create(&inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := db.Where("seeder_name = ?", "ClientsTable").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear ClientsTable history: %v", err)
+	}
+
+	if err := seedClientsFromInboundJSON(); err != nil {
+		t.Fatalf("seedClientsFromInboundJSON: %v", err)
+	}
+
+	for email, want := range map[string]bool{"paying": true, "banned": false, "no-switch": true} {
+		var row model.ClientRecord
+		if err := db.Where("email = ?", email).First(&row).Error; err != nil {
+			t.Fatalf("read client %s: %v", email, err)
+		}
+		if row.Enable != want {
+			t.Errorf("client %s migrated with enable = %v, want %v", email, row.Enable, want)
+		}
 	}
 }
 
@@ -292,6 +384,111 @@ func TestNormalizeSettingPaths_RepairsLegacyValues(t *testing.T) {
 		}
 		if row.Value != expected {
 			t.Errorf("%s = %q, want %q", key, row.Value, expected)
+		}
+	}
+}
+
+// A padded group name was listed as its own group while every action on it hit the trimmed
+// one, so the upgrade folds stored names onto their trimmed form.
+func TestClientGroupNamesTrimmedOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	for email, group := range map[string]string{"a@x": "vip ", "b@x": "\tvip", "c@x": "vip"} {
+		if err := db.Create(&model.ClientRecord{Email: email, Group: group, Enable: true}).Error; err != nil {
+			t.Fatalf("seed %s: %v", email, err)
+		}
+	}
+	if err := db.Where("seeder_name = ?", "ClientGroupNameTrim").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	var groups []string
+	if err := db.Model(&model.ClientRecord{}).Distinct().Pluck("group_name", &groups).Error; err != nil {
+		t.Fatalf("read groups: %v", err)
+	}
+	if len(groups) != 1 || groups[0] != "vip" {
+		t.Fatalf("groups after upgrade = %q, want [vip]", groups)
+	}
+}
+
+// Requests naming a subId no client owns stored HWID rows that nothing ever reads; the
+// upgrade drops them and keeps the rows of real subscriptions.
+func TestOwnerlessClientHwidsPurgedOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	if err := db.Create(&model.ClientRecord{Email: "a@x", SubID: "owned", Enable: true}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	for i, sub := range []string{"owned", "junk-1", "junk-2"} {
+		if err := db.Create(&model.ClientHwid{SubID: sub, HwidHash: fmt.Sprintf("h%d", i), FirstSeen: 1, LastSeen: 1}).Error; err != nil {
+			t.Fatalf("seed hwid %s: %v", sub, err)
+		}
+	}
+	if err := db.Where("seeder_name = ?", "OwnerlessClientHwidPurge").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	var subs []string
+	if err := db.Model(&model.ClientHwid{}).Pluck("sub_id", &subs).Error; err != nil {
+		t.Fatalf("read hwids: %v", err)
+	}
+	if len(subs) != 1 || subs[0] != "owned" {
+		t.Fatalf("hwid rows after upgrade = %q, want [owned]", subs)
+	}
+}
+
+// The editor fills forwardedPorts from the record, and an emptied field now withdraws the
+// forwards: a record left at its creation value would drop live forwards on the next save.
+func TestClientForwardedPortsBackfilledOnUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	if err := db.Create(&model.ClientRecord{Email: "fwd@x", Enable: true}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientRecord{Email: "kept@x", Enable: true, ForwardedPorts: "9000"}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.Inbound{
+		Tag: "awg", Port: 51820, Protocol: model.AmneziaWG, Enable: true,
+		Settings: `{"clients":[{"email":"fwd@x","forwardedPorts":"8022"},{"email":"kept@x","forwardedPorts":"9001"}]}`,
+	}).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := db.Where("seeder_name = ?", "ClientForwardedPortsBackfill").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+	for email, want := range map[string]string{"fwd@x": "8022", "kept@x": "9000"} {
+		var rec model.ClientRecord
+		if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
+			t.Fatalf("read %s: %v", email, err)
+		}
+		if rec.ForwardedPorts != want {
+			t.Errorf("%s forwardedPorts = %q after upgrade, want %q", email, rec.ForwardedPorts, want)
 		}
 	}
 }

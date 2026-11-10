@@ -4,6 +4,7 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 
 interface StringListProps {
@@ -46,9 +47,10 @@ function StringList({ name, label, tooltip, placeholder }: StringListProps) {
   );
 }
 
-// xray-core 26.9.30 accepts exactly these autoSystemWfpBlockLeak values.
+// Named autoSystemWfpBlockLeak values; xray-core 26.10.31 also takes typed "tcp/<port>" or "udp/<port>".
 const WFP_BLOCK_LEAK_OPTIONS = [
   { value: 'dns', label: 'dns' },
+  { value: 'windnsclient', label: 'windnsclient' },
   { value: 'misconfigtun', label: 'misconfigtun' },
 ];
 
@@ -110,7 +112,9 @@ export default function TunFields() {
       >
         <Select
           id="tun-wfp-block-leak"
-          mode="multiple"
+          mode="tags"
+          tagRender={selectTagRender}
+          tokenSeparators={[',', ' ']}
           allowClear
           options={WFP_BLOCK_LEAK_OPTIONS}
         />

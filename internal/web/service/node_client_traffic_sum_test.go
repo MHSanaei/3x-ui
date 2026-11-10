@@ -38,7 +38,7 @@ func createNodeInbound(t *testing.T, db *gorm.DB, nodeID int, tag string, port i
 }
 
 // createNodeInboundWithClient mirrors createNodeInbound but stores the client
-// in the settings JSON, which the node sync turns into a client_inbounds link.
+// in the settings JSON and links it, as attaching it on the master does.
 func createNodeInboundWithClient(t *testing.T, db *gorm.DB, nodeID int, tag string, port int, email string) {
 	t.Helper()
 	nid := nodeID
@@ -46,6 +46,9 @@ func createNodeInboundWithClient(t *testing.T, db *gorm.DB, nodeID int, tag stri
 	ib := &model.Inbound{UserId: 1, Tag: tag, Enable: true, Port: port, Protocol: model.VLESS, NodeID: &nid, Settings: settings}
 	if err := db.Create(ib).Error; err != nil {
 		t.Fatalf("create node inbound %q: %v", tag, err)
+	}
+	if err := (&ClientService{}).SyncInbound(db, ib.Id, []model.Client{{Email: email, Enable: true}}); err != nil {
+		t.Fatalf("link %q to %q: %v", email, tag, err)
 	}
 }
 

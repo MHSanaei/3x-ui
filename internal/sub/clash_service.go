@@ -15,7 +15,6 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -90,7 +89,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
-					render := func() []map[string]any { return s.getProxies(subReq, variant.inbound(subReq, inbound), client, host) }
+					render := func() []map[string]any {
+						return s.budgetedProxies(subReq, variant.inbound(subReq, inbound), client, host)
+					}
 					ordered = append(ordered, orderedSubEntry[func() []map[string]any]{variant.order, render})
 				}
 				continue
@@ -106,7 +107,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
+			proxies = append(proxies, s.budgetedProxies(subReq, effective, client, host)...)
 		}
 	}
 	if subReq.hostsFirst {
@@ -523,11 +524,8 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	return proxy
 }
 
-// buildHysteriaProxy produces a mihomo-compatible Clash entry for a
-// Hysteria (v1) or Hysteria2 inbound. It reads `inbound.StreamSettings`
-// directly instead of going through streamData/tlsData, because those
-// helpers prune fields (like `allowInsecure` / the salamander obfs
-// block) that the hysteria proxy wants preserved.
+// buildHysteriaProxy reads the raw stream because streamData prunes
+// TLS pins and finalmask settings needed by Hysteria clients.
 func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
 	inboundSettings := subReq.linkSettings(inbound)
 
@@ -550,34 +548,9 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	var rawStream map[string]any
 	_ = json.Unmarshal([]byte(inbound.StreamSettings), &rawStream)
 
-	// TLS details — hysteria always uses TLS.
-	if tlsSettings, ok := rawStream["tlsSettings"].(map[string]any); ok {
-		if serverName, ok := tlsSettings["serverName"].(string); ok && serverName != "" {
-			proxy["sni"] = serverName
-		}
-		if alpnList, ok := tlsSettings["alpn"].([]any); ok && len(alpnList) > 0 {
-			out := make([]string, 0, len(alpnList))
-			for _, a := range alpnList {
-				if s, ok := a.(string); ok && s != "" {
-					out = append(out, s)
-				}
-			}
-			if len(out) > 0 {
-				proxy["alpn"] = out
-			}
-		}
-		if inner, ok := tlsSettings["settings"].(map[string]any); ok {
-			if insecure, ok := inner["allowInsecure"].(bool); ok && insecure {
-				proxy["skip-cert-verify"] = true
-			}
-			if fp, ok := inner["fingerprint"].(string); ok && fp != "" {
-				proxy["client-fingerprint"] = fp
-			}
-			if certFingerprint := mihomoCertFingerprint(inner["pinnedPeerCertSha256"]); certFingerprint != "" {
-				proxy["fingerprint"] = certFingerprint
-			}
-		}
-	}
+	tlsSettings, _ := rawStream["tlsSettings"].(map[string]any)
+	clientTLS, _ := tlsSettings["settings"].(map[string]any)
+	applyHysteriaTLS(proxy, tlsSettings, clientTLS)
 	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
 		proxy["skip-cert-verify"] = true
 	}
@@ -585,39 +558,54 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 		proxy["fingerprint"] = certFingerprint
 	}
 
-	// Salamander obfs (Hysteria2), read from the same finalmask.udp[salamander]
-	// block as the link generator; a packetSize range is mihomo's gecko obfs.
-	if finalmask, ok := rawStream["finalmask"].(map[string]any); ok {
-		if udpMasks, ok := finalmask["udp"].([]any); ok {
-			for _, m := range udpMasks {
-				mask, _ := m.(map[string]any)
-				if mask == nil || mask["type"] != "salamander" {
-					continue
-				}
-				settings, _ := mask["settings"].(map[string]any)
-				if pw, ok := settings["password"].(string); ok && pw != "" {
-					proxy["obfs"] = "salamander"
-					proxy["obfs-password"] = pw
-					packetSize, _ := settings["packetSize"].(string)
-					if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
-						minStr, maxStr := splitHysteriaPacketSize(gecko)
-						proxy["obfs"] = "gecko"
-						proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
-						proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
-					}
-					break
-				}
-			}
-		}
-	}
-
-	// UDP port hopping. mihomo reads the range from a dedicated `ports`
-	// field (the base `port` stays as the redirect target).
-	if hopPorts := hysteriaHopPorts(rawStream); hopPorts != "" {
-		proxy["ports"] = hopPorts
-	}
+	applyHysteriaFinalMask(proxy, rawStream)
 
 	return proxy
+}
+
+func applyHysteriaTLS(proxy, tlsSettings, clientTLS map[string]any) {
+	if sni, _ := tlsSettings["serverName"].(string); sni != "" {
+		proxy["sni"] = sni
+	}
+	if alpn := clashStringList(tlsSettings["alpn"]); len(alpn) > 0 {
+		proxy["alpn"] = alpn
+	}
+	if insecure, _ := clientTLS["allowInsecure"].(bool); insecure {
+		proxy["skip-cert-verify"] = true
+	}
+	if fp, _ := clientTLS["fingerprint"].(string); fp != "" {
+		proxy["client-fingerprint"] = fp
+	}
+	if certFingerprint := mihomoCertFingerprint(clientTLS["pinnedPeerCertSha256"]); certFingerprint != "" {
+		proxy["fingerprint"] = certFingerprint
+	}
+}
+
+func applyHysteriaFinalMask(proxy, stream map[string]any) {
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	udpMasks, _ := finalmask["udp"].([]any)
+	for _, m := range udpMasks {
+		mask, _ := m.(map[string]any)
+		if mask == nil || mask["type"] != "salamander" {
+			continue
+		}
+		settings, _ := mask["settings"].(map[string]any)
+		if pw, ok := settings["password"].(string); ok && pw != "" {
+			proxy["obfs"] = "salamander"
+			proxy["obfs-password"] = pw
+			packetSize, _ := settings["packetSize"].(string)
+			if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
+				minStr, maxStr := splitHysteriaPacketSize(gecko)
+				proxy["obfs"] = "gecko"
+				proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
+				proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
+			}
+			break
+		}
+	}
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		proxy["ports"] = hopPorts
+	}
 }
 
 // Mihomo supports only one certificate fingerprint, so mihomoCertFingerprint
@@ -668,8 +656,7 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		return nil
 	}
 
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	secretKey, _ := inboundSettings["secretKey"].(string)
 
 	proxy := map[string]any{
@@ -721,21 +708,18 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 }
 
 func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
-	inst, ok := tuic.InstanceFromInbound(inbound)
-	if !ok {
+	inst := subReq.tuicInstanceForLink(inbound)
+	if inst == nil {
 		return nil
 	}
 	uuid := client.ID
 	password := client.Password
-	for _, c := range inst.Clients {
-		if c.Email == client.Email {
-			if uuid == "" {
-				uuid = c.UUID
-			}
-			if password == "" {
-				password = c.Password
-			}
-			break
+	if c := inst.byEmail[client.Email]; c != nil {
+		if uuid == "" {
+			uuid = c.UUID
+		}
+		if password == "" {
+			password = c.Password
 		}
 	}
 	if uuid == "" || password == "" {
@@ -777,15 +761,9 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 // amneziaWGClientAddresses prefers this inbound's own settings entry over the
 // shared clients.wg_allowed_ips column, which for an identity attached to both
 // a wireguard and an amneziawg inbound holds the other one's address.
-func amneziaWGClientAddresses(settingsClients []model.Client, client model.Client) []string {
-	for i := range settingsClients {
-		if !strings.EqualFold(settingsClients[i].Email, client.Email) {
-			continue
-		}
-		if len(settingsClients[i].AllowedIPs) > 0 {
-			return settingsClients[i].AllowedIPs
-		}
-		break
+func amneziaWGClientAddresses(subReq *SubService, inbound *model.Inbound, client model.Client) []string {
+	if own, ok := subReq.clientForLink(inbound, client.Email); ok && len(own.AllowedIPs) > 0 {
+		return own.AllowedIPs
 	}
 	return client.AllowedIPs
 }
@@ -809,11 +787,10 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 		return nil
 	}
 
-	var parsed amneziawg.InboundSettings
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+	server := subReq.amneziaWGServerForLink(inbound)
+	if server == nil {
 		return nil
 	}
-	server := parsed.Server
 
 	proxy := map[string]any{
 		"name":        subReq.endpointRemark(inbound, client.Email, ep, ""),
@@ -834,7 +811,7 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 		proxy["persistent-keepalive"] = ka
 	}
 
-	for _, addr := range amneziaWGClientAddresses(parsed.Clients, client) {
+	for _, addr := range amneziaWGClientAddresses(subReq, inbound, client) {
 		ip := stripCIDR(addr)
 		if ip == "" {
 			continue
