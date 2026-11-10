@@ -874,6 +874,32 @@ func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
 }
 
+// SnapshotStatsBaseline copies the delta baseline. A caller that cannot persist
+// the deltas GetTraffic just reported restores this copy, so the next poll
+// reports the same interval instead of dropping it.
+func (x *XrayAPI) SnapshotStatsBaseline() map[string]int64 {
+	out := make(map[string]int64, len(x.StatsLastValues))
+	for name, value := range x.StatsLastValues {
+		out[name] = value
+	}
+	return out
+}
+
+// RestoreStatsBaseline rewinds the delta baseline in place. It edits the map
+// rather than assigning a new one because a caller's copy of the owning struct
+// still shares this map.
+func (x *XrayAPI) RestoreStatsBaseline(baseline map[string]int64) {
+	if x.StatsLastValues == nil {
+		x.StatsLastValues = make(map[string]int64, len(baseline))
+	}
+	for name := range x.StatsLastValues {
+		delete(x.StatsLastValues, name)
+	}
+	for name, value := range baseline {
+		x.StatsLastValues[name] = value
+	}
+}
+
 // OnlineIP is one source address of a live connection, with the unix time (seconds)
 // the core last dispatched a link from it.
 type OnlineIP struct {

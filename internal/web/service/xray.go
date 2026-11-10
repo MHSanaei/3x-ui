@@ -1260,6 +1260,19 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 	return traffic, clientTraffic, nil
 }
 
+// SnapshotTrafficBaseline captures the delta baseline before a poll so a failed
+// write can rewind it; see RestoreTrafficBaseline.
+func (s *XrayService) SnapshotTrafficBaseline() map[string]int64 {
+	return s.xrayAPI.SnapshotStatsBaseline()
+}
+
+// RestoreTrafficBaseline rewinds the delta baseline after a poll whose deltas
+// could not be persisted, so the traffic is reported again next tick instead of
+// being lost with the baseline that had already advanced.
+func (s *XrayService) RestoreTrafficBaseline(baseline map[string]int64) {
+	s.xrayAPI.RestoreStatsBaseline(baseline)
+}
+
 // GetOnlineUsers returns connection-based online users (email + source IPs)
 // from the running core's online-stats API. ok=false means the API is not
 // available — xray isn't running or the core predates the online-stats RPCs —

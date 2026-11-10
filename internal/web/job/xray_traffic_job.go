@@ -75,13 +75,18 @@ func (j *XrayTrafficJob) Run() {
 	if !j.xrayService.IsXrayRunning() {
 		return
 	}
+	// The poll advances its delta baseline as it reads, so a failed write has to
+	// rewind it or this interval's traffic is gone for good.
+	baseline := j.xrayService.SnapshotTrafficBaseline()
 	traffics, clientTraffics, err := j.xrayService.GetXrayTraffic()
 	if err != nil {
 		return
 	}
 	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
+		j.xrayService.RestoreTrafficBaseline(baseline)
 		logger.Warning("add inbound traffic failed:", err)
+		return
 	}
 	err, needRestart1 := j.outboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
