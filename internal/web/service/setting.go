@@ -799,14 +799,16 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 // node that hosts them across a chain of nodes (#4983), where per-panel
 // autoincrement node ids are meaningless one hop away.
 func (s *SettingService) GetPanelGuid() (string, error) {
-	guid, err := s.getString("panelGuid")
-	if err != nil {
+	setting, err := s.getSetting("panelGuid")
+	if err == nil {
+		return setting.Value, nil
+	}
+	if !database.IsNotFound(err) {
 		return "", err
 	}
-	if guid == defaultValueMap["panelGuid"] {
-		if saveErr := s.saveSetting("panelGuid", guid); saveErr != nil {
-			logger.Warning("save panelGuid failed:", saveErr)
-		}
+	guid := defaultValueMap["panelGuid"]
+	if saveErr := s.saveSetting("panelGuid", guid); saveErr != nil {
+		logger.Warning("save panelGuid failed:", saveErr)
 	}
 	return guid, nil
 }
