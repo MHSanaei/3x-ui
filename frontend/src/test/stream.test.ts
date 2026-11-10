@@ -56,6 +56,17 @@ describe('NetworkSettingsSchema xray-core 26.10.21 keys', () => {
     expect(parsed.xdriveSettings.service).toBe('google-drive');
   });
 
+  // xray-core 26.10.31 (#7231): the "s3" service reads its storage from an "s3" object.
+  it('keeps the XDRIVE s3 service and its storage', () => {
+    const s3 = { endpoint: 'https://s3.example', region: 'r', bucket: 'b', pathStyle: false };
+    const parsed = NetworkSettingsSchema.parse({
+      network: 'xdrive',
+      xdriveSettings: { service: 's3', remoteFolder: 'x', secrets: ['AKID', 'SECRET'], s3 },
+    }) as { xdriveSettings: { service: string; s3?: unknown } };
+    expect(parsed.xdriveSettings.service).toBe('s3');
+    expect(parsed.xdriveSettings.s3).toEqual(s3);
+  });
+
   it('keeps the XDRIVE and MASQUE xmux', () => {
     const xmux = { maxConnections: 2, hMaxReusableSecs: '1800-3000' };
     const xdrive = NetworkSettingsSchema.parse({

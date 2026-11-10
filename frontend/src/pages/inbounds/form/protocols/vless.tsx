@@ -1,6 +1,7 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Button, Form, Input, InputNumber, Space, Typography } from 'antd';
 import { Controller, useFormContext } from 'react-hook-form';
 
 import { FormField } from '@/components/form/rhf';
@@ -50,7 +51,7 @@ export default function VlessFields({
       </FormField>
       <Form.Item htmlFor={`${uid}-authKind`} label={t('pages.inbounds.vlessAuthGenerate')}>
         <Space size={8} wrap>
-          <Select
+          <NativeSelect
             id={`${uid}-authKind`}
             value={authKind}
             onChange={(v) => setAuthKind(v)}

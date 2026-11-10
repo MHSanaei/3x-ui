@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -93,6 +94,10 @@ describe('FormField', () => {
     fireEvent.click(screen.getByText('Save'));
 
     await screen.findByText('email-required');
+    expect(screen.getByRole('textbox', { name: 'email' })).toHaveAccessibleDescription(
+      'email-required',
+    );
+    expect(screen.getByRole('textbox', { name: 'email' })).toHaveAttribute('aria-invalid', 'true');
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

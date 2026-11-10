@@ -534,7 +534,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": false,
     "expiryTime": 0,
     "flow": "",
-    "forwardedPorts": "",
+    "forwardedPorts": null,
     "group": "",
     "id": "",
     "keepAlive": 0,
