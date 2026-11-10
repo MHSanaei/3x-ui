@@ -159,4 +159,3 @@ notice, and should not be trusted with sensitive unencrypted traffic.
 `xnvgatebox` is GPL-3.0-only and remains a separately distributed component.
 The helper downloads its pinned reviewed release rather than embedding the
 binary in 3x-ui.
-

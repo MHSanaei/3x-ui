@@ -4,12 +4,12 @@ The repository gives every new build its own dated release. The
 `3x-ui-20261107` assets were replaced in place only for the explicitly
 requested updater-lock and stable-channel corrections.
 
-| Version | Type | Purpose | Update path |
-| --- | --- | --- | --- |
-| `v3.7.0-xnvgatebox-pool.1` | Historical prerelease | Previous fixed xnvgatebox/exit-pool build | Install its release tag explicitly |
-| `dev-6d205a91-backup` | Permanent rollback backup | Byte-for-byte preservation of the known-good `dev+6d205a91` build | Install this backup tag explicitly |
-| `dev-latest` | Compatibility update channel | Carries the currently recommended dated stable assets for historical Dev installations | Existing Dev panels can update directly from the panel |
-| `3x-ui-20261107` | Latest stable dated release | IPv6/DNS hardening plus update-lock recovery and stable dated-version detection | Install once explicitly when migrating from frozen Dev; later dated releases appear in the panel |
+| Version                    | Type                         | Purpose                                                                                | Update path                                                                                      |
+| -------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `v3.7.0-xnvgatebox-pool.1` | Historical prerelease        | Previous fixed xnvgatebox/exit-pool build                                              | Install its release tag explicitly                                                               |
+| `dev-6d205a91-backup`      | Permanent rollback backup    | Byte-for-byte preservation of the known-good `dev+6d205a91` build                      | Install this backup tag explicitly                                                               |
+| `dev-latest`               | Compatibility update channel | Carries the currently recommended dated stable assets for historical Dev installations | Existing Dev panels can update directly from the panel                                           |
+| `3x-ui-20261107`           | Latest stable dated release  | IPv6/DNS hardening plus update-lock recovery and stable dated-version detection        | Install once explicitly when migrating from frozen Dev; later dated releases appear in the panel |
 
 Source branches are retained separately:
 
