@@ -20,6 +20,7 @@ func TestClientRenewalWriteValidation(t *testing.T) {
 			{"weekly and interval", 7, 0, 3, "client weekly renewal cannot be combined with reset or resetDay"},
 			{"weekly and monthly", 0, 1, 3, "client weekly renewal cannot be combined with reset or resetDay"},
 			{"invalid weekday", 0, 0, 8, "client resetWeekday must be between 0 and 7, got: 8"},
+			{"oversized interval", maxClientResetDays + 1, 0, 0, "client reset must not exceed 36500 days"},
 		} {
 			t.Run(operation+"/"+schedule.name, func(t *testing.T) {
 				setupConflictDB(t)

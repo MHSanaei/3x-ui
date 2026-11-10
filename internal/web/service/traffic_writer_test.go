@@ -63,6 +63,55 @@ func TestTrafficWriterSubmitAfterStopRunsInline(t *testing.T) {
 	}
 }
 
+// The inline fallback ran beside other writes, so two resets of one client
+// raced and the second one switched the client back off.
+func TestTrafficWriterInlineFallbackNeverOverlapsAnotherWrite(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		setup func(t *testing.T, first func())
+	}{
+		{"writer never started", func(t *testing.T, first func()) {
+			go func() { _ = submitTrafficWrite(func() error { first(); return nil }) }()
+		}},
+		{"submitted while shutdown drains", func(t *testing.T, first func()) {
+			StartTrafficWriter()
+			go func() { _ = submitTrafficWrite(func() error { first(); return nil }) }()
+			twMu.Lock()
+			ctx := twCtx
+			twMu.Unlock()
+			go StopTrafficWriter()
+			<-ctx.Done()
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resetTrafficWriterForTest(t)
+			entered, secondStarted := make(chan struct{}), make(chan struct{})
+			var inFirst, overlapped atomic.Bool
+			tt.setup(t, func() {
+				inFirst.Store(true)
+				close(entered)
+				select {
+				case <-secondStarted:
+				case <-time.After(300 * time.Millisecond):
+				}
+				inFirst.Store(false)
+			})
+			<-entered
+			err := submitTrafficWrite(func() error {
+				overlapped.Store(inFirst.Load())
+				close(secondStarted)
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("second submitTrafficWrite: %v", err)
+			}
+			if overlapped.Load() {
+				t.Fatal("inline write ran while another write was still applying")
+			}
+		})
+	}
+}
+
 func TestTrafficWriterStopDrainsQueuedWrite(t *testing.T) {
 	resetTrafficWriterForTest(t)
 
@@ -161,13 +210,7 @@ func waitTrafficWriterQueued(t *testing.T) {
 
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
-		twMu.Lock()
-		queued := 0
-		if twQueue != nil {
-			queued = len(twQueue)
-		}
-		twMu.Unlock()
-		if queued > 0 {
+		if trafficWriterQueueLen() > 0 {
 			return
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -217,15 +260,105 @@ func parkSerializedWriter(t *testing.T) (release func()) {
 func waitForQueuedWrite() bool {
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
-		twMu.Lock()
-		queued := len(twQueue) > 0
-		twMu.Unlock()
-		if queued {
+		if trafficWriterQueueLen() > 0 {
 			return true
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	return false
+}
+
+// A write the operator is waiting on must not queue behind the periodic work
+// that keeps arriving every 5s (#6035): with both lanes filled, admin runs first.
+func TestTrafficWriterAdminLanePreemptsBackgroundQueue(t *testing.T) {
+	resetTrafficWriterForTest(t)
+
+	StartTrafficWriter()
+	parkStarted := make(chan struct{})
+	releasePark := make(chan struct{})
+	go func() {
+		_ = submitTrafficWrite(func() error {
+			close(parkStarted)
+			<-releasePark
+			return nil
+		})
+	}()
+	waitTrafficWriterSignal(t, parkStarted, "parking write did not start")
+
+	order := make(chan string, 2)
+	bgDone := make(chan error, 1)
+	go func() {
+		bgDone <- submitTrafficWriteBackground(func() error {
+			order <- "background"
+			return nil
+		})
+	}()
+	adminDone := make(chan error, 1)
+	go func() {
+		adminDone <- submitTrafficWrite(func() error {
+			order <- "admin"
+			return nil
+		})
+	}()
+	deadline := time.Now().Add(time.Second)
+	for trafficWriterQueueLen() < 2 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if trafficWriterQueueLen() < 2 {
+		t.Fatal("both writes did not reach the queues")
+	}
+
+	close(releasePark)
+	if got := <-order; got != "admin" {
+		t.Fatalf("first write served after the parked one = %q, want admin: the lane the operator waits on", got)
+	}
+	if got := <-order; got != "background" {
+		t.Fatalf("second write served = %q, want background", got)
+	}
+	if err := <-adminDone; err != nil {
+		t.Fatalf("admin write: %v", err)
+	}
+	if err := <-bgDone; err != nil {
+		t.Fatalf("background write: %v", err)
+	}
+}
+
+// A stop must drain every queued write on both lanes, not one per lane: a
+// submitter blocked behind two queued writes must not read "stopped".
+func TestTrafficWriterStopDrainsEveryQueuedWrite(t *testing.T) {
+	resetTrafficWriterForTest(t)
+
+	StartTrafficWriter()
+	parkStarted := make(chan struct{})
+	releasePark := make(chan struct{})
+	go func() {
+		_ = submitTrafficWrite(func() error {
+			close(parkStarted)
+			<-releasePark
+			return nil
+		})
+	}()
+	waitTrafficWriterSignal(t, parkStarted, "parking write did not start")
+
+	results := make(chan error, 3)
+	go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	go func() { results <- submitTrafficWrite(func() error { return nil }) }()
+	go func() { results <- submitTrafficWriteBackground(func() error { return nil }) }()
+	deadline := time.Now().Add(time.Second)
+	for trafficWriterQueueLen() < 3 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if trafficWriterQueueLen() < 3 {
+		t.Fatal("queued writes did not all reach the lanes")
+	}
+
+	close(releasePark)
+	StopTrafficWriter()
+	for range 3 {
+		if err := waitTrafficWriterErr(t, results); err != nil {
+			t.Fatalf("a queued write was dropped on stop: %v", err)
+		}
+	}
 }
 
 func waitWriterResult(t *testing.T, done <-chan error) error {

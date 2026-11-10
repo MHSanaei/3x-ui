@@ -35,10 +35,10 @@ _openapi:
         #create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
     - depth: 2
       title: >-
-        按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
-        请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+        按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷：
+        省略的字段保留当前值，显式的零值、空值或 null 会清除该字段（例外见下文）。
       url: >-
-        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
     - depth: 2
       title: >-
         按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
@@ -292,10 +292,10 @@ _openapi:
         id: >-
           create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
       - content: >-
-          按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
-          请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+          按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷：
+          省略的字段保留当前值，显式的零值、空值或 null 会清除该字段（例外见下文）。
         id: >-
-          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
       - content: >-
           按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
           keepTraffic=1。

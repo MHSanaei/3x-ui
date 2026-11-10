@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -86,5 +87,32 @@ func TestInboundCanHostFallbacks_StaysTcpOnly(t *testing.T) {
 	}
 	if inboundCanHostFallbacks(nil) {
 		t.Errorf("inboundCanHostFallbacks(nil) = true, want false")
+	}
+}
+
+// xray-core 26.10.31 (#7288) refuses an unknown autoSystemWfpBlockLeak value when the core starts.
+func TestAddInboundRefusesTunWfpBlockLeakTheCoreRefuses(t *testing.T) {
+	tests := []struct{ name, leaks, want string }{
+		{"port zero", `["tcp/0"]`, "unknown autoSystemWfpBlockLeak value: tcp/0"},
+		{"unknown protocol", `["icmp/1"]`, "unknown autoSystemWfpBlockLeak value: icmp/1"},
+		{"named values and ports", `["DNS","windnsclient","misconfigtun","udp/853","tcp/7215"]`, ""},
+	}
+	for i, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			setupBulkDB(t)
+			_, _, err := (&InboundService{}).AddInbound(&model.Inbound{
+				Enable: true, Port: 18520 + i, Protocol: model.Protocol("tun"),
+				Settings: `{"name":"xray0","autoSystemWfpBlockLeak":` + tc.leaks + `}`,
+			})
+			if tc.want == "" {
+				if err != nil {
+					t.Fatalf("AddInbound = %v, want values the core accepts saved", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("AddInbound = %v, want one containing %q", err, tc.want)
+			}
+		})
 	}
 }

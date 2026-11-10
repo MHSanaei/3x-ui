@@ -294,6 +294,7 @@ export default function InboundsPage() {
       if (!dbInbound?.listen?.startsWith?.('@')) return dbInbound;
       for (const candidate of dbInbounds) {
         if (candidate.id === dbInbound.id) continue;
+        if ((candidate.nodeId ?? 0) !== (dbInbound.nodeId ?? 0)) continue;
         if (!['trojan', 'vless'].includes(candidate.protocol)) continue;
         const candStream = coerceInboundJsonField(candidate.streamSettings) as { network?: string };
         if (candStream.network !== 'tcp') continue;
@@ -719,6 +720,7 @@ export default function InboundsPage() {
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
             <Spin
+              aria-live="off"
               spinning={!fetched || !hostsFetched}
               delay={200}
               description={t('loading')}
