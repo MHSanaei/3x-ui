@@ -107,22 +107,23 @@ func (a *NodeController) routingControl(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
 		return
 	}
-	// Keep the previously stored policy so a rejected push can be reverted
-	// instead of leaving the node on a config Xray refuses to load.
 	prevRules, _ := (&service.XraySettingService{}).GetMasterRoutingRules()
 	if err := (&service.XraySettingService{}).SaveMasterRoutingRules(req.Rules); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
 		return
 	}
-	// The stored policy is the source of truth; but if Xray refuses the
-	// resulting config, revert to the previous policy and report the failure
-	// so the master does not mirror a policy the node cannot apply.
-	if err := a.xrayService.RestartXray(false); err != nil {
-		logger.Warning("apply node routing policy, re-apply Xray failed:", err)
-		// Revert to the previous (working) policy; ignore revert errors.
-		_ = (&service.XraySettingService{}).SaveMasterRoutingRules(prevRules)
-		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
-		return
+	// Only attempt an immediate re-apply when Xray is actually running: if it
+	// is stopped the policy (stored above) takes effect on the next start. When
+	// Xray is running and refuses the resulting config, revert to the previous
+	// (working) policy and report the failure so the master does not mirror a
+	// policy the node cannot apply.
+	if a.xrayService.IsXrayRunning() {
+		if err := a.xrayService.RestartXray(false); err != nil {
+			logger.Warning("apply node routing policy, re-apply Xray failed:", err)
+			_ = (&service.XraySettingService{}).SaveMasterRoutingRules(prevRules)
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
+			return
+		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), nil)
 }
