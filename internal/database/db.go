@@ -3231,16 +3231,21 @@ func cleanupSQLiteBackupDirs(dir string) error {
 	return nil
 }
 
+// sqliteSynchronous returns the durability level for SQLite commits. The
+// default is NORMAL: under WAL it still cannot corrupt the database, it only
+// lets an fsync-unflushed tail of transactions be lost on power failure, and it
+// keeps the write path off the per-commit fsync that throttled every traffic
+// tick and subscription fetch. XUI_DB_SYNCHRONOUS=FULL restores full durability.
 func sqliteSynchronous() string {
 	switch strings.ToUpper(strings.TrimSpace(os.Getenv("XUI_DB_SYNCHRONOUS"))) {
 	case "OFF":
 		return "OFF"
-	case "NORMAL":
-		return "NORMAL"
+	case "FULL":
+		return "FULL"
 	case "EXTRA":
 		return "EXTRA"
 	default:
-		return "FULL"
+		return "NORMAL"
 	}
 }
 
