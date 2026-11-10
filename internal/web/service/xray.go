@@ -1428,7 +1428,6 @@ func (s *XrayService) RestartXray(isForce bool) error {
 
 	process = xray.NewProcess(xrayConfig)
 	xrayState.replace(process)
-	s.xrayAPI.StatsLastValues = nil
 	err = process.Start()
 	if err != nil {
 		return err
