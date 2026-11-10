@@ -1,0 +1,36 @@
+name: Publish 3x-ui-20261110 once
+
+on:
+  push:
+    paths:
+      - .github/workflows/publish-3x-ui-20261110-once.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: ba468b2b9c4a3b8cc394920c7ce1c8edb349e7d2
+      RELEASE_TAG: 3x-ui-20261110
+    steps:
+      - name: Publish final tested source and refresh update channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --draft               --title "$RELEASE_TAG"
+          else
+            gh release create "$RELEASE_TAG" --target "$SOURCE_SHA" --draft               --title "$RELEASE_TAG"               --notes "Verified update based on the preserved dev+6d205a91 line. Adds isolated supplemental residential/native datacenter exits, IPv6-safe TCP/UDP routing, update-loop fixes, and security hardening. The immutable backup remains dev-6d205a91-backup."
+          fi
+          gh workflow run release.yml --ref main -f source_ref="$SOURCE_SHA" -f release_tag="$RELEASE_TAG"
+          sleep 10
+          RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          echo "3x-ui release run: $RUN_ID"
+          gh run watch "$RUN_ID" --exit-status
