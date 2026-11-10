@@ -62,6 +62,36 @@ func TestClientHwidGate(t *testing.T) {
 	}
 }
 
+// The gate runs before the subscription 404, so an untracked subId must not be
+// able to insert client_hwids rows: anyone could grow the table without bound.
+func TestClientHwidGateDoesNotTrackSubIdWithoutEnabledClient(t *testing.T) {
+	initClientHwidTestDB(t)
+	svc := &ClientService{}
+
+	disabled := seedHwidClient(t, 0)
+	if err := database.GetDB().Model(disabled).Update("enable", false).Error; err != nil {
+		t.Fatalf("disable client: %v", err)
+	}
+
+	for _, subID := range []string{"no-such-sub", disabled.SubID} {
+		res, err := svc.EnforceHwidForSubID(subID, HwidRequest{Hwid: "device-one", UserAgent: "Happ/1.0"})
+		if err != nil {
+			t.Fatalf("gate for %q: %v", subID, err)
+		}
+		if res != (HwidGateResult{Allowed: true}) {
+			t.Fatalf("gate for %q = %+v, want a plain allow", subID, res)
+		}
+	}
+
+	var subIDs []string
+	if err := database.GetDB().Model(&model.ClientHwid{}).Pluck("sub_id", &subIDs).Error; err != nil {
+		t.Fatalf("pluck tracked sub ids: %v", err)
+	}
+	if len(subIDs) != 0 {
+		t.Fatalf("tracked devices for sub ids %v, want none", subIDs)
+	}
+}
+
 func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	initClientHwidTestDB(t)
 	svc := &ClientService{}

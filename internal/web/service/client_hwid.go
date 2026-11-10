@@ -92,13 +92,25 @@ func normalizeHwidRequest(req HwidRequest) HwidRequest {
 	}
 }
 
-func effectiveHwidLimitForSubID(tx *gorm.DB, subID string) (int, error) {
-	var limit int
+// hwidScope is what the enabled clients sharing one subId allow: the gate limit
+// and whether the subId belongs to anyone at all.
+type hwidScope struct {
+	EnabledClients int64
+	LimitHwid      int
+}
+
+func hwidScopeForSubID(tx *gorm.DB, subID string) (hwidScope, error) {
+	var scope hwidScope
 	err := tx.Model(&model.ClientRecord{}).
 		Where("sub_id = ? AND enable = ?", subID, true).
-		Select("COALESCE(MAX(limit_hwid), 0)").
-		Scan(&limit).Error
-	return limit, err
+		Select("COUNT(*) AS enabled_clients, COALESCE(MAX(limit_hwid), 0) AS limit_hwid").
+		Scan(&scope).Error
+	return scope, err
+}
+
+func effectiveHwidLimitForSubID(tx *gorm.DB, subID string) (int, error) {
+	scope, err := hwidScopeForSubID(tx, subID)
+	return scope.LimitHwid, err
 }
 
 func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (HwidGateResult, error) {
@@ -110,14 +122,15 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	}
 
 	db := database.GetDB()
-	limit, err := effectiveHwidLimitForSubID(db, subID)
+	scope, err := hwidScopeForSubID(db, subID)
 	if err != nil {
 		return res, err
 	}
+	limit := scope.LimitHwid
 	req = normalizeHwidRequest(req)
 	if limit <= 0 {
 		res.Allowed = true
-		if len(req.Hwid) >= minHwidLength {
+		if scope.EnabledClients > 0 && len(req.Hwid) >= minHwidLength {
 			trackUnlimitedHwid(db, subID, req)
 		}
 		return res, nil
