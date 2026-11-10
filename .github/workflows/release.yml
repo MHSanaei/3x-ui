@@ -403,7 +403,7 @@ jobs:
         run: |
           set -e
           gh release upload "${RELEASE_TAG}" dev-artifacts/*.tar.gz dev-artifacts/*.zip dev-artifacts/*.sha256 --clobber
-          gh release edit "${RELEASE_TAG}" --prerelease=false --latest
+          gh release edit "${RELEASE_TAG}" --draft=false --prerelease=false --latest
 
       - name: Refresh dev-latest update alias
         env:
