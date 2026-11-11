@@ -1,0 +1,67 @@
+name: Update 3x-ui-20261111 notes once
+
+on:
+  push:
+    paths:
+      - .github/workflows/update-3x-ui-20261111-notes-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      DATED_ID: "441266625"
+      CHANNEL_ID: "409630801"
+      DATED_NOTES: |
+        # 3x-ui-20261111
+
+        基于已永久备份的 dev+6d205a91 稳定版本继续开发；备份标签为 dev-6d205a91-backup，本版本不会覆盖该备份。
+
+        ## 更新内容
+        - 把 VPS 实测通过的 SSTP 住宅 IP/原生机房 IP 转换为普通 3x-ui 订阅节点，客户端不需要 TUN 模式。
+        - TCP、UDP、DNS、IPv6 和 WebRTC 泄露边界 fail-closed；出口失败时不回落到 VPS 直连。
+        - xnvgatebox_stable 保持独立分类；新增住宅与新增原生机房可单独管理。
+        - 固定经过完整测试的 xnvgatebox v0.9.9。
+        - 使用 Go 1.27.4 修复 GO-2026-6859；govulncheck、竞态、模糊测试、面板更新回归和全架构构建均通过。
+
+        ## 更新
+        面板保持 Dev/兼容更新通道，点击“更新面板”；dev-latest 已指向本版本。
+
+        命令行固定更新：
+        ```bash
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) 3x-ui-20261111
+        ```
+
+        更新会保留数据库、入站、客户端、证书、端口和访问路径。
+
+        ## 回退
+        ```bash
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) dev-6d205a91-backup
+        ```
+
+        回退替换程序文件，不主动删除面板数据库或已有配置。
+      CHANNEL_NOTES: |
+        兼容更新通道，当前推荐版本：3x-ui-20261111
+        安全源码：268af2ec8eb16c3a7ee50268a3255667e59a9103
+        xnvgatebox：v0.9.9
+        Go：1.27.4
+
+        面板 Dev/兼容通道会安装 3x-ui-20261111。
+        固定更新：
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) 3x-ui-20261111
+
+        回退：
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) dev-6d205a91-backup
+
+        原始 dev+6d205a91 资产永久保存在 dev-6d205a91-backup，未被覆盖。
+    steps:
+      - name: Patch release bodies only
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/$GH_REPO/releases/$DATED_ID" -f body="$DATED_NOTES" >/dev/null
+          gh api --method PATCH "repos/$GH_REPO/releases/$CHANNEL_ID" -f body="$CHANNEL_NOTES" >/dev/null
