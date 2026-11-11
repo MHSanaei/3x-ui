@@ -65,8 +65,9 @@ type ExitPoolExit struct {
 	IPType         string `json:"ipType,omitempty"`
 	Native         bool   `json:"native,omitempty"`
 	Stable         bool   `json:"stable"`
-	// ProxyAddress/ProxyPort are present only for verified supplemental exits.
-	// Stable xnvgatebox exits always use their loopback listener in Port.
+	Transport      string `json:"transport,omitempty"`
+	// Verified public SOCKS resources use ProxyAddress/ProxyPort. Stable slots
+	// and promoted SSTP slots use an authenticated loopback listener in Port.
 	ProxyAddress string `json:"-"`
 	ProxyPort    int    `json:"-"`
 	SocksUser    string `json:"-"`
@@ -179,7 +180,7 @@ func normalizeExitPoolExit(e ExitPoolExit) (ExitPoolExit, error) {
 	e.Stable = e.SourceCategory == exitPoolSourceStable
 	switch e.SourceCategory {
 	case exitPoolSourceStable:
-		if e.ProxyAddress != "" || e.ProxyPort != 0 || e.Port < 1 || e.Port > 65535 {
+		if (e.Transport != "" && e.Transport != "openvpn") || e.ProxyAddress != "" || e.ProxyPort != 0 || e.Port < 1 || e.Port > 65535 {
 			return ExitPoolExit{}, fmt.Errorf("stable exit slot %d has an invalid listener", e.Slot)
 		}
 	case exitPoolSourceHome:
@@ -192,14 +193,18 @@ func normalizeExitPoolExit(e ExitPoolExit) (ExitPoolExit, error) {
 		}
 	}
 	if e.SourceCategory != exitPoolSourceStable {
-		if e.Slot < 100000 || e.Slot > 999999 || e.Port != 0 || e.ProxyPort < 1 || e.ProxyPort > 65535 {
-			return ExitPoolExit{}, fmt.Errorf("supplemental exit slot %d has an invalid reserved slot or listener", e.Slot)
+		localManaged := e.Transport == "sstp" && e.ProxyAddress == "" && e.ProxyPort == 0 && e.Port >= 1 && e.Port <= 65535 && e.Slot >= 1 && e.Slot < 100000
+		remoteSupplemental := (e.Transport == "" || e.Transport == "socks5") && e.Slot >= 100000 && e.Slot <= 999999 && e.Port == 0 && e.ProxyPort >= 1 && e.ProxyPort <= 65535
+		if !localManaged && !remoteSupplemental {
+			return ExitPoolExit{}, fmt.Errorf("optional exit slot %d has an invalid local or supplemental listener", e.Slot)
 		}
-		ip := net.ParseIP(strings.TrimSpace(e.ProxyAddress))
-		if ip == nil || ip.To4() == nil || !exitPoolPublicIPv4(ip.To4()) {
-			return ExitPoolExit{}, fmt.Errorf("supplemental exit slot %d requires a public literal IPv4 proxy", e.Slot)
+		if remoteSupplemental {
+			ip := net.ParseIP(strings.TrimSpace(e.ProxyAddress))
+			if ip == nil || ip.To4() == nil || !exitPoolPublicIPv4(ip.To4()) {
+				return ExitPoolExit{}, fmt.Errorf("supplemental exit slot %d requires a public literal IPv4 proxy", e.Slot)
+			}
+			e.ProxyAddress = ip.To4().String()
 		}
-		e.ProxyAddress = ip.To4().String()
 	}
 	if (e.SocksUser == "") != (e.SocksPass == "") {
 		return ExitPoolExit{}, fmt.Errorf("exit slot %d has incomplete SOCKS credentials", e.Slot)
@@ -231,7 +236,7 @@ func exitPoolPublicIPv4(ip net.IP) bool {
 
 func exitPoolSOCKSServer(e ExitPoolExit) map[string]any {
 	address, port := "127.0.0.1", e.Port
-	if e.SourceCategory != exitPoolSourceStable {
+	if e.ProxyAddress != "" {
 		address, port = e.ProxyAddress, e.ProxyPort
 	}
 	server := map[string]any{"address": address, "port": port}
@@ -396,6 +401,7 @@ func (s *ExitPoolService) loadExits() ([]ExitPoolExit, error) {
 			SourceCategory string  `json:"source_category"`
 			SourceName     string  `json:"source_name"`
 			Native         bool    `json:"native"`
+			Transport      string  `json:"transport"`
 			ProxyAddress   string  `json:"proxy_address"`
 			ProxyPort      int     `json:"proxy_port"`
 			Egress         *struct {
@@ -420,6 +426,7 @@ func (s *ExitPoolService) loadExits() ([]ExitPoolExit, error) {
 			Country: e.Country, ExitIP: e.ExitIP, Status: e.Status,
 			LatencyMS: e.LatencyMS, SourceCategory: e.SourceCategory,
 			SourceName: e.SourceName, IPType: ipType, Native: e.Native,
+			Transport:    e.Transport,
 			ProxyAddress: e.ProxyAddress, ProxyPort: e.ProxyPort,
 			SocksUser: e.SocksUser, SocksPass: e.SocksPass,
 		})

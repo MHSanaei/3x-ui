@@ -96,6 +96,26 @@ Free public proxies are short-lived and operated by unknown third parties.
 They are suitable only for disposable, non-sensitive traffic. Do not send
 credentials, payments, private messages or unencrypted data through them.
 
+### Promote a verified SSTP resource
+
+The embedded console can turn a current VPS-verified VPN Gate SSTP observation
+into a managed VPS exit. Open **Proxy resources → Raw SSTP**, run the VPS
+check, then select **Add to VPS exit pool** on an eligible row. Only exits with
+fresh residential evidence, or datacenter/business-ISP evidence whose measured
+country matches the source country, can be promoted.
+
+The promoted connection does not expose SSTP to v2rayN. xnvgatebox keeps
+SSTP/PPP inside that Slot's isolated network namespace and exposes an
+authenticated SOCKS listener only on `127.0.0.1`. 3x-ui consumes that listener
+through the same VLESS, VMess or Trojan mother inbound used by the stable pool.
+The client therefore continues to use an ordinary panel subscription.
+
+Promoted SSTP exits remain in **new residential** or **new native datacenter**;
+they never enter **xnvgatebox stable pool**. A failed SSTP session is blocked
+and rebuilt without falling back to the VPS address. Server-side PPP uses a
+private `tun0` inside the namespace; this does not require TUN mode in the
+desktop or mobile client.
+
 3x-ui creates one dedicated client identity per selected region inside the same
 inbound. Those identities share one `subId`, so one subscription contains
 separate US, JP, SG, or other regional entries while they all use the mother

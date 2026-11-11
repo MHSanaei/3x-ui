@@ -31,6 +31,16 @@ func TestExitPoolSourceCategoriesAreIsolatedAndBackwardCompatible(t *testing.T) 
 	if err != nil || home.Stable {
 		t.Fatalf("verified new residential exit rejected or marked stable: %+v, %v", home, err)
 	}
+	localHome, err := normalizeExitPoolExit(ExitPoolExit{Slot: 2, Port: 17929, SourceCategory: exitPoolSourceHome, IPType: "likely_residential", Transport: "sstp", SocksUser: "u", SocksPass: "p"})
+	if err != nil || localHome.Stable || localHome.ProxyAddress != "" {
+		t.Fatalf("promoted SSTP residential exit rejected: %+v, %v", localHome, err)
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 2, Port: 17929, SourceCategory: exitPoolSourceHome, IPType: "likely_residential", Transport: "sstp", ProxyAddress: "127.0.0.1"}); err == nil {
+		t.Fatal("ambiguous local promoted listener accepted")
+	}
+	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 2, Port: 17929, SourceCategory: exitPoolSourceHome, IPType: "likely_residential"}); err == nil {
+		t.Fatal("untyped optional loopback listener accepted")
+	}
 	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 100102, SourceCategory: exitPoolSourceHome, IPType: "datacenter", ProxyAddress: "8.8.8.8", ProxyPort: 1080}); err == nil {
 		t.Fatal("datacenter exit admitted to the new residential category")
 	}
@@ -71,6 +81,10 @@ func TestExitPoolRoutingUsesIsolatedProxyAndFailsClosed(t *testing.T) {
 	extra := exitPoolSOCKSServer(ExitPoolExit{SourceCategory: exitPoolSourceHome, ProxyAddress: "8.8.8.8", ProxyPort: 1080})
 	if extra["address"] != "8.8.8.8" || extra["port"] != 1080 || extra["users"] != nil {
 		t.Fatalf("unexpected supplemental SOCKS server: %#v", extra)
+	}
+	promoted := exitPoolSOCKSServer(ExitPoolExit{SourceCategory: exitPoolSourceHome, Port: 17929, SocksUser: "u", SocksPass: "p"})
+	if promoted["address"] != "127.0.0.1" || promoted["port"] != 17929 || promoted["users"] == nil {
+		t.Fatalf("unexpected promoted SSTP SOCKS server: %#v", promoted)
 	}
 	rule := exitPoolRoutingRule("inbound-1", "pool@example", "xnv3-exit-100001")
 	if rule["network"] != "tcp,udp" || rule["outboundTag"] != "xnv3-exit-100001" {
