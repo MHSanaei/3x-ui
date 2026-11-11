@@ -3935,10 +3935,10 @@ EOF
 }
 
 exit_pool_install() (
-    local version="v0.9.8"
-    local installer_revision="8f6fadb912ffc8f03cdcec55a5e7bd2af0ea895a"
+    local version="v0.9.9"
+    local installer_revision="11cc726626cea2d3ba58e402b501f1c43cc90e31"
     local installer_sha256="b0815ea91bb005f7b8c9614dd669cb1da399545b6242c72ac914c572293fd6f3"
-    local package_sha256="85049f2edcef45a35a243806a92fbed09d2d63efc6b92e148e6729a7b1d2aad1"
+    local package_sha256="7559aea3cba941f00338da71b71343fa1dbbeaa8bf6ea69b9cdc1578700283ba"
     local task_dir installer package release_url
 
     if [[ "${running_in_docker}" == "true" ]]; then
