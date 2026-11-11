@@ -1,0 +1,34 @@
+name: Rebuild 3x-ui-20261111 securely once
+
+on:
+  push:
+    paths:
+      - .github/workflows/rebuild-3x-ui-20261111-secure-once.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: 268af2ec8eb16c3a7ee50268a3255667e59a9103
+      RELEASE_TAG: 3x-ui-20261111
+    steps:
+      - name: Rebuild published assets and align release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG" >/dev/null
+          gh workflow run release.yml --ref main -f source_ref="$SOURCE_SHA" -f release_tag="$RELEASE_TAG"
+          sleep 10
+          RUN_ID="$(gh run list --workflow release.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          echo "secure rebuild run: $RUN_ID"
+          gh run watch "$RUN_ID" --exit-status
+          gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$RELEASE_TAG" -f sha="$SOURCE_SHA" -F force=true >/dev/null
+          gh release edit "$RELEASE_TAG" --target "$SOURCE_SHA" --draft=false --prerelease=false --latest
