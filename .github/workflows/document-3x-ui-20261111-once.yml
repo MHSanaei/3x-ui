@@ -1,0 +1,75 @@
+name: Document 3x-ui-20261111 release once
+
+on:
+  push:
+    paths:
+      - .github/workflows/document-3x-ui-20261111-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  document:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_NOTES: |
+        # 3x-ui-20261111
+
+        基于已保留的稳定版本 dev+6d205a91 继续开发；原始稳定二进制永久保存在 dev-6d205a91-backup，本版本不会覆盖该备份。
+
+        ## 本次更新
+
+        - 将 VPS 实测通过的 SSTP 住宅 IP/原生机房 IP 提升为 3x-ui 可用的普通订阅节点。
+        - SSTP/PPP 只在 VPS 隔离网络命名空间运行，面板通过 127.0.0.1 认证 SOCKS5 接入；电脑和手机客户端不需要 TUN 模式。
+        - TCP、UDP、DNS、IPv6 与 WebRTC 泄露边界均为 fail-closed，出口故障时不会回落到 VPS 直连。
+        - 原有 xnvgatebox_stable 稳定 IP 保持独立分类；新增住宅和新增原生机房可单独管理或停用。
+        - 固定并验证 xnvgatebox v0.9.9。
+        - 使用 Go 1.27.4，修复 GO-2026-6859；govulncheck、竞态、模糊测试、面板更新回归和全部构建均通过。
+
+        ## 更新方法
+
+        已安装本项目版本的用户，可在面板中保持 Dev/兼容更新通道并点击“更新面板”；dev-latest 当前指向本版本。
+
+        命令行固定安装或更新到本版本：
+
+        ```bash
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) 3x-ui-20261111
+        ```
+
+        更新会保留现有数据库、入站、客户端、证书、面板端口和访问路径。更新前仍建议备份 /etc/x-ui 和 /usr/local/x-ui。
+
+        ## 回退方法
+
+        回退到永久保留的 dev+6d205a91 稳定备份：
+
+        ```bash
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) dev-6d205a91-backup
+        ```
+
+        回退只替换程序文件，不主动删除面板数据库或现有配置。若新版本已创建仅由新功能使用的出口池配置，可在回退前先在面板停用对应出口组。
+      CHANNEL_NOTES: |
+        Compatibility update channel for historical dev installations.
+
+        当前推荐版本：3x-ui-20261111
+        安全源码：268af2ec8eb16c3a7ee50268a3255667e59a9103
+        xnvgatebox：v0.9.9
+        Go：1.27.4
+
+        面板 Dev/兼容更新通道会安装 3x-ui-20261111。原始 dev+6d205a91 二进制永久保存在 dev-6d205a91-backup，未被覆盖。
+
+        固定更新：
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) 3x-ui-20261111
+
+        回退：
+        bash <(curl -Ls https://raw.githubusercontent.com/jrangus/3x-ui/main/install.sh) dev-6d205a91-backup
+    steps:
+      - name: Publish update and rollback instructions
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit 3x-ui-20261111 --notes "$RELEASE_NOTES" --target 268af2ec8eb16c3a7ee50268a3255667e59a9103 --draft=false --prerelease=false --latest
+          gh release edit dev-latest --notes "$CHANNEL_NOTES" --target 268af2ec8eb16c3a7ee50268a3255667e59a9103 --prerelease --latest=false
+          backup="$(gh api "repos/$GH_REPO/git/ref/tags/dev-6d205a91-backup" --jq '.object.sha')"
+          [[ "$backup" == "6d205a91bd8b0dac38077e78db5d9990fb12cc48" ]]
