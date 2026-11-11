@@ -83,7 +83,6 @@ export const PALETTE_KEYWORDS: Record<string, string[]> = {
   '/settings': ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
   '/xray': ['xray', 'templates', 'balancer', 'dns'],
   '/api-docs': ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
-  '/sponsors': ['sponsors', 'sponsor', 'partners'],
 };
 
 export default function CommandPalette() {

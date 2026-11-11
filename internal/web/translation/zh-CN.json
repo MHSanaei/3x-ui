@@ -122,7 +122,6 @@
     "outbounds": "出站",
     "apiDocs": "API 文档",
     "donate": "捐赠",
-    "sponsors": "赞助商",
     "hosts": "主机",
     "docs": "文档",
     "openMenu": "打开菜单",
@@ -2507,15 +2506,6 @@
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
       },
       "dragToReorder": "拖动以重新排列 {name}"
-    },
-    "sponsors": {
-      "title": "赞助商",
-      "intro": "支持 3X-UI 开发的公司。赞助链接将在新标签页中打开。",
-      "become": "成为赞助商",
-      "tag": "赞助",
-      "visit": "访问",
-      "yourBrand": "您的品牌展示位",
-      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。"
     }
   },
   "tgbot": {

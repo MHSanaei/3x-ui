@@ -1,5 +1,4 @@
 export const keys = {
-  sponsors: () => ['sponsors'] as const,
   server: {
     status: () => ['server', 'status'] as const,
     fail2banStatus: () => ['server', 'fail2banStatus'] as const,

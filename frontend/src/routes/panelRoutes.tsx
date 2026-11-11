@@ -3,7 +3,6 @@ import type { ComponentType } from 'react';
 import {
   ApiOutlined,
   ClusterOutlined,
-  CrownOutlined,
   DashboardOutlined,
   ExportOutlined,
   GlobalOutlined,
@@ -24,7 +23,6 @@ const HostsPage = lazy(() => import('@/pages/hosts/HostsPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
 const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
-const SponsorsPage = lazy(() => import('@/pages/sponsors/SponsorsPage'));
 
 export interface PanelRoute {
   path: string;
@@ -47,7 +45,6 @@ export const PANEL_ROUTES: PanelRoute[] = [
   { path: '/settings', titleKey: 'menu.settings', icon: SettingOutlined, component: SettingsPage },
   { path: '/xray', titleKey: 'menu.xray', icon: ToolOutlined, component: XrayPage },
   { path: '/api-docs', titleKey: 'menu.apiDocs', icon: ApiOutlined, component: ApiDocsPage },
-  { path: '/sponsors', titleKey: 'menu.sponsors', icon: CrownOutlined, component: SponsorsPage },
 ];
 
 export const PANEL_ROUTE_PATHS = PANEL_ROUTES.map((route) => route.path);

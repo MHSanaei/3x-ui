@@ -123,7 +123,6 @@
     "outbounds": "Výstupy",
     "apiDocs": "Dokumentácia API",
     "donate": "Podporiť projekt",
-    "sponsors": "Sponzori",
     "docs": "Dokumentácia",
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
@@ -2507,15 +2506,6 @@
       "routingScript": "Skript smerovania",
       "routingScriptDesc": "Cesta k súboru .lua s funkciou HandleRoute, absolútna alebo vzhľadom na priečinok bin Xray. Skript vyberá každú trasu a Xray ignoruje všetky pravidlá vrátane pravidla api panelu. Vstup api preto smerujte na výstup api, inak prestanú fungovať štatistiky spotreby aj zmeny klientov za behu. Ak súbor chýba alebo je neplatný, Xray sa nespustí.",
       "routingScriptActive": "V časti {section} je nastavený skript smerovania, preto Xray tieto pravidlá ignoruje."
-    },
-    "sponsors": {
-      "title": "Sponzori",
-      "intro": "Spoločnosti podporujúce vývoj 3X-UI. Sponzorované odkazy sa otvoria na novej karte.",
-      "become": "Stať sa sponzorom",
-      "tag": "Sponzor",
-      "visit": "Navštíviť",
-      "yourBrand": "Miesto pre vašu značku",
-      "yourBrandText": "Predstavte svoju spoločnosť tisícom správcov serverov, ktorí denne otvárajú 3X-UI."
     }
   },
   "tgbot": {

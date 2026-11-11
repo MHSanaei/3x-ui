@@ -122,7 +122,6 @@
     "outbounds": "Outbound",
     "apiDocs": "Tài liệu API",
     "donate": "Quyên góp",
-    "sponsors": "Nhà tài trợ",
     "hosts": "Hosts",
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
@@ -2507,15 +2506,6 @@
         "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
       },
       "dragToReorder": "Kéo để sắp xếp lại {name}"
-    },
-    "sponsors": {
-      "title": "Nhà tài trợ",
-      "intro": "Các công ty hỗ trợ phát triển 3X-UI. Liên kết tài trợ mở trong tab mới.",
-      "become": "Trở thành nhà tài trợ",
-      "tag": "Tài trợ",
-      "visit": "Truy cập",
-      "yourBrand": "Thương hiệu của bạn ở đây",
-      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày."
     }
   },
   "tgbot": {
