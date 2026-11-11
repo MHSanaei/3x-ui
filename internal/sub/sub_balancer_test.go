@@ -531,6 +531,7 @@ func TestSubJson_BalancerManySameProtocolMembers(t *testing.T) {
 			&model.SubBalancer{Id: 1, Remark: "many", Strategy: "random", InboundIds: []int{7}},
 			[]subConfigEntry{{id: 7}},
 			[][]map[string]any{members},
+			[][]map[string]any{{}},
 		)
 	}()
 	var raw json_util.RawMessage

@@ -78,6 +78,11 @@ type Inbound struct {
 	ShareAddrStrategy string   `json:"shareAddrStrategy" form:"shareAddrStrategy" gorm:"column:share_addr_strategy;default:node" validate:"omitempty,oneof=node listen custom"`
 	ShareAddr         string   `json:"shareAddr" form:"shareAddr" gorm:"column:share_addr"`
 
+	// ChainProxyId/ChainSelectorId name the client-side chain this inbound's
+	// subscribers hop through; 0 means direct. At most one may be set.
+	ChainProxyId    int `json:"chainProxyId" form:"chainProxyId" gorm:"column:chain_proxy_id;default:0" example:"0"`
+	ChainSelectorId int `json:"chainSelectorId" form:"chainSelectorId" gorm:"column:chain_selector_id;default:0" example:"0"`
+
 	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false" example:"false"`
 
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
@@ -1511,6 +1516,41 @@ type SubBalancer struct {
 	// with Strategy "leastLoad" — xray ignores costs on every other strategy.
 	MemberWeights map[int]float64 `json:"memberWeights,omitempty" form:"memberWeights" gorm:"serializer:json;column:member_weights"`
 	SortOrder     int             `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1" example:"1"`
+	// No gorm default:true — a bool default makes an explicit false at insert
+	// collapse back to the column default (zero value is skipped).
+	Enabled   bool  `json:"enabled" form:"enabled" example:"true"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1710000000000"`
+}
+
+// ChainProxy is one upstream SOCKS/HTTP proxy a subscriber's client dials
+// before this panel's inbound — a client-side chain entry, not a panel outbound.
+// Its credentials travel into the subscriber's config, so no panel secret lives here.
+type ChainProxy struct {
+	Id     int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Remark string `json:"remark" form:"remark" validate:"required,max=256" example:"entry-de-fra"`
+	Type   string `json:"type" form:"type" validate:"required,oneof=socks http" example:"socks"`
+	Server string `json:"server" form:"server" validate:"required,max=253" example:"proxy.example.com"`
+	Port   int    `json:"port" form:"port" validate:"required,gte=1,lte=65535" example:"1080"`
+	// Username/Password are optional SOCKS5/HTTP basic-auth credentials; both
+	// empty means the hop proxy accepts anonymous connections.
+	Username string `json:"username" form:"username" example:"operator"`
+	Password string `json:"password" form:"password" example:"secret"`
+	// TLS marks an HTTPS proxy (http type only) — xray's http outbound reaches it
+	// over TLS; the socks outbound has no TLS support.
+	TLS       bool  `json:"tls" form:"tls" example:"false"`
+	Enabled   bool  `json:"enabled" form:"enabled" example:"true"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1710000000000"`
+}
+
+// ChainSelector groups chain proxies so a client picks between several entry
+// hops by strategy; an inbound names either one hop or one selector, never both.
+type ChainSelector struct {
+	Id       int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Remark   string `json:"remark" form:"remark" validate:"required,max=256" example:"entries-fastest"`
+	Strategy string `json:"strategy" form:"strategy" validate:"omitempty,oneof=leastLoad leastPing random roundRobin" example:"leastPing"`
+	ProxyIds []int  `json:"proxyIds" form:"proxyIds" gorm:"serializer:json;column:proxy_ids" example:"[1,2]"`
 	// No gorm default:true — a bool default makes an explicit false at insert
 	// collapse back to the column default (zero value is skipped).
 	Enabled   bool  `json:"enabled" form:"enabled" example:"true"`

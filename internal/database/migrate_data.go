@@ -60,6 +60,8 @@ func migrationModels() []any {
 		&model.NodePendingReset{},
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
+		&model.ChainProxy{},
+		&model.ChainSelector{},
 		&model.TuicTrafficReceipt{},
 	}
 }

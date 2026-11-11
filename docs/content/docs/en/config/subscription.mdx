@@ -120,6 +120,35 @@ routing, policy) plus a `proxy` outbound pointing at the inbound. 3x-ui emits a
 outbound `settings` form (`address`/`port`/`id`, `level: 8`), and strips
 `sockopt` from `streamSettings`.
 
+### Client-side proxy chains
+
+A **chain** puts one upstream SOCKS or HTTP proxy — optionally with
+username/password, and HTTP proxies may also terminate TLS — between the
+subscriber's client and this panel's inbound. Configure it in
+**Settings → Subscription → Chain Proxies**, then assign it on the inbound's
+**Basic** tab under **Client chain**.
+
+Chains are emitted for the two formats that can express a hop:
+
+- **JSON** — the hop becomes an extra outbound and the `proxy` outbound dials it
+  through `streamSettings.sockopt.dialerProxy`.
+- **Clash/Mihomo** — the hop becomes a `socks5`/`http` proxy and the endpoint
+  carries `dialer-proxy`.
+
+A **Chain Selector** groups several hops so the client picks one by strategy
+(`leastPing`, `leastLoad`, `random`, `roundRobin`). Because the bundled core
+resolves `dialerProxy` by outbound tag only, a multi-hop selector emits **one
+copy of the endpoint per hop** plus a `routing.balancers` entry in JSON, and one
+mihomo proxy group in YAML (`url-test` for `leastPing`/`leastLoad`,
+`load-balance` otherwise — mihomo has no random group).
+
+Raw/Base64 links and the **legacy Clash for Windows** output have no field for a
+hop, so an inbound assigned a chain is **omitted** from them rather than
+exported as a direct connection. An assignment whose proxy or selector was
+disabled or deleted is treated the same way. Chains apply to `vmess`, `vless`,
+`trojan` and `shadowsocks` inbounds; the panel rejects the assignment for other
+protocols.
+
 ## Response headers
 
 Subscriptions return standard headers that compatible apps read:

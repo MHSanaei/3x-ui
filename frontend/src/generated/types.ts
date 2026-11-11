@@ -414,6 +414,30 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface ChainProxy {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  password: string;
+  port: number;
+  remark: string;
+  server: string;
+  tls: boolean;
+  type: string;
+  updatedAt: number;
+  username: string;
+}
+
+export interface ChainSelector {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  proxyIds: number[];
+  remark: string;
+  strategy: string;
+  updatedAt: number;
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
@@ -721,6 +745,8 @@ export interface HwidSlotStatus {
 }
 
 export interface Inbound {
+  chainProxyId: number;
+  chainSelectorId: number;
   clientStats: ClientTraffic[];
   disableFlow: boolean;
   down: number;

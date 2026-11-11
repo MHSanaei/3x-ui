@@ -185,6 +185,94 @@ const subBalancerBodyParams: EndpointParam[] = [
   },
 ];
 
+const chainProxyBodyParams: EndpointParam[] = [
+  {
+    name: 'remark',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Display label and the hop proxy name in the subscriber config (required, max 256).',
+  },
+  {
+    name: 'type',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Hop protocol: "socks" or "http". Default "socks".',
+    optional: true,
+    defaultValue: 'socks',
+  },
+  {
+    name: 'server',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Host or IP of the upstream proxy (required). A pasted URL is reduced to its host: scheme, credentials, path and port are dropped, and IPv6 brackets are stripped.',
+  },
+  {
+    name: 'port',
+    in: 'body (form)',
+    type: 'integer',
+    desc: 'Port of the upstream proxy, 1-65535 (required).',
+  },
+  {
+    name: 'username',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'SOCKS5 / HTTP basic-auth username. Omit both credentials for an open proxy.',
+    optional: true,
+  },
+  {
+    name: 'password',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'SOCKS5 / HTTP basic-auth password.',
+    optional: true,
+  },
+  {
+    name: 'tls',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Dial the proxy over TLS (an HTTPS proxy). http only: xray has no TLS for a socks outbound, so it is rejected for type "socks".',
+    optional: true,
+    defaultValue: false,
+  },
+  {
+    name: 'enabled',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Whether the hop may be used. Default true on create; unchanged when omitted on update.',
+    optional: true,
+  },
+];
+
+const chainSelectorBodyParams: EndpointParam[] = [
+  {
+    name: 'remark',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Display label, also the mihomo proxy-group name (required, max 256).',
+  },
+  {
+    name: 'strategy',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Hop selection strategy: "leastLoad", "leastPing", "roundRobin" or "random". Default "random".',
+    optional: true,
+    defaultValue: 'random',
+  },
+  {
+    name: 'proxyIds',
+    in: 'body (form)',
+    type: 'integer[]',
+    desc: 'Repeated form keys selecting the member chain proxies (required, at least one). Duplicates and unknown ids are rejected.',
+  },
+  {
+    name: 'enabled',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Whether the selector is emitted. Default true on create; unchanged when omitted on update.',
+    optional: true,
+  },
+];
+
 const subscriptionHeadResponses = {
   '200': { description: 'Subscription is available. Headers match GET; no response body.' },
   '404': { description: 'No enabled client matches the subscription ID.' },
@@ -2760,6 +2848,106 @@ export const sections: readonly Section[] = [
           'Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).',
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
         responseSchema: 'SubBalancer',
+      },
+    ],
+  },
+
+  {
+    id: 'chain-proxies',
+    title: 'Chain Proxies',
+    description:
+      "Upstream SOCKS/HTTP proxies a subscriber's client dials before reaching this panel's inbound (a client-side proxy chain, not a panel outbound). The JSON subscription emits each hop as an outbound and points the endpoint at it through streamSettings.sockopt.dialerProxy; the Mihomo subscription emits it as a proxy and sets the endpoint's dialer-proxy. Raw links and the legacy Clash output cannot express a hop, so inbounds assigned a chain are omitted from them.",
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/chain-proxies',
+        summary: 'List all chain proxies by id.',
+        responseSchema: 'ChainProxy',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-proxies',
+        summary: 'Create a chain proxy.',
+        params: chainProxyBodyParams,
+        responseSchema: 'ChainProxy',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-proxies/:id',
+        summary:
+          'Update a chain proxy by id. Accepts the same form fields as create (full-row update); omitting enabled keeps its current value.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Chain proxy id.' },
+          ...chainProxyBodyParams,
+        ],
+        responseSchema: 'ChainProxy',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/chain-proxies/:id',
+        summary:
+          'Delete a chain proxy by id. Every selector drops it from its members, and an inbound assigned it directly reverts to a direct connection.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Chain proxy id.' }],
+        responseSchema: 'ChainProxy',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-proxies/:id/del',
+        summary:
+          'Delete a chain proxy by id (POST alias of DELETE for clients that cannot send DELETE).',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Chain proxy id.' }],
+        responseSchema: 'ChainProxy',
+      },
+    ],
+  },
+
+  {
+    id: 'chain-selectors',
+    title: 'Chain Selectors',
+    description:
+      'Groups of chain proxies so a client picks its entry hop by strategy. An inbound names either one chain proxy or one selector. A selector with several usable hops emits one endpoint copy per hop plus a routing balancer in the JSON subscription, and one mihomo proxy group (url-test for leastPing, load-balance otherwise).',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/chain-selectors',
+        summary: 'List all chain selectors by id.',
+        responseSchema: 'ChainSelector',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-selectors',
+        summary: 'Create a chain selector.',
+        params: chainSelectorBodyParams,
+        responseSchema: 'ChainSelector',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-selectors/:id',
+        summary:
+          'Update a chain selector by id. Accepts the same form fields as create (full-row update); omitting enabled keeps its current value.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Chain selector id.' },
+          ...chainSelectorBodyParams,
+        ],
+        responseSchema: 'ChainSelector',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/chain-selectors/:id',
+        summary:
+          'Delete a chain selector by id. Every inbound assigned it reverts to a direct connection.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Chain selector id.' }],
+        responseSchema: 'ChainSelector',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/chain-selectors/:id/del',
+        summary:
+          'Delete a chain selector by id (POST alias of DELETE for clients that cannot send DELETE).',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Chain selector id.' }],
+        responseSchema: 'ChainSelector',
       },
     ],
   },

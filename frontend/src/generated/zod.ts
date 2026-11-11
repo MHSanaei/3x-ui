@@ -438,6 +438,32 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const ChainProxySchema = z.object({
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  id: z.number().int(),
+  password: z.string(),
+  port: z.number().int().min(1).max(65535),
+  remark: z.string().max(256),
+  server: z.string().max(253),
+  tls: z.boolean(),
+  type: z.enum(['socks', 'http']),
+  updatedAt: z.number().int(),
+  username: z.string(),
+});
+export type ChainProxy = z.infer<typeof ChainProxySchema>;
+
+export const ChainSelectorSchema = z.object({
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  id: z.number().int(),
+  proxyIds: z.array(z.number().int()),
+  remark: z.string().max(256),
+  strategy: z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']),
+  updatedAt: z.number().int(),
+});
+export type ChainSelector = z.infer<typeof ChainSelectorSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
@@ -767,6 +793,8 @@ export const HwidSlotStatusSchema = z.object({
 export type HwidSlotStatus = z.infer<typeof HwidSlotStatusSchema>;
 
 export const InboundSchema = z.object({
+  chainProxyId: z.number().int(),
+  chainSelectorId: z.number().int(),
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
   disableFlow: z.boolean(),
   down: z.number().int(),

@@ -95,6 +95,9 @@ type SubService struct {
 	// settingsByInbound: one decode per request, not one per link of a subId.
 	tuicByInbound            map[int]*tuicLinkInstance
 	amneziaWGServerByInbound map[int]*amneziawg.ServerSettings
+	// chainPlans caches each distinct client-side chain assignment resolved for
+	// this request (see chainAssignmentFor). Reset per request in PrepareForRequest.
+	chainPlans map[chainPlanKey]*chainPlan
 }
 
 // tuicLinkInstance indexes a decoded TUIC inbound's clients by email
@@ -147,6 +150,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.socketFronts = nil
 	s.tuicByInbound = map[int]*tuicLinkInstance{}
 	s.amneziaWGServerByInbound = map[int]*amneziawg.ServerSettings{}
+	s.chainPlans = nil
 	s.hostsByInbound = nil
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
@@ -578,6 +582,14 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			continue
 		}
 		if inbound.ExcludeFromSub {
+			if countHiddenClients(clients, seenEmails) {
+				hasEnabledClient = true
+			}
+			continue
+		}
+		// A share link has no field for an upstream hop, so a chained inbound
+		// would silently connect around it — leave it out of the raw output.
+		if !s.chainAssignmentFor(inbound).direct() {
 			if countHiddenClients(clients, seenEmails) {
 				hasEnabledClient = true
 			}
