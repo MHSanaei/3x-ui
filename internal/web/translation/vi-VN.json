@@ -775,7 +775,7 @@
         "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
         "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
         "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS (cổng 53 và 853 và dịch vụ DNS Client) bên trong TUN và cần máy chủ DNS; windnsclient chỉ áp dụng cho dịch vụ đó; nhập tcp/CỔNG hoặc udp/CỔNG cho cổng khác; misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: all chặn mọi thứ bên ngoài TUN, allexceptlan cũng vậy nhưng vẫn cho truy cập mạng nội bộ; dns giữ DNS (cổng 53 và 853 và dịch vụ DNS Client) bên trong TUN; windnsclient chỉ áp dụng cho dịch vụ đó; tcp, udp và icmp chặn cả giao thức; nhập tcp/CỔNG, udp/CỔNG, chỉ CỔNG hoặc dải THẤP-CAO cho các cổng cụ thể; CIDR đặt phía trước (1.1.1.0/24:53, [::/0]:all) giới hạn giá trị ở các địa chỉ đó; misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN. Mọi giá trị bao gồm cổng 53 đều cần máy chủ DNS.",
         "maxVersion": "Phiên bản tối đa",
         "headerName": "Tên header",
         "headerValue": "Giá trị header"
@@ -1439,6 +1439,7 @@
         "applyTo": "Áp dụng cho",
         "addNoise": "+ Nhiễu",
         "concurrency": "Đồng thời",
+        "concurrencyHint": "Số luồng trên mỗi kết nối. xray-core 26.11.9 trở lên nâng mọi giá trị từ 0 đến 128 thành 128; các core cũ hơn dùng đúng con số đã nhập (0 nghĩa là 8). -1 tắt mux TCP.",
         "xudpConcurrency": "Đồng thời xudp",
         "xudpUdp443": "xudp UDP 443"
       },

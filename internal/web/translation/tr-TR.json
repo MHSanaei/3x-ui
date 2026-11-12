@@ -775,7 +775,7 @@
         "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
         "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
         "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i (53 ve 853 portları ile DNS İstemcisi hizmeti) TUN içinde tutar ve DNS sunucuları gerekir; windnsclient yalnızca o hizmeti kapsar; başka bir port için tcp/PORT veya udp/PORT yazın; misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller.",
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: all, TUN dışındaki her şeyi engeller; allexceptlan aynısını yapar ama yerel ağı erişilebilir bırakır; dns, DNS'i (53 ve 853 portları ile DNS İstemcisi hizmeti) TUN içinde tutar; windnsclient yalnızca o hizmeti kapsar; tcp, udp ve icmp protokolün tamamını engeller; belirli portlar için tcp/PORT, udp/PORT, yalnızca PORT veya ALT-ÜST aralığı yazın; başa eklenen bir CIDR (1.1.1.0/24:53, [::/0]:all) değeri o adreslerle sınırlar; misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller. 53 numaralı portu kapsayan her değer için DNS sunucuları gerekir.",
         "maxVersion": "Maksimum sürüm",
         "headerName": "Başlık adı",
         "headerValue": "Başlık değeri"
@@ -1439,6 +1439,7 @@
         "applyTo": "Şuna Uygula",
         "addNoise": "+ Gürültü",
         "concurrency": "Eşzamanlılık",
+        "concurrencyHint": "Bağlantı başına akış sayısı. xray-core 26.11.9 ve sonrası 0 ile 128 arasındaki her değeri 128'e yükseltir; daha eski çekirdekler sayıyı yazıldığı gibi kullanır (0, 8 demektir). -1 TCP mux'u kapatır.",
         "xudpConcurrency": "xudp eşzamanlılık",
         "xudpUdp443": "UDP 443"
       },

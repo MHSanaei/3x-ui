@@ -67,6 +67,14 @@ func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
 	return shiftGroupBaselines(tx, emails, -1)
 }
 
+func adjustAllGroupBaselinesForRemovedTraffic(tx *gorm.DB) error {
+	totals, err := sumGroupTraffic(tx, "c.group_name <> ''")
+	if err != nil {
+		return err
+	}
+	return applyGroupBaselineShift(tx, totals, -1)
+}
+
 // adjustGroupBaselinesForRestoredTraffic shifts group baselines up by counters an
 // import restored, so usage from before the import never enters a group total.
 func adjustGroupBaselinesForRestoredTraffic(tx *gorm.DB, emails []string) error {
@@ -92,6 +100,10 @@ func shiftGroupBaselines(tx *gorm.DB, emails []string, sign int64) error {
 			}
 		}
 	}
+	return applyGroupBaselineShift(tx, totals, sign)
+}
+
+func applyGroupBaselineShift(tx *gorm.DB, totals map[string]*groupCounters, sign int64) error {
 	for name, d := range totals {
 		if d.up == 0 && d.down == 0 {
 			continue
