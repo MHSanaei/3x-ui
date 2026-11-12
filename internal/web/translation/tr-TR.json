@@ -1439,6 +1439,7 @@
         "applyTo": "Şuna Uygula",
         "addNoise": "+ Gürültü",
         "concurrency": "Eşzamanlılık",
+        "concurrencyHint": "Bağlantı başına akış sayısı. xray-core 26.11.9 ve sonrası 0 ile 128 arasındaki her değeri 128'e yükseltir; daha eski çekirdekler sayıyı yazıldığı gibi kullanır (0, 8 demektir). -1 TCP mux'u kapatır.",
         "xudpConcurrency": "xudp eşzamanlılık",
         "xudpUdp443": "UDP 443"
       },

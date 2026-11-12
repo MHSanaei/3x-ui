@@ -1564,6 +1564,7 @@
         "applyTo": "Použiť na",
         "addNoise": "+ Šum",
         "concurrency": "Počet súbežných prenosov",
+        "concurrencyHint": "Počet streamov na jedno spojenie. xray-core 26.11.9 a novšie zvýšia každú hodnotu od 0 do 128 na 128; staršie jadrá použijú číslo tak, ako je zadané (0 znamená 8). -1 vypne TCP mux.",
         "xudpConcurrency": "Súbežné prenosy xudp",
         "xudpUdp443": "xudp UDP 443"
       },

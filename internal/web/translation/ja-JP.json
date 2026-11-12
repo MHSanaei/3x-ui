@@ -1439,6 +1439,7 @@
         "applyTo": "適用先",
         "addNoise": "+ ノイズ",
         "concurrency": "並行数",
+        "concurrencyHint": "1 接続あたりのストリーム数。xray-core 26.11.9 以降は 0〜128 の値をすべて 128 に引き上げます。それより古いコアは指定した数値をそのまま使います（0 は 8）。-1 で TCP mux を無効にします。",
         "xudpConcurrency": "xudp 並行数",
         "xudpUdp443": "xudp UDP 443"
       },

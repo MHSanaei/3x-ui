@@ -1439,6 +1439,7 @@
         "applyTo": "Aplicar a",
         "addNoise": "+ Ruido",
         "concurrency": "Concurrencia",
+        "concurrencyHint": "Flujos por conexión. xray-core 26.11.9 y posteriores elevan a 128 cualquier valor entre 0 y 128; los núcleos anteriores usan el número tal cual (0 significa 8). -1 desactiva el mux TCP.",
         "xudpConcurrency": "Concurrencia xudp",
         "xudpUdp443": "xudp UDP 443"
       },

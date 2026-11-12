@@ -1439,6 +1439,7 @@
         "applyTo": "套用至",
         "addNoise": "+ 雜訊",
         "concurrency": "並發",
+        "concurrencyHint": "每個連線承載的串流數量。xray-core 26.11.9 及更新版本會把 0 到 128 之間的值一律提高到 128；更早的核心依填寫的數值使用（0 表示 8）。-1 關閉 TCP mux。",
         "xudpConcurrency": "xudp 並發",
         "xudpUdp443": "xudp UDP 443"
       },

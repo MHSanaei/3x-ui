@@ -1439,6 +1439,7 @@
         "applyTo": "Áp dụng cho",
         "addNoise": "+ Nhiễu",
         "concurrency": "Đồng thời",
+        "concurrencyHint": "Số luồng trên mỗi kết nối. xray-core 26.11.9 trở lên nâng mọi giá trị từ 0 đến 128 thành 128; các core cũ hơn dùng đúng con số đã nhập (0 nghĩa là 8). -1 tắt mux TCP.",
         "xudpConcurrency": "Đồng thời xudp",
         "xudpUdp443": "xudp UDP 443"
       },

@@ -1439,6 +1439,7 @@
         "applyTo": "Terapkan ke",
         "addNoise": "+ Noise",
         "concurrency": "Konkurensi",
+        "concurrencyHint": "Jumlah stream per koneksi. xray-core 26.11.9 dan yang lebih baru menaikkan nilai 0 sampai 128 menjadi 128; core yang lebih lama memakai angka apa adanya (0 berarti 8). -1 mematikan mux TCP.",
         "xudpConcurrency": "Konkurensi xudp",
         "xudpUdp443": "xudp UDP 443"
       },

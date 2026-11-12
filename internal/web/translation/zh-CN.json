@@ -1439,6 +1439,7 @@
         "applyTo": "应用于",
         "addNoise": "+ 噪声",
         "concurrency": "并发",
+        "concurrencyHint": "每个连接承载的流数量。xray-core 26.11.9 及更新版本会把 0 到 128 之间的值一律提高到 128；更早的核心按填写的数值使用（0 表示 8）。-1 关闭 TCP mux。",
         "xudpConcurrency": "xudp 并发",
         "xudpUdp443": "xudp UDP 443"
       },

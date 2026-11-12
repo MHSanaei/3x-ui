@@ -1439,6 +1439,7 @@
         "applyTo": "تطبيق على",
         "addNoise": "+ ضوضاء",
         "concurrency": "التزامن",
+        "concurrencyHint": "عدد الـstreams في كل اتصال. xray-core 26.11.9 والأحدث بيرفع أي قيمة من 0 لـ128 إلى 128؛ النسخ الأقدم بتستخدم الرقم زي ما هو (0 يعني 8). القيمة ‎-1‏ بتقفل الـmux على TCP.",
         "xudpConcurrency": "تزامن xudp",
         "xudpUdp443": "xudp UDP 443"
       },

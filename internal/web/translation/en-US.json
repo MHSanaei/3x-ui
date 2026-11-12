@@ -1564,6 +1564,7 @@
         "applyTo": "Apply to",
         "addNoise": "+ Noise",
         "concurrency": "Concurrency",
+        "concurrencyHint": "Streams per connection. xray-core 26.11.9 and newer raise any value from 0 to 128 to 128; older cores use the number as written (0 means 8). -1 turns TCP mux off.",
         "xudpConcurrency": "xudp concurrency",
         "xudpUdp443": "xudp UDP 443"
       },
