@@ -1,6 +1,6 @@
 module github.com/mhsanaei/3x-ui/v3
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
@@ -22,15 +22,15 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.7.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/quic-go/quic-go v0.64.1
-	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
+	github.com/refraction-networking/utls v1.8.3-0.20261108164504-a13c59ffe98b
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasthttp v1.77.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.260327.1-0.20261031132019-a4a3dff5b20c
+	github.com/xtls/xray-core v1.260327.1-0.20261109052709-676eaf66f8f0
 	go.uber.org/atomic v1.12.0
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2
 	golang.org/x/net v0.62.0
 	golang.org/x/sync v0.24.0
 	golang.org/x/sys v0.49.0
@@ -47,7 +47,6 @@ require (
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
-	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.5 // indirect
 	github.com/bytedance/sonic/loader v0.5.3 // indirect
@@ -73,7 +72,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
-	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/koron/go-ssdp v0.9.1 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/libp2p/go-nat v1.0.1-0.20250821073202-01afc089f138 // indirect
@@ -103,7 +102,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xtls/reality v0.0.0-20261014101318-83f621788ca8 // indirect
+	github.com/xtls/reality v0.0.0-20261108101329-4bb46b2afd8b // indirect
 	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.9.2 // indirect
