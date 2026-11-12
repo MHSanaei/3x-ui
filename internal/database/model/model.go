@@ -1131,6 +1131,7 @@ type ClientHwid struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	SubID       string `json:"subId" gorm:"column:sub_id;not null;index;uniqueIndex:idx_client_hwids_sub_hash,priority:1"`
 	HwidHash    string `json:"-" gorm:"column:hwid_hash;size:64;not null;uniqueIndex:idx_client_hwids_sub_hash,priority:2"`
+	Blocked     bool   `json:"blocked" gorm:"not null;default:false"`
 	FirstSeen   int64  `json:"firstSeen" gorm:"column:first_seen;not null"`
 	LastSeen    int64  `json:"lastSeen" gorm:"column:last_seen;not null;index"`
 	UserAgent   string `json:"userAgent" gorm:"column:user_agent"`

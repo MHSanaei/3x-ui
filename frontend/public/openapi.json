@@ -10842,7 +10842,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.",
+        "summary": "List registered HWID devices for a client with a short fingerprint and a blocked flag. Bans are scoped to the subscription ID shared by the client. Full hashes are not exposed.",
         "operationId": "post_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -10877,6 +10877,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "blocked": false,
                       "firstSeen": 1735000000000,
                       "lastSeen": 1735100000000,
                       "userAgent": "Happ/1.0",
@@ -10896,7 +10897,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Clear all registered HWID devices for a client so new devices can register again.",
+        "summary": "Clear unblocked HWID registrations for a client so devices can register again. Blocked devices and their bans are preserved.",
         "operationId": "delete_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -10937,7 +10938,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Remove a single registered HWID device by its id, freeing one slot under the HWID limit.",
+        "summary": "Remove a single unblocked HWID device by its id, freeing one slot under the HWID limit. A blocked device must be unblocked before it can be removed.",
         "operationId": "delete_panel_api_clients_hwids_email_id",
         "parameters": [
           {
@@ -10975,6 +10976,82 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}/{id}/block": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Block or unblock one device for the client subscription. Send an explicit boolean blocked value. A ban denies subscription bodies for that HWID even with limitHwid=0, does not consume a device slot, and survives clearing devices or changing the limit. It does not revoke copied credentials or identify requests with a different or missing HWID.",
+        "operationId": "post_panel_api_clients_hwids_email_id_block",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Device id, from the list endpoint.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "blocked": {
+                    "type": "boolean",
+                    "description": "true to block the device, false to unblock it."
+                  }
+                },
+                "required": [
+                  "blocked"
+                ]
+              },
+              "example": {
+                "blocked": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Updated successfully."
                 }
               }
             }

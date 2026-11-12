@@ -737,6 +737,9 @@ func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
 	if result.Active {
 		c.Header("X-Hwid-Active", "true")
 	}
+	if result.Blocked {
+		c.Header("X-Hwid-Blocked", "true")
+	}
 	if result.NotSupported {
 		c.Header("X-Hwid-Not-Supported", "true")
 	}
