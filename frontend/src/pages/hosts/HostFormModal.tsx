@@ -121,8 +121,7 @@ export default function HostFormModal({
     watchedSnis && watchedSnis.filter((s) => typeof s === 'string' && s.trim() !== '').length > 1,
   );
 
-  const watchedSingleSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
-  const hostSni = (watchedSnis && watchedSnis.length > 0 ? watchedSnis[0] : '') || watchedSingleSni;
+  const hostSni = watchedSnis?.[0] ?? '';
   const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
@@ -208,11 +207,10 @@ export default function HostFormModal({
     const { enable, ...rest } = values;
     const isDisabled = !enable;
     const cleanedSnis = (rest.snis || []).map((s) => s.trim()).filter(Boolean);
-    const primarySni = cleanedSnis.length > 0 ? cleanedSnis[0] : rest.sni || '';
     const payload: BulkAddHostValues = {
       ...rest,
       hosts: (rest.hosts || []).filter((h) => h && h.trim() !== ''),
-      sni: primarySni,
+      sni: cleanedSnis[0] ?? '',
       snis: cleanedSnis,
       sniSharedRandom: cleanedSnis.length > 1 && Boolean(rest.sniSharedRandom),
       isDisabled,
