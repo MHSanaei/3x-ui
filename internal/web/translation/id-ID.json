@@ -2201,7 +2201,7 @@
         "endpoint": "Titik Akhir",
         "domainStrategy": "Strategi Domain",
         "vkTurnEnabled": "Tunnel through VK",
-        "vkTurnHint": "VK TURN Proxy on iOS sends WireGuard traffic through VK relays to this server's SRTP proxy. The proxy forwards it to this WireGuard inbound. Allow the proxy UDP port through your firewall.",
+        "vkTurnHint": "A compatible VK TURN client sends WireGuard traffic through VK relays to this server's SRTP proxy. The proxy forwards it to this WireGuard inbound. Allow the proxy UDP port through your firewall.",
         "vkTurnCallLink": "VK call link",
         "vkTurnCallLinkHint": "The client obtains and refreshes TURN credentials using this link. VK sign-in is needed only if anonymous access is unavailable.",
         "vkTurnPort": "VK proxy UDP port",

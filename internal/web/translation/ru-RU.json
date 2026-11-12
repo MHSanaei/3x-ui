@@ -2201,7 +2201,7 @@
         "endpoint": "Конечная точка",
         "domainStrategy": "Стратегия домена",
         "vkTurnEnabled": "Туннель через VK",
-        "vkTurnHint": "VK TURN Proxy на iOS передаёт трафик WireGuard через релеи VK на SRTP-прокси этого сервера, который направляет его в это подключение WireGuard. Разрешите UDP-порт прокси в firewall.",
+        "vkTurnHint": "Совместимый клиент VK TURN передаёт трафик WireGuard через релеи VK на SRTP-прокси этого сервера, который направляет его в это подключение WireGuard. Разрешите UDP-порт прокси в firewall.",
         "vkTurnCallLink": "Ссылка на звонок VK",
         "vkTurnCallLinkHint": "Клиент получает и обновляет TURN-credentials по этой ссылке. Вход в VK нужен, если анонимный доступ недоступен.",
         "vkTurnPort": "UDP-порт VK-прокси",

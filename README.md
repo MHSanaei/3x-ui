@@ -29,7 +29,7 @@ Built as an enhanced fork of the original X-UI project, 3X-UI adds broader proto
 - **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, TUIC v5, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
 - **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **AmneziaWG built in** — DPI-resistant WireGuard runs inside the panel on a userspace network stack, with no kernel module, DKMS, or extra packages to install.
-- **WireGuard over VK TURN** — optional SRTP transport, a VK badge, and client import links for VK TURN Proxy on iOS.
+- **WireGuard over VK TURN** — optional SRTP transport, a VK badge, and client import links for compatible VK TURN clients.
 - **Native TUIC v5 server** — In-process Go QUIC server with Xray routing and per-client traffic accounting; BBR and New Reno are available server-side. CUBIC is preserved in the client profile but currently falls back to New Reno on the server.
 - **MTProto proxies** — per-client FakeTLS secrets, ad-tags, and quotas, applied live without dropping existing connections.
 - **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
@@ -100,7 +100,7 @@ For full documentation — installation, configuration, operations, and the comp
 
 In a WireGuard inbound, enable **Tunnel through VK**, enter a VK call link, and choose a separate proxy UDP port (default `56000`). Open that port in the firewall and publish it for Docker bridge networking.
 
-Import the generated **VK TURN profile** into VK TURN Proxy on iOS. Traffic passes through VK relays → SRTP proxy → WireGuard. The app renews relay credentials using the call link and supports VK sign-in when anonymous access is unavailable.
+Use a client that supports the server's native SRTP mode. Apps supporting `vkturnproxy://` links can import the generated **VK TURN profile**. Traffic passes through VK relays → SRTP proxy → WireGuard. The client retrieves and renews relay credentials using the call link.
 
 Releases and Docker images bundle the GPL-3.0 [VK TURN server](https://github.com/anton48/vk-turn-proxy/tree/f954cb04ac17f49059f6fe5630a09428ff04c242), pinned to `srtp-build478`. For development, install it with `sh scripts/download-vk-turn.sh linux amd64 bin/vk-turn-proxy-server`, adjusting the target for your system.
 
