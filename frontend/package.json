@@ -61,7 +61,7 @@
     "@storybook/addon-a11y": "^10.6.5",
     "@storybook/addon-docs": "^10.6.5",
     "@storybook/addon-vitest": "^10.6.5",
-    "@storybook/react-vite": "^10.6.5",
+    "@storybook/react-vite": "^10.6.6",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",
