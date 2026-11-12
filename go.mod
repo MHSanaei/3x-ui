@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
 	github.com/apernet/quic-go v0.61.1-0.20260806010916-184d081eef3e
-	github.com/gin-contrib/gzip v1.2.9
+	github.com/gin-contrib/gzip v1.2.10
 	github.com/gin-contrib/sessions v1.1.3
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-ldap/ldap/v3 v3.4.15
