@@ -775,7 +775,7 @@
         "autoSystemDnsToGateway": "DNS sistem ke gateway",
         "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
         "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS (port 53 dan 853 serta layanan DNS Client) tetap di dalam TUN dan butuh server DNS; windnsclient hanya mencakup layanan itu; ketik tcp/PORT atau udp/PORT untuk port lain; misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: all memblokir semuanya di luar TUN, allexceptlan sama tetapi jaringan lokal tetap bisa dijangkau; dns menjaga DNS (port 53 dan 853 serta layanan DNS Client) tetap di dalam TUN; windnsclient hanya mencakup layanan itu; tcp, udp, dan icmp memblokir seluruh protokol; ketik tcp/PORT, udp/PORT, PORT saja, atau rentang LOW-HIGH untuk port tertentu; CIDR di depan (1.1.1.0/24:53, [::/0]:all) membatasi nilai ke alamat tersebut; misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN. Nilai apa pun yang mencakup port 53 butuh server DNS.",
         "maxVersion": "Versi maksimum",
         "headerName": "Nama header",
         "headerValue": "Nilai header"
@@ -1439,6 +1439,7 @@
         "applyTo": "Terapkan ke",
         "addNoise": "+ Noise",
         "concurrency": "Konkurensi",
+        "concurrencyHint": "Jumlah stream per koneksi. xray-core 26.11.9 dan yang lebih baru menaikkan nilai 0 sampai 128 menjadi 128; core yang lebih lama memakai angka apa adanya (0 berarti 8). -1 mematikan mux TCP.",
         "xudpConcurrency": "Konkurensi xudp",
         "xudpUdp443": "xudp UDP 443"
       },

@@ -138,7 +138,7 @@ inbound به مقدار `decryption` نیاز دارد و outbound به `encrypt
 | `secrets`      | —              | Google Drive: دقیقاً سه مقدار ClientID، ClientSecret و RefreshToken به همین ترتیب. Template: مقادیری که با `{secret0}`، `{secret1}`، … خوانده می‌شوند. S3: ‏AccessKeyID، SecretAccessKey و در صورت نیاز SessionToken. |
 | `template`     | —              | فقط برای سرویس template: عملیات `auth`، `put`، `get`، `list` و `delete` در API ذخیره‌ساز. |
 | `s3`           | —              | فقط برای سرویس s3: `endpoint` (یک URL از نوع http(s))، `region`، `bucket` و `pathStyle` (پیش‌فرض `true`؛ با `false` نام باکت در نام میزبان می‌آید). `remoteFolder` پیشوند اشیاء است. |
-| تنظیمات دقیق   | پیش‌فرض هسته   | `segmentBytes` (512 KiB)، `flushIntervalMs` (20)، `pollIntervalMs`/`maxPollIntervalMs` (50/500)، `eagerWindowMs` (2000)، `holeTimeoutMs` (30000)، `sessionTtlSeconds` (300)، `concurrency` (8). |
+| تنظیمات دقیق   | پیش‌فرض هسته   | `segmentBytes` (512 KiB)، `flushIntervalMs` (20)، `pollIntervalMs`/`maxPollIntervalMs` (50/500)، `eagerWindowMs` (2000)، `holeTimeoutMs` (30000)، `sessionTtlSeconds` (300)، `concurrency` (8). پیش‌فرض Google Drive: ‏`flushIntervalMs` برابر 10، `maxPollIntervalMs` برابر 200 و `concurrency` برابر 64 (xray-core 26.11.9). |
 
 **آدرس/پورت Front** اختیاری (کلیدهای `address`/`port` در سطح stream) یک domain front
 است که API ذخیره‌ساز از طریق آن وصل می‌شود؛ نام TLS همچنان میزبان API است. XDRIVE لایهٔ

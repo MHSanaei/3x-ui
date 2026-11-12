@@ -174,6 +174,40 @@ func TestGroupTotalsSurviveBulkClientReset(t *testing.T) {
 	}
 }
 
+func TestGroupTotalsSurviveGlobalClientReset(t *testing.T) {
+	initTrafficTestDB(t)
+	svc := &ClientService{}
+
+	seedGroupedClient(t, "alice", "reset", 100, 200)
+	seedGroupedClient(t, "bob", "unreset", 40, 60)
+	if err := svc.ResetGroupTraffic("reset"); err != nil {
+		t.Fatalf("ResetGroupTraffic: %v", err)
+	}
+
+	if _, err := svc.ResetAllTraffics(); err != nil {
+		t.Fatalf("ResetAllTraffics: %v", err)
+	}
+	if g := groupByName(t, svc, "unreset"); g.Up != 40 || g.Down != 60 || g.TrafficUsed != 100 {
+		t.Fatalf("global reset changed accumulated group usage: got %+v, want up=40 down=60 used=100", g)
+	}
+
+	var traffic xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", "alice").First(&traffic).Error; err != nil {
+		t.Fatalf("load alice traffic: %v", err)
+	}
+	if traffic.Up != 0 || traffic.Down != 0 {
+		t.Fatalf("client traffic not reset: up=%d down=%d", traffic.Up, traffic.Down)
+	}
+
+	if err := database.GetDB().Model(&traffic).
+		Updates(map[string]any{"up": 10, "down": 20}).Error; err != nil {
+		t.Fatalf("record new alice traffic: %v", err)
+	}
+	if g := groupByName(t, svc, "reset"); g.Up != 10 || g.Down != 20 || g.TrafficUsed != 30 {
+		t.Fatalf("global reset hid new group usage: got %+v, want up=10 down=20 used=30", g)
+	}
+}
+
 func TestGroupTotalsSurviveClientDelete(t *testing.T) {
 	initTrafficTestDB(t)
 	csvc := &ClientService{}
