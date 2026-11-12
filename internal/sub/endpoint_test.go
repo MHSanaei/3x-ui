@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -179,5 +180,77 @@ func TestBuildEndpointVmessLinks_HostFinalMask(t *testing.T) {
 	}
 	if fm, _ := obj["fm"].(string); fm != `{"udp":[{"type":"salamander"}]}` {
 		t.Fatalf("vmess fm = %q, want the host mask", obj["fm"])
+	}
+}
+
+// An endpoint address is mirrored from the node as reported: whatever it holds, one
+// endpoint stays one line of the subscription body, inside its own link's authority.
+func TestSub_EndpointAddressCannotAddLines(t *testing.T) {
+	seedSubDB(t)
+	dest, _ := json.Marshal("::1]:443#a\nincy://routing/onadd/e30=\r\nvless://x@[::2")
+	seedSubInbound(t, "s1", "n", 4490, 1, fmt.Sprintf(
+		`{"network":"tcp","security":"none","externalProxy":[{"forceTls":"same","dest":%s,"port":443,"remark":""}]}`, dest))
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	want := "vless://11111111-2222-4333-8444-000000004490@" +
+		"[::1%5D:443%23a%0Aincy:%2F%2Frouting%2Fonadd%2Fe30=%0D%0Avless:%2F%2Fx%40%5B::2]:443" +
+		"?encryption=none&security=none&type=tcp#n-n%40e"
+	if len(links) != 1 || links[0] != want {
+		t.Fatalf("links = %q, want [%q]", links, want)
+	}
+}
+
+func TestJoinHostPortEscapesNonHostCharacters(t *testing.T) {
+	for host, want := range map[string]string{
+		"cdn.example.com": "cdn.example.com:443",
+		"203.0.113.5":     "203.0.113.5:443",
+		"[2001:db8::1]":   "[2001:db8::1]:443",
+		"fe80::1%eth0":    "[fe80::1%eth0]:443",
+		"пример.рф":       "пример.рф:443",
+		"a b\tc":          "a%20b%09c:443",
+		"a\u0085b\u2028c": "a%C2%85b%E2%80%A8c:443",
+		"h?x=1#f":         "h%3Fx=1%23f:443",
+		"u@h/p":           "u%40h%2Fp:443",
+	} {
+		if got := joinHostPort(host, 443); got != want {
+			t.Errorf("joinHostPort(%q) = %q, want %q", host, got, want)
+		}
+	}
+}
+
+// The VLESS id is the userinfo of its link and is escaped like every other protocol's.
+func TestGenVlessLinkEscapesID(t *testing.T) {
+	in := &model.Inbound{
+		Listen: "203.0.113.5", Port: 443, Protocol: model.VLESS, Remark: "n",
+		Settings:       `{"clients":[{"id":"a@b#c\nd","email":"user"}],"decryption":"none"}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	got := NewSubService("").genVlessLink(in, "user")
+	if !strings.HasPrefix(got, "vless://a%40b%23c%0Ad@203.0.113.5:443?") {
+		t.Fatalf("vless id not escaped: %q", got)
+	}
+}
+
+// The panel builds its own link and QR through the browser's URL parser, which escapes
+// userinfo with the WHATWG userinfo set; a subscription escaping more serves another id.
+func TestGenVlessLinkEscapesIDLikeThePanel(t *testing.T) {
+	for id, want := range map[string]string{
+		"team+1":     "team+1",
+		"a=b":        "a%3Db",
+		"x:y;z":      "x%3Ay%3Bz",
+		"ok!$,'()*~": "ok!$,'()*~",
+		"é":          "%C3%A9",
+	} {
+		in := &model.Inbound{
+			Listen: "203.0.113.5", Port: 443, Protocol: model.VLESS, Remark: "n",
+			Settings:       `{"clients":[{"id":` + strconv.Quote(id) + `,"email":"user"}],"decryption":"none"}`,
+			StreamSettings: `{"network":"tcp","security":"none"}`,
+		}
+		got := NewSubService("").genVlessLink(in, "user")
+		if !strings.HasPrefix(got, "vless://"+want+"@203.0.113.5:443?") {
+			t.Errorf("id %q: link %q, want userinfo %q", id, got, want)
+		}
 	}
 }

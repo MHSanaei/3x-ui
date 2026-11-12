@@ -450,7 +450,7 @@ export const ClientSchema = z.object({
   enable: z.boolean(),
   expiryTime: z.number().int(),
   flow: z.string().optional(),
-  forwardedPorts: z.string().optional(),
+  forwardedPorts: z.string().nullable().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
   keepAlive: z.union([z.number().int(), z.string()]).optional(),

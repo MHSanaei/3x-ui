@@ -11,8 +11,6 @@ overrides:
   'lightningcss@<1.33.0': '^1.33.0'
 minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
-  - fumadocs-core@16.17.8
-  - fumadocs-ui@16.17.8
   - '@fumadocs/json-schema@0.3.5'
   - '@next/env@16.4.3'
   - '@next/swc-darwin-arm64@16.4.3'
@@ -24,5 +22,4 @@ minimumReleaseAgeExclude:
   - '@next/swc-win32-arm64-msvc@16.4.3'
   - '@next/swc-win32-x64-msvc@16.4.3'
   - fumadocs-mdx@15.4.10
-  - fumadocs-openapi@12.5.5
   - next@16.4.3

@@ -96,7 +96,7 @@ func TestBackupArrivesAsOneMessageWithACaption(t *testing.T) {
 	notices.reset()
 
 	tb := initReportDB(t)
-	tb.sendDocumentWithCaption(1, []byte("db-bytes"), "x-ui.db", "host\nbackup time")
+	tb.sendBackupFile(1, []byte("db-bytes"), "x-ui.db", "host\nbackup time")
 
 	got := calls()
 	sends := 0

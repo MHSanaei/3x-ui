@@ -1,5 +1,5 @@
 import { cloneElement, useId } from 'react';
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import type { AriaAttributes, CSSProperties, ReactElement, ReactNode } from 'react';
 import { Controller } from 'react-hook-form';
 import type { Control, ControllerProps, FieldValues, Path } from 'react-hook-form';
 import { Form } from 'antd';
@@ -50,12 +50,10 @@ export function FormField<T extends FieldValues = FieldValues>({
   const dottedName = toDotted(name) as Path<T>;
   const generatedId = useId();
   const hintId = useId();
-  const childOwnProps = (children as ReactElement<{ id?: string; 'aria-describedby'?: string }>)
-    .props;
+  const errorId = `${generatedId}-error`;
+  const extraId = `${generatedId}-extra`;
+  const childOwnProps = (children as ReactElement<{ id?: string } & AriaAttributes>).props;
   const fieldId = childOwnProps.id ?? generatedId;
-  const describedBy = tooltip
-    ? [childOwnProps['aria-describedby'], hintId].filter(Boolean).join(' ')
-    : undefined;
 
   return (
     <Controller
@@ -67,8 +65,14 @@ export function FormField<T extends FieldValues = FieldValues>({
         const help = fieldState.error?.message
           ? t(fieldState.error.message, { defaultValue: fieldState.error.message })
           : undefined;
+        const describedBy =
+          [childOwnProps['aria-describedby'], tooltip && hintId, extra && extraId, help && errorId]
+            .filter(Boolean)
+            .join(' ') || undefined;
         const childProps: Record<string, unknown> = {
           id: fieldId,
+          'aria-describedby': describedBy,
+          'aria-invalid': fieldState.invalid || childOwnProps['aria-invalid'],
           [valueProp]: displayValue,
           onChange: (...args: unknown[]) => {
             const raw = normalizeAntdOnChange(args, valueProp);
@@ -79,16 +83,15 @@ export function FormField<T extends FieldValues = FieldValues>({
           onBlur: field.onBlur,
           ref: field.ref,
         };
-        if (describedBy) childProps['aria-describedby'] = describedBy;
         return (
           <Form.Item
             label={label}
             htmlFor={label ? fieldId : undefined}
             tooltip={tooltip}
-            extra={extra}
+            extra={extra ? <span id={extraId}>{extra}</span> : extra}
             required={required}
             validateStatus={fieldState.error ? 'error' : undefined}
-            help={help}
+            help={help ? <span id={errorId}>{help}</span> : undefined}
             noStyle={noStyle}
             className={className}
             style={style}

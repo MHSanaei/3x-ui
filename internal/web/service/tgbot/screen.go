@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoapi"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
@@ -16,8 +18,15 @@ import (
 // error, so a screen pages its body instead of risking a lost render.
 const botCaptionLimit = 1024
 
-// screen is the bot's only chat surface: one photo message whose caption and
-// keyboard are edited on every action, so a chat never grows a second menu.
+type screenDelivery uint8
+
+const (
+	screenEditOrReplace screenDelivery = iota
+	screenSendNew
+)
+
+// screen is the bot's chat surface: callbacks edit its caption and keyboard,
+// while typed commands replace it with a newly sent menu.
 type screen struct {
 	msgID int
 	kind  string
@@ -130,9 +139,9 @@ func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButt
 	return &screen{kind: kind, header: header, body: body, pages: pages, rows: rows, pageMax: len(pages)}
 }
 
-// renderScreen is the single entry point for drawing a screen: EDIT first, and
-// replace (send then delete) only when the edit is genuinely impossible.
-func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
+// renderScreen edits the current menu unless a command requests a new message.
+// A typed command must not depend on the old message still being visible.
+func (t *Tgbot) renderScreen(chatID int64, sc *screen, delivery ...screenDelivery) {
 	if sc == nil || liveBot() == nil {
 		return
 	}
@@ -150,7 +159,8 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	}
 	sc.markup = tu.InlineKeyboard(rows...)
 
-	if prev, ok := t.screens().get(chatID); ok && prev.msgID != 0 {
+	sendNew := len(delivery) > 0 && delivery[0] == screenSendNew
+	if prev, ok := t.screens().get(chatID); !sendNew && ok && prev.msgID != 0 {
 		if t.editScreen(chatID, prev, sc) {
 			sc.msgID = prev.msgID
 			t.screens().put(chatID, sc)
@@ -185,37 +195,13 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 
 	var err error
 	switch {
-	case next.hasPhoto && next.photo != "":
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: tu.FileFromID(next.photo), Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
-		})
-	case next.attachment != nil:
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: *next.attachment, Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
-		})
-	case next.hasPhoto:
-		// No file_id yet (the avatar was never read): upload the fallback tile.
-		upload, ok := artUpload(next.kind)
-		if !ok {
-			return false
-		}
-		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
-			ChatID:    tu.ID(chatID),
-			MessageID: prev.msgID,
-			Media: &telego.InputMediaPhoto{
-				Type: "photo", Media: upload, Caption: next.text, ParseMode: "HTML",
-			},
-			ReplyMarkup: next.markup,
+	case next.hasPhoto || next.attachment != nil:
+		_, err = requestScreenPhoto(next, func(photo telego.InputFile) (*telego.Message, error) {
+			return liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+				ChatID: tu.ID(chatID), MessageID: prev.msgID,
+				Media:       &telego.InputMediaPhoto{Type: "photo", Media: photo, Caption: next.text, ParseMode: "HTML"},
+				ReplyMarkup: next.markup,
+			})
 		})
 	case prev.hasPhoto:
 		// A photo message cannot become a text one: drop the picture and let
@@ -250,24 +236,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	var sent *telego.Message
 	var err error
 	switch {
-	case sc.hasPhoto && sc.photo != "":
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: tu.FileFromID(sc.photo),
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
-		})
-	case sc.attachment != nil:
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: *sc.attachment,
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
-		})
-	case sc.hasPhoto:
-		upload, ok := artUpload(sc.kind)
-		if !ok {
-			return 0
-		}
-		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
-			ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: upload,
-			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+	case sc.hasPhoto || sc.attachment != nil:
+		sent, err = requestScreenPhoto(sc, func(photo telego.InputFile) (*telego.Message, error) {
+			return liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
+				ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), Photo: photo,
+				Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+			})
 		})
 	default:
 		sent, err = liveBot().SendMessage(ctx, &telego.SendMessageParams{
@@ -278,8 +252,10 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 		logger.Warning("Failed to send a screen:", err)
 		return 0
 	}
-	if hadPrev && prev.msgID != 0 {
-		t.deleteOwnMessage(chatID, prev.msgID)
+	if hadPrev && prev.msgID != 0 && !t.deleteOwnMessage(chatID, prev.msgID) {
+		t.editMessageCallbackTgBot(chatID, prev.msgID, &telego.InlineKeyboardMarkup{
+			InlineKeyboard: [][]telego.InlineKeyboardButton{},
+		})
 	}
 	sc.msgID = sent.MessageID
 	// Telegram hands back the file_id of the uploaded tile: remembering it keeps
@@ -290,6 +266,45 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	}
 	t.screens().put(chatID, sc)
 	return sent.MessageID
+}
+
+// Only a rejected cached decoration gets one upload retry; QR pictures remain intact.
+// The cache is invalidated only after the same caption and keyboard succeed without that id.
+func requestScreenPhoto(sc *screen, request func(telego.InputFile) (*telego.Message, error)) (*telego.Message, error) {
+	var photo telego.InputFile
+	switch {
+	case sc.hasPhoto && sc.photo != "":
+		photo = tu.FileFromID(sc.photo)
+	case sc.attachment != nil:
+		photo = *sc.attachment
+	default:
+		var ok bool
+		photo, ok = artUpload(sc.kind)
+		if !ok {
+			return nil, errors.New("screen artwork is unavailable")
+		}
+	}
+	sent, err := request(photo)
+	var apiErr *telegoapi.Error
+	if err == nil || sc.photo == "" || sc.qrPicture != nil || sc.attachment != nil ||
+		!errors.As(err, &apiErr) || apiErr.ErrorCode != 400 || isTelegramNotModifiedError(err) {
+		return sent, err
+	}
+	upload, ok := artUpload(sc.kind)
+	if !ok {
+		return sent, err
+	}
+	sent, err = request(upload)
+	if err != nil {
+		return sent, err
+	}
+	rejectArtFileID(sc.photo)
+	sc.photo = ""
+	if sent != nil && len(sent.Photo) > 0 {
+		sc.photo = sent.Photo[len(sent.Photo)-1].FileID
+		cacheArtFileID(sc.kind, sc.photo)
+	}
+	return sent, nil
 }
 
 // ensureBackRow guarantees every screen can be left (a screen with only its own
@@ -409,17 +424,20 @@ func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
 	t.deleteOwnMessage(chatID, messageID)
 }
 
-// deleteOwnMessage removes one of our messages without surfacing a failure: the
-// user may have deleted it, and Telegram refuses past 48 hours.
-func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
-	if msgID == 0 || liveBot() == nil {
-		return
+// deleteOwnMessage reports whether a message was removed. Failures are expected
+// when it is already gone or outside Telegram's deletion window.
+func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) bool {
+	b := liveBot()
+	if msgID == 0 || b == nil {
+		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := liveBot().DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
+	if err := b.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
 		logger.Debug("Cannot delete a bot message:", err)
+		return false
 	}
+	return true
 }
 
 // hideButton is the keyboard of a non-screen message: one tap clears it.

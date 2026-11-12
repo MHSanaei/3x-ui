@@ -9,6 +9,8 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
   push:
     branches:
@@ -20,6 +22,8 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "deploy/test/installer-panel-port.sh"
       - ".github/workflows/ci.yml"
 
 permissions:
@@ -71,12 +75,12 @@ jobs:
       - name: PostgreSQL durable-first tests
         run: |
           set -o pipefail
-          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$' -count=1 -v | tee /tmp/postgres-durable-first.log
+          go test ./internal/web/service -run 'PostgresCommitFailure|^TestSyncInboundClientsOnPostgres$|^TestSetClientLimitHwidIsSerializedWithSyncInbound$|^TestVlessManagedFallbackConflictPostgres$' -count=1 -v | tee /tmp/postgres-durable-first.log
           # Count passes rather than assert no SKIP: a renamed or deleted test
           # prints "no tests to run" and exits 0, leaving the step green for nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-durable-first.log || true)
-          if [ "$passed" -lt 4 ]; then
-            echo "expected at least 4 passing durable-first tests, got $passed" >&2
+          if [ "$passed" -lt 5 ]; then
+            echo "expected at least 5 passing durable-first tests, got $passed" >&2
             exit 1
           fi
 
@@ -189,6 +193,15 @@ jobs:
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-migration.log || true)
           if [ "$passed" -lt 4 ]; then
             echo "expected at least 4 passing PostgreSQL migration tests, got $passed" >&2
+            exit 1
+          fi
+      - name: SQLite import host settings
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestImportSQLiteIntoPostgresHostSettings$' -count=1 -v | tee /tmp/postgres-import-host-settings.log
+          passed=$(grep -c -- '^--- PASS: TestImportSQLiteIntoPostgresHostSettings ' /tmp/postgres-import-host-settings.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected the SQLite import integration test to pass, got $passed" >&2
             exit 1
           fi
 
@@ -314,8 +327,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck
         run: |
-          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh
+          shellcheck --severity=style DockerInit.sh DockerEntrypoint.sh deploy/test/smoke-noninteractive.sh deploy/test/installer-panel-port.sh
           shellcheck --severity=error install.sh update.sh x-ui.sh
+      - name: Installer panel port regression tests
+        run: bash deploy/test/installer-panel-port.sh
 
   frontend:
     runs-on: ubuntu-latest
@@ -350,6 +365,15 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
         working-directory: frontend
+      - name: Inbound keyboard and accessibility tree
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/vite preview --outDir storybook-static --host 127.0.0.1 --port 6006 > /tmp/inbound-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 45 -fsS http://127.0.0.1:6006/iframe.html > /dev/null
+          node tools/check-inbound-keyboard.mjs http://127.0.0.1:6006
       - name: Audit
         run: npm run audit
         working-directory: frontend

@@ -239,7 +239,7 @@ export default function AmneziawgFields({
         <Alert
           type={kernelModeOn ? 'warning' : 'info'}
           showIcon
-          message={t('pages.xray.amneziawg.kernelUnavailable')}
+          title={t('pages.xray.amneziawg.kernelUnavailable')}
           description={
             <>
               <ul style={{ margin: '0 0 8px', paddingInlineStart: 20 }}>
