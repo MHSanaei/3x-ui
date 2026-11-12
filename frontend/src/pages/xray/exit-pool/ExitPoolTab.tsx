@@ -173,6 +173,17 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
       messageApi.warning('请选择母节点、至少一个可用地区出口，并填写订阅组名称');
       return;
     }
+    const selectedSources = new Set(
+      (state?.exits || [])
+        .filter((exit) => slots.includes(exit.slot))
+        .map((exit) => exit.sourceCategory),
+    );
+    if (selectedSources.size !== 1) {
+      messageApi.warning(
+        '一个订阅组只能使用一种 IP 来源；请分别创建 xnvgatebox 稳定池、新增住宅池或新增原生机房池订阅。',
+      );
+      return;
+    }
     setSaving(true);
     try {
       const response = await HttpUtil.post<GroupRow>(
@@ -279,7 +290,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
               { value: 'xnvgatebox_stable', label: 'xnvgatebox 稳定池（推荐）' },
               { value: 'new_residential', label: '新增住宅池' },
               { value: 'new_native_datacenter', label: '新增原生机房池' },
-              { value: 'all', label: '全部分类' },
+              { value: 'all', label: '全部分类（仅查看，不可混合创建）' },
             ]}
             style={{ width: 230 }}
           />
@@ -314,7 +325,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
               placeholder="选择多个国家或地区出口"
               options={readyExits.map((exit) => ({
                 value: exit.slot,
-                label: `${sourceLabel(exit.sourceCategory)} · ${exit.country || exit.region || 'Unknown'} · ${exit.exitIp || exit.host} · ${Math.round(exit.latencyMs || 0)}ms`,
+                label: `${sourceLabel(exit.sourceCategory)} · ${exit.sourceName || '来源未命名'} · ${exit.country || exit.region || 'Unknown'} · ${exit.exitIp || exit.host} · ${Math.round(exit.latencyMs || 0)}ms`,
               }))}
               onChange={(next) => {
                 const selected = new Set(next);
@@ -384,6 +395,7 @@ export default function ExitPoolTab(_: ExitPoolTabProps) {
               ),
             },
             { title: '地区', render: (_, row: ExitRow) => row.country || row.region || '-' },
+            { title: '具体来源', render: (_, row: ExitRow) => row.sourceName || '-' },
             { title: '出口 IP', dataIndex: 'exitIp' },
             {
               title: '延迟',

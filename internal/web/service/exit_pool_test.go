@@ -13,8 +13,12 @@ func TestExitPoolClientDisplayName(t *testing.T) {
 		Comment: "xnv3:7:JP:Japan:203.0.113.7",
 	}
 	got, ok := ExitPoolClientDisplayName(client)
-	if !ok || got != "World-JP-S7" {
+	if !ok || got != "World-xnvgatebox-stable-JP-S7" {
 		t.Fatalf("display name = %q, %v", got, ok)
+	}
+	client.Comment = "xnv3:8:US:United States:198.51.100.8:new_residential"
+	if got, ok := ExitPoolClientDisplayName(client); !ok || got != "World-new-residential-US-S8" {
+		t.Fatalf("residential display name = %q, %v", got, ok)
 	}
 	if _, ok := ExitPoolClientDisplayName(model.Client{Group: "staff"}); ok {
 		t.Fatal("ordinary client identified as exit-pool client")
@@ -59,6 +63,17 @@ func TestExitPoolSourceCategoriesAreIsolatedAndBackwardCompatible(t *testing.T) 
 	}
 	if _, err := normalizeExitPoolExit(ExitPoolExit{Slot: 1, Port: 1080, SourceCategory: exitPoolSourceStable, ProxyAddress: "8.8.8.8", ProxyPort: 1080}); err == nil {
 		t.Fatal("stable category accepted an external proxy")
+	}
+}
+
+func TestExitPoolGroupRejectsMixedSources(t *testing.T) {
+	stable := ExitPoolExit{Slot: 1, SourceCategory: exitPoolSourceStable}
+	home := ExitPoolExit{Slot: 2, SourceCategory: exitPoolSourceHome}
+	if err := validateExitPoolGroupSources([]ExitPoolExit{stable, stable}); err != nil {
+		t.Fatalf("same-source group rejected: %v", err)
+	}
+	if err := validateExitPoolGroupSources([]ExitPoolExit{stable, home}); err == nil {
+		t.Fatal("mixed-source group accepted")
 	}
 }
 

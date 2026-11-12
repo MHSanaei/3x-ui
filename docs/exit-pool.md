@@ -66,9 +66,15 @@ are present. Unknown, expired or mismatched evidence is never promoted into
 either optional pool.
 
 Disabling or removing an optional provider does not delete stable exits, stable
-groups, ordinary inbounds, clients or routes. A group can deliberately combine
-categories, but its members retain their source category so the distinction is
-visible later.
+groups, ordinary inbounds, clients or routes. A subscription group must contain
+exactly one source category. Both the panel and the server reject a mixed
+stable/residential/datacenter selection, so a saved group can never lose its
+source boundary. Create separate groups when more than one category is needed.
+
+Generated client names also carry a source token (`xnvgatebox-stable`,
+`new-residential`, or `new-native-dc`). This keeps the source visible in client
+subscriptions and in multi-region group management even when several exits have
+the same measured country.
 
 ### Free verified supplemental pool
 
@@ -139,6 +145,12 @@ the required UDP behavior.
 
 The integration reads xnvgatebox only through its authenticated loopback API.
 SOCKS credentials are never returned to the browser.
+
+In embedded 3x-ui mode the xnvgatebox management and subscription addresses are
+intentionally loopback-only. The embedded console therefore disables its own
+subscription copy buttons instead of presenting a useless `127.0.0.1` URL. Copy
+the public client subscription from **3x-ui → Clients** after creating an exit
+pool group.
 
 3x-ui fails closed if `listen_addr` is not exactly `127.0.0.1`. The embedded
 console cannot change xnvgatebox network settings or invoke its upstream online

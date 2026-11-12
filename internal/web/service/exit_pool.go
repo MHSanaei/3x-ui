@@ -273,7 +273,32 @@ func ExitPoolClientDisplayName(client model.Client) (string, bool) {
 	if name == "" || region == "" {
 		return "", false
 	}
-	return fmt.Sprintf("%s-%s-S%d", name, region, member.Slot), true
+	return fmt.Sprintf("%s-%s-%s-S%d", name, exitPoolSourceNameToken(member.SourceCategory), region, member.Slot), true
+}
+
+func exitPoolSourceNameToken(source string) string {
+	switch source {
+	case exitPoolSourceHome:
+		return "new-residential"
+	case exitPoolSourceNativeDC:
+		return "new-native-dc"
+	default:
+		return "xnvgatebox-stable"
+	}
+}
+
+func validateExitPoolGroupSources(exits []ExitPoolExit) error {
+	source := ""
+	for _, exit := range exits {
+		if source == "" {
+			source = exit.SourceCategory
+			continue
+		}
+		if source != exit.SourceCategory {
+			return errors.New("one subscription group cannot mix xnvgatebox stable, new residential, and new native datacenter exits; create one group per source category")
+		}
+	}
+	return nil
 }
 
 func readExitPoolFile(name string, limit int64) ([]byte, error) {
@@ -667,6 +692,9 @@ func (s *ExitPoolService) Sync(userID int, host string, req ExitPoolSyncRequest)
 	}
 	if len(requested) != 0 {
 		return ExitPoolGroup{}, errors.New("one or more selected exits no longer exist")
+	}
+	if err := validateExitPoolGroupSources(desired); err != nil {
+		return ExitPoolGroup{}, err
 	}
 	slices.SortFunc(desired, func(a, b ExitPoolExit) int { return a.Slot - b.Slot })
 
