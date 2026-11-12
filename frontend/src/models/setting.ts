@@ -1,5 +1,5 @@
 import { ObjectUtil } from '@/utils';
-import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
+import type { SubProfileMode, SubHostSortMode, WechatMode } from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -198,6 +198,20 @@ export class AllSetting {
   discordEnabledEvents = 'login.attempt,cpu.high';
   hasDiscordBotToken = false;
   clearDiscordBotToken = false;
+  wechatEnable = false;
+  wechatMode: WechatMode = 'wecom';
+  wechatWebhookURL = '';
+  hasWechatWebhookURL = false;
+  clearWechatWebhookURL = false;
+  wechatToken = '';
+  hasWechatToken = false;
+  clearWechatToken = false;
+  wechatLang = 'en-US';
+  wechatReportEnable = false;
+  wechatRunTime = '@daily';
+  wechatEnabledEvents = 'login.attempt,cpu.high';
+  wechatCpu = 80;
+  wechatMemory = 80;
 
   constructor(data?: unknown) {
     if (data != null) {

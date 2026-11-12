@@ -1854,7 +1854,33 @@
       "subHostSortMode": "ترتيب عقد الاشتراك",
       "subHostSortInbound": "ترتيب الاتصالات الواردة (الافتراضي)",
       "subHostSortHosts": "ترتيب المضيفين",
-      "subHostSortModeDesc": "يتبع ترتيب المضيفين صفحة المضيفين عبر جميع الاتصالات الواردة. يحدد هذا ترتيب مخرجات الخادم؛ وقد تطبق تطبيقات العميل ترتيبًا آخر."
+      "subHostSortModeDesc": "يتبع ترتيب المضيفين صفحة المضيفين عبر جميع الاتصالات الواردة. يحدد هذا ترتيب مخرجات الخادم؛ وقد تطبق تطبيقات العميل ترتيبًا آخر.",
+      "wechatSettings": "إشعارات WeChat",
+      "wechatEnable": "تفعيل إشعارات WeChat",
+      "wechatEnableDesc": "إرسال تنبيهات عبر روبوت مجموعة WeCom أو بوابة webhook متوافقة.",
+      "wechatMode": "طريقة الإرسال",
+      "wechatModeDesc": "اختر تنسيق الرسائل الذي تدعمه الوجهة.",
+      "wechatModeWecom": "روبوت مجموعة WeCom",
+      "wechatModeWebhook": "بوابة webhook مخصصة",
+      "wechatPersonalGateway": "يتطلب WeChat الشخصي بوابة متوافقة. يرسل روبوت WeCom إلى مجموعات WeCom وليس مباشرة إلى WeChat الشخصي.",
+      "wechatWebhookURL": "عنوان webhook",
+      "wechatWebhookURLConfigured": "تم حفظ العنوان. اترك الحقل فارغًا للاحتفاظ به.",
+      "wechatWebhookURLDesc": "استخدم وجهة HTTPS. قد يحتوي العنوان على سر ولا تعيد اللوحة القيمة المحفوظة.",
+      "wechatSecretPlaceholder": "اتركه فارغًا للاحتفاظ بالقيمة المحفوظة",
+      "wechatToken": "رمز Bearer",
+      "wechatTokenConfigured": "تم حفظ الرمز. اترك الحقل فارغًا للاحتفاظ به.",
+      "wechatTokenDesc": "مصادقة اختيارية للبوابة. اتركه فارغًا إذا لم تكن مطلوبة.",
+      "wechatLanguage": "لغة الرسائل",
+      "wechatSaveBeforeTest": "احفظ التغييرات قبل الاختبار. يستخدم الاختبار الإعدادات المحفوظة.",
+      "wechatTest": "إرسال إشعار تجريبي",
+      "wechatTestSuccess": "تم إرسال الإشعار التجريبي بنجاح",
+      "wechatTestFailed": "تعذر إرسال الإشعار التجريبي",
+      "wechatReportEnable": "تقارير مجدولة",
+      "wechatReportEnableDesc": "إرسال ملخصات نصية دورية مستقلة عن التنبيهات. لا تُرفق قواعد البيانات أو ملفات الإعداد.",
+      "wechatReportTime": "جدول التقارير",
+      "wechatReportTimeDesc": "استخدم تعبير cron أو إعدادًا مثل @daily.",
+      "wechatEvents": "تنبيهات الأحداث",
+      "wechatEventsDesc": "اختر الأحداث التي ترسل إشعارات واضبط حدود التنبيه."
     },
     "xray": {
       "save": "احفظ",
@@ -2869,5 +2895,18 @@
     "restartXray": "إعادة تشغيل خدمة Xray",
     "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح",
     "settings": "الإعدادات"
+  },
+  "wechat": {
+    "test": {
+      "title": "اختبار إشعارات WeChat من 3x-ui",
+      "body": "هذا إشعار تجريبي من 3x-ui. لا يتضمن أي ملفات لقاعدة البيانات أو الإعدادات."
+    },
+    "report": {
+      "title": "تقرير حالة 3x-ui",
+      "counts": "الإجمالي: {{ .Total }} | معطل: {{ .Disabled }} | منتهي الصلاحية: {{ .Expired }} | مستنفد: {{ .Depleted }}",
+      "trafficUsed": "حركة البيانات المستخدمة في 3x-ui",
+      "trafficRemaining": "حركة البيانات المتبقية في 3x-ui",
+      "trafficQuotaUnset": "لم يتم إعداد الحصة"
+    }
   }
 }

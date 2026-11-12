@@ -1854,7 +1854,33 @@
       "subHostSortMode": "Orden de nodos de suscripción",
       "subHostSortInbound": "Orden de entradas (predeterminado)",
       "subHostSortHosts": "Orden de hosts",
-      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden."
+      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden.",
+      "wechatSettings": "Notificaciones de WeChat",
+      "wechatEnable": "Activar notificaciones de WeChat",
+      "wechatEnableDesc": "Envía alertas mediante un robot de grupo de WeCom o una pasarela webhook compatible.",
+      "wechatMode": "Modo de envío",
+      "wechatModeDesc": "Elige el formato que admite el destino.",
+      "wechatModeWecom": "Robot de grupo de WeCom",
+      "wechatModeWebhook": "Pasarela webhook personalizada",
+      "wechatPersonalGateway": "WeChat personal necesita una pasarela compatible. El robot de WeCom envía a grupos de WeCom, no directamente a WeChat personal.",
+      "wechatWebhookURL": "URL del webhook",
+      "wechatWebhookURLConfigured": "Hay una URL guardada. Déjala vacía para conservarla.",
+      "wechatWebhookURLDesc": "Usa un destino HTTPS. La URL puede contener un secreto y el panel nunca devuelve el valor guardado.",
+      "wechatSecretPlaceholder": "Dejar vacío para conservar el valor",
+      "wechatToken": "Token Bearer",
+      "wechatTokenConfigured": "Hay un token guardado. Déjalo vacío para conservarlo.",
+      "wechatTokenDesc": "Autenticación opcional de la pasarela. Déjalo vacío si no es necesaria.",
+      "wechatLanguage": "Idioma de los mensajes",
+      "wechatSaveBeforeTest": "Guarda los cambios antes de probar. La prueba usa la configuración guardada.",
+      "wechatTest": "Enviar notificación de prueba",
+      "wechatTestSuccess": "Notificación de prueba enviada correctamente",
+      "wechatTestFailed": "No se pudo enviar la notificación de prueba",
+      "wechatReportEnable": "Informes programados",
+      "wechatReportEnableDesc": "Envía resúmenes de texto periódicos aparte de las alertas. No adjunta bases de datos ni archivos de configuración.",
+      "wechatReportTime": "Horario del informe",
+      "wechatReportTimeDesc": "Usa una expresión cron o un valor como @daily.",
+      "wechatEvents": "Alertas de eventos",
+      "wechatEventsDesc": "Elige los eventos que envían notificaciones y sus umbrales."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -2869,5 +2895,18 @@
     "restartXray": "Reiniciar servicio Xray",
     "restartXraySuccess": "El servicio Xray se ha reiniciado con éxito",
     "settings": "Configuración"
+  },
+  "wechat": {
+    "test": {
+      "title": "Prueba de notificación de WeChat de 3x-ui",
+      "body": "Esta es una notificación de prueba de 3x-ui. No incluye archivos de base de datos ni de configuración."
+    },
+    "report": {
+      "title": "Informe de estado de 3x-ui",
+      "counts": "Total: {{ .Total }} | Deshabilitados: {{ .Disabled }} | Caducados: {{ .Expired }} | Agotados: {{ .Depleted }}",
+      "trafficUsed": "Tráfico usado de 3x-ui",
+      "trafficRemaining": "Tráfico restante de 3x-ui",
+      "trafficQuotaUnset": "Cuota no configurada"
+    }
   }
 }

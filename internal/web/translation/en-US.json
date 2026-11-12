@@ -1975,7 +1975,33 @@
       "subHostSortMode": "Subscription Node Ordering",
       "subHostSortInbound": "Inbound order (default)",
       "subHostSortHosts": "Hosts order",
-      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
+      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting.",
+      "wechatSettings": "WeChat notifications",
+      "wechatEnable": "Enable WeChat notifications",
+      "wechatEnableDesc": "Deliver panel alerts through a WeCom group robot or compatible webhook gateway.",
+      "wechatMode": "Delivery mode",
+      "wechatModeDesc": "Choose the message format accepted by your destination.",
+      "wechatModeWecom": "WeCom group robot",
+      "wechatModeWebhook": "Custom webhook gateway",
+      "wechatPersonalGateway": "Personal WeChat requires a compatible gateway. A WeCom robot posts to a WeCom group, not directly to personal WeChat.",
+      "wechatWebhookURL": "Webhook URL",
+      "wechatWebhookURLConfigured": "A webhook URL is saved. Leave this field blank to keep it.",
+      "wechatWebhookURLDesc": "Use an HTTPS destination. The URL may contain a secret and is never returned by the panel.",
+      "wechatSecretPlaceholder": "Leave blank to keep the saved value",
+      "wechatToken": "Bearer token",
+      "wechatTokenConfigured": "A bearer token is saved. Leave this field blank to keep it.",
+      "wechatTokenDesc": "Optional authentication for the custom gateway. Leave blank if the destination does not require it.",
+      "wechatLanguage": "Message language",
+      "wechatSaveBeforeTest": "Save changes before testing. The test uses the saved configuration.",
+      "wechatTest": "Send test notification",
+      "wechatTestSuccess": "Test notification sent successfully",
+      "wechatTestFailed": "Failed to send test notification",
+      "wechatReportEnable": "Scheduled reports",
+      "wechatReportEnableDesc": "Send a periodic text summary independently of event alerts. Database and configuration files are not attached.",
+      "wechatReportTime": "Report schedule",
+      "wechatReportTimeDesc": "Use a cron expression or a preset such as @daily.",
+      "wechatEvents": "Event alerts",
+      "wechatEventsDesc": "Choose which panel events send WeChat notifications and set the alert thresholds."
     },
     "xray": {
       "save": "Save",
@@ -2869,5 +2895,18 @@
     "restartXray": "Restart Xray Service",
     "restartXraySuccess": "Xray has been successfully relaunched",
     "settings": "Settings"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui WeChat Notification Test",
+      "body": "This is a test notification from 3x-ui. No database or configuration files are included."
+    },
+    "report": {
+      "title": "3x-ui Status Report",
+      "counts": "Total: {{ .Total }} | Disabled: {{ .Disabled }} | Expired: {{ .Expired }} | Depleted: {{ .Depleted }}",
+      "trafficUsed": "3x-ui used traffic",
+      "trafficRemaining": "3x-ui remaining traffic",
+      "trafficQuotaUnset": "Quota not configured"
+    }
   }
 }

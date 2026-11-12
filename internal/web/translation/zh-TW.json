@@ -1854,7 +1854,33 @@
       "subHostSortMode": "訂閱節點排序",
       "subHostSortInbound": "入站順序（預設）",
       "subHostSortHosts": "主機順序",
-      "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。",
+      "wechatSettings": "微信通知",
+      "wechatEnable": "啟用微信通知",
+      "wechatEnableDesc": "透過企業微信群組機器人或相容的 Webhook 閘道傳送面板警報。",
+      "wechatMode": "傳送方式",
+      "wechatModeDesc": "選擇接收端支援的訊息格式。",
+      "wechatModeWecom": "企業微信群組機器人",
+      "wechatModeWebhook": "自訂 Webhook 閘道",
+      "wechatPersonalGateway": "個人微信需要相容的閘道。企業微信機器人只向企業微信群組傳送訊息，無法直接傳送到個人微信。",
+      "wechatWebhookURL": "Webhook 位址",
+      "wechatWebhookURLConfigured": "已儲存 Webhook 位址，留空可保留原值。",
+      "wechatWebhookURLDesc": "使用 HTTPS 接收位址。位址可能包含金鑰，面板不會傳回已儲存的原值。",
+      "wechatSecretPlaceholder": "留空可保留已儲存的值",
+      "wechatToken": "Bearer 權杖",
+      "wechatTokenConfigured": "已儲存 Bearer 權杖，留空可保留原值。",
+      "wechatTokenDesc": "自訂閘道的選用驗證；接收端不需要時請留空。",
+      "wechatLanguage": "訊息語言",
+      "wechatSaveBeforeTest": "請先儲存修改再測試。測試使用伺服器已儲存的設定。",
+      "wechatTest": "傳送測試通知",
+      "wechatTestSuccess": "測試通知發送成功",
+      "wechatTestFailed": "測試通知發送失敗",
+      "wechatReportEnable": "定時報告",
+      "wechatReportEnableDesc": "獨立於事件警報傳送定期文字摘要，不附加資料庫或設定檔。",
+      "wechatReportTime": "報告時間",
+      "wechatReportTimeDesc": "使用 Cron 運算式或 @daily 等預設。",
+      "wechatEvents": "事件警報",
+      "wechatEventsDesc": "選擇需要傳送微信通知的面板事件，並設定警報門檻。"
     },
     "xray": {
       "save": "儲存",
@@ -2869,5 +2895,18 @@
     "restartXray": "重啟 Xray 服務",
     "restartXraySuccess": "Xray 服務已成功重啟",
     "settings": "設定"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui 微信通知測試",
+      "body": "這是一則來自 3x-ui 的測試通知，不包含資料庫或設定檔。"
+    },
+    "report": {
+      "title": "3x-ui 狀態報告",
+      "counts": "總計：{{ .Total }} | 已停用：{{ .Disabled }} | 已到期：{{ .Expired }} | 流量耗盡：{{ .Depleted }}",
+      "trafficUsed": "3x-ui 已用流量",
+      "trafficRemaining": "3x-ui 剩餘流量",
+      "trafficQuotaUnset": "未設定額度"
+    }
   }
 }
