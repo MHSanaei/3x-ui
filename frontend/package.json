@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.5",
-    "@storybook/addon-docs": "^10.6.5",
+    "@storybook/addon-docs": "^10.6.6",
     "@storybook/addon-vitest": "^10.6.5",
     "@storybook/react-vite": "^10.6.5",
     "@testing-library/dom": "^10.4.2",
