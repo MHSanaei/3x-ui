@@ -256,17 +256,26 @@ _openapi:
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
     - depth: 2
-      title: List registered HWID devices for a client with a short fingerprint. Full
-        hashes are not exposed.
-      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed'
+      title: List registered HWID devices for a client with a short fingerprint and a
+        blocked flag. Bans are scoped to the subscription ID shared by the
+        client. Full hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed'
     - depth: 2
-      title: Clear all registered HWID devices for a client so new devices can
-        register again.
-      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
+      title: Clear unblocked HWID registrations for a client so devices can register
+        again. Blocked devices and their bans are preserved.
+      url: '#clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved'
     - depth: 2
-      title: Remove a single registered HWID device by its id, freeing one slot under
-        the HWID limit.
-      url: '#remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit'
+      title: Remove a single unblocked HWID device by its id, freeing one slot under
+        the HWID limit. A blocked device must be unblocked before it can be
+        removed.
+      url: '#remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed'
+    - depth: 2
+      title: Block or unblock one device for the client subscription. Send an explicit
+        boolean blocked value. A ban denies subscription bodies for that HWID
+        even with limitHwid=0, does not consume a device slot, and survives
+        clearing devices or changing the limit. It does not revoke copied
+        credentials or identify requests with a different or missing HWID.
+      url: '#block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid'
     - depth: 2
       title: List the emails of currently connected clients (last seen within the
         heartbeat window), deduped across every node.
@@ -534,15 +543,24 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
-      - content: List registered HWID devices for a client with a short fingerprint.
-          Full hashes are not exposed.
-        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed
-      - content: Clear all registered HWID devices for a client so new devices can
-          register again.
-        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
-      - content: Remove a single registered HWID device by its id, freeing one slot
-          under the HWID limit.
-        id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
+      - content: List registered HWID devices for a client with a short fingerprint and
+          a blocked flag. Bans are scoped to the subscription ID shared by the
+          client. Full hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed
+      - content: Clear unblocked HWID registrations for a client so devices can register
+          again. Blocked devices and their bans are preserved.
+        id: clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved
+      - content: Remove a single unblocked HWID device by its id, freeing one slot under
+          the HWID limit. A blocked device must be unblocked before it can be
+          removed.
+        id: remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed
+      - content: Block or unblock one device for the client subscription. Send an
+          explicit boolean blocked value. A ban denies subscription bodies for
+          that HWID even with limitHwid=0, does not consume a device slot, and
+          survives clearing devices or changing the limit. It does not revoke
+          copied credentials or identify requests with a different or missing
+          HWID.
+        id: block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid
       - content: List the emails of currently connected clients (last seen within the
           heartbeat window), deduped across every node.
         id: list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
