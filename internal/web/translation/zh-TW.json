@@ -775,7 +775,7 @@
         "autoSystemDnsToGateway": "系統 DNS 指向閘道",
         "autoSystemDnsToGatewayTooltip": "僅限 Linux：將 systemd-resolved 指向 TUN 閘道，使系統解析經過 Xray。需要設定閘道，失敗時 TUN 不會啟動。",
         "autoSystemWfpBlockLeak": "阻止洩漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS（連接埠 53、853 及 DNS Client 服務）只走 TUN，需設定 DNS 伺服器；windnsclient 只針對該服務；其他連接埠請輸入 tcp/連接埠 或 udp/連接埠；misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。",
+        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：all 阻止 TUN 之外的所有流量，allexceptlan 同樣如此但保留區域網路可達；dns 讓 DNS（連接埠 53、853 及 DNS Client 服務）只走 TUN；windnsclient 只針對該服務；tcp、udp、icmp 阻止整個協定；指定連接埠請輸入 tcp/連接埠、udp/連接埠、單獨的連接埠或 起-迄 範圍；在前面加上 CIDR（1.1.1.0/24:53、[::/0]:all）可將該值限定於這些位址；misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。凡是涵蓋連接埠 53 的值都需設定 DNS 伺服器。",
         "maxVersion": "最高版本",
         "headerName": "標頭名稱",
         "headerValue": "標頭值"
@@ -1439,6 +1439,7 @@
         "applyTo": "套用至",
         "addNoise": "+ 雜訊",
         "concurrency": "並發",
+        "concurrencyHint": "每個連線承載的串流數量。xray-core 26.11.9 及更新版本會把 0 到 128 之間的值一律提高到 128；更早的核心依填寫的數值使用（0 表示 8）。-1 關閉 TCP mux。",
         "xudpConcurrency": "xudp 並發",
         "xudpUdp443": "xudp UDP 443"
       },

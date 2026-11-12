@@ -129,7 +129,7 @@ XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服�
 | `secrets`      | —              | Google Drive：恰好三项，依次为 ClientID、ClientSecret、RefreshToken。Template：以 `{secret0}`、`{secret1}`… 引用的值。S3：AccessKeyID、SecretAccessKey，以及可选的 SessionToken。 |
 | `template`     | —              | 仅用于 template 服务：存储 API 的 `auth`、`put`、`get`、`list` 和 `delete` 操作。 |
 | `s3`           | —              | 仅用于 s3 服务：`endpoint`（http(s) URL）、`region`、`bucket` 和 `pathStyle`（默认 `true`；为 `false` 时存储桶名放在主机名中）。`remoteFolder` 为对象前缀。 |
-| 调优参数       | 内核默认值     | `segmentBytes`（512 KiB）、`flushIntervalMs`（20）、`pollIntervalMs`/`maxPollIntervalMs`（50/500）、`eagerWindowMs`（2000）、`holeTimeoutMs`（30000）、`sessionTtlSeconds`（300）、`concurrency`（8）。 |
+| 调优参数       | 内核默认值     | `segmentBytes`（512 KiB）、`flushIntervalMs`（20）、`pollIntervalMs`/`maxPollIntervalMs`（50/500）、`eagerWindowMs`（2000）、`holeTimeoutMs`（30000）、`sessionTtlSeconds`（300）、`concurrency`（8）。Google Drive 的默认值为 `flushIntervalMs` 10、`maxPollIntervalMs` 200、`concurrency` 64（xray-core 26.11.9）。 |
 
 可选的**前置地址/端口**（stream 级的 `address`/`port`）是连接存储 API 时使用的域前置；TLS 中仍使用 API 主机名。
 XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 HTTPS。在出站上，**TLS**

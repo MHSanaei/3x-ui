@@ -776,7 +776,7 @@
         "autoSystemDnsToGateway": "Systémové DNS cez bránu",
         "autoSystemDnsToGatewayTooltip": "Iba pre Linux: nasmerovať systemd-resolved na bránu TUN, aby systémové DNS dotazy prechádzali cez Xray. Vyžaduje bránu. Ak nastavenie zlyhá, TUN sa nespustí.",
         "autoSystemWfpBlockLeak": "Blokovať úniky (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Iba pre Windows s automatickými systémovými trasami: dns ponechá DNS (porty 53 a 853 a službu DNS Client) v TUN a vyžaduje DNS servery; windnsclient pokrýva iba túto službu; pre akýkoľvek iný port zadajte tcp/PORT alebo udp/PORT; misconfigtun zablokuje verziu IP, pre ktorú nevedie žiadna trasa do TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Iba pre Windows s automatickými systémovými trasami: all zablokuje všetko mimo TUN, allexceptlan tiež, ale ponechá dostupnú lokálnu sieť; dns ponechá DNS (porty 53 a 853 a službu DNS Client) v TUN; windnsclient pokrýva iba túto službu; tcp, udp a icmp blokujú celý protokol; pre konkrétne porty zadajte tcp/PORT, udp/PORT, samotný PORT alebo rozsah OD-DO; CIDR na začiatku (1.1.1.0/24:53, [::/0]:all) obmedzí hodnotu na tieto adresy; misconfigtun zablokuje verziu IP, pre ktorú nevedie žiadna trasa do TUN. Každá hodnota pokrývajúca port 53 vyžaduje DNS servery.",
         "maxVersion": "Maximálna verzia",
         "headerName": "Názov hlavičky",
         "headerValue": "Hodnota hlavičky"
@@ -1564,6 +1564,7 @@
         "applyTo": "Použiť na",
         "addNoise": "+ Šum",
         "concurrency": "Počet súbežných prenosov",
+        "concurrencyHint": "Počet streamov na jedno spojenie. xray-core 26.11.9 a novšie zvýšia každú hodnotu od 0 do 128 na 128; staršie jadrá použijú číslo tak, ako je zadané (0 znamená 8). -1 vypne TCP mux.",
         "xudpConcurrency": "Súbežné prenosy xudp",
         "xudpUdp443": "xudp UDP 443"
       },

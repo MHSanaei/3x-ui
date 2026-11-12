@@ -776,7 +776,7 @@
         "autoSystemDnsToGateway": "System DNS to gateway",
         "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
         "autoSystemWfpBlockLeak": "Block leaks (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS (ports 53 and 853 and the DNS Client service) inside the TUN and needs DNS servers; windnsclient covers only that service; type tcp/PORT or udp/PORT for any other port; misconfigtun blocks an IP version that no route sends into the TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: all blocks everything outside the TUN, allexceptlan does the same but keeps the local network reachable; dns keeps DNS (ports 53 and 853 and the DNS Client service) inside the TUN; windnsclient covers only that service; tcp, udp and icmp block a whole protocol; type tcp/PORT, udp/PORT, a bare PORT or a LOW-HIGH range for specific ports; a CIDR in front (1.1.1.0/24:53, [::/0]:all) limits a value to those addresses; misconfigtun blocks an IP version that no route sends into the TUN. Any value that covers port 53 needs DNS servers.",
         "maxVersion": "Max version",
         "headerName": "Header name",
         "headerValue": "Header value"
@@ -1564,6 +1564,7 @@
         "applyTo": "Apply to",
         "addNoise": "+ Noise",
         "concurrency": "Concurrency",
+        "concurrencyHint": "Streams per connection. xray-core 26.11.9 and newer raise any value from 0 to 128 to 128; older cores use the number as written (0 means 8). -1 turns TCP mux off.",
         "xudpConcurrency": "xudp concurrency",
         "xudpUdp443": "xudp UDP 443"
       },

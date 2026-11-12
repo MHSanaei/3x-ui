@@ -775,7 +775,7 @@
         "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
         "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
         "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS（ポート 53・853 と DNS Client サービス）を TUN 内に留め、DNS サーバーが必要です。windnsclient はそのサービスのみを対象にします。その他のポートは tcp/ポート または udp/ポート と入力します。misconfigtun は TUN へのルートがない IP バージョンを遮断します。",
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：all は TUN の外をすべて遮断し、allexceptlan は同様ですがローカルネットワークには到達できます。dns は DNS（ポート 53・853 と DNS Client サービス）を TUN 内に留めます。windnsclient はそのサービスのみを対象にします。tcp・udp・icmp はプロトコル全体を遮断します。特定のポートは tcp/ポート、udp/ポート、ポート番号のみ、または 下限-上限 の範囲で入力します。先頭に CIDR（1.1.1.0/24:53、[::/0]:all）を付けると、そのアドレスだけに限定されます。misconfigtun は TUN へのルートがない IP バージョンを遮断します。ポート 53 を含む値には DNS サーバーが必要です。",
         "maxVersion": "最大バージョン",
         "headerName": "ヘッダー名",
         "headerValue": "ヘッダー値"
@@ -1439,6 +1439,7 @@
         "applyTo": "適用先",
         "addNoise": "+ ノイズ",
         "concurrency": "並行数",
+        "concurrencyHint": "1 接続あたりのストリーム数。xray-core 26.11.9 以降は 0〜128 の値をすべて 128 に引き上げます。それより古いコアは指定した数値をそのまま使います（0 は 8）。-1 で TCP mux を無効にします。",
         "xudpConcurrency": "xudp 並行数",
         "xudpUdp443": "xudp UDP 443"
       },

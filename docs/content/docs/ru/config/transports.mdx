@@ -140,7 +140,7 @@ Mux. Панель предлагает XDRIVE только для VLESS, не с
 | `secrets`      | —              | Google Drive: ровно три значения — ClientID, ClientSecret, RefreshToken, в этом порядке. Template: значения, доступные как `{secret0}`, `{secret1}`, …. S3: AccessKeyID, SecretAccessKey и при необходимости SessionToken. |
 | `template`     | —              | Только для template: операции `auth`, `put`, `get`, `list` и `delete` API хранилища. |
 | `s3`           | —              | Только для s3: `endpoint` (URL http(s)), `region`, `bucket` и `pathStyle` (по умолчанию `true`; `false` переносит бакет в имя хоста). `remoteFolder` — префикс объектов. |
-| тонкая настройка | значения ядра | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
+| тонкая настройка | значения ядра | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). Для Google Drive по умолчанию `flushIntervalMs` 10, `maxPollIntervalMs` 200 и `concurrency` 64 (xray-core 26.11.9). |
 
 Необязательные **адрес/порт фронтинга** (`address`/`port` на уровне stream) — домен-фронт,
 через который идёт подключение к API хранилища; в TLS по-прежнему указывается хост API.
