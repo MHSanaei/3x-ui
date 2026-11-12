@@ -323,6 +323,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 		var mutated bool
 		if inbound.Protocol == model.WireGuard {
+			delete(settings, "vkTurn")
 			delete(settings, "clients")
 			if wgPeers == nil {
 				wgPeers = []any{}

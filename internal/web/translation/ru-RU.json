@@ -2199,7 +2199,14 @@
         "subnetCidr": "Маска подсети (CIDR)",
         "allowedIPs": "Разрешенные IP-адреса",
         "endpoint": "Конечная точка",
-        "domainStrategy": "Стратегия домена"
+        "domainStrategy": "Стратегия домена",
+        "vkTurnEnabled": "Туннель через VK",
+        "vkTurnHint": "VK TURN Proxy на iOS передаёт трафик WireGuard через релеи VK на SRTP-прокси этого сервера, который направляет его в это подключение WireGuard. Разрешите UDP-порт прокси в firewall.",
+        "vkTurnCallLink": "Ссылка на звонок VK",
+        "vkTurnCallLinkHint": "Клиент получает и обновляет TURN-credentials по этой ссылке. Вход в VK нужен, если анонимный доступ недоступен.",
+        "vkTurnPort": "UDP-порт VK-прокси",
+        "vkTurnInvalidLink": "Введите ссылку на звонок VK вида https://vk.ru/call/join/...",
+        "vkTurnProfile": "Профиль VK TURN"
       },
       "amneziawg": {
         "privateKey": "Приватный ключ",

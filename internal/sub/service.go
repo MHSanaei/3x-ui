@@ -1014,7 +1014,11 @@ func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
 	case "mtproto":
 		return s.genMtprotoLink(inbound, email)
 	case "wireguard":
-		return s.genWireguardLink(inbound, email)
+		links := s.genWireguardLink(inbound, email)
+		if vkLinks := s.genVKTurnLinks(inbound, email); vkLinks != "" {
+			return strings.TrimSpace(links + "\n" + vkLinks)
+		}
+		return links
 	case "amneziawg":
 		return s.genAmneziaWGLink(inbound, email)
 	case "tuic":

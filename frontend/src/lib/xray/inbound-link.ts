@@ -1,4 +1,5 @@
 import { Base64, Wireguard } from '@/utils';
+import { buildVkTurnConnectionLink } from './vk-turn-link';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
 import { AmneziaWGKeepAliveRangeSchema } from '@/schemas/primitives/keepalive';
 
@@ -1729,7 +1730,25 @@ function wireguardFanout(
 
 // Per-peer lists with one entry per advertised endpoint (Host), peer-major.
 export function genWireguardPeerLinks(input: GenWireguardFanoutInput): string[][] {
-  return wireguardFanout(input, genWireguardLink);
+  const links = wireguardFanout(input, genWireguardLink);
+  if (
+    input.inbound.protocol !== 'wireguard' ||
+    !(input.inbound.settings as WireguardInboundSettings).vkTurn?.enabled
+  )
+    return links;
+  const vkLinks = wireguardFanout(input, ({ settings, address, peerIndex }) => {
+    const peer = settings.peers[peerIndex];
+    return buildVkTurnConnectionLink({
+      vkTurn: settings.vkTurn,
+      privateKey: peer.privateKey ?? '',
+      peerPublicKey: Wireguard.generateKeypair(settings.secretKey).publicKey,
+      presharedKey: peer.preSharedKey,
+      tunnelAddress: peer.allowedIPs.join(','),
+      address,
+      dnsServers: settings.dns,
+    });
+  });
+  return links.map((peerLinks, index) => [...peerLinks, ...(vkLinks[index] ?? []).filter(Boolean)]);
 }
 
 export function genWireguardPeerConfigs(input: GenWireguardFanoutInput): string[][] {

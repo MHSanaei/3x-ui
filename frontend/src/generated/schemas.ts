@@ -3440,6 +3440,14 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "wgPublicKey": {
         "type": "string"
+      },
+      "wgVkTurn": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Settings"
+          }
+        ],
+        "nullable": true
       }
     },
     "required": [
@@ -4635,6 +4643,25 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "key",
       "value"
+    ],
+    "type": "object"
+  },
+  "Settings": {
+    "properties": {
+      "callLink": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "port": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "callLink",
+      "enabled",
+      "port"
     ],
     "type": "object"
   },

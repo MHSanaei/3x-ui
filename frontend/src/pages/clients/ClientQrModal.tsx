@@ -13,6 +13,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { formatTunnelConfigMeta } from '@/lib/inbounds/label';
 import {
   buildWireguardClientConfig,
+  buildWireguardVkTurnLink,
   findWireguardInbounds,
   isWireguardClient,
 } from './wireguardConfig';
@@ -341,6 +342,7 @@ function ClientQrModalContent({
           inbound: ib,
           endpoint: tunnelEndpointLabel(ep),
           text: buildWireguardClientConfig(client, ib, host, publicHost, address, ep),
+          vkLink: buildWireguardVkTurnLink(client, ib, host, publicHost, address, ep),
         }));
       })
       .filter((c) => !!c.text);
@@ -472,7 +474,7 @@ function ClientQrModalContent({
         ),
       });
     });
-    wgConfigs.forEach(({ inbound, endpoint, text }) => {
+    wgConfigs.forEach(({ inbound, endpoint, text, vkLink }) => {
       const meta = formatTunnelConfigMeta(inbound, client?.email, wgConfigs.length, endpoint);
       const label = (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -487,6 +489,18 @@ function ClientQrModalContent({
         label,
         children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
+      if (vkLink) {
+        out.push({
+          key: `wg-vk-${inbound.id}-${endpoint}`,
+          label: (
+            <span>
+              <Tag color="blue">VK</Tag>
+              {meta.label || t('pages.xray.wireguard.vkTurnProfile')}
+            </span>
+          ),
+          children: <QrPanel value={vkLink} remark={meta.qrRemark} />,
+        });
+      }
     });
     awgConfigs.forEach(({ inbound, endpoint, text }) => {
       const meta = formatTunnelConfigMeta(inbound, client?.email, awgConfigs.length, endpoint);
