@@ -66,6 +66,7 @@ export function useClientHwids(email: string | undefined) {
       const msg = (await HttpUtil.post(
         `/panel/api/clients/hwids/${encodeURIComponent(email)}/${id}/block`,
         { blocked },
+        { headers: { 'Content-Type': 'application/json' } },
       )) as ApiMsg;
       if (msg?.success) {
         setClientHwids((prev) =>

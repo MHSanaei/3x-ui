@@ -4,6 +4,7 @@ import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import type { ClientHwidInfo } from '@/lib/clients/hwid-log';
 import { HttpUtil } from '@/utils';
+import { setupHttp } from '@/api/http-init';
 
 const device: ClientHwidInfo = {
   id: 1,
@@ -56,15 +57,50 @@ it('sends explicit true/false and preserves bans when clearing registrations', a
   const { result } = renderHook(() => useClientHwids('a@b'));
   await act(() => result.current.loadHwids());
   await act(() => result.current.setHwidBlocked(1, true));
-  expect(post).toHaveBeenLastCalledWith('/panel/api/clients/hwids/a%40b/1/block', {
-    blocked: true,
-  });
+  expect(post).toHaveBeenLastCalledWith(
+    '/panel/api/clients/hwids/a%40b/1/block',
+    { blocked: true },
+    { headers: { 'Content-Type': 'application/json' } },
+  );
   expect(result.current.clientHwids[0].blocked).toBe(true);
   await act(() => result.current.clearHwids());
   expect(result.current.clientHwids).toHaveLength(1);
   await act(() => result.current.setHwidBlocked(1, false));
-  expect(post).toHaveBeenLastCalledWith('/panel/api/clients/hwids/a%40b/1/block', {
-    blocked: false,
+  expect(post).toHaveBeenLastCalledWith(
+    '/panel/api/clients/hwids/a%40b/1/block',
+    { blocked: false },
+    { headers: { 'Content-Type': 'application/json' } },
+  );
+  expect(result.current.clientHwids[0].blocked).toBe(false);
+});
+
+it('sends block and unblock as JSON through the real HTTP client', async () => {
+  // Component setup mocks HttpUtil.post; exercise the real serialization here.
+  vi.restoreAllMocks();
+  document.head.innerHTML = '<meta name="csrf-token" content="hwid-test-token">';
+  setupHttp();
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
+    async () =>
+      new Response(JSON.stringify({ success: true, msg: '', obj: [device] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+  );
+  const { result } = renderHook(() => useClientHwids('a@b'));
+  await act(() => result.current.loadHwids());
+  await act(() => result.current.setHwidBlocked(1, true));
+  await act(() => result.current.setHwidBlocked(1, false));
+
+  const requests = fetchMock.mock.calls.filter(([url]) =>
+    String(url).endsWith('/panel/api/clients/hwids/a%40b/1/block'),
+  );
+  expect(requests).toHaveLength(2);
+  requests.forEach(([, init], index) => {
+    const headers = new Headers(init?.headers);
+    expect(init?.method).toBe('POST');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get('X-CSRF-Token')).toBe('hwid-test-token');
+    expect(JSON.parse(String(init?.body))).toEqual({ blocked: index === 0 });
   });
   expect(result.current.clientHwids[0].blocked).toBe(false);
 });
