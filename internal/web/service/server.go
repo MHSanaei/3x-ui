@@ -2021,6 +2021,12 @@ func pgConnEnv(dsn string) (env []string, dbname string, err error) {
 	return env, dbname, nil
 }
 
+// pgDumpTimeout bounds one pg_dump run. A PostgreSQL server that accepts the
+// connection and then stops answering would otherwise hang the database
+// download and every scheduled backup, and SkipIfStillRunning would silently
+// skip each later backup run.
+var pgDumpTimeout = time.Hour
+
 func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	bin, err := exec.LookPath("pg_dump")
 	if err != nil {
@@ -2030,12 +2036,19 @@ func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	if err != nil {
 		return nil, common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}
-	cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
+	ctx, cancel := context.WithTimeout(context.Background(), pgDumpTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
 	cmd.Env = env
+	// Stop waiting for the output pipes shortly after pg_dump is killed.
+	cmd.WaitDelay = 10 * time.Second
 	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return nil, common.NewErrorf("pg_dump did not finish within %s; check that the PostgreSQL server is responding", pgDumpTimeout)
+		}
 		return nil, common.NewErrorf("pg_dump failed: %v: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return out.Bytes(), nil
