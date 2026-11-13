@@ -68,13 +68,7 @@ func SocksInboundSettings(emails []string, password string) ([]byte, error) {
 func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrPort) {
 	defer conn.Close()
 
-	auth := &proxy.Auth{User: email, Password: r.Password}
-	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, proxy.Direct)
-	if err != nil {
-		logger.Warningf("amneziawgnet: RelayTCP: build SOCKS5 dialer: %v", err)
-		return
-	}
-	upstream, err := dialer.Dial("tcp", dest.String())
+	upstream, err := r.dialUpstream(email, dest)
 	if err != nil {
 		logger.Warningf("amneziawgnet: RelayTCP: SOCKS5 CONNECT to %s as %q: %v", dest, email, err)
 		return
@@ -82,6 +76,60 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 	defer upstream.Close()
 
 	pipeBothWays(conn, upstream)
+}
+
+// dialUpstream bounds the bridge connect and SOCKS5 handshake so a silent core cannot pin the relay.
+// It returns the raw *net.TCPConn with no deadline left: pipeBothWays needs its CloseWrite.
+func (r SocksRelay) dialUpstream(email string, dest netip.AddrPort) (net.Conn, error) {
+	bridge := net.Dialer{Timeout: socks5ConnectTimeout}
+	conn, err := bridge.DialContext(context.Background(), "tcp", r.Addr)
+	if err != nil {
+		return nil, err
+	}
+	if err := conn.SetDeadline(time.Now().Add(socks5ConnectTimeout)); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	auth := &proxy.Auth{User: email, Password: r.Password}
+	dialer, err := proxy.SOCKS5("tcp", r.Addr, auth, dialedConn{conn})
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("build SOCKS5 dialer: %w", err)
+	}
+	upstream, err := dialer.Dial("tcp", dest.String())
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if err := upstream.SetDeadline(time.Time{}); err != nil {
+		upstream.Close()
+		return nil, err
+	}
+	return upstream, nil
+}
+
+// dialedConn hands proxy.SOCKS5 a connection already made under the bound.
+type dialedConn struct{ conn net.Conn }
+
+func (d dialedConn) Dial(string, string) (net.Conn, error) { return d.conn, nil }
+
+var socks5ConnectTimeout = 10 * time.Second
+
+// relayBuffers recycles copy buffers: a fresh 32 KiB pair per relayed connection made a
+// burst of short connections through AmneziaWG allocate and sweep gigabytes.
+var relayBuffers = sync.Pool{New: func() any { b := make([]byte, 32*1024); return &b }}
+
+// Wrappers hide ReadFrom/WriteTo, through which *net.TCPConn would copy with a buffer of its own.
+type (
+	relayWriter struct{ io.Writer }
+	relayReader struct{ io.Reader }
+)
+
+// copyPooled copies src into dst with a pooled buffer.
+func copyPooled(dst io.Writer, src io.Reader) {
+	buf := relayBuffers.Get().(*[]byte)
+	defer relayBuffers.Put(buf)
+	_, _ = io.CopyBuffer(relayWriter{dst}, relayReader{src}, *buf)
 }
 
 // halfCloseIdle bounds how long the surviving direction of a half-closed pair
@@ -121,7 +169,7 @@ func pipeBothWays(a, b net.Conn) {
 	// copy just signalled EOF to.
 	pipe := func(dst, src *guardedReader) {
 		defer wg.Done()
-		_, _ = io.Copy(dst.conn, src)
+		copyPooled(dst.conn, src)
 		if cw, ok := dst.conn.(closeWriter); ok {
 			_ = cw.CloseWrite()
 		} else {
