@@ -1049,6 +1049,69 @@ export const ReadinessSchema = z.object({
 });
 export type Readiness = z.infer<typeof ReadinessSchema>;
 
+export const RealityFinderCommandSchema = z.object({
+  expiresAt: z.number().int(),
+  scriptUrl: z.string(),
+  server: z.string(),
+  token: z.string(),
+  unix: z.string(),
+  windows: z.string(),
+});
+export type RealityFinderCommand = z.infer<typeof RealityFinderCommandSchema>;
+
+export const RealityFinderCommandRequestSchema = z.object({
+  current: z.string(),
+  nodeId: z.number().int().nullable().optional(),
+  port: z.number().int(),
+  scope: z.string(),
+  server: z.string(),
+});
+export type RealityFinderCommandRequest = z.infer<typeof RealityFinderCommandRequestSchema>;
+
+export const RealityFinderNetworkSchema = z.object({
+  asn: z.number().int(),
+  country: z.string(),
+  ip: z.string(),
+  org: z.string(),
+});
+export type RealityFinderNetwork = z.infer<typeof RealityFinderNetworkSchema>;
+
+export const RealityFinderReportSchema = z.object({
+  at: z.number().int(),
+  filterTested: z.boolean(),
+  network: z.lazy(() => RealityFinderNetworkSchema),
+  port: z.number().int(),
+  router: z.boolean(),
+  server: z.lazy(() => RealityFinderServerSchema),
+  targets: z.array(z.lazy(() => RealityFinderTargetSchema)),
+  tested: z.number().int(),
+  warning: z.string(),
+});
+export type RealityFinderReport = z.infer<typeof RealityFinderReportSchema>;
+
+export const RealityFinderServerSchema = z.object({
+  asn: z.number().int(),
+  holder: z.string(),
+  ip: z.string(),
+  prefix: z.string(),
+});
+export type RealityFinderServer = z.infer<typeof RealityFinderServerSchema>;
+
+export const RealityFinderTargetSchema = z.object({
+  cdn: z.string(),
+  dnsMatch: z.boolean(),
+  expires: z.string(),
+  filtered: z.boolean().nullable().optional(),
+  ip: z.string(),
+  issuer: z.string(),
+  ms: z.number().int(),
+  same24: z.boolean(),
+  sameAsn: z.boolean(),
+  score: z.number().int(),
+  sni: z.string(),
+});
+export type RealityFinderTarget = z.infer<typeof RealityFinderTargetSchema>;
+
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),
   certChainBytes: z.number().int(),

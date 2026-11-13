@@ -215,6 +215,8 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Server API
 	server := api.Group("/server")
 	a.serverController = NewServerController(server)
+	// REALITY target finder: a one-day command run on a device on the users' ISP
+	NewRealityFinderController(server.Group("/realityFinder"))
 
 	// Nodes API — multi-panel management
 	nodes := api.Group("/nodes")

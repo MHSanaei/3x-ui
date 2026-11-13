@@ -63,6 +63,7 @@ function renderRealityForm(
         scanRealityTarget={noop}
         scanRealityCandidates={async () => []}
         applyRealityScanResult={noop}
+        pickRealityTarget={noop}
         randomizeShortIds={noop}
         randomizeSpiderX={noop}
         genRealityKeypair={noop}
@@ -94,6 +95,10 @@ describe('ML-DSA-65 cert chain warning', () => {
         onClose={noop}
         scanRealityCandidates={async () => [smallChain]}
         onPick={noop}
+        onPickTarget={noop}
+        inboundPort={443}
+        listen=""
+        currentTarget=""
         mldsa65Enabled
       />,
     );
