@@ -442,6 +442,8 @@
       "importInbound": "Importar un entrante",
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDay": "Día de reinicio mensual",
+      "preserveClientTraffic": "Conservar el consumo de los clientes",
+      "preserveClientTrafficHelp": "El reinicio programado solo pone a cero los contadores de esta entrada. Los clientes conservan sus propios ciclos de reinicio.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",

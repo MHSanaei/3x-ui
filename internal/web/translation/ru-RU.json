@@ -443,6 +443,8 @@
       "importInbound": "Импорт подключений",
       "periodicTrafficResetTitle": "Сброс трафика",
       "periodicTrafficResetDay": "День ежемесячного сброса",
+      "preserveClientTraffic": "Сохранять трафик клиентов",
+      "preserveClientTrafficHelp": "Сброс по расписанию обнуляет только счётчики этого входящего подключения. Клиенты сохраняют собственные графики сброса.",
       "periodicTrafficReset": {
         "never": "Никогда",
         "daily": "Ежедневно",

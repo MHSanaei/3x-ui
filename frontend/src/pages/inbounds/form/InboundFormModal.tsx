@@ -834,6 +834,17 @@ export default function InboundFormModal({
         </FormField>
       )}
 
+      {trafficReset !== 'never' && (
+        <FormField
+          name="preserveClientTraffic"
+          valueProp="checked"
+          label={t('pages.inbounds.preserveClientTraffic')}
+          tooltip={t('pages.inbounds.preserveClientTrafficHelp')}
+        >
+          <Switch />
+        </FormField>
+      )}
+
       <Form.Item
         htmlFor={`${uid}-expiryTime`}
         label={t('pages.inbounds.expireDate')}

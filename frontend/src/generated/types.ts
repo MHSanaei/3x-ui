@@ -734,6 +734,7 @@ export interface Inbound {
   nodeId?: number | null;
   originNodeGuid?: string;
   port: number;
+  preserveClientTraffic?: boolean | null;
   protocol: Protocol;
   remark: string;
   settings: unknown;

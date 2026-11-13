@@ -442,6 +442,8 @@
       "importInbound": "インバウンドルールをインポート",
       "periodicTrafficResetTitle": "トラフィックリセット",
       "periodicTrafficResetDay": "毎月のリセット日",
+      "preserveClientTraffic": "クライアントの使用量を保持",
+      "preserveClientTrafficHelp": "定期リセットではこのインバウンドのカウンターだけがリセットされます。クライアントは各自の周期でリセットされます。",
       "periodicTrafficReset": {
         "never": "なし",
         "daily": "毎日",

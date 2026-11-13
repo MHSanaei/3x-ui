@@ -442,6 +442,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "定时重置仅清零此入站的流量，客户端继续按自己的周期累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",

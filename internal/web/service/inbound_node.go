@@ -440,7 +440,8 @@ func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
 		c.StreamSettings != snapIb.StreamSettings ||
 		c.Sniffing != snapIb.Sniffing ||
 		c.TrafficReset != snapIb.TrafficReset ||
-		c.TrafficResetDay != normalizeTrafficResetDay(snapIb.TrafficResetDay)
+		c.TrafficResetDay != normalizeTrafficResetDay(snapIb.TrafficResetDay) ||
+		(snapIb.PreserveClientTraffic != nil && c.PreservesClientTraffic() != snapIb.PreservesClientTraffic())
 }
 
 // adoptedWireInbound is the central inbound as it reads after adopting the
@@ -462,6 +463,9 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	a.Sniffing = snapIb.Sniffing
 	a.TrafficReset = snapIb.TrafficReset
 	a.TrafficResetDay = normalizeTrafficResetDay(snapIb.TrafficResetDay)
+	if snapIb.PreserveClientTraffic != nil {
+		a.PreserveClientTraffic = snapIb.PreserveClientTraffic
+	}
 	return &a
 }
 
@@ -836,6 +840,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				Down:                 snapIb.Down,
 				ShareAddrStrategy:    "node",
 				DisableFlow:          snapIb.DisableFlow,
+
+				PreserveClientTraffic: snapIb.PreserveClientTraffic,
 			}
 			if err := tx.Create(&newIb).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: create central inbound for tag %q failed: %v", snapIb.Tag, err)
@@ -893,6 +899,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["sniffing"] = snapIb.Sniffing
 			updates["traffic_reset"] = snapIb.TrafficReset
 			updates["traffic_reset_day"] = normalizeTrafficResetDay(snapIb.TrafficResetDay)
+			if snapIb.PreserveClientTraffic != nil && c.PreservesClientTraffic() != snapIb.PreservesClientTraffic() {
+				updates["preserve_client_traffic"] = snapIb.PreservesClientTraffic()
+				structuralChange = true
+			}
 			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
 		}
 		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {

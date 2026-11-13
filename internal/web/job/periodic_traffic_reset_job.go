@@ -97,12 +97,15 @@ func (j *PeriodicTrafficResetJob) resetInboundsOnSchedule() {
 			needRestart.Store(true)
 		}
 
-		nr, resetClientErr := j.clientService.ResetAllClientTraffics(&j.inboundService, inbound.Id)
-		if resetClientErr != nil {
-			logger.Warning("Failed to reset traffic for all users of inbound", inbound.Id, ":", resetClientErr)
-		}
-		if nr {
-			needRestart.Store(true)
+		var resetClientErr error
+		if !inbound.PreservesClientTraffic() {
+			nr, resetClientErr = j.clientService.ResetAllClientTraffics(&j.inboundService, inbound.Id)
+			if resetClientErr != nil {
+				logger.Warning("Failed to reset traffic for all users of inbound", inbound.Id, ":", resetClientErr)
+			}
+			if nr {
+				needRestart.Store(true)
+			}
 		}
 
 		if resetInboundErr == nil && resetClientErr == nil {

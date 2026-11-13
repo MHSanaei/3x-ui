@@ -443,6 +443,8 @@
       "importInbound": "Importovať vstup",
       "periodicTrafficResetTitle": "Nulovanie spotreby",
       "periodicTrafficResetDay": "Deň mesačného nulovania",
+      "preserveClientTraffic": "Zachovať spotrebu klientov",
+      "preserveClientTrafficHelp": "Plánované nulovanie vynuluje iba počítadlá tohto vstupu. Klienti sa naďalej riadia vlastným plánom nulovania.",
       "periodicTrafficReset": {
         "never": "Nikdy",
         "daily": "Denne",

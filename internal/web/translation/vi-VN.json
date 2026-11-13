@@ -442,6 +442,8 @@
       "importInbound": "Nhập inbound",
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
+      "preserveClientTraffic": "Giữ mức sử dụng của máy khách",
+      "preserveClientTrafficHelp": "Lịch đặt lại chỉ xóa bộ đếm của kết nối đến này. Máy khách vẫn theo lịch đặt lại riêng.",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
         "daily": "Hàng ngày",

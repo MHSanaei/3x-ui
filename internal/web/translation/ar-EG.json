@@ -442,6 +442,8 @@
       "importInbound": "استيراد إدخال",
       "periodicTrafficResetTitle": "إعادة تعيين حركة المرور",
       "periodicTrafficResetDay": "يوم إعادة التعيين الشهري",
+      "preserveClientTraffic": "الاحتفاظ باستهلاك العملاء",
+      "preserveClientTrafficHelp": "تصفّر إعادة التعيين المجدولة عدّادات هذا الوارد فقط. يحتفظ العملاء بجداول إعادة التعيين الخاصة بهم.",
       "periodicTrafficReset": {
         "never": "أبداً",
         "daily": "يومياً",

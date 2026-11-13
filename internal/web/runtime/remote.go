@@ -93,10 +93,8 @@ type Remote struct {
 	// seen, config pushes to this node are zstd-compressed. Old nodes never set
 	// it, so they keep receiving plain bodies (mixed-version safe).
 	supportsZstd bool
-	// capsSeen tells a node that advertised no AmneziaWG kernel support apart
-	// from one this Remote has not heard from yet.
-	capsSeen          bool
-	supportsAWGKernel bool
+	// nodeCaps is nil until the first response, even if that response advertises no capabilities.
+	nodeCaps []string
 
 	// Per-node client honoring the TLS verify mode, built once and reused; a
 	// node config change drops the cached Remote so the next one rebuilds it.
@@ -140,8 +138,7 @@ func (r *Remote) recordCaps(h http.Header) {
 	caps := strings.Split(h.Get(wirecodec.CapsHeader), ",")
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.capsSeen = true
-	r.supportsAWGKernel = slices.Contains(caps, wirecodec.CapAmneziaWGKernel)
+	r.nodeCaps = caps
 	if slices.Contains(caps, wirecodec.CapZstd) {
 		r.supportsZstd = true
 	}
@@ -157,19 +154,44 @@ func (r *Remote) requireAmneziaWGKernel(ctx context.Context, ib *model.Inbound) 
 	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil || settings.Server == nil || !settings.Server.KernelMode {
 		return nil
 	}
-	r.mu.RLock()
-	seen := r.capsSeen
-	r.mu.RUnlock()
-	if !seen {
-		if err := r.refreshRemoteIDs(ctx); err != nil {
-			return err
-		}
+	supported, err := r.nodeSupports(ctx, wirecodec.CapAmneziaWGKernel)
+	if err != nil {
+		return err
 	}
-	r.mu.RLock()
-	supported := r.supportsAWGKernel
-	r.mu.RUnlock()
 	if !supported {
 		return fmt.Errorf("node %s does not support AmneziaWG kernel mode; upgrade its panel or switch the inbound to the embedded datapath", r.node.Name)
+	}
+	return nil
+}
+
+func (r *Remote) nodeSupports(ctx context.Context, capability string) (bool, error) {
+	r.mu.RLock()
+	caps := r.nodeCaps
+	r.mu.RUnlock()
+	if caps == nil {
+		if err := r.refreshRemoteIDs(ctx); err != nil {
+			return false, err
+		}
+		r.mu.RLock()
+		caps = r.nodeCaps
+		r.mu.RUnlock()
+	}
+	return slices.Contains(caps, capability), nil
+}
+
+func (r *Remote) checkInboundCapabilities(ctx context.Context, ib *model.Inbound) error {
+	if err := r.requireAmneziaWGKernel(ctx, ib); err != nil {
+		return err
+	}
+	if !ib.PreservesClientTraffic() || ib.TrafficReset == "" || ib.TrafficReset == "never" {
+		return nil
+	}
+	supported, err := r.nodeSupports(ctx, wirecodec.CapPreserveClientTraffic)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return fmt.Errorf("node %s does not support inbound-only scheduled traffic resets; upgrade its panel before enabling this option", r.node.Name)
 	}
 	return nil
 }
@@ -469,7 +491,7 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 }
 
 func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
-	if err := r.requireAmneziaWGKernel(ctx, ib); err != nil {
+	if err := r.checkInboundCapabilities(ctx, ib); err != nil {
 		return err
 	}
 	payload := wireInbound(ib, r.node.Id)
@@ -508,7 +530,7 @@ func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound)
 	if err != nil {
 		return r.AddInbound(ctx, newIb)
 	}
-	if err := r.requireAmneziaWGKernel(ctx, newIb); err != nil {
+	if err := r.checkInboundCapabilities(ctx, newIb); err != nil {
 		return err
 	}
 	payload := wireInbound(newIb, r.node.Id)
@@ -928,6 +950,7 @@ func wireInbound(ib *model.Inbound, remoteNodeID int) url.Values {
 	if ib.TrafficResetDay > 0 {
 		v.Set("trafficResetDay", strconv.Itoa(ib.TrafficResetDay))
 	}
+	v.Set("preserveClientTraffic", strconv.FormatBool(ib.PreservesClientTraffic()))
 	return v
 }
 

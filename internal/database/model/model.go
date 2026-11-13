@@ -66,6 +66,9 @@ type Inbound struct {
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
+	// Older snapshots omit this field.
+	PreserveClientTraffic *bool `json:"preserveClientTraffic,omitempty" form:"preserveClientTraffic" gorm:"not null;default:false"` // Keep client usage during scheduled inbound resets
+
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
@@ -187,6 +190,11 @@ type ApiToken struct {
 	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime"`
 	Scope     string `json:"scope" gorm:"not null;default:admin"`
 	ExpiresAt int64  `json:"expiresAt" gorm:"not null;default:0"`
+}
+
+// PreservesClientTraffic reports whether a scheduled inbound reset keeps client usage.
+func (i Inbound) PreservesClientTraffic() bool {
+	return i.PreserveClientTraffic != nil && *i.PreserveClientTraffic
 }
 
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON

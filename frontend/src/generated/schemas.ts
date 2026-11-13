@@ -3190,6 +3190,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "preserveClientTraffic": {
+        "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+        "nullable": true,
+        "type": "boolean"
+      },
       "protocol": {
         "enum": [
           "vmess",
