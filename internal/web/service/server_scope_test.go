@@ -4,10 +4,13 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,9 +76,30 @@ func TestContainerStatusOnlyOverridesCPUSwapAndUptime(t *testing.T) {
 	if err = os.WriteFile(filepath.Join(proc, "self/mountinfo"), []byte("1 0 0:1 / / rw - ext4 /dev/root rw\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	writeCPUCount := func(count int) {
+		t.Helper()
+		var info strings.Builder
+		for i := range count {
+			fmt.Fprintf(&info, "processor : %d\n\n", i)
+		}
+		if err := os.WriteFile(filepath.Join(proc, "cpuinfo"), []byte(info.String()), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeCPUCount(runtime.NumCPU() + 1)
 	native := svc.GetStatus(previous)
-	if native.ResourceScope != "" || len(native.UnavailableMetrics) != 0 || native.CpuSpeedMhz != 5000 || native.Mem != got.Mem || !reflect.DeepEqual(native.Loads, got.Loads) || native.DiskTraffic != got.DiskTraffic {
+	if native.ResourceScope != "" || !slices.Equal(native.UnavailableMetrics, []string{"loadCapacity"}) || native.CpuSpeedMhz != 5000 || native.Mem != got.Mem || !reflect.DeepEqual(native.Loads, got.Loads) || native.DiskTraffic != got.DiskTraffic {
 		t.Fatalf("native regression: %+v", native)
+	}
+	writeCPUCount(runtime.NumCPU())
+	matching := svc.GetStatus(previous)
+	if !matching.MetricAvailable("loadCapacity") || matching.LogicalPro != runtime.NumCPU() || !reflect.DeepEqual(matching.Loads, got.Loads) {
+		t.Fatalf("matching host capacity must restore load normalization without altering loads: %+v", matching)
+	}
+	writeCPUCount(0)
+	unknown := svc.GetStatus(previous)
+	if unknown.MetricAvailable("loadCapacity") || !reflect.DeepEqual(unknown.Loads, got.Loads) {
+		t.Fatalf("unknown host CPU count must not produce a capacity warning: %+v", unknown)
 	}
 }
 
