@@ -55,6 +55,12 @@ type NodeTrafficSyncJob struct {
 	// a per-inbound speed delta — node inbounds have no local Xray poll. Touched
 	// only from Run (serialized).
 	prevInboundTotals map[string]inboundSample
+	// Per-client counterpart keyed node id -> email, so a client on several nodes
+	// gets a baseline per node; guarded by clientSpeedMu as syncOne runs in parallel.
+	clientSpeedMu    sync.Mutex
+	prevClientTotals map[int]map[string]inboundSample
+	// This tick's normalized per-client deltas from every synced node.
+	tickClientSpeed []*xray.ClientTraffic
 }
 
 type atomicBool struct {
@@ -110,6 +116,11 @@ func (j *NodeTrafficSyncJob) Run() {
 		j.lastIpSync = now
 	}
 	j.ipSyncMu.Unlock()
+
+	j.clientSpeedMu.Lock()
+	j.tickClientSpeed = make([]*xray.ClientTraffic, 0)
+	j.pruneClientSpeedNodes(nodes)
+	j.clientSpeedMu.Unlock()
 
 	sem := make(chan struct{}, nodeTrafficSyncConcurrency)
 	var wg sync.WaitGroup
@@ -223,6 +234,17 @@ func (j *NodeTrafficSyncJob) Run() {
 	trafficPayload["nodeTraffics"] = inboundSpeed
 	websocket.BroadcastTraffic(trafficPayload)
 
+	// Own source so the clients page adds it to local Xray/TUIC speed instead of
+	// overwriting it; sent even when empty so idle clients clear.
+	j.clientSpeedMu.Lock()
+	clientSpeed := j.tickClientSpeed
+	j.clientSpeedMu.Unlock()
+	websocket.BroadcastTraffic(map[string]any{
+		"clientTraffics":          clientSpeed,
+		"clientTrafficSource":     "node",
+		"clientTrafficIntervalMs": nodeInboundSpeedWindowMs,
+	})
+
 	clientStats := map[string]any{"snapshot": snapshot}
 	if len(stats) > 0 {
 		clientStats["clients"] = stats
@@ -263,39 +285,107 @@ func (j *NodeTrafficSyncJob) nodeInboundSpeed() []*xray.Traffic {
 	next := make(map[string]inboundSample, len(totals))
 	for tag, cur := range totals {
 		prev, ok := j.prevInboundTotals[tag]
-		if !ok {
-			next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
-			continue
-		}
-		dUp := cur[0] - prev.up
-		dDown := cur[1] - prev.down
-		if dUp <= 0 && dDown <= 0 {
-			// No movement, or a counter reset: hold the change timestamp so a
-			// later jump is averaged over the real elapsed window, not shown as a
-			// spike. Adopt the lower value on a reset.
-			if cur[0] < prev.up || cur[1] < prev.down {
-				next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
-			} else {
-				next[tag] = prev
-			}
-			continue
-		}
-		if dUp < 0 {
-			dUp = 0
-		}
-		if dDown < 0 {
-			dDown = 0
-		}
-		elapsed := max(now-prev.at, nodeInboundSpeedWindowMs)
-		up := dUp * nodeInboundSpeedWindowMs / elapsed
-		down := dDown * nodeInboundSpeedWindowMs / elapsed
+		sample, up, down := speedStep(prev, ok, cur, now)
+		next[tag] = sample
 		if up > 0 || down > 0 {
 			deltas = append(deltas, &xray.Traffic{Tag: tag, IsInbound: true, Up: up, Down: down})
 		}
-		next[tag] = inboundSample{up: cur[0], down: cur[1], at: now}
 	}
 	j.prevInboundTotals = next
 	return deltas
+}
+
+// speedStep advances one counter's baseline and returns its delta normalized to
+// nodeInboundSpeedWindowMs; see nodeInboundSpeed for the idle/gap/reset rules.
+func speedStep(prev inboundSample, ok bool, cur [2]int64, now int64) (inboundSample, int64, int64) {
+	if !ok {
+		return inboundSample{up: cur[0], down: cur[1], at: now}, 0, 0
+	}
+	dUp := cur[0] - prev.up
+	dDown := cur[1] - prev.down
+	if dUp <= 0 && dDown <= 0 {
+		if cur[0] < prev.up || cur[1] < prev.down {
+			return inboundSample{up: cur[0], down: cur[1], at: now}, 0, 0
+		}
+		return prev, 0, 0
+	}
+	if dUp < 0 {
+		dUp = 0
+	}
+	if dDown < 0 {
+		dDown = 0
+	}
+	elapsed := max(now-prev.at, nodeInboundSpeedWindowMs)
+	return inboundSample{up: cur[0], down: cur[1], at: now},
+		dUp * nodeInboundSpeedWindowMs / elapsed,
+		dDown * nodeInboundSpeedWindowMs / elapsed
+}
+
+// Emails are unique per panel, so a client on several inbounds of one node
+// shares one counter row: taken once, never summed.
+func nodeClientTotals(snap *runtime.TrafficSnapshot) map[string][2]int64 {
+	totals := make(map[string][2]int64)
+	if snap == nil {
+		return totals
+	}
+	for _, ib := range snap.Inbounds {
+		if ib == nil {
+			continue
+		}
+		for _, cs := range ib.ClientStats {
+			if cs.Email == "" {
+				continue
+			}
+			totals[cs.Email] = [2]int64{cs.Up, cs.Down}
+		}
+	}
+	return totals
+}
+
+func diffClientTotals(prev map[string]inboundSample, cur map[string][2]int64, now int64) (map[string]inboundSample, []*xray.ClientTraffic) {
+	next := make(map[string]inboundSample, len(cur))
+	var deltas []*xray.ClientTraffic
+	for email, c := range cur {
+		p, ok := prev[email]
+		sample, up, down := speedStep(p, ok, c, now)
+		next[email] = sample
+		if up > 0 || down > 0 {
+			deltas = append(deltas, &xray.ClientTraffic{Email: email, Up: up, Down: down})
+		}
+	}
+	return next, deltas
+}
+
+func (j *NodeTrafficSyncJob) recordNodeClientSpeed(nodeID int, snap *runtime.TrafficSnapshot) {
+	cur := nodeClientTotals(snap)
+	now := time.Now().UnixMilli()
+	j.clientSpeedMu.Lock()
+	defer j.clientSpeedMu.Unlock()
+	if j.prevClientTotals == nil {
+		j.prevClientTotals = make(map[int]map[string]inboundSample)
+	}
+	next, deltas := diffClientTotals(j.prevClientTotals[nodeID], cur, now)
+	j.prevClientTotals[nodeID] = next
+	j.tickClientSpeed = append(j.tickClientSpeed, deltas...)
+}
+
+// Offline nodes keep their baselines so the first poll after recovery averages
+// over the gap. Caller holds clientSpeedMu.
+func (j *NodeTrafficSyncJob) pruneClientSpeedNodes(nodes []*model.Node) {
+	if len(j.prevClientTotals) == 0 {
+		return
+	}
+	alive := make(map[int]struct{}, len(nodes))
+	for _, n := range nodes {
+		if n != nil {
+			alive[n.Id] = struct{}{}
+		}
+	}
+	for id := range j.prevClientTotals {
+		if _, ok := alive[id]; !ok {
+			delete(j.prevClientTotals, id)
+		}
+	}
 }
 
 // maybePushGlobals broadcasts this panel's aggregated per-client usage to its
@@ -431,6 +521,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if changed {
 		j.structural.set()
 	}
+	j.recordNodeClientSpeed(n.Id, snap)
 	if !dirty && n.InboundsAdoptedAt == 0 && syncCanAdopt {
 		if markErr := j.nodeService.MarkNodeInboundsAdopted(n.Id); markErr != nil {
 			logger.Warningf("node traffic sync: mark inbounds adopted for %s failed: %v", n.Name, markErr)

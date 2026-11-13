@@ -16708,9 +16708,10 @@
                   "type": "string",
                   "enum": [
                     "xray",
-                    "tuic"
+                    "tuic",
+                    "node"
                   ],
-                  "description": "Present for native TUIC samples; omitted Xray samples default to xray."
+                  "description": "Present for native TUIC samples and for clients served by managed nodes; omitted Xray samples default to xray."
                 },
                 "clientTrafficIntervalMs": {
                   "type": "integer",
