@@ -64,6 +64,7 @@ func (t *Tgbot) categoryRows(category string) [][]telego.InlineKeyboardButton {
 		}
 	case "clients":
 		return [][]telego.InlineKeyboardButton{
+			tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientPlans", "admin_plans")),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.allClients", cbClients)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.addClient", cbAddClient)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.broadcast", cbBroadcast)),

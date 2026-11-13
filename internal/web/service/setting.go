@@ -271,15 +271,24 @@ type SettingService struct{}
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
+	fields := reflect_util.GetFields(reflect.TypeFor[entity.AllSetting]())
+	keys := make([]string, 0, len(fields))
+	for _, field := range fields {
+		key := field.Tag.Get("json")
+		if key != "" && key != "-" && key != "xrayTemplateConfig" {
+			keys = append(keys, key)
+		}
+	}
 	settings := make([]*model.Setting, 0)
-	err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
-	if err != nil {
-		return nil, err
+	for _, batch := range chunkStrings(keys, sqlInChunk) {
+		var page []*model.Setting
+		if err := db.Model(model.Setting{}).Where("key IN ?", batch).Find(&page).Error; err != nil {
+			return nil, err
+		}
+		settings = append(settings, page...)
 	}
 	allSetting := &entity.AllSetting{}
-	t := reflect.TypeFor[entity.AllSetting]()
 	v := reflect.ValueOf(allSetting).Elem()
-	fields := reflect_util.GetFields(t)
 
 	setSetting := func(key, value string) (err error) {
 		defer func() {
