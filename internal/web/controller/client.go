@@ -91,6 +91,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/hwids/:email", a.getHwids)
 	g.DELETE("/hwids/:email", a.clearHwids)
 	g.DELETE("/hwids/:email/:id", a.deleteHwid)
+	g.POST("/hwids/:email/:id/block", a.setHwidBlocked)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/clientIpsByGuid", a.clientIpsByGuid)
@@ -665,6 +666,23 @@ func (a *ClientController) deleteHwid(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.clients.hwidDeleted"), nil)
+}
+
+func (a *ClientController) setHwidBlocked(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("invalid device id"))
+		return
+	}
+	var body struct {
+		Blocked *bool `json:"blocked" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	err = a.clientService.SetClientHwidBlocked(c.Param("email"), id, *body.Blocked)
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
 }
 
 func (a *ClientController) onlines(c *gin.Context) {

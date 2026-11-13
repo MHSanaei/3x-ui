@@ -32,6 +32,32 @@ inbounds** at once, with per-client traffic accounting.
   (`restartXrayOnClientDisable`, on by default).
 </Callout>
 
+## Block a subscription device
+
+Open a client's **HWID Devices** list from the edit form or info card and select
+**Block** beside the device. **Unblock** restores its access. Bans apply to that
+subscription ID, including any clients sharing it, even when **HWID Limit** is
+`0` (unlimited). They do not affect the same device on a different subscription.
+
+![HWID device blocking](/images/hwid-device-blocking.png)
+
+Example device list with one allowed device and one blocked device. The screenshot uses synthetic Storybook data.
+
+Blocked devices are marked in red and do not consume device slots. Clearing
+the list or reducing the device limit preserves bans. To remove a blocked
+entry, unblock it first. Existing devices remain unblocked after upgrading.
+
+A matching `X-HWID` receives HTTP `404` with `X-Hwid-Blocked: true` from the
+Raw/Base64, JSON, Clash/Mihomo and legacy Clash subscription-body routes. Bans
+depend on the HWID supplied by the app: a changed or omitted HWID cannot identify
+the banned device. Previously downloaded configurations and copied credentials
+are not revoked; apps can retain them after a failed subscription refresh.
+
+The authenticated panel API uses
+`POST /panel/api/clients/hwids/:email/:id/block` with JSON `{"blocked": true}`
+to block, or `{"blocked": false}` to unblock. The device list includes a
+`blocked` boolean for each entry. Missing or non-boolean values are rejected.
+
 ## Limits and IP control
 
 - **Traffic / expiry** caps disable the client when hit; a **Reset** period

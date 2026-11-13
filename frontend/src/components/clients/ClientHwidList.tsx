@@ -1,5 +1,5 @@
 import { Button, Modal, Popconfirm, Tag, Typography } from 'antd';
-import { DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, ReloadOutlined, StopOutlined, UnlockOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { ClientHwidInfo } from '@/lib/clients/hwid-log';
 
@@ -11,10 +11,12 @@ interface ClientHwidListModalProps {
   loading: boolean;
   clearing: boolean;
   deletingId: number | null;
+  blockingId: number | null;
   formatDate: (ts: number) => string;
   onRefresh: () => void;
   onClearAll: () => void;
   onDelete: (id: number) => void;
+  onSetBlocked: (id: number, blocked: boolean) => void;
   onClose: () => void;
 }
 
@@ -28,10 +30,12 @@ export default function ClientHwidListModal({
   loading,
   clearing,
   deletingId,
+  blockingId,
   formatDate,
   onRefresh,
   onClearAll,
   onDelete,
+  onSetBlocked,
   onClose,
 }: ClientHwidListModalProps) {
   const { t } = useTranslation();
@@ -60,7 +64,16 @@ export default function ClientHwidListModal({
           okText={t('delete')}
           cancelText={t('cancel')}
         >
-          <Button danger loading={clearing} disabled={hwids.length === 0}>
+          <Button
+            danger
+            loading={clearing}
+            disabled={
+              loading ||
+              blockingId !== null ||
+              deletingId !== null ||
+              !hwids.some((entry) => !entry.blocked)
+            }
+          >
             {t('pages.clients.clearAll')}
           </Button>
         </Popconfirm>,
@@ -69,6 +82,9 @@ export default function ClientHwidListModal({
         </Button>,
       ]}
     >
+      <Typography.Paragraph type="secondary">
+        {t('pages.clients.hwidBlockHint')}
+      </Typography.Paragraph>
       {hwids.length > 0 ? (
         <div style={{ maxHeight: 360, overflowY: 'auto' }}>
           {hwids.map((entry) => (
@@ -86,6 +102,7 @@ export default function ClientHwidListModal({
                 <Typography.Text strong>
                   {entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}
                 </Typography.Text>
+                {entry.blocked && <Tag color="red">{t('pages.clients.hwidBlocked')}</Tag>}
                 <br />
                 <Typography.Text type="secondary">
                   {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
@@ -116,6 +133,29 @@ export default function ClientHwidListModal({
                 )}
               </div>
               <Popconfirm
+                title={t(
+                  entry.blocked
+                    ? 'pages.clients.unblockHwidConfirm'
+                    : 'pages.clients.blockHwidConfirm',
+                )}
+                onConfirm={() => onSetBlocked(entry.id, !entry.blocked)}
+                okType={entry.blocked ? 'primary' : 'danger'}
+                okText={t(entry.blocked ? 'pages.clients.unblockHwid' : 'pages.clients.blockHwid')}
+                cancelText={t('cancel')}
+              >
+                <Button
+                  danger={!entry.blocked}
+                  size="small"
+                  icon={
+                    entry.blocked ? <UnlockOutlined aria-hidden /> : <StopOutlined aria-hidden />
+                  }
+                  loading={blockingId === entry.id}
+                  disabled={clearing || loading || deletingId !== null || blockingId !== null}
+                >
+                  {t(entry.blocked ? 'pages.clients.unblockHwid' : 'pages.clients.blockHwid')}
+                </Button>
+              </Popconfirm>
+              <Popconfirm
                 title={t('pages.clients.deleteHwidConfirm')}
                 onConfirm={() => onDelete(entry.id)}
                 okType="danger"
@@ -129,6 +169,13 @@ export default function ClientHwidListModal({
                   aria-label={t('pages.clients.deleteHwid')}
                   icon={<DeleteOutlined aria-hidden />}
                   loading={deletingId === entry.id}
+                  disabled={
+                    entry.blocked ||
+                    clearing ||
+                    loading ||
+                    blockingId !== null ||
+                    deletingId !== null
+                  }
                 />
               </Popconfirm>
             </div>
