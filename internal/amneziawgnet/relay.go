@@ -81,7 +81,8 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 // dialUpstream bounds the bridge connect and SOCKS5 handshake so a silent core cannot pin the relay.
 // It returns the raw *net.TCPConn with no deadline left: pipeBothWays needs its CloseWrite.
 func (r SocksRelay) dialUpstream(email string, dest netip.AddrPort) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", r.Addr, socks5ConnectTimeout)
+	bridge := net.Dialer{Timeout: socks5ConnectTimeout}
+	conn, err := bridge.DialContext(context.Background(), "tcp", r.Addr)
 	if err != nil {
 		return nil, err
 	}
