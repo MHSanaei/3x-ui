@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -46,12 +48,16 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 	if after, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer "); ok {
 		if row, matched := a.apiTokenService.MatchToken(after); matched {
 			matchedScope = row.Scope
+			c.Set("api_identity", fmt.Sprintf("token:%d", row.Id))
 		}
 	}
 	// Verified mTLS keeps its historical node-sync identity. Only an explicit
 	// node-admin bearer elevates it to software-update authority.
 	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
 		scope := model.ApiScopeNodeSync
+		peer := c.Request.TLS.VerifiedChains[0][0]
+		identity := sha256.Sum256(append(append([]byte{}, peer.RawIssuer...), peer.RawSubject...))
+		c.Set("api_identity", fmt.Sprintf("mtls:%x", identity))
 		if matchedScope == model.ApiScopeNodeAdmin {
 			scope = model.ApiScopeNodeAdmin
 		}
@@ -97,6 +103,8 @@ var monitorScopeAllow = map[string]struct{}{
 // nodeSyncScopeAllow is the node-sync route/method allowlist relative to
 // /panel/api; Gin patterns prevent concrete parameters broadening authority.
 var nodeSyncScopeAllow = map[string]map[string]struct{}{
+	"/tunnels/capabilities":        {http.MethodGet: {}},
+	"/tunnels/sync":                {http.MethodPost: {}},
 	"/server/status":               {http.MethodGet: {}},
 	"/inbounds/list":               {http.MethodGet: {}},
 	"/inbounds/add":                {http.MethodPost: {}},
@@ -215,6 +223,8 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Server API
 	server := api.Group("/server")
 	a.serverController = NewServerController(server)
+
+	NewTunnelController(api.Group("/tunnels"))
 
 	// Nodes API — multi-panel management
 	nodes := api.Group("/nodes")

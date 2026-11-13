@@ -27,6 +27,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/cronspec"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/internal/wattunnel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -341,6 +342,9 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		time.Sleep(time.Second * 5)
 		_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
 	}()
+
+	tunnelJob := job.NewTunnelJob(s.ctx)
+	_, _ = s.cron.AddJob("@every 5s", tunnelJob)
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
 	mtJob := job.NewMtprotoJob()
@@ -804,6 +808,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 			err2 = err
 		}
 		mtproto.GetManager().StopAll()
+		wattunnel.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		job.NewAmneziaWGJob().FlushKernelTraffic()
 		amneziawgkern.GetManager().StopAll()

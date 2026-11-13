@@ -1720,6 +1720,64 @@
         ],
         "type": "object"
       },
+      "Capabilities": {
+        "properties": {
+          "arch": {
+            "example": "amd64",
+            "type": "string"
+          },
+          "carriers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          },
+          "os": {
+            "example": "linux",
+            "type": "string"
+          },
+          "rawSocket": {
+            "type": "boolean"
+          },
+          "supported": {
+            "type": "boolean"
+          },
+          "version": {
+            "example": "3.3.0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "arch",
+          "carriers",
+          "error",
+          "os",
+          "rawSocket",
+          "supported",
+          "version"
+        ],
+        "type": "object"
+      },
+      "CarrierEndpoint": {
+        "properties": {
+          "carrier": {
+            "example": "tcp",
+            "type": "string"
+          },
+          "port": {
+            "example": 4443,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "carrier",
+          "port"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -2525,6 +2583,110 @@
           "online",
           "onlineCount",
           "total"
+        ],
+        "type": "object"
+      },
+      "Config": {
+        "properties": {
+          "bind": {
+            "example": "0.0.0.0",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CarrierEndpoint"
+            },
+            "type": "array"
+          },
+          "carrier": {
+            "example": "tcp",
+            "type": "string"
+          },
+          "conns": {
+            "type": "integer"
+          },
+          "endpoint": {
+            "example": "203.0.113.10",
+            "type": "string"
+          },
+          "fec": {
+            "type": "boolean"
+          },
+          "icmpType": {
+            "type": "string"
+          },
+          "listen": {
+            "example": "0.0.0.0",
+            "type": "string"
+          },
+          "memoryMB": {
+            "type": "integer"
+          },
+          "mtu": {
+            "type": "integer"
+          },
+          "path": {
+            "example": "/wat",
+            "type": "string"
+          },
+          "port": {
+            "example": 4443,
+            "type": "integer"
+          },
+          "ports": {
+            "items": {
+              "$ref": "#/components/schemas/Port"
+            },
+            "type": "array"
+          },
+          "reverse": {
+            "type": "boolean"
+          },
+          "reversePeer": {
+            "type": "string"
+          },
+          "role": {
+            "example": "client",
+            "type": "string"
+          },
+          "sessions": {
+            "type": "integer"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "tlsCert": {
+            "type": "string"
+          },
+          "tlsKey": {
+            "type": "string"
+          },
+          "tlsPin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bind",
+          "candidates",
+          "carrier",
+          "conns",
+          "endpoint",
+          "fec",
+          "icmpType",
+          "listen",
+          "memoryMB",
+          "mtu",
+          "path",
+          "port",
+          "ports",
+          "reverse",
+          "reversePeer",
+          "role",
+          "sessions",
+          "sni",
+          "tlsCert",
+          "tlsKey",
+          "tlsPin"
         ],
         "type": "object"
       },
@@ -3592,6 +3754,45 @@
         ],
         "type": "object"
       },
+      "Metrics": {
+        "properties": {
+          "alive": {
+            "type": "boolean"
+          },
+          "bytes_in_total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "bytes_out_total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "last_rx_age_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "loss_pct": {
+            "nullable": true,
+            "type": "number"
+          },
+          "send_errors": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "srtt_ms": {
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "alive",
+          "bytes_in_total",
+          "bytes_out_total",
+          "last_rx_age_ms",
+          "send_errors"
+        ],
+        "type": "object"
+      },
       "Msg": {
         "properties": {
           "msg": {
@@ -4287,6 +4488,28 @@
         ],
         "type": "object"
       },
+      "Port": {
+        "properties": {
+          "listen": {
+            "example": 8443,
+            "type": "integer"
+          },
+          "protocol": {
+            "example": "tcp",
+            "type": "string"
+          },
+          "target": {
+            "example": 443,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "listen",
+          "protocol",
+          "target"
+        ],
+        "type": "object"
+      },
       "ProbeResultUI": {
         "properties": {
           "cpuPct": {
@@ -4664,6 +4887,51 @@
         ],
         "type": "object"
       },
+      "Spec": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/Config"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "restart": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "config",
+          "deleted",
+          "enabled",
+          "guid",
+          "name",
+          "owner",
+          "restart",
+          "revision",
+          "secret"
+        ],
+        "type": "object"
+      },
       "Sponsor": {
         "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
         "properties": {
@@ -4745,6 +5013,40 @@
         },
         "required": [
           "sponsors"
+        ],
+        "type": "object"
+      },
+      "Status": {
+        "properties": {
+          "carrier": {
+            "example": "tcp",
+            "type": "string"
+          },
+          "metrics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              }
+            ],
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "example": "connected",
+            "type": "string"
+          }
+        },
+        "required": [
+          "carrier",
+          "reason",
+          "revision",
+          "state"
         ],
         "type": "object"
       },
@@ -4956,6 +5258,103 @@
         ],
         "type": "object"
       },
+      "TunnelMutation": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/Config"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "generateKey": {
+            "type": "boolean"
+          },
+          "name": {
+            "example": "Edge to exit",
+            "type": "string"
+          },
+          "nodeId": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "config",
+          "enabled",
+          "generateKey",
+          "name",
+          "revision",
+          "secret",
+          "token"
+        ],
+        "type": "object"
+      },
+      "TunnelToken": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "TunnelView": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/Config"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "managed": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nodeId": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          }
+        },
+        "required": [
+          "config",
+          "enabled",
+          "guid",
+          "id",
+          "managed",
+          "name",
+          "revision",
+          "status"
+        ],
+        "type": "object"
+      },
       "User": {
         "description": "User represents a user account in the 3x-ui panel.",
         "properties": {
@@ -5020,6 +5419,10 @@
   ],
   "tags": [
     {
+      "name": "Tunnels",
+      "description": "Managed WatTunnel processes. Client accepts user traffic; Server forwards to allowed loopback ports. Reverse changes the connection initiator."
+    },
+    {
       "name": "Authentication",
       "description": "Two authentication modes are supported. UI sessions use a cookie set by the login endpoint. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*."
     },
@@ -5073,6 +5476,839 @@
     }
   ],
   "paths": {
+    "/panel/api/tunnels/list": {
+      "get": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "List managed tunnels without secrets",
+        "operationId": "get_panel_api_tunnels_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TunnelView"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "config": {
+                        "bind": "0.0.0.0",
+                        "candidates": [
+                          {
+                            "carrier": "tcp",
+                            "port": 4443
+                          }
+                        ],
+                        "carrier": "tcp",
+                        "conns": 0,
+                        "endpoint": "203.0.113.10",
+                        "fec": false,
+                        "icmpType": "",
+                        "listen": "0.0.0.0",
+                        "memoryMB": 0,
+                        "mtu": 0,
+                        "path": "/wat",
+                        "port": 4443,
+                        "ports": [
+                          {
+                            "listen": 8443,
+                            "protocol": "tcp",
+                            "target": 443
+                          }
+                        ],
+                        "reverse": false,
+                        "reversePeer": "",
+                        "role": "client",
+                        "sessions": 0,
+                        "sni": "",
+                        "tlsCert": "",
+                        "tlsKey": "",
+                        "tlsPin": ""
+                      },
+                      "enabled": false,
+                      "guid": "",
+                      "id": 1,
+                      "managed": false,
+                      "name": "",
+                      "nodeId": null,
+                      "revision": 0,
+                      "status": {
+                        "carrier": "tcp",
+                        "metrics": null,
+                        "reason": "",
+                        "revision": 0,
+                        "state": "connected"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/capabilities": {
+      "get": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Inspect local or target-node WatTunnel capabilities",
+        "operationId": "get_panel_api_tunnels_capabilities",
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Capabilities"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "arch": "amd64",
+                    "carriers": [
+                      ""
+                    ],
+                    "error": "",
+                    "os": "linux",
+                    "rawSocket": false,
+                    "supported": false,
+                    "version": "3.3.0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/add": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Create a tunnel; persist desired state before applying it",
+        "operationId": "post_panel_api_tunnels_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TunnelMutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/update/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Update a tunnel using its current revision",
+        "operationId": "post_panel_api_tunnels_update_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TunnelMutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/start/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Persist started state",
+        "operationId": "post_panel_api_tunnels_start_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/stop/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Persist stopped state",
+        "operationId": "post_panel_api_tunnels_stop_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/restart/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Restart a tunnel",
+        "operationId": "post_panel_api_tunnels_restart_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/del/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Persist a deletion tombstone and stop the tunnel",
+        "operationId": "post_panel_api_tunnels_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelView"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "config": {
+                      "bind": "0.0.0.0",
+                      "candidates": [
+                        {
+                          "carrier": "tcp",
+                          "port": 4443
+                        }
+                      ],
+                      "carrier": "tcp",
+                      "conns": 0,
+                      "endpoint": "203.0.113.10",
+                      "fec": false,
+                      "icmpType": "",
+                      "listen": "0.0.0.0",
+                      "memoryMB": 0,
+                      "mtu": 0,
+                      "path": "/wat",
+                      "port": 4443,
+                      "ports": [
+                        {
+                          "listen": 8443,
+                          "protocol": "tcp",
+                          "target": 443
+                        }
+                      ],
+                      "reverse": false,
+                      "reversePeer": "",
+                      "role": "client",
+                      "sessions": 0,
+                      "sni": "",
+                      "tlsCert": "",
+                      "tlsKey": "",
+                      "tlsPin": ""
+                    },
+                    "enabled": false,
+                    "guid": "",
+                    "id": 1,
+                    "managed": false,
+                    "name": "",
+                    "nodeId": null,
+                    "revision": 0,
+                    "status": {
+                      "carrier": "tcp",
+                      "metrics": null,
+                      "reason": "",
+                      "revision": 0,
+                      "state": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/export/{id}": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Export a secret connection token (admin; no-store)",
+        "operationId": "post_panel_api_tunnels_export_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TunnelToken"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "token": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/tunnels/sync": {
+      "post": {
+        "tags": [
+          "Tunnels"
+        ],
+        "summary": "Idempotent owner-bound node synchronization",
+        "operationId": "post_panel_api_tunnels_sync",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Spec"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/Status"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "carrier": "tcp",
+                    "metrics": null,
+                    "reason": "",
+                    "revision": 0,
+                    "state": "connected"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/login": {
       "post": {
         "tags": [

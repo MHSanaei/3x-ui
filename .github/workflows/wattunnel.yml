@@ -1,0 +1,55 @@
+name: WatTunnel
+on:
+  pull_request:
+    paths: ['internal/wattunnel/**', 'internal/childproc/**', 'internal/web/**', 'tools/wattunnel-release/**', '.github/workflows/wattunnel.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  processes:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-amd64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: windows-latest
+            target: windows-amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Build fixtures and verify signed release
+        shell: bash
+        run: |
+          mkdir -p internal/web/dist .cache/wattunnel
+          touch internal/web/dist/.gitkeep
+          go run ./tools/wattunnel-release -target '${{ matrix.target }}' -out .cache/wattunnel
+          go build -o .cache/wattunnel/xray.exe github.com/xtls/xray-core/main
+          CGO_ENABLED=0 go test -c -o .cache/wattunnel/process-tests.exe ./internal/wattunnel
+      - name: Real transport and Xray matrix
+        shell: bash
+        run: |
+          ext=''
+          if [[ '${{ runner.os }}' == Windows ]]; then ext='.exe'; fi
+          export WATTUN_E2E_BINARY="$PWD/.cache/wattunnel/wattun-${{ matrix.target }}$ext"
+          export WATTUN_E2E_VERIFY=1
+          export XRAY_E2E_BINARY="$PWD/.cache/wattunnel/xray.exe"
+          go test -race -count=1 -timeout 10m -v ./internal/wattunnel ./internal/childproc
+      - name: Linux ICMP and restricted child credentials
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          caps=()
+          while read -r cap; do caps+=(--cap-add "$cap"); done < <(sed -n 's/^CapabilityBoundingSet=//p' x-ui.service.debian | tr ' ' '\n')
+          docker run --rm --network none --security-opt no-new-privileges --cap-drop ALL "${caps[@]}" \
+            -v "$PWD:/workspace:ro" -w /workspace \
+            -e WATTUN_E2E_BINARY="/workspace/.cache/wattunnel/wattun-${{ matrix.target }}" -e WATTUN_E2E_ICMP=1 \
+            ubuntu:24.04 bash -ec '
+              useradd --system --no-create-home --shell /usr/sbin/nologin x-ui-wattunnel
+              .cache/wattunnel/process-tests.exe -test.v -test.run "TestManagedProcessE2E|TestLinuxChild|TestLinuxParentDeath"
+            '

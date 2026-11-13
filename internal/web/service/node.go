@@ -839,6 +839,8 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 }
 
 func (s *NodeService) Delete(id int) error {
+	tunnelMu.Lock()
+	defer tunnelMu.Unlock()
 	db := database.GetDB()
 	// Refuse to delete a node that still owns inbounds: dropping the node row
 	// while inbounds keep its node_id leaves orphaned, dangling references that
@@ -850,6 +852,16 @@ func (s *NodeService) Delete(id int) error {
 	}
 	if attached > 0 {
 		return common.NewError(fmt.Sprintf("cannot delete node: %d inbound(s) still attached to it; detach or delete them first", attached))
+	}
+	var tunnels []model.ManagedTunnel
+	if err := db.Where("node_id = ?", id).Find(&tunnels).Error; err != nil {
+		return err
+	}
+	for _, row := range tunnels {
+		status := tunnelStatuses[row.GUID]
+		if !row.Deleted || status.State != "stopped" || status.Revision < row.Revision {
+			return common.NewError("cannot delete node: delete its tunnels and wait for remote cleanup first")
+		}
 	}
 	// Capture the node's guid before deleting the row so we can drop its per-node
 	// IP attribution. NodeClientIp is keyed by the node's attribution key, which
@@ -876,6 +888,9 @@ func (s *NodeService) Delete(id int) error {
 			guids = append(guids, guid)
 		}
 		if err := tx.Where("node_guid IN ?", guids).Delete(&model.NodeClientIp{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.ManagedTunnel{}).Where("node_id = ? AND deleted = ?", id, true).Update("node_id", nil).Error; err != nil {
 			return err
 		}
 		return tx.Where("id = ?", id).Delete(&model.Node{}).Error

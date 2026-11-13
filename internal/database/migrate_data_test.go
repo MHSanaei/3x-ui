@@ -207,3 +207,49 @@ func TestMigrateData_FailedCopyLeavesDestinationUntouched(t *testing.T) {
 		t.Fatalf("failed migration leaked partial rows: evil count = %d, want 0", evil)
 	}
 }
+
+func TestMigrateData_PreservesManagedTunnelSecretsAndTombstones(t *testing.T) {
+	dsn := os.Getenv("XUI_TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("XUI_TEST_PG_DSN required")
+	}
+	path := t.TempDir() + "/x-ui.db"
+	src, err := gorm.Open(sqlite.Open(path), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range migrationModels() {
+		if err = src.AutoMigrate(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows := []model.ManagedTunnel{
+		{GUID: "00000000-0000-0000-0000-000000000001", Owner: "owner", Name: "stopped", Revision: 17, Config: `{"role":"client"}`, Secret: "enc:v1:opaque-ciphertext"},
+		{GUID: "00000000-0000-0000-0000-000000000002", Owner: "owner", AuthOwner: "token:1", Name: "deleted", Revision: 19, Deleted: true, Config: "{}"},
+	}
+	if err = src.Create(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	sql, err := src.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = sql.Close()
+	dst, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = dst.Migrator().DropTable(migrationModels()...); err != nil {
+		t.Fatal(err)
+	}
+	if err = MigrateData(path, dsn); err != nil {
+		t.Fatal(err)
+	}
+	var got []model.ManagedTunnel
+	if err = dst.Order("id").Find(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].Secret != rows[0].Secret || got[0].Revision != 17 || got[0].Enabled || !got[1].Deleted || got[1].AuthOwner != "token:1" {
+		t.Fatalf("tunnel state changed across migration: %+v", got)
+	}
+}

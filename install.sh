@@ -1934,6 +1934,17 @@ install_x-ui() {
         fi
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
+    if [[ -f bin/wattun-linux-amd64 || -f bin/wattun-linux-arm64 ]]; then
+        if ! id x-ui-wattunnel >/dev/null 2>&1; then
+            if command -v useradd >/dev/null 2>&1; then
+                useradd --system --no-create-home --shell /usr/sbin/nologin x-ui-wattunnel || return 1
+            else
+                adduser -S -D -H -s /sbin/nologin x-ui-wattunnel || return 1
+            fi
+        fi
+        chmod 755 bin/wattun-linux-* || return 1
+    fi
+
     if [[ -f bin/mtg-linux-arm ]]; then
         chmod +x bin/mtg-linux-arm
     elif [[ -f bin/mtg-linux-$(arch) ]]; then

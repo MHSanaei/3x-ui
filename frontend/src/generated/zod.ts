@@ -438,6 +438,23 @@ export const BlockerSchema = z.object({
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
 
+export const CapabilitiesSchema = z.object({
+  arch: z.string(),
+  carriers: z.array(z.string()),
+  error: z.string(),
+  os: z.string(),
+  rawSocket: z.boolean(),
+  supported: z.boolean(),
+  version: z.string(),
+});
+export type Capabilities = z.infer<typeof CapabilitiesSchema>;
+
+export const CarrierEndpointSchema = z.object({
+  carrier: z.string(),
+  port: z.number().int(),
+});
+export type CarrierEndpoint = z.infer<typeof CarrierEndpointSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
@@ -615,6 +632,31 @@ export const ClientsSummarySchema = z.object({
   total: z.number().int(),
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
+
+export const ConfigSchema = z.object({
+  bind: z.string(),
+  candidates: z.array(z.lazy(() => CarrierEndpointSchema)),
+  carrier: z.string(),
+  conns: z.number().int(),
+  endpoint: z.string(),
+  fec: z.boolean(),
+  icmpType: z.string(),
+  listen: z.string(),
+  memoryMB: z.number().int(),
+  mtu: z.number().int(),
+  path: z.string(),
+  port: z.number().int(),
+  ports: z.array(z.lazy(() => PortSchema)),
+  reverse: z.boolean(),
+  reversePeer: z.string(),
+  role: z.string(),
+  sessions: z.number().int(),
+  sni: z.string(),
+  tlsCert: z.string(),
+  tlsKey: z.string(),
+  tlsPin: z.string(),
+});
+export type Config = z.infer<typeof ConfigSchema>;
 
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
@@ -873,6 +915,17 @@ export const MLKEM768ResponseSchema = z.object({
 });
 export type MLKEM768Response = z.infer<typeof MLKEM768ResponseSchema>;
 
+export const MetricsSchema = z.object({
+  alive: z.boolean(),
+  bytes_in_total: z.number().int(),
+  bytes_out_total: z.number().int(),
+  last_rx_age_ms: z.number().int(),
+  loss_pct: z.number().nullable().optional(),
+  send_errors: z.number().int(),
+  srtt_ms: z.number().nullable().optional(),
+});
+export type Metrics = z.infer<typeof MetricsSchema>;
+
 export const MsgSchema = z.object({
   msg: z.string(),
   obj: z.unknown(),
@@ -1027,6 +1080,13 @@ export const PeerActivitySchema = z.object({
 });
 export type PeerActivity = z.infer<typeof PeerActivitySchema>;
 
+export const PortSchema = z.object({
+  listen: z.number().int(),
+  protocol: z.string(),
+  target: z.number().int(),
+});
+export type Port = z.infer<typeof PortSchema>;
+
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),
   error: z.string(),
@@ -1123,6 +1183,19 @@ export const SettingSchema = z.object({
 });
 export type Setting = z.infer<typeof SettingSchema>;
 
+export const SpecSchema = z.object({
+  config: z.lazy(() => ConfigSchema),
+  deleted: z.boolean(),
+  enabled: z.boolean(),
+  guid: z.string(),
+  name: z.string(),
+  owner: z.string(),
+  restart: z.number().int(),
+  revision: z.number().int(),
+  secret: z.string(),
+});
+export type Spec = z.infer<typeof SpecSchema>;
+
 export const SponsorSchema = z.object({
   enable: z.boolean().nullable().optional(),
   from: z.string().nullable().optional(),
@@ -1142,6 +1215,15 @@ export const SponsorListSchema = z.object({
   sponsors: z.array(z.lazy(() => SponsorSchema)),
 });
 export type SponsorList = z.infer<typeof SponsorListSchema>;
+
+export const StatusSchema = z.object({
+  carrier: z.string(),
+  metrics: z.lazy(() => MetricsSchema).nullable().optional(),
+  reason: z.string(),
+  revision: z.number().int(),
+  state: z.string(),
+});
+export type Status = z.infer<typeof StatusSchema>;
 
 export const SubBalancerSchema = z.object({
   createdAt: z.number().int(),
@@ -1194,6 +1276,36 @@ export const TuicServerSettingsSchema = z.object({
   zero_rtt_handshake: z.boolean(),
 });
 export type TuicServerSettings = z.infer<typeof TuicServerSettingsSchema>;
+
+export const TunnelMutationSchema = z.object({
+  config: z.lazy(() => ConfigSchema),
+  enabled: z.boolean(),
+  generateKey: z.boolean(),
+  name: z.string(),
+  nodeId: z.number().int().nullable().optional(),
+  revision: z.number().int(),
+  secret: z.string(),
+  token: z.string(),
+});
+export type TunnelMutation = z.infer<typeof TunnelMutationSchema>;
+
+export const TunnelTokenSchema = z.object({
+  token: z.string(),
+});
+export type TunnelToken = z.infer<typeof TunnelTokenSchema>;
+
+export const TunnelViewSchema = z.object({
+  config: z.lazy(() => ConfigSchema),
+  enabled: z.boolean(),
+  guid: z.string(),
+  id: z.number().int(),
+  managed: z.boolean(),
+  name: z.string(),
+  nodeId: z.number().int().nullable().optional(),
+  revision: z.number().int(),
+  status: z.lazy(() => StatusSchema),
+});
+export type TunnelView = z.infer<typeof TunnelViewSchema>;
 
 export const UserSchema = z.object({
   id: z.number().int(),

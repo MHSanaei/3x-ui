@@ -71,6 +71,7 @@ func allModels() []any {
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
 		&model.Node{},
+		&model.ManagedTunnel{},
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},

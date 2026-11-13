@@ -1,0 +1,1573 @@
+{
+  "date": "2026-11-06",
+  "engine": "WatTunnel v3.3.0, verified signed Linux arm64 release",
+  "environment": "Ubuntu 24.04 in Docker Desktop Linux arm64; private network namespaces; container network none",
+  "probe": "2 MiB TCP echo in 32 sequential 64 KiB chunks, 5 second socket timeout, 30 second budget checked between chunks; throughput counts returned payload once",
+  "impairment": "20 ms and configured independent packet loss in each direction",
+  "limitations": [
+    "Single samples on a shared machine; not maximum transport throughput or DPI evidence.",
+    "Initial lossRun used stats-only readiness; server-restart EOF samples are retained and superseded by recoveryRun, which waits for a successful echo.",
+    "Engine counters are cumulative within each process lifetime.",
+    "TCP/TLS/WSS loss-10 samples did not finish within the bounded probe; their rates describe partial transfers."
+  ],
+  "lossRun": [
+    {
+      "carrier": "tcp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.8052752509999834,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.15,
+      "server_cpu_seconds": 0.2,
+      "mbps": 9.293439319409446,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 49.048385,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 2107605,
+        "bytes_out_total": 2108318
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "loss-1",
+      "success": true,
+      "seconds": 4.203263625999995,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.29,
+      "server_cpu_seconds": 0.37,
+      "mbps": 3.9914736482912248,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 64.372158,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 4220888,
+        "bytes_out_total": 4221813
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "loss-5",
+      "success": true,
+      "seconds": 11.19744392199999,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.69,
+      "server_cpu_seconds": 0.67,
+      "mbps": 1.49830765993275,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 221.32217,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 6369755,
+        "bytes_out_total": 6338610
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "loss-10",
+      "success": false,
+      "error": "30 second probe budget",
+      "seconds": 30.274657931000007,
+      "bytes": 1835008,
+      "client_cpu_seconds": 1.7900000000000003,
+      "server_cpu_seconds": 1.8900000000000001,
+      "mbps": 0.48489611454761367,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 535.545193,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 8373536,
+        "bytes_out_total": 8192821
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.0146575859999984,
+      "bytes": 0,
+      "client_cpu_seconds": 0.3999999999999999,
+      "server_cpu_seconds": 0.020000000000000018,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 535.545193,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 8373882,
+        "bytes_out_total": 8456340
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 1.6185205009999777,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.20999999999999996,
+      "server_cpu_seconds": 0.04999999999999982,
+      "mbps": 10.365772932523535,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 126.747845,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 10479177,
+        "bytes_out_total": 10561979
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "server-restart",
+      "success": false,
+      "error": "unexpected EOF",
+      "seconds": 0.5803082920000122,
+      "bytes": 0,
+      "client_cpu_seconds": 0.08000000000000007,
+      "server_cpu_seconds": 0.019999999999999997,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 126.747845,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 10479348,
+        "bytes_out_total": 10693931
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.3794979169999806,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.039999999999999994,
+      "server_cpu_seconds": 0.04000000000000001,
+      "mbps": 44.20898046721257,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.736718,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 12585001,
+        "bytes_out_total": 12800205
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.012056794000017,
+      "bytes": 0,
+      "client_cpu_seconds": 0.42000000000000004,
+      "server_cpu_seconds": 0.15999999999999998,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.736718,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 12585001,
+        "bytes_out_total": 12932312
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.6241122090000033,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.04999999999999993,
+      "server_cpu_seconds": 0.04999999999999999,
+      "mbps": 26.881730172979058,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.99989,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 14757425,
+        "bytes_out_total": 15104321
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.8206454170000086,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.14,
+      "server_cpu_seconds": 0.16,
+      "mbps": 9.2149826887461,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.345631,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 16924716,
+        "bytes_out_total": 17280451
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "loss-1",
+      "success": true,
+      "seconds": 4.6808241690000045,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.26,
+      "server_cpu_seconds": 0.31999999999999995,
+      "mbps": 3.584244012221512,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 42.185624,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 19096269,
+        "bytes_out_total": 19516324
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "loss-5",
+      "success": true,
+      "seconds": 6.096732794000019,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.4,
+      "server_cpu_seconds": 0.48,
+      "mbps": 2.7518371834355233,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.938353,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 21284001,
+        "bytes_out_total": 21871106
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "loss-10",
+      "success": true,
+      "seconds": 7.600301587000018,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.3999999999999999,
+      "server_cpu_seconds": 0.44999999999999996,
+      "mbps": 2.207440824282117,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.668427,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 23506749,
+        "bytes_out_total": 24339663
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.010172545000046,
+      "bytes": 0,
+      "client_cpu_seconds": 0.3600000000000001,
+      "server_cpu_seconds": 0.22999999999999998,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.668427,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 23508644,
+        "bytes_out_total": 26988138
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 1.2864281669999968,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.19999999999999996,
+      "server_cpu_seconds": 0.19000000000000017,
+      "mbps": 13.04170448873578,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.456173,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 25746470,
+        "bytes_out_total": 29242914
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "server-restart",
+      "success": false,
+      "error": "unexpected EOF",
+      "seconds": 3.990760292999994,
+      "bytes": 0,
+      "client_cpu_seconds": 0.25,
+      "server_cpu_seconds": 0.01,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.456173,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 25746549,
+        "bytes_out_total": 31229468
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.4983764170000313,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.06,
+      "server_cpu_seconds": 0.06,
+      "mbps": 33.66374376418165,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.470693,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 27914826,
+        "bytes_out_total": 33398525
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.006118835999985,
+      "bytes": 0,
+      "client_cpu_seconds": 0.3,
+      "server_cpu_seconds": 0.03,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.470693,
+        "loss_pct": 0,
+        "send_errors": 1854,
+        "bytes_in_total": 27914826,
+        "bytes_out_total": 35969422
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.5046308339999541,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.030000000000000027,
+      "server_cpu_seconds": 0.05000000000000002,
+      "mbps": 33.246513826781985,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.570509,
+        "loss_pct": 0,
+        "send_errors": 1854,
+        "bytes_in_total": 30149996,
+        "bytes_out_total": 38208271
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.6151759170000446,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.14,
+      "server_cpu_seconds": 0.13,
+      "mbps": 10.387237590293724,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 55.916787,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 32257124,
+        "bytes_out_total": 40316196
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "loss-1",
+      "success": true,
+      "seconds": 3.6731100009999977,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.23,
+      "server_cpu_seconds": 0.24,
+      "mbps": 4.567577882348319,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 77.121072,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 34364728,
+        "bytes_out_total": 42428197
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "loss-5",
+      "success": true,
+      "seconds": 8.18904292000002,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.53,
+      "server_cpu_seconds": 0.53,
+      "mbps": 2.048739536951891,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 306.704314,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 36492538,
+        "bytes_out_total": 44542744
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "loss-10",
+      "success": false,
+      "error": "timed out",
+      "seconds": 9.999620213000014,
+      "bytes": 131072,
+      "client_cpu_seconds": 0.5700000000000001,
+      "server_cpu_seconds": 0.5599999999999999,
+      "mbps": 0.1048615825065834,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 303.099974,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 37697800,
+        "bytes_out_total": 45930530
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.001957211000047,
+      "bytes": 0,
+      "client_cpu_seconds": 0.3500000000000001,
+      "server_cpu_seconds": 0.26,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 303.099974,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 37697880,
+        "bytes_out_total": 46128213
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.6770093750000115,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.07999999999999985,
+      "server_cpu_seconds": 0.050000000000000044,
+      "mbps": 24.78136436441477,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 303.099974,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 40000883,
+        "bytes_out_total": 48432033
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "server-restart",
+      "success": false,
+      "error": "unexpected EOF",
+      "seconds": 0.540234708000014,
+      "bytes": 0,
+      "client_cpu_seconds": 0.030000000000000027,
+      "server_cpu_seconds": 0.0,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 303.099974,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 40001062,
+        "bytes_out_total": 48563814
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.41067395900000747,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.04000000000000001,
+      "server_cpu_seconds": 0.04,
+      "mbps": 40.852884952463455,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.72927,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 42106665,
+        "bytes_out_total": 50670150
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.006531127000017,
+      "bytes": 0,
+      "client_cpu_seconds": 0.31,
+      "server_cpu_seconds": 0.07,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.72927,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 42106665,
+        "bytes_out_total": 50868059
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.10070745799998804,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.010000000000000009,
+      "server_cpu_seconds": 0.01999999999999999,
+      "mbps": 166.59358038807804,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.339957,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 44277506,
+        "bytes_out_total": 53038862
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.716833999999949,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.17,
+      "server_cpu_seconds": 0.17,
+      "mbps": 9.772182983328907,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 42.703899,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 46385764,
+        "bytes_out_total": 55163057
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "loss-1",
+      "success": true,
+      "seconds": 2.2749896259999787,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.14999999999999997,
+      "server_cpu_seconds": 0.17999999999999997,
+      "mbps": 7.374634067891859,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 42.919093,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 48493497,
+        "bytes_out_total": 57287376
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "loss-5",
+      "success": true,
+      "seconds": 10.532465753999986,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.64,
+      "server_cpu_seconds": 0.67,
+      "mbps": 1.5929048706973865,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 215.758917,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 50675887,
+        "bytes_out_total": 59436570
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "loss-10",
+      "success": false,
+      "error": "30 second probe budget",
+      "seconds": 30.637072262999993,
+      "bytes": 1769472,
+      "client_cpu_seconds": 1.7500000000000002,
+      "server_cpu_seconds": 1.7999999999999998,
+      "mbps": 0.4620472830589545,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 675.665141,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 52645688,
+        "bytes_out_total": 61303915
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.006020460999991,
+      "bytes": 0,
+      "client_cpu_seconds": 0.33999999999999986,
+      "server_cpu_seconds": 0.25,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 675.665141,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 52645875,
+        "bytes_out_total": 61701822
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 4.473343752000005,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.54,
+      "server_cpu_seconds": 0.5299999999999998,
+      "mbps": 3.7504866449172405,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 675.665141,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 54937881,
+        "bytes_out_total": 63871742
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "server-restart",
+      "success": false,
+      "error": "unexpected EOF",
+      "seconds": 3.9529621690000454,
+      "bytes": 0,
+      "client_cpu_seconds": 0.27,
+      "server_cpu_seconds": 0.0,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 675.665141,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 54937985,
+        "bytes_out_total": 64401723
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.28731854199997997,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.04,
+      "server_cpu_seconds": 0.039999999999999994,
+      "mbps": 58.392388751580015,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.265058,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 57053147,
+        "bytes_out_total": 66523006
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.007527293999999,
+      "bytes": 0,
+      "client_cpu_seconds": 0.27999999999999997,
+      "server_cpu_seconds": 0.08000000000000002,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.265058,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 57053147,
+        "bytes_out_total": 66722225
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.2502449160000424,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.030000000000000027,
+      "server_cpu_seconds": 0.03,
+      "mbps": 67.04318420597666,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.182708,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 59163796,
+        "bytes_out_total": 68842225
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 8.677588169999979,
+      "bytes": 2097152,
+      "client_cpu_seconds": 1.18,
+      "server_cpu_seconds": 1.31,
+      "mbps": 1.9333962008017307,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 40.29415,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 61564596,
+        "bytes_out_total": 71180112
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "loss-1",
+      "success": true,
+      "seconds": 3.491964376999988,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.3800000000000001,
+      "server_cpu_seconds": 0.3699999999999999,
+      "mbps": 4.804520948296048,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.615596,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 63841050,
+        "bytes_out_total": 73472386
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "loss-5",
+      "success": true,
+      "seconds": 6.325386378000019,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.34999999999999987,
+      "server_cpu_seconds": 0.49,
+      "mbps": 2.6523622427796534,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.133409,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 66101322,
+        "bytes_out_total": 75869290
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "loss-10",
+      "success": true,
+      "seconds": 8.181828378999967,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.5300000000000002,
+      "server_cpu_seconds": 0.6199999999999997,
+      "mbps": 2.0505460665811,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.717177,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 68393295,
+        "bytes_out_total": 78419633
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "blocked-tcp-udp",
+      "success": true,
+      "seconds": 0.8281908340000541,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.16999999999999993,
+      "server_cpu_seconds": 0.18000000000000016,
+      "mbps": 20.25766926080095,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.298554,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 70653747,
+        "bytes_out_total": 80694194
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.4351645009999743,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.10999999999999988,
+      "server_cpu_seconds": 0.10999999999999988,
+      "mbps": 38.55373303991309,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 2.65994,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 72907515,
+        "bytes_out_total": 82955280
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "server-restart",
+      "success": false,
+      "error": "unexpected EOF",
+      "seconds": 3.8722076679999873,
+      "bytes": 0,
+      "client_cpu_seconds": 0.33999999999999986,
+      "server_cpu_seconds": 0.03,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 2.65994,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 72907641,
+        "bytes_out_total": 85264786
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.9264511670000388,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.27,
+      "server_cpu_seconds": 0.27,
+      "mbps": 18.109120693675266,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.22106,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 75158597,
+        "bytes_out_total": 87517005
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.004466919000038,
+      "bytes": 0,
+      "client_cpu_seconds": 0.22999999999999998,
+      "server_cpu_seconds": 0.02999999999999997,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.22106,
+        "loss_pct": 0,
+        "send_errors": 46,
+        "bytes_in_total": 75158597,
+        "bytes_out_total": 88657368
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.6113590839999574,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.08999999999999997,
+      "server_cpu_seconds": 0.09000000000000002,
+      "mbps": 27.44249073757309,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.189398,
+        "loss_pct": 0,
+        "send_errors": 46,
+        "bytes_in_total": 77411832,
+        "bytes_out_total": 90979987
+      }
+    }
+  ],
+  "recoveryRun": [
+    {
+      "carrier": "tcp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.5216394170000171,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.10999999999999999,
+      "server_cpu_seconds": 0.12,
+      "mbps": 11.025750130130739,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.83318,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 2107715,
+        "bytes_out_total": 2108545
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.002718377000008,
+      "bytes": 0,
+      "client_cpu_seconds": 0.26,
+      "server_cpu_seconds": 0.28,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.83318,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 2108101,
+        "bytes_out_total": 2240711
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.2726484580000488,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.019999999999999907,
+      "server_cpu_seconds": 0.020000000000000018,
+      "mbps": 61.53424128295271,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.83318,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 4247223,
+        "bytes_out_total": 4412747
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "server-restart",
+      "success": true,
+      "seconds": 0.2855082089999996,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.020000000000000018,
+      "server_cpu_seconds": 0.019999999999999997,
+      "mbps": 58.76263964094994,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.622136,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 6353980,
+        "bytes_out_total": 6519264
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.44782133299997895,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.04,
+      "server_cpu_seconds": 0.03,
+      "mbps": 37.46408391848717,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.544366,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 8459568,
+        "bytes_out_total": 8625327
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.00646937700003,
+      "bytes": 0,
+      "client_cpu_seconds": 0.30000000000000004,
+      "server_cpu_seconds": 0.11000000000000001,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.544366,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 8459568,
+        "bytes_out_total": 9020650
+      }
+    },
+    {
+      "carrier": "tcp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.2057319580000012,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.019999999999999962,
+      "server_cpu_seconds": 0.03,
+      "mbps": 81.54890549381686,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.189107,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 10632533,
+        "bytes_out_total": 11192362
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.5431382509999594,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.11,
+      "server_cpu_seconds": 0.13,
+      "mbps": 10.872140580488042,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.113889,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 12801964,
+        "bytes_out_total": 13364834
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.006288461000054,
+      "bytes": 0,
+      "client_cpu_seconds": 0.35000000000000003,
+      "server_cpu_seconds": 0.26,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.113889,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 12804209,
+        "bytes_out_total": 16171552
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.652492833999986,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.06,
+      "server_cpu_seconds": 0.07999999999999996,
+      "mbps": 25.712490813347937,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.01172,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 15029153,
+        "bytes_out_total": 18407395
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "server-restart",
+      "success": true,
+      "seconds": 0.3982401249999157,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.040000000000000036,
+      "server_cpu_seconds": 0.04,
+      "mbps": 42.1283917586244,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.01172,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 17194305,
+        "bytes_out_total": 20583681
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.4788640420000547,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.07,
+      "server_cpu_seconds": 0.06999999999999999,
+      "mbps": 35.035447493462215,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.415193,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 19363557,
+        "bytes_out_total": 22752195
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.00968641999998,
+      "bytes": 0,
+      "client_cpu_seconds": 0.27999999999999997,
+      "server_cpu_seconds": 0.020000000000000018,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.415193,
+        "loss_pct": 0,
+        "send_errors": 1855,
+        "bytes_in_total": 19363557,
+        "bytes_out_total": 25323065
+      }
+    },
+    {
+      "carrier": "udp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.5514400419999674,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.04999999999999999,
+      "server_cpu_seconds": 0.06,
+      "mbps": 30.424370234617438,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.314845,
+        "loss_pct": 0,
+        "send_errors": 1855,
+        "bytes_in_total": 21539148,
+        "bytes_out_total": 27561542
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.7395758760000035,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.13,
+      "server_cpu_seconds": 0.12,
+      "mbps": 9.644428984941825,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 56.375076,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 23646792,
+        "bytes_out_total": 29670095
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.008253418999971,
+      "bytes": 0,
+      "client_cpu_seconds": 0.26,
+      "server_cpu_seconds": 0.22999999999999998,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 56.375076,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 23647088,
+        "bytes_out_total": 29802131
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.20517533400004595,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.029999999999999916,
+      "server_cpu_seconds": 0.02999999999999997,
+      "mbps": 81.7701410443238,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 56.375076,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 25786459,
+        "bytes_out_total": 31974142
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "server-restart",
+      "success": true,
+      "seconds": 0.4025941249999505,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.040000000000000036,
+      "server_cpu_seconds": 0.03,
+      "mbps": 41.67277900541163,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 13.239844,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 27892914,
+        "bytes_out_total": 34080562
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.12965670899995985,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.020000000000000004,
+      "server_cpu_seconds": 0.019999999999999997,
+      "mbps": 129.39720689659953,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.265295,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 29998336,
+        "bytes_out_total": 36186594
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.006268961000046,
+      "bytes": 0,
+      "client_cpu_seconds": 0.3,
+      "server_cpu_seconds": 0.06,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.265295,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 29998336,
+        "bytes_out_total": 36384397
+      }
+    },
+    {
+      "carrier": "tls",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.10462533300005816,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.020000000000000018,
+      "server_cpu_seconds": 0.01999999999999999,
+      "mbps": 160.35519810475225,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.265295,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 32169843,
+        "bytes_out_total": 38556531
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 1.5504892510000445,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.11000000000000001,
+      "server_cpu_seconds": 0.13,
+      "mbps": 10.820594847193506,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.64237,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 34278092,
+        "bytes_out_total": 40680376
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "blocked-tcp-udp",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.004880877000005,
+      "bytes": 0,
+      "client_cpu_seconds": 0.26999999999999996,
+      "server_cpu_seconds": 0.27,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.64237,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 34278380,
+        "bytes_out_total": 40813328
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.8211176669999531,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.14,
+      "server_cpu_seconds": 0.15000000000000002,
+      "mbps": 20.432170289670502,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 41.64237,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 36452064,
+        "bytes_out_total": 43009322
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "server-restart",
+      "success": true,
+      "seconds": 0.44722566600000846,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.07000000000000006,
+      "server_cpu_seconds": 0.08,
+      "mbps": 37.5139829295926,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 36.457438,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 38578020,
+        "bytes_out_total": 45134802
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.434864374999961,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.06,
+      "server_cpu_seconds": 0.05,
+      "mbps": 38.580341284570636,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.195755,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 40691276,
+        "bytes_out_total": 47256579
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.0019251270000495,
+      "bytes": 0,
+      "client_cpu_seconds": 0.33999999999999997,
+      "server_cpu_seconds": 0.13999999999999999,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.195755,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 40691276,
+        "bytes_out_total": 47455825
+      }
+    },
+    {
+      "carrier": "wss",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 1.7494647499999019,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.24999999999999994,
+      "server_cpu_seconds": 0.27999999999999997,
+      "mbps": 9.589913715038238,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.254107,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 42917750,
+        "bytes_out_total": 49668722
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "loss-0",
+      "success": true,
+      "seconds": 8.419413711999937,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.87,
+      "server_cpu_seconds": 0.95,
+      "mbps": 1.9926822192010756,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 40.481383,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 45310319,
+        "bytes_out_total": 51991496
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "blocked-tcp-udp",
+      "success": true,
+      "seconds": 1.8726145840000754,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.33999999999999997,
+      "server_cpu_seconds": 0.3600000000000001,
+      "mbps": 8.959246682871782,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.375125,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 47592604,
+        "bytes_out_total": 54262418
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "restored",
+      "success": true,
+      "seconds": 0.6400608339999962,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.08000000000000007,
+      "server_cpu_seconds": 0.08999999999999986,
+      "mbps": 26.21190847618728,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.355898,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 49840895,
+        "bytes_out_total": 56517465
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "server-restart",
+      "success": true,
+      "seconds": 0.8479277090000323,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.1200000000000001,
+      "server_cpu_seconds": 0.12,
+      "mbps": 19.786139575254005,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.420292,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 52088557,
+        "bytes_out_total": 58791207
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "client-restart",
+      "success": true,
+      "seconds": 0.8837521670000115,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.17,
+      "server_cpu_seconds": 0.18,
+      "mbps": 18.98407339350805,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.102154,
+        "loss_pct": 0,
+        "send_errors": 0,
+        "bytes_in_total": 54350902,
+        "bytes_out_total": 61044282
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "disconnected",
+      "success": false,
+      "error": "timed out",
+      "seconds": 5.007658209000056,
+      "bytes": 0,
+      "client_cpu_seconds": 0.26,
+      "server_cpu_seconds": 0.020000000000000018,
+      "mbps": 0.0,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.102154,
+        "loss_pct": 0,
+        "send_errors": 45,
+        "bytes_in_total": 54350902,
+        "bytes_out_total": 62103806
+      }
+    },
+    {
+      "carrier": "icmp",
+      "scenario": "reconnected",
+      "success": true,
+      "seconds": 0.604263833999994,
+      "bytes": 2097152,
+      "client_cpu_seconds": 0.10000000000000003,
+      "server_cpu_seconds": 0.08999999999999997,
+      "mbps": 27.76471973995413,
+      "engine": {
+        "alive": true,
+        "srtt_ms": 0.641909,
+        "loss_pct": 0,
+        "send_errors": 45,
+        "bytes_in_total": 56627540,
+        "bytes_out_total": 64405802
+      }
+    }
+  ]
+}

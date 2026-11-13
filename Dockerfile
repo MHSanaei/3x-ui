@@ -59,6 +59,8 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
   && sed -i "s/^\[sshd\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
   && sed -i "s/#allowipv6 = auto/allowipv6 = auto/g" /etc/fail2ban/fail2ban.conf
 
+RUN addgroup -S x-ui-wattunnel && adduser -S -D -H -G x-ui-wattunnel x-ui-wattunnel
+
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \

@@ -71,3 +71,7 @@ curl -sfLRo geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/relea
 curl -sfLRo geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
 curl -sfLRo geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
 cd ../../
+
+case "$PLATFORM" in
+    amd64|arm64) go run ./tools/wattunnel-release -target "linux-$PLATFORM" -out build/bin ;;
+esac

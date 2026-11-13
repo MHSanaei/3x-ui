@@ -279,6 +279,28 @@ func (s *InboundService) checkPortConflict(inbound *model.Inbound, ignoreId int)
 }
 
 func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
+	if conflict, err := tunnelPortConflict(db, inbound); err != nil || conflict != nil {
+		return conflict, err
+	}
+	if inbound.NodeID == nil && ignoreId > 0 {
+		port := 0
+		if inbound.Protocol == model.TUIC {
+			port = tuic.SOCKSPortForInbound(ignoreId)
+		}
+		if inbound.Protocol == model.AmneziaWG && !amneziawgKernelMode(inbound) {
+			port = amneziawgnet.SOCKSPortForInbound(ignoreId)
+		}
+		if port > 0 {
+			relay := &model.Inbound{Port: port, Listen: "127.0.0.1", Protocol: model.Tunnel, Settings: `{"allowedNetwork":"tcp,udp"}`}
+			if conflict, err := tunnelPortConflict(db, relay); err != nil || conflict != nil {
+				return conflict, err
+			}
+		}
+	}
+	return checkPortConflictWithoutTunnels(db, inbound, ignoreId)
+}
+
+func checkPortConflictWithoutTunnels(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	newBits := inboundTransports(inbound.Protocol, inbound.StreamSettings, inbound.Settings)
 
 	// The internal Xray API inbound (tag "api", loopback TCP) isn't a DB row,
