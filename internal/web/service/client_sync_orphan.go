@@ -12,7 +12,7 @@ import (
 )
 
 // How long a client stays recoverable after a node merge concluded it is gone.
-// Any merge that sees it attached again inside this window clears the mark.
+// Attaching it again inside this window, by a merge or an admin, clears the mark.
 const syncOrphanReapGrace = 15 * time.Minute
 
 // A traffic row with no clients row behind it is drift the orphan sweep will
@@ -25,13 +25,13 @@ func clientRecordExists(tx *gorm.DB, email string) bool {
 	return n > 0
 }
 
-func markSyncOrphan(tx *gorm.DB, email string, nowMs int64) error {
+func markSyncOrphan(tx *gorm.DB, email string, nodeID int, nowMs int64) error {
 	if email == "" {
 		return nil
 	}
 	return tx.Model(&model.ClientRecord{}).
 		Where("email = ? AND sync_orphaned_at = 0", email).
-		Update("sync_orphaned_at", nowMs).Error
+		Updates(map[string]any{"sync_orphaned_at": nowMs, "sync_orphaned_by": nodeID}).Error
 }
 
 // A client that is attached again is not orphaned, whatever an earlier merge
@@ -39,20 +39,23 @@ func markSyncOrphan(tx *gorm.DB, email string, nowMs int64) error {
 func clearSyncOrphanMarks(tx *gorm.DB) error {
 	return tx.Model(&model.ClientRecord{}).
 		Where("sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)").
-		Update("sync_orphaned_at", 0).Error
+		Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error
 }
 
-// ReapSyncOrphans deletes the clients the node-snapshot sweep marked and no
-// later merge reclaimed. It is the only path that hard-deletes for that sweep.
+func reapableSyncOrphans(tx *gorm.DB, cutoff int64) *gorm.DB {
+	return tx.Model(&model.ClientRecord{}).
+		Where("sync_orphaned_at > 0 AND sync_orphaned_at <= ?", cutoff).
+		Where("NOT EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)")
+}
+
+// ReapSyncOrphans deletes the clients the node-snapshot sweep marked and nothing
+// attached again since. It is the only path that hard-deletes for that sweep.
 func (s *ClientService) ReapSyncOrphans() (int, error) {
 	db := database.GetDB()
 	cutoff := time.Now().Add(-syncOrphanReapGrace).UnixMilli()
 
 	var emails []string
-	if err := db.Model(&model.ClientRecord{}).
-		Where("sync_orphaned_at > 0 AND sync_orphaned_at <= ?", cutoff).
-		Where("NOT EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)").
-		Pluck("email", &emails).Error; err != nil {
+	if err := reapableSyncOrphans(db, cutoff).Pluck("email", &emails).Error; err != nil {
 		return 0, err
 	}
 	if len(emails) == 0 {
@@ -60,8 +63,16 @@ func (s *ClientService) ReapSyncOrphans() (int, error) {
 	}
 
 	reaped := 0
-	for _, batch := range chunkStrings(emails, sqlInChunk) {
+	for _, listed := range chunkStrings(emails, sqlInChunk) {
+		var batch []string
 		if err := runSerializedTx(func(tx *gorm.DB) error {
+			// The list was read outside the writer; an attach may have committed since.
+			if err := reapableSyncOrphans(tx, cutoff).Where("email IN ?", listed).Pluck("email", &batch).Error; err != nil {
+				return err
+			}
+			if len(batch) == 0 {
+				return nil
+			}
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, batch); err != nil {
 				return err
 			}
@@ -77,6 +88,9 @@ func (s *ClientService) ReapSyncOrphans() (int, error) {
 			return tx.Where("client_email IN ?", batch).Delete(&model.InboundClientIps{}).Error
 		}); err != nil {
 			return reaped, err
+		}
+		if len(batch) == 0 {
+			continue
 		}
 		reaped += len(batch)
 		logger.Infof("reaped %d client(s) confirmed removed on their node", len(batch))

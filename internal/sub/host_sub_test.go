@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 func seedSubDB(t *testing.T) {
@@ -230,6 +233,57 @@ func TestSub_HostOverFallback(t *testing.T) {
 	}
 	if strings.Contains(joined, "203.0.113.9") || strings.Contains(joined, "sni=master.sni") {
 		t.Fatalf("master endpoint/sni must be overridden by the host: %s", joined)
+	}
+}
+
+// The legacy "@socket" lookup stays on the child's own host: an older inbound
+// mirrored from another node that names the same socket is never the master.
+func TestSub_LegacyFallbackMasterStaysOnChildHost(t *testing.T) {
+	foreign, own := 7, 8
+	for _, tc := range []struct {
+		name   string
+		nodeID *int
+	}{
+		{"local child", nil},
+		{"node child", &own},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			db := database.GetDB()
+			for _, master := range []*model.Inbound{
+				{
+					UserId: 1, Tag: "foreign", Enable: true, Port: 44301, Protocol: model.VLESS, NodeID: &foreign,
+					Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@vless-ws"}]}`,
+					StreamSettings: `{"network":"tcp","security":"none","externalProxy":[{"forceTls":"none","dest":"evil.example","port":8080}]}`,
+				},
+				{
+					UserId: 1, Tag: "front", Enable: true, Port: 9443, Protocol: model.VLESS, NodeID: tc.nodeID,
+					Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@vless-ws"}]}`,
+					StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"front.sni"}}`,
+				},
+			} {
+				if err := db.Create(master).Error; err != nil {
+					t.Fatalf("seed %s: %v", master.Tag, err)
+				}
+			}
+			child := seedSubInbound(t, "s1", "child", 4441, 1, `{"network":"ws","security":"none"}`)
+			if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).
+				Updates(map[string]any{"listen": "@vless-ws", "node_id": tc.nodeID}).Error; err != nil {
+				t.Fatalf("place child: %v", err)
+			}
+
+			links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+			if err != nil {
+				t.Fatalf("GetSubs: %v", err)
+			}
+			joined := strings.Join(links, "\n")
+			if strings.Contains(joined, "evil.example") {
+				t.Fatalf("another node's inbound was used as fallback master: %s", joined)
+			}
+			if !strings.Contains(joined, ":9443") || !strings.Contains(joined, "sni=front.sni") {
+				t.Fatalf("the front on the child's host must be projected: %s", joined)
+			}
+		})
 	}
 }
 
@@ -1958,5 +2012,226 @@ func TestSub_HostMultiSNI_Overrides(t *testing.T) {
 	}
 	if strings.Contains(parts[1], "sni=") {
 		t.Errorf("expected blank sni: %s", parts[1])
+	}
+}
+
+// The "@socket" front lookup parses every inbound's settings, so a request runs it
+// once, not per child; the lower-id front still wins and unreadable settings are skipped.
+func TestSub_LegacyFallbackMasterLookedUpOncePerRequest(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	fronts := []*model.Inbound{
+		{
+			UserId: 1, Tag: "front", Enable: true, Port: 9443, Protocol: model.VLESS,
+			Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":80},{"dest":"@child-1"},"not-an-object"]}`,
+			StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"front.sni"}}`,
+		},
+		{
+			UserId: 1, Tag: "newer-front", Enable: true, Port: 9444, Protocol: model.VLESS,
+			Settings:       `{"clients":[],"decryption":"none","fallbacks":[{"dest":"@child-1"},{"dest":"@child-2"}]}`,
+			StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"newer.sni"}}`,
+		},
+		{UserId: 1, Tag: "broken", Enable: true, Port: 9445, Protocol: model.VLESS, Settings: `{not json`, StreamSettings: `{}`},
+	}
+	for _, ib := range fronts {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("seed %s: %v", ib.Tag, err)
+		}
+	}
+	for i := 1; i <= 3; i++ {
+		child := seedSubInbound(t, "s1", fmt.Sprintf("child-%d", i), 4450+i, i, `{"network":"ws","security":"none"}`)
+		child.Listen = fmt.Sprintf("@child-%d", i)
+		if err := db.Model(&model.Inbound{}).Where("id = ?", child.Id).Update("listen", child.Listen).Error; err != nil {
+			t.Fatalf("set child listen: %v", err)
+		}
+	}
+
+	scans := 0
+	count := func(tx *gorm.DB) {
+		for _, v := range tx.Statement.Vars {
+			if v == "%fallbacks%" {
+				scans++
+			}
+		}
+	}
+	_ = db.Callback().Query().After("gorm:query").Register("test:count_front_scans", count)
+	_ = db.Callback().Row().After("gorm:row").Register("test:count_front_scans", count)
+	t.Cleanup(func() {
+		_ = db.Callback().Query().Remove("test:count_front_scans")
+		_ = db.Callback().Row().Remove("test:count_front_scans")
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if scans != 1 {
+		t.Fatalf("inbound settings were scanned %d times in one request, want 1", scans)
+	}
+	if len(links) != 3 {
+		t.Fatalf("links = %d, want 3: %v", len(links), links)
+	}
+	for i, want := range []string{"req.example.com:9443?", "req.example.com:9444?", "req.example.com:4453?"} {
+		if !strings.Contains(links[i], want) {
+			t.Fatalf("child-%d link should advertise %s: %s", i+1, want, links[i])
+		}
+	}
+	if !strings.Contains(links[0], "sni=front.sni") {
+		t.Fatalf("child-1 must carry its front's TLS state: %s", links[0])
+	}
+}
+
+// seedSharedSubIdInbound stores one inbound whose n clients all carry subId, the
+// shape a node merge produces (the admin API keeps a subId unique per client).
+func seedSharedSubIdInbound(t *testing.T, protocol model.Protocol, subId string, n int, serverJSON string, clientJSON func(i int) string, record func(i int) model.ClientRecord) *model.Inbound {
+	t.Helper()
+	entries := make([]string, n)
+	records := make([]model.ClientRecord, n)
+	for i := range entries {
+		entries[i] = clientJSON(i)
+		records[i] = record(i)
+		records[i].SubID = subId
+		records[i].Enable = true
+	}
+	db := database.GetDB()
+	ib := &model.Inbound{
+		UserId: 1, Tag: string(protocol), Enable: true, Listen: "203.0.113.5", Port: 443, Protocol: protocol,
+		Remark:   string(protocol),
+		Settings: fmt.Sprintf(`{%s,"clients":[%s]}`, serverJSON, strings.Join(entries, ",")),
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create %s inbound: %v", protocol, err)
+	}
+	if err := db.CreateInBatches(&records, 100).Error; err != nil {
+		t.Fatalf("create clients: %v", err)
+	}
+	links := make([]model.ClientInbound, n)
+	for i := range records {
+		links[i] = model.ClientInbound{ClientId: records[i].Id, InboundId: ib.Id}
+	}
+	if err := db.CreateInBatches(&links, 500).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+	return ib
+}
+
+// A subscription of n clients of one inbound must decode that inbound's settings
+// once, not once per link: with the clients array inside, n decodes grow with n².
+func TestSubscriptionDecodesInboundSettingsOncePerRequest(t *testing.T) {
+	const subId = "shared-sub-id"
+	// Growth, not an absolute byte count, so the race detector or a Go upgrade cannot move
+	// it: tripling n triples linear work and multiplies a per-link decode by nine.
+	const small, scale, maxGrowth = 300, 3, 5.0
+	serverPriv, serverPub := mustWireguardKeypair(t)
+	clientPriv, _ := mustWireguardKeypair(t)
+
+	email := func(i int) string { return fmt.Sprintf("user-%04d@sub", i) }
+	uuid := func(i int) string { return fmt.Sprintf("11111111-2222-4333-8444-%012d", i) }
+	seed := map[model.Protocol]func(t *testing.T, n int) *model.Inbound{
+		model.TUIC: func(t *testing.T, n int) *model.Inbound {
+			return seedSharedSubIdInbound(t, model.TUIC, subId, n, `"server":{"certificate":"/c","private_key":"/k"}`,
+				func(i int) string {
+					return fmt.Sprintf(`{"uuid":%q,"password":"pw","email":%q,"enable":true}`, uuid(i), email(i))
+				},
+				func(i int) model.ClientRecord {
+					return model.ClientRecord{Email: email(i), UUID: uuid(i), Password: "pw"}
+				})
+		},
+		model.AmneziaWG: func(t *testing.T, n int) *model.Inbound {
+			return seedSharedSubIdInbound(t, model.AmneziaWG, subId, n, fmt.Sprintf(`"server":{"privateKey":%q,"publicKey":%q,"mtu":1420}`, serverPriv, serverPub),
+				func(i int) string {
+					return fmt.Sprintf(`{"email":%q,"privateKey":%q,"allowedIPs":["10.8.%d.%d/32"],"enable":true}`, email(i), clientPriv, i/256, i%256)
+				},
+				func(i int) model.ClientRecord {
+					return model.ClientRecord{Email: email(i), PrivateKey: clientPriv, AllowedIPs: fmt.Sprintf("10.8.%d.%d/32", i/256, i%256)}
+				})
+		},
+		model.WireGuard: func(t *testing.T, n int) *model.Inbound {
+			return seedSharedSubIdInbound(t, model.WireGuard, subId, n, fmt.Sprintf(`"secretKey":%q,"mtu":1420`, serverPriv),
+				func(i int) string {
+					return fmt.Sprintf(`{"email":%q,"privateKey":%q,"allowedIPs":["10.8.%d.%d/32"],"enable":true}`, email(i), clientPriv, i/256, i%256)
+				},
+				func(i int) model.ClientRecord {
+					return model.ClientRecord{Email: email(i), PrivateKey: clientPriv, AllowedIPs: fmt.Sprintf("10.8.%d.%d/32", i/256, i%256)}
+				})
+		},
+		model.Hysteria: func(t *testing.T, n int) *model.Inbound {
+			return seedSharedSubIdInbound(t, model.Hysteria, subId, n, `"version":2`,
+				func(i int) string {
+					return fmt.Sprintf(`{"email":%q,"auth":"auth","enable":true}`, email(i))
+				},
+				func(i int) model.ClientRecord { return model.ClientRecord{Email: email(i), Auth: "auth"} })
+		},
+	}
+
+	raw := func(t *testing.T) int {
+		links, _, _, _, err := NewSubService("").GetSubs(subId, "sub.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		for _, link := range links {
+			if link == "" {
+				t.Fatal("GetSubs returned an empty link")
+			}
+		}
+		return len(links)
+	}
+	clash := func(t *testing.T) int {
+		out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash(subId, "sub.example.com")
+		if err != nil {
+			t.Fatalf("GetClash: %v", err)
+		}
+		var doc struct {
+			Proxies []map[string]any `yaml:"proxies"`
+		}
+		if err := yaml.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatalf("parse clash yaml: %v", err)
+		}
+		return len(doc.Proxies)
+	}
+	jsonSub := func(t *testing.T) int {
+		out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson(subId, "sub.example.com", true)
+		if err != nil {
+			t.Fatalf("GetJson: %v", err)
+		}
+		var configs []json.RawMessage
+		if err := json.Unmarshal([]byte(out), &configs); err != nil {
+			t.Fatalf("parse json subscription: %v", err)
+		}
+		return len(configs)
+	}
+
+	cases := []struct {
+		name     string
+		protocol model.Protocol
+		fetch    func(t *testing.T) int
+	}{
+		{"raw tuic", model.TUIC, raw},
+		{"raw amneziawg", model.AmneziaWG, raw},
+		{"clash tuic", model.TUIC, clash},
+		{"clash amneziawg", model.AmneziaWG, clash},
+		{"clash wireguard", model.WireGuard, clash},
+		{"json wireguard", model.WireGuard, jsonSub},
+		{"json hysteria", model.Hysteria, jsonSub},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			allocated := func(n int) float64 {
+				initSubDB(t)
+				seed[tc.protocol](t, n)
+				var before, after runtime.MemStats
+				runtime.ReadMemStats(&before)
+				got := tc.fetch(t)
+				runtime.ReadMemStats(&after)
+				if got != n {
+					t.Fatalf("entries = %d, want %d", got, n)
+				}
+				return float64(after.TotalAlloc - before.TotalAlloc)
+			}
+			base, grown := allocated(small), allocated(small*scale)
+			if growth := grown / base; growth > maxGrowth {
+				t.Fatalf("%dx the entries allocated %.1fx the memory (%d MiB), want linear growth", scale, growth, int64(grown)>>20)
+			}
+		})
 	}
 }

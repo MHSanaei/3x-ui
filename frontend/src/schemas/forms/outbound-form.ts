@@ -132,15 +132,15 @@ export const MasqueOutboundFormSettingsSchema = z.object({
 });
 export type MasqueOutboundFormSettings = z.infer<typeof MasqueOutboundFormSettingsSchema>;
 
-// FinalRule (freedom): network/port are strings; ip is string[]; blockDelay
-// is only meaningful when action === 'block'. The adapter omits empty
-// fields from the wire payload.
+// FinalRule (freedom): the core refuses delay and logLevel on a rule whose
+// action is not 'block' (xray-core 26.11.9), so the adapter drops them there.
 export const FreedomFinalRuleFormSchema = z.object({
   action: FreedomFinalRuleActionSchema.default('block'),
   network: z.string().default(''),
   port: z.string().default(''),
   ip: z.array(z.string()).default([]),
-  blockDelay: z.string().default(''),
+  delay: z.string().default(''),
+  logLevel: z.string().default(''),
 });
 export type FreedomFinalRuleForm = z.infer<typeof FreedomFinalRuleFormSchema>;
 
