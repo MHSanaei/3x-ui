@@ -252,6 +252,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			if qErr != nil {
 				return qErr
 			}
+			if err := adjustAllGroupBaselinesForRemovedTraffic(tx); err != nil {
+				return err
+			}
 			if affected, qErr = zeroClientTraffics(tx, nil, keepOff); qErr != nil {
 				return qErr
 			}
