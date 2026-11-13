@@ -332,3 +332,45 @@
   text-align: center;
   color: var(--ant-color-text-secondary);
 }
+
+.clients-page
+  .ant-table-wrapper
+  .ant-table-tbody
+  > tr.client-row-expiring:not(.ant-table-row-selected)
+  > td {
+  background: var(--ant-color-warning-bg);
+}
+
+.clients-page
+  .ant-table-wrapper
+  .ant-table-tbody
+  > tr.client-row-expiring:not(.ant-table-row-selected):hover
+  > td {
+  background: var(--ant-color-warning-bg-hover);
+}
+
+.clients-page
+  .ant-table-wrapper
+  .ant-table-tbody
+  > tr.client-row-depleted:not(.ant-table-row-selected)
+  > td {
+  background: var(--ant-color-error-bg);
+}
+
+.clients-page
+  .ant-table-wrapper
+  .ant-table-tbody
+  > tr.client-row-depleted:not(.ant-table-row-selected):hover
+  > td {
+  background: var(--ant-color-error-bg-hover);
+}
+
+.client-card.is-expiring:not(.is-selected) {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.client-card.is-depleted:not(.is-selected) {
+  border-color: var(--ant-color-error-border);
+  background: var(--ant-color-error-bg);
+}
