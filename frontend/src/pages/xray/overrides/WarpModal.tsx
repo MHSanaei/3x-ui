@@ -291,7 +291,7 @@ export default function WarpModal({
         interval: methods.getValues('updateInterval'),
       });
       if (msg?.success) {
-        messageApi.success(t('pages.setting.toasts.saveSuccess', 'Settings saved successfully'));
+        messageApi.success(t('pages.settings.toasts.modifySettings'));
       }
     } finally {
       setLoading(false);

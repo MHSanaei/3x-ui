@@ -1,6 +1,7 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Select, Switch } from 'antd';
+import { Form, Input, InputNumber, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { HeaderMapEditor } from '@/components/form';
@@ -60,7 +61,7 @@ export default function HysteriaFields() {
       {masq && (
         <>
           <FormField label={t('pages.inbounds.form.type')} name={[...MASQ_PATH, 'type']}>
-            <Select
+            <NativeSelect
               options={[
                 { value: '', label: 'default (404 page)' },
                 { value: 'proxy', label: 'proxy (reverse proxy)' },

@@ -233,7 +233,7 @@ func TestUsageWithoutAnArgumentDoesNotPanic(t *testing.T) {
 			t.Fatalf("getClientUsage panicked: %v", r)
 		}
 	}()
-	tb.getClientUsage(3131, 3131)
+	tb.getClientUsage(3131, 3131, screenEditOrReplace)
 
 	if sc, ok := tb.screens().get(3131); !ok || sc.msgID == 0 {
 		t.Fatalf("the usage path never rendered a screen (ok=%v): the test does not exercise the row-building line", ok)
@@ -247,7 +247,7 @@ func TestUsageGivesAClientNoAdminButtons(t *testing.T) {
 	tb, _ := newScreenTgbot(t, false)
 	seedClientForTgUser(t, 4141, "usage-self@example.com")
 
-	tb.getClientUsage(4141, 4141)
+	tb.getClientUsage(4141, 4141, screenEditOrReplace)
 
 	sc, ok := tb.screens().get(4141)
 	if !ok {
@@ -272,7 +272,7 @@ func TestUsageEmailArgumentDoesNotLeakAnotherClient(t *testing.T) {
 	seedClientForTgUser(t, 5151, "mine@example.com")
 	seedClientForTgUser(t, 9999, "other@example.com")
 
-	tb.getClientUsage(5151, 5151, "other@example.com")
+	tb.getClientUsage(5151, 5151, screenEditOrReplace, "other@example.com")
 
 	sc, ok := tb.screens().get(5151)
 	if !ok {
@@ -329,7 +329,7 @@ func TestClientUsageDoesNotLoadTheInboundPerClient(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Query().Remove("test:whole_inbound_rows") })
 
-	(&Tgbot{}).getClientUsage(ownerTgID, ownerTgID)
+	(&Tgbot{}).getClientUsage(ownerTgID, ownerTgID, screenEditOrReplace)
 
 	if got := strings.Join(sent(), "\n"); !strings.Contains(got, "shared-inbound") {
 		t.Fatalf("no client listed with its inbound: %q", got)
