@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/vkturn"
 )
 
 // DesiredAmneziaWGInstances derives the AmneziaWG interfaces this panel
@@ -427,6 +428,9 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
 	for _, ib := range ctx.inbounds {
+		if settings, err := vkturn.SettingsFromInbound(ib); err == nil && settings.Enabled && amneziawg.ForwardedPortsInclude(forwardedPorts, settings.Port) {
+			return fmt.Sprintf("inbound '%s' (#%d)'s VK TURN port (%d)", ib.Tag, ib.Id, settings.Port)
+		}
 		if amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
 			name := ib.Remark
 			if name == "" {

@@ -1,5 +1,6 @@
 import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
+import { buildVkTurnConnectionLink } from '@/lib/xray/vk-turn-link';
 import { joinConfLines } from '@/lib/xray/conf-lines';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -56,4 +57,25 @@ export function buildWireguardClientConfig(
   if (typeof client.keepAlive === 'number' && client.keepAlive > 0)
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return joinConfLines(lines);
+}
+
+export function buildWireguardVkTurnLink(
+  client: ClientRecord,
+  inbound: InboundOption,
+  host = window.location.hostname,
+  publicHost = '',
+  addressOverride = '',
+  hostEndpoint?: HostEndpoint,
+): string {
+  return buildVkTurnConnectionLink({
+    vkTurn: inbound.wgVkTurn ?? undefined,
+    privateKey: client.privateKey || client.password || '',
+    peerPublicKey: inbound.wgPublicKey || '',
+    presharedKey: client.preSharedKey,
+    tunnelAddress: addressOverride || client.allowedIPs || '',
+    address:
+      hostEndpoint?.dest ||
+      resolveShareHost(inbound, inbound.nodeAddress ?? '', preferPublicHost(host, publicHost)),
+    dnsServers: inbound.wgDns,
+  });
 }

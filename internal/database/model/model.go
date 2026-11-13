@@ -505,18 +505,8 @@ func WireguardPeerFromClient(c Client) map[string]any {
 	return peer
 }
 
-// WireguardClientsToPeers rewrites a WireGuard inbound's settings JSON from the
-// panel's client representation into the peers array xray-core's wireguard
-// inbound expects. The panel stores WireGuard clients under "clients" (the shape
-// every other protocol uses); xray is configured with "peers". GetXrayConfig
-// already does this conversion when it builds the full config, but the live
-// gRPC AddInbound paths (inbound create/edit and node reconcile) go through
-// GenXrayInboundConfig directly — without the conversion they re-add the
-// wireguard inbound with no peers, dropping every connected client until the
-// next full restart. Clients are the source of truth and are always rebuilt
-// into peers (matching GetXrayConfig), so the panel's empty "peers" placeholder
-// never blocks the conversion. Idempotent: converting removes "clients", so a
-// second call is a no-op, as is any inbound that carries no "clients".
+// WireguardClientsToPeers builds core peers from panel clients and removes
+// panel-only VK transport metadata from both current and legacy settings.
 func WireguardClientsToPeers(settings string) (string, bool) {
 	if settings == "" {
 		return settings, false
@@ -525,8 +515,10 @@ func WireguardClientsToPeers(settings string) (string, bool) {
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return settings, false
 	}
+	_, hasVKTurn := parsed["vkTurn"]
+	delete(parsed, "vkTurn")
 	clients, ok := parsed["clients"].([]any)
-	if !ok {
+	if !ok && !hasVKTurn {
 		return settings, false
 	}
 	peers := make([]any, 0, len(clients))
@@ -548,8 +540,10 @@ func WireguardClientsToPeers(settings string) (string, bool) {
 		}
 		peers = append(peers, WireguardPeerFromClient(c))
 	}
-	delete(parsed, "clients")
-	parsed["peers"] = peers
+	if ok {
+		delete(parsed, "clients")
+		parsed["peers"] = peers
+	}
 	out, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return settings, false

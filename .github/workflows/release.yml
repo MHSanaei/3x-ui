@@ -171,6 +171,7 @@ jobs:
               rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
               ;;
           esac
+          sh ../../scripts/download-vk-turn.sh linux "${{ matrix.platform }}" "$PWD/vk-turn-proxy-server"
           cd ../..
 
       - name: Package
@@ -307,6 +308,11 @@ jobs:
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
           Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
           Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
+
+          Invoke-WebRequest @retry -Uri "https://github.com/anton48/vk-turn-proxy/releases/download/srtp-build478/server-windows-amd64.exe" -OutFile "vk-turn-proxy-server.exe"
+          if ((Get-FileHash "vk-turn-proxy-server.exe" -Algorithm SHA256).Hash.ToLower() -ne "8d33a4ef852603b40574ec234c6f951c73f99ba628d2435d56950caae09a45f9") {
+            throw "VK TURN server checksum mismatch"
+          }
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse

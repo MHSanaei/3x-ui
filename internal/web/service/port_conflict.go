@@ -206,7 +206,8 @@ type portConflictDetail struct {
 	Listen    string
 	Port      int
 	// Relay marks Port as an automatic loopback relay port, not a configured one.
-	Relay bool
+	Relay  bool
+	VKTurn bool
 	// ForwardedBy is the peer whose port forward holds Port, when that is the
 	// reason for the conflict.
 	ForwardedBy string
@@ -234,6 +235,9 @@ func (d *portConflictDetail) String() string {
 	port := fmt.Sprintf("port %d", d.Port)
 	if d.Relay {
 		port = fmt.Sprintf("relay port %d", d.Port)
+	}
+	if d.VKTurn {
+		port = fmt.Sprintf("VK TURN port %d", d.Port)
 	}
 	if d.ForwardedBy != "" {
 		return fmt.Sprintf("%s (%s) already forwarded on inbound %s on %s by its client %s",
@@ -407,7 +411,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 			Transports: shared,
 		}, nil
 	}
-	return nil, nil
+	return checkVKTurnPortConflict(db, inbound, ignoreId, newBits)
 }
 
 // amneziawgForwardedPortOwner names the AmneziaWG row on the same host whose peer

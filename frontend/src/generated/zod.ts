@@ -838,6 +838,7 @@ export const InboundOptionSchema = z.object({
   wgDns: z.string().optional(),
   wgMtu: z.number().int().optional(),
   wgPublicKey: z.string().optional(),
+  wgVkTurn: z.lazy(() => SettingsSchema).nullable().optional(),
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
@@ -1122,6 +1123,13 @@ export const SettingSchema = z.object({
   value: z.string(),
 });
 export type Setting = z.infer<typeof SettingSchema>;
+
+export const SettingsSchema = z.object({
+  callLink: z.string(),
+  enabled: z.boolean(),
+  port: z.number().int(),
+});
+export type Settings = z.infer<typeof SettingsSchema>;
 
 export const SponsorSchema = z.object({
   enable: z.boolean().nullable().optional(),
