@@ -4,7 +4,7 @@ import { z } from 'zod';
 // the JS side back to uplinkCapacity/downlinkCapacity on the wire. Defaults
 // match xray-core's recommended values.
 export const KcpStreamSettingsSchema = z.object({
-  mtu: z.number().int().min(576).max(1460).default(1350),
+  mtu: z.number().int().min(21).max(1460).default(1350),
   tti: z.number().int().min(10).max(100).default(20),
   uplinkCapacity: z.number().int().min(0).default(5),
   downlinkCapacity: z.number().int().min(0).default(20),
