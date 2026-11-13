@@ -47,6 +47,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
+	g.GET("/overviewHistory/:bucket", a.getOverviewHistoryBucket)
 	g.GET("/xrayMetricsState", a.getXrayMetricsState)
 	g.GET("/xrayMetricsHistory/:metric/:bucket", a.getXrayMetricsHistoryBucket)
 	g.GET("/xrayObservatory", a.getXrayObservatory)
@@ -148,6 +149,14 @@ func (a *ServerController) getMetricHistoryBucket(c *gin.Context) {
 		return
 	}
 	jsonObj(c, a.serverService.AggregateSystemMetric(metric, bucket, 60), nil)
+}
+
+func (a *ServerController) getOverviewHistoryBucket(c *gin.Context) {
+	bucket, ok := parseHistoryBucket(c)
+	if !ok {
+		return
+	}
+	jsonObj(c, a.serverService.AggregateOverviewHistory(bucket, 60), nil)
 }
 
 func (a *ServerController) getXrayMetricsState(c *gin.Context) {

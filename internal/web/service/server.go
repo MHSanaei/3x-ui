@@ -195,6 +195,7 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
 	2:     true, // 2m
+	5:     true, // 5m
 	30:    true, // 30m
 	60:    true, // 1h
 	180:   true, // 3h
@@ -377,6 +378,18 @@ func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []
 // {"t": unixSec, "v": value}; the caller decides how to format the value.
 func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, maxPoints int) []map[string]any {
 	return systemMetrics.aggregate(s.systemMetricKey(metric), bucketSeconds, maxPoints)
+}
+
+// AggregateOverviewHistory returns the metric series used by the overview in
+// one response. Each series is capped at maxPoints, keeping dashboard refreshes
+// compact even when the selected range spans several hours.
+func (s *ServerService) AggregateOverviewHistory(bucketSeconds int, maxPoints int) map[string][]map[string]any {
+	metrics := []string{"cpu", "mem", "swap", "diskUsage", "netUp", "netDown", "tcpCount", "udpCount"}
+	out := make(map[string][]map[string]any, len(metrics))
+	for _, metric := range metrics {
+		out[metric] = s.AggregateSystemMetric(metric, bucketSeconds, maxPoints)
+	}
+	return out
 }
 
 type LogEntry struct {

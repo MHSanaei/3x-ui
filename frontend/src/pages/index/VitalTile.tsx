@@ -4,6 +4,8 @@ import { Card, theme } from 'antd';
 
 import { Sparkline } from '@/components/viz';
 import { mean, peak } from './useOverviewHistory';
+import OverviewRangeSelect from './OverviewRangeSelect';
+import type { OverviewRange } from './OverviewRangeSelect';
 
 interface VitalTileProps {
   available?: boolean;
@@ -12,11 +14,15 @@ interface VitalTileProps {
   percent: number;
   statusColor: string;
   detail: string;
-  footLeft: string;
-  footRight: string;
+  footLeft: ReactNode;
+  footRight: ReactNode;
   data: number[];
   isMobile: boolean;
+  range?: OverviewRange;
+  onRangeChange?: (range: OverviewRange) => void;
 }
+
+const ignoreRangeChange = () => undefined;
 
 export default function VitalTile({
   available = true,
@@ -29,6 +35,8 @@ export default function VitalTile({
   footRight,
   data,
   isMobile,
+  range = 2,
+  onRangeChange = ignoreRangeChange,
 }: VitalTileProps) {
   const { token } = theme.useToken();
   const labelId = useId();
@@ -62,10 +70,13 @@ export default function VitalTile({
       <div className="ov-tile-detail">{available ? detail : '—'}</div>
 
       <div className="ov-tile-foot">
-        <span>{available ? footLeft : '—'}</span>
-        <span>{available ? footRight : '—'}</span>
+        <span dir="auto">{available ? footLeft : '—'}</span>
+        <span dir="auto">{available ? footRight : '—'}</span>
       </div>
 
+      <div className="ov-range-toolbar">
+        <OverviewRangeSelect value={range} onChange={onRangeChange} />
+      </div>
       <div className="ov-tile-chart">
         <Sparkline
           data={data}

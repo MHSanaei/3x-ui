@@ -293,36 +293,23 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
     [tsLookup],
   );
 
-  const fetchBucket = useCallback(async () => {
-    if (!activeMetric) return;
-    const next = await loadBucket(activeMetric, bucket);
-    setChart(next);
-  }, [activeMetric, bucket]);
-
-  const [wasOpen, setWasOpen] = useState(false);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) setActiveKey('cpu');
-  }
-
   useEffect(() => {
-    if (!open || !activeMetric) return;
+    if (!open || !activeMetric) return undefined;
     let cancelled = false;
-    void (async () => {
+    let timeout: number | undefined;
+    const refresh = async () => {
       const next = await loadBucket(activeMetric, bucket);
-      if (!cancelled) setChart(next);
-    })();
+      if (cancelled) return;
+      setChart(next);
+      const ms = bucket <= 30 ? 2000 : bucket <= 360 ? 10_000 : 60_000;
+      timeout = window.setTimeout(refresh, ms);
+    };
+    void refresh();
     return () => {
       cancelled = true;
+      if (timeout !== undefined) window.clearTimeout(timeout);
     };
   }, [open, activeMetric, bucket]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const ms = bucket <= 30 ? 2000 : 10000;
-    const id = window.setInterval(() => fetchBucket(), ms);
-    return () => window.clearInterval(id);
-  }, [open, bucket, fetchBucket]);
 
   return (
     <Modal
