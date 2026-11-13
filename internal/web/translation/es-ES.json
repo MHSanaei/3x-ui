@@ -151,6 +151,11 @@
       "xrayStatus": "Xray",
       "stopXray": "Detener",
       "restartXray": "Reiniciar",
+      "startXray": "Iniciar",
+      "stopXrayDisabledHint": "Xray no se está ejecutando",
+      "stopXrayConfirmTitle": "¿Detener Xray?",
+      "stopXrayConfirmContent": "Detener Xray interrumpirá de inmediato todas las conexiones proxy. ¿Seguro que quieres continuar?",
+      "stopXrayConfirmOk": "Detener Xray",
       "xraySwitch": "Versión",
       "xrayUpdates": "Actualizaciones de Xray",
       "xraySwitchClickDesk": "Elige sabiamente, ya que las versiones anteriores pueden no ser compatibles con las configuraciones actuales.",
@@ -775,7 +780,7 @@
         "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
         "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
         "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS (puertos 53 y 853 y el servicio Cliente DNS) dentro del TUN y necesita servidores DNS; windnsclient cubre solo ese servicio; escribe tcp/PUERTO o udp/PUERTO para cualquier otro puerto; misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: all bloquea todo fuera del TUN y allexceptlan hace lo mismo pero mantiene accesible la red local; dns mantiene el DNS (puertos 53 y 853 y el servicio Cliente DNS) dentro del TUN; windnsclient cubre solo ese servicio; tcp, udp e icmp bloquean un protocolo entero; escribe tcp/PUERTO, udp/PUERTO, un PUERTO solo o un rango MIN-MAX para puertos concretos; un CIDR delante (1.1.1.0/24:53, [::/0]:all) limita el valor a esas direcciones; misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN. Cualquier valor que cubra el puerto 53 necesita servidores DNS.",
         "maxVersion": "Versión máxima",
         "headerName": "Nombre de cabecera",
         "headerValue": "Valor de cabecera"
@@ -1194,7 +1199,7 @@
       "tlsPin": "Fijar certificado (SHA-256)",
       "tlsSkip": "Omitir verificación",
       "tlsMtls": "TLS mutuo (certificado de cliente)",
-      "mtlsFormHint": "Este nodo autentica al panel con un certificado de cliente. Copia el CA de este panel desde la sección mTLS del nodo al nodo, configura su CA de confianza y luego reinícialo.",
+      "mtlsFormHint": "Este nodo autentica al panel con un certificado de cliente. Copia el CA de este panel desde la sección mTLS del nodo al nodo, configura su CA de confianza y luego reinícialo. Actualizar el panel de este nodo desde aquí sigue requiriendo un token de API con el alcance node-admin.",
       "mtls": {
         "title": "mTLS del nodo",
         "intro": "TLS mutuo añade un factor de certificado de cliente además del token de API para las llamadas entre nodos. Es opcional: déjalo vacío para mantener solo la autenticación por token.",
@@ -1439,6 +1444,7 @@
         "applyTo": "Aplicar a",
         "addNoise": "+ Ruido",
         "concurrency": "Concurrencia",
+        "concurrencyHint": "Flujos por conexión. xray-core 26.11.9 y posteriores elevan a 128 cualquier valor entre 0 y 128; los núcleos anteriores usan el número tal cual (0 significa 8). -1 desactiva el mux TCP.",
         "xudpConcurrency": "Concurrencia xudp",
         "xudpUdp443": "xudp UDP 443"
       },

@@ -803,6 +803,32 @@ func TestLegacyClashEndpointNormalizesShadowsocksCipher(t *testing.T) {
 	}
 }
 
+// #7105: only Happ and INCY read the tail; other clients show it in the node name.
+func TestRawSubServerDescriptionByClient(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "vl", 4492, 1, `{"network":"tcp","security":"none","externalProxy":[{"forceTls":"same","dest":"a.example.com","port":443,"remark":"A","serverDescription":"Berlin"}]}`)
+	gin.SetMode(gin.TestMode)
+
+	cases := map[string]bool{"Happ/3.1": true, "INCY/1.0.0/ios": true, "v2rayN/7.10": false}
+	for userAgent, wantTail := range cases {
+		t.Run(userAgent, func(t *testing.T) {
+			router := gin.New()
+			NewSUBController(router.Group("/"), WithSUBEncryption(false))
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+			req.Header.Set("User-Agent", userAgent)
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+			body := resp.Body.String()
+			if resp.Code != http.StatusOK || !strings.Contains(body, "vless") {
+				t.Fatalf("status=%d, body=%s", resp.Code, body)
+			}
+			if got := strings.Contains(body, "?serverDescription=QmVybGlu"); got != wantTail {
+				t.Fatalf("tail present = %v, want %v; body=%s", got, wantTail, body)
+			}
+		})
+	}
+}
+
 func TestIncyRoutingIsolatedFromHappHeaders(t *testing.T) {
 	seedSubDB(t)
 	seedSubInbound(t, "s1", "vl", 4492, 1, `{"network":"tcp","security":"none"}`)
