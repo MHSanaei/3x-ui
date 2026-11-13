@@ -437,6 +437,8 @@
       "importInbound": "Importar um Inbound",
       "periodicTrafficResetTitle": "Reset de Tráfego",
       "periodicTrafficResetDay": "Dia da redefinição mensal",
+      "preserveClientTraffic": "Manter o consumo dos clientes",
+      "preserveClientTrafficHelp": "A redefinição agendada zera apenas os contadores desta entrada. Os clientes seguem seus próprios ciclos de redefinição.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",

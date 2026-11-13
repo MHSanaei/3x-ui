@@ -437,6 +437,8 @@
       "importInbound": "Impor Masuk",
       "periodicTrafficResetTitle": "Reset Trafik Berkala",
       "periodicTrafficResetDay": "Hari reset bulanan",
+      "preserveClientTraffic": "Pertahankan penggunaan klien",
+      "preserveClientTrafficHelp": "Reset terjadwal hanya mengosongkan penghitung inbound ini. Klien tetap mengikuti jadwal reset masing-masing.",
       "periodicTrafficReset": {
         "never": "Tidak Pernah",
         "daily": "Harian",

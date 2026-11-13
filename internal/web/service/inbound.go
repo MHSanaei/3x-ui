@@ -2238,6 +2238,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.ExpiryTime = inbound.ExpiryTime
 		oldInbound.TrafficReset = inbound.TrafficReset
 		oldInbound.TrafficResetDay = inbound.TrafficResetDay
+		if inbound.PreserveClientTraffic != nil {
+			oldInbound.PreserveClientTraffic = inbound.PreserveClientTraffic
+		}
+		inbound.PreserveClientTraffic = oldInbound.PreserveClientTraffic
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol

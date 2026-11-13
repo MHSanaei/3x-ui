@@ -437,6 +437,8 @@
       "importInbound": "Імпортувати вхідний",
       "periodicTrafficResetTitle": "Скидання трафіку",
       "periodicTrafficResetDay": "День щомісячного скидання",
+      "preserveClientTraffic": "Зберігати споживання клієнтів",
+      "preserveClientTrafficHelp": "Скидання за розкладом обнуляє лише лічильники цього вхідного підключення. Клієнти зберігають власні графіки скидання.",
       "periodicTrafficReset": {
         "never": "Ніколи",
         "daily": "Щодня",

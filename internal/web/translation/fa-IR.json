@@ -437,6 +437,8 @@
       "importInbound": "افزودن یک ورودی",
       "periodicTrafficResetTitle": "بازنشانی ترافیک",
       "periodicTrafficResetDay": "روز بازنشانی ماهانه",
+      "preserveClientTraffic": "حفظ مصرف کاربران",
+      "preserveClientTrafficHelp": "بازنشانی زمان‌بندی‌شده فقط شمارنده‌های این ورودی را صفر می‌کند. چرخهٔ بازنشانی هر کاربر حفظ می‌شود.",
       "periodicTrafficReset": {
         "never": "هرگز",
         "daily": "روزانه",

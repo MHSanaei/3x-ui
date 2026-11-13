@@ -102,6 +102,56 @@ func recordFor(t *testing.T, email string) model.ClientRecord {
 	return rec
 }
 
+func TestPeriodicInboundResetPreservesSharedClientTraffic(t *testing.T) {
+	initResetJobDB(t)
+	const email = "shared@example.com"
+	now := time.Now().UTC()
+	seedClientOnCycle(t, 41120, seededClient{
+		email: email, cycle: "monthly", day: now.Day()%28 + 1,
+		recordEnable: true, quotaEnable: true, inboundCycle: "monthly",
+	})
+
+	db := database.GetDB()
+	rec := recordFor(t, email)
+	inboundID := trafficFor(t, email).InboundId
+	if err := db.Model(&model.Inbound{}).Where("id = ?", inboundID).Updates(map[string]any{
+		"traffic_reset_day": now.Day(), "preserve_client_traffic": true, "up": 100, "down": 300,
+	}).Error; err != nil {
+		t.Fatalf("configure inbound reset: %v", err)
+	}
+	sibling := model.Inbound{
+		UserId: 1, Enable: true, Port: 41121, Protocol: model.VLESS, Tag: "shared-sibling",
+		TrafficReset: "never", Up: 400, Down: 400, Settings: `{"clients":[]}`,
+	}
+	if err := db.Create(&sibling).Error; err != nil {
+		t.Fatalf("create sibling inbound: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: sibling.Id}).Error; err != nil {
+		t.Fatalf("attach client to sibling inbound: %v", err)
+	}
+
+	job := NewPeriodicTrafficResetJob("monthly", time.UTC)
+	job.Run()
+	var reset model.Inbound
+	if err := db.First(&reset, inboundID).Error; err != nil {
+		t.Fatalf("read scheduled inbound: %v", err)
+	}
+	if reset.Up != 0 || reset.Down != 0 {
+		t.Fatalf("scheduled inbound usage = %d/%d, want 0/0", reset.Up, reset.Down)
+	}
+	if row := trafficFor(t, email); row.Up != 500 || row.Down != 700 {
+		t.Fatalf("shared client usage = %d/%d, want 500/700", row.Up, row.Down)
+	}
+
+	if err := db.Model(&rec).Update("traffic_reset_day", now.Day()).Error; err != nil {
+		t.Fatalf("make client reset due: %v", err)
+	}
+	job.Run()
+	if row := trafficFor(t, email); row.Up != 0 || row.Down != 0 {
+		t.Fatalf("client usage after its own reset = %d/%d, want 0/0", row.Up, row.Down)
+	}
+}
+
 func TestPeriodicTrafficResetClients(t *testing.T) {
 	t.Run("resets a client on its own cycle inside a never-reset inbound", func(t *testing.T) {
 		initResetJobDB(t)

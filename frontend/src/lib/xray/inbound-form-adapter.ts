@@ -55,6 +55,7 @@ export interface RawInboundRow {
   expiryTime?: number;
   trafficReset?: string;
   trafficResetDay?: number;
+  preserveClientTraffic?: boolean;
   lastTrafficResetTime?: number;
   nodeId?: number | null;
   shareAddrStrategy?: string;
@@ -77,6 +78,7 @@ export interface WireInboundPayload {
   expiryTime: number;
   trafficReset: TrafficReset;
   trafficResetDay: number;
+  preserveClientTraffic: boolean;
   lastTrafficResetTime: number;
   listen: string;
   port: number;
@@ -230,6 +232,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     total: row.total ?? 0,
     trafficReset: coerceTrafficReset(row.trafficReset),
     trafficResetDay: Math.min(31, Math.max(1, row.trafficResetDay ?? 1)),
+    preserveClientTraffic: row.preserveClientTraffic ?? false,
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
@@ -386,6 +389,7 @@ export function formValuesToWirePayload(
     expiryTime: values.expiryTime,
     trafficReset: values.trafficReset,
     trafficResetDay: values.trafficResetDay,
+    preserveClientTraffic: values.preserveClientTraffic,
     lastTrafficResetTime: values.lastTrafficResetTime,
     listen: values.listen,
     port: values.port,

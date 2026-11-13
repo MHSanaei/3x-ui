@@ -833,6 +833,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "nodeId": null,
     "originNodeGuid": "",
     "port": 443,
+    "preserveClientTraffic": null,
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,

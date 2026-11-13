@@ -438,6 +438,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "Scheduled resets clear only this inbound’s counters. Clients continue on their own reset schedules.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
