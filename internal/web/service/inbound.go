@@ -1345,6 +1345,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
+	// A node holds no chain rows — the assignment lives on the panel that serves
+	// the subscription, so a pushed inbound is stored as-is.
+	if !s.FromNodeSync {
+		if err := s.validateInboundChain(inbound); err != nil {
+			return inbound, false, err
+		}
+	}
 	if err := s.normalizeAmneziaWGSettings(inbound, nil); err != nil {
 		return inbound, false, err
 	}
@@ -2055,9 +2062,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err != nil {
 		return inbound, false, err
 	}
+	if !s.FromNodeSync {
+		if err := s.validateInboundChain(inbound); err != nil {
+			return inbound, false, err
+		}
+	}
 	// Restore the stored NodeID before any host-scoped check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	// A node holds no chain rows, so a pushed inbound carries none: the chain is
+	// the master's subscription concern and must survive the push.
+	if s.FromNodeSync {
+		inbound.ChainProxyId = oldInbound.ChainProxyId
+		inbound.ChainSelectorId = oldInbound.ChainSelectorId
+	}
 	if err := normalizeVlessFallbacks(inbound); err != nil {
 		return nil, false, err
 	}
@@ -2242,6 +2260,8 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
 		oldInbound.DisableFlow = inbound.DisableFlow
+		oldInbound.ChainProxyId = inbound.ChainProxyId
+		oldInbound.ChainSelectorId = inbound.ChainSelectorId
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
 		oldInbound.Sniffing = inbound.Sniffing

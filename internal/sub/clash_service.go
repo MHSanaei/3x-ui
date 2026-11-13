@@ -141,6 +141,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		return "", "", nil
 	}
 	if legacy {
+		// A hop has no Clash-for-Windows representation, so a chained endpoint
+		// would silently dial around its chain; drop it instead.
+		proxies = dropChainedClashProxies(proxies)
 		proxies = legacyClashProxies(proxies)
 		if len(proxies) == 0 {
 			return "", "", errNoLegacyClashProxies
@@ -187,14 +190,21 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	}
 	proxyNames = append(proxyNames, "DIRECT")
 
+	// Chain hops are entry points, never exits: they are appended after the
+	// PROXY group's members so the user cannot pick one as the final outbound.
+	hops, chainGroups := s.attachClashChains(proxies)
+	proxies = append(proxies, hops...)
+	groups := []map[string]any{{
+		"name":    "PROXY",
+		"type":    "select",
+		"proxies": proxyNames,
+	}}
+	groups = append(groups, chainGroups...)
+
 	config := map[string]any{
-		"proxies": proxies,
-		"proxy-groups": []map[string]any{{
-			"name":    "PROXY",
-			"type":    "select",
-			"proxies": proxyNames,
-		}},
-		"rules": []string{"MATCH,PROXY"},
+		"proxies":      proxies,
+		"proxy-groups": groups,
+		"rules":        []string{"MATCH,PROXY"},
 	}
 
 	// Custom Clash routing can inject Mihomo-only groups, rules, providers or a
@@ -218,6 +228,117 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	}
 
 	return string(finalYAML), header, nil
+}
+
+// clashChainPlanKey marks a proxy that dials through a chain, carrying the plan
+// to attachClashChains. It never reaches the emitted YAML.
+const clashChainPlanKey = "__chain_plan"
+
+// attachClashChains wires mihomo's dialer-proxy into the rendered proxies: it
+// emits each hop once and one group per multi-hop selector, and points every
+// chained endpoint at its hop. Clash for Windows never reaches here.
+func (s *SubClashService) attachClashChains(proxies []map[string]any) ([]map[string]any, []map[string]any) {
+	chains := make(map[int]*chainPlan)
+	for i, proxy := range proxies {
+		if plan, ok := proxy[clashChainPlanKey].(*chainPlan); ok && plan != nil && len(plan.hops) > 0 {
+			chains[i] = plan
+		}
+		delete(proxy, clashChainPlanKey)
+	}
+	if len(chains) == 0 {
+		return nil, nil
+	}
+
+	names := newClashNameRegistry(proxies)
+	var hops []map[string]any
+	hopByName := make(map[int]string, len(chains))
+	var groups []map[string]any
+	for i, plan := range chains {
+		proxy := proxies[i]
+		hopNames := make([]string, 0, len(plan.hops))
+		for j := range plan.hops {
+			hop := &plan.hops[j]
+			name, ok := hopByName[hop.Id]
+			if !ok {
+				name = names.reserve(chainHopName(hop))
+				hopByName[hop.Id] = name
+				hops = append(hops, chainHopClashProxy(hop, name))
+			}
+			hopNames = append(hopNames, name)
+		}
+		if !plan.balanced() {
+			proxy["dialer-proxy"] = hopNames[0]
+			continue
+		}
+		groupName := names.reserve(chainGroupName(plan))
+		kind, loadBalanceStrategy := chainClashGroupType(plan.strategy())
+		group := map[string]any{
+			"name":     groupName,
+			"type":     kind,
+			"proxies":  hopNames,
+			"url":      subBalancerProbeURL,
+			"interval": chainGroupIntervalS,
+		}
+		if loadBalanceStrategy != "" {
+			group["strategy"] = loadBalanceStrategy
+		}
+		if kind == "url-test" {
+			group["tolerance"] = chainGroupTolerance
+		}
+		groups = append(groups, group)
+		proxy["dialer-proxy"] = groupName
+	}
+	return hops, groups
+}
+
+// dropChainedClashProxies removes the endpoints that dial through a chain, for
+// the Clash-for-Windows output: mihomo ignores dialer-proxy, so a kept endpoint
+// would silently connect directly instead of through its hop.
+func dropChainedClashProxies(proxies []map[string]any) []map[string]any {
+	kept := make([]map[string]any, 0, len(proxies))
+	for _, proxy := range proxies {
+		if _, chained := proxy[clashChainPlanKey]; chained {
+			continue
+		}
+		kept = append(kept, proxy)
+	}
+	return kept
+}
+
+// chainGroupName labels a selector's mihomo group after its remark.
+func chainGroupName(plan *chainPlan) string {
+	if plan.selector.Remark != "" {
+		return plan.selector.Remark
+	}
+	return chainBalancerTag(plan.selector.Id)
+}
+
+// clashNameRegistry hands out names unique against every proxy and group already
+// emitted, so a dialer-proxy reference cannot resolve to the wrong outbound.
+type clashNameRegistry struct {
+	used map[string]bool
+}
+
+func newClashNameRegistry(proxies []map[string]any) *clashNameRegistry {
+	used := make(map[string]bool, len(proxies))
+	for _, proxy := range proxies {
+		if name, ok := proxy["name"].(string); ok && name != "" {
+			used[name] = true
+		}
+	}
+	return &clashNameRegistry{used: used}
+}
+
+func (r *clashNameRegistry) reserve(base string) string {
+	if base == "" {
+		base = "chain"
+	}
+	name := base
+	for n := 2; r.used[name]; n++ {
+		name = fmt.Sprintf("%s-%d", base, n)
+	}
+	r.used[name] = true
+	return name
 }
 
 func legacyClashProxies(proxies []map[string]any) []map[string]any {
@@ -366,6 +487,12 @@ func fallbackProxyName(proxy map[string]any, idx int) string {
 }
 
 func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []map[string]any {
+	// A plan that resolved to no usable hop drops the endpoint: emitting it would
+	// dial around the chain the admin assigned.
+	plan := subReq.chainAssignmentFor(inbound)
+	if plan.unusable() {
+		return nil
+	}
 	stream := s.streamData(inbound.StreamSettings)
 	// For node-managed inbounds the Clash proxy "server" must be the
 	// node's address, not the request host. resolveInboundAddress handles
@@ -428,6 +555,9 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 
 		proxy := s.buildProxy(subReq, &workingInbound, client, workingStream, extPrxy)
 		if len(proxy) > 0 {
+			if !plan.direct() {
+				proxy[clashChainPlanKey] = plan
+			}
 			// Host-only mihomo knob: ip-version is a top-level proxy field, set
 			// last so it cannot be clobbered. Absent for legacy externalProxy.
 			if v, _ := extPrxy["mihomoIpVersion"].(string); v != "" {

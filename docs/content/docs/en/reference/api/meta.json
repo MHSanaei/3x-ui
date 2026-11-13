@@ -12,6 +12,8 @@
     "xray-settings",
     "subscription-server",
     "subscription-balancers",
+    "chain-proxies",
+    "chain-selectors",
     "hosts",
     "nodes",
     "backup",

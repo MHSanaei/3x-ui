@@ -426,21 +426,21 @@ func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subCo
 	if len(balancers) == 0 {
 		return entries
 	}
-	// Pre-pass: pull each inbound doc's proxy outbound once so every balancer
-	// reuses it instead of re-unmarshalling the whole document per balancer.
+	// Pre-pass: pull each inbound doc's endpoint and hop outbounds once so every
+	// balancer reuses them instead of re-unmarshalling the whole document.
 	entryProxies := make([][]map[string]any, len(entries))
+	entryHops := make([][]map[string]any, len(entries))
 	for i, entry := range entries {
 		if entry.kind != 0 {
 			continue
 		}
 		for _, config := range entry.configs {
-			if proxy := extractProxyOutbound(config); proxy != nil {
-				entryProxies[i] = append(entryProxies[i], proxy)
-			}
+			entryProxies[i] = append(entryProxies[i], extractProxyOutbounds(config)...)
+			entryHops[i] = append(entryHops[i], extractChainHops(config)...)
 		}
 	}
 	for i := range balancers {
-		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies)
+		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies, entryHops)
 		if config == nil {
 			continue
 		}
@@ -454,22 +454,49 @@ func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subCo
 	return entries
 }
 
-// extractProxyOutbound returns the first outbound of a document when it is the
-// proxy (tag == "proxy"), else nil — the only member shape a balancer retags.
-func extractProxyOutbound(config json_util.RawMessage) map[string]any {
+// extractProxyOutbounds returns every endpoint outbound of a document, in order
+// — one for a direct or single-hop endpoint, one per hop for a balanced chain.
+func extractProxyOutbounds(config json_util.RawMessage) []map[string]any {
 	var doc map[string]any
 	if json.Unmarshal(config, &doc) != nil {
 		return nil
 	}
 	outbounds, _ := doc["outbounds"].([]any)
-	if len(outbounds) == 0 {
+	var endpoints []map[string]any
+	for _, ob := range outbounds {
+		outbound, _ := ob.(map[string]any)
+		if outbound == nil || !isEndpointOutboundTag(outbound["tag"]) {
+			continue
+		}
+		endpoints = append(endpoints, outbound)
+	}
+	return endpoints
+}
+
+// isEndpointOutboundTag recognizes the tag getConfig gives the proxy outbound:
+// "proxy" without a balanced chain, a per-hop copy with one.
+func isEndpointOutboundTag(tag any) bool {
+	value, _ := tag.(string)
+	return value == "proxy" || strings.HasPrefix(value, chainVariantPrefix)
+}
+
+// extractChainHops returns the hop outbounds a chained document carries, so a
+// sub-balancer that re-emits its endpoint keeps the chain dialable.
+func extractChainHops(config json_util.RawMessage) []map[string]any {
+	var doc map[string]any
+	if json.Unmarshal(config, &doc) != nil {
 		return nil
 	}
-	outbound, _ := outbounds[0].(map[string]any)
-	if outbound == nil || outbound["tag"] != "proxy" {
-		return nil
+	outbounds, _ := doc["outbounds"].([]any)
+	var hops []map[string]any
+	for _, ob := range outbounds {
+		outbound, _ := ob.(map[string]any)
+		tag, _ := outbound["tag"].(string)
+		if strings.HasPrefix(tag, chainHopPrefix) {
+			hops = append(hops, outbound)
+		}
 	}
-	return outbound
+	return hops
 }
 
 func getEnabledSubBalancers() []model.SubBalancer {
@@ -526,9 +553,42 @@ func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 	return costs
 }
 
+// routingForBalancer clones the template's routing subtree, points every rule
+// that targeted the proxy outbound at a balancer instead, and appends entry to
+// its balancers list. Rules and balancers are cloned, never mutated in place.
+func (s *SubJsonService) routingForBalancer(template map[string]any, tag string, entry map[string]any) map[string]any {
+	baseRouting, _ := template["routing"].(map[string]any)
+	routing := make(map[string]any, len(baseRouting)+1)
+	maps.Copy(routing, baseRouting)
+	baseRules, _ := baseRouting["rules"].([]any)
+	rules := make([]any, 0, len(baseRules))
+	for _, rule := range baseRules {
+		ruleMap, ok := rule.(map[string]any)
+		if !ok {
+			rules = append(rules, rule)
+			continue
+		}
+		ruleMap = maps.Clone(ruleMap)
+		if ruleMap["outboundTag"] == "proxy" {
+			delete(ruleMap, "outboundTag")
+			ruleMap["balancerTag"] = tag
+		}
+		rules = append(rules, ruleMap)
+	}
+	routing["rules"] = rules
+	if entry != nil {
+		var balancers []any
+		if existing, ok := baseRouting["balancers"].([]any); ok {
+			balancers = append(balancers, existing...)
+		}
+		routing["balancers"] = append(balancers, entry)
+	}
+	return routing
+}
+
 // buildBalancerConfig assembles the balancer profile: members retagged under a
 // per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
-func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
+func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any, entryHops [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	// Next suffix to try per base: tags are only ever added, so every lower one
@@ -539,11 +599,23 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	// reference the exact retagged tags assigned here.
 	var members []balMember
 	var firstTag string
+	// Hops a chained member dials through, deduped by tag: a member keeps its
+	// sockopt.dialerProxy reference, so the hop outbound must travel with it.
+	var hops []map[string]any
+	seenHops := make(map[string]bool)
 	// entryProxies is the pre-extracted proxy outbounds per entry; kind!=0 rows
 	// have none. Clone before retagging so the cached map stays reusable.
 	for i, entry := range entries {
 		if entry.kind != 0 || !slices.Contains(balancer.InboundIds, entry.id) {
 			continue
+		}
+		for _, hop := range entryHops[i] {
+			tag, _ := hop["tag"].(string)
+			if seenHops[tag] {
+				continue
+			}
+			seenHops[tag] = true
+			hops = append(hops, hop)
 		}
 		for _, outbound := range entryProxies[i] {
 			protocol, _ := outbound["protocol"].(string)
@@ -571,32 +643,16 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	}
 
 	outbounds := append([]json_util.RawMessage{}, proxies...)
+	for _, hop := range hops {
+		if raw, err := json.MarshalIndent(hop, "", "  "); err == nil {
+			outbounds = append(outbounds, raw)
+		}
+	}
 	outbounds = append(outbounds, s.defaultOutbounds...)
 
 	// One template per document: two resolves could straddle a profile refresh
 	// and pair this document's dns with the other revision's routing.
 	template := s.bakedTemplate()
-	// Clone the shared routing subtree (and each rule map) before pointing
-	// rules at the balancer.
-	baseRouting, _ := template["routing"].(map[string]any)
-	routing := make(map[string]any, len(baseRouting)+1)
-	maps.Copy(routing, baseRouting)
-	baseRules, _ := baseRouting["rules"].([]any)
-	rules := make([]any, 0, len(baseRules)+1)
-	for _, rule := range baseRules {
-		ruleMap, ok := rule.(map[string]any)
-		if !ok {
-			rules = append(rules, rule)
-			continue
-		}
-		ruleMap = maps.Clone(ruleMap)
-		if ruleMap["outboundTag"] == "proxy" {
-			delete(ruleMap, "outboundTag")
-			ruleMap["balancerTag"] = subBalancerTag
-		}
-		rules = append(rules, ruleMap)
-	}
-	routing["rules"] = rules
 	isObservatory := balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad"
 	strategyEntry := map[string]any{"type": balancer.Strategy}
 	if costs := leastLoadCosts(balancer, members); costs != nil {
@@ -612,7 +668,7 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 		// failing dispatch.
 		balancerEntry["fallbackTag"] = firstTag
 	}
-	routing["balancers"] = []any{balancerEntry}
+	routing := s.routingForBalancer(template, subBalancerTag, balancerEntry)
 
 	newConfigJson := make(map[string]any, len(template)+2)
 	maps.Copy(newConfigJson, template)
@@ -668,6 +724,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 	delete(stream, "externalProxy")
 	network, _ := stream["network"].(string)
+
+	// A chain is resolved once per inbound; a plan that resolves to no usable hop
+	// drops the endpoint rather than leaking the subscriber's traffic around it.
+	plan := subReq.chainAssignmentFor(inbound)
+	if plan.unusable() {
+		return nil
+	}
 
 	for _, ep := range externalProxies {
 		extPrxy, ok := ep.(map[string]any)
@@ -749,6 +812,14 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			continue
 		}
 
+		// One outbound per dialing path: the plain endpoint, or one copy per hop
+		// so the chain balancer can pick between them.
+		chained, ok := expandChainedOutbounds(newOutbounds, plan)
+		if !ok {
+			continue
+		}
+		newOutbounds = chained
+		newOutbounds = append(newOutbounds, s.chainHopsForPlan(plan)...)
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
 		newConfigJson := make(map[string]any)
 		maps.Copy(newConfigJson, s.bakedTemplate())
@@ -756,12 +827,104 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		transport, _ := newStream["network"].(string)
 		newConfigJson["outbounds"] = newOutbounds
 		newConfigJson["remarks"] = subReq.endpointRemark(inbound, client.Email, extPrxy, transport)
+		if plan.balanced() {
+			s.applyChainBalancer(newConfigJson, plan)
+		}
 
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)
 	}
 
 	return newJsonArray
+}
+
+// expandChainedOutbounds turns the single generated endpoint outbound into the
+// copies the plan needs, each carrying the hop it dials in sockopt.dialerProxy.
+// It reports false when the outbound cannot carry a hop at all.
+func expandChainedOutbounds(outbounds []json_util.RawMessage, plan *chainPlan) ([]json_util.RawMessage, bool) {
+	if plan.direct() {
+		return outbounds, true
+	}
+	if len(outbounds) == 0 {
+		return nil, false
+	}
+	// Generators emit the endpoint first and only one of them.
+	base := outbounds[0]
+	variants := plan.endpoints()
+	if len(variants) == 0 {
+		return nil, false
+	}
+	expanded := make([]json_util.RawMessage, 0, len(variants)+len(outbounds)-1)
+	for _, variant := range variants {
+		var outbound map[string]any
+		if err := json.Unmarshal(base, &outbound); err != nil {
+			return nil, false
+		}
+		outbound["tag"] = variant.tag
+		if !setDialerProxy(outbound, variant.hopTag) {
+			return nil, false
+		}
+		raw, err := json.MarshalIndent(outbound, "", "  ")
+		if err != nil {
+			return nil, false
+		}
+		expanded = append(expanded, raw)
+	}
+	return append(expanded, outbounds[1:]...), true
+}
+
+// setDialerProxy writes streamSettings.sockopt.dialerProxy, adding the stream
+// block when the generator left it empty (xray's defaults are what it had).
+func setDialerProxy(outbound map[string]any, hopTag string) bool {
+	stream, ok := outbound["streamSettings"].(map[string]any)
+	if !ok {
+		stream = map[string]any{}
+		outbound["streamSettings"] = stream
+	}
+	sockopt, ok := stream["sockopt"].(map[string]any)
+	if !ok {
+		sockopt = map[string]any{}
+		stream["sockopt"] = sockopt
+	}
+	sockopt["dialerProxy"] = hopTag
+	return true
+}
+
+// chainHopsForPlan renders the hop outbounds that make a plan's dialerProxy
+// references resolvable.
+func (s *SubJsonService) chainHopsForPlan(plan *chainPlan) []json_util.RawMessage {
+	if plan.direct() || len(plan.hops) == 0 {
+		return nil
+	}
+	hops := make([]json_util.RawMessage, 0, len(plan.hops))
+	for i := range plan.hops {
+		raw, err := json.MarshalIndent(chainHopOutbound(&plan.hops[i]), "", "  ")
+		if err != nil {
+			continue
+		}
+		hops = append(hops, raw)
+	}
+	return hops
+}
+
+// applyChainBalancer routes the document through the selector's balancer and,
+// for the probing strategies, gives it the observatory xray requires.
+func (s *SubJsonService) applyChainBalancer(config map[string]any, plan *chainPlan) {
+	prefix := chainVariantPrefixFor(plan.selector.Id)
+	entry := map[string]any{
+		"tag":      chainBalancerTag(plan.selector.Id),
+		"selector": []string{prefix},
+		"strategy": map[string]any{"type": plan.strategy()},
+	}
+	isObservatory := plan.strategy() == "leastPing" || plan.strategy() == "leastLoad"
+	if isObservatory {
+		// With all probes failing, dial through the first hop instead of failing.
+		entry["fallbackTag"] = chainVariantTag(plan.selector.Id, 0)
+	}
+	config["routing"] = s.routingForBalancer(config, chainBalancerTag(plan.selector.Id), entry)
+	if isObservatory {
+		config["burstObservatory"] = s.balancerObservatory(prefix)
+	}
 }
 
 func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {

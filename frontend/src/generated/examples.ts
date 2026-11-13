@@ -414,6 +414,31 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "ChainProxy": {
+    "createdAt": 1710000000000,
+    "enabled": true,
+    "id": 1,
+    "password": "secret",
+    "port": 1080,
+    "remark": "entry-de-fra",
+    "server": "proxy.example.com",
+    "tls": false,
+    "type": "socks",
+    "updatedAt": 1710000000000,
+    "username": "operator"
+  },
+  "ChainSelector": {
+    "createdAt": 1710000000000,
+    "enabled": true,
+    "id": 1,
+    "proxyIds": [
+      1,
+      2
+    ],
+    "remark": "entries-fastest",
+    "strategy": "leastPing",
+    "updatedAt": 1710000000000
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
@@ -800,6 +825,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "remaining": 1
   },
   "Inbound": {
+    "chainProxyId": 0,
+    "chainSelectorId": 0,
     "clientStats": [
       {
         "down": 2097152,

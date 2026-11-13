@@ -83,6 +83,9 @@ export const InboundDbFieldsSchema = z.object({
   subSortIndex: z.number().int().default(1),
   excludeFromSub: z.boolean().default(false),
   disableFlow: z.boolean().default(false),
+  // Client-side chain: an inbound takes one hop or one selector, never both.
+  chainProxyId: z.number().int().min(0).default(0),
+  chainSelectorId: z.number().int().min(0).default(0),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 

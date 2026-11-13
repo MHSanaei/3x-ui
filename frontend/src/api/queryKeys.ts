@@ -19,6 +19,14 @@ export const keys = {
     root: () => ['sub-balancers'] as const,
     list: () => ['sub-balancers', 'list'] as const,
   },
+  chainProxies: {
+    root: () => ['chain-proxies'] as const,
+    list: () => ['chain-proxies', 'list'] as const,
+  },
+  chainSelectors: {
+    root: () => ['chain-selectors'] as const,
+    list: () => ['chain-selectors', 'list'] as const,
+  },
   settings: {
     root: () => ['settings'] as const,
     all: () => ['settings', 'all'] as const,

@@ -26,6 +26,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
+  SwapOutlined,
   TelegramFilled,
 } from '@ant-design/icons';
 
@@ -248,6 +249,15 @@ export default function AppSidebar() {
         key: '/settings#subscription-balancers',
         icon: <ApartmentOutlined aria-hidden />,
         label: t('pages.settings.subBalancers.menu'),
+      });
+    }
+    // Chains are emitted into the JSON and Mihomo outputs only, so they are
+    // offered whenever either of those formats is served.
+    if (showSubFormats) {
+      children.push({
+        key: '/settings#subscription-chains',
+        icon: <SwapOutlined aria-hidden />,
+        label: t('pages.settings.chainProxies.menu'),
       });
     }
     return children;

@@ -448,6 +448,13 @@ export default function CommandPalette() {
         icon: <ApartmentOutlined aria-hidden />,
       },
       {
+        path: '/settings#subscription-chains',
+        title: `${t('menu.settings')} · ${t('pages.settings.chainProxies.menu')}`,
+        subtitle: t('pages.settings.chainProxies.menu'),
+        keywords: ['chain', 'chains', 'socks', 'http proxy', 'dialer-proxy', 'upstream proxy'],
+        icon: <SwapOutlined aria-hidden />,
+      },
+      {
         path: '/xray#basic',
         title: `${t('menu.xray')} · ${t('pages.xray.basicTemplate')}`,
         subtitle: t('pages.xray.basicTemplate'),
