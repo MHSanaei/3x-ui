@@ -9,14 +9,13 @@ import enUS from '../../../internal/web/translation/en-US.json';
 
 const FALLBACK = 'en-US';
 
-// No locale uses $t(...) nesting, and its regex backtracks exponentially on an unclosed
-// "$t(" in untrusted text (node-reported names, remarks); no off switch, so never match.
+// No locale uses $t(...) nesting, and untrusted text (node-reported names, remarks) must not
+// reach it; i18next 27 has no off switch, so the prefix is a NUL that no text contains.
 export const INTERPOLATION: InterpolationOptions = {
   escapeValue: false,
   prefix: '{',
   suffix: '}',
-  nestingPrefix: '',
-  nestingPrefixEscaped: '(?!)',
+  nestingPrefix: '\u0000',
 };
 
 const lazyModules = import.meta.glob([
