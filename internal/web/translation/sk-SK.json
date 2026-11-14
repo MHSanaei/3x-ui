@@ -1768,6 +1768,8 @@
       },
       "subCalendarExpireInclusive": "Zobrazenie konca mesačnej platnosti v odbere",
       "subCalendarExpireInclusiveDesc": "Predvolene vypnuté. Pri obnove v 1. deň mesiaca o polnoci v pásme panelu hlási hlavička odberu ako koniec platnosti poslednú sekundu predchádzajúceho mesiaca. Skutočné ukončenie a obnovovanie sa nemení. Klienti používajú vlastné časové pásmo a môžu odber považovať za neplatný o sekundu skôr.",
+      "subHwidRejectWithConfig": "Nahradiť konfigurácie pri odmietnutí HWID",
+      "subHwidRejectWithConfigDesc": "Pri chýbajúcom HWID alebo dosiahnutí limitu zariadení vrátiť HTTP 200 s nefunkčným uzlom namiesto 404. Kompatibilné aplikácie môžu pri aktualizácii nahradiť uložené uzly; skopírované konfigurácie zostávajú platné. Odstránenie zariadenia uvoľní miesto, ale nezablokuje ho natrvalo.",
       "subInfoNodeEnable": "Samostatný informačný profil",
       "subInfoNodeEnableDesc": "Názov a zostávajúce dáta/dni sa zobrazia hore ako samostatný nefunkčný profil SOCKS. Odbery so skončenou platnosťou alebo vyčerpaným limitom potom vrátia iba stavový profil.",
       "subExpiredTemplate": "Šablóna skončenej platnosti",

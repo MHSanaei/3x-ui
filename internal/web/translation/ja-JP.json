@@ -1647,6 +1647,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "HWID 拒否時に設定を置き換える",
+      "subHwidRejectWithConfigDesc": "HWID がない場合や端末数の上限に達した場合、404 の代わりに接続できないノードと HTTP 200 を返します。対応アプリは更新時に保存済みノードを置き換えられますが、コピー済みの設定は引き続き有効です。端末の削除は空きを作りますが、永久的なブロックにはなりません。",
       "subInfoNodeEnable": "個別情報設定 / ダミーノード",
       "subInfoNodeEnableDesc": "有効にすると、備考と残りの通信量/日数が上部の独立したSOCKSダミー構成として表示され、期限切れや通信量超過時はステータスのみが返されます。",
       "subExpiredTemplate": "期限切れテンプレート",

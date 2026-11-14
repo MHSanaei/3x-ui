@@ -20,6 +20,7 @@ export class AllSetting {
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
   subInfoNodeEnable = false;
+  subHwidRejectWithConfig = false;
   subHostSortMode: SubHostSortMode = 'inbound-first';
   subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';

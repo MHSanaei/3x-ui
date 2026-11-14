@@ -1647,6 +1647,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Заменять конфиги при отказе по HWID",
+      "subHwidRejectWithConfigDesc": "При отсутствии HWID или превышении лимита устройств возвращать HTTP 200 с нерабочим узлом вместо 404. Совместимые приложения смогут заменить сохранённые узлы при обновлении; скопированные конфиги сохраняют доступ. Удаление устройства освобождает место, но не блокирует его навсегда.",
       "subInfoNodeEnable": "Отдельный инфо-конфиг / фиктивный узел",
       "subInfoNodeEnableDesc": "Если включено, примечание и остаток трафика/дней отображаются отдельным SOCKS-конфигом вверху, а при истечении срока/трафика возвращается только статус.",
       "subExpiredTemplate": "Шаблон истекшей подписки",

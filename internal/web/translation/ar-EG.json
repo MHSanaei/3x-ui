@@ -1647,6 +1647,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "استبدال الإعدادات عند رفض HWID",
+      "subHwidRejectWithConfigDesc": "إرجاع HTTP 200 مع عقدة غير عاملة بدلاً من 404 عند غياب HWID أو بلوغ حد الأجهزة. يمكن للتطبيقات المتوافقة استبدال العقد المحفوظة عند التحديث؛ وتبقى الإعدادات المنسوخة صالحة. حذف جهاز يحرر مكاناً لكنه لا يحظره نهائياً.",
       "subInfoNodeEnable": "تكوين معلومات منفصل / عقدة وهمية",
       "subInfoNodeEnableDesc": "عند التفعيل، يتم عرض الملاحظات وحركة المرور/الأيام المتبقية كتكوين SOCKS منفصل في الأعلى، وعند انتهاء الصلاحية أو نفاد البيانات يتم إرجاع تكوين الحالة فقط.",
       "subExpiredTemplate": "قالب انتهاء الصلاحية",

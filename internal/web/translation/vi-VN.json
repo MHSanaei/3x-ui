@@ -1647,6 +1647,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Thay cấu hình khi HWID bị từ chối",
+      "subHwidRejectWithConfigDesc": "Trả về HTTP 200 với nút không hoạt động thay vì 404 khi thiếu HWID hoặc đạt giới hạn thiết bị. Ứng dụng tương thích có thể thay các nút đã lưu khi cập nhật; cấu hình đã sao chép vẫn còn hiệu lực. Xóa thiết bị giải phóng một chỗ nhưng không chặn thiết bị vĩnh viễn.",
       "subInfoNodeEnable": "Cấu hình thông tin riêng / Nút ảo",
       "subInfoNodeEnableDesc": "Khi bật, ghi chú và lưu lượng/ngày còn lại sẽ hiển thị dưới dạng cấu hình SOCKS ảo riêng ở trên cùng, và đăng ký hết hạn/hết dung lượng chỉ trả về cấu hình trạng thái.",
       "subExpiredTemplate": "Mẫu hết hạn",

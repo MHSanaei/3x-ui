@@ -38,6 +38,7 @@ type AllSetting struct {
 	RemarkTemplate             string `json:"remarkTemplate" form:"remarkTemplate"`
 	SubShowIdentityOnAllLinks  bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
 	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
+	SubHwidRejectWithConfig    bool   `json:"subHwidRejectWithConfig" form:"subHwidRejectWithConfig"`
 	SubHostSortMode            string `json:"subHostSortMode" form:"subHostSortMode" example:"inbound-first"`
 	SubCalendarExpireInclusive bool   `json:"subCalendarExpireInclusive" form:"subCalendarExpireInclusive"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
