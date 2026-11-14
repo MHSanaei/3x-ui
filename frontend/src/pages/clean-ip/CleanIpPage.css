@@ -1,0 +1,264 @@
+.clean-ip-page {
+  --bg-page: #e6e8ec;
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.clean-ip-page.is-dark {
+  --bg-page: #1a1b1f;
+}
+
+.clean-ip-page.is-dark.is-ultra {
+  --bg-page: #000;
+}
+
+.clean-ip-page .ant-layout,
+.clean-ip-page .ant-layout-content,
+.clean-ip-page .content-shell {
+  background: transparent;
+}
+
+.clean-ip-page .content-area {
+  padding: 24px;
+}
+
+.clean-ip-intro {
+  margin-bottom: 12px !important;
+}
+
+.clean-ip-net {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.clean-ip-net-isp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.clean-ip-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.clean-ip-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+}
+
+.clean-ip-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.clean-ip-field > span {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.clean-ip-grow {
+  flex: 1 1 200px;
+}
+
+.clean-ip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.clean-ip-country {
+  width: min(320px, 100%);
+}
+
+.clean-ip-progress {
+  margin-top: 16px;
+}
+
+.clean-ip-note {
+  margin: 12px 0 0 !important;
+}
+
+.clean-ip-subtitle {
+  margin: 16px 0 8px !important;
+}
+
+.clean-ip-isp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.clean-ip-isp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clean-ip-isp-ips {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .clean-ip-page .content-area {
+    padding: 16px;
+  }
+
+  .clean-ip-actions {
+    margin-inline-start: 0;
+    width: 100%;
+  }
+
+  .clean-ip-actions .ant-btn {
+    width: 100%;
+  }
+}
+
+.clean-ip-command {
+  margin-top: 16px;
+}
+
+.clean-ip-code {
+  margin: 4px 0 12px !important;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.clean-ip-report {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.clean-ip-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.clean-ip-card {
+  height: 100%;
+}
+
+.clean-ip-step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clean-ip-step-text {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+}
+
+.clean-ip-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ant-color-primary);
+  color: var(--ant-button-primary-color, #fff);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clean-ip-frag-group {
+  display: block;
+}
+
+.clean-ip-save-to {
+  margin-bottom: 16px;
+}
+
+.clean-ip-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.clean-ip-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.clean-ip-summary span {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.clean-ip-summary b {
+  overflow-wrap: anywhere;
+}
+
+.clean-ip-save {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clean-ip-saved {
+  margin-inline-end: 10px;
+  white-space: nowrap;
+}
+
+.clean-ip-saved-ok {
+  color: var(--ant-color-success);
+}
+
+.clean-ip-saved-restricted {
+  color: var(--ant-color-error);
+  text-decoration: line-through;
+}
+
+.dns-tunnel-profiles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dns-tunnel-profile {
+  padding: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 10px;
+}
+
+.dns-tunnel-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.clean-ip-range-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 2px 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}

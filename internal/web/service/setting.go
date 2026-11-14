@@ -81,6 +81,7 @@ var defaultValueMap = map[string]string{
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
 	"remarkTemplate":              DefaultRemarkTemplate,
+	"dnsTunnelProfiles":           "[]",
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
 	"subHostSortMode":             "inbound-first",
