@@ -52,7 +52,13 @@ case "$1" in
                 printf 'webBasePath: %s\n' "${path:-/}" ;;
         esac
         exit 0 ;;
-    -getCert) echo 'cert: /tmp/panel.example/fullchain.pem'; exit 0 ;;
+    -getCert)
+        if [[ "$TEST_READ_MODE" == ssl_failure ]]; then
+            echo 'cert:'
+        else
+            echo 'cert: /tmp/panel.example/fullchain.pem'
+        fi
+        exit 0 ;;
     -getApiToken) echo 'apiToken: test-token'; exit 0 ;;
 esac
 printf 'write\n' >> "$state/writes"
@@ -121,7 +127,10 @@ SSL_HOST=panel.example
 curl() { printf '203.0.113.10\n200\n'; }
 systemctl() { printf '%s\n' "$*" >> "$TEST_SETTINGS_DIR/restarts"; }
 rc-service() { printf '%s\n' "$*" >> "$TEST_SETTINGS_DIR/restarts"; }
-prompt_and_setup_ssl() { printf '%s\n' "$*" > "$TEST_SETTINGS_DIR/ssl"; }
+prompt_and_setup_ssl() {
+    printf '%s\n' "$*" > "$TEST_SETTINGS_DIR/ssl"
+    [[ "$TEST_READ_MODE" != ssl_failure ]]
+}
 write_install_result() { printf '%s\n' "$@" > "$TEST_SETTINGS_DIR/result"; }
 install_postgres_local() { echo 'unexpected PostgreSQL installation' >&2; exit 97; }
 chown() { :; }
@@ -283,5 +292,20 @@ func TestScriptConfigReadFailureKeepsServiceSetup(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestInstallerSSLFailureStopsServiceSetup(t *testing.T) {
+	dir, out, err := runScriptConfig(t, "install.sh", "/a/", true, "ssl_failure", 1, true)
+	if err == nil {
+		t.Fatalf("SSL failure should abort installation before service setup:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "ssl")); err != nil {
+		t.Fatalf("SSL setup was not attempted: %v\n%s", err, out)
+	}
+	for _, name := range []string{"lifecycle", "restarts"} {
+		if actual := readScriptState(t, dir, name); actual != "" {
+			t.Errorf("failed SSL setup continued %s: %q", name, actual)
+		}
 	}
 }
