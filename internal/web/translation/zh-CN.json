@@ -856,6 +856,7 @@
       "has": "拥有",
       "hasNot": "不拥有",
       "actions": "操作",
+      "columns": "列",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "该客户端的流量配额。0 = 不限制。",
       "expiryTime": "过期时间",

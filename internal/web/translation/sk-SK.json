@@ -856,6 +856,7 @@
       "has": "Obsahuje",
       "hasNot": "Neobsahuje",
       "actions": "Akcie",
+      "columns": "Stĺpce",
       "totalGB": "Dátový limit (GB)",
       "totalGBDesc": "Dátový limit tohto klienta. Hodnota 0 znamená bez obmedzenia.",
       "expiryTime": "Platnosť do",

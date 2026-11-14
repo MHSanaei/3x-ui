@@ -856,6 +856,7 @@
       "has": "Memiliki",
       "hasNot": "Tidak memiliki",
       "actions": "Aksi",
+      "columns": "Kolom",
       "totalGB": "Batas Trafik (GB)",
       "totalGBDesc": "Kuota data untuk klien ini. 0 = tidak terbatas.",
       "expiryTime": "Kedaluwarsa",

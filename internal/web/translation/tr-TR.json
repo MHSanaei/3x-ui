@@ -856,6 +856,7 @@
       "has": "Var",
       "hasNot": "Yok",
       "actions": "İşlemler",
+      "columns": "Sütunlar",
       "totalGB": "Trafik Limiti (GB)",
       "totalGBDesc": "Bu kullanıcı için veri kotası. 0 = sınırsız.",
       "expiryTime": "Son Kullanma",

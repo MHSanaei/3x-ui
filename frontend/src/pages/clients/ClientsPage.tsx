@@ -93,6 +93,8 @@ const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 import { ClientInboundChips, ClientRowActions } from './RowCells';
+import ClientColumnPicker from './ClientColumnPicker';
+import { clientColumnOptions, hideClientColumns, useHiddenClientColumns } from './columnVisibility';
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -1055,7 +1057,7 @@ export default function ClientsPage() {
     if (pag?.pageSize) setPageSizeChoice(pag.pageSize);
   };
 
-  const columns = useMemo<ColumnsType<ClientRecord>>(
+  const baseColumns = useMemo<ColumnsType<ClientRecord>>(
     () => [
       {
         title: t('pages.clients.actions'),
@@ -1239,6 +1241,14 @@ export default function ClientsPage() {
       trafficDiff,
       clientSpeed,
     ],
+  );
+
+  const [hiddenColumns, setHiddenColumns] = useHiddenClientColumns();
+
+  const columnOptions = useMemo(() => clientColumnOptions(baseColumns), [baseColumns]);
+  const columns = useMemo(
+    () => hideClientColumns(baseColumns, hiddenColumns),
+    [baseColumns, hiddenColumns],
   );
 
   const tablePagination = {
@@ -1558,6 +1568,13 @@ export default function ClientsPage() {
                             {!isMobile && t('filter')}
                           </Button>
                         </Badge>
+                        {!isMobile && (
+                          <ClientColumnPicker
+                            options={columnOptions}
+                            hidden={hiddenColumns}
+                            onChange={setHiddenColumns}
+                          />
+                        )}
                         <Select
                           value={sortValueFor(sortColumn, sortOrder)}
                           aria-label={t('sort')}
@@ -1710,7 +1727,7 @@ export default function ClientsPage() {
                           rowSelection={rowSelection}
                           pagination={tablePagination}
                           size="small"
-                          scroll={{ x: 1200 }}
+                          scroll={{ x: 'max-content' }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
