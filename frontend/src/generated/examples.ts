@@ -414,6 +414,109 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "CleanIpCdn": {
+    "groups": [
+      {
+        "id": "official",
+        "on": true,
+        "ranges": [
+          "104.16.0.0/13"
+        ]
+      }
+    ],
+    "id": "cloudflare",
+    "name": "Cloudflare"
+  },
+  "CleanIpCommand": {
+    "expiresAt": 1793000000,
+    "scriptUrl": "https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py",
+    "token": "kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D",
+    "unix": "python3 -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
+    "unixVia": "python3 -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
+    "via": "104.16.1.1",
+    "windows": "python -c \"import urllib.request as u,hashlib as h;s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\"",
+    "windowsVia": "python -c \"import urllib.request as u,hashlib as h,socket as o;g=o.getaddrinfo;o.getaddrinfo=lambda a,*r,**k:g('104.16.1.1' if a=='panel.example.com' else a,*r,**k);s=u.urlopen(u.Request('https://panel.example.com/path/cleanip/run/kP3x9Qw7Lm2Zr8Tv5Yb1Nc4D/script.py?via=104.16.1.1',headers={'User-Agent':'Mozilla/5.0 (3x-ui clean IP)'})).read();o.getaddrinfo=g;exec(s) if h.sha256(s).hexdigest()=='9f2c...' else print('The script did not match this command: make a new one on the Clean IP scanner page.')\""
+  },
+  "CleanIpCommandRequest": {
+    "cdn": "cloudflare",
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ],
+    "path": "/",
+    "perRange": 8,
+    "ranges": [
+      "104.16.0.0/13"
+    ],
+    "size": 5000
+  },
+  "CleanIpFragment": {
+    "delay": "1-2",
+    "length": "10-20",
+    "ms": 700,
+    "n": 10,
+    "ok": 9,
+    "packets": "tlshello"
+  },
+  "CleanIpHit": {
+    "colo": "FRA",
+    "ip": "104.16.1.1",
+    "ms": 410
+  },
+  "CleanIpNetwork": {
+    "asn": 197207,
+    "country": "IR",
+    "ip": "5.160.10.20",
+    "isp": "MCI",
+    "org": "Mobile Communication Company of Iran PLC"
+  },
+  "CleanIpRangeGroup": {
+    "id": "official",
+    "on": true,
+    "ranges": [
+      "104.16.0.0/13"
+    ]
+  },
+  "CleanIpReport": {
+    "at": 1793000000,
+    "fragments": [
+      {
+        "delay": "1-2",
+        "length": "10-20",
+        "ms": 700,
+        "n": 10,
+        "ok": 9,
+        "packets": "tlshello"
+      }
+    ],
+    "ips": [
+      {
+        "colo": "FRA",
+        "ip": "104.16.1.1",
+        "ms": 410
+      }
+    ],
+    "network": {
+      "asn": 197207,
+      "country": "IR",
+      "ip": "5.160.10.20",
+      "isp": "MCI",
+      "org": "Mobile Communication Company of Iran PLC"
+    },
+    "size": 5000,
+    "tested": 120
+  },
+  "CleanIpVerdict": {
+    "ip": "104.16.1.1",
+    "status": "ok"
+  },
+  "CleanIpVerifyRequest": {
+    "cdn": "cloudflare",
+    "host": "cdn.example.com",
+    "ips": [
+      "104.16.1.1"
+    ]
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [

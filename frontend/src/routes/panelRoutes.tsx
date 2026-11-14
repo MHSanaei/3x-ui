@@ -12,6 +12,7 @@ import {
   SwapOutlined,
   TagsOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
 
@@ -21,6 +22,7 @@ const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
 const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
 const NodesPage = lazy(() => import('@/pages/nodes/NodesPage'));
 const HostsPage = lazy(() => import('@/pages/hosts/HostsPage'));
+const CleanIpPage = lazy(() => import('@/pages/clean-ip/CleanIpPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const XrayPage = lazy(() => import('@/pages/xray/XrayPage'));
 const ApiDocsPage = lazy(() => import('@/pages/api-docs/ApiDocsPage'));
@@ -42,6 +44,12 @@ export const PANEL_ROUTES: PanelRoute[] = [
   { path: '/groups', titleKey: 'menu.groups', icon: TagsOutlined, component: GroupsPage },
   { path: '/nodes', titleKey: 'menu.nodes', icon: ClusterOutlined, component: NodesPage },
   { path: '/hosts', titleKey: 'menu.hosts', icon: GlobalOutlined, component: HostsPage },
+  {
+    path: '/clean-ip',
+    titleKey: 'menu.cleanIp',
+    icon: ThunderboltOutlined,
+    component: CleanIpPage,
+  },
   { path: '/outbound', titleKey: 'menu.outbounds', icon: ExportOutlined, component: XrayPage },
   { path: '/routing', titleKey: 'menu.routing', icon: SwapOutlined, component: XrayPage },
   { path: '/settings', titleKey: 'menu.settings', icon: SettingOutlined, component: SettingsPage },
