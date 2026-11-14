@@ -128,7 +128,8 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "nodeRouting": "Node Routing"
   },
   "pages": {
     "login": {
@@ -480,7 +481,9 @@
         "invalidClientField": "Client {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
         "invalidCertificate": "TLS certificate {index}: {reason}",
-        "moreIssues": "{message}  (+{count} more)"
+        "moreIssues": "{message}  (+{count} more)",
+        "changeIdSuccess": "Inbound ID changed",
+        "changeIdFailed": "Inbound ID change failed: {reason}"
       },
       "form": {
         "autoFill": "Auto Fill",
@@ -803,7 +806,17 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} config"
       },
-      "sniffingDestOverride": "Destination override"
+      "sniffingDestOverride": "Destination override",
+      "changeId": "Change ID",
+      "changeIdTitle": "Change inbound ID — {tag}",
+      "changeIdDesc": "Changing the inbound ID updates every routing rule and node reference that points at the current ID. The check below runs before anything is saved.",
+      "changeIdLabel": "New inbound ID (tag)",
+      "changeIdApply": "Apply",
+      "changeIdValid": "The new ID is available.",
+      "changeIdUnchanged": "The ID is unchanged.",
+      "changeIdInvalid": "The new ID is unavailable ({reason}).",
+      "changeIdRoutingRefs": "{count} routing rule(s) point at the current ID and will be updated.",
+      "changeIdNodeConflict": "The hosting node already has an inbound with this name."
     },
     "clients": {
       "tabBasics": "Basics",
@@ -1312,7 +1325,9 @@
         "updateResult": "Update triggered on {ok} node(s), {failed} failed",
         "updateNoneEligible": "Select at least one online, enabled node",
         "saveMtls": "Save node mTLS",
-        "reloadMtls": "Reload master mTLS credential"
+        "reloadMtls": "Reload master mTLS credential",
+        "routingControl": "Node routing policy",
+        "routingApply": "Apply node routing policy"
       },
       "tlsVerifyMode": "TLS verification",
       "tlsVerifyModeHint": "How the panel validates the node's HTTPS certificate. Pin or Skip are for self-signed certs (https nodes only).",
@@ -1980,7 +1995,16 @@
       "subHostSortMode": "Subscription Node Ordering",
       "subHostSortInbound": "Inbound order (default)",
       "subHostSortHosts": "Hosts order",
-      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
+      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting.",
+      "inboundListOrder": "Inbound list order",
+      "inboundListOrderDesc": "Default order of the inbound list in the panel. Applies to local inbounds and to inbounds adopted from all nodes.",
+      "inboundListOrderOptionId": "ID",
+      "inboundListOrderOptionRemark": "Remark",
+      "inboundListOrderOptionPort": "Port",
+      "inboundListOrderOptionProtocol": "Protocol",
+      "inboundListOrderOptionSubSortIndex": "Subscription order",
+      "nodeRoutingControl": "Node routing control",
+      "nodeRoutingControlDesc": "Let this panel control the routing of connected nodes. When enabled, the Node Routing page can push a shared routing policy to each node."
     },
     "xray": {
       "save": "Save",
@@ -2522,6 +2546,36 @@
       "visit": "Visit",
       "yourBrand": "Your brand here",
       "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day."
+    },
+    "nodeRouting": {
+      "title": "Node routing control",
+      "control": "Control",
+      "controlDisabled": "Node routing control is disabled. Enable it to push routing policies to nodes.",
+      "policyTitle": "Shared routing policy",
+      "policyDesc": "JSON array of Xray routing rules (the same shape as the routing rules on the Routing page). When applied, a node runs these rules ahead of its own rules; the node's internal stats rule is always kept first.",
+      "policyInvalid": "The policy must be a JSON array of routing rule objects.",
+      "policySaved": "Routing policy saved",
+      "savePolicy": "Save policy",
+      "clearPolicy": "Clear policy",
+      "ruleCount": "{count} rule(s)",
+      "nodesTitle": "Nodes",
+      "applyAll": "Apply to all online nodes",
+      "apply": "Apply",
+      "clear": "Clear",
+      "applied": "Routing policy applied to {name}.",
+      "cleared": "Routing policy cleared on {name}.",
+      "applyFailed": "Apply failed on {name}: {reason}",
+      "appliedAll": "Routing policy applied to {count} node(s).",
+      "appliedMixed": "Routing policy applied to {ok} node(s), {failed} failed.",
+      "noNodes": "No online, enabled nodes to apply to.",
+      "node": "Node",
+      "status": "Status",
+      "egress": "Egress",
+      "direct": "direct",
+      "policy": "Master policy",
+      "policyActive": "active",
+      "none": "none",
+      "actions": "Actions"
     }
   },
   "tgbot": {

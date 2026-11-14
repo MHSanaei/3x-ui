@@ -55,6 +55,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "happLinkEnable": {
         "type": "boolean"
       },
+      "inboundListOrder": {
+        "example": "id",
+        "type": "string"
+      },
       "ipLimitAllowlist": {
         "type": "string"
       },
@@ -130,6 +134,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 100,
         "minimum": 1,
         "type": "integer"
+      },
+      "nodeRoutingControl": {
+        "type": "boolean"
+      },
+      "nodeRoutingRules": {
+        "type": "string"
       },
       "outboundDownThreshold": {
         "maximum": 100,
@@ -600,6 +610,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
       "happLinkEnable",
+      "inboundListOrder",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -623,6 +634,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "nodeDownThreshold",
+      "nodeRoutingControl",
+      "nodeRoutingRules",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -846,6 +859,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasWarpSecret": {
         "type": "boolean"
       },
+      "inboundListOrder": {
+        "example": "id",
+        "type": "string"
+      },
       "ipLimitAllowlist": {
         "type": "string"
       },
@@ -921,6 +938,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 100,
         "minimum": 1,
         "type": "integer"
+      },
+      "nodeRoutingControl": {
+        "type": "boolean"
+      },
+      "nodeRoutingRules": {
+        "type": "string"
       },
       "outboundDownThreshold": {
         "maximum": 100,
@@ -1399,6 +1422,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "inboundListOrder",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -1422,6 +1446,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserFilter",
       "ldapVlessField",
       "nodeDownThreshold",
+      "nodeRoutingControl",
+      "nodeRoutingRules",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
@@ -3454,6 +3480,40 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "InboundTagChangeCheck": {
+    "description": "InboundTagChangeCheck is the pre-flight report for an inbound ID (tag)\nchange: whether the target is usable and what a rename would touch, so the\npanel can show the impact before committing.",
+    "properties": {
+      "nodeTagConflict": {
+        "description": "NodeTagConflict reports a same-name inbound on the hosting node that the\nnew tag would collide with once the prefix is stripped.",
+        "example": false,
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "routingRefs": {
+        "description": "RoutingRefs is how many routing rules on this panel reference the\ncurrent tag; a rename rewrites them all.",
+        "example": 2,
+        "type": "integer"
+      },
+      "unchanged": {
+        "example": false,
+        "type": "boolean"
+      },
+      "valid": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "nodeTagConflict",
+      "reason",
+      "routingRefs",
+      "unchanged",
+      "valid"
+    ],
+    "type": "object"
+  },
   "InboundTrafficSummary": {
     "properties": {
       "down": {
@@ -3914,6 +3974,33 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "NodeRoutingApplyResult": {
+    "description": "NodeRoutingApplyResult is one node's outcome in a bulk routing apply; a\nfailed node never blocks the rest, each row carries its own error.",
+    "properties": {
+      "applied": {
+        "example": true,
+        "type": "boolean"
+      },
+      "error": {
+        "type": "string"
+      },
+      "name": {
+        "example": "edge-1",
+        "type": "string"
+      },
+      "nodeId": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "applied",
+      "error",
+      "name",
+      "nodeId"
+    ],
+    "type": "object"
+  },
   "NodeView": {
     "description": "NodeView is the browser/API read contract for nodes. Credentials are\nwrite-only: responses expose only whether a node has a token configured.",
     "properties": {
@@ -4007,6 +4094,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "latencyMs": {
         "example": 42,
         "type": "integer"
+      },
+      "masterRoutingRules": {
+        "type": "string"
       },
       "memPct": {
         "example": 45.2,
@@ -4118,6 +4208,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastError",
       "lastHeartbeat",
       "latencyMs",
+      "masterRoutingRules",
       "memPct",
       "name",
       "netDown",

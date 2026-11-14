@@ -184,6 +184,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
+	if masterRules, err := s.settingService.GetMasterRoutingRules(); err == nil {
+		xrayConfig.RouterConfig = mergeMasterRoutingRules(xrayConfig.RouterConfig, masterRules)
+	}
 	// A pasted or restored template can carry pre-#6258 XHTTP keys, a pre-26.10.10 xdns mask or a
 	// pre-26.9.9 quicParams.udpHop, which the core ignores, or a udphop not last, which it cannot dial.
 	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
@@ -1357,6 +1360,60 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 	}
 
 	parsed["rules"] = activeRules
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		return routerCfg
+	}
+	return out
+}
+
+// mergeMasterRoutingRules prepends the master-pushed routing policy (raw JSON
+// array of Xray routing rules) to the generated routing config so it takes
+// precedence over this panel's own rules, while keeping the pinned api stats
+// rule at index 0. Blank or unparseable policy leaves the config untouched.
+func mergeMasterRoutingRules(routerCfg json_util.RawMessage, masterRules string) json_util.RawMessage {
+	trimmed := strings.TrimSpace(masterRules)
+	if trimmed == "" {
+		return routerCfg
+	}
+	var policy []map[string]any
+	if err := json.Unmarshal([]byte(trimmed), &policy); err != nil {
+		logger.Warning("master routing policy unparseable, ignoring:", err)
+		return routerCfg
+	}
+	parsed := map[string]any{}
+	if len(routerCfg) > 0 {
+		if err := json.Unmarshal(routerCfg, &parsed); err != nil {
+			return routerCfg
+		}
+	}
+	var rules []any
+	if raw, ok := parsed["rules"].([]any); ok {
+		rules = raw
+	}
+	// Never let the policy starve the panel's internal api stats rule.
+	insertAt := 0
+	if len(rules) > 0 {
+		if first, ok := rules[0].(map[string]any); ok && isApiRule(first) {
+			insertAt = 1
+		}
+	}
+	merged := make([]any, 0, len(rules)+len(policy))
+	merged = append(merged, rules[:insertAt]...)
+	for _, rule := range policy {
+		// Honour the per-rule "enabled" flag the same way stripDisabledRules
+		// does for the node's own rules: a rule explicitly disabled in the
+		// policy must not become live on the node.
+		if enabled, ok := rule["enabled"].(bool); ok && !enabled {
+			continue
+		}
+		// Panel-only keys are stripped the same way stripDisabledRules does.
+		delete(rule, "enabled")
+		delete(rule, "comment")
+		merged = append(merged, rule)
+	}
+	merged = append(merged, rules[insertAt:]...)
+	parsed["rules"] = merged
 	out, err := json.Marshal(parsed)
 	if err != nil {
 		return routerCfg

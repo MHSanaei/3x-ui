@@ -1,5 +1,5 @@
 import { ObjectUtil } from '@/utils';
-import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
+import type { SubProfileMode, SubHostSortMode, InboundListOrder } from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -21,6 +21,9 @@ export class AllSetting {
   subShowIdentityOnAllLinks = false;
   subInfoNodeEnable = false;
   subHostSortMode: SubHostSortMode = 'inbound-first';
+  inboundListOrder: InboundListOrder = 'id';
+  nodeRoutingControl = false;
+  nodeRoutingRules = '';
   subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
   subTrafficDepletedTemplate =

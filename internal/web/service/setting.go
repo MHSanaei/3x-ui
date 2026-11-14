@@ -84,6 +84,9 @@ var defaultValueMap = map[string]string{
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
 	"subHostSortMode":             "inbound-first",
+	"inboundListOrder":            "id",
+	"nodeRoutingControl":          "false",
+	"nodeRoutingRules":            "",
 	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
@@ -512,6 +515,25 @@ func (s *SettingService) GetXrayConfigTemplate() (string, error) {
 	return s.getString("xrayTemplateConfig")
 }
 
+// GetMasterRoutingRules reads the node routing policy a master panel last
+// pushed to this panel. It is stored outside AllSetting so it never reaches
+// the settings UI; blank or a missing row both mean "no policy".
+func (s *SettingService) GetMasterRoutingRules() (string, error) {
+	setting, err := s.getSetting("masterRoutingRules")
+	if database.IsNotFound(err) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return setting.Value, nil
+}
+
+// SetMasterRoutingRules stores or clears the master-pushed routing policy.
+func (s *SettingService) SetMasterRoutingRules(rules string) error {
+	return s.saveSetting("masterRoutingRules", strings.TrimSpace(rules))
+}
+
 func (s *SettingService) GetXrayOutboundTestUrl() (string, error) {
 	return s.getString("xrayOutboundTestUrl")
 }
@@ -773,6 +795,30 @@ func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 
 func (s *SettingService) GetSubHostSortMode() (string, error) {
 	return s.getString("subHostSortMode")
+}
+
+// GetInboundListOrder returns the panel's default inbound list order. Unknown
+// values fall back to the historical id order instead of erroring so a stale
+// setting can never break the inbounds page.
+func (s *SettingService) GetInboundListOrder() (string, error) {
+	mode, err := s.getString("inboundListOrder")
+	if err != nil {
+		return "id", err
+	}
+	switch mode {
+	case "id", "remark", "port", "protocol", "subSortIndex":
+		return mode, nil
+	default:
+		return "id", nil
+	}
+}
+
+func (s *SettingService) GetNodeRoutingControl() (bool, error) {
+	return s.getBool("nodeRoutingControl")
+}
+
+func (s *SettingService) GetNodeRoutingRules() (string, error) {
+	return s.getString("nodeRoutingRules")
 }
 
 func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
@@ -1674,6 +1720,16 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	default:
 		return errors.New("subscription host sort mode must be inbound-first or hosts-first")
 	}
+	switch allSetting.InboundListOrder {
+	case "":
+		allSetting.InboundListOrder = "id"
+	case "id", "remark", "port", "protocol", "subSortIndex":
+	default:
+		return errors.New("inbound list order must be id, remark, port, protocol, or subSortIndex")
+	}
+	if err := validateNodeRoutingRules(allSetting.NodeRoutingRules); err != nil {
+		return err
+	}
 	switch allSetting.SubProfileMode {
 	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
 		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
@@ -1739,6 +1795,24 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		}
 		return nil
 	})
+}
+
+// validateNodeRoutingRules rejects a node routing policy that is not a JSON
+// array of non-empty routing rule objects; blank means "no policy".
+func validateNodeRoutingRules(rules string) error {
+	if strings.TrimSpace(rules) == "" {
+		return nil
+	}
+	var parsed []map[string]any
+	if err := json.Unmarshal([]byte(rules), &parsed); err != nil {
+		return errors.New("node routing rules must be a JSON array of routing rules")
+	}
+	for i, rule := range parsed {
+		if len(rule) == 0 {
+			return fmt.Errorf("node routing rule %d is empty", i)
+		}
+	}
+	return nil
 }
 
 func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {

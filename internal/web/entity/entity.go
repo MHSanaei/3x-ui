@@ -39,6 +39,9 @@ type AllSetting struct {
 	SubShowIdentityOnAllLinks  bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
 	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
 	SubHostSortMode            string `json:"subHostSortMode" form:"subHostSortMode" example:"inbound-first"`
+	InboundListOrder           string `json:"inboundListOrder" form:"inboundListOrder" example:"id"`
+	NodeRoutingControl         bool   `json:"nodeRoutingControl" form:"nodeRoutingControl"`
+	NodeRoutingRules           string `json:"nodeRoutingRules" form:"nodeRoutingRules"`
 	SubCalendarExpireInclusive bool   `json:"subCalendarExpireInclusive" form:"subCalendarExpireInclusive"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
 	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`

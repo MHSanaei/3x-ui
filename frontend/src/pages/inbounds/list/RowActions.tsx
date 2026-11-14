@@ -12,6 +12,7 @@ import {
   TagsOutlined,
   UsergroupAddOutlined,
   UsergroupDeleteOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 
 import { isInboundMultiUser } from './helpers';
@@ -42,6 +43,11 @@ export function buildRowActionsMenu({
   if (isMobile) {
     items.push({ key: 'edit', icon: <EditOutlined aria-hidden />, label: t('edit') });
   }
+  items.push({
+    key: 'changeId',
+    icon: <SwapOutlined aria-hidden />,
+    label: t('pages.inbounds.changeId'),
+  });
   if (isInboundMultiUser(record)) {
     items.push({
       key: 'export',
