@@ -2,12 +2,166 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+func TestGetXrayConfig_AggregatesExcludedClientLogs(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		clients  int
+		inbounds int
+		excluded int
+		affected int
+		shared   bool
+	}{
+		{"2000 excluded entries", 2000, 5, 2000, 5, false},
+		{"mixed clients and inbounds", 8, 4, 3, 2, false},
+		{"no excluded entries", 8, 4, 0, 0, false},
+		{"shared client counts as two entries", 4, 2, 1, 2, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupSettingTestDB(t)
+			ds := seedScaleDataset(t, tc.clients, tc.inbounds)
+			excluded := make(map[string]bool, tc.excluded)
+			for _, email := range ds.emails[:tc.excluded] {
+				excluded[email] = true
+			}
+			if tc.shared {
+				var record model.ClientRecord
+				if err := database.GetDB().Where("email = ?", ds.emails[0]).First(&record).Error; err != nil {
+					t.Fatal(err)
+				}
+				if err := database.GetDB().Create(&model.ClientInbound{ClientId: record.Id, InboundId: ds.inboundIds[1]}).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			// Manual disablement is a separate filter and must not inflate the summary.
+			if tc.excluded < tc.clients {
+				disableClients(t, ds.emails[tc.clients-1])
+			}
+			svc := &XrayService{}
+			want, err := svc.GetXrayConfig()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, tag := range ds.tags {
+				clients := make([]map[string]string, 0)
+				for _, client := range ds.perInbound[i] {
+					if !excluded[client.Email] && client.Email != ds.emails[tc.clients-1] {
+						clients = append(clients, map[string]string{"email": client.Email, "id": client.ID})
+					}
+				}
+				for k := range want.InboundConfigs {
+					if want.InboundConfigs[k].Tag == tag {
+						settings, err := json.MarshalIndent(map[string]any{"clients": clients}, "", "  ")
+						if err != nil {
+							t.Fatal(err)
+						}
+						want.InboundConfigs[k].Settings = settings
+					}
+				}
+			}
+			wantJSON, err := json.Marshal(want)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.excluded > 0 {
+				if err := database.GetDB().Model(&xray.ClientTraffic{}).
+					Where("email IN ?", ds.emails[:tc.excluded]).Update("enable", false).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			for generation := range 2 {
+				marker := fmt.Sprintf("%s generation %d", t.Name(), generation)
+				logger.Info(marker)
+				got, err := svc.GetXrayConfig()
+				if err != nil {
+					t.Fatal(err)
+				}
+				gotJSON, err := json.Marshal(got)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(gotJSON) != string(wantJSON) {
+					t.Fatal("generated config changed beyond the expected client exclusions")
+				}
+				infoCount := 0
+				foundMarker := false
+				for _, line := range logger.GetLogs(10000, "DEBUG") {
+					if strings.HasSuffix(line, " INFO - "+marker) {
+						foundMarker = true
+						break
+					}
+					if strings.Contains(line, "Remove Inbound User") || strings.Contains(line, "@scale") {
+						t.Fatalf("per-client log emitted: %s", line)
+					}
+					for _, clients := range ds.perInbound {
+						for _, client := range clients {
+							if strings.Contains(line, client.ID) || strings.Contains(line, client.SubID) {
+								t.Error("client credential or subscription ID leaked into logs")
+							}
+						}
+					}
+					if strings.Contains(line, " INFO - ") {
+						infoCount++
+						entries := tc.excluded
+						if tc.shared {
+							entries++
+						}
+						message := fmt.Sprintf(" INFO - Xray config generated: excluded %d disabled client entries across %d inbounds", entries, tc.affected)
+						if !strings.HasSuffix(line, message) {
+							t.Errorf("unexpected INFO entry: %s", line)
+						}
+					}
+				}
+				wantCount := 0
+				if tc.excluded > 0 {
+					wantCount = 1
+				}
+				if !foundMarker || infoCount != wantCount {
+					t.Errorf("generation %d: marker found = %v, INFO entries = %d, want %d", generation, foundMarker, infoCount, wantCount)
+				}
+			}
+		})
+	}
+}
+
+func TestGetXrayConfig_FailureDoesNotLogExclusionSummary(t *testing.T) {
+	setupSettingTestDB(t)
+	ds := seedScaleDataset(t, 1, 1)
+	db := database.GetDB()
+	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", ds.emails[0]).Update("enable", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&model.Inbound{}).Where("id = ?", ds.inboundIds[0]).
+		Update("stream_settings", `{"network":"tcp","security":"tls","tlsSettings":{}}`).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrator().DropTable(&model.InboundFallback{}); err != nil {
+		t.Fatal(err)
+	}
+	logger.Info(t.Name())
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if cfg != nil || err == nil || err.Error() != "no such table: inbound_fallbacks" {
+		t.Fatalf("GetXrayConfig = %v, %v; want missing fallback table failure", cfg, err)
+	}
+	for _, line := range logger.GetLogs(100, "DEBUG") {
+		if strings.HasSuffix(line, " INFO - "+t.Name()) {
+			return
+		}
+		if strings.Contains(line, "Xray config generated:") || strings.Contains(line, "Remove Inbound User") {
+			t.Fatalf("failed generation logged a successful summary or per-client removal: %s", line)
+		}
+	}
+	t.Fatal("log boundary not found")
+}
 
 func seedVlessInbound(t *testing.T, tag string, port int, clients []model.Client) {
 	t.Helper()
