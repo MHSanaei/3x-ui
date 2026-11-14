@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Select, Switch } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, Typography } from 'antd';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 
 import { FormField } from '@/components/form/rhf';
@@ -15,13 +15,16 @@ import { ADDRESS_PORT_STRATEGY_OPTIONS } from '../outbound-form-constants';
 
 interface SockoptFormProps {
   outboundTags?: string[];
+  // Only valid where outboundTags is the set the dial actually resolves against.
+  warnMissingDialerProxy?: boolean;
   showDomainStrategy?: boolean;
 }
 
 // Freedom's own card writes the strategy into this same sockopt key, so it hides
 // this field rather than letting two controls fight over one value.
 export default function SockoptForm({
-  outboundTags = [],
+  outboundTags,
+  warnMissingDialerProxy = false,
   showDomainStrategy = true,
 }: SockoptFormProps) {
   const { t } = useTranslation();
@@ -33,8 +36,14 @@ export default function SockoptForm({
     '') as string;
   const happyEyeballs = useWatch({ control, name: 'streamSettings.sockopt.happyEyeballs' });
   const hasHe = happyEyeballs != null;
+  // Unknown tags (still loading) must not read as missing, so only warn on a real list.
+  const dialerProxyMissing =
+    warnMissingDialerProxy &&
+    !!dialerProxy &&
+    !!outboundTags &&
+    !outboundTags.includes(dialerProxy);
   const dialerProxyOptions = Array.from(
-    new Set([...outboundTags, dialerProxy].filter(Boolean)),
+    new Set([...(outboundTags ?? []), dialerProxy].filter(Boolean)),
   ).map((tg) => ({ value: tg, label: tg }));
   return (
     <>
@@ -56,6 +65,13 @@ export default function SockoptForm({
             label={t('pages.inbounds.form.dialerProxy')}
             name={['streamSettings', 'sockopt', 'dialerProxy']}
             tooltip={t('pages.xray.outboundForm.dialerProxyHint')}
+            extra={
+              dialerProxyMissing && (
+                <Typography.Text type="warning">
+                  {t('pages.xray.outboundForm.dialerProxyMissing')}
+                </Typography.Text>
+              )
+            }
           >
             <Select
               allowClear

@@ -2008,6 +2008,7 @@
         "localIpPlaceholder": "IP nội bộ",
         "dialerProxyPlaceholder": "Chọn một outbound để nối chuỗi",
         "dialerProxyHint": "Kết nối outbound này qua một outbound khác (theo tag) để tạo chuỗi proxy. Để trống để kết nối trực tiếp.",
+        "dialerProxyMissing": "Không có outbound nào có tag này để tạo chuỗi.",
         "targetStrategyHint": "Cách phân giải tên miền đích trước khi kết nối: AsIs (mặc định) gửi nguyên trạng, UseIP… phân giải kèm dự phòng, ForceIP… bắt buộc phân giải thành công.",
         "addressRequired": "Địa chỉ là bắt buộc",
         "portRequired": "Cổng là bắt buộc",
