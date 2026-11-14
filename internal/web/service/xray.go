@@ -1141,10 +1141,24 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
+
+	// Template outbounds take tag priority (must not be altered by injected subscriptions).
+	usedTags := make(map[string]bool)
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				usedTags[tag] = true
+			}
+		}
+	}
+
+	prependClean := dedupeSubscriptionOutboundList(prepend, usedTags)
+	appendClean := dedupeSubscriptionOutboundList(appendList, usedTags)
+
 	var merged []any
-	merged = append(merged, prepend...)
+	merged = append(merged, prependClean...)
 	merged = append(merged, templateOutbounds...)
-	merged = append(merged, appendList...)
+	merged = append(merged, appendClean...)
 	combined, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return

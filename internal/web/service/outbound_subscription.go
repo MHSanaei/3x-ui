@@ -216,6 +216,19 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgen
 	return sub, nil
 }
 
+// normalizedSubscriptionPrefix returns the canonical "prefix-" string that
+// assignStableTags / link.SuggestTag produce for a given subscription id and tagPrefix.
+func normalizedSubscriptionPrefix(subID int, tagPrefix string) string {
+	prefix := strings.TrimSpace(tagPrefix)
+	if prefix == "" {
+		prefix = fmt.Sprintf("sub%d-", subID)
+	}
+	if p := strings.TrimSuffix(prefix, "-"); p != "" {
+		return p + "-"
+	}
+	return prefix
+}
+
 // Update updates editable fields.
 func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
 	sub, err := s.Get(id)
@@ -233,15 +246,18 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 		updateInterval = 600
 	}
 	prefix := strings.TrimSpace(tagPrefix)
-	if prefix == "" {
+	if prefix == "" && sub.TagPrefix != "" {
 		prefix, err = s.nextDefaultSubPrefix(sub.Id)
 		if err != nil {
 			return err
 		}
 	}
+	oldEffective := normalizedSubscriptionPrefix(sub.Id, sub.TagPrefix)
+	newEffective := normalizedSubscriptionPrefix(sub.Id, prefix)
+
 	// Only the editable columns: a whole-row save would put back fetch results that a
 	// refresh stored meanwhile, or re-create a row deleted meanwhile.
-	return database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).Updates(map[string]any{
+	updates := map[string]any{
 		"remark":          strings.TrimSpace(remark),
 		"url":             cleanURL,
 		"enabled":         enabled,
@@ -251,7 +267,76 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 		"prepend":         prepend,
 		"tag_prefix":      prefix,
 		"update_interval": updateInterval,
-	}).Error
+	}
+	if oldEffective != newEffective {
+		s.rewriteStoredPrefix(sub, oldEffective, newEffective, updates)
+	}
+	return database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).Updates(updates).Error
+}
+
+// rewriteStoredPrefix updates persisted LinkIdentities and LastFetchedOutbounds
+// in-place when an operator changes a subscription's TagPrefix, so that panel UI
+// surfaces and subsequent refreshes (including shortened prefixes like "eu-de-" -> "eu-")
+// immediately reflect the new prefix without keeping stale prefix segments.
+func (s *OutboundSubscriptionService) rewriteStoredPrefix(sub *model.OutboundSubscription, oldPrefix, newPrefix string, updates map[string]any) {
+	if strings.TrimSpace(sub.LinkIdentities) == "" && strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
+		return
+	}
+	externalUsed := s.reservedExternalTags(sub.Id)
+	used := make(map[string]bool)
+	renamed := make(map[string]string)
+
+	allocate := func(oldTag string) string {
+		if oldTag == "" {
+			return ""
+		}
+		if mapped, ok := renamed[oldTag]; ok {
+			return mapped
+		}
+		base := oldTag
+		if strings.HasPrefix(oldTag, oldPrefix) {
+			rest := strings.TrimPrefix(oldTag, oldPrefix)
+			if rest != "" {
+				base = newPrefix + rest
+			}
+		}
+		final := base
+		for k := 1; used[final] || externalUsed[final]; k++ {
+			final = fmt.Sprintf("%s-%d", base, k)
+		}
+		used[final] = true
+		renamed[oldTag] = final
+		return final
+	}
+
+	if strings.TrimSpace(sub.LastFetchedOutbounds) != "" {
+		var obs []any
+		if json.Unmarshal([]byte(sub.LastFetchedOutbounds), &obs) == nil {
+			for _, item := range obs {
+				if m, ok := item.(map[string]any); ok {
+					if t, _ := m["tag"].(string); t != "" {
+						m["tag"] = allocate(t)
+					}
+				}
+			}
+			if b, err := json.Marshal(obs); err == nil {
+				updates["last_fetched_outbounds"] = string(b)
+			}
+		}
+	}
+	if strings.TrimSpace(sub.LinkIdentities) != "" {
+		var prev map[string]string
+		if json.Unmarshal([]byte(sub.LinkIdentities), &prev) == nil {
+			for id, t := range prev {
+				if t != "" {
+					prev[id] = allocate(t)
+				}
+			}
+			if b, err := json.Marshal(prev); err == nil {
+				updates["link_identities"] = string(b)
+			}
+		}
+	}
 }
 
 // Delete removes a subscription.
@@ -508,10 +593,13 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 	}
 
 	// Assign tags with stability (identity reuse, positional fallback, then a
-	// fresh allocation), keeping tags unique within this batch. Extracted into a
-	// pure function so it can be unit-tested without network/DB. Tags are written
-	// back into the parsed outbounds in place.
-	assigned := assignStableTags(keptLinks, keptIdentities, prev, prevTagByIndex, sub.Id, sub.TagPrefix)
+	// fresh allocation), keeping tags unique within this batch and across other
+	// existing subscriptions / template outbounds.
+	var externalUsed map[string]bool
+	if sub.Id > 0 {
+		externalUsed = s.reservedExternalTags(sub.Id)
+	}
+	assigned := assignStableTagsWithExternal(keptLinks, keptIdentities, prev, prevTagByIndex, sub.Id, sub.TagPrefix, externalUsed)
 
 	// Persist identities for next time
 	newIdent := map[string]string{}
@@ -600,11 +688,63 @@ func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscriptio
 // Tags are kept unique within the batch by appending "-N" on collision, and are
 // written back into parsed[i]["tag"]. The returned slice holds the assigned tags
 // in order. When tagPrefix is empty a "sub<subID>-" prefix is used for fresh tags.
+var trailingCollisionNumRe = regexp.MustCompile(`^(.+)-\d+$`)
+
+// matchesActiveTagPrefix reports whether oldTag belongs to expectedPrefix rather
+// than a different or longer prefix before a prefix edit (such as shortening
+// "eu-de-" to "eu-", where "eu-de-frankfurt" still starts with "eu-" but carries
+// the extra "de-" segment ahead of the link's own slug "frankfurt").
+func matchesActiveTagPrefix(oldTag, expectedPrefix, baseSlug string) bool {
+	if !strings.HasPrefix(oldTag, expectedPrefix) {
+		return false
+	}
+	rest := strings.TrimPrefix(oldTag, expectedPrefix)
+	if rest == "" {
+		return false
+	}
+	if baseSlug != "" {
+		if rest != baseSlug && strings.HasSuffix(rest, "-"+baseSlug) {
+			return false
+		}
+		if m := trailingCollisionNumRe.FindStringSubmatch(rest); m != nil {
+			if m[1] != baseSlug && strings.HasSuffix(m[1], "-"+baseSlug) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func linkBaseSlug(ob link.Outbound, idx int) string {
+	remark := ""
+	if m, ok := ob["tag"].(string); ok {
+		remark = m
+	}
+	base := link.SlugRemark(remark)
+	if base == "" {
+		base = fmt.Sprintf("%d", idx)
+	}
+	return base
+}
+
 func assignStableTags(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string) []string {
+	return assignStableTagsWithExternal(parsed, identities, prev, prevTagByIndex, subID, tagPrefix, nil)
+}
+
+func assignStableTagsWithExternal(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string, externalUsed map[string]bool) []string {
+	prefix := tagPrefix
+	if prefix == "" {
+		prefix = fmt.Sprintf("sub%d-", subID)
+	}
+	expectedPrefix := normalizedSubscriptionPrefix(subID, prefix)
+
 	reservedStableTags := map[string]bool{}
 	for i := range parsed {
 		if i < len(identities) && prev[identities[i]] != "" {
-			reservedStableTags[prev[identities[i]]] = true
+			tag := prev[identities[i]]
+			if matchesActiveTagPrefix(tag, expectedPrefix, linkBaseSlug(parsed[i], i)) && !externalUsed[tag] {
+				reservedStableTags[tag] = true
+			}
 		}
 	}
 
@@ -615,33 +755,30 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 		if i < len(identities) {
 			id = identities[i]
 		}
+		baseSlug := linkBaseSlug(parsed[i], i)
 		candidate := ""
 		identityTag := ""
-		if old, ok := prev[id]; ok && old != "" {
+		if old, ok := prev[id]; ok && old != "" && matchesActiveTagPrefix(old, expectedPrefix, baseSlug) {
 			candidate = old
 			identityTag = old
 		}
 		if candidate == "" {
 			// try to reuse by rough positional match from previous fetch (best effort)
-			if old, ok := prevTagByIndex[i]; ok && old != "" && !reservedStableTags[old] {
+			if old, ok := prevTagByIndex[i]; ok && old != "" && matchesActiveTagPrefix(old, expectedPrefix, baseSlug) && !reservedStableTags[old] {
 				candidate = old
 			}
 		}
 		if candidate == "" {
 			// fresh allocation
-			prefix := tagPrefix
-			if prefix == "" {
-				prefix = fmt.Sprintf("sub%d-", subID)
-			}
 			remark := ""
 			if m, ok := parsed[i]["tag"].(string); ok {
 				remark = m
 			}
 			candidate = link.SuggestTag(prefix, remark, i)
 		}
-		// ensure local uniqueness inside this batch
+		// ensure uniqueness inside this batch and against template / other subscriptions
 		final := candidate
-		for k := 1; used[final] || (reservedStableTags[final] && final != identityTag); k++ {
+		for k := 1; used[final] || externalUsed[final] || (reservedStableTags[final] && final != identityTag); k++ {
 			final = fmt.Sprintf("%s-%d", candidate, k)
 		}
 		used[final] = true
@@ -653,11 +790,106 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 	return assigned
 }
 
+// templateOutboundTags returns the set of tags defined in the stored Xray template's
+// manual outbounds array.
+func (s *OutboundSubscriptionService) templateOutboundTags() map[string]bool {
+	used := make(map[string]bool)
+	if database.GetDB() == nil {
+		return used
+	}
+	tpl, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil || strings.TrimSpace(tpl) == "" {
+		return used
+	}
+	var cfg xray.Config
+	if err := json.Unmarshal([]byte(tpl), &cfg); err != nil || len(cfg.OutboundConfigs) == 0 {
+		return used
+	}
+	var templateOutbounds []any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &templateOutbounds); err != nil {
+		return used
+	}
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				used[tag] = true
+			}
+		}
+	}
+	return used
+}
+
+// reservedExternalTags returns all outbound tags currently reserved by the Xray
+// template and by other subscriptions (id != excludeSubID), so a refresh or prefix
+// update can persist collision-free tags directly in LastFetchedOutbounds.
+func (s *OutboundSubscriptionService) reservedExternalTags(excludeSubID int) map[string]bool {
+	used := s.templateOutboundTags()
+	db := database.GetDB()
+	if db == nil {
+		return used
+	}
+	var subs []*model.OutboundSubscription
+	if err := db.Where("id <> ?", excludeSubID).Order("priority asc, id asc").Find(&subs).Error; err != nil {
+		return used
+	}
+	for _, sub := range subs {
+		if strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
+			continue
+		}
+		var arr []any
+		if json.Unmarshal([]byte(sub.LastFetchedOutbounds), &arr) != nil {
+			continue
+		}
+		for _, item := range arr {
+			if ob, ok := item.(map[string]any); ok {
+				if tag, _ := ob["tag"].(string); tag != "" {
+					used[tag] = true
+				}
+			}
+		}
+	}
+	return used
+}
+
+// dedupeSubscriptionOutboundList ensures every outbound in list has a tag not in
+// usedTags, cloning and appending a "-N" suffix (with a warning log) on collision.
+func dedupeSubscriptionOutboundList(list []any, usedTags map[string]bool) []any {
+	out := make([]any, len(list))
+	for i, item := range list {
+		ob, ok := item.(map[string]any)
+		if !ok {
+			out[i] = item
+			continue
+		}
+		tag, _ := ob["tag"].(string)
+		if tag == "" {
+			out[i] = item
+			continue
+		}
+		if !usedTags[tag] {
+			usedTags[tag] = true
+			out[i] = item
+			continue
+		}
+		cloned := make(map[string]any, len(ob))
+		for k, v := range ob {
+			cloned[k] = v
+		}
+		final := tag
+		for k := 1; usedTags[final]; k++ {
+			final = fmt.Sprintf("%s-%d", tag, k)
+		}
+		usedTags[final] = true
+		cloned["tag"] = final
+		logger.Warningf("outbound subscription tag %q collides with an existing outbound, renamed to %q", tag, final)
+		out[i] = cloned
+	}
+	return out
+}
+
 // AllActiveOutbounds returns the concatenation of the last-fetched outbounds
 // for every enabled subscription. This is the set that should be merged into
-// the final Xray config. Order: subscription creation order (by id asc) so
-// that later subscriptions can shadow earlier ones if the admin uses colliding
-// prefixes (last writer wins inside xray, but we try to keep tags unique).
+// the final Xray config.
 func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
 	prepend, appendList, err := s.activeOutboundsSplit()
 	if err != nil {
@@ -669,7 +901,9 @@ func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
 // activeOutboundsSplit returns the active subscription outbounds split into those
 // that should be placed BEFORE the manual template outbounds (Prepend) and those
 // placed AFTER. Within each group, subscriptions are ordered by Priority (then id)
-// so the admin can control the merged order.
+// so the admin can control the merged order. Any colliding tags across template
+// and subscriptions are disambiguated consistently so that AllActiveOutbounds,
+// AllActiveOutboundTags, and the generated Xray config always expose identical tags.
 func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, appendList []any, err error) {
 	db := database.GetDB()
 	var subs []*model.OutboundSubscription
@@ -708,6 +942,9 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			appendList = append(appendList, arr...)
 		}
 	}
+	usedTags := s.templateOutboundTags()
+	prepend = dedupeSubscriptionOutboundList(prepend, usedTags)
+	appendList = dedupeSubscriptionOutboundList(appendList, usedTags)
 	return prepend, appendList, nil
 }
 
