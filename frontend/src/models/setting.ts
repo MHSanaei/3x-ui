@@ -69,6 +69,8 @@ export class AllSetting {
   subKeyFile = '';
   externalSubUserAgent = 'v2rayNG/1.8.5';
   subUpdates = 12;
+  subRateLimitEnable = false;
+  subRateLimit = 60;
   subEncrypt = true;
   subURI = '';
   subJsonURI = '';

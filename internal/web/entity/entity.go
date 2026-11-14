@@ -112,6 +112,8 @@ type AllSetting struct {
 	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`
 	ExternalSubUserAgent        string `json:"externalSubUserAgent" form:"externalSubUserAgent"`
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates" validate:"gte=0,lte=525600"`
+	SubRateLimitEnable          bool   `json:"subRateLimitEnable" form:"subRateLimitEnable"`
+	SubRateLimit                int    `json:"subRateLimit" form:"subRateLimit" validate:"gte=1,lte=1000"`
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
 	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
