@@ -20,7 +20,7 @@ import {
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
-import type { RealityScanResult } from '@/generated/types';
+import type { RealityScanResult, RealityWatchEntry } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -328,6 +328,7 @@ export default function InboundFormModal({
   const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
+  const realityWatchDraft = useRef<RealityWatchEntry | null>(null);
   const currentTagInput = (): InboundTagInput => ({
     port: typeof wPort === 'number' ? wPort : 0,
     nodeId: typeof wNodeId === 'number' ? wNodeId : null,
@@ -480,6 +481,7 @@ export default function InboundFormModal({
         ? withoutClients(rawInboundToFormValues(dbInbound))
         : buildAddModeValues();
     methods.reset(initial);
+    realityWatchDraft.current = null;
     savedInboundId.current = null;
     setScanResult(null);
     setActiveTab('basic');
@@ -649,14 +651,26 @@ export default function InboundFormModal({
         : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
-        if (isFallbackHost) {
-          const obj = msg.obj as { id?: number; Id?: number } | null;
-          const masterId = existingId ?? obj?.id ?? obj?.Id ?? 0;
-          if (masterId) savedInboundId.current = masterId;
-          if (masterId && !(await saveFallbacks(masterId))) {
+        const obj = msg.obj as { id?: number; Id?: number } | null;
+        const masterId = existingId ?? obj?.id ?? obj?.Id ?? 0;
+        if (isFallbackHost && masterId) {
+          savedInboundId.current = masterId;
+          if (!(await saveFallbacks(masterId))) {
             messageApi.error(t('pages.inbounds.fallbacks.saveFailed'));
             return;
           }
+        }
+        const watch = realityWatchDraft.current;
+        if (
+          mode === 'add' &&
+          masterId &&
+          parsed.data.streamSettings?.security === 'reality' &&
+          watch &&
+          (watch.auto || watch.spares.length)
+        ) {
+          await HttpUtil.post(`/panel/api/realityWatch/save/${masterId}`, watch, {
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
         onSaved();
         onClose();
@@ -1112,6 +1126,17 @@ export default function InboundFormModal({
           clearRealityKeypair={clearRealityKeypair}
           genMldsa65={genMldsa65}
           clearMldsa65={clearMldsa65}
+          inboundId={mode === 'edit' && dbInbound ? dbInbound.id : null}
+          onNode={typeof dbInbound?.nodeId === 'number'}
+          messageApi={messageApi}
+          onWatchDraftChange={(entry) => {
+            realityWatchDraft.current = entry;
+          }}
+          onWatchSwitched={(target, serverNames) => {
+            methods.setValue('streamSettings.realitySettings.target', target);
+            methods.setValue('streamSettings.realitySettings.serverNames', serverNames);
+            setScanResult(null);
+          }}
         />
       )}
     </>
