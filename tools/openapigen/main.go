@@ -92,6 +92,10 @@ func run(root, outDir string) error {
 			AliasAllow: setOf("GeoKind"),
 		},
 		{
+			Path:        resolveRel(root, "internal/web/runtime"),
+			StructAllow: setOf("NodeSnapshotAttachment", "NodeSnapshotStructure", "NodeInboundTraffic", "NodeClientTraffic", "NodeTrafficSnapshotV1"),
+		},
+		{
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
