@@ -1,10 +1,10 @@
-import { hostEndpointsFor, type HostEndpoint } from '@/lib/hosts/host-link';
+import { allHostsExcluded, hostEndpointsFor, type HostEndpoint } from '@/lib/hosts/host-link';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import type { InboundOption } from '@/hooks/useClients';
 import type { HostRecord } from '@/schemas/api/host';
 
-// One client config per Host the subscription of that format advertises for the
-// inbound; `undefined` stands for the inbound's own address when no Host applies.
+// One client config per Host the subscription of that format advertises for the inbound;
+// `undefined` is the inbound's own address when it has no enabled Host, none when all are excluded.
 export function tunnelConfigEndpoints(
   inbound: InboundOption,
   hosts: HostRecord[],
@@ -12,6 +12,7 @@ export function tunnelConfigEndpoints(
   publicHost: string,
   subType: 'raw' | 'clash' = 'raw',
 ): (HostEndpoint | undefined)[] {
+  if (allHostsExcluded(hosts, inbound.id, subType)) return [];
   const defaultDest = resolveShareHost(
     inbound,
     inbound.nodeAddress ?? '',
