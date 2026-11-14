@@ -138,17 +138,31 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
 	var ordered []orderedSubEntry[func() subConfigEntry]
+	balancers := getEnabledSubBalancers()
+	balancerInbounds := balancerInboundIds(balancers)
+	// Hidden inbounds that a balancer selects: their configs only feed balancer members.
+	var hidden []subConfigEntry
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
 		clients := subReq.matchingClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
+		hiddenMember := false
 		if inbound.ExcludeFromSub {
 			if countHiddenClients(clients, seenEmails) {
 				hasEnabledClient = true
 			}
-			continue
+			if !balancerInbounds[inbound.Id] {
+				continue
+			}
+			hiddenMember = true
+		}
+		renderConfigs := func(inbound *model.Inbound, client model.Client) []json_util.RawMessage {
+			if hiddenMember {
+				return s.hiddenMemberConfig(subReq, inbound, client, host)
+			}
+			return s.budgetedConfig(subReq, inbound, client, host)
 		}
 		subReq.projectThroughFallbackMaster(inbound)
 		var baseEps []map[string]any
@@ -170,11 +184,17 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			seenEmails[client.Email] = struct{}{}
 			if subReq.hostsFirst {
 				variants, closed := subReq.clientHostVariants(&baseInbound, client, "json")
-				hasBoundClosed = hasBoundClosed || closed
+				hasBoundClosed = hasBoundClosed || (closed && !hiddenMember)
 				for _, variant := range variants {
 					render := func() subConfigEntry {
-						configs := s.budgetedConfig(subReq, variant.inbound(subReq, inbound), client, host)
+						configs := renderConfigs(variant.inbound(subReq, inbound), client)
 						return subConfigEntry{sortIndex: inbound.SubSortIndex, id: inbound.Id, configs: configs, hostOrder: variant.order}
+					}
+					if hiddenMember {
+						if entry := render(); len(entry.configs) > 0 {
+							hidden = append(hidden, entry)
+						}
+						continue
 					}
 					ordered = append(ordered, orderedSubEntry[func() subConfigEntry]{variant.order, render})
 				}
@@ -183,7 +203,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			effective := inbound
 			if effectiveEps, bound := subReq.clientHostEndpoints(&baseInbound, client, "json", baseEps); bound {
 				if len(effectiveEps) == 0 {
-					hasBoundClosed = true
+					hasBoundClosed = hasBoundClosed || !hiddenMember
 					continue
 				}
 				clone := baseInbound
@@ -191,14 +211,19 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			inboundConfigs = append(inboundConfigs, s.budgetedConfig(subReq, effective, client, host)...)
+			inboundConfigs = append(inboundConfigs, renderConfigs(effective, client)...)
 		}
 		if len(inboundConfigs) > 0 {
-			entries = append(entries, subConfigEntry{
+			entry := subConfigEntry{
 				sortIndex: inbound.SubSortIndex,
 				id:        inbound.Id,
 				configs:   inboundConfigs,
-			})
+			}
+			if hiddenMember {
+				hidden = append(hidden, entry)
+			} else {
+				entries = append(entries, entry)
+			}
 		}
 	}
 	if subReq.hostsFirst {
@@ -209,7 +234,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			}
 		}
 	}
-	entries = s.appendBalancerEntries(entries)
+	entries = s.appendBalancerEntries(entries, hidden, balancers)
 
 	// Inbounds arrive sorted by (sub_sort_index, id); balancers interleave by
 	// the same key and, on an equal number, follow the inbound group.
@@ -419,17 +444,39 @@ func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
 	}
 }
 
-// appendBalancerEntries appends one entry per enabled balancer that has at
-// least one member outbound among the inbound entries.
-func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
-	balancers := getEnabledSubBalancers()
+// balancerInboundIds is the set of inbound ids any of the balancers selects.
+func balancerInboundIds(balancers []model.SubBalancer) map[int]bool {
+	ids := make(map[int]bool)
+	for _, balancer := range balancers {
+		for _, id := range balancer.InboundIds {
+			ids[id] = true
+		}
+	}
+	return ids
+}
+
+// hiddenMemberConfig renders a hidden inbound's configs for balancer members only: none of it
+// reaches the response, so it neither spends the render budget nor the first-link remark tokens.
+func (s *SubJsonService) hiddenMemberConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
+	if subReq.rendered.spent() {
+		return nil
+	}
+	usageShown := maps.Clone(subReq.usageShown)
+	defer func() { subReq.usageShown = usageShown }()
+	return s.getConfig(subReq, inbound, client, host)
+}
+
+// appendBalancerEntries appends one entry per balancer that has at least one member outbound
+// among the inbound entries; hidden inbounds' entries are members but never output themselves.
+func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry, balancers []model.SubBalancer) []subConfigEntry {
 	if len(balancers) == 0 {
 		return entries
 	}
+	sources := append(slices.Clip(entries), hidden...)
 	// Pre-pass: pull each inbound doc's proxy outbound once so every balancer
 	// reuses it instead of re-unmarshalling the whole document per balancer.
-	entryProxies := make([][]map[string]any, len(entries))
-	for i, entry := range entries {
+	entryProxies := make([][]map[string]any, len(sources))
+	for i, entry := range sources {
 		if entry.kind != 0 {
 			continue
 		}
@@ -440,7 +487,7 @@ func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subCo
 		}
 	}
 	for i := range balancers {
-		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies)
+		config := s.buildBalancerConfig(&balancers[i], sources, entryProxies)
 		if config == nil {
 			continue
 		}
