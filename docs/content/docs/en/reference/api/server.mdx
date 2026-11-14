@@ -28,18 +28,23 @@ _openapi:
         data with a uniform {t, v} shape.'
       url: '#legacy-aggregated-cpu-history-use-historycpubucket-instead--same-data-with-a-uniform-t-v-shape'
     - depth: 2
-      title: Aggregated time-series for one metric. Returns an array of {t, v} samples
-        covering the last ~6 hours.
-      url: '#aggregated-time-series-for-one-metric-returns-an-array-of-t-v-samples-covering-the-last-6-hours'
+      title: Aggregated time-series for one system metric. Returns up to 60 {t, v}
+        samples; supported bucket sizes cover windows from 2 minutes up to 7
+        days.
+      url: '#aggregated-time-series-for-one-system-metric-returns-up-to-60-t-v-samples-supported-bucket-sizes-cover-windows-from-2-minutes-up-to-7-days'
+    - depth: 2
+      title: Aggregated history for all overview charts in one response. Returns up to
+        60 samples per metric for the selected 2-minute to 12-hour window.
+      url: '#aggregated-history-for-all-overview-charts-in-one-response-returns-up-to-60-samples-per-metric-for-the-selected-2-minute-to-12-hour-window'
     - depth: 2
       title: Xray runtime metrics state — whether the xray config has a `metrics`
         block, which expvar keys are flowing, and the current snapshot values
         for each. Returns an empty state when metrics are not configured.
       url: '#xray-runtime-metrics-state--whether-the-xray-config-has-a-metrics-block-which-expvar-keys-are-flowing-and-the-current-snapshot-values-for-each-returns-an-empty-state-when-metrics-are-not-configured'
     - depth: 2
-      title: Time-series history for one Xray runtime metric over the last ~6 hours.
-        Same {t, v} shape as /history/:metric/:bucket.
-      url: '#time-series-history-for-one-xray-runtime-metric-over-the-last-6-hours-same-t-v-shape-as-historymetricbucket'
+      title: Aggregated history for one Xray runtime metric. Returns up to 60 {t, v}
+        samples for bucket windows up to 7 days.
+      url: '#aggregated-history-for-one-xray-runtime-metric-returns-up-to-60-t-v-samples-for-bucket-windows-up-to-7-days'
     - depth: 2
       title: Latest snapshot from the Xray observatory — per-outbound latency, health
         status, and last-probe time. Only populated when the Xray config has an
@@ -198,16 +203,20 @@ _openapi:
       - content: 'Legacy: aggregated CPU history. Use /history/cpu/:bucket instead —
           same data with a uniform {t, v} shape.'
         id: legacy-aggregated-cpu-history-use-historycpubucket-instead--same-data-with-a-uniform-t-v-shape
-      - content: Aggregated time-series for one metric. Returns an array of {t, v}
-          samples covering the last ~6 hours.
-        id: aggregated-time-series-for-one-metric-returns-an-array-of-t-v-samples-covering-the-last-6-hours
+      - content: Aggregated time-series for one system metric. Returns up to 60 {t, v}
+          samples; supported bucket sizes cover windows from 2 minutes up to 7
+          days.
+        id: aggregated-time-series-for-one-system-metric-returns-up-to-60-t-v-samples-supported-bucket-sizes-cover-windows-from-2-minutes-up-to-7-days
+      - content: Aggregated history for all overview charts in one response. Returns up
+          to 60 samples per metric for the selected 2-minute to 12-hour window.
+        id: aggregated-history-for-all-overview-charts-in-one-response-returns-up-to-60-samples-per-metric-for-the-selected-2-minute-to-12-hour-window
       - content: Xray runtime metrics state — whether the xray config has a `metrics`
           block, which expvar keys are flowing, and the current snapshot values
           for each. Returns an empty state when metrics are not configured.
         id: xray-runtime-metrics-state--whether-the-xray-config-has-a-metrics-block-which-expvar-keys-are-flowing-and-the-current-snapshot-values-for-each-returns-an-empty-state-when-metrics-are-not-configured
-      - content: Time-series history for one Xray runtime metric over the last ~6 hours.
-          Same {t, v} shape as /history/:metric/:bucket.
-        id: time-series-history-for-one-xray-runtime-metric-over-the-last-6-hours-same-t-v-shape-as-historymetricbucket
+      - content: Aggregated history for one Xray runtime metric. Returns up to 60 {t, v}
+          samples for bucket windows up to 7 days.
+        id: aggregated-history-for-one-xray-runtime-metric-returns-up-to-60-t-v-samples-for-bucket-windows-up-to-7-days
       - content: Latest snapshot from the Xray observatory — per-outbound latency,
           health status, and last-probe time. Only populated when the Xray
           config has an observatory configured.
@@ -325,7 +334,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/openapi.json","method":"get"},{"path":"/panel/api/server/status","method":"get"},{"path":"/panel/api/server/fail2banStatus","method":"get"},{"path":"/panel/api/server/cpuHistory/{bucket}","method":"get"},{"path":"/panel/api/server/history/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayMetricsState","method":"get"},{"path":"/panel/api/server/xrayMetricsHistory/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayObservatory","method":"get"},{"path":"/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}","method":"get"},{"path":"/panel/api/server/getXrayVersion","method":"get"},{"path":"/panel/api/server/getPanelUpdateInfo","method":"get"},{"path":"/panel/api/server/getUpdateStatus","method":"get"},{"path":"/panel/api/server/getConfigJson","method":"get"},{"path":"/panel/api/server/getDb","method":"get"},{"path":"/panel/api/server/getMigration","method":"get"},{"path":"/panel/api/server/getNewUUID","method":"get"},{"path":"/panel/api/server/getWebCertFiles","method":"get"},{"path":"/panel/api/server/descendants","method":"get"},{"path":"/panel/api/server/getNewX25519Cert","method":"get"},{"path":"/panel/api/server/getNewmldsa65","method":"get"},{"path":"/panel/api/server/getNewmlkem768","method":"get"},{"path":"/panel/api/server/getNewVlessEnc","method":"get"},{"path":"/panel/api/server/stopXrayService","method":"post"},{"path":"/panel/api/server/restartXrayService","method":"post"},{"path":"/panel/api/server/installXray/{version}","method":"post"},{"path":"/panel/api/server/updatePanel","method":"post"},{"path":"/panel/api/server/setUpdateChannel","method":"post"},{"path":"/panel/api/server/updateGeofile","method":"post"},{"path":"/panel/api/server/updateGeofile/{fileName}","method":"post"},{"path":"/panel/api/server/logs/{count}","method":"post"},{"path":"/panel/api/server/xraylogs/{count}","method":"post"},{"path":"/panel/api/server/amneziawglogs/{count}","method":"post"},{"path":"/panel/api/server/importDB","method":"post"},{"path":"/panel/api/server/getNewEchCert","method":"post"},{"path":"/panel/api/server/getCertHash","method":"post"},{"path":"/panel/api/server/getRemoteCertHash","method":"post"},{"path":"/panel/api/server/scanRealityTarget","method":"post"},{"path":"/panel/api/server/scanRealityTargets","method":"post"},{"path":"/panel/api/server/clientIps","method":"get"},{"path":"/panel/api/server/clientIps","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/openapi.json","method":"get"},{"path":"/panel/api/server/status","method":"get"},{"path":"/panel/api/server/fail2banStatus","method":"get"},{"path":"/panel/api/server/cpuHistory/{bucket}","method":"get"},{"path":"/panel/api/server/history/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/overviewHistory/{bucket}","method":"get"},{"path":"/panel/api/server/xrayMetricsState","method":"get"},{"path":"/panel/api/server/xrayMetricsHistory/{metric}/{bucket}","method":"get"},{"path":"/panel/api/server/xrayObservatory","method":"get"},{"path":"/panel/api/server/xrayObservatoryHistory/{tag}/{bucket}","method":"get"},{"path":"/panel/api/server/getXrayVersion","method":"get"},{"path":"/panel/api/server/getPanelUpdateInfo","method":"get"},{"path":"/panel/api/server/getUpdateStatus","method":"get"},{"path":"/panel/api/server/getConfigJson","method":"get"},{"path":"/panel/api/server/getDb","method":"get"},{"path":"/panel/api/server/getMigration","method":"get"},{"path":"/panel/api/server/getNewUUID","method":"get"},{"path":"/panel/api/server/getWebCertFiles","method":"get"},{"path":"/panel/api/server/descendants","method":"get"},{"path":"/panel/api/server/getNewX25519Cert","method":"get"},{"path":"/panel/api/server/getNewmldsa65","method":"get"},{"path":"/panel/api/server/getNewmlkem768","method":"get"},{"path":"/panel/api/server/getNewVlessEnc","method":"get"},{"path":"/panel/api/server/stopXrayService","method":"post"},{"path":"/panel/api/server/restartXrayService","method":"post"},{"path":"/panel/api/server/installXray/{version}","method":"post"},{"path":"/panel/api/server/updatePanel","method":"post"},{"path":"/panel/api/server/setUpdateChannel","method":"post"},{"path":"/panel/api/server/updateGeofile","method":"post"},{"path":"/panel/api/server/updateGeofile/{fileName}","method":"post"},{"path":"/panel/api/server/logs/{count}","method":"post"},{"path":"/panel/api/server/xraylogs/{count}","method":"post"},{"path":"/panel/api/server/amneziawglogs/{count}","method":"post"},{"path":"/panel/api/server/importDB","method":"post"},{"path":"/panel/api/server/getNewEchCert","method":"post"},{"path":"/panel/api/server/getCertHash","method":"post"},{"path":"/panel/api/server/getRemoteCertHash","method":"post"},{"path":"/panel/api/server/scanRealityTarget","method":"post"},{"path":"/panel/api/server/scanRealityTargets","method":"post"},{"path":"/panel/api/server/clientIps","method":"get"},{"path":"/panel/api/server/clientIps","method":"post"}]} showTitle />
     </>
   );
 }

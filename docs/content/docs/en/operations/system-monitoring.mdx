@@ -1,0 +1,47 @@
+---
+title: System monitoring
+description: Read the overview charts, choose a time window, and understand how 3x-ui stores system history.
+icon: ChartNoAxesCombined
+---
+
+The overview page combines a current server snapshot with short time-series charts. It shows CPU, memory, swap, storage, network throughput, and open TCP/UDP connections. Open **System history** for additional metrics such as packets, disk I/O, load averages, and Xray online clients.
+
+## Choose a chart window
+
+Each overview chart has the same time-range selector in its upper-right corner. The default is **2m**. The choices are **2m**, **5m**, **30m**, **1h**, **6h**, and **12h**. Changing any selector changes the window on every overview chart.
+
+The number of chart points stays capped at 60. Short windows use finer samples; longer windows use averages. The selector controls how much history is visible, while the browser refreshes the data in the background at a separate, throttled interval.
+
+The **System history** dialog has per-metric tabs and longer windows: **2m**, **1h**, **3h**, **6h**, **12h**, **24h**, **2d**, and **7d**. It refreshes only the active metric, and slows its polling as the selected window grows.
+
+## Metrics and scope
+
+The overview charts show:
+
+- CPU use, memory use, swap use, and disk use as percentages.
+- Network upload and download throughput in bytes per second.
+- Current TCP and UDP connection counts.
+
+System history adds packet rates, disk read/write rates, Xray online clients, and the 1, 5, and 15 minute load averages. CPU and swap follow the panel's resource scope when it runs inside a container; unavailable scoped metrics are left empty instead of being filled with host values.
+
+Chart summaries show the average and peak inside the selected window. For Persian labels, the text and numeric value are isolated separately so right-to-left text direction does not reorder the number or percent sign.
+
+## Collection and retention
+
+The panel samples server status every **2 seconds**. Each metric is written into three fixed-size rollup tiers:
+
+| Resolution | Retained window | Use |
+| --- | --- | --- |
+| 2 seconds | 1 hour | Recent charts |
+| 1 minute | 48 hours | Medium windows |
+| 10 minutes | 7 days | Long history |
+
+Samples are averaged as they move through each tier. A series retains about 5,700 points (roughly 90 KiB before serialization), regardless of uptime. The overview endpoint returns up to 60 points per metric in one response, avoiding a request for each individual chart.
+
+System history is saved to `system_metrics.gob` in the panel's database directory once a minute and again during shutdown. It is restored at startup. A new installation begins collecting history when the panel starts; it cannot reconstruct metrics from before collection was enabled.
+
+## API
+
+The overview requests `GET /panel/api/server/overviewHistory/{bucket}`. `bucket` is the interval in seconds and accepts `2`, `5`, `30`, `60`, `180`, or `360` for the overview's 2 minute through 12 hour windows. The response contains up to 60 `{ "t": unixSeconds, "v": value }` points for each overview metric.
+
+The system history dialog requests `GET /panel/api/server/history/{metric}/{bucket}` for the active metric. It uses the same `{t, v}` point format and supports the longer bucket values documented in the [Server API reference](/docs/reference/api/server).

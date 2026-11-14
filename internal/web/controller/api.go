@@ -85,6 +85,7 @@ var monitorScopeAllow = map[string]struct{}{
 	"/server/status":                              {},
 	"/server/cpuHistory/:bucket":                  {},
 	"/server/history/:metric/:bucket":             {},
+	"/server/overviewHistory/:bucket":             {},
 	"/server/xrayMetricsState":                    {},
 	"/server/xrayMetricsHistory/:metric/:bucket":  {},
 	"/server/xrayObservatory":                     {},
