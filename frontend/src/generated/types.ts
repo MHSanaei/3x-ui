@@ -5,6 +5,7 @@ export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
 export type addrFamily = number;
+export type lineVisitor = unknown;
 export type staticEgressResolver = string;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
@@ -799,6 +800,18 @@ export interface InboundTrafficSummary {
   up: number;
 }
 
+export interface LogBucket {
+  errors: number;
+  start: number;
+  total: number;
+  warnings: number;
+}
+
+export interface LogCount {
+  count: number;
+  value: string;
+}
+
 export interface LogEntry {
   DateTime: string;
   Email: string;
@@ -807,6 +820,84 @@ export interface LogEntry {
   Inbound: string;
   Outbound: string;
   ToAddress: string;
+}
+
+export interface LogExternalPath {
+  kind: string;
+  path: string;
+  suggested: string;
+}
+
+export interface LogFile {
+  compressed: boolean;
+  modTime: number;
+  name: string;
+  size: number;
+}
+
+export interface LogFileList {
+  external: LogExternalPath[];
+  files: LogFile[];
+  folder: string;
+}
+
+export interface LogLine {
+  category: string;
+  country: string;
+  host: string;
+  inbound: string;
+  ip: string;
+  level: string;
+  message: string;
+  offset: number;
+  outbound: string;
+  protocol: string;
+  raw: string;
+  status: string;
+  time: number;
+  truncated: boolean;
+  user: string;
+}
+
+export interface LogPage {
+  budgetExhausted: boolean;
+  file: string;
+  fileSize: number;
+  lines: LogLine[];
+  nextCursor: number;
+  scannedBytes: number;
+}
+
+export interface LogStats {
+  bucketMillis: number;
+  budgetExhausted: boolean;
+  countries: LogCount[];
+  debugs: number;
+  errors: number;
+  file: string;
+  fileSize: number;
+  firstTime: number;
+  geoAvailable: boolean;
+  infos: number;
+  lastTime: number;
+  matchedLines: number;
+  scannedBytes: number;
+  scannedLines: number;
+  timeline: LogBucket[];
+  topErrorCategories: LogCount[];
+  topHosts: LogCount[];
+  topInbounds: LogCount[];
+  topIps: LogCount[];
+  topProtocols: LogCount[];
+  topStatuses: LogCount[];
+  topUsers: LogCount[];
+  uniqueCapped: boolean;
+  uniqueHosts: number;
+  uniqueIps: number;
+  uniqueUsers: number;
+  unknown: number;
+  unlocatedLines: number;
+  warnings: number;
 }
 
 export interface MLDSA65Response {
