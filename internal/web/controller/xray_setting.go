@@ -10,6 +10,7 @@ import (
 
 	piaprotocol "github.com/mhsanaei/3x-ui/v3/internal/pia"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
@@ -324,7 +325,8 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 		return
 	}
 
-	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
+	outboundSvc := a.probeOutboundService()
+	result, err := outboundSvc.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -357,13 +359,33 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 		return
 	}
 
-	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	outboundSvc := a.probeOutboundService()
+	results, err := outboundSvc.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 
 	jsonObj(c, results, nil)
+}
+
+// probeOutboundService returns the outbound test service with the panel's dns
+// section installed (#7131): HTTP-mode probes run in a throwaway xray whose
+// config previously had no "dns" at all, so any hostname that only the panel's
+// own resolvers could see failed the test while working fine in production.
+// A missing or unreadable dns section silently keeps the old OS-resolution
+// behaviour — the test button must not break over a settings read.
+func (a *XraySettingController) probeOutboundService() *outbound.OutboundService {
+	svc := &a.OutboundService
+	if template, err := a.SettingService.GetXrayConfigTemplate(); err == nil {
+		var cfg struct {
+			DNS json_util.RawMessage `json:"dns"`
+		}
+		if json.Unmarshal([]byte(template), &cfg) == nil {
+			svc.SetProbeDNS(cfg.DNS)
+		}
+	}
+	return svc
 }
 
 // balancerStatus reports the live state (override + strategy picks) of the

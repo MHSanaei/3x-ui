@@ -103,6 +103,47 @@ func probeModeLabel(mode string) string {
 	}
 }
 
+// SanitizeProbeDNS narrows the panel's dns section down to the keys the probe
+// instance can actually use (#7131): resolution only needs servers/hosts/
+// clientIp/queryStrategy/tag-mapping keys, and everything routing-coupled must
+// go — the probe config has no dns inbound and no routing rules besides its
+// own inbound→outbound pairs, so a copied "tag" would point at nothing and a
+// "script" would drop the core into a path the real config never exercises.
+func SanitizeProbeDNS(raw json_util.RawMessage) json_util.RawMessage {
+	if len(raw) == 0 {
+		return nil
+	}
+	var dns map[string]any
+	if json.Unmarshal(raw, &dns) != nil || dns == nil {
+		return nil
+	}
+	// Same refusal rules the real config applies (xray.go's dropRefusedScript
+	// keeps the section but drops the script); for the probe the script is
+	// simply never useful, so drop it unconditionally when it coexists with
+	// anything else, and always drop the routing-coupled keys below.
+	delete(dns, "script")
+	delete(dns, "tag")
+
+	keep := map[string]bool{
+		"servers": true, "hosts": true, "clientIp": true, "queryStrategy": true,
+		"disableFallback": true, "disableFallbackIfMatch": true, "enableParallelQuery": true,
+	}
+	cleaned := make(map[string]any, len(dns))
+	for key, value := range dns {
+		if keep[key] {
+			cleaned[key] = value
+		}
+	}
+	if len(cleaned) == 0 {
+		return nil
+	}
+	out, err := json.Marshal(cleaned)
+	if err != nil {
+		return nil
+	}
+	return json_util.RawMessage(out)
+}
+
 // TestOutbound probes a single outbound; legacy single-test API kept for the
 // /testOutbound endpoint. Dispatch matches TestOutbounds: mode "tcp" dials
 // the outbound's endpoints directly, anything else routes a real HTTP request
@@ -250,7 +291,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	}
 	defer httpTestSemaphore.Unlock()
 
-	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay)
+	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay, s.probeDNS)
 	if err == nil {
 		return results
 	}
@@ -263,12 +304,25 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	// instance so the broken outbound reports xray's real error and the
 	// rest still get tested. Serial: the poisoned case fails fast (~1s).
 	for _, it := range httpItems {
-		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay); ferr != nil {
+		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay, s.probeDNS); ferr != nil {
 			it.result.Success = false
 			it.result.Error = ferr.Error()
 		}
 	}
 	return results
+}
+
+// withProbeDNS makes the probe instance resolve like the running core: the
+// panel's dns section rides along on every config this batch path builds
+// (#7131). The section is sanitized here as well as at SetProbeDNS, so no
+// call path can smuggle routing-coupled keys into the throwaway config.
+// nil dns leaves configs unchanged.
+func withProbeDNS(items []*httpBatchItem, allOutbounds []any, ports []int, dns json_util.RawMessage) *xray.Config {
+	cfg := buildBatchTestConfig(items, allOutbounds, ports)
+	if clean := SanitizeProbeDNS(dns); len(clean) > 0 {
+		cfg.DNSConfig = clean
+	}
+	return cfg
 }
 
 // runHTTPProbeBatch makes one shared-process attempt for the given items,
@@ -277,14 +331,14 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 // whether splitting the batch into per-item instances could help (true for
 // start failures / early exits that a poisoned config would explain, false
 // for environmental failures like a missing binary or no free ports).
-func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool) (retryPerItem bool, err error) {
+func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool, dns json_util.RawMessage) (retryPerItem bool, err error) {
 	ports, release, err := reserveLoopbackPorts(len(items))
 	if err != nil {
 		return false, fmt.Errorf("Failed to reserve test ports: %w", err)
 	}
 	defer release()
 
-	cfg := buildBatchTestConfig(items, allOutbounds, ports)
+	cfg := withProbeDNS(items, allOutbounds, ports, dns)
 
 	configPath, err := createTestConfigPath()
 	if err != nil {
