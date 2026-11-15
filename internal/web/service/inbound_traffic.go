@@ -764,14 +764,19 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			cipher, _ = oldSettings["method"].(string)
 		}
 		clientMap := map[string]any{
-			"email":    entry.Email,
-			"id":       entry.ID,
-			"auth":     entry.Auth,
-			"security": entry.Security,
-			"flow":     entry.Flow,
-			"password": entry.Password,
-			"cipher":   cipher,
-			"reverse":  entry.Reverse,
+			"email":            entry.Email,
+			"id":               entry.ID,
+			"auth":             entry.Auth,
+			"security":         entry.Security,
+			"flow":             entry.Flow,
+			"password":         entry.Password,
+			"cipher":           cipher,
+			"reverse":          entry.Reverse,
+			"publicKey":        entry.PublicKey,
+			"allowedIPs":       entry.AllowedIPs,
+			"preSharedKey":     entry.PreSharedKey,
+			"keepAlive":        keepAliveStr(entry.KeepAliveSeconds()),
+			"wireguardDevices": entry.WireguardDevices,
 		}
 		if inbound.NodeID != nil {
 			reenableNodeID = inbound.NodeID

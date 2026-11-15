@@ -809,6 +809,17 @@
       "tabBasics": "Básico",
       "tabCredentials": "Credenciais",
       "tabLinks": "Links",
+      "wgDevices": {
+        "title": "Dispositivos WireGuard",
+        "limit": "Limite de dispositivos",
+        "primary": "Dispositivo principal",
+        "enabled": "Ativado",
+        "subscription": "Copiar assinatura",
+        "deleteConfirm": "Excluir este dispositivo e liberar seu endereço?",
+        "remove": "Excluir",
+        "name": "Nome do dispositivo",
+        "add": "Adicionar dispositivo"
+      },
       "wireguardConfig": "Configuração do WireGuard",
       "config": "Configuração",
       "linksHint": "Adicione links de terceiros e URLs de assinatura remotas para incluir na assinatura deste cliente.",

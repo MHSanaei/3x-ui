@@ -110,6 +110,7 @@ interface ClientInboundChipsProps {
   inboundsById: Record<number, InboundOption>;
   protocolColors: Record<string, string>;
   chipLimit: number;
+  wireguardDeviceCount?: number;
 }
 
 // Attachments never change on a traffic push either, so the same memoisation
@@ -119,6 +120,7 @@ export const ClientInboundChips = memo(function ClientInboundChips({
   inboundsById,
   protocolColors,
   chipLimit,
+  wireguardDeviceCount,
 }: ClientInboundChipsProps) {
   if (ids.length === 0) return <span className="cell-empty">—</span>;
 
@@ -141,6 +143,11 @@ export const ClientInboundChips = memo(function ClientInboundChips({
   const overflow = ids.slice(chipLimit);
   return (
     <>
+      {wireguardDeviceCount != null && (
+        <Tag color="gold" style={CHIP_STYLE}>
+          WG · {wireguardDeviceCount}
+        </Tag>
+      )}
       {visible.map(chip)}
       {overflow.length > 0 && (
         <Popover

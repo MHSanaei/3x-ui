@@ -62,7 +62,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients := subReq.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -114,6 +114,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		for _, render := range orderedSubValues(ordered) {
 			proxies = append(proxies, render()...)
 		}
+	}
+	if err := subReq.validateWireguardDevice(); err != nil {
+		return "", "", err
 	}
 	for _, ext := range externalLinks {
 		if ext.Enable {

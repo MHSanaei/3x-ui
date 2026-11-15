@@ -809,6 +809,17 @@
       "tabBasics": "Dasar",
       "tabCredentials": "Kredensial",
       "tabLinks": "Tautan",
+      "wgDevices": {
+        "title": "Perangkat WireGuard",
+        "limit": "Batas perangkat",
+        "primary": "Perangkat utama",
+        "enabled": "Aktif",
+        "subscription": "Salin langganan",
+        "deleteConfirm": "Hapus perangkat ini dan bebaskan alamatnya?",
+        "remove": "Hapus",
+        "name": "Nama perangkat",
+        "add": "Tambah perangkat"
+      },
       "wireguardConfig": "Konfigurasi WireGuard",
       "config": "Konfigurasi",
       "linksHint": "Tambahkan tautan berbagi pihak ketiga dan URL langganan jarak jauh untuk disertakan dalam langganan klien ini.",

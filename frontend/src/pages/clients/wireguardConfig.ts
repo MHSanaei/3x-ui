@@ -1,3 +1,4 @@
+import { tunnelConfigEndpoints, tunnelEndpointLabel } from './tunnelEndpoints';
 import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { joinConfLines } from '@/lib/xray/conf-lines';
@@ -56,4 +57,50 @@ export function buildWireguardClientConfig(
   if (typeof client.keepAlive === 'number' && client.keepAlive > 0)
     lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return joinConfLines(lines);
+}
+
+export function buildWireguardDeviceConfigs(
+  client: ClientRecord,
+  inbounds: InboundOption[],
+  devices: import('@/schemas/client').WireguardDevices | undefined,
+  addresses: Record<number, string> | undefined,
+  hosts: import('@/schemas/api/host').HostRecord[],
+  host: string,
+  publicHost: string,
+) {
+  return inbounds.flatMap((inbound) => {
+    const entries = devices?.inbounds.find((entry) => entry.inboundId === inbound.id)?.devices;
+    const identities = entries
+      ? entries
+          .filter((device) => device.enable)
+          .map((device) => ({
+            id: device.id,
+            name: device.name,
+            client: {
+              ...client,
+              privateKey: device.privateKey,
+              publicKey: device.publicKey,
+              preSharedKey: device.preSharedKey,
+              allowedIPs: device.allowedIPs.join(', '),
+            },
+            address: device.allowedIPs.join(', '),
+          }))
+      : [{ id: 'primary', name: '', client, address: addresses?.[inbound.id] ?? '' }];
+    return identities.flatMap((device) =>
+      tunnelConfigEndpoints(inbound, hosts, host, publicHost).map((endpoint) => ({
+        inbound,
+        deviceId: device.id,
+        deviceName: device.name,
+        endpoint: [device.name, tunnelEndpointLabel(endpoint)].filter(Boolean).join(' - '),
+        text: buildWireguardClientConfig(
+          device.client,
+          inbound,
+          host,
+          publicHost,
+          device.address,
+          endpoint,
+        ),
+      })),
+    );
+  });
 }

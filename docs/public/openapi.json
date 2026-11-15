@@ -1892,6 +1892,15 @@
             "description": "Last update timestamp",
             "format": "int64",
             "type": "integer"
+          },
+          "wgDeviceLimit": {
+            "type": "integer"
+          },
+          "wireguardDevices": {
+            "items": {
+              "$ref": "#/components/schemas/WireguardDevice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2106,6 +2115,15 @@
           },
           "uuid": {
             "type": "string"
+          },
+          "wgDeviceLimit": {
+            "type": "integer"
+          },
+          "wireguardDevices": {
+            "items": {
+              "$ref": "#/components/schemas/WireguardDevice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2141,7 +2159,9 @@
           "trafficReset",
           "trafficResetDay",
           "updatedAt",
-          "uuid"
+          "uuid",
+          "wgDeviceLimit",
+          "wireguardDevices"
         ],
         "type": "object"
       },
@@ -4973,6 +4993,44 @@
           "id",
           "password",
           "username"
+        ],
+        "type": "object"
+      },
+      "WireguardDevice": {
+        "description": "WireguardDevice is an additional peer sharing its client's quota and lifecycle.\nThe original client credentials remain the primary device for compatibility.",
+        "properties": {
+          "allowedIPs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preSharedKey": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allowedIPs",
+          "enable",
+          "id",
+          "name",
+          "privateKey",
+          "publicKey"
         ],
         "type": "object"
       },
@@ -9509,6 +9567,464 @@
                 },
                 "example": {
                   "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/wireguardDevices": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List WireGuard devices and their per-inbound addresses.",
+        "operationId": "get_panel_api_clients_wireguardDevices",
+        "description": "The original credentials remain the primary device. Additional devices share their parent client email, traffic quota, expiry and enable state. Keep each device configuration on one device. Device-specific subscriptions use the existing subscription URL with the wgDevice query parameter set to the device ID.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Create a WireGuard device on every attached WireGuard inbound.",
+        "operationId": "post_panel_api_clients_wireguardDevices",
+        "description": "Keys are generated once and each inbound allocates an available tunnel address. All inbounds commit together. The default limit is 5 devices including primary.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Device name with 1 to 64 characters on one line."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "example": {
+                "name": "Phone"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/wireguardDevices/limit": {
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Set the maximum number of WireGuard devices.",
+        "operationId": "put_panel_api_clients_wireguardDevices_limit",
+        "description": "The limit includes primary and disabled devices. Choose 1 to 32. Values below the current device count are rejected.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Maximum device count including primary."
+                  }
+                },
+                "required": [
+                  "limit"
+                ]
+              },
+              "example": {
+                "limit": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/wireguardDevices/{deviceId}": {
+      "patch": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Rename or enable a WireGuard device.",
+        "operationId": "patch_panel_api_clients_wireguardDevices_deviceId",
+        "description": "The primary device is managed through the parent client. Disabled additional devices retain their reserved addresses.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Additional device UUID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New device name."
+                  },
+                  "enable": {
+                    "type": "boolean",
+                    "description": "Whether the device can connect."
+                  }
+                }
+              },
+              "example": {
+                "name": "Work phone",
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete an additional WireGuard device and release its address.",
+        "operationId": "delete_panel_api_clients_wireguardDevices_deviceId",
+        "description": "The device is removed from every attached WireGuard inbound. Its previously downloaded configuration loses access after the configuration is applied.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Additional device UUID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
                 }
               }
             }

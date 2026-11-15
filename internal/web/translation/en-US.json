@@ -809,6 +809,17 @@
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
       "tabLinks": "Links",
+      "wgDevices": {
+        "title": "WireGuard devices",
+        "limit": "Device limit",
+        "primary": "Primary device",
+        "enabled": "Enabled",
+        "subscription": "Copy subscription",
+        "deleteConfirm": "Delete this device and release its address?",
+        "remove": "Delete",
+        "name": "Device name",
+        "add": "Add device"
+      },
       "wireguardConfig": "WireGuard config",
       "config": "Config",
       "linksHint": "Add third-party share links and remote subscription URLs to include in this client's subscription.",

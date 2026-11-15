@@ -809,6 +809,17 @@
       "tabBasics": "基本",
       "tabCredentials": "凭据",
       "tabLinks": "链接",
+      "wgDevices": {
+        "title": "WireGuard 设备",
+        "limit": "设备数量上限",
+        "primary": "主设备",
+        "enabled": "已启用",
+        "subscription": "复制订阅",
+        "deleteConfirm": "删除此设备并释放其地址？",
+        "remove": "删除",
+        "name": "设备名称",
+        "add": "添加设备"
+      },
       "wireguardConfig": "WireGuard 配置",
       "config": "配置",
       "linksHint": "添加第三方分享链接和远程订阅地址，将其包含在该客户端的订阅中。",

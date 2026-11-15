@@ -1002,6 +1002,29 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 	return err
 }
 
+// RemoveWireguardUsers removes every peer belonging to an email. WireGuard's
+// core user manager indexes peers by public key and removes one peer per call.
+func (x *XrayAPI) RemoveWireguardUsers(inboundTag, email string) error {
+	if x.HandlerServiceClient == nil {
+		return common.NewError("xray HandlerServiceClient is not initialized")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
+	defer cancel()
+	response, err := (*x.HandlerServiceClient).GetInboundUsers(ctx, &command.GetInboundUserRequest{Tag: inboundTag})
+	if err != nil {
+		return fmt.Errorf("list wireguard peers: %w", err)
+	}
+	for _, user := range response.GetUsers() {
+		if user.GetEmail() != email {
+			continue
+		}
+		if err := x.RemoveUser(inboundTag, email); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // RemoveUser removes a user from an inbound in the Xray core by email.
 func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	if x.HandlerServiceClient == nil {
