@@ -448,6 +448,8 @@ export interface Client {
   trafficReset?: string;
   trafficResetDay?: number;
   updated_at?: number;
+  wgDeviceLimit?: number;
+  wireguardDevices?: WireguardDevice[];
 }
 
 export interface ClientInbound {
@@ -502,6 +504,8 @@ export interface ClientRecord {
   trafficResetDay: number;
   updatedAt: number;
   uuid: string;
+  wgDeviceLimit: number;
+  wireguardDevices: WireguardDevice[];
 }
 
 export interface ClientRenewalPreview {
@@ -1125,5 +1129,15 @@ export interface User {
   id: number;
   password: string;
   username: string;
+}
+
+export interface WireguardDevice {
+  allowedIPs: string[];
+  enable: boolean;
+  id: string;
+  name: string;
+  preSharedKey?: string;
+  privateKey: string;
+  publicKey: string;
 }
 

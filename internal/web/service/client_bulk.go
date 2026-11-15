@@ -114,6 +114,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			client := *rec.ToClient()
 			// Forwards are set per inbound; see Attach.
 			client.ForwardedPorts = nil
+			prepareWireguardDeviceAddresses(&client, inbound)
 			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
 				client.Flow = flow
 			}
@@ -1811,14 +1812,19 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 			for _, ch := range changed {
 				if enable {
 					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":    ch.client.Email,
-						"id":       ch.client.ID,
-						"security": ch.client.Security,
-						"flow":     ch.client.Flow,
-						"auth":     ch.client.Auth,
-						"password": ch.client.Password,
-						"cipher":   cipher,
-						"reverse":  ch.client.Reverse,
+						"email":            ch.client.Email,
+						"id":               ch.client.ID,
+						"security":         ch.client.Security,
+						"flow":             ch.client.Flow,
+						"auth":             ch.client.Auth,
+						"password":         ch.client.Password,
+						"cipher":           cipher,
+						"reverse":          ch.client.Reverse,
+						"publicKey":        ch.client.PublicKey,
+						"allowedIPs":       ch.client.AllowedIPs,
+						"preSharedKey":     ch.client.PreSharedKey,
+						"keepAlive":        keepAliveStr(ch.client.KeepAliveSeconds()),
+						"wireguardDevices": ch.client.WireguardDevices,
 					})
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)

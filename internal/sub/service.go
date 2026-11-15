@@ -37,9 +37,11 @@ var salamanderWarningSeen sync.Map
 
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
-	address        string
-	remarkTemplate string
-	datepicker     string
+	address                 string
+	remarkTemplate          string
+	datepicker              string
+	wireguardDevice         string
+	wireguardDeviceSelected bool
 	// subscriptionBody is true only when rendering the actual subscription
 	// content a client app imports (raw /sub fetch, /json, /clash). The remark
 	// template's per-client info is emitted there (on the first link); every
@@ -130,6 +132,14 @@ func (s *SubService) ForRequest(host string) *SubService {
 	return &req
 }
 
+// ForWireguardDevice selects one device without changing the shared service.
+// Empty and primary retain the existing subscription identity.
+func (s *SubService) ForWireguardDevice(id string) *SubService {
+	req := *s
+	req.wireguardDevice = id
+	return &req
+}
+
 // PrepareForRequest sets per-request state (host + nodes map) on this
 // SubService instance. HTTP handlers should call ForRequest instead so the
 // controller's shared base service is never mutated by concurrent requests.
@@ -154,6 +164,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
 	s.rendered = 0
+	s.wireguardDeviceSelected = false
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()
@@ -463,6 +474,7 @@ func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, client
 		client.PrivateKey = peer.PrivateKey
 		client.PublicKey = peer.PublicKey
 		client.PreSharedKey = peer.PreSharedKey
+		client.WireguardDevices = peer.WireguardDevices
 		// append onto nil copies a non-empty list and clears a shared address when settings omit one.
 		client.AllowedIPs = append([]string(nil), peer.AllowedIPs...)
 		if peer.KeepAlive == nil {
@@ -576,7 +588,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := s.matchingClients(inbound, subId)
+		clients := s.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -644,6 +656,9 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 				result = append(result, link)
 			}
 		}
+	}
+	if err := s.validateWireguardDevice(); err != nil {
+		return nil, nil, 0, traffic, err
 	}
 	for _, ext := range externalLinks {
 		if ext.Enable {
@@ -3475,10 +3490,23 @@ func (s *SubService) extractBaseFromURI(uri string) string {
 
 // buildSingleURL constructs a single URL using configured URI or base components
 func (s *SubService) buildSingleURL(configuredURI, base, basePath, subId string) string {
+	var result string
 	if configuredURI != "" {
-		return s.joinPathWithID(configuredURI, subId)
+		result = s.joinPathWithID(configuredURI, subId)
+	} else {
+		result = s.joinPathWithID(base+basePath, subId)
 	}
-	return s.joinPathWithID(base+basePath, subId)
+	if s.wireguardDevice == "" {
+		return result
+	}
+	parsed, err := url.Parse(result)
+	if err != nil {
+		return result
+	}
+	query := parsed.Query()
+	query.Set("wgDevice", s.wireguardDevice)
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }
 
 // joinPathWithID safely joins a base path with a subscription ID

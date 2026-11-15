@@ -452,7 +452,21 @@ export const EXAMPLES: Record<string, unknown> = {
     "totalGB": 0,
     "trafficReset": "never",
     "trafficResetDay": 1,
-    "updated_at": 0
+    "updated_at": 0,
+    "wgDeviceLimit": 0,
+    "wireguardDevices": [
+      {
+        "allowedIPs": [
+          ""
+        ],
+        "enable": false,
+        "id": "",
+        "name": "",
+        "preSharedKey": "",
+        "privateKey": "",
+        "publicKey": ""
+      }
+    ]
   },
   "ClientInbound": {
     "clientId": 0,
@@ -547,7 +561,21 @@ export const EXAMPLES: Record<string, unknown> = {
     "trafficReset": "",
     "trafficResetDay": 0,
     "updatedAt": 0,
-    "uuid": ""
+    "uuid": "",
+    "wgDeviceLimit": 0,
+    "wireguardDevices": [
+      {
+        "allowedIPs": [
+          ""
+        ],
+        "enable": false,
+        "id": "",
+        "name": "",
+        "preSharedKey": "",
+        "privateKey": "",
+        "publicKey": ""
+      }
+    ]
   },
   "ClientRenewalPreview": {
     "canRenew": true,
@@ -1237,5 +1265,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "password": "",
     "username": ""
+  },
+  "WireguardDevice": {
+    "allowedIPs": [
+      ""
+    ],
+    "enable": false,
+    "id": "",
+    "name": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": ""
   }
 };
