@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -22,7 +23,20 @@ import (
 
 // OutboundService provides business logic for managing Xray outbound configurations.
 // It handles outbound traffic monitoring and statistics.
-type OutboundService struct{}
+type OutboundService struct {
+	// probeDNS carries the panel's dns section (sanitized via SanitizeProbeDNS)
+	// into HTTP-mode probe instances, so an outbound whose address only the
+	// panel's configured resolvers can see passes the test like it works in
+	// production (#7131). Zero value: probes resolve via the OS, as before.
+	probeDNS json_util.RawMessage
+}
+
+// SetProbeDNS installs the panel dns section used by HTTP-mode probes. Passing
+// nil or an empty section restores OS resolution. Invalid JSON is ignored —
+// a broken dns setting must not take the test button down with it.
+func (s *OutboundService) SetProbeDNS(raw json_util.RawMessage) {
+	s.probeDNS = SanitizeProbeDNS(raw)
+}
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
