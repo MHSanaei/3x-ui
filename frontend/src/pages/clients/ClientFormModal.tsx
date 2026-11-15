@@ -136,6 +136,7 @@ interface ClientFormModalProps {
 type Values = ClientFormValues & {
   expiryDate: number;
   limitHwid: number;
+  wgDeviceLimit: number;
   externalLinks: ExternalLinkRow[];
   clientHostRuleIds: number[];
   wgPrivateKey: string;
@@ -171,6 +172,7 @@ const EMPTY: Values = {
   trafficResetDay: 1,
   limitIp: 0,
   limitHwid: 0,
+  wgDeviceLimit: 5,
   tgId: 0,
   group: '',
   comment: '',
@@ -267,6 +269,7 @@ export default function ClientFormModal({
   const uid = useId();
   const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
+  const minWireguardDeviceLimit = Math.max(1, (client?.wireguardDevices?.length ?? 0) + 1);
 
   const methods = useForm<Values>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
@@ -390,6 +393,7 @@ export default function ClientFormModal({
         trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
         limitHwid: client.limitHwid || 0,
+        wgDeviceLimit: client.wgDeviceLimit || 5,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -714,6 +718,7 @@ export default function ClientFormModal({
 
   async function onSubmit() {
     const values = methods.getValues();
+    if (showWireguard && !(await methods.trigger('wgDeviceLimit'))) return;
     const unchangedLegacyKeepAlive =
       isEdit &&
       typeof client?.keepAlive === 'number' &&
@@ -798,6 +803,7 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: !!values.enable,
     };
+    if (showWireguard) clientPayload.wgDeviceLimit = values.wgDeviceLimit;
     // Sent even when empty, so clearing the tag never rests on how the server
     // reads an omitted key.
     const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
@@ -1057,6 +1063,30 @@ export default function ClientFormModal({
                             </span>
                           </Form.Item>
                         </Col>
+                        {showWireguard && (
+                          <Col xs={24} md={12}>
+                            <FormField
+                              name="wgDeviceLimit"
+                              label={`WireGuard · ${t('pages.clients.wgDevices.limit')}`}
+                              tooltip={t('pages.clients.wgDevices.title')}
+                              transform={{ output: (value) => Number(value) }}
+                              rules={{
+                                validate: (value) =>
+                                  (Number.isInteger(value) &&
+                                    value >= minWireguardDeviceLimit &&
+                                    value <= 32) ||
+                                  `${t('pages.clients.wgDevices.limit')} (${minWireguardDeviceLimit}–32)`,
+                              }}
+                            >
+                              <InputNumber
+                                min={minWireguardDeviceLimit}
+                                max={32}
+                                precision={0}
+                                style={{ width: '100%' }}
+                              />
+                            </FormField>
+                          </Col>
+                        )}
                       </Row>
 
                       <Row gutter={16}>

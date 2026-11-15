@@ -204,6 +204,7 @@ export default function ClientInfoModal({
       hosts,
       window.location.hostname,
       subSettings.publicHost ?? '',
+      true,
     );
   }, [client, wgInbounds, wireguardDevices.data, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 
@@ -796,49 +797,13 @@ export default function ClientInfoModal({
               </>
             )}
 
-            {wgInbounds.length > 0 && (
+            {wgInbounds.length > 0 && client && (
               <ClientWireguardDevices
                 state={wireguardDevices}
                 subLink={subLink}
-                onConfig={(id) =>
-                  document
-                    .getElementById(
-                      `wg-device-${id}-${wgConfigs.find((config) => config.deviceId === id)?.inbound.id}`,
-                    )
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                }
+                clientEmail={client.email}
+                configs={wgConfigs}
               />
-            )}
-            {wgConfigs.length > 0 && client && (
-              <>
-                <Divider>{t('pages.clients.wireguardConfig')}</Divider>
-                {wgConfigs.map(({ inbound, deviceId, endpoint, text }) => {
-                  const meta = formatTunnelConfigMeta(
-                    inbound,
-                    client.email,
-                    wgConfigs.length,
-                    endpoint,
-                  );
-                  return (
-                    <div
-                      id={`wg-device-${deviceId}-${inbound.id}`}
-                      key={`wg-${inbound.id}-${deviceId}-${endpoint}`}
-                    >
-                      <ConfigBlock
-                        label={meta.label || t('pages.clients.config')}
-                        text={text}
-                        fileName={
-                          deviceId === 'primary'
-                            ? meta.fileName
-                            : meta.fileName.replace(/\.conf$/, `-${deviceId}.conf`)
-                        }
-                        qrRemark={meta.qrRemark}
-                        tagColor="cyan"
-                      />
-                    </div>
-                  );
-                })}
-              </>
             )}
 
             {awgConfigs.length > 0 && client && (

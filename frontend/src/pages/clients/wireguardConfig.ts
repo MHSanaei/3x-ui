@@ -67,15 +67,17 @@ export function buildWireguardDeviceConfigs(
   hosts: import('@/schemas/api/host').HostRecord[],
   host: string,
   publicHost: string,
+  includeDisabled = false,
 ) {
   return inbounds.flatMap((inbound) => {
     const entries = devices?.inbounds.find((entry) => entry.inboundId === inbound.id)?.devices;
     const identities = entries
       ? entries
-          .filter((device) => device.enable)
+          .filter((device) => includeDisabled || device.enable)
           .map((device) => ({
             id: device.id,
             name: device.name,
+            enabled: device.enable,
             client: {
               ...client,
               privateKey: device.privateKey,
@@ -85,12 +87,21 @@ export function buildWireguardDeviceConfigs(
             },
             address: device.allowedIPs.join(', '),
           }))
-      : [{ id: 'primary', name: '', client, address: addresses?.[inbound.id] ?? '' }];
+      : [
+          {
+            id: 'primary',
+            name: '',
+            enabled: client.enable !== false,
+            client,
+            address: addresses?.[inbound.id] ?? '',
+          },
+        ];
     return identities.flatMap((device) =>
       tunnelConfigEndpoints(inbound, hosts, host, publicHost).map((endpoint) => ({
         inbound,
         deviceId: device.id,
         deviceName: device.name,
+        enabled: device.enabled,
         endpoint: [device.name, tunnelEndpointLabel(endpoint)].filter(Boolean).join(' - '),
         text: buildWireguardClientConfig(
           device.client,

@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ClientWireguardDevices from '@/pages/clients/ClientWireguardDevices';
+import { buildWireguardDeviceConfigs } from '@/pages/clients/wireguardConfig';
+import type { InboundOption } from '@/hooks/useClients';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -14,7 +16,7 @@ function deviceState() {
           devices: [
             {
               id: 'primary',
-              name: 'Primary',
+              name: '',
               enable: true,
               privateKey: 'key',
               publicKey: 'pub',
@@ -45,39 +47,56 @@ function deviceState() {
   };
 }
 
-describe('WireGuard devices', () => {
-  it('shows addresses and allows reenabling an additional device', () => {
+function showDevices(state = deviceState()) {
+  const configs = buildWireguardDeviceConfigs(
+    { email: 'alexander' },
+    [{ id: 90, protocol: 'wireguard', port: 51820, tag: 'WG' } as InboundOption],
+    state.data,
+    undefined,
+    [],
+    'localhost',
+    '',
+    true,
+  );
+  render(
+    <ClientWireguardDevices state={state} subLink="" clientEmail="alexander" configs={configs} />,
+  );
+}
+
+describe('WireGuard device rows', () => {
+  it('allows reenabling an additional device from its row menu', async () => {
     const state = deviceState();
-    render(<ClientWireguardDevices state={state} subLink="" onConfig={vi.fn()} />);
-    expect(screen.getByText('10.0.0.2/32')).toBeTruthy();
-    expect(screen.getByText('10.0.0.3/32')).toBeTruthy();
-    expect(
-      screen
-        .getByRole('switch', { name: 'Primary pages.clients.wgDevices.enabled' })
-        .hasAttribute('disabled'),
-    ).toBe(true);
-    fireEvent.click(screen.getByRole('switch', { name: 'Phone pages.clients.wgDevices.enabled' }));
+    showDevices(state);
+    fireEvent.click(screen.getByRole('button', { name: 'Phone more' }));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'pages.clients.wgDevices.enabled' }),
+    );
     expect(state.update).toHaveBeenCalledWith('phone', { enable: true });
   });
 
-  it('blocks adding devices at the limit and hides configuration for disabled devices', () => {
-    render(<ClientWireguardDevices state={deviceState()} subLink="" onConfig={vi.fn()} />);
+  it('keeps the limit editor out of the card and disables connections for disabled devices', () => {
+    showDevices();
+    expect(screen.queryByRole('spinbutton')).toBeNull();
     expect(
       screen.getByRole('button', { name: /pages.clients.wgDevices.add/ }).hasAttribute('disabled'),
     ).toBe(true);
-    const buttons = screen.getAllByRole('button', { name: 'pages.clients.wireguardConfig' });
-    expect(buttons[0].hasAttribute('disabled')).toBe(false);
-    expect(buttons[1].hasAttribute('disabled')).toBe(true);
+    expect(
+      screen
+        .getByRole('button', { name: 'pages.clients.wgDevices.primary copy' })
+        .hasAttribute('disabled'),
+    ).toBe(false);
+    expect(screen.getByRole('button', { name: 'Phone copy' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('creates a named device when there is room', () => {
+  it('creates a named device through the platform prompt dialog', async () => {
     const state = deviceState();
     state.data.limit = 3;
-    render(<ClientWireguardDevices state={state} subLink="" onConfig={vi.fn()} />);
-    fireEvent.change(screen.getByRole('textbox', { name: 'pages.clients.wgDevices.name' }), {
+    showDevices(state);
+    fireEvent.click(screen.getByRole('button', { name: /pages.clients.wgDevices.add/ }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'pages.clients.wgDevices.name' }), {
       target: { value: 'Laptop' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /pages.clients.wgDevices.add/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm' }));
     expect(state.create).toHaveBeenCalledWith('Laptop');
   });
 });

@@ -52,7 +52,5 @@ export function useClientWireguardDevices(email: string | undefined, active: boo
       }),
     remove: (id: string) =>
       mutation.mutate({ method: 'DELETE', suffix: `/${encodeURIComponent(id)}` }),
-    setLimit: (limit: number) =>
-      mutation.mutate({ method: 'PUT', suffix: '/limit', body: { limit } }),
   };
 }
