@@ -1172,11 +1172,6 @@ export default function ClientsPage() {
               inboundsById={inboundsById}
               protocolColors={INBOUND_PROTOCOL_COLORS}
               chipLimit={INBOUND_CHIP_LIMIT}
-              wireguardDeviceCount={
-                (record.inboundIds ?? []).some((id) => inboundsById[id]?.protocol === 'wireguard')
-                  ? (record.wireguardDevices?.length ?? 0) + 1
-                  : undefined
-              }
             />
           );
         },
