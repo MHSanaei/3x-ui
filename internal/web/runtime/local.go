@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -285,6 +286,17 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		if ib.Protocol == model.WireGuard {
+			if keepAlive, ok := userMap["keepAlive"].(string); ok {
+				userMap = maps.Clone(userMap)
+				delete(userMap, "keepAlive")
+				if keepAlive != "" {
+					value := model.KeepAliveValue(keepAlive)
+					if err := value.Validate(false); err != nil {
+						return err
+					}
+					userMap["keepAlive"] = value.Seconds()
+				}
+			}
 			data, err := json.Marshal(userMap)
 			if err != nil {
 				return err

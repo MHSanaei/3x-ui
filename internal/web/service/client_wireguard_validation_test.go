@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )

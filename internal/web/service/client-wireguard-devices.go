@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
-	"gorm.io/gorm"
 )
 
 type WireguardDeviceInbound struct {

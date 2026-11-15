@@ -2,8 +2,10 @@ package model
 
 import "slices"
 
-const DefaultWireguardDeviceLimit = 5
-const MaxWireguardDevices = 32
+const (
+	DefaultWireguardDeviceLimit = 5
+	MaxWireguardDevices         = 32
+)
 
 // WireguardDevice is an additional peer sharing its client's quota and lifecycle.
 // The original client credentials remain the primary device for compatibility.
