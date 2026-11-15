@@ -10,9 +10,10 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import { formatTunnelConfigMeta } from '@/lib/inbounds/label';
+import { formatInboundLabel, formatTunnelConfigMeta } from '@/lib/inbounds/label';
 import {
   buildWireguardClientConfig,
+  buildWireguardVkTurnLink,
   findWireguardInbounds,
   isWireguardClient,
 } from './wireguardConfig';
@@ -341,6 +342,7 @@ function ClientQrModalContent({
           inbound: ib,
           endpoint: tunnelEndpointLabel(ep),
           text: buildWireguardClientConfig(client, ib, host, publicHost, address, ep),
+          vkLink: buildWireguardVkTurnLink(client, ib, host, publicHost, address, ep),
         }));
       })
       .filter((c) => !!c.text);
@@ -451,6 +453,16 @@ function ClientQrModalContent({
     }
     links.forEach((link, idx) => {
       const parts = parseLinkParts(link);
+      if (parts?.protocol === 'WireGuard' && !parts.network) {
+        const inbound = wgInbounds.find((ib) => {
+          const name = formatInboundLabel(ib.tag, ib.remark);
+          return ib.wgVkTurn?.enabled && name && parts.remark.startsWith(`${name}-`);
+        });
+        if (inbound) {
+          const name = formatInboundLabel(inbound.tag, inbound.remark);
+          parts.remark = `WireGuard${parts.remark.slice(name.length)}`;
+        }
+      }
       const meta = parts ? linkMetaText(parts) : '';
       const label: React.ReactNode = parts ? (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -472,7 +484,7 @@ function ClientQrModalContent({
         ),
       });
     });
-    wgConfigs.forEach(({ inbound, endpoint, text }) => {
+    wgConfigs.forEach(({ inbound, endpoint, text, vkLink }) => {
       const meta = formatTunnelConfigMeta(inbound, client?.email, wgConfigs.length, endpoint);
       const label = (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -487,6 +499,18 @@ function ClientQrModalContent({
         label,
         children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
+      if (vkLink) {
+        out.push({
+          key: `wg-vk-${inbound.id}-${endpoint}`,
+          label: (
+            <span>
+              <Tag color="blue">VK</Tag>
+              {meta.label || t('pages.xray.wireguard.vkTurnProfile')}
+            </span>
+          ),
+          children: <QrPanel value={vkLink} remark={meta.qrRemark} />,
+        });
+      }
     });
     awgConfigs.forEach(({ inbound, endpoint, text }) => {
       const meta = formatTunnelConfigMeta(inbound, client?.email, awgConfigs.length, endpoint);
@@ -538,6 +562,7 @@ function ClientQrModalContent({
     wgConfigs,
     awgConfigs,
     links,
+    wgInbounds,
     client?.email,
     selectVariant,
     regenerateHappLink,

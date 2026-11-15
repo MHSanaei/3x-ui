@@ -52,7 +52,33 @@ export const WireguardClientSchema = z.object({
 });
 export type WireguardClient = z.infer<typeof WireguardClientSchema>;
 
+export const VkTurnCallLinkSchema = z
+  .string()
+  .trim()
+  .regex(
+    /^https:\/\/(?:vk\.ru|vk\.com)\/call\/join\/[A-Za-z0-9_-]+\/?$/,
+    'pages.xray.wireguard.vkTurnInvalidLink',
+  );
+
+export const VkTurnSettingsSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    callLink: z.string().default(''),
+    port: z.number().int().min(1).max(65535).default(56000),
+  })
+  .superRefine((value, ctx) => {
+    if (value.enabled && !VkTurnCallLinkSchema.safeParse(value.callLink).success) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['callLink'],
+        message: 'pages.xray.wireguard.vkTurnInvalidLink',
+      });
+    }
+  });
+export type VkTurnSettings = z.infer<typeof VkTurnSettingsSchema>;
+
 export const WireguardInboundSettingsSchema = z.object({
+  vkTurn: VkTurnSettingsSchema.optional(),
   mtu: optionalClearedInt(z.number().int().min(1)),
   secretKey: z.string().min(1),
   dns: z.string().optional(),

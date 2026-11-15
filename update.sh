@@ -644,6 +644,7 @@ update_x-ui() {
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
         rm ${xui_folder}/bin/tuic-server -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/vk-turn-proxy-server -f > /dev/null 2>&1
         rm ${xui_folder}/bin/tuic -rf > /dev/null 2>&1
     else
         rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
@@ -680,6 +681,9 @@ update_x-ui() {
         chmod +x bin/mtg-linux-arm > /dev/null 2>&1
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
+    fi
+    if [[ -f bin/vk-turn-proxy-server ]]; then
+        chmod +x bin/vk-turn-proxy-server > /dev/null 2>&1
     fi
 
     # The archive's x-ui.sh is built from the same commit as the binary.

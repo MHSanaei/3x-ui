@@ -1231,7 +1231,11 @@ export default function InboundInfoModal({
                     link && (
                       <div key={`wg-link-${j}`} className="link-panel">
                         <div className="link-panel-header">
-                          <Tag color="green">Peer {idx + 1} link</Tag>
+                          <Tag color="green">
+                            {link.startsWith('vkturnproxy://')
+                              ? t('pages.xray.wireguard.vkTurnProfile')
+                              : `Peer ${idx + 1} link`}
+                          </Tag>
                           <Tooltip title={t('copy')}>
                             <Button
                               size="small"

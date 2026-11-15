@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/vkturn"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -336,20 +337,21 @@ func (s *InboundService) annotateFallbackParents(db *gorm.DB, inbounds []*model.
 }
 
 type InboundOption struct {
-	Id             int    `json:"id" example:"1"`
-	Remark         string `json:"remark" example:"VLESS-443"`
-	Tag            string `json:"tag" example:"in-443-tcp"`
-	Protocol       string `json:"protocol" example:"vless"`
-	Port           int    `json:"port" example:"443"`
-	Enable         bool   `json:"enable" example:"true"`
-	Network        string `json:"network,omitempty"`
-	Security       string `json:"security,omitempty"`
-	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
-	SsMethod       string `json:"ssMethod"`
-	WgPublicKey    string `json:"wgPublicKey,omitempty"`
-	WgMtu          int    `json:"wgMtu,omitempty"`
-	WgDns          string `json:"wgDns,omitempty"`
-	MtprotoDomain  string `json:"mtprotoDomain,omitempty"`
+	Id             int              `json:"id" example:"1"`
+	Remark         string           `json:"remark" example:"VLESS-443"`
+	Tag            string           `json:"tag" example:"in-443-tcp"`
+	Protocol       string           `json:"protocol" example:"vless"`
+	Port           int              `json:"port" example:"443"`
+	Enable         bool             `json:"enable" example:"true"`
+	Network        string           `json:"network,omitempty"`
+	Security       string           `json:"security,omitempty"`
+	TlsFlowCapable bool             `json:"tlsFlowCapable" example:"true"`
+	SsMethod       string           `json:"ssMethod"`
+	WgPublicKey    string           `json:"wgPublicKey,omitempty"`
+	WgMtu          int              `json:"wgMtu,omitempty"`
+	WgDns          string           `json:"wgDns,omitempty"`
+	WgVkTurn       *vkturn.Settings `json:"wgVkTurn,omitempty"`
+	MtprotoDomain  string           `json:"mtprotoDomain,omitempty"`
 	// AwgServer carries the full AmneziaWG server block (keys, subnet,
 	// obfuscation params) so the clients page can render a downloadable
 	// per-client .conf without a second round trip.
@@ -419,6 +421,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgPublicKey:       wgPublicKey,
 			WgMtu:             wgMtu,
 			WgDns:             wgDns,
+			WgVkTurn:          inboundVKTurn(r.Protocol, r.Settings, r.Port),
 			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
 			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
 			TuicServer:        inboundTuicServer(r.Protocol, r.Settings),
@@ -1338,6 +1341,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
 		return inbound, false, err
 	}
+	if _, err := vkturn.SettingsFromInbound(inbound); err != nil {
+		return inbound, false, err
+	}
 	if err := validateTunWfpBlockLeak(string(inbound.Protocol), inbound.Settings); err != nil {
 		return inbound, false, err
 	}
@@ -2044,6 +2050,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
+		return inbound, false, err
+	}
+	if _, err := vkturn.SettingsFromInbound(inbound); err != nil {
 		return inbound, false, err
 	}
 	if err := validateTunWfpBlockLeak(string(inbound.Protocol), inbound.Settings); err != nil {

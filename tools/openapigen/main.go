@@ -137,6 +137,10 @@ func run(root, outDir string) error {
 			Path:        resolveRel(root, "internal/tuic"),
 			StructAllow: setOf("TuicServerSettings", "TuicClientSettings"),
 		},
+		{
+			Path:        resolveRel(root, "internal/vkturn"),
+			StructAllow: setOf("Settings"),
+		},
 	}
 
 	schemas, aliases, err := walkPackages(requests)

@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
+	"github.com/mhsanaei/3x-ui/v3/internal/vkturn"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -103,12 +104,23 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 	if err != nil {
 		return err
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	if err := l.withAPI(func(api *xray.XrayAPI) error {
 		return api.AddInbound(body)
-	})
+	}); err != nil {
+		return err
+	}
+	if instance, ok := vkturn.InstanceFromInbound(ib); ok {
+		return vkturn.GetManager().Ensure(instance)
+	}
+	return nil
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
+	if ib.Protocol == model.WireGuard {
+		if err := vkturn.GetManager().Remove(ib.Id); err != nil {
+			return err
+		}
+	}
 	if ib.Protocol == model.MTProto {
 		mtproto.GetManager().Remove(ib.Id)
 		return nil

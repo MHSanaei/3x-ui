@@ -1939,6 +1939,9 @@ install_x-ui() {
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch)
     fi
+    if [[ -f bin/vk-turn-proxy-server ]]; then
+        chmod +x bin/vk-turn-proxy-server
+    fi
 
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed
@@ -1957,7 +1960,7 @@ install_x-ui() {
         while IFS= read -r -d '' f; do
             local rel="${f#"${custom_bin_backup}"/}"
             case "${rel}" in
-                config.json | mtproto | mtproto/* | tuic | tuic/* | tuic-server | tuic-server-*) continue ;;
+                config.json | mtproto | mtproto/* | tuic | tuic/* | tuic-server | tuic-server-* | vk-turn-proxy-server) continue ;;
             esac
             if [[ ! -e "bin/${rel}" ]]; then
                 mkdir -p "bin/$(dirname "${rel}")"

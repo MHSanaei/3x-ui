@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VkTurnSettingsSchema } from '@/schemas/protocols/inbound/wireguard';
 import { OptionalClientKeepAliveSchema } from '@/schemas/primitives/keepalive';
 
 const nullableStringArray = z
@@ -136,6 +137,7 @@ export const InboundOptionSchema = z
     wgPublicKey: z.string().optional(),
     wgMtu: z.number().optional(),
     wgDns: z.string().optional(),
+    wgVkTurn: VkTurnSettingsSchema.nullable().optional(),
     awgServer: AwgServerOptionSchema.nullable().optional(),
     tuicServer: TuicServerOptionSchema.nullable().optional(),
     mtprotoDomain: z.string().optional(),

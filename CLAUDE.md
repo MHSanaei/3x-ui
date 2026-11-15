@@ -42,6 +42,8 @@ file locations when it can answer in one hop.
   category index + paged entries) and `geosite:`/`geoip:`/`ext:` token parsing.
 - `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
 - `internal/tuic/` — TUIC v5 inbounds: `tuic-server` sidecar supervisor, native Go UDP relay traffic metering.
+- `internal/vkturn/` — optional VK TURN SRTP sidecars for native WireGuard inbounds,
+  reconciled per inbound from `settings.vkTurn`. Client credentials stay in the iOS app.
 - `internal/amneziawg/` — AmneziaWG protocol shape: instance/peer derivation
   from an inbound, 3.1 obfuscation param generation + validation, port-forward
   spec parsing.

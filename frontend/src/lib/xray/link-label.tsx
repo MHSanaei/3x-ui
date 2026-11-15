@@ -24,6 +24,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   hy2: 'Hysteria2',
   hysteria: 'Hysteria',
   wireguard: 'WireGuard',
+  vkturnproxy: 'WireGuard',
   wg: 'WireGuard',
   tg: 'MTProto',
   vpn: 'AmneziaWG',
@@ -98,6 +99,21 @@ export function parseLinkParts(link: string): LinkParts | null {
       port = json.port != null ? String(json.port) : '';
     } catch {
       /* unparseable payload, fall back to protocol only */
+    }
+  } else if (scheme === 'vkturnproxy') {
+    network = 'VK';
+    security = 'SRTP';
+    try {
+      const payload = JSON.parse(
+        Base64.decode(new URL(trimmed).searchParams.get('data') ?? ''),
+      ) as {
+        settings?: { peerAddress?: string };
+      };
+      if (typeof payload.settings?.peerAddress === 'string') {
+        port = /:(\d+)$/.exec(payload.settings.peerAddress)?.[1] ?? '';
+      }
+    } catch {
+      // Malformed imports still retain their protocol label.
     }
   } else if (scheme === 'vpn') {
     /* AmneziaWG's vpn:// links are base64url of a plain .conf text (matching

@@ -10,8 +10,16 @@ import { HttpUtil, Msg } from '@/utils';
 import { renderWithProviders } from './test-utils';
 
 vi.mock('@/pages/inbounds/qr', () => ({
-  QrPanel: ({ value, showQr = true }: { value: string; showQr?: boolean }) => (
-    <div data-testid="qr-panel-value" data-show-qr={String(showQr)}>
+  QrPanel: ({
+    value,
+    remark,
+    showQr = true,
+  }: {
+    value: string;
+    remark?: string;
+    showQr?: boolean;
+  }) => (
+    <div data-testid="qr-panel-value" data-show-qr={String(showQr)} data-remark={remark}>
       {value}
     </div>
   ),
@@ -653,5 +661,35 @@ describe('ClientQrModal Happ presentation', () => {
     await screen.findByText('Retry');
     expect(actionButton('Retry').disabled).toBe(false);
     expect(screen.queryByTestId('qr-panel-value')).toBeNull();
+  });
+});
+
+describe('ClientQrModal WireGuard labels', () => {
+  it.each([true, false])('labels direct WireGuard QR with VK enabled=%s', async (enabled) => {
+    const link = 'wireguard://key@wg.example.test:80#' + encodeURIComponent('wg + vk-puzpzrhygn');
+    vi.mocked(HttpUtil.get).mockResolvedValueOnce(new Msg(true, '', [link]));
+    renderWithProviders(
+      <MemoryRouter>
+        <ClientQrModal
+          open
+          client={{ id: 42, email: 'puzpzrhygn', subId: 'alpha', inboundIds: [1] }}
+          inboundsById={{
+            1: {
+              id: 1,
+              protocol: 'wireguard',
+              remark: 'wg + vk',
+              wgVkTurn: { enabled, callLink: 'https://vk.ru/call/join/test', port: 56000 },
+            },
+          }}
+          onOpenChange={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const remark = enabled ? 'WireGuard-puzpzrhygn' : 'wg + vk-puzpzrhygn';
+    await screen.findByText(`(${remark}:80)`);
+    fireEvent.click(screen.getByText(`(${remark}:80)`));
+    const qr = await screen.findByTestId('qr-panel-value');
+    expect(qr.textContent).toBe(link);
+    expect(qr.getAttribute('data-remark')).toBe(remark);
   });
 });

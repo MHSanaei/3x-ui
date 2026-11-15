@@ -221,6 +221,16 @@ export function useInboundColumns({
               {record.protocol}
             </Tag>,
           ];
+          const settings = coerceInboundJsonField(record.settings) as {
+            vkTurn?: { enabled?: boolean };
+          };
+          if (record.isWireguard && settings.vkTurn?.enabled) {
+            tags.push(
+              <Tag key="vk" color="blue">
+                VK
+              </Tag>,
+            );
+          }
           if (record.isWireguard || record.isAmneziawg || record.isHysteria || record.isTuic) {
             tags.push(
               <Tag key="n" color="green">

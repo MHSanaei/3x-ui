@@ -27,6 +27,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/cronspec"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/internal/vkturn"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/job"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -306,6 +307,7 @@ const (
 	cadenceMtproto       = "@every 10s"
 	cadenceAmneziaWG     = "@every 10s"
 	cadenceTuic          = "@every 10s"
+	cadenceVKTurn        = "@every 10s"
 	cadenceClientIPScan  = "@every 10s"
 	cadenceNodeHeartbeat = "@every 5s"
 	cadenceNodeTraffic   = "@every 5s"
@@ -351,6 +353,10 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	awgJob := job.NewAmneziaWGJob()
 	_, _ = s.cron.AddJob(cadenceAmneziaWG, awgJob)
 	go awgJob.Run()
+
+	vkTurnJob := job.NewVKTurnJob()
+	_, _ = s.cron.AddJob(cadenceVKTurn, vkTurnJob)
+	go vkTurnJob.Run()
 
 	tuicJob := job.NewTuicJob()
 	_, _ = s.cron.AddJob(cadenceTuic, tuicJob)
@@ -803,6 +809,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 			logger.Warning("persist final TUIC traffic on shutdown failed:", err)
 			err2 = err
 		}
+		vkturn.GetManager().StopAll()
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		job.NewAmneziaWGJob().FlushKernelTraffic()

@@ -789,6 +789,7 @@ export interface InboundOption {
   wgDns?: string;
   wgMtu?: number;
   wgPublicKey?: string;
+  wgVkTurn?: Settings | null;
 }
 
 export interface InboundTrafficSummary {
@@ -1054,6 +1055,12 @@ export interface Setting {
   id: number;
   key: string;
   value: string;
+}
+
+export interface Settings {
+  callLink: string;
+  enabled: boolean;
+  port: number;
 }
 
 export interface Sponsor {

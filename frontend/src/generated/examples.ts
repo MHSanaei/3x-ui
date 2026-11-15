@@ -884,7 +884,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "tuicServer": null,
     "wgDns": "",
     "wgMtu": 0,
-    "wgPublicKey": ""
+    "wgPublicKey": "",
+    "wgVkTurn": null
   },
   "InboundTrafficSummary": {
     "down": 2097152,
@@ -1152,6 +1153,11 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "key": "",
     "value": ""
+  },
+  "Settings": {
+    "callLink": "",
+    "enabled": false,
+    "port": 0
   },
   "Sponsor": {
     "enable": true,
