@@ -10,7 +10,7 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import { formatTunnelConfigMeta } from '@/lib/inbounds/label';
+import { formatInboundLabel, formatTunnelConfigMeta } from '@/lib/inbounds/label';
 import {
   buildWireguardClientConfig,
   buildWireguardVkTurnLink,
@@ -453,6 +453,16 @@ function ClientQrModalContent({
     }
     links.forEach((link, idx) => {
       const parts = parseLinkParts(link);
+      if (parts?.protocol === 'WireGuard' && !parts.network) {
+        const inbound = wgInbounds.find((ib) => {
+          const name = formatInboundLabel(ib.tag, ib.remark);
+          return ib.wgVkTurn?.enabled && name && parts.remark.startsWith(`${name}-`);
+        });
+        if (inbound) {
+          const name = formatInboundLabel(inbound.tag, inbound.remark);
+          parts.remark = `WireGuard${parts.remark.slice(name.length)}`;
+        }
+      }
       const meta = parts ? linkMetaText(parts) : '';
       const label: React.ReactNode = parts ? (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -552,6 +562,7 @@ function ClientQrModalContent({
     wgConfigs,
     awgConfigs,
     links,
+    wgInbounds,
     client?.email,
     selectVariant,
     regenerateHappLink,
