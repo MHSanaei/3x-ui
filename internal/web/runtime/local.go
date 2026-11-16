@@ -22,9 +22,10 @@ import (
 )
 
 type LocalDeps struct {
-	APIPort          func() int
-	SetNeedRestart   func()
-	RequestReconcile func()
+	APIPort                func() int
+	SetNeedRestart         func()
+	RequestReconcile       func()
+	WithTCPConnectionLimit func(func() error) error
 }
 
 type Local struct {
@@ -103,8 +104,10 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 	if err != nil {
 		return err
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
-		return api.AddInbound(body)
+	return l.withTCPConnectionLimit(func() error {
+		return l.withAPI(func(api *xray.XrayAPI) error {
+			return api.AddInbound(body)
+		})
 	})
 }
 
@@ -130,9 +133,18 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return nil
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
-		return api.DelInbound(ib.Tag)
+	return l.withTCPConnectionLimit(func() error {
+		return l.withAPI(func(api *xray.XrayAPI) error {
+			return api.DelInbound(ib.Tag)
+		})
 	})
+}
+
+func (l *Local) withTCPConnectionLimit(apply func() error) error {
+	if l.deps.WithTCPConnectionLimit != nil {
+		return l.deps.WithTCPConnectionLimit(apply)
+	}
+	return apply()
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
@@ -145,7 +157,9 @@ func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) 
 	if oldIb.Protocol == model.TUIC || newIb.Protocol == model.TUIC {
 		return l.updateTuicInbound(ctx, oldIb, newIb)
 	}
-	_ = l.DelInbound(ctx, oldIb)
+	if err := l.DelInbound(ctx, oldIb); err != nil && !xray.IsMissingHandlerErr(err) {
+		return err
+	}
 	if !newIb.Enable {
 		return nil
 	}

@@ -167,6 +167,7 @@ export interface AllSetting {
   subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
+  tcpPerIpConnectionLimit: number;
   tgBotAPIServer: string;
   tgBotBackup: boolean;
   tgBotChatId: string;
@@ -358,6 +359,7 @@ export interface AllSettingView {
   subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
+  tcpPerIpConnectionLimit: number;
   tgBotAPIServer: string;
   tgBotBackup: boolean;
   tgBotChatId: string;

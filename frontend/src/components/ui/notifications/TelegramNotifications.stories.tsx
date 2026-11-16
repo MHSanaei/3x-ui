@@ -78,7 +78,7 @@ export const EverythingEnabled: Story = {
         new AllSetting({
           tgBotEnable: true,
           tgEnabledEvents:
-            'outbound.down,outbound.up,xray.crash,node.down,node.up,cpu.high,memory.high,login.attempt',
+            'outbound.down,outbound.up,xray.crash,node.down,node.up,cpu.high,memory.high,conntrack.high,conntrack.recovered,login.attempt',
           tgCpu: 70,
           tgMemory: 75,
         })

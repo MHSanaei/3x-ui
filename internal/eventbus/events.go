@@ -18,8 +18,10 @@ const (
 	EventNodeUp   EventType = "node.up"
 
 	// System health
-	EventCPUHigh    EventType = "cpu.high"
-	EventMemoryHigh EventType = "memory.high"
+	EventCPUHigh            EventType = "cpu.high"
+	EventMemoryHigh         EventType = "memory.high"
+	EventConntrackHigh      EventType = "conntrack.high"
+	EventConntrackRecovered EventType = "conntrack.recovered"
 
 	// Security
 	EventLoginAttempt EventType = "login.attempt"
@@ -62,4 +64,11 @@ type LoginEventData struct {
 type SystemMetricData struct {
 	Percent   float64 // current usage percentage
 	Threshold int     // configured threshold
+}
+
+// ConntrackData describes usage of the host connection tracking table.
+type ConntrackData struct {
+	Count   uint64
+	Max     uint64
+	Percent float64
 }

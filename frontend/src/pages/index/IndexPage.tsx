@@ -291,6 +291,7 @@ export default function IndexPage() {
                       status={status}
                       tcp={history.series.tcpCount}
                       udp={history.series.udpCount}
+                      conntrack={history.series.conntrackCount}
                       labels={history.labels}
                       isMobile={isMobile}
                     />

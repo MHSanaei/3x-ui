@@ -170,6 +170,13 @@ func RemoveIndex(s []any, index int) []any {
 
 // GetXrayConfig retrieves and builds the Xray configuration from settings and inbounds.
 func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
+	_, _, _ = s.inboundService.AddTraffic(nil, nil)
+	return s.getXrayConfig()
+}
+
+// getXrayConfig builds the desired config without applying traffic lifecycle
+// mutations, so callers holding the reconciliation lock cannot re-enter it.
+func (s *XrayService) getXrayConfig() (*xray.Config, error) {
 	templateConfig, err := s.settingService.GetXrayConfigTemplate()
 	if err != nil {
 		return nil, err
@@ -197,8 +204,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if xray.KernelTunBlocked() {
 		xrayConfig.OutboundConfigs = forceUserspaceWireGuardTun(xrayConfig.OutboundConfigs)
 	}
-
-	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
@@ -1506,7 +1511,12 @@ func (s *XrayService) TestRoute(req xray.RouteTestRequest) (*xray.RouteTestResul
 // the Xray gRPC API without restarting the process (inbounds, outbounds and
 // routing rules/balancers are hot-reloadable); only changes the core cannot
 // take at runtime — or a force request — stop and restart the process.
-func (s *XrayService) RestartXray(isForce bool) error {
+func (s *XrayService) RestartXray(isForce bool) (err error) {
+	// Traffic housekeeping can hot-apply inbounds. It must run before taking
+	// the same lock used to serialize their firewall and listener changes.
+	if isForce || !isManuallyStopped.Load() {
+		_, _, _ = s.inboundService.AddTraffic(nil, nil)
+	}
 	lock.Lock()
 	defer lock.Unlock()
 	logger.Debug("restart Xray, force:", isForce)
@@ -1515,13 +1525,30 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	}
 	isManuallyStopped.Store(false)
 
-	xrayConfig, err := s.GetXrayConfig()
+	xrayConfig, err := s.getXrayConfig()
 	if err != nil {
 		if process := currentXrayProcess(); process != nil && process.IsRunning() {
 			xrayState.holdBack(fmt.Sprintf("config refused: %v", err))
 		}
 		return err
 	}
+	connectionLimit, err := s.settingService.GetTCPPerIPConnectionLimit()
+	if err != nil {
+		return err
+	}
+	rollbackLimit, err := stageTCPConnectionLimitToConfig(connectionLimit, xrayConfig)
+	if err != nil {
+		return err
+	}
+	// Protect listeners before they are opened, and restore old coverage if
+	// binding, starting or hot-applying the desired core config fails.
+	defer func() {
+		if err != nil {
+			if rollbackErr := rollbackLimit(); rollbackErr != nil {
+				err = fmt.Errorf("%w; restore TCP connection limit: %v", err, rollbackErr)
+			}
+		}
+	}()
 
 	process := currentXrayProcess()
 	if process != nil && process.IsRunning() {

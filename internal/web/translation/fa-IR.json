@@ -213,6 +213,8 @@
       "xrayObservatoryLastSeen": "آخرین مشاهده",
       "xrayObservatoryLastTry": "آخرین تلاش",
       "connectionCount": "تعداد کانکشن ها",
+      "conntrackUsage": "Conntrack usage",
+      "conntrackLimit": "Conntrack limit",
       "ipAddresses": "آدرس‌های IP",
       "toggleIpVisibility": "تغییر وضعیت نمایش IP",
       "overallSpeed": "سرعت کلی",
@@ -1584,6 +1586,8 @@
       "smtpErrorEof": "اتصال توسط سرور بسته شد",
       "smtpErrorUnknown": "خطای SMTP — جزئیات در لاگ پنل",
       "eventMemoryHigh": "مصرف حافظه بالا (%)",
+      "eventConntrackHigh": "Conntrack usage (80% or more)",
+      "eventConntrackRecovered": "Conntrack recovery (below 70%)",
       "validation": {
         "pathLeadingSlash": "مسیر باید با / شروع شود"
       },
@@ -1593,6 +1597,8 @@
       "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "فهرست مجاز محدودیت IP",
       "ipLimitAllowlistDesc": "نشانی‌ها و شبکه‌هایی که محدودیت IP هرگز آن‌ها را نمی‌شمارد و مسدود نمی‌کند، تا نشانی مشترک یک اداره یا دانشگاه محدودیت کاربر را مصرف نکند. IPها/CIDRها (با کاما).",
+      "tcpPerIpConnectionLimit": "TCP connections per IP",
+      "tcpPerIpConnectionLimitDesc": "Maximum simultaneous TCP connections per source IP across local public TCP VPN inbound ports. Devices behind the same NAT share the limit. 0 disables the limit. Applied on save. Requires nftables and CAP_NET_ADMIN.",
       "subBalancers": {
         "menu": "موزان‌کننده‌های اشتراک",
         "title": "موزان‌کننده اشتراک",
@@ -2635,6 +2641,8 @@
       "eventNodeUp": "نود {{ .Name }} وصل است",
       "eventLoginFallback": "ورود ناموفق از {{ .Source }}",
       "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (80% threshold).",
+      "conntrackRecovered": "🟢 Conntrack usage recovered to {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (below 70%).",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 سرور",

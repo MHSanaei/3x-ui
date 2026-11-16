@@ -52,6 +52,8 @@ const statusPayloadSchema = {
     'loads',
     'tcpCount',
     'udpCount',
+    'conntrackCount',
+    'conntrackMax',
     'netIO',
     'netTraffic',
     'publicIP',
@@ -95,6 +97,8 @@ const statusPayloadSchema = {
     loads: { type: 'array', nullable: true, items: { type: 'number' } },
     tcpCount: { type: 'integer' },
     udpCount: { type: 'integer' },
+    conntrackCount: { type: 'integer' },
+    conntrackMax: { type: 'integer' },
     netIO: {
       type: 'object',
       required: ['up', 'down', 'pktUp', 'pktDown'],

@@ -213,6 +213,8 @@
       "xrayObservatoryLastSeen": "Last seen",
       "xrayObservatoryLastTry": "Last try",
       "connectionCount": "Connection Stats",
+      "conntrackUsage": "Conntrack usage",
+      "conntrackLimit": "Conntrack limit",
       "ipAddresses": "IP Addresses",
       "toggleIpVisibility": "Toggle visibility of the IP",
       "overallSpeed": "Overall Speed",
@@ -1705,6 +1707,8 @@
       "smtpErrorEof": "Connection closed by server",
       "smtpErrorUnknown": "SMTP error — see the panel log for details",
       "eventMemoryHigh": "Memory high (%)",
+      "eventConntrackHigh": "Conntrack usage (80% or more)",
+      "eventConntrackRecovered": "Conntrack recovery (below 70%)",
       "validation": {
         "pathLeadingSlash": "Path must start with /"
       },
@@ -1714,6 +1718,8 @@
       "calendarJalalian": "Jalalian (شمسی)",
       "ipLimitAllowlist": "IP limit allowlist",
       "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR.",
+      "tcpPerIpConnectionLimit": "TCP connections per IP",
+      "tcpPerIpConnectionLimitDesc": "Maximum simultaneous TCP connections per source IP across local public TCP VPN inbound ports. Devices behind the same NAT share the limit. 0 disables the limit. Applied on save. Requires nftables and CAP_NET_ADMIN.",
       "subBalancers": {
         "menu": "Sub Balancers",
         "title": "Subscription balancer",
@@ -2635,6 +2641,8 @@
       "eventNodeUp": "Node {{ .Name }} is UP",
       "eventLoginFallback": "Login failed from {{ .Source }}",
       "memoryThreshold": "Memory Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (80% threshold).",
+      "conntrackRecovered": "🟢 Conntrack usage recovered to {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (below 70%).",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 Server",

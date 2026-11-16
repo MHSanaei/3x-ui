@@ -15,6 +15,7 @@ const SERIES_KEYS = [
   'netDown',
   'tcpCount',
   'udpCount',
+  'conntrackCount',
 ] as const;
 
 export type OverviewSeriesKey = (typeof SERIES_KEYS)[number];
@@ -55,6 +56,7 @@ function sampleOf(status: Status): Record<OverviewSeriesKey, number> {
     netDown: status.netIO.down,
     tcpCount: status.tcpCount,
     udpCount: status.udpCount,
+    conntrackCount: status.conntrackCount,
   };
 }
 

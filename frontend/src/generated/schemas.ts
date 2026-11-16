@@ -504,6 +504,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "tcpPerIpConnectionLimit": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgBotAPIServer": {
         "type": "string"
       },
@@ -741,6 +746,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
+      "tcpPerIpConnectionLimit",
       "tgBotAPIServer",
       "tgBotBackup",
       "tgBotChatId",
@@ -1295,6 +1301,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "tcpPerIpConnectionLimit": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgBotAPIServer": {
         "type": "string"
       },
@@ -1540,6 +1551,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
+      "tcpPerIpConnectionLimit",
       "tgBotAPIServer",
       "tgBotBackup",
       "tgBotChatId",

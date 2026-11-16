@@ -316,6 +316,21 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.tcpPerIpConnectionLimit')}
+                description={t('pages.settings.tcpPerIpConnectionLimitDesc')}
+              >
+                <InputNumber
+                  value={allSetting.tcpPerIpConnectionLimit}
+                  min={0}
+                  max={1000000}
+                  precision={0}
+                  style={{ width: '100%' }}
+                  onChange={onNumber((v) => updateSetting({ tcpPerIpConnectionLimit: v }))}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.pageSize')}
                 badge={<DefaultSettingTag settingKey="pageSize" value={allSetting.pageSize} />}
                 description={t('pages.settings.pageSizeDesc')}

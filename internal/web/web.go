@@ -316,8 +316,9 @@ const (
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
-	cadenceCPUAlarm    = "@every 1m"
-	cadenceMemoryAlarm = "@every 1m"
+	cadenceCPUAlarm       = "@every 1m"
+	cadenceMemoryAlarm    = "@every 1m"
+	cadenceConntrackAlarm = "@every 30s"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -428,6 +429,8 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	if s.memoryAlarmWanted() {
 		_, _ = s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
 	}
+	// Read notification settings each tick so enabling alerts takes effect live.
+	_, _ = s.cron.AddJob(cadenceConntrackAlarm, job.NewCheckConntrackJob(s.conntrackAlarmWanted))
 
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
 		_, _ = s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
@@ -436,6 +439,21 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 			job.NewMemoryReleaseJob().Run()
 		}()
 	}
+}
+
+// conntrackAlarmWanted reports whether Telegram wants connection table alerts.
+func (s *Server) conntrackAlarmWanted() bool {
+	if enabled, _ := s.settingService.GetTgbotEnabled(); !enabled {
+		return false
+	}
+	events, _ := s.settingService.GetTgEnabledEvents()
+	for e := range strings.SplitSeq(events, ",") {
+		switch eventbus.EventType(strings.TrimSpace(e)) {
+		case eventbus.EventConntrackHigh, eventbus.EventConntrackRecovered:
+			return true
+		}
+	}
+	return false
 }
 
 // cpuAlarmWanted reports whether any notifier is configured to receive cpu.high
@@ -556,9 +574,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
 	mgr := runtime.NewManager(runtime.LocalDeps{
-		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
-		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
+		WithTCPConnectionLimit: service.WithTCPConnectionLimit,
+		APIPort:                func() int { return s.xrayService.GetXrayAPIPort() },
+		SetNeedRestart:         func() { s.xrayService.SetToNeedRestart() },
+		RequestReconcile:       func() { s.xrayService.SetToNeedReconcile() },
 	})
 	runtime.SetManager(mgr)
 	mgr.SetNodeEgressResolver(&s.settingService)

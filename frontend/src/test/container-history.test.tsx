@@ -47,7 +47,7 @@ it('ignores a legacy seed that resolves after the scope changes', async () => {
   let calls = 0;
   get.mockImplementation(() => {
     calls += 1;
-    return calls <= 8 ? legacy : Promise.resolve({ success: true, obj: [] });
+    return calls <= 9 ? legacy : Promise.resolve({ success: true, obj: [] });
   });
   const { result, rerender } = renderHook(({ status }) => useOverviewHistory(status, true), {
     initialProps: { status: new Status({ cpu: 90 }) },
@@ -131,10 +131,10 @@ it('waits for the first real status before seeding and never doubles that window
   });
   await waitFor(() => expect(result.current.series.cpu).toEqual([10, 20]));
   expect(result.current.series.swap).toEqual([6, 0]);
-  expect(get).toHaveBeenCalledTimes(8);
+  expect(get).toHaveBeenCalledTimes(9);
   rerender({ status: new Status({ resourceScope: 'container', cpu: 30 }), hasData: true });
   expect(result.current.series.cpu).toEqual([10, 20, 30]);
-  expect(get).toHaveBeenCalledTimes(8);
+  expect(get).toHaveBeenCalledTimes(9);
 });
 
 it('does not prepend the same seed after a temporary status error', async () => {
@@ -149,7 +149,7 @@ it('does not prepend the same seed after a temporary status error', async () => 
   await act(async () => {
     await Promise.resolve();
   });
-  expect(get).toHaveBeenCalledTimes(8);
+  expect(get).toHaveBeenCalledTimes(9);
   expect(result.current.series.cpu).toEqual([10, 20]);
 });
 

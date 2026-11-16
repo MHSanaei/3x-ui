@@ -69,6 +69,8 @@ const GROUPS: NotificationGroupConfig[] = [
     icon: <DashboardOutlined aria-hidden />,
     title: 'eventGroupSystem',
     events: [
+      { key: 'conntrack.high', label: 'eventConntrackHigh', settingKey: '' },
+      { key: 'conntrack.recovered', label: 'eventConntrackRecovered', settingKey: '' },
       {
         key: 'cpu.high',
         label: 'eventCPUHigh',
