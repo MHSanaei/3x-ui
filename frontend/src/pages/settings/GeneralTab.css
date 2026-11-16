@@ -1,0 +1,3 @@
+.general-settings-tabs.ant-tabs > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ant-color-text);
+}

@@ -19,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 import SecretInput from './SecretInput';
+import './GeneralTab.css';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -177,6 +178,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
   return (
     <Tabs
+      className="general-settings-tabs"
       defaultActiveKey="1"
       items={[
         {
