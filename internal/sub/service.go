@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net"
 	"net/url"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -35,6 +36,21 @@ import (
 // last warned about: a node picks the names, so the entry must stay fixed-size.
 var salamanderWarningSeen sync.Map
 
+type ss2022LinkFormat int
+
+const (
+	ss2022FormatSIP022 ss2022LinkFormat = iota
+	ss2022FormatSIP002
+	ss2022FormatRaw
+)
+
+var shadowrocketUserAgentRegex = regexp.MustCompile(`(?i)\bshadowrocket`)
+
+// IsShadowrocketClient reports whether the request User-Agent identifies Shadowrocket.
+func IsShadowrocketClient(userAgent string) bool {
+	return shadowrocketUserAgentRegex.MatchString(userAgent)
+}
+
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
@@ -49,6 +65,7 @@ type SubService struct {
 	// omitServerDescription drops the ?serverDescription= tail, which only Happ
 	// and INCY read; other clients show it in the node name (#7105).
 	omitServerDescription bool
+	ss2022Format          ss2022LinkFormat
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
 	usageShown                 map[string]bool
@@ -156,6 +173,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.rendered = 0
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
+	s.ss2022Format = ss2022FormatSIP022
 	s.loadNodes()
 	s.loadRemarkSettings()
 	s.subCalendarExpireInclusive, _ = s.settingService.GetSubCalendarExpireInclusive()
@@ -574,6 +592,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		return nil, nil, 0, traffic, nil
 	}
 
+	var hasSuppressed bool
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
 		clients := s.matchingClients(inbound, subId)
@@ -581,6 +600,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			continue
 		}
 		if inbound.ExcludeFromSub {
+			hasSuppressed = true
 			if countHiddenClients(clients, seenEmails) {
 				hasEnabledClient = true
 			}
@@ -590,8 +610,16 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		// Host overrides apply AFTER fallback projection so a host's
 		// address/TLS wins over the projected master stream.
 		var hostEps []map[string]any
+		var suppressFallback bool
 		if !s.hostsFirst {
-			hostEps = s.hostEndpoints(inbound, "raw")
+			hostEps, suppressFallback = s.hostEndpointsForFormat(inbound, "raw")
+			if suppressFallback {
+				hasSuppressed = true
+				if countHiddenClients(clients, seenEmails) {
+					hasEnabledClient = true
+				}
+				continue
+			}
 		}
 		for _, client := range clients {
 			if client.Enable {
@@ -604,7 +632,8 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			var link string
 			if s.hostsFirst {
 				variants, closed := s.clientHostVariants(inbound, client, "raw")
-				if closed {
+				if closed || len(variants) == 0 {
+					hasSuppressed = true
 					seenEmails[client.Email] = struct{}{}
 					continue
 				}
@@ -618,6 +647,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 					ordered = append(ordered, orderedSubEntry[func() string]{variant.order, render})
 				}
 			} else if effectiveEps, bound := s.clientHostEndpoints(inbound, client, "raw", hostEps); bound && len(effectiveEps) == 0 {
+				hasSuppressed = true
 				seenEmails[client.Email] = struct{}{}
 				continue
 			} else if len(effectiveEps) > 0 {
@@ -644,6 +674,9 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 				result = append(result, link)
 			}
 		}
+	}
+	if hasSuppressed && result == nil {
+		result = []string{}
 	}
 	for _, ext := range externalLinks {
 		if ext.Enable {
@@ -698,7 +731,10 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 	}
 	s.primeLinkClients(inbound.Id, clients, true)
 	s.projectThroughFallbackMaster(inbound)
-	hostEps := s.hostEndpoints(inbound, "raw")
+	hostEps, suppressFallback := s.hostEndpointsForFormat(inbound, "raw")
+	if suppressFallback {
+		return nil
+	}
 	var out []string
 	seen := make(map[string]struct{}, len(clients))
 	for _, client := range clients {
@@ -1589,14 +1625,29 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
 	}
 
-	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
-	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
+	// SIP022 percent-encodes userinfo (v2rayNG/NekoBox); Shadowrocket parses SIP002
+	// base64url(method:password) reliably without choking on %3D/%2F/%2B or literal '/'.
 	var userInfo string
 	if strings.HasPrefix(method, "2022") {
-		userInfo = fmt.Sprintf("%s:%s:%s",
-			url.QueryEscape(method),
-			url.QueryEscape(inboundPassword),
-			url.QueryEscape(client.Password))
+		switch s.ss2022Format {
+		case ss2022FormatSIP002:
+			password := client.Password
+			if inboundPassword != "" {
+				password = inboundPassword + ":" + client.Password
+			}
+			userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, password))
+		case ss2022FormatRaw:
+			if inboundPassword != "" {
+				userInfo = fmt.Sprintf("%s:%s:%s", method, inboundPassword, client.Password)
+			} else {
+				userInfo = fmt.Sprintf("%s:%s", method, client.Password)
+			}
+		default:
+			userInfo = fmt.Sprintf("%s:%s:%s",
+				url.QueryEscape(method),
+				url.QueryEscape(inboundPassword),
+				url.QueryEscape(client.Password))
+		}
 	} else {
 		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", method, client.Password))
 	}

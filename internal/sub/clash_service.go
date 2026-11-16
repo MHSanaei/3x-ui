@@ -76,7 +76,16 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		var baseEps []map[string]any
 		baseStream := inbound.StreamSettings
 		if !subReq.hostsFirst {
-			if baseEps = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
+			var suppressFallback bool
+			baseEps, suppressFallback = subReq.hostEndpointsForFormat(inbound, "clash")
+			if suppressFallback {
+				hasBoundClosed = true
+				if countHiddenClients(clients, seenEmails) {
+					hasEnabledClient = true
+				}
+				continue
+			}
+			if len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}
