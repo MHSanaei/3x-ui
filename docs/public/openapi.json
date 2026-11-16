@@ -530,6 +530,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "tcpPerIpConnectionLimit": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgBotAPIServer": {
             "type": "string"
           },
@@ -767,6 +772,7 @@
           "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
+          "tcpPerIpConnectionLimit",
           "tgBotAPIServer",
           "tgBotBackup",
           "tgBotChatId",
@@ -1321,6 +1327,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "tcpPerIpConnectionLimit": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgBotAPIServer": {
             "type": "string"
           },
@@ -1566,6 +1577,7 @@
           "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
+          "tcpPerIpConnectionLimit",
           "tgBotAPIServer",
           "tgBotBackup",
           "tgBotChatId",
@@ -16358,6 +16370,8 @@
                 "loads",
                 "tcpCount",
                 "udpCount",
+                "conntrackCount",
+                "conntrackMax",
                 "netIO",
                 "netTraffic",
                 "publicIP",
@@ -16521,6 +16535,12 @@
                   "type": "integer"
                 },
                 "udpCount": {
+                  "type": "integer"
+                },
+                "conntrackCount": {
+                  "type": "integer"
+                },
+                "conntrackMax": {
                   "type": "integer"
                 },
                 "netIO": {
