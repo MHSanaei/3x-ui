@@ -434,6 +434,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	_, host, _, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = false
+	subReq.ss2022Format = resolveSS2022Format(c, c.GetHeader("User-Agent"))
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
@@ -487,12 +488,13 @@ func (a *SUBController) subs(c *gin.Context) {
 	if !a.enforceHwid(c) {
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false, false) {
+	explicitRaw := shouldForceRawSub(c)
+	if !explicitRaw && shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false, false) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+	if !explicitRaw && shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
@@ -503,6 +505,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = true
 	subReq.omitServerDescription = !IsHappClient(userAgent) && !IsIncyClient(userAgent)
+	subReq.ss2022Format = resolveSS2022Format(c, userAgent)
 	subs, _, _, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
@@ -561,6 +564,36 @@ func shouldAutoServeFormat(autoDetect, formatEnabled, wantsHTML bool, userAgent 
 		return false
 	}
 	return userAgentRegex.MatchString(userAgent)
+}
+
+func shouldForceRawSub(c *gin.Context) bool {
+	if c == nil {
+		return false
+	}
+	if strings.TrimSpace(c.Query("ss2022")) != "" {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(c.Query("flag")), "shadowrocket")
+}
+
+func resolveSS2022Format(c *gin.Context, userAgent string) ss2022LinkFormat {
+	if c != nil {
+		switch strings.ToLower(strings.TrimSpace(c.Query("ss2022"))) {
+		case "sip002", "b64", "base64":
+			return ss2022FormatSIP002
+		case "raw", "plain":
+			return ss2022FormatRaw
+		case "sip022", "percent":
+			return ss2022FormatSIP022
+		}
+		if strings.EqualFold(strings.TrimSpace(c.Query("flag")), "shadowrocket") {
+			return ss2022FormatSIP002
+		}
+	}
+	if IsShadowrocketClient(userAgent) {
+		return ss2022FormatSIP002
+	}
+	return ss2022FormatSIP022
 }
 
 func logSubscriptionRoute(userAgent, branch string) {

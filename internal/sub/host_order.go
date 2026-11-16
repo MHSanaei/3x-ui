@@ -3,7 +3,6 @@ package sub
 import (
 	"cmp"
 	"fmt"
-	"slices"
 	"sort"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -84,20 +83,21 @@ func hostOrderGroupID(h *model.Host) string {
 	return fmt.Sprintf("fallback_%d", h.Id)
 }
 
-func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format string) []subscriptionHostVariant {
+func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format string) ([]subscriptionHostVariant, bool) {
+	visible, suppressFallback := s.resolveInboundHosts(inbound, format)
+	if suppressFallback {
+		return nil, true
+	}
 	var variants []subscriptionHostVariant
-	for _, h := range s.hostsByInbound[inbound.Id] {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
-			continue
-		}
+	for _, h := range visible {
 		order := s.hostGroupOrders[hostOrderGroupID(h)]
 		order.inboundSort, order.inboundID, order.hostID = inbound.SubSortIndex, inbound.Id, h.Id
 		variants = append(variants, subscriptionHostVariant{h, &order})
 	}
 	if len(variants) == 0 {
-		return []subscriptionHostVariant{{}}
+		return []subscriptionHostVariant{{}}, false
 	}
-	return variants
+	return variants, false
 }
 
 func (v subscriptionHostVariant) endpoint(s *SubService, inbound *model.Inbound) []map[string]any {

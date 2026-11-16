@@ -85,7 +85,7 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 	defaultDest := s.resolveInboundAddress(inbound)
 	var eps []map[string]any
 	for _, h := range hosts {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+		if !hostVisibleInFormat(h, format) {
 			continue
 		}
 		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
@@ -94,9 +94,12 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 }
 
 // clientHostVariants narrows the hosts-first variants of an inbound to the client's bound hosts;
-// closed reports a binding that leaves this client nothing to render on the inbound.
+// closed reports a binding (or suppressed inbound) that leaves this client nothing to render.
 func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Client, format string) (variants []subscriptionHostVariant, closed bool) {
-	all := s.subscriptionHostVariants(inbound, format)
+	all, suppressed := s.subscriptionHostVariants(inbound, format)
+	if suppressed {
+		return nil, true
+	}
 	state, hosts := s.clientHostBinding(inbound, client)
 	switch state {
 	case hostBindingNone:
@@ -112,34 +115,65 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 	return variants, len(variants) == 0
 }
 
-// hostEndpoints loads an inbound's enabled hosts for the given subscription
-// format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
-// the existing per-format renderers can fan out one link/proxy per host. Returns
-// nil when the inbound has no applicable host — the caller then uses the legacy
-// inbound/externalProxy path, preserving byte-identical output for zero-host
-// inbounds.
-func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
-	var hosts []*model.Host
+func (s *SubService) inboundHosts(inbound *model.Inbound) []*model.Host {
 	if s.hostsByInbound != nil {
-		hosts = s.hostsByInbound[inbound.Id]
-	} else if err := database.GetDB().
-		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
-		Order("sort_order asc, id asc").
-		Find(&hosts).Error; err != nil {
-		logger.Warning("SubService - hostEndpoints:", err)
+		return s.hostsByInbound[inbound.Id]
+	}
+	db := database.GetDB()
+	if db == nil {
 		return nil
 	}
-	if len(hosts) == 0 {
+	var hosts []*model.Host
+	if err := db.Where("inbound_id = ?", inbound.Id).
+		Order("sort_order asc, id asc").
+		Find(&hosts).Error; err != nil {
+		logger.Warning("SubService - inboundHosts:", err)
 		return nil
+	}
+	return hosts
+}
+
+func hostVisibleInFormat(h *model.Host, format string) bool {
+	return !h.IsDisabled && !h.IsHidden && !slices.Contains(h.ExcludeFromSubTypes, format)
+}
+
+// resolveInboundHosts filters hosts for format and sets suppressFallback when explicit
+// is_hidden or active exclude_from_sub_types removes every host, blocking legacy fallback.
+func (s *SubService) resolveInboundHosts(inbound *model.Inbound, format string) (visible []*model.Host, suppressFallback bool) {
+	hosts := s.inboundHosts(inbound)
+	var hasHiddenOrExcluded bool
+	for _, h := range hosts {
+		if h.IsHidden || (!h.IsDisabled && slices.Contains(h.ExcludeFromSubTypes, format)) {
+			hasHiddenOrExcluded = true
+		}
+		if hostVisibleInFormat(h, format) {
+			visible = append(visible, h)
+		}
+	}
+	if len(visible) == 0 && hasHiddenOrExcluded {
+		return nil, true
+	}
+	return visible, false
+}
+
+// hostEndpointsForFormat returns visible host endpoints for format and whether all
+// hosts were explicitly hidden/excluded (suppressFallback = true blocks default link fallback).
+func (s *SubService) hostEndpointsForFormat(inbound *model.Inbound, format string) ([]map[string]any, bool) {
+	hosts, suppressFallback := s.resolveInboundHosts(inbound, format)
+	if suppressFallback || len(hosts) == 0 {
+		return nil, suppressFallback
 	}
 	defaultDest := s.resolveInboundAddress(inbound)
 	eps := make([]map[string]any, 0, len(hosts))
 	for _, h := range hosts {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
-			continue
-		}
 		eps = append(eps, s.hostEndpointMaps(h, defaultDest, inbound.Port)...)
 	}
+	return eps, false
+}
+
+// hostEndpoints loads an inbound's visible hosts for the given subscription format.
+func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
+	eps, _ := s.hostEndpointsForFormat(inbound, format)
 	return eps
 }
 
