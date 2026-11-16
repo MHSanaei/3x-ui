@@ -2,18 +2,20 @@ package service
 
 import (
 	"errors"
-	tcplimit "github.com/mhsanaei/3x-ui/v3/internal/tcp-limit"
 	"net/netip"
 	"slices"
 	"testing"
 	"time"
+
+	tcplimit "github.com/mhsanaei/3x-ui/v3/internal/tcp-limit"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-	"gorm.io/gorm"
 )
 
 func TestTCPConnectionLimitPorts(t *testing.T) {

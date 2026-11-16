@@ -1,14 +1,16 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 
 	"github.com/goccy/go-json"
-	tcplimit "github.com/mhsanaei/3x-ui/v3/internal/tcp-limit"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/infra/conf"
+
+	tcplimit "github.com/mhsanaei/3x-ui/v3/internal/tcp-limit"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 var tcpConnectionLimiter interface {
@@ -40,7 +42,7 @@ func WithTCPConnectionLimit(apply func() error) error {
 	}
 	if err := apply(); err != nil {
 		if rollbackErr := rollback(); rollbackErr != nil {
-			return fmt.Errorf("%w; restore TCP connection limit: %v", err, rollbackErr)
+			return errors.Join(err, fmt.Errorf("restore TCP connection limit: %w", rollbackErr))
 		}
 		return err
 	}

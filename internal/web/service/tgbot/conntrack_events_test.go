@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
 
 func TestConntrackEventMessages(t *testing.T) {

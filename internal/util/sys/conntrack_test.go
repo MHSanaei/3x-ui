@@ -10,7 +10,7 @@ func TestGetConntrackUsage(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOST_PROC", root)
 	dir := filepath.Join(root, "sys/net/netfilter")
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
@@ -25,7 +25,7 @@ func TestGetConntrackUsage(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for name, value := range map[string]string{"nf_conntrack_count": tc.count, "nf_conntrack_max": tc.max} {
-				if err := os.WriteFile(filepath.Join(dir, name), []byte(value), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, name), []byte(value), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}

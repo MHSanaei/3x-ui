@@ -16,17 +16,17 @@ func TestCheckConntrackJobTransitions(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOST_PROC", root)
 	dir := filepath.Join(root, "sys/net/netfilter")
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "nf_conntrack_max"), []byte("1000\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "nf_conntrack_max"), []byte("1000\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	j := NewCheckConntrackJob(func() bool { return true })
 	events := captureConntrackEvents(t, func() {
 		for _, count := range []string{"799", "800", "1001", "700", "699", "0", "800"} {
-			if err := os.WriteFile(filepath.Join(dir, "nf_conntrack_count"), []byte(count+"\n"), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "nf_conntrack_count"), []byte(count+"\n"), 0o600); err != nil {
 				t.Fatal(err)
 			}
 			j.Run()

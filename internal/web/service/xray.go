@@ -1545,7 +1545,7 @@ func (s *XrayService) RestartXray(isForce bool) (err error) {
 	defer func() {
 		if err != nil {
 			if rollbackErr := rollbackLimit(); rollbackErr != nil {
-				err = fmt.Errorf("%w; restore TCP connection limit: %v", err, rollbackErr)
+				err = errors.Join(err, fmt.Errorf("restore TCP connection limit: %w", rollbackErr))
 			}
 		}
 	}()
