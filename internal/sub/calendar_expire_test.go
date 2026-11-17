@@ -37,8 +37,9 @@ func TestSubscriptionCalendarExpireInclusive(t *testing.T) {
 		{"Taipei midnight", "true", "Asia/Taipei", "2030-10-01T00:00:00+08:00", 1, 1, true},
 		{"New York daylight time", "true", "America/New_York", "2030-10-01T00:00:00-04:00", 1, 1, true},
 		{"New York standard time", "true", "America/New_York", "2030-02-01T00:00:00-05:00", 1, 1, true},
-		{"Havana first midnight", "true", "America/Havana", "2026-11-01T00:00:00-04:00", 1, 1, true},
-		{"Havana repeated midnight", "true", "America/Havana", "2026-11-01T00:00:00-05:00", 1, 1, false},
+		// Past fallback on purpose: tzdata 2026f cancelled Cuba's 2026 one.
+		{"Havana first midnight", "true", "America/Havana", "2020-11-01T00:00:00-04:00", 1, 1, true},
+		{"Havana repeated midnight", "true", "America/Havana", "2020-11-01T00:00:00-05:00", 1, 1, false},
 		{"UTC midnight is not Taipei midnight", "true", "Asia/Taipei", "2030-10-01T00:00:00Z", 1, 1, false},
 		{"midday unchanged", "true", "UTC", "2030-10-01T12:00:00Z", 1, 1, false},
 		{"other midnight unchanged", "true", "UTC", "2030-10-02T00:00:00Z", 1, 1, false},

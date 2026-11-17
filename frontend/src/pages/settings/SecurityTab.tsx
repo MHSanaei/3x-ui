@@ -169,7 +169,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
     if (!token) return;
     const ok = await ClipboardManager.copyText(token);
     if (ok) messageApi.success(t('copySuccess'));
-    else messageApi.error(t('copyFail') ?? 'Copy failed');
+    else messageApi.error(t('copyFail'));
   }
 
   function openCreateModal() {

@@ -798,10 +798,10 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: !!values.enable,
     };
+    // Sent even when empty, so clearing the tag never rests on how the server
+    // reads an omitted key.
     const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
-    if (reverseTagValue) {
-      clientPayload.reverse = { tag: reverseTagValue };
-    }
+    clientPayload.reverse = reverseTagValue ? { tag: reverseTagValue } : null;
 
     if (showWireguard || showAmneziawg) {
       // AmneziaWG peers are wire-identical to WireGuard peers (same

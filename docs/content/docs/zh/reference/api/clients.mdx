@@ -35,10 +35,10 @@ _openapi:
         #create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
     - depth: 2
       title: >-
-        按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
-        请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+        按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷：
+        省略的字段保留当前值，显式的零值、空值或 null 会清除该字段（例外见下文）。
       url: >-
-        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
     - depth: 2
       title: >-
         按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
@@ -175,7 +175,7 @@ _openapi:
         列出所有客户端分组及其成员数量。将持久化分组（client_groups 中的记录，包括空占位符）
         与当前在客户端上设置的去重后的 group_name 值合并。按字母顺序排序（不区分大小写）。
       url: >-
-        #list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+        #list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
     - depth: 2
       title: >-
         仅返回当前属于指定分组的客户端 email 列表。适用于将单个批量操作扇出到整个分组，而无需
@@ -187,14 +187,14 @@ _openapi:
         创建一个新的空（占位）分组。即使尚未向其添加任何客户端，该分组也会在客户端表单和筛选
         抽屉中变为可选。若已存在同名分组，则报错。
       url: >-
-        #create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+        #create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
     - depth: 2
       title: >-
         重命名分组。新名称会应用到 client_groups 记录，并在单个事务中传播到每个匹配的客户端
         （包括 clients.group_name 以及每个所属入站的 settings JSON 内的客户端条目）。返回
         标签被更新的客户端数量。
       url: >-
-        #rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+        #rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
     - depth: 2
       title: >-
         移除分组。删除 client_groups 记录，并从每个匹配的客户端清除分组标签（包括
@@ -292,10 +292,10 @@ _openapi:
         id: >-
           create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
       - content: >-
-          按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷——
-          请提供你希望保留的完整字段集（服务端会替换整条记录，而非局部更新）。
+          按 email 更新现有客户端。变更会传播到每个挂载的入站。请求体为 JSON 客户端载荷：
+          省略的字段保留当前值，显式的零值、空值或 null 会清除该字段（例外见下文）。
         id: >-
-          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
       - content: >-
           按 email 删除客户端。将其从每个挂载的入站中移除，并删除其流量记录，除非传入
           keepTraffic=1。
@@ -412,7 +412,7 @@ _openapi:
           列出所有客户端分组及其成员数量。将持久化分组（client_groups 中的记录，包括空占位符）
           与当前在客户端上设置的去重后的 group_name 值合并。按字母顺序排序（不区分大小写）。
         id: >-
-          list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+          list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
       - content: >-
           仅返回当前属于指定分组的客户端 email 列表。适用于将单个批量操作扇出到整个分组，而无需
           往返获取完整的客户端列表。
@@ -422,13 +422,13 @@ _openapi:
           创建一个新的空（占位）分组。即使尚未向其添加任何客户端，该分组也会在客户端表单和筛选
           抽屉中变为可选。若已存在同名分组，则报错。
         id: >-
-          create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+          create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
       - content: >-
           重命名分组。新名称会应用到 client_groups 记录，并在单个事务中传播到每个匹配的客户端
           （包括 clients.group_name 以及每个所属入站的 settings JSON 内的客户端条目）。返回
           标签被更新的客户端数量。
         id: >-
-          rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+          rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
       - content: >-
           移除分组。删除 client_groups 记录，并从每个匹配的客户端清除分组标签（包括
           clients.group_name 以及入站 settings JSON）。客户端本身不会被删除——如需删除请先按
