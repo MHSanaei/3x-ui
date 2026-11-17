@@ -26,7 +26,8 @@ describe('ConnectionsCard', () => {
       />,
     );
     expect(screen.getByText('292')).toBeTruthy();
-    expect(screen.queryByText('Conntrack usage')).toBeNull();
+    expect(screen.getByText('Conntrack usage')).toBeTruthy();
+    expect(screen.getByText('8,000 / 7,680')).toBeTruthy();
     const props = sparkline.mock.calls.at(-1)?.[0];
     expect(props?.data).toEqual(tcp);
     expect(props?.data2).toEqual(udp);
@@ -36,5 +37,18 @@ describe('ConnectionsCard', () => {
       expect.objectContaining({ y: 18 }),
       expect.objectContaining({ y: 274 }),
     ]);
+  });
+
+  it('hides unavailable conntrack counts', () => {
+    renderWithProviders(
+      <ConnectionsCard
+        tcp={[274]}
+        udp={[18]}
+        labels={['1']}
+        isMobile={false}
+        status={new Status({ tcpCount: 274, udpCount: 18 })}
+      />,
+    );
+    expect(screen.queryByText('Conntrack usage')).toBeNull();
   });
 });

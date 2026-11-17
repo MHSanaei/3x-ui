@@ -2,7 +2,6 @@ package job
 
 import (
 	"errors"
-	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,7 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
 
-func TestCheckConntrackJobTransitions(t *testing.T) {
+func TestCheckConntrackJobPublishesUsage(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOST_PROC", root)
 	dir := filepath.Join(root, "sys/net/netfilter")
@@ -32,25 +31,21 @@ func TestCheckConntrackJobTransitions(t *testing.T) {
 			j.Run()
 		}
 	})
-	if len(events) != 4 {
-		t.Fatalf("events = %v, want high, high, recovered, high", events)
+	if len(events) != 7 {
+		t.Fatalf("events = %v, want one event for every valid sample", events)
 	}
-	for i, typ := range []eventbus.EventType{eventbus.EventConntrackHigh, eventbus.EventConntrackHigh, eventbus.EventConntrackRecovered, eventbus.EventConntrackHigh} {
-		if events[i].Type != typ {
-			t.Fatalf("event %d type = %s, want %s", i, events[i].Type, typ)
+	for i, count := range []uint64{799, 800, 1001, 700, 699, 0, 800} {
+		if events[i].Type != eventbus.EventConntrackHigh {
+			t.Fatalf("event %d type = %s, want conntrack.high", i, events[i].Type)
 		}
-	}
-	data := events[0].Data.(*eventbus.ConntrackData)
-	if data.Count != 800 || data.Max != 1000 || data.Percent != 80 {
-		t.Fatalf("high data = %+v", data)
-	}
-	data = events[2].Data.(*eventbus.ConntrackData)
-	if data.Count != 699 || data.Max != 1000 || math.Abs(data.Percent-69.9) > 0.0001 {
-		t.Fatalf("recovery data = %+v", data)
+		data := events[i].Data.(*eventbus.ConntrackData)
+		if data.Count != count || data.Max != 1000 || data.Percent != float64(count)/1000*100 {
+			t.Fatalf("sample %d data = %+v", i, data)
+		}
 	}
 }
 
-func TestCheckConntrackJobInvalidSamplesPreserveState(t *testing.T) {
+func TestCheckConntrackJobSkipsInvalidSamples(t *testing.T) {
 	for _, sample := range []struct {
 		name       string
 		count, max uint64
@@ -74,8 +69,8 @@ func TestCheckConntrackJobInvalidSamplesPreserveState(t *testing.T) {
 				count, max, readErr = 0, 100, nil
 				j.Run()
 			})
-			if len(events) != 2 || events[0].Type != eventbus.EventConntrackHigh || events[1].Type != eventbus.EventConntrackRecovered {
-				t.Fatalf("events = %v, want high, recovered", events)
+			if len(events) != 2 || events[0].Type != eventbus.EventConntrackHigh || events[1].Type != eventbus.EventConntrackHigh {
+				t.Fatalf("events = %v, want only the two valid samples", events)
 			}
 		})
 	}
@@ -136,37 +131,13 @@ func TestCheckConntrackJobRuntimeToggle(t *testing.T) {
 		enabled = true
 		j.Run()
 	})
-	if len(events) != 3 {
-		t.Fatalf("events = %v, want high for each enabled pressure sample", events)
+	if len(events) != 4 {
+		t.Fatalf("events = %v, want usage for each enabled sample", events)
 	}
 	for _, e := range events {
 		if e.Type != eventbus.EventConntrackHigh {
 			t.Fatalf("event = %v, want high", e)
 		}
-	}
-}
-
-func TestCheckConntrackJobRefreshesSustainedPressure(t *testing.T) {
-	count := uint64(80)
-	j := NewCheckConntrackJob(func() bool { return true })
-	j.readUsage = func() (uint64, uint64, error) {
-		return count, 100, nil
-	}
-	events := captureConntrackEvents(t, func() {
-		j.Run()
-		count = 90
-		j.Run()
-		count = 79
-		j.Run()
-		count = 69
-		j.Run()
-		j.Run()
-	})
-	if len(events) != 3 || events[0].Type != eventbus.EventConntrackHigh || events[1].Type != eventbus.EventConntrackHigh || events[2].Type != eventbus.EventConntrackRecovered {
-		t.Fatalf("events = %v, want two high samples and one recovery", events)
-	}
-	if data := events[1].Data.(*eventbus.ConntrackData); data.Count != 90 {
-		t.Fatalf("refreshed count = %d, want 90", data.Count)
 	}
 }
 

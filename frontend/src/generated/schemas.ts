@@ -527,6 +527,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotToken": {
         "type": "string"
       },
+      "tgConntrack": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgCpu": {
         "maximum": 100,
         "minimum": 0,
@@ -753,6 +758,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotEnable",
       "tgBotProxy",
       "tgBotToken",
+      "tgConntrack",
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",
@@ -1324,6 +1330,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotToken": {
         "type": "string"
       },
+      "tgConntrack": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgCpu": {
         "maximum": 100,
         "minimum": 0,
@@ -1558,6 +1569,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgBotEnable",
       "tgBotProxy",
       "tgBotToken",
+      "tgConntrack",
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",

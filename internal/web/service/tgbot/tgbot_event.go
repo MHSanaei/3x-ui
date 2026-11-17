@@ -44,9 +44,6 @@ func (t *Tgbot) HandleEvent(e eventbus.Event) {
 // eventNoticeKind is the live card a repeat of this event edits. A login success
 // must not fold into the failure card from the same IP: outcome is part of the key.
 func (t *Tgbot) eventNoticeKind(e eventbus.Event) string {
-	if e.Type == eventbus.EventConntrackHigh || e.Type == eventbus.EventConntrackRecovered {
-		return "conntrack:" + e.Source
-	}
 	if e.Type == eventbus.EventLoginAttempt {
 		if data, ok := e.Data.(*eventbus.LoginEventData); ok {
 			return string(e.Type) + ":" + e.Source + ":" + data.Status
@@ -157,19 +154,20 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 		}
 		return ""
 
-	case eventbus.EventConntrackHigh, eventbus.EventConntrackRecovered:
+	case eventbus.EventConntrackHigh:
 		data, ok := e.Data.(*eventbus.ConntrackData)
 		if !ok || data == nil {
 			return ""
 		}
-		key := "tgbot.messages.conntrackHigh"
-		if e.Type == eventbus.EventConntrackRecovered {
-			key = "tgbot.messages.conntrackRecovered"
+		threshold, err := t.settingService.GetTgConntrack()
+		if err != nil || threshold <= 0 || data.Percent < float64(threshold) {
+			return ""
 		}
-		return header + t.I18nBot(key,
+		return header + t.I18nBot("tgbot.messages.conntrackHigh",
 			"Count=="+strconv.FormatUint(data.Count, 10),
 			"Max=="+strconv.FormatUint(data.Max, 10),
-			"Percent=="+strconv.FormatFloat(data.Percent, 'f', 1, 64))
+			"Percent=="+strconv.FormatFloat(data.Percent, 'f', 1, 64),
+			"Threshold=="+strconv.Itoa(threshold))
 
 	case eventbus.EventLoginAttempt:
 		if data, ok := e.Data.(*eventbus.LoginEventData); ok {

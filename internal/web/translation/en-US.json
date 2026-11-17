@@ -214,7 +214,6 @@
       "xrayObservatoryLastTry": "Last try",
       "connectionCount": "Connection Stats",
       "conntrackUsage": "Conntrack usage",
-      "conntrackLimit": "Conntrack limit",
       "ipAddresses": "IP Addresses",
       "toggleIpVisibility": "Toggle visibility of the IP",
       "overallSpeed": "Overall Speed",
@@ -1707,8 +1706,7 @@
       "smtpErrorEof": "Connection closed by server",
       "smtpErrorUnknown": "SMTP error — see the panel log for details",
       "eventMemoryHigh": "Memory high (%)",
-      "eventConntrackHigh": "Conntrack usage (80% or more)",
-      "eventConntrackRecovered": "Conntrack recovery (below 70%)",
+      "eventConntrackHigh": "Conntrack usage (%)",
       "validation": {
         "pathLeadingSlash": "Path must start with /"
       },
@@ -2641,8 +2639,7 @@
       "eventNodeUp": "Node {{ .Name }} is UP",
       "eventLoginFallback": "Login failed from {{ .Source }}",
       "memoryThreshold": "Memory Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
-      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (80% threshold).",
-      "conntrackRecovered": "🟢 Conntrack usage recovered to {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (below 70%).",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries ({{ .Threshold }}% threshold).",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 Server",

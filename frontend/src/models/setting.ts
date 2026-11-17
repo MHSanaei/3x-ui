@@ -34,6 +34,7 @@ export class AllSetting {
   tgRunTime = '@daily';
   tgBotBackup = false;
   tgCpu = 80;
+  tgConntrack = 80;
   tgMemory = 80;
   tgLang = 'en-US';
   twoFactorEnable = false;
@@ -215,6 +216,8 @@ export class AllSetting {
     }
     const cpu = Math.round(Number(this.tgCpu));
     this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
+    const conntrack = Math.round(Number(this.tgConntrack));
+    this.tgConntrack = Number.isFinite(conntrack) ? Math.min(100, Math.max(0, conntrack)) : 80;
     const threshold = Math.round(Number(this.outboundDownThreshold));
     this.outboundDownThreshold = Number.isFinite(threshold)
       ? Math.min(100, Math.max(1, threshold))

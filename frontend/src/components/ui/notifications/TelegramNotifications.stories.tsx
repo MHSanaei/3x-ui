@@ -20,7 +20,7 @@ const meta = {
   argTypes: {
     allSetting: {
       description:
-        'Panel settings snapshot; reads `tgEnabledEvents` plus the `tgCpu`/`tgMemory` thresholds.',
+        'Panel settings snapshot; reads `tgEnabledEvents` plus the `tgCpu`/`tgMemory`/`tgConntrack` thresholds.',
     },
     updateSetting: {
       description:
@@ -78,7 +78,7 @@ export const EverythingEnabled: Story = {
         new AllSetting({
           tgBotEnable: true,
           tgEnabledEvents:
-            'outbound.down,outbound.up,xray.crash,node.down,node.up,cpu.high,memory.high,conntrack.high,conntrack.recovered,login.attempt',
+            'outbound.down,outbound.up,xray.crash,node.down,node.up,cpu.high,memory.high,conntrack.high,login.attempt',
           tgCpu: 70,
           tgMemory: 75,
         })

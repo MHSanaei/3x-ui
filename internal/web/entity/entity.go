@@ -53,6 +53,7 @@ type AllSetting struct {
 	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`
 	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"`
+	TgConntrack     int    `json:"tgConntrack" form:"tgConntrack" validate:"gte=0,lte=100"`
 	TgMemory        int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"`
 	TgLang          string `json:"tgLang" form:"tgLang"`
 	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`
@@ -276,6 +277,10 @@ func checkIPOrCIDRList(list, message string) error {
 }
 
 func (s *AllSetting) CheckValid() error {
+	if s.TgConntrack < 0 || s.TgConntrack > 100 {
+		return common.NewError("Telegram conntrack threshold must be between 0 and 100")
+	}
+
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
 		if ip == nil {

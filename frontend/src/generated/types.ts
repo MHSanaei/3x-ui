@@ -174,6 +174,7 @@ export interface AllSetting {
   tgBotEnable: boolean;
   tgBotProxy: string;
   tgBotToken: string;
+  tgConntrack: number;
   tgCpu: number;
   tgEnabledEvents: string;
   tgLang: string;
@@ -366,6 +367,7 @@ export interface AllSettingView {
   tgBotEnable: boolean;
   tgBotProxy: string;
   tgBotToken: string;
+  tgConntrack: number;
   tgCpu: number;
   tgEnabledEvents: string;
   tgLang: string;

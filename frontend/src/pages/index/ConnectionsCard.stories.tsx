@@ -18,7 +18,7 @@ const meta = {
     ),
   ],
   args: {
-    status: new Status({ tcpCount: 274, udpCount: 18 }),
+    status: new Status({ tcpCount: 274, udpCount: 18, conntrackCount: 6144, conntrackMax: 7680 }),
     tcp: samples,
     udp: samples.map(() => 18),
     labels: samples.map((_, i) => `21:${String(i).padStart(2, '0')}`),

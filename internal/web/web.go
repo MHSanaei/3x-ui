@@ -446,10 +446,12 @@ func (s *Server) conntrackAlarmWanted() bool {
 	if enabled, _ := s.settingService.GetTgbotEnabled(); !enabled {
 		return false
 	}
+	if threshold, err := s.settingService.GetTgConntrack(); err != nil || threshold <= 0 {
+		return false
+	}
 	events, _ := s.settingService.GetTgEnabledEvents()
 	for e := range strings.SplitSeq(events, ",") {
-		switch eventbus.EventType(strings.TrimSpace(e)) {
-		case eventbus.EventConntrackHigh, eventbus.EventConntrackRecovered:
+		if strings.TrimSpace(e) == string(eventbus.EventConntrackHigh) {
 			return true
 		}
 	}

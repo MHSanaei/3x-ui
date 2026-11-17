@@ -97,6 +97,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgCpu":                       "80",
+	"tgConntrack":                 "80",
 	"tgMemory":                    "80",
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
@@ -667,6 +668,14 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgConntrack() (int, error) {
+	return s.getInt("tgConntrack")
+}
+
+func (s *SettingService) SetTgConntrack(value int) error {
+	return s.setInt("tgConntrack", value)
 }
 
 func (s *SettingService) GetTgMemory() (int, error) {

@@ -18,10 +18,9 @@ const (
 	EventNodeUp   EventType = "node.up"
 
 	// System health
-	EventCPUHigh            EventType = "cpu.high"
-	EventMemoryHigh         EventType = "memory.high"
-	EventConntrackHigh      EventType = "conntrack.high"
-	EventConntrackRecovered EventType = "conntrack.recovered"
+	EventCPUHigh       EventType = "cpu.high"
+	EventMemoryHigh    EventType = "memory.high"
+	EventConntrackHigh EventType = "conntrack.high"
 
 	// Security
 	EventLoginAttempt EventType = "login.attempt"

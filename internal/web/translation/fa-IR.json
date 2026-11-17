@@ -214,7 +214,6 @@
       "xrayObservatoryLastTry": "آخرین تلاش",
       "connectionCount": "تعداد کانکشن ها",
       "conntrackUsage": "Conntrack usage",
-      "conntrackLimit": "Conntrack limit",
       "ipAddresses": "آدرس‌های IP",
       "toggleIpVisibility": "تغییر وضعیت نمایش IP",
       "overallSpeed": "سرعت کلی",
@@ -1586,8 +1585,7 @@
       "smtpErrorEof": "اتصال توسط سرور بسته شد",
       "smtpErrorUnknown": "خطای SMTP — جزئیات در لاگ پنل",
       "eventMemoryHigh": "مصرف حافظه بالا (%)",
-      "eventConntrackHigh": "Conntrack usage (80% or more)",
-      "eventConntrackRecovered": "Conntrack recovery (below 70%)",
+      "eventConntrackHigh": "Conntrack usage (%)",
       "validation": {
         "pathLeadingSlash": "مسیر باید با / شروع شود"
       },
@@ -2641,8 +2639,7 @@
       "eventNodeUp": "نود {{ .Name }} وصل است",
       "eventLoginFallback": "ورود ناموفق از {{ .Source }}",
       "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است",
-      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (80% threshold).",
-      "conntrackRecovered": "🟢 Conntrack usage recovered to {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (below 70%).",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries ({{ .Threshold }}% threshold).",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 سرور",

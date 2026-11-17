@@ -214,7 +214,6 @@
       "xrayObservatoryLastTry": "Posledný pokus",
       "connectionCount": "Štatistiky spojení",
       "conntrackUsage": "Conntrack usage",
-      "conntrackLimit": "Conntrack limit",
       "ipAddresses": "IP adresy",
       "toggleIpVisibility": "Zobraziť alebo skryť IP adresu",
       "overallSpeed": "Celková rýchlosť",
@@ -1707,8 +1706,7 @@
       "smtpErrorEof": "Server zatvoril spojenie",
       "smtpErrorUnknown": "Chyba SMTP. Podrobnosti nájdete v zázname panelu.",
       "eventMemoryHigh": "Vysoké využitie pamäte (%)",
-      "eventConntrackHigh": "Conntrack usage (80% or more)",
-      "eventConntrackRecovered": "Conntrack recovery (below 70%)",
+      "eventConntrackHigh": "Conntrack usage (%)",
       "validation": {
         "pathLeadingSlash": "Cesta sa musí začínať znakom /"
       },
@@ -2641,8 +2639,7 @@
       "eventNodeUp": "Server {{ .Name }} je DOSTUPNÝ",
       "eventLoginFallback": "Neúspešné prihlásenie z {{ .Source }}",
       "memoryThreshold": "Využitie pamäte {{ .Percent }}% prekročilo prah {{ .Threshold }}%",
-      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (80% threshold).",
-      "conntrackRecovered": "🟢 Conntrack usage recovered to {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries (below 70%).",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries ({{ .Threshold }}% threshold).",
       "inboundsCount": "🔌 Inboundy: {{ .Count }}\r\n",
       "clientsCount": "👥 Klienti: {{ .Count }}\r\n",
       "category_server": "🖥 Server",

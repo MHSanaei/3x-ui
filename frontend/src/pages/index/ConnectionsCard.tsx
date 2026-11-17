@@ -54,6 +54,14 @@ export default function ConnectionsCard({
           UDP
           <span className="ov-legend-num">{status.udpCount.toLocaleString()}</span>
         </div>
+        {status.conntrackMax > 0 && (
+          <div className="ov-legend-label">
+            {t('pages.index.conntrackUsage')}
+            <span className="ov-legend-num">
+              {status.conntrackCount.toLocaleString()} / {status.conntrackMax.toLocaleString()}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="ov-wide-chart">

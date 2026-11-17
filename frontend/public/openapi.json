@@ -553,6 +553,11 @@
           "tgBotToken": {
             "type": "string"
           },
+          "tgConntrack": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgCpu": {
             "maximum": 100,
             "minimum": 0,
@@ -779,6 +784,7 @@
           "tgBotEnable",
           "tgBotProxy",
           "tgBotToken",
+          "tgConntrack",
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
@@ -1350,6 +1356,11 @@
           "tgBotToken": {
             "type": "string"
           },
+          "tgConntrack": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgCpu": {
             "maximum": 100,
             "minimum": 0,
@@ -1584,6 +1595,7 @@
           "tgBotEnable",
           "tgBotProxy",
           "tgBotToken",
+          "tgConntrack",
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
