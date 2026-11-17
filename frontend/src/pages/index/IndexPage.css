@@ -331,7 +331,6 @@
 
 .ov-conn-legend {
   display: flex;
-  flex-wrap: wrap;
   gap: 16px;
   padding: 16px var(--ov-pad) 0;
 }

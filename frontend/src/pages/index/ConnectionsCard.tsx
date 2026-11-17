@@ -5,13 +5,10 @@ import { Card, theme } from 'antd';
 import { Sparkline } from '@/components/viz';
 import type { Status } from '@/models/status';
 
-const MAX_POINTS = 120;
-
 interface ConnectionsCardProps {
   status: Status;
   tcp: number[];
   udp: number[];
-  conntrack: number[];
   labels: string[];
   isMobile: boolean;
 }
@@ -20,7 +17,6 @@ export default function ConnectionsCard({
   status,
   tcp,
   udp,
-  conntrack,
   labels,
   isMobile,
 }: ConnectionsCardProps) {
@@ -28,39 +24,13 @@ export default function ConnectionsCard({
   const { token } = theme.useToken();
   const accent = token.colorPrimary;
   const udpColor = token.colorTextTertiary;
-  const conntrackColor = token.colorWarning;
-  const hasConntrack = status.conntrackMax > 0;
-  const visibleConntrack = conntrack.slice(
-    Math.max(0, conntrack.length - Math.min(tcp.length, MAX_POINTS)),
-  );
-  const showConntrackLimit =
-    hasConntrack && visibleConntrack.some((count) => count >= status.conntrackMax);
 
   const referenceLines = useMemo(
     () => [
       { y: status.udpCount, color: udpColor, dash: '2 4' },
       { y: status.tcpCount, color: accent, dash: '2 4' },
-      ...(showConntrackLimit
-        ? [
-            {
-              y: status.conntrackMax,
-              color: token.colorError,
-              dash: '5 4',
-              label: `${t('pages.index.conntrackLimit')} ${status.conntrackMax.toLocaleString()}`,
-            },
-          ]
-        : []),
     ],
-    [
-      status.tcpCount,
-      status.udpCount,
-      status.conntrackMax,
-      showConntrackLimit,
-      accent,
-      udpColor,
-      token.colorError,
-      t,
-    ],
+    [status.tcpCount, status.udpCount, accent, udpColor],
   );
 
   return (
@@ -84,25 +54,14 @@ export default function ConnectionsCard({
           UDP
           <span className="ov-legend-num">{status.udpCount.toLocaleString()}</span>
         </div>
-        {hasConntrack && (
-          <div className="ov-legend-label">
-            <span className="ov-swatch" style={{ background: conntrackColor }} />
-            {t('pages.index.conntrackUsage')}
-            <span className="ov-legend-num">
-              {status.conntrackCount.toLocaleString()} / {status.conntrackMax.toLocaleString()}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="ov-wide-chart">
         <Sparkline
           data={tcp}
           data2={udp}
-          data3={hasConntrack ? conntrack : undefined}
           labels={labels}
           height={isMobile ? 120 : 170}
-          maxPoints={MAX_POINTS}
           strokeWidth={1.5}
           fillOpacity={0.24}
           showTooltip
@@ -110,10 +69,8 @@ export default function ConnectionsCard({
           valueMax={null}
           stroke={accent}
           stroke2={udpColor}
-          stroke3={conntrackColor}
           name1="TCP"
           name2="UDP"
-          name3={t('pages.index.conntrackUsage')}
           yFormatter={(v) => Math.round(v).toLocaleString()}
           referenceLines={referenceLines}
         />
