@@ -119,16 +119,7 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 // inbound/externalProxy path, preserving byte-identical output for zero-host
 // inbounds.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
-	var hosts []*model.Host
-	if s.hostsByInbound != nil {
-		hosts = s.hostsByInbound[inbound.Id]
-	} else if err := database.GetDB().
-		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
-		Order("sort_order asc, id asc").
-		Find(&hosts).Error; err != nil {
-		logger.Warning("SubService - hostEndpoints:", err)
-		return nil
-	}
+	hosts := s.hostsForInbound(inbound)
 	if len(hosts) == 0 {
 		return nil
 	}

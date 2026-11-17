@@ -1087,6 +1087,15 @@ type ClientGroup struct {
 
 func (ClientGroup) TableName() string { return "client_groups" }
 
+// HostGroupClientGroup binds a host group (hosts.group_id) to a client group.
+// Rows added later to the host group inherit the binding; no FK cascade.
+type HostGroupClientGroup struct {
+	HostGroupId   string `json:"hostGroupId" gorm:"column:host_group_id;primaryKey"`
+	ClientGroupId int    `json:"clientGroupId" gorm:"column:client_group_id;primaryKey;index"`
+}
+
+func (HostGroupClientGroup) TableName() string { return "host_group_client_groups" }
+
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its
 // JSON-text columns. Empty storage renders as null.

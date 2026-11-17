@@ -48,7 +48,11 @@ func orderedSubValues[T any](entries []orderedSubEntry[T]) []T {
 
 func (s *SubService) loadSubscriptionHosts(inbounds []*model.Inbound) error {
 	s.hostsByInbound = make(map[int][]*model.Host, len(inbounds))
+	s.hostsLoaded = make(map[int]bool, len(inbounds))
 	s.hostGroupOrders = make(map[string]hostEntryOrder)
+	for _, inbound := range inbounds {
+		s.hostsLoaded[inbound.Id] = true
+	}
 	ids := make([]int, len(inbounds))
 	for i, inbound := range inbounds {
 		ids[i] = inbound.Id
@@ -86,7 +90,7 @@ func hostOrderGroupID(h *model.Host) string {
 
 func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format string) []subscriptionHostVariant {
 	var variants []subscriptionHostVariant
-	for _, h := range s.hostsByInbound[inbound.Id] {
+	for _, h := range s.hostsForInbound(inbound) {
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}

@@ -169,7 +169,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			}
 			seenEmails[client.Email] = struct{}{}
 			if subReq.hostsFirst {
-				variants, closed := subReq.clientHostVariants(&baseInbound, client, "json")
+				variants, closed := subReq.selectHostVariants(&baseInbound, client, "json")
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
 					render := func() subConfigEntry {
@@ -181,7 +181,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				continue
 			}
 			effective := inbound
-			if effectiveEps, bound := subReq.clientHostEndpoints(&baseInbound, client, "json", baseEps); bound {
+			if effectiveEps, bound := subReq.selectHostEndpoints(&baseInbound, client, "json", baseEps); bound {
 				if len(effectiveEps) == 0 {
 					hasBoundClosed = true
 					continue

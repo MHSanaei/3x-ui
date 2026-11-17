@@ -117,6 +117,24 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		tx = database.GetDB()
 	}
 
+	groupNames := make(map[string]string)
+	for i := range clients {
+		name := strings.TrimSpace(clients[i].Group)
+		if name == "" {
+			continue
+		}
+		canonical, ok := groupNames[name]
+		if !ok {
+			group, err := database.EnsureClientGroup(tx, name)
+			if err != nil {
+				return err
+			}
+			canonical = group.Name
+			groupNames[name] = canonical
+		}
+		clients[i].Group = canonical
+	}
+
 	var inbound model.Inbound
 	if err := tx.Select("protocol", "node_id").Where("id = ?", inboundId).Take(&inbound).Error; err != nil {
 		return err
