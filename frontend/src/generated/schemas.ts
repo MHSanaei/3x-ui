@@ -504,6 +504,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "tcpPerIpConnectionLimit": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgBotAPIServer": {
         "type": "string"
       },
@@ -521,6 +526,11 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "tgBotToken": {
         "type": "string"
+      },
+      "tgConntrack": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
       },
       "tgCpu": {
         "maximum": 100,
@@ -741,12 +751,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
+      "tcpPerIpConnectionLimit",
       "tgBotAPIServer",
       "tgBotBackup",
       "tgBotChatId",
       "tgBotEnable",
       "tgBotProxy",
       "tgBotToken",
+      "tgConntrack",
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",
@@ -1295,6 +1307,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "tcpPerIpConnectionLimit": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
       "tgBotAPIServer": {
         "type": "string"
       },
@@ -1312,6 +1329,11 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "tgBotToken": {
         "type": "string"
+      },
+      "tgConntrack": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
       },
       "tgCpu": {
         "maximum": 100,
@@ -1540,12 +1562,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
+      "tcpPerIpConnectionLimit",
       "tgBotAPIServer",
       "tgBotBackup",
       "tgBotChatId",
       "tgBotEnable",
       "tgBotProxy",
       "tgBotToken",
+      "tgConntrack",
       "tgCpu",
       "tgEnabledEvents",
       "tgLang",

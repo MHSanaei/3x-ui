@@ -108,13 +108,15 @@ type Status struct {
 		Configured bool `json:"configured"`
 		Running    bool `json:"running"`
 	} `json:"amneziawg"`
-	PanelVersion string    `json:"panelVersion"`
-	PanelGuid    string    `json:"panelGuid"`
-	Uptime       uint64    `json:"uptime"`
-	Loads        []float64 `json:"loads"`
-	TcpCount     int       `json:"tcpCount"`
-	UdpCount     int       `json:"udpCount"`
-	NetIO        struct {
+	PanelVersion   string    `json:"panelVersion"`
+	PanelGuid      string    `json:"panelGuid"`
+	Uptime         uint64    `json:"uptime"`
+	Loads          []float64 `json:"loads"`
+	TcpCount       int       `json:"tcpCount"`
+	UdpCount       int       `json:"udpCount"`
+	ConntrackCount uint64    `json:"conntrackCount"`
+	ConntrackMax   uint64    `json:"conntrackMax"`
+	NetIO          struct {
 		Up      uint64 `json:"up"`
 		Down    uint64 `json:"down"`
 		PktUp   uint64 `json:"pktUp"`
@@ -738,6 +740,8 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	if err != nil {
 		logger.Warning("get udp connections failed:", err)
 	}
+	// Unsupported hosts report a zero maximum, which hides the conntrack overlay.
+	status.ConntrackCount, status.ConntrackMax, _ = sys.GetConntrackUsage()
 
 	s.resolvePublicIPsInBackground()
 	status.PublicIP.IPv4, status.PublicIP.IPv6 = s.publicIPs()
@@ -825,6 +829,9 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	systemMetrics.append("pktDown", t, float64(status.NetIO.PktDown))
 	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
 	systemMetrics.append("udpCount", t, float64(status.UdpCount))
+	if status.ConntrackMax > 0 {
+		systemMetrics.append("conntrackCount", t, float64(status.ConntrackCount))
+	}
 	online := 0
 	if process := currentXrayProcess(); process != nil && process.IsRunning() {
 		online = len(process.GetOnlineClients())

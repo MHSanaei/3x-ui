@@ -284,7 +284,7 @@ var (
 // sample. Exposed for documentation/test purposes; the controller validates
 // incoming names against an allow-list.
 var SystemMetricKeys = []string{
-	"cpu", "mem", "swap", "netUp", "netDown", "pktUp", "pktDown", "diskRead", "diskWrite", "diskUsage", "tcpCount", "udpCount", "online", "load1", "load5", "load15",
+	"cpu", "mem", "swap", "netUp", "netDown", "pktUp", "pktDown", "diskRead", "diskWrite", "diskUsage", "tcpCount", "udpCount", "conntrackCount", "online", "load1", "load5", "load15",
 }
 
 // NodeMetricKeys lists the per-node metric names NodeHeartbeatJob writes.

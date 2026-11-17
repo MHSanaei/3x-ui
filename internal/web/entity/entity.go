@@ -20,17 +20,18 @@ type Msg struct {
 }
 
 type AllSetting struct {
-	WebListen             string `json:"webListen" form:"webListen"`
-	WebDomain             string `json:"webDomain" form:"webDomain"`
-	WebPort               int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`
-	WebCertFile           string `json:"webCertFile" form:"webCertFile"`
-	WebKeyFile            string `json:"webKeyFile" form:"webKeyFile"`
-	WebBasePath           string `json:"webBasePath" form:"webBasePath"`
-	SessionMaxAge         int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"`
-	TrustedProxyCIDRs     string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
-	RealityScanCandidates string `json:"realityScanCandidates" form:"realityScanCandidates"`
-	IpLimitAllowlist      string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
-	PanelOutbound         string `json:"panelOutbound" form:"panelOutbound"`
+	WebListen               string `json:"webListen" form:"webListen"`
+	WebDomain               string `json:"webDomain" form:"webDomain"`
+	WebPort                 int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`
+	WebCertFile             string `json:"webCertFile" form:"webCertFile"`
+	WebKeyFile              string `json:"webKeyFile" form:"webKeyFile"`
+	WebBasePath             string `json:"webBasePath" form:"webBasePath"`
+	SessionMaxAge           int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"`
+	TrustedProxyCIDRs       string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
+	RealityScanCandidates   string `json:"realityScanCandidates" form:"realityScanCandidates"`
+	IpLimitAllowlist        string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
+	TcpPerIpConnectionLimit int    `json:"tcpPerIpConnectionLimit" form:"tcpPerIpConnectionLimit" validate:"gte=0,lte=1000000"`
+	PanelOutbound           string `json:"panelOutbound" form:"panelOutbound"`
 
 	PageSize                   int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
 	ExpireDiff                 int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
@@ -52,6 +53,7 @@ type AllSetting struct {
 	TgRunTime       string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup     bool   `json:"tgBotBackup" form:"tgBotBackup"`
 	TgCpu           int    `json:"tgCpu" form:"tgCpu" validate:"gte=0,lte=100"`
+	TgConntrack     int    `json:"tgConntrack" form:"tgConntrack" validate:"gte=0,lte=100"`
 	TgMemory        int    `json:"tgMemory" form:"tgMemory" validate:"gte=0,lte=100"`
 	TgLang          string `json:"tgLang" form:"tgLang"`
 	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`
@@ -275,6 +277,10 @@ func checkIPOrCIDRList(list, message string) error {
 }
 
 func (s *AllSetting) CheckValid() error {
+	if s.TgConntrack < 0 || s.TgConntrack > 100 {
+		return common.NewError("Telegram conntrack threshold must be between 0 and 100")
+	}
+
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
 		if ip == nil {

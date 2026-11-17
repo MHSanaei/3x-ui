@@ -530,6 +530,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "tcpPerIpConnectionLimit": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgBotAPIServer": {
             "type": "string"
           },
@@ -547,6 +552,11 @@
           },
           "tgBotToken": {
             "type": "string"
+          },
+          "tgConntrack": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
           },
           "tgCpu": {
             "maximum": 100,
@@ -767,12 +777,14 @@
           "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
+          "tcpPerIpConnectionLimit",
           "tgBotAPIServer",
           "tgBotBackup",
           "tgBotChatId",
           "tgBotEnable",
           "tgBotProxy",
           "tgBotToken",
+          "tgConntrack",
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
@@ -1321,6 +1333,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "tcpPerIpConnectionLimit": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "tgBotAPIServer": {
             "type": "string"
           },
@@ -1338,6 +1355,11 @@
           },
           "tgBotToken": {
             "type": "string"
+          },
+          "tgConntrack": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
           },
           "tgCpu": {
             "maximum": 100,
@@ -1566,12 +1588,14 @@
           "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
+          "tcpPerIpConnectionLimit",
           "tgBotAPIServer",
           "tgBotBackup",
           "tgBotChatId",
           "tgBotEnable",
           "tgBotProxy",
           "tgBotToken",
+          "tgConntrack",
           "tgCpu",
           "tgEnabledEvents",
           "tgLang",
@@ -16358,6 +16382,8 @@
                 "loads",
                 "tcpCount",
                 "udpCount",
+                "conntrackCount",
+                "conntrackMax",
                 "netIO",
                 "netTraffic",
                 "publicIP",
@@ -16521,6 +16547,12 @@
                   "type": "integer"
                 },
                 "udpCount": {
+                  "type": "integer"
+                },
+                "conntrackCount": {
+                  "type": "integer"
+                },
+                "conntrackMax": {
                   "type": "integer"
                 },
                 "netIO": {

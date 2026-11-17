@@ -51,6 +51,8 @@ export const StatusSchema = z.object({
   swap: CurTotalInputSchema.optional(),
   tcpCount: z.number().optional(),
   udpCount: z.number().optional(),
+  conntrackCount: z.number().optional(),
+  conntrackMax: z.number().optional(),
   uptime: z.number().optional(),
   appUptime: z.number().optional(),
   appStats: AppStatsSchema.optional(),

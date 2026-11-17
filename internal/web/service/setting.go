@@ -77,6 +77,7 @@ var defaultValueMap = map[string]string{
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
+	"tcpPerIpConnectionLimit":     "0",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
@@ -96,6 +97,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgCpu":                       "80",
+	"tgConntrack":                 "80",
 	"tgMemory":                    "80",
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
@@ -268,6 +270,11 @@ var defaultValueMap = map[string]string{
 // SettingService provides business logic for application settings management.
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
+
+// GetTCPPerIPConnectionLimit returns the shared source-IP limit for public TCP VPN listeners.
+func (s *SettingService) GetTCPPerIPConnectionLimit() (int, error) {
+	return s.getInt("tcpPerIpConnectionLimit")
+}
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
@@ -661,6 +668,14 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgConntrack() (int, error) {
+	return s.getInt("tgConntrack")
+}
+
+func (s *SettingService) SetTgConntrack(value int) error {
+	return s.setInt("tgConntrack", value)
 }
 
 func (s *SettingService) GetTgMemory() (int, error) {
@@ -1705,12 +1720,26 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		return err
 	}
 
+	// Serialize firewall changes with Xray reconciliation and other setting saves.
+	lock.Lock()
+	defer lock.Unlock()
+	oldLimit, err := s.GetTCPPerIPConnectionLimit()
+	if err != nil {
+		return err
+	}
+	limitChanged := oldLimit != allSetting.TcpPerIpConnectionLimit
+	if limitChanged {
+		if err := ApplyTCPConnectionLimit(allSetting.TcpPerIpConnectionLimit); err != nil {
+			return err
+		}
+	}
+
 	v := reflect.ValueOf(allSetting).Elem()
 	t := reflect.TypeFor[entity.AllSetting]()
 	fields := reflect_util.GetFields(t)
 
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Setting
 		if err := tx.Find(&existing).Error; err != nil {
 			return err
@@ -1739,6 +1768,12 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		}
 		return nil
 	})
+	if err != nil && limitChanged {
+		if rollbackErr := ApplyTCPConnectionLimit(oldLimit); rollbackErr != nil {
+			return errors.Join(err, fmt.Errorf("restore TCP connection limit: %w", rollbackErr))
+		}
+	}
+	return err
 }
 
 func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {

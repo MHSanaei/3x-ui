@@ -213,6 +213,7 @@
       "xrayObservatoryLastSeen": "Naposledy dostupný",
       "xrayObservatoryLastTry": "Posledný pokus",
       "connectionCount": "Štatistiky spojení",
+      "conntrackUsage": "Conntrack usage",
       "ipAddresses": "IP adresy",
       "toggleIpVisibility": "Zobraziť alebo skryť IP adresu",
       "overallSpeed": "Celková rýchlosť",
@@ -1705,6 +1706,7 @@
       "smtpErrorEof": "Server zatvoril spojenie",
       "smtpErrorUnknown": "Chyba SMTP. Podrobnosti nájdete v zázname panelu.",
       "eventMemoryHigh": "Vysoké využitie pamäte (%)",
+      "eventConntrackHigh": "Conntrack usage (%)",
       "validation": {
         "pathLeadingSlash": "Cesta sa musí začínať znakom /"
       },
@@ -1714,6 +1716,8 @@
       "calendarJalalian": "Jalali (شمسی)",
       "ipLimitAllowlist": "Výnimky z limitu IP adries",
       "ipLimitAllowlistDesc": "Adresy a siete, ktoré sa nikdy nezapočítajú do limitu IP ani nezablokujú. Spoločná adresa kancelárie alebo školy tak nevyčerpá limit klienta. Zadajte IP alebo CIDR oddelené čiarkou.",
+      "tcpPerIpConnectionLimit": "TCP connections per IP",
+      "tcpPerIpConnectionLimitDesc": "Maximum simultaneous TCP connections per source IP across local public TCP VPN inbound ports. Devices behind the same NAT share the limit. 0 disables the limit. Applied on save. Requires nftables and CAP_NET_ADMIN.",
       "subBalancers": {
         "menu": "Vyvažovanie v odbere",
         "title": "Vyvažovanie odberu konfigurácií",
@@ -2635,6 +2639,7 @@
       "eventNodeUp": "Server {{ .Name }} je DOSTUPNÝ",
       "eventLoginFallback": "Neúspešné prihlásenie z {{ .Source }}",
       "memoryThreshold": "Využitie pamäte {{ .Percent }}% prekročilo prah {{ .Threshold }}%",
+      "conntrackHigh": "🔴 Conntrack usage is {{ .Percent }}% — {{ .Count }} of {{ .Max }} entries ({{ .Threshold }}% threshold).",
       "inboundsCount": "🔌 Inboundy: {{ .Count }}\r\n",
       "clientsCount": "👥 Klienti: {{ .Count }}\r\n",
       "category_server": "🖥 Server",

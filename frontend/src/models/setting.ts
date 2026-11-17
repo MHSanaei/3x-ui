@@ -13,6 +13,7 @@ export class AllSetting {
   realityScanCandidates =
     'www.cloudflare.com:443,www.microsoft.com:443,www.amazon.com:443,aws.amazon.com:443,www.samsung.com:443,www.nvidia.com:443,www.amd.com:443,www.intel.com:443,www.sony.com:443,dl.google.com:443';
   ipLimitAllowlist = '';
+  tcpPerIpConnectionLimit = 0;
   panelOutbound = '';
   pageSize = 25;
   expireDiff = 0;
@@ -33,6 +34,7 @@ export class AllSetting {
   tgRunTime = '@daily';
   tgBotBackup = false;
   tgCpu = 80;
+  tgConntrack = 80;
   tgMemory = 80;
   tgLang = 'en-US';
   twoFactorEnable = false;
@@ -214,6 +216,8 @@ export class AllSetting {
     }
     const cpu = Math.round(Number(this.tgCpu));
     this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;
+    const conntrack = Math.round(Number(this.tgConntrack));
+    this.tgConntrack = Number.isFinite(conntrack) ? Math.min(100, Math.max(0, conntrack)) : 80;
     const threshold = Math.round(Number(this.outboundDownThreshold));
     this.outboundDownThreshold = Number.isFinite(threshold)
       ? Math.min(100, Math.max(1, threshold))

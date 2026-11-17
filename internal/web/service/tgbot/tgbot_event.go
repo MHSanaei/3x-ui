@@ -154,6 +154,21 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 		}
 		return ""
 
+	case eventbus.EventConntrackHigh:
+		data, ok := e.Data.(*eventbus.ConntrackData)
+		if !ok || data == nil {
+			return ""
+		}
+		threshold, err := t.settingService.GetTgConntrack()
+		if err != nil || threshold <= 0 || data.Percent < float64(threshold) {
+			return ""
+		}
+		return header + t.I18nBot("tgbot.messages.conntrackHigh",
+			"Count=="+strconv.FormatUint(data.Count, 10),
+			"Max=="+strconv.FormatUint(data.Max, 10),
+			"Percent=="+strconv.FormatFloat(data.Percent, 'f', 1, 64),
+			"Threshold=="+strconv.Itoa(threshold))
+
 	case eventbus.EventLoginAttempt:
 		if data, ok := e.Data.(*eventbus.LoginEventData); ok {
 			if data.Status == "success" {

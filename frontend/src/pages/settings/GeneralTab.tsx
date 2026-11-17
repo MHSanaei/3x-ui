@@ -19,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 import SecretInput from './SecretInput';
+import './GeneralTab.css';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -177,6 +178,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
   return (
     <Tabs
+      className="general-settings-tabs"
       defaultActiveKey="1"
       items={[
         {
@@ -311,6 +313,21 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   onChange={(v) =>
                     updateSetting({ panelOutbound: (v as string | undefined) || '' })
                   }
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.tcpPerIpConnectionLimit')}
+                description={t('pages.settings.tcpPerIpConnectionLimitDesc')}
+              >
+                <InputNumber
+                  value={allSetting.tcpPerIpConnectionLimit}
+                  min={0}
+                  max={1000000}
+                  precision={0}
+                  style={{ width: '100%' }}
+                  onChange={onNumber((v) => updateSetting({ tcpPerIpConnectionLimit: v }))}
                 />
               </SettingListItem>
 

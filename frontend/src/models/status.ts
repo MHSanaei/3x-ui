@@ -81,6 +81,8 @@ interface StatusInput extends Pick<ParsedStatusInput, 'resourceScope' | 'unavail
   swap?: { current?: number; total?: number };
   tcpCount?: number;
   udpCount?: number;
+  conntrackCount?: number;
+  conntrackMax?: number;
   uptime?: number;
   appUptime?: number;
   appStats?: AppStats;
@@ -109,6 +111,8 @@ export class Status {
   swap: CurTotal = new CurTotal(0, 0);
   tcpCount = 0;
   udpCount = 0;
+  conntrackCount = 0;
+  conntrackMax = 0;
   uptime = 0;
   appUptime = 0;
   appStats: AppStats = { threads: 0, mem: 0, uptime: 0 };
@@ -133,6 +137,8 @@ export class Status {
     this.swap = new CurTotal(data.swap?.current ?? 0, data.swap?.total ?? 0);
     this.tcpCount = data.tcpCount ?? 0;
     this.udpCount = data.udpCount ?? 0;
+    this.conntrackCount = data.conntrackCount ?? 0;
+    this.conntrackMax = data.conntrackMax ?? 0;
     this.uptime = data.uptime ?? 0;
     this.appUptime = data.appUptime ?? 0;
     this.appStats = data.appStats ?? this.appStats;
