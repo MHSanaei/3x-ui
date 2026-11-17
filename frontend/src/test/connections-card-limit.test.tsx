@@ -20,7 +20,7 @@ const base = {
 };
 
 describe('ConnectionsCard conntrack limit', () => {
-  it('labels conntrack separately from sockets and includes its limit in the chart range', () => {
+  it('keeps the relative scale and hides the limit until the data reaches it', () => {
     renderWithProviders(
       <ConnectionsCard
         {...base}
@@ -36,10 +36,8 @@ describe('ConnectionsCard conntrack limit', () => {
     expect(props.data).toEqual(base.tcp);
     expect(props.data2).toEqual(base.udp);
     expect(props.data3).toEqual(base.conntrack);
-    expect(props.valueMax).toBeGreaterThan(7680);
-    expect(props.referenceLines).toContainEqual(
-      expect.objectContaining({ y: 7680, label: 'Conntrack limit 7,680' }),
-    );
+    expect(props.valueMax).toBeNull();
+    expect(props.referenceLines).toHaveLength(2);
   });
 
   it('hides conntrack and its boundary when the host does not expose a limit', () => {
@@ -54,17 +52,36 @@ describe('ConnectionsCard conntrack limit', () => {
     expect(props.referenceLines).toHaveLength(2);
   });
 
-  it('keeps counts above a lowered limit visible', () => {
+  it.each([7680, 8000])('shows the limit when a visible value reaches %i', (count) => {
     renderWithProviders(
       <ConnectionsCard
         {...base}
-        conntrack={[8000]}
-        status={new Status({ conntrackCount: 8000, conntrackMax: 7680 })}
+        conntrack={[count, 6000]}
+        status={new Status({ conntrackCount: 6000, conntrackMax: 7680 })}
       />,
     );
     const props = sparkline.mock.calls.at(-1)?.[0] as unknown as ComponentProps<
       typeof import('@/components/viz').Sparkline
     >;
-    expect(props.valueMax).toBeGreaterThan(8000);
+    expect(props.valueMax).toBeNull();
+    expect(props.referenceLines).toContainEqual(
+      expect.objectContaining({ y: 7680, label: 'Conntrack limit 7,680' }),
+    );
+  });
+
+  it('hides the limit after the reached value leaves the visible window', () => {
+    renderWithProviders(
+      <ConnectionsCard
+        {...base}
+        tcp={Array(121).fill(274)}
+        conntrack={[8000, ...Array(120).fill(6000)]}
+        status={new Status({ conntrackCount: 6000, conntrackMax: 7680 })}
+      />,
+    );
+    const props = sparkline.mock.calls.at(-1)?.[0] as unknown as ComponentProps<
+      typeof import('@/components/viz').Sparkline
+    >;
+    expect(props.valueMax).toBeNull();
+    expect(props.referenceLines).toHaveLength(2);
   });
 });

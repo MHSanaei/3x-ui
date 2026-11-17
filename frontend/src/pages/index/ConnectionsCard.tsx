@@ -5,6 +5,8 @@ import { Card, theme } from 'antd';
 import { Sparkline } from '@/components/viz';
 import type { Status } from '@/models/status';
 
+const MAX_POINTS = 120;
+
 interface ConnectionsCardProps {
   status: Status;
   tcp: number[];
@@ -28,12 +30,17 @@ export default function ConnectionsCard({
   const udpColor = token.colorTextTertiary;
   const conntrackColor = token.colorWarning;
   const hasConntrack = status.conntrackMax > 0;
+  const visibleConntrack = conntrack.slice(
+    Math.max(0, conntrack.length - Math.min(tcp.length, MAX_POINTS)),
+  );
+  const showConntrackLimit =
+    hasConntrack && visibleConntrack.some((count) => count >= status.conntrackMax);
 
   const referenceLines = useMemo(
     () => [
       { y: status.udpCount, color: udpColor, dash: '2 4' },
       { y: status.tcpCount, color: accent, dash: '2 4' },
-      ...(hasConntrack
+      ...(showConntrackLimit
         ? [
             {
               y: status.conntrackMax,
@@ -48,7 +55,7 @@ export default function ConnectionsCard({
       status.tcpCount,
       status.udpCount,
       status.conntrackMax,
-      hasConntrack,
+      showConntrackLimit,
       accent,
       udpColor,
       token.colorError,
@@ -95,13 +102,12 @@ export default function ConnectionsCard({
           data3={hasConntrack ? conntrack : undefined}
           labels={labels}
           height={isMobile ? 120 : 170}
+          maxPoints={MAX_POINTS}
           strokeWidth={1.5}
           fillOpacity={0.24}
           showTooltip
           showLegend={false}
-          valueMax={
-            hasConntrack ? Math.max(status.conntrackMax, ...tcp, ...udp, ...conntrack) * 1.1 : null
-          }
+          valueMax={null}
           stroke={accent}
           stroke2={udpColor}
           stroke3={conntrackColor}
