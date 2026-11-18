@@ -140,6 +140,23 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubUpdates = "10"
 	}
 
+	// Off by default; an unreadable limit falls back to the default instead of failing the start.
+	subRateLimitEnable, err := s.settingService.GetSubRateLimitEnable()
+	if err != nil {
+		return nil, err
+	}
+	var subRateLimiterInst *subRateLimiter
+	var subRateResolver *clientIPResolver
+	if subRateLimitEnable {
+		subRateLimit, err := s.settingService.GetSubRateLimit()
+		if err != nil || subRateLimit < 1 {
+			subRateLimit = subRateLimitDefaultPerMinute
+		}
+		subRateLimit = min(subRateLimit, subRateLimitMaxPerMinute)
+		subRateLimiterInst = newSubRateLimiter(subRateLimit, subRateLimitWindow)
+		subRateResolver = newClientIPResolver(s.settingService)
+	}
+
 	SubJsonMux, err := s.settingService.GetSubJsonMux()
 	if err != nil {
 		SubJsonMux = ""
@@ -379,6 +396,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBIncyConfig(incyCfg),
 		WithSUBIncyEnableRouting(SubIncyEnableRouting),
 		WithSUBIncyRoutingRules(SubIncyRoutingRules),
+		WithSUBRateLimit(subRateLimiterInst, subRateResolver),
 	)
 
 	return engine, nil
