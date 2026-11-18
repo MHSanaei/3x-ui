@@ -107,6 +107,26 @@ clients, so enable it deliberately.
 | `XUI_TUNNEL_HEALTH_FAILURES`  | `3`                                          | Consecutive failures before a restart.                          |
 | `XUI_TUNNEL_HEALTH_COOLDOWN`  | `5m`                                         | Minimum delay between restarts.                                 |
 
+## Master failover (HA)
+
+Optional: three panels share one PostgreSQL under Patroni + etcd, and the panel on
+the primary becomes master on its own. Off unless `XUI_HA_NODE` is set; requires
+`XUI_DB_TYPE=postgres`. Design and migration plan: `docs/master-failover.md` in the
+repository.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `XUI_HA_NODE` | - | This machine's code (the Patroni member name). Empty = HA off. |
+| `XUI_HA_LISTEN` | - | HA endpoint address (`/ha/leader`, `/ha/role`, `/ha/peer`), e.g. `:2097`. |
+| `XUI_HA_PEERS` | - | Peer panels: `b=https://b.example:2097,c=https://c.example:2097`. |
+| `XUI_HA_SECRET` | - | Shared secret of the peer ping; required with peers. |
+| `XUI_HA_PATRONI_URL` | - | Local Patroni REST API, e.g. `http://127.0.0.1:8008`. |
+| `XUI_HA_PANEL_URL` | - | Public panel origin of this machine (redirect target while it is master). |
+| `XUI_HA_SUB_URL` | - | Public subscription origin of this machine. |
+| `XUI_HA_FENCE_AFTER` | `10s` | Time without quorum before the master steps down. |
+| `XUI_HA_MASTER_HOLD` | `5s` | Time the master conditions must hold before taking over. |
+| `XUI_HA_INTERVAL` | `2s` | Role check period. |
+
 ## Unattended install
 
 | Variable             | Description                                                                                  |

@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/ha"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -172,6 +174,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
+	if m := ha.Active(); m != nil {
+		engine.Use(ha.GinGuard(m.Current, ha.PanelTarget))
+	}
 	directHTTPS := s.isDirectHTTPSConfigured()
 	sendHSTS := directHTTPS && !config.IsSkipHSTS()
 	engine.Use(middleware.SecurityHeadersMiddleware(sendHSTS))
@@ -577,65 +582,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		return err
 	}
 
-	certFile, err := s.settingService.GetCertFile()
+	listener, err := s.openListener()
 	if err != nil {
 		return err
-	}
-	keyFile, err := s.settingService.GetKeyFile()
-	if err != nil {
-		return err
-	}
-	listen, err := s.settingService.GetListen()
-	if err != nil {
-		return err
-	}
-	port, err := s.settingService.GetPort()
-	if err != nil {
-		return err
-	}
-	if envPort, configured, envErr := config.GetPortOverride(); configured {
-		if envErr != nil {
-			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
-		} else {
-			port = envPort
-			logger.Info("Using XUI_PORT override for web panel port:", port)
-		}
-	}
-	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
-	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
-	if err != nil {
-		return err
-	}
-	listener = network.NewLimitListener(listener, network.MaxPanelConns, network.MaxPanelConnsPerSource)
-	if certFile != "" || keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err == nil {
-			c := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
-			// Opt-in node mTLS: when a trust CA is configured, request and verify
-			// client certs (VerifyClientCertIfGiven keeps browsers working). With
-			// no CA the listener is unchanged.
-			pool, perr := s.settingService.NodeMtlsClientCAPool()
-			switch {
-			case errors.Is(perr, service.ErrNodeMtlsTrustBundleInvalid):
-				logger.Error("Node mTLS is configured but its trust bundle will not parse, so client certificates are not accepted:", perr)
-			case perr != nil:
-				logger.Error("Node mTLS trust bundle could not be read, so client certificates are not accepted:", perr)
-			}
-			if pool != nil {
-				applyNodeMtls(c, pool)
-				logger.Info("Node mTLS enabled: verifying client certificates for the node API")
-			}
-			listener = network.NewAutoHttpsListener(listener)
-			listener = tls.NewListener(listener, c)
-			logger.Info("Web server running HTTPS on", listener.Addr())
-		} else {
-			logger.Error("Error loading certificates:", err)
-			logger.Info("Web server running HTTP on", listener.Addr())
-		}
-	} else {
-		logger.Info("Web server running HTTP on", listener.Addr())
 	}
 	s.listener = listener
 
@@ -774,6 +723,100 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	}
 
 	return nil
+}
+
+// openListener binds the panel port from the settings, with TLS and node mTLS
+// when configured. It only reads the database, so an HA standby can use it.
+func (s *Server) openListener() (net.Listener, error) {
+	certFile, err := s.settingService.GetCertFile()
+	if err != nil {
+		return nil, err
+	}
+	keyFile, err := s.settingService.GetKeyFile()
+	if err != nil {
+		return nil, err
+	}
+	listen, err := s.settingService.GetListen()
+	if err != nil {
+		return nil, err
+	}
+	port, err := s.settingService.GetPort()
+	if err != nil {
+		return nil, err
+	}
+	if envPort, configured, envErr := config.GetPortOverride(); configured {
+		if envErr != nil {
+			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
+		} else {
+			port = envPort
+			logger.Info("Using XUI_PORT override for web panel port:", port)
+		}
+	}
+	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
+	if err != nil {
+		return nil, err
+	}
+	listener = network.NewLimitListener(listener, network.MaxPanelConns, network.MaxPanelConnsPerSource)
+	if certFile != "" || keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err == nil {
+			c := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+			// Opt-in node mTLS: when a trust CA is configured, request and verify
+			// client certs (VerifyClientCertIfGiven keeps browsers working). With
+			// no CA the listener is unchanged.
+			pool, perr := s.settingService.NodeMtlsClientCAPool()
+			switch {
+			case errors.Is(perr, service.ErrNodeMtlsTrustBundleInvalid):
+				logger.Error("Node mTLS is configured but its trust bundle will not parse, so client certificates are not accepted:", perr)
+			case perr != nil:
+				logger.Error("Node mTLS trust bundle could not be read, so client certificates are not accepted:", perr)
+			}
+			if pool != nil {
+				applyNodeMtls(c, pool)
+				logger.Info("Node mTLS enabled: verifying client certificates for the node API")
+			}
+			listener = network.NewAutoHttpsListener(listener)
+			listener = tls.NewListener(listener, c)
+			logger.Info("Web server running HTTPS on", listener.Addr())
+		} else {
+			logger.Error("Error loading certificates:", err)
+			logger.Info("Web server running HTTP on", listener.Addr())
+		}
+	} else {
+		logger.Info("Web server running HTTP on", listener.Addr())
+	}
+	return listener, nil
+}
+
+// StartStandby serves h on the panel port while this HA node is not master;
+// nothing else of the panel runs and the database is not written.
+func (s *Server) StartStandby(h http.Handler) error {
+	listener, err := s.openListener()
+	if err != nil {
+		return err
+	}
+	s.listener = listener
+	s.httpServer = &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second}
+	go network.ServeHTTP(s.httpServer, listener, "Web server (HA standby)")
+	return nil
+}
+
+// StopStandby releases the panel port taken by StartStandby.
+func (s *Server) StopStandby() error {
+	s.cancel()
+	var err1, err2 error
+	if s.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		err1 = s.httpServer.Shutdown(ctx)
+		cancel()
+	}
+	if s.listener != nil {
+		err2 = s.listener.Close()
+	}
+	return common.Combine(err1, err2)
 }
 
 // Stop gracefully shuts down the web server, stops Xray, cron jobs, and Telegram bot.

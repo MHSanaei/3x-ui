@@ -145,6 +145,8 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   ├── pia/                    # PIA WireGuard protocol client (auth, signed server list, /addKey)
 │   ├── eventbus/               # In-process pub/sub (buffered channel): outbound.down|up,
 │   │                           #   xray.crash, node.down|up, cpu.high, memory.high, login.attempt
+│   ├── ha/                     # Master failover: role automaton over Patroni + peer quorum,
+│   │                           #   HA endpoint, standby answers (XUI_HA_* env, §5.9)
 │   ├── tunnelmonitor/          # Optional tunnel health probe (XUI_TUNNEL_HEALTH_* env vars):
 │   │                           #   HTTP probe (default Cloudflare trace); repeated failures
 │   │                           #   trigger an Xray restart hook. Independent of panel settings.
@@ -480,6 +482,16 @@ settings so it can be enabled from a systemd `EnvironmentFile` even when the pan
 unreachable. It periodically probes an HTTP URL (default: Cloudflare trace endpoint) through
 the tunnel; after N successive failures (default 3) it fires a recovery callback wired to an
 Xray restart.
+
+### 5.9 Master failover (HA)
+
+Optional, env-only (`XUI_HA_*`, off when `XUI_HA_NODE` is empty). Three panels share one
+PostgreSQL under Patroni; a panel is master only on the PG primary that Patroni leads and that
+sees a quorum of peers (`internal/ha`, ported from telemux). A non-master starts in standby
+(`ha_main.go`): `database.OpenDB` only, no `InitDB`, cron, bots or xray; panel/sub ports redirect
+or answer `409 not_master`. Promotion runs `InitDB` and `service.PrepareHAMaster` (every node
+`config_dirty`); losing master exits the process (code 3) so systemd restarts it as standby.
+HA panels host no inbounds of their own. Design: `docs/master-failover.md`.
 
 ---
 

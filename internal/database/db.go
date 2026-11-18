@@ -3434,7 +3434,32 @@ func isTableEmpty(tableName string) (bool, error) {
 	return count == 0, err
 }
 
+// InitDB opens the database and runs migrations and seeders, which write on
+// every start; in HA mode only the master may call it (docs/master-failover.md).
 func InitDB(dbPath string) error {
+	if err := OpenDB(dbPath); err != nil {
+		return err
+	}
+	if err := initModels(); err != nil {
+		return err
+	}
+
+	isUsersEmpty, err := isTableEmpty("users")
+	if err != nil {
+		return err
+	}
+	if isUsersEmpty {
+		if err := seedRandomSubscriptionPaths(); err != nil {
+			return err
+		}
+	}
+
+	return runSeeders(isUsersEmpty)
+}
+
+// OpenDB connects and sizes the pool without touching the schema or data, so
+// an HA standby can read from a hot-standby replica.
+func OpenDB(dbPath string) error {
 	var gormLogger logger.Interface
 	if config.IsDebug() {
 		gormLogger = logger.New(
@@ -3523,21 +3548,7 @@ func InitDB(dbPath string) error {
 	sqlDB.SetMaxIdleConns(maxIdle)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	sqlDB.SetConnMaxIdleTime(30 * time.Minute)
-
-	if err := initModels(); err != nil {
-		return err
-	}
-
-	isUsersEmpty, err := isTableEmpty("users")
-	if err != nil {
-		return err
-	}
-	if isUsersEmpty {
-		if err := seedRandomSubscriptionPaths(); err != nil {
-			return err
-		}
-	}
-	return runSeeders(isUsersEmpty)
+	return nil
 }
 
 func normalizeApiTokenCreatedAtSeconds() error {

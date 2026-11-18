@@ -108,6 +108,25 @@ x-ui encrypt-tokens
 | `XUI_TUNNEL_HEALTH_FAILURES`  | `3`                                          | تعداد خرابی‌های متوالی پیش از یک ری‌استارت.                          |
 | `XUI_TUNNEL_HEALTH_COOLDOWN`  | `5m`                                         | حداقل تأخیر بین ری‌استارت‌ها.                                 |
 
+## جابه‌جایی خودکار پنل اصلی (HA)
+
+اختیاری: سه پنل از یک PostgreSQL زیر Patroni + etcd استفاده می‌کنند و پنلِ روی
+primary خودکار پنل اصلی می‌شود. تا `XUI_HA_NODE` تنظیم نشود خاموش است؛ به
+`XUI_DB_TYPE=postgres` نیاز دارد. طراحی و برنامهٔ مهاجرت: `docs/master-failover.md` در مخزن.
+
+| متغیر | پیش‌فرض | توضیح |
+| --- | --- | --- |
+| `XUI_HA_NODE` | - | کد این ماشین (نام عضو Patroni). خالی = HA خاموش. |
+| `XUI_HA_LISTEN` | - | نشانی نقطهٔ HA (`/ha/leader`، `/ha/role`، `/ha/peer`)، مثلاً `:2097`. |
+| `XUI_HA_PEERS` | - | پنل‌های همتا: `b=https://b.example:2097,c=https://c.example:2097`. |
+| `XUI_HA_SECRET` | - | رمز مشترک پینگ همتاها؛ با همتاها الزامی است. |
+| `XUI_HA_PATRONI_URL` | - | REST API محلی Patroni، مثلاً `http://127.0.0.1:8008`. |
+| `XUI_HA_PANEL_URL` | - | نشانی عمومی پنل این ماشین (مقصد هدایت وقتی پنل اصلی است). |
+| `XUI_HA_SUB_URL` | - | نشانی عمومی اشتراک این ماشین. |
+| `XUI_HA_FENCE_AFTER` | `10s` | مدت بدون حد نصاب پیش از کناره‌گیری پنل اصلی. |
+| `XUI_HA_MASTER_HOLD` | `5s` | مدتی که شرایط پنل اصلی باید برقرار بماند تا نقش گرفته شود. |
+| `XUI_HA_INTERVAL` | `2s` | دورهٔ بررسی نقش. |
+
 ## نصب بدون نظارت
 
 | Variable             | Description                                                                                  |

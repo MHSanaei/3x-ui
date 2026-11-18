@@ -102,6 +102,24 @@ x-ui encrypt-tokens
 | `XUI_TUNNEL_HEALTH_FAILURES`  | `3`                                          | 触发重启前的连续失败次数。                                      |
 | `XUI_TUNNEL_HEALTH_COOLDOWN`  | `5m`                                         | 两次重启之间的最小延迟。                                        |
 
+## 主面板自动故障转移 (HA)
+
+可选：三个面板共用 Patroni + etcd 管理的同一个 PostgreSQL，位于 primary 上的面板会自动成为主面板。
+未设置 `XUI_HA_NODE` 时关闭；需要 `XUI_DB_TYPE=postgres`。设计与迁移方案见仓库中的 `docs/master-failover.md`。
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `XUI_HA_NODE` | - | 本机代码（Patroni 成员名）。为空 = 关闭 HA。 |
+| `XUI_HA_LISTEN` | - | HA 端点地址（`/ha/leader`、`/ha/role`、`/ha/peer`），例如 `:2097`。 |
+| `XUI_HA_PEERS` | - | 对端面板：`b=https://b.example:2097,c=https://c.example:2097`。 |
+| `XUI_HA_SECRET` | - | 对端探测的共享密钥；配置对端时必填。 |
+| `XUI_HA_PATRONI_URL` | - | 本地 Patroni REST API，例如 `http://127.0.0.1:8008`。 |
+| `XUI_HA_PANEL_URL` | - | 本机面板的公开地址（作为主面板时的重定向目标）。 |
+| `XUI_HA_SUB_URL` | - | 本机订阅服务的公开地址。 |
+| `XUI_HA_FENCE_AFTER` | `10s` | 失去法定人数多久后主面板让位。 |
+| `XUI_HA_MASTER_HOLD` | `5s` | 主面板条件需持续多久才接管。 |
+| `XUI_HA_INTERVAL` | `2s` | 角色检查周期。 |
+
 ## 无人值守安装
 
 | Variable             | Description                                                                                  |
