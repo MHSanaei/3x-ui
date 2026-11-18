@@ -63,7 +63,7 @@ The inbound editor accepts these protocols:
 | **HTTP**               | HTTP proxy.                                                             |
 | **Mixed (SOCKS/HTTP)** | A combined SOCKS + HTTP listener.                                        |
 | **Dokodemo-door / Tunnel** | Port forwarding / traffic redirect.                                 |
-| **MTProto**            | Telegram MTProto proxy, served by a bundled `mtg` process (not Xray).    |
+| **MTProto**            | Telegram MTProto proxy, served by a bundled `mtg` or `telemt` process (not Xray). |
 | **TUIC**               | QUIC-based proxy protocol (v5), served by an in-process native Go server. See [TUIC](/docs/config/tuic). |
 | **MASQUE**             | CONNECT-IP tunnel over HTTP/3 or HTTP/2, always behind TLS; delivered to clients through the JSON subscription. See [MASQUE](/docs/config/masque). |
 
@@ -89,6 +89,58 @@ Fallbacks are available only when the master inbound is:
 Each fallback rule targets a child inbound and can match on `path`, `alpn`, and
 `dest`. Client share links for a fallback child are automatically rewritten to
 advertise the master's address, port, and TLS.
+
+## MTProto backend: mtg-multi or telemt
+
+**Backend** in the MTProto form picks the process that serves the inbound.
+`mtg-multi` is the default, and inbounds saved before this option keep it.
+[telemt](https://github.com/telemt/telemt) is a second backend. Client secrets
+and share links are the same on both, so you can switch an inbound between them
+and its existing links keep working.
+
+telemt needs `bin/telemt-linux-<arch>` (release packages ship it for amd64 and
+arm64) and version 3.5.17 or newer. For a node inbound, the binary must be on
+that node. The node gets the setting through the usual sync. A save is refused
+(HTTP 400) when the local binary is missing or when the inbound listens on a
+hostname instead of an IP.
+
+The panel owns every file telemt reads. They live in
+`bin/mtproto/telemt-<inbound id>/`:
+
+- `telemt.toml` holds the listener, the FakeTLS domains, the loopback API and
+  metrics, and the Xray upstream. It ends with `include = "users.toml"`.
+- `users.toml` holds only `[access.users]`, `[access.user_expirations]`,
+  `[access.user_max_tcp_conns]` and `[access.user_ad_tags]`. It is built from
+  the inbound's enabled clients that have traffic left.
+
+telemt's API is read-only and bound to loopback. The panel never writes users
+through it, so no second `[access.users]` table can end up in `telemt.toml`.
+
+A client edit rewrites `users.toml` atomically, sends `SIGHUP`, then waits for
+`GET /v1/config/state` to report the file published. telemt keeps running on
+the old config when it rejects a reload. On a rejection the panel restores the
+previous `users.toml`, logs telemt's reason, and does not retry until the client
+set changes. Any other change restarts telemt. If telemt refuses to start with
+the new config, the previous one is brought back.
+
+Traffic quota and expiry stay with the panel. A depleted or expired client is
+dropped from `users.toml` within one reconcile (10 s). The expiry is also passed
+to telemt as `user_expirations`. Per-client traffic and online status come from
+telemt's loopback Prometheus metrics.
+
+With telemt selected, the form offers a per-client TCP connection cap, plus extra
+TOML merged under the generated `telemt.toml`, for example `client_mss` under
+`[server]`. The keys the panel sets win. The extra TOML may not set any of these:
+
+- `include`;
+- `[access.users]` or other per-client `[access]` maps;
+- `[server.api]`, the port, listeners or metrics;
+- `tls_domain(s)`;
+- `[[upstreams]]` while routing through Xray.
+
+A `[[web.vhosts.profiles]]` entry must name a client of the inbound. A profile
+whose client is disabled or depleted is left out of the generated config,
+because telemt rejects a config whose profile names an unknown user.
 
 ## Not sure which to pick?
 

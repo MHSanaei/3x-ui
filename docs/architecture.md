@@ -28,6 +28,10 @@ inbounds exist — a dedicated child proxy binary:
   sponsored-channel ad-tags via `[secret-ad-tags]`. A client or ad-tag edit is hot-applied via
   the fork's management API (`PUT /secrets`, guarded by a per-process bearer token), with a
   process restart as the fallback on older binaries.
+- **`telemt` for MTProto inbounds with `settings.backend = "telemt"`** (`internal/mtproto/telemt_*.go`):
+  the same manager runs one telemt per inbound from `bin/mtproto/telemt-<id>/`; clients go to an
+  included `users.toml` that is hot-reloaded via `SIGHUP` and confirmed through `/v1/config/state`
+  (rolled back when telemt rejects it), and traffic is read from telemt's loopback Prometheus metrics.
 
 In contrast, **AmneziaWG** (`internal/amneziawgnet/`) and **TUIC v5** (`internal/tuic/`) run as
 **in-process native Go servers** without external child processes, bridging client traffic into
@@ -41,6 +45,7 @@ Servers and processes, all launched from `main.go`:
 | **Subscription** | `internal/sub`                    | Public endpoint that hands out client configs (raw / JSON / Clash) | `subPort` setting |
 | **Xray-core**    | supervised via `internal/xray`    | The actual proxy engine; a child process, not Go code              | `inbounds[].port` |
 | **mtg-multi**    | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds (multi-secret)    | per inbound       |
+| **telemt**       | supervised via `internal/mtproto` | Alternative MTProto backend, chosen per inbound (`backend`)        | per inbound       |
 
 Two key ideas that explain most of the complexity:
 
@@ -415,7 +420,7 @@ All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` me
 | `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                                    |
 | `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                        |
 | `@every 10s`        | `check_client_ip_job`                                                                            | Record client IPs (30-min window) and enforce per-client IP limits                    |
-| `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                             |
+| `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg`/`telemt` sidecars against enabled MTProto inbounds                    |
 | `@every 10s`        | `amneziawg_job`                                                                                  | Reconcile embedded AmneziaWG interfaces against enabled local inbounds                |
 | `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                                     |
 | `@every 10m`        | `clear_logs_job` (`PruneXrayLogsJob`)                                                            | Truncate Xray access/error logs once either exceeds 64 MiB                            |

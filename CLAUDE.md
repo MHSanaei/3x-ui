@@ -24,6 +24,10 @@ file locations when it can answer in one hop.
   falls back to a process restart on older binaries. A client's panel-side
   traffic reset also calls `POST /secrets/{name}/reset-quota` so a renewed client
   is not re-blocked by the sidecar's quota counter.
+  An MTProto inbound with `settings.backend = "telemt"` runs a `telemt` binary
+  instead (`internal/mtproto/telemt_*.go`, fetched like mtg-multi): the panel
+  owns its `telemt.toml` + included `users.toml`, hot-reloads clients via SIGHUP
+  and treats a reload as applied only once `/v1/config/state` says published.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux; the executable dir on
   Windows), PostgreSQL optional (`XUI_DB_TYPE` / `XUI_DB_DSN`). The CGo SQLite
   driver (`mattn/go-sqlite3`) needs a C compiler — `CGO_ENABLED=0` builds fail.
