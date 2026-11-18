@@ -43,7 +43,24 @@ export type MtprotoClient = z.infer<typeof MtprotoClientSchema>;
 // so it has no stream settings. Each client carries its own FakeTLS secret and
 // is served on the shared inbound port. The remaining fields map to optional mtg
 // config knobs and are written to the generated mtg config only when set.
+// A cleared input (null or '') is "unset": the key is left out of the config.
+const unset = (v: unknown) => (v === null || v === '' ? undefined : v);
+
+// telemt-only knobs: a per-client TCP connection cap and TOML merged under the
+// generated telemt.toml (the backend refuses the keys the panel owns).
+export const MtprotoTelemtSchema = z.object({
+  maxTcpConnsPerUser: z.preprocess(unset, z.number().int().min(0).max(65535).optional()),
+  extraToml: z.preprocess(unset, z.string().max(65536).optional()),
+});
+export type MtprotoTelemt = z.infer<typeof MtprotoTelemtSchema>;
+
+export const MtprotoBackendSchema = z.enum(['mtg', 'telemt']);
+export type MtprotoBackend = z.infer<typeof MtprotoBackendSchema>;
+
 export const MtprotoInboundSettingsSchema = z.object({
+  // Which sidecar serves the inbound; unset is mtg, so older inbounds keep it.
+  backend: MtprotoBackendSchema.optional(),
+  telemt: MtprotoTelemtSchema.optional(),
   fakeTlsDomain: z.string().default('www.cloudflare.com'),
   clients: z.array(MtprotoClientSchema).default([]),
   proxyProtocolListener: z.boolean().optional(),

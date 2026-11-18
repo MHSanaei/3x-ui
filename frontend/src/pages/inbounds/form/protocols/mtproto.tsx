@@ -11,9 +11,24 @@ export default function MtprotoFields() {
   const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as
     | boolean
     | undefined;
+  const isTelemt =
+    (useWatch({ control, name: 'settings.backend' }) as string | undefined) === 'telemt';
   const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
   return (
     <>
+      <FormField
+        name={['settings', 'backend']}
+        label={t('pages.inbounds.form.mtprotoBackend')}
+        tooltip={t('pages.inbounds.form.mtprotoBackendHint')}
+      >
+        <Select
+          placeholder="mtg-multi"
+          options={[
+            { value: 'mtg', label: 'mtg-multi' },
+            { value: 'telemt', label: 'telemt' },
+          ]}
+        />
+      </FormField>
       <FormField
         name={['settings', 'fakeTlsDomain']}
         label={t('pages.inbounds.form.fakeTlsDomain')}
@@ -34,13 +49,15 @@ export default function MtprotoFields() {
       >
         <InputNumber min={0} max={65535} placeholder="443" style={{ width: '100%' }} />
       </FormField>
-      <FormField
-        name={['settings', 'domainFronting', 'proxyProtocol']}
-        label={t('pages.inbounds.form.mtgDomainFrontingProxyProtocol')}
-        valueProp="checked"
-      >
-        <Switch />
-      </FormField>
+      {!isTelemt && (
+        <FormField
+          name={['settings', 'domainFronting', 'proxyProtocol']}
+          label={t('pages.inbounds.form.mtgDomainFrontingProxyProtocol')}
+          valueProp="checked"
+        >
+          <Switch />
+        </FormField>
+      )}
       <FormField
         name={['settings', 'proxyProtocolListener']}
         label={t('pages.inbounds.form.mtgProxyProtocolListener')}
@@ -60,27 +77,53 @@ export default function MtprotoFields() {
           ]}
         />
       </FormField>
-      <FormField
-        name={['settings', 'debug']}
-        label={t('pages.inbounds.form.mtgDebug')}
-        valueProp="checked"
-      >
-        <Switch />
-      </FormField>
-      <FormField
-        name={['settings', 'throttleMaxConnections']}
-        label={t('pages.inbounds.form.mtgThrottleMaxConnections')}
-        tooltip={t('pages.inbounds.form.mtgThrottleMaxConnectionsHint')}
-      >
-        <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
-      </FormField>
-      <FormField
-        name={['settings', 'pendingHandshakesMaxPerIp']}
-        label={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIp')}
-        tooltip={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIpHint')}
-      >
-        <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
-      </FormField>
+      {isTelemt ? (
+        <>
+          <FormField
+            name={['settings', 'telemt', 'maxTcpConnsPerUser']}
+            label={t('pages.inbounds.form.telemtMaxTcpConnsPerUser')}
+            tooltip={t('pages.inbounds.form.telemtMaxTcpConnsPerUserHint')}
+          >
+            <InputNumber min={0} max={65535} placeholder="0" style={{ width: '100%' }} />
+          </FormField>
+          <FormField
+            name={['settings', 'telemt', 'extraToml']}
+            label={t('pages.inbounds.form.telemtExtraToml')}
+            tooltip={t('pages.inbounds.form.telemtExtraTomlHint')}
+          >
+            <Input.TextArea
+              autoSize={{ minRows: 3, maxRows: 12 }}
+              placeholder={'[server]\nclient_mss = "tspu"'}
+              spellCheck={false}
+              style={{ fontFamily: 'monospace' }}
+            />
+          </FormField>
+        </>
+      ) : (
+        <>
+          <FormField
+            name={['settings', 'debug']}
+            label={t('pages.inbounds.form.mtgDebug')}
+            valueProp="checked"
+          >
+            <Switch />
+          </FormField>
+          <FormField
+            name={['settings', 'throttleMaxConnections']}
+            label={t('pages.inbounds.form.mtgThrottleMaxConnections')}
+            tooltip={t('pages.inbounds.form.mtgThrottleMaxConnectionsHint')}
+          >
+            <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
+          </FormField>
+          <FormField
+            name={['settings', 'pendingHandshakesMaxPerIp']}
+            label={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIp')}
+            tooltip={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIpHint')}
+          >
+            <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
+          </FormField>
+        </>
+      )}
       <FormField
         name={['settings', 'routeThroughXray']}
         label={t('pages.inbounds.form.mtgRouteThroughXray')}
@@ -104,20 +147,24 @@ export default function MtprotoFields() {
           />
         </FormField>
       )}
-      <FormField
-        name={['settings', 'publicIpv4']}
-        label={t('pages.inbounds.form.mtgPublicIpv4')}
-        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
-      >
-        <Input allowClear placeholder="1.2.3.4" />
-      </FormField>
-      <FormField
-        name={['settings', 'publicIpv6']}
-        label={t('pages.inbounds.form.mtgPublicIpv6')}
-        tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
-      >
-        <Input allowClear placeholder="2001:db8::1" />
-      </FormField>
+      {!isTelemt && (
+        <>
+          <FormField
+            name={['settings', 'publicIpv4']}
+            label={t('pages.inbounds.form.mtgPublicIpv4')}
+            tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+          >
+            <Input allowClear placeholder="1.2.3.4" />
+          </FormField>
+          <FormField
+            name={['settings', 'publicIpv6']}
+            label={t('pages.inbounds.form.mtgPublicIpv6')}
+            tooltip={t('pages.inbounds.form.mtgPublicIpHint')}
+          >
+            <Input allowClear placeholder="2001:db8::1" />
+          </FormField>
+        </>
+      )}
     </>
   );
 }
