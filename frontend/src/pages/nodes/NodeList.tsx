@@ -40,8 +40,8 @@ interface NodeListProps {
   onDelete: (node: NodeRecord) => void;
   onProbe: (node: NodeRecord) => void;
   onToggleEnable: (node: NodeRecord, next: boolean) => void;
-  onUpdateNode: (node: NodeRecord) => void;
-  onUpdateSelected: () => void;
+  onUpdateNode?: (node: NodeRecord) => void;
+  onUpdateSelected?: () => void;
 }
 
 function isUpdateEligible(n: NodeRecord): boolean {
@@ -277,7 +277,7 @@ export default function NodeList({
                   onClick={() => onProbe(record)}
                 />
               </Tooltip>
-              {isUpdateEligible(record) && (
+              {onUpdateNode && isUpdateEligible(record) && (
                 <Tooltip title={t('pages.nodes.updatePanel')}>
                   <Button
                     type="text"
@@ -285,7 +285,7 @@ export default function NodeList({
                     style={{ fontSize: 16 }}
                     icon={<CloudDownloadOutlined aria-hidden />}
                     aria-label={t('pages.nodes.updatePanel')}
-                    onClick={() => onUpdateNode(record)}
+                    onClick={() => onUpdateNode?.(record)}
                   />
                 </Tooltip>
               )}
@@ -435,6 +435,7 @@ export default function NodeList({
         align: 'center',
         render: (_value, record) => {
           const canUpdate =
+            onUpdateNode &&
             isUpdateEligible(record) &&
             isPanelUpdateAvailable(latestVersion, record.panelVersion || '');
           return (
@@ -447,8 +448,8 @@ export default function NodeList({
                     style={{ margin: 0, cursor: 'pointer' }}
                     role="button"
                     tabIndex={0}
-                    onClick={() => onUpdateNode(record)}
-                    onKeyDown={activateOnKey(() => onUpdateNode(record))}
+                    onClick={() => onUpdateNode?.(record)}
+                    onKeyDown={activateOnKey(() => onUpdateNode?.(record))}
                   >
                     {t('pages.nodes.updateAvailable')}
                   </Tag>
@@ -560,7 +561,7 @@ export default function NodeList({
         size="middle"
         rowKey="key"
         rowSelection={
-          dataSource.length > 1
+          onUpdateSelected && dataSource.length > 1
             ? {
                 selectedRowKeys: selectedIds,
                 onChange: (keys) =>
@@ -585,7 +586,7 @@ export default function NodeList({
         }}
       />
     ),
-    [dataSource, columns, loading, selectedIds, onSelectionChange, t],
+    [dataSource, columns, loading, selectedIds, onSelectionChange, onUpdateSelected, t],
   );
 
   return (
@@ -597,7 +598,7 @@ export default function NodeList({
         <Button icon={<SafetyCertificateOutlined aria-hidden />} onClick={onMtls}>
           {t('pages.nodes.mtls.title')}
         </Button>
-        {selectedIds.length > 0 && (
+        {onUpdateSelected && selectedIds.length > 0 && (
           <Button icon={<CloudDownloadOutlined aria-hidden />} onClick={onUpdateSelected}>
             {t('pages.nodes.updateSelected', { count: selectedIds.length })}
           </Button>
@@ -682,7 +683,7 @@ export default function NodeList({
                                 ),
                                 onClick: () => onProbe(record),
                               },
-                              ...(isUpdateEligible(record)
+                              ...(onUpdateNode && isUpdateEligible(record)
                                 ? [
                                     {
                                       key: 'update',
@@ -692,7 +693,7 @@ export default function NodeList({
                                           {t('pages.nodes.updatePanel')}
                                         </>
                                       ),
-                                      onClick: () => onUpdateNode(record),
+                                      onClick: () => onUpdateNode?.(record),
                                     },
                                   ]
                                 : []),

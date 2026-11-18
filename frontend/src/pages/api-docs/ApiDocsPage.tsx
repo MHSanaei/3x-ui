@@ -96,6 +96,17 @@ export default function ApiDocsPage() {
                     <div className="docs-wrapper" role="region" aria-label={t('menu.apiDocs')}>
                       <SwaggerUI
                         url={openApiUrl}
+                        requestInterceptor={(request) => {
+                          if (
+                            !('url' in request) ||
+                            typeof request.url !== 'string' ||
+                            new URL(request.url, window.location.href).origin !==
+                              window.location.origin
+                          ) {
+                            throw new Error('Only same-origin API requests are available.');
+                          }
+                          return request;
+                        }}
                         docExpansion="list"
                         deepLinking={false}
                         plugins={[sectionTabsPlugin]}

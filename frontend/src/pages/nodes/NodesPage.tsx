@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import {
-  Alert,
   Button,
   Card,
-  Checkbox,
   Col,
   ConfigProvider,
   Input,
@@ -35,38 +32,6 @@ import NodeList from './NodeList';
 import NodeFormModal from './NodeFormModal';
 import { setMessageInstance } from '@/utils/messageBus';
 import { HttpUtil } from '@/utils';
-import type { PanelUpdateInfo } from '../index/PanelUpdateModal';
-
-// Confirm-dialog body that lets the operator pick the stable or dev channel for
-// a node panel update. Reports changes via onChange so the imperative
-// modal.confirm onOk can read the latest choice through a ref.
-function UpdateChannelChoice({ onChange }: { onChange: (dev: boolean) => void }) {
-  const { t } = useTranslation();
-  const [dev, setDev] = useState(false);
-  return (
-    <div>
-      <p>{t('pages.nodes.updateConfirmContent')}</p>
-      <Checkbox
-        checked={dev}
-        onChange={(e) => {
-          setDev(e.target.checked);
-          onChange(e.target.checked);
-        }}
-      >
-        {t('pages.nodes.updateDevChannel')}
-      </Checkbox>
-      {dev && (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginTop: 8 }}
-          title={t('pages.index.devChannelWarning')}
-        />
-      )}
-    </div>
-  );
-}
-
 export default function NodesPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
@@ -87,17 +52,7 @@ export default function NodesPage() {
     fetchFingerprint,
     fetchInbounds,
     probe,
-    updatePanels,
   } = useNodeMutations();
-
-  const { data: latestVersion = '' } = useQuery({
-    queryKey: ['server', 'panelUpdateInfo'],
-    queryFn: async () => {
-      const msg = await HttpUtil.get<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo');
-      return msg?.obj?.latestVersion || '';
-    },
-    staleTime: 5 * 60 * 1000,
-  });
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
@@ -206,74 +161,6 @@ export default function NodesPage() {
     [setEnable],
   );
 
-  const devRef = useRef(false);
-
-  const runUpdate = useCallback(
-    async (ids: number[], dev: boolean) => {
-      const msg = await updatePanels(ids, dev);
-      if (!msg?.success) {
-        messageApi.error(msg?.msg || t('somethingWentWrong'));
-        return;
-      }
-      const results = msg.obj ?? [];
-      const ok = results.filter((r) => r.ok).length;
-      const failed = results.length - ok;
-      if (failed === 0) {
-        messageApi.success(t('pages.nodes.toasts.updateStarted'));
-      } else {
-        const firstError = results.find((r) => !r.ok)?.error ?? '';
-        const base = t('pages.nodes.toasts.updateResult', { ok, failed });
-        messageApi.warning(firstError ? `${base} — ${firstError}` : base);
-      }
-      setSelectedIds([]);
-    },
-    [updatePanels, messageApi, t],
-  );
-
-  const onUpdateNode = useCallback(
-    (node: NodeRecord) => {
-      devRef.current = false;
-      modal.confirm({
-        title: t('pages.nodes.updateConfirmTitle', { count: 1 }),
-        content: (
-          <UpdateChannelChoice
-            onChange={(v) => {
-              devRef.current = v;
-            }}
-          />
-        ),
-        okText: t('update'),
-        cancelText: t('cancel'),
-        onOk: () => runUpdate([node.id], devRef.current),
-      });
-    },
-    [modal, t, runUpdate],
-  );
-
-  const onUpdateSelected = useCallback(() => {
-    const eligible = nodes
-      .filter((n) => selectedIds.includes(n.id) && n.enable && n.status === 'online')
-      .map((n) => n.id);
-    if (eligible.length === 0) {
-      messageApi.warning(t('pages.nodes.toasts.updateNoneEligible'));
-      return;
-    }
-    devRef.current = false;
-    modal.confirm({
-      title: t('pages.nodes.updateConfirmTitle', { count: eligible.length }),
-      content: (
-        <UpdateChannelChoice
-          onChange={(v) => {
-            devRef.current = v;
-          }}
-        />
-      ),
-      okText: t('update'),
-      cancelText: t('cancel'),
-      onOk: () => runUpdate(eligible, devRef.current),
-    });
-  }, [modal, t, nodes, selectedIds, runUpdate, messageApi]);
-
   const pageClass = useMemo(() => {
     const classes = ['nodes-page'];
     if (isDark) classes.push('is-dark');
@@ -362,7 +249,6 @@ export default function NodesPage() {
                       nodes={nodes}
                       loading={loading}
                       isMobile={isMobile}
-                      latestVersion={latestVersion}
                       selectedIds={selectedIds}
                       onSelectionChange={setSelectedIds}
                       onAdd={onAdd}
@@ -371,8 +257,6 @@ export default function NodesPage() {
                       onDelete={onDelete}
                       onProbe={onProbe}
                       onToggleEnable={onToggleEnable}
-                      onUpdateNode={onUpdateNode}
-                      onUpdateSelected={onUpdateSelected}
                     />
                   </Col>
                 </Row>

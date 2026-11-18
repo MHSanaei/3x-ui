@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/go-ldap/ldap/v3"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 )
 
 type Config struct {
@@ -29,6 +30,9 @@ func tlsConfig(cfg Config) *tls.Config {
 
 // FetchVlessFlags returns map[email]enabled
 func FetchVlessFlags(cfg Config) (map[string]bool, error) {
+	if offline.Running() && !offline.LocalHost(cfg.Host) {
+		return nil, offline.ErrRemote
+	}
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
 	scheme := "ldap"
@@ -97,6 +101,9 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 
 // AuthenticateUser searches user by cfg.UserAttr and attempts to bind with provided password.
 func AuthenticateUser(cfg Config, username, password string) (bool, error) {
+	if offline.Running() && !offline.LocalHost(cfg.Host) {
+		return false, offline.ErrRemote
+	}
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
 	scheme := "ldap"

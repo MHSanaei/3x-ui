@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
@@ -51,7 +52,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/xrayMetricsHistory/:metric/:bucket", a.getXrayMetricsHistoryBucket)
 	g.GET("/xrayObservatory", a.getXrayObservatory)
 	g.GET("/xrayObservatoryHistory/:tag/:bucket", a.getXrayObservatoryHistoryBucket)
-	g.GET("/getXrayVersion", a.getXrayVersion)
+	g.GET("/getXrayVersion", a.offlineOnly)
 	g.GET("/getPanelUpdateInfo", a.getPanelUpdateInfo)
 	g.GET("/getUpdateStatus", a.getUpdateStatus)
 	g.GET("/getConfigJson", a.getConfigJson)
@@ -69,20 +70,21 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
-	g.POST("/installXray/:version", a.installXray)
-	g.POST("/updatePanel", a.updatePanel)
-	g.POST("/setUpdateChannel", a.setUpdateChannel)
-	g.POST("/updateGeofile", a.updateGeofile)
-	g.POST("/updateGeofile/:fileName", a.updateGeofile)
+	g.POST("/installXray/:version", a.offlineOnly)
+	g.POST("/updatePanel", a.offlineOnly)
+	g.POST("/uploadUpdate", a.updatePanel)
+	g.POST("/setUpdateChannel", a.offlineOnly)
+	g.POST("/updateGeofile", a.offlineOnly)
+	g.POST("/updateGeofile/:fileName", a.offlineOnly)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
 	g.POST("/amneziawglogs/:count", a.getAmneziaWGLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
-	g.POST("/getRemoteCertHash", a.getRemoteCertHash)
-	g.POST("/scanRealityTarget", a.scanRealityTarget)
-	g.POST("/scanRealityTargets", a.scanRealityTargets)
+	g.POST("/getRemoteCertHash", a.offlineOnly)
+	g.POST("/scanRealityTarget", a.offlineOnly)
+	g.POST("/scanRealityTargets", a.offlineOnly)
 	g.POST("/clientIps", a.setClientIps)
 }
 
@@ -184,15 +186,6 @@ func (a *ServerController) getXrayObservatoryHistoryBucket(c *gin.Context) {
 	jsonObj(c, a.xrayMetricsService.AggregateObservatory(tag, bucket, 60), nil)
 }
 
-func (a *ServerController) getXrayVersion(c *gin.Context) {
-	versions, err := a.serverService.GetXrayVersionsCached()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "getVersion"), err)
-		return
-	}
-	jsonObj(c, versions, nil)
-}
-
 // getPanelUpdateInfo retrieves the current and latest panel version.
 func (a *ServerController) getPanelUpdateInfo(c *gin.Context) {
 	info, err := a.panelService.GetUpdateInfo()
@@ -204,36 +197,30 @@ func (a *ServerController) getPanelUpdateInfo(c *gin.Context) {
 	jsonObj(c, info, nil)
 }
 
-// installXray installs or updates Xray to the specified version.
-func (a *ServerController) installXray(c *gin.Context) {
-	version := c.Param("version")
-	err := a.serverService.UpdateXray(version)
-	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
+func (a *ServerController) offlineOnly(c *gin.Context) {
+	pureJsonMsg(c, http.StatusGone, false, I18nWeb(c, "pages.index.offlineUpdateOnly"))
 }
 
-// updatePanel starts a panel self-update. With no "dev" form value it follows
-// this panel's own channel setting; an explicit "dev" (sent by the master node
-// updater) overrides it for this run. The response's runId identifies this
-// update for a later getUpdateStatus poll.
+// updatePanel accepts only the raw contents of a local update ZIP.
 func (a *ServerController) updatePanel(c *gin.Context) {
-	devParam := c.PostForm("dev")
-	var runID int64
-	var err error
-	if devParam == "" {
-		runID, err = a.panelService.StartUpdate()
-	} else {
-		dev, perr := strconv.ParseBool(devParam)
-		if perr != nil {
-			jsonMsg(c, "invalid data", perr)
-			return
-		}
-		runID, err = a.panelService.StartUpdateChannel(dev)
+	if c.ContentType() != "application/zip" {
+		pureJsonMsg(c, http.StatusUnsupportedMediaType, false, I18nWeb(c, "pages.index.offlineUpdateOnly"))
+		return
 	}
-	var obj any
-	if err == nil {
-		obj = gin.H{"runId": strconv.FormatInt(runID, 10)}
+	if c.Request.ContentLength > offline.MaxPackageSize {
+		pureJsonMsg(c, http.StatusRequestEntityTooLarge, false, I18nWeb(c, "pages.index.offlineUpdateTooLarge"))
+		return
 	}
-	jsonMsgObj(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), obj, err)
+	// Give the streamed upload a separate deadline from small API requests.
+	conn := http.NewResponseController(c.Writer)
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Minute))
+	_ = conn.SetWriteDeadline(time.Now().Add(3*time.Minute + 20*time.Second))
+	runID, err := offline.StartUpload(c.Request.Body)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.index.offlineUpdate"), err)
+		return
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.index.panelUpdateStartedPopover"), gin.H{"runId": runID}, nil)
 }
 
 // getUpdateStatus reports the outcome of the most recently launched panel
@@ -241,31 +228,6 @@ func (a *ServerController) updatePanel(c *gin.Context) {
 // updatePanel returned to tell this run's result apart from a stale one.
 func (a *ServerController) getUpdateStatus(c *gin.Context) {
 	jsonObj(c, a.panelService.GetUpdateStatus(), nil)
-}
-
-// setUpdateChannel toggles whether self-update tracks the rolling dev release.
-func (a *ServerController) setUpdateChannel(c *gin.Context) {
-	dev, err := strconv.ParseBool(c.PostForm("dev"))
-	if err != nil {
-		jsonMsg(c, "invalid data", err)
-		return
-	}
-	err = a.settingService.SetDevChannelEnable(dev)
-	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
-}
-
-// updateGeofile updates the specified geo file for Xray.
-func (a *ServerController) updateGeofile(c *gin.Context) {
-	fileName := c.Param("fileName")
-
-	if fileName != "" && !a.serverService.IsValidGeofileName(fileName) {
-		jsonMsg(c, I18nWeb(c, "pages.index.geofileUpdatePopover"),
-			fmt.Errorf("invalid filename: contains unsafe characters or path traversal patterns"))
-		return
-	}
-
-	err := a.serverService.UpdateGeofile(fileName)
-	jsonMsg(c, I18nWeb(c, "pages.index.geofileUpdatePopover"), err)
 }
 
 // stopXrayService stops the Xray service.

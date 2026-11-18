@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
@@ -179,6 +180,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	err = json.Unmarshal([]byte(templateConfig), xrayConfig)
 	if err != nil {
 		return nil, err
+	}
+	if offline.Running() {
+		// Preserve the stored template but never start Xray's remote GeoData updater.
+		xrayConfig.Geodata = nil
 	}
 	xrayConfig.LogConfig = resolveXrayLogPaths(xrayConfig.LogConfig)
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strconv"
 	"time"
@@ -333,20 +334,7 @@ func (a *NodeController) probe(c *gin.Context) {
 }
 
 func (a *NodeController) updatePanel(c *gin.Context) {
-	var req struct {
-		Ids []int `json:"ids"`
-		Dev bool  `json:"dev"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
-		return
-	}
-	if len(req.Ids) == 0 {
-		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("no nodes selected"))
-		return
-	}
-	results, err := a.nodeService.UpdatePanels(req.Ids, req.Dev)
-	jsonMsgObj(c, I18nWeb(c, "pages.nodes.toasts.updateStarted"), results, err)
+	pureJsonMsg(c, http.StatusGone, false, I18nWeb(c, "pages.index.offlineUpdateOnly"))
 }
 
 func (a *NodeController) history(c *gin.Context) {

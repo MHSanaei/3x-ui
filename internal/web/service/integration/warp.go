@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -72,6 +73,9 @@ func (s *WarpService) GetWarpConfig() (string, error) {
 }
 
 func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	hostName, _ := os.Hostname()
 	reqBody, err := json.Marshal(map[string]any{
 		"key":   publicKey,
@@ -150,6 +154,9 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 // RegWarpMasque registers a WARP device of its own and enrolls an ECDSA P-256 key for
 // MASQUE: enrolling replaces a device's WireGuard key, so the stored one stays untouched.
 func (s *WarpService) RegWarpMasque() (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	_, wgPublicKey, err := wireguard.GenerateWireguardKeypair()
 	if err != nil {
 		return "", err
@@ -261,6 +268,9 @@ func (s *WarpService) doWarpMasqueRequest(method, url, token string, body []byte
 }
 
 func (s *WarpService) SetWarpLicense(license string) (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	warpData, err := s.loadWarpCreds()
 	if err != nil {
 		return "", err
@@ -304,6 +314,9 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 }
 
 func (s *WarpService) ChangeWarpIP() (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	warpDataMap, err := s.loadWarpCreds()
 	if err != nil {
 		return "", err

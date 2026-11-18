@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -100,7 +101,7 @@ func (j *XrayTrafficJob) Run() {
 		}
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 	}
-	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
+	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable && !offline.Running() {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)
 	} else if err != nil {
 		logger.Warning("get ExternalTrafficInformEnable failed:", err)

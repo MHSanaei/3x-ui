@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -70,6 +71,9 @@ func (c *limitedConn) Read(p []byte) (int, error) {
 // dialSMTP opens a connection capped at smtpMaxServerBytes; timeout covers the
 // dial and, with implicitTLS, the handshake.
 func dialSMTP(addr, host string, timeout time.Duration, implicitTLS bool) (net.Conn, error) {
+	if offline.Running() && !offline.LocalHost(host) {
+		return nil, offline.ErrRemote
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

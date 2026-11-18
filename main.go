@@ -3,15 +3,12 @@
 package main
 
 import (
-	"context"
-	_ "embed"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/exec"
 	"os/signal"
 	"runtime"
 	"strings"
@@ -22,8 +19,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
-	"github.com/mhsanaei/3x-ui/v3/internal/tunnelmonitor"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
@@ -74,6 +71,7 @@ func initNodeTokenCrypto() error {
 
 // runWebServer initializes and starts the web server for the 3x-ui panel.
 func runWebServer() {
+	offline.BeginRuntime()
 	log.Printf("Starting %v %v", config.GetName(), config.GetPanelVersion())
 
 	switch config.GetLogLevel() {
@@ -139,6 +137,10 @@ func runWebServer() {
 		log.Fatalf("Error starting sub server: %v", err)
 	}
 
+	xrayService := service.XrayService{}
+	if err := offline.MarkReady(xrayService.IsXrayRunning() && xrayService.GetXrayErr() == nil); err != nil {
+		logger.Warning("write panel readiness:", err)
+	}
 	sigCh := make(chan os.Signal, 8)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1, os.Interrupt)
@@ -149,26 +151,6 @@ func runWebServer() {
 		}
 	})
 
-	var stopTunnelHealthMonitor context.CancelFunc
-	monitorCfg := tunnelmonitor.ConfigFromEnv()
-	if monitorCfg.Enabled {
-		if monitorCfg.ProxyURL == "" {
-			logger.Warning("Tunnel health monitor enabled without XUI_TUNNEL_HEALTH_PROXY: the probe measures host connectivity, not the xray tunnel, so failures will restart xray without fixing host network issues")
-		}
-
-		monitorCtx, cancel := context.WithCancel(context.Background())
-		stopTunnelHealthMonitor = cancel
-
-		monitor, err := tunnelmonitor.New(monitorCfg, func(_ context.Context) error {
-			logger.Warning("Tunnel health monitor threshold reached, restarting xray-core")
-			return server.RestartXray()
-		})
-		if err != nil {
-			logger.Warning("Tunnel health monitor disabled: ", err)
-		} else {
-			go monitor.Run(monitorCtx)
-		}
-	}
 	for {
 		sig := <-sigCh
 
@@ -209,9 +191,6 @@ func runWebServer() {
 			}
 
 		default:
-			if stopTunnelHealthMonitor != nil {
-				stopTunnelHealthMonitor()
-			}
 
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
 			tgbot.StopBot()
@@ -660,6 +639,34 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "apply-local-upload":
+		if len(os.Args) != 4 {
+			log.Fatal("invalid offline update job")
+		}
+		if err := offline.ApplyUpload(os.Args[2], os.Args[3]); err != nil {
+			log.Fatal(err)
+		}
+	case "offline-verify":
+		if len(os.Args) != 3 {
+			log.Fatal("Usage: x-ui offline-verify <local-package.zip>")
+		}
+		if err := offline.Verify(os.Args[2]); err != nil {
+			log.Fatal(err)
+		}
+	case "offline-install":
+		if len(os.Args) != 5 {
+			log.Fatal("Usage: x-ui offline-install <local-package.zip> <systemd-unit> <offline-cli>")
+		}
+		if err := offline.Install(os.Args[2], os.Args[3], os.Args[4]); err != nil {
+			log.Fatal(err)
+		}
+	case "offline-update":
+		if len(os.Args) != 4 {
+			log.Fatal("Usage: x-ui offline-update <local-package.zip> <installed-panel-binary>")
+		}
+		if err := offline.Apply(os.Args[2], os.Args[3]); err != nil {
+			log.Fatal(err)
+		}
 	case "run":
 		err := runCmd.Parse(os.Args[2:])
 		if err != nil {
@@ -668,7 +675,7 @@ func main() {
 		}
 		runWebServer()
 	case "install-awg-kernel":
-		installAmneziaWGKernelModule()
+		log.Fatal(offline.ErrRemote)
 	case "migrate":
 		migrateDb()
 	case "encrypt-tokens":
@@ -776,51 +783,8 @@ Commands:
     migrate-db     SQLite <-> .dump (--dump/--restore) or copy into PostgreSQL (--dsn)
     encrypt-tokens encrypt node bearer tokens with the configured active key
     setting        set settings
-    install-awg-kernel
+    offline-update <local-package.zip> <installed-panel-binary>
                    build and install the AmneziaWG kernel module (required for
                    an AmneziaWG inbound's kernel mode)
 `
-}
-
-//go:embed scripts/install-amneziawg-kernel.sh
-var installAwgKernelScript []byte
-
-// installAmneziaWGKernelModule runs the bundled module installer.
-// It needs a terminal for its apt and DKMS build output.
-func installAmneziaWGKernelModule() {
-	if runtime.GOOS != "linux" {
-		fmt.Println("the AmneziaWG kernel module is Linux-only")
-		return
-	}
-	if os.Geteuid() != 0 {
-		exe, err := os.Executable()
-		if err != nil || exe == "" {
-			exe = "/usr/local/x-ui/x-ui"
-		}
-		fmt.Println("run as root: sudo " + exe + " install-awg-kernel")
-		return
-	}
-
-	f, err := os.CreateTemp("", "install-amneziawg-kernel-*.sh")
-	if err != nil {
-		fmt.Println("could not stage the installer:", err)
-		return
-	}
-	defer os.Remove(f.Name())
-	if _, err := f.Write(installAwgKernelScript); err != nil {
-		f.Close()
-		fmt.Println("could not write the installer:", err)
-		return
-	}
-	f.Close()
-
-	// No timeout: an apt+dkms build legitimately runs for minutes.
-	cmd := exec.CommandContext(context.Background(), "bash", f.Name())
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		fmt.Println("install failed:", err)
-		os.Exit(1)
-	}
 }

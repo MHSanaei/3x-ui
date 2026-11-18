@@ -127,6 +127,8 @@ async function performFetch(
   if (data instanceof FormData) {
     body = data;
     headers.delete('Content-Type');
+  } else if (data instanceof Blob && !SAFE_METHODS.has(upper)) {
+    body = data;
   } else if (!SAFE_METHODS.has(upper)) {
     const declaredType = (headers.get('Content-Type') || '').toLowerCase();
     if (declaredType.startsWith('application/json')) {

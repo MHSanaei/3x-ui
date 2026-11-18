@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
@@ -135,6 +136,9 @@ func (r *remoteRoutingResolver) resolveEntry(kind remoteRoutingKind, raw string)
 		return remoteRoutingCacheEntry{}, false, nil
 	}
 
+	if offline.Running() {
+		return remoteRoutingCacheEntry{}, true, offline.ErrRemote
+	}
 	r.triggerPersistedLoad()
 
 	key := remoteRoutingKey{kind: kind, source: source}

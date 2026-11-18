@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -396,6 +397,9 @@ func (s *OutboundSubscriptionService) Preview(rawURL, userAgent string, allowPri
 
 // fetchOutbounds does the network, parse, filter and tag-stability work for sub.
 func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscription) (*subscriptionFetch, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	// Re-sanitize on every fetch (handles legacy rows + defense in depth against
 	// any direct DB tampering). Private targets are blocked unless this
 	// subscription was explicitly created with AllowPrivate.

@@ -34,7 +34,6 @@ var contractExtraRoutes = map[string]bool{
 	"POST /login":              true,
 	"POST /logout":             true,
 	"GET /csrf-token":          true,
-	"GET /sponsors":            true,
 	"POST /getTwoFactorEnable": true,
 	"GET /ws":                  true,
 }

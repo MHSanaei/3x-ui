@@ -40,6 +40,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
@@ -739,8 +740,10 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	s.resolvePublicIPsInBackground()
-	status.PublicIP.IPv4, status.PublicIP.IPv6 = s.publicIPs()
+	if !offline.Running() {
+		s.resolvePublicIPsInBackground()
+		status.PublicIP.IPv4, status.PublicIP.IPv6 = s.publicIPs()
+	}
 
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
@@ -1701,7 +1704,7 @@ func (s *ServerService) backupHost(requestHost string) string {
 			host = strings.TrimSpace(domain)
 		}
 	}
-	if host == "" {
+	if host == "" && !offline.Running() {
 		s.resolvePublicIPs()
 		ipv4, ipv6 := s.publicIPs()
 		if ipv4 != "" && ipv4 != "N/A" {

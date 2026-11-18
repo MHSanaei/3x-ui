@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
@@ -25,6 +26,9 @@ var nordAPIBase = "https://api.nordvpn.com"
 const maxResponseSize = 10 << 20
 
 func (s *NordService) GetCountries() (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, nordAPIBase+"/v1/servers/countries?filters[servers_technologies][identifier]=wireguard_udp", nil)
 	if reqErr != nil {
 		return "", reqErr
@@ -45,6 +49,9 @@ func (s *NordService) GetCountries() (string, error) {
 }
 
 func (s *NordService) GetServers(countryId string) (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	// Validate countryId is numeric to prevent URL injection
 	for _, c := range countryId {
 		if c < '0' || c > '9' {
@@ -88,6 +95,9 @@ func (s *NordService) SetKey(privateKey string) (string, error) {
 }
 
 func (s *NordService) GetCredentials(token string) (string, error) {
+	if offline.Running() {
+		return "", offline.ErrRemote
+	}
 	url := nordAPIBase + "/v1/users/services/credentials"
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {

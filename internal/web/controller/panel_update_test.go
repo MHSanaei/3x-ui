@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -15,16 +13,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// newPanelUpdateTestEngine registers only updatePanel/getUpdateStatus directly
-// on the controller's zero value, bypassing NewServerController's cron/metrics
-// setup (unrelated to these two handlers, and unnecessary weight for a unit
-// test). Callers must set up a DB first (newHostTestDB(t)) since StartUpdate
-// reads the dev-channel setting before doing anything else.
 func newPanelUpdateTestEngine() *gin.Engine {
 	a := &ServerController{}
 	engine := gin.New()
 	engine.GET("/panel/api/server/getUpdateStatus", a.getUpdateStatus)
-	engine.POST("/panel/api/server/updatePanel", a.updatePanel)
+	engine.POST("/panel/api/server/updatePanel", a.offlineOnly)
+	engine.POST("/panel/api/server/uploadUpdate", a.updatePanel)
 	return engine
 }
 
@@ -100,53 +94,24 @@ func TestGetUpdateStatus_RunIdIsAlwaysAString(t *testing.T) {
 	}
 }
 
-// TestUpdatePanel_UnsupportedPlatformReturnsNoRunId covers the one path of
-// updatePanel that's safe to exercise in an automated test on any OS/CI
-// runner: the runtime.GOOS != "linux" guard. Actually invoking StartUpdate's
-// launch logic on Linux would make a real network call and could launch a
-// real update.sh process, so that path is deliberately not covered here --
-// see the PR description for why.
-func TestUpdatePanel_UnsupportedPlatformReturnsNoRunId(t *testing.T) {
-	if runtime.GOOS == "linux" {
-		t.Skip("this test only exercises the non-Linux guard path; on Linux, updatePanel would attempt a real download/exec")
-	}
-	newHostTestDB(t)
+func TestOfflineUpdateRequiresLocalZIP(t *testing.T) {
 	engine := newPanelUpdateTestEngine()
-
-	env := doPanelUpdateReq(t, engine, http.MethodPost, "/panel/api/server/updatePanel")
-	if env.Success {
-		t.Fatal("updatePanel on an unsupported platform: success = true, want false")
-	}
-	if len(env.Obj) != 0 && string(env.Obj) != "null" {
-		t.Fatalf("updatePanel error response must not carry an obj/runId: got %s", env.Obj)
-	}
-}
-
-// TestUpdatePanel_InvalidDevValueRejectedBeforeLaunch covers the one branch of
-// updatePanel that's both untested and safe to exercise on any OS/CI runner:
-// an unparseable "dev" form value is rejected by strconv.ParseBool before
-// StartUpdateChannel (and therefore any real exec/network call) is ever
-// reached, on Linux or otherwise.
-func TestUpdatePanel_InvalidDevValueRejectedBeforeLaunch(t *testing.T) {
-	newHostTestDB(t)
-	engine := newPanelUpdateTestEngine()
-
-	form := url.Values{"dev": {"notabool"}}
-	req := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("status %d, body=%s", w.Code, w.Body.String())
-	}
-	var env hostEnvelope
-	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
-		t.Fatalf("decode envelope: %v body=%s", err, w.Body.String())
-	}
-	if env.Success {
-		t.Fatal("updatePanel with dev=notabool: success = true, want false")
-	}
-	if len(env.Obj) != 0 && string(env.Obj) != "null" {
-		t.Fatalf("updatePanel error response must not carry an obj/runId: got %s", env.Obj)
+	for _, tt := range []struct {
+		endpoint, contentType string
+		size                  int64
+		want                  int
+	}{
+		{"updatePanel", "application/x-www-form-urlencoded", 0, http.StatusGone},
+		{"uploadUpdate", "application/x-www-form-urlencoded", 0, http.StatusUnsupportedMediaType},
+		{"uploadUpdate", "application/zip", 257 << 20, http.StatusRequestEntityTooLarge},
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/panel/api/server/"+tt.endpoint, strings.NewReader("version=latest"))
+		req.Header.Set("Content-Type", tt.contentType)
+		req.ContentLength = tt.size
+		w := httptest.NewRecorder()
+		engine.ServeHTTP(w, req)
+		if w.Code != tt.want {
+			t.Errorf("%s: got %d, want %d: %s", tt.endpoint, w.Code, tt.want, w.Body)
+		}
 	}
 }

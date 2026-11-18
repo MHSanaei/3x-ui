@@ -5229,60 +5229,6 @@
         }
       }
     },
-    "/sponsors": {
-      "get": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
-        "operationId": "get_sponsors",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {
-                      "$ref": "#/components/schemas/SponsorList"
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": {
-                    "contact": "https://t.me/example",
-                    "sponsors": [
-                      {
-                        "enable": true,
-                        "from": "2026-10-01T00:00:00Z",
-                        "id": "acme-2026-10",
-                        "link": "https://acme.example/?utm_source=3x-ui",
-                        "logo": "/sponsors/logo/acme.png",
-                        "name": "Acme VPS",
-                        "slots": [
-                          ""
-                        ],
-                        "text": {},
-                        "title": {},
-                        "until": "2026-11-01T00:00:00Z"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/getTwoFactorEnable": {
       "post": {
         "tags": [
@@ -6806,35 +6752,169 @@
         "tags": [
           "Server"
         ],
-        "summary": "List Xray binary versions available for install on this host.",
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
         "operationId": "get_panel_api_server_getXrayVersion",
+        "deprecated": true,
         "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": [
-                    "v25.10.31",
-                    "v25.9.15",
-                    "v25.8.1"
-                  ]
-                }
-              }
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/installXray/{version}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_server_installXray_version",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/updatePanel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_server_updatePanel",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/setUpdateChannel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_server_setUpdateChannel",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateGeofile": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_server_updateGeofile",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/updateGeofile/{fileName}": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_server_updateGeofile_fileName",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/updatePanel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Retired in the offline panel. Upload a local update ZIP.",
+        "operationId": "post_panel_api_nodes_updatePanel",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/getRemoteCertHash": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Remote probing is disabled in the offline panel.",
+        "operationId": "post_panel_api_server_getRemoteCertHash",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/scanRealityTarget": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Remote probing is disabled in the offline panel.",
+        "operationId": "post_panel_api_server_scanRealityTarget",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
+          }
+        }
+      }
+    },
+    "/panel/api/server/scanRealityTargets": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Remote probing is disabled in the offline panel.",
+        "operationId": "post_panel_api_server_scanRealityTargets",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Disabled in the offline panel."
           }
         }
       }
@@ -6844,7 +6924,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Check whether a newer 3x-ui release is available on GitHub.",
+        "summary": "Read the installed panel version and the offline update mode.",
         "operationId": "get_panel_api_server_getPanelUpdateInfo",
         "responses": {
           "200": {
@@ -6874,7 +6954,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Report the outcome of the most recently launched panel self-update (see POST updatePanel). Compare the returned runId against the one updatePanel returned to tell this run apart from a stale result.",
+        "summary": "Read the status of a local update. Match runId against the upload response.",
         "operationId": "get_panel_api_server_getUpdateStatus",
         "responses": {
           "200": {
@@ -7379,215 +7459,30 @@
         }
       }
     },
-    "/panel/api/server/installXray/{version}": {
+    "/panel/api/server/uploadUpdate": {
       "post": {
         "tags": [
           "Server"
         ],
-        "summary": "Download and install the specified Xray version. Pass \"latest\" for the newest release.",
-        "operationId": "post_panel_api_server_installXray_version",
-        "parameters": [
-          {
-            "name": "version",
-            "in": "path",
-            "required": true,
-            "description": "Xray tag (e.g. v25.10.31) or \"latest\".",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/updatePanel": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin or node-admin scope.",
-        "operationId": "post_panel_api_server_updatePanel",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "dev": {
-                    "type": "boolean",
-                    "description": "Override this run's channel. Omit to use the panel's configured channel."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": {
-                    "runId": "1735689600123456789"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/setUpdateChannel": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.",
-        "operationId": "post_panel_api_server_setUpdateChannel",
+        "summary": "Upload a local ZIP to replace the panel, Xray, or GeoData and restart the service.",
+        "operationId": "post_panel_api_server_uploadUpdate",
         "requestBody": {
           "required": true,
           "content": {
-            "application/x-www-form-urlencoded": {
+            "application/zip": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "dev": {
-                    "type": "boolean",
-                    "description": "true = dev channel, false = stable."
-                  }
-                },
-                "required": [
-                  "dev"
-                ]
+                "type": "string",
+                "format": "binary"
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/updateGeofile": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Refresh the default GeoIP / GeoSite data files. Use the /:fileName variant to update one file.",
-        "operationId": "post_panel_api_server_updateGeofile",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/updateGeofile/{fileName}": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).",
-        "operationId": "post_panel_api_server_updateGeofile_fileName",
-        "parameters": [
-          {
-            "name": "fileName",
-            "in": "path",
-            "required": true,
-            "description": "Filename of the data file to refresh.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
+          "413": {
+            "description": "Uploaded ZIP exceeds 256 MiB."
+          },
+          "415": {
+            "description": "Content-Type must be application/zip."
           }
         }
       }
@@ -8014,237 +7909,6 @@
                   "success": true,
                   "obj": [
                     "e8e2d3..."
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/getRemoteCertHash": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).",
-        "operationId": "post_panel_api_server_getRemoteCertHash",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "server": {
-                    "type": "string",
-                    "description": "Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com."
-                  },
-                  "allowPrivate": {
-                    "type": "boolean",
-                    "description": "Ping a private/internal/loopback server (LAN, Docker service name). Default false (SSRF guard blocks it and the error response sets obj.privateTarget=true)."
-                  }
-                },
-                "required": [
-                  "server"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": [
-                    "e8e2d3..."
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/scanRealityTarget": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.",
-        "operationId": "post_panel_api_server_scanRealityTarget",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "string",
-                    "description": "Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443."
-                  },
-                  "sni": {
-                    "type": "string",
-                    "description": "SNI the handshake sends and the certificate is verified against (the inbound serverNames). Defaults to the target host, which a fronting proxy answers with its default certificate."
-                  },
-                  "xver": {
-                    "type": "integer",
-                    "description": "PROXY protocol version the target expects (matches the inbound xver). 0 = none."
-                  },
-                  "allowPrivate": {
-                    "type": "boolean",
-                    "description": "Probe a private/internal/loopback target (LAN, Docker service name). Default false (SSRF guard blocks it and the response sets privateTarget=true)."
-                  }
-                },
-                "required": [
-                  "target"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {
-                      "$ref": "#/components/schemas/RealityScanResult"
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": {
-                    "alpn": "h2",
-                    "certChainBytes": 3427,
-                    "certChainValid": true,
-                    "certIssuer": "Google Trust Services",
-                    "certSubject": "cloudflare.com",
-                    "certValid": true,
-                    "curveID": "X25519",
-                    "feasible": true,
-                    "h2": true,
-                    "host": "www.cloudflare.com",
-                    "ip": "104.16.124.96",
-                    "latencyMs": 180,
-                    "notAfter": "2026-08-01T00:00:00Z",
-                    "port": 443,
-                    "privateTarget": false,
-                    "reason": "",
-                    "serverNames": [
-                      ""
-                    ],
-                    "target": "www.cloudflare.com:443",
-                    "tls13": true,
-                    "tlsVersion": "1.3",
-                    "x25519": true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/server/scanRealityTargets": {
-      "post": {
-        "tags": [
-          "Server"
-        ],
-        "summary": "Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).",
-        "operationId": "post_panel_api_server_scanRealityTargets",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "targets": {
-                    "type": "string",
-                    "description": "Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty)."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RealityScanResult"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": [
-                    {
-                      "alpn": "h2",
-                      "certChainBytes": 3427,
-                      "certChainValid": true,
-                      "certIssuer": "Google Trust Services",
-                      "certSubject": "cloudflare.com",
-                      "certValid": true,
-                      "curveID": "X25519",
-                      "feasible": true,
-                      "h2": true,
-                      "host": "www.cloudflare.com",
-                      "ip": "104.16.124.96",
-                      "latencyMs": 180,
-                      "notAfter": "2026-08-01T00:00:00Z",
-                      "port": 443,
-                      "privateTarget": false,
-                      "reason": "",
-                      "serverNames": [
-                        ""
-                      ],
-                      "target": "www.cloudflare.com:443",
-                      "tls13": true,
-                      "tlsVersion": "1.3",
-                      "x25519": true
-                    }
                   ]
                 }
               }
@@ -12201,70 +11865,6 @@
                     },
                     "obj": {}
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/panel/api/nodes/updatePanel": {
-      "post": {
-        "tags": [
-          "Nodes"
-        ],
-        "summary": "Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set \"dev\": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.",
-        "operationId": "post_panel_api_nodes_updatePanel",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              },
-              "example": {
-                "ids": [
-                  1,
-                  2,
-                  3
-                ],
-                "dev": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "obj": [
-                    {
-                      "id": 1,
-                      "name": "de-1",
-                      "ok": true
-                    },
-                    {
-                      "id": 2,
-                      "name": "fr-1",
-                      "ok": false,
-                      "error": "node is offline"
-                    }
-                  ]
                 }
               }
             }

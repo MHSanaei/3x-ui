@@ -43,6 +43,7 @@ export interface Endpoint {
   errorResponse?: string;
   errorStatus?: number;
   requestSchema?: Record<string, unknown>;
+  requestContentType?: string;
   bodyRequiredOneOf?: string[];
   responseSchema?: string;
   responseSchemaArray?: boolean;
@@ -235,13 +236,6 @@ export const sections: readonly Section[] = [
         summary:
           'Mint a CSRF token for the current session. The SPA replays it in the X-CSRF-Token header on unsafe requests. Bearer-token callers can skip this — the middleware short-circuits CSRF for authenticated API requests.',
         response: '{\n  "success": true,\n  "obj": "csrf-token-string"\n}',
-      },
-      {
-        method: 'GET',
-        path: '/sponsors',
-        summary:
-          'Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.',
-        responseSchema: 'SponsorList',
       },
       {
         method: 'POST',
@@ -557,19 +551,82 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getXrayVersion',
-        summary: 'List Xray binary versions available for install on this host.',
-        response: '{\n  "success": true,\n  "obj": ["v25.10.31", "v25.9.15", "v25.8.1"]\n}',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/installXray/:version',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/updatePanel',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/setUpdateChannel',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/updateGeofile',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/updateGeofile/:fileName',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/updatePanel',
+        summary: 'Retired in the offline panel. Upload a local update ZIP.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/getRemoteCertHash',
+        summary: 'Remote probing is disabled in the offline panel.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/scanRealityTarget',
+        summary: 'Remote probing is disabled in the offline panel.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/scanRealityTargets',
+        summary: 'Remote probing is disabled in the offline panel.',
+        deprecated: true,
+        responses: { '410': { description: 'Disabled in the offline panel.' } },
       },
       {
         method: 'GET',
         path: '/panel/api/server/getPanelUpdateInfo',
-        summary: 'Check whether a newer 3x-ui release is available on GitHub.',
+        summary: 'Read the installed panel version and the offline update mode.',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getUpdateStatus',
-        summary:
-          'Report the outcome of the most recently launched panel self-update (see POST updatePanel). Compare the returned runId against the one updatePanel returned to tell this run apart from a stale result.',
+        summary: 'Read the status of a local update. Match runId against the upload response.',
         responseSchema: 'PanelUpdateStatus',
       },
       {
@@ -655,67 +712,20 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/api/server/installXray/:version',
+        path: '/panel/api/server/uploadUpdate',
         summary:
-          'Download and install the specified Xray version. Pass "latest" for the newest release.',
-        params: [
-          {
-            name: 'version',
-            in: 'path',
-            type: 'string',
-            desc: 'Xray tag (e.g. v25.10.31) or "latest".',
-          },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/updatePanel',
-        summary:
-          'Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin or node-admin scope.',
-        params: [
-          {
-            name: 'dev',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: "Override this run's channel. Omit to use the panel's configured channel.",
-            optional: true,
-          },
-        ],
-        response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/setUpdateChannel',
-        summary:
-          'Toggle the panel update channel between stable and the rolling per-commit dev release. Only effective on dev builds.',
-        params: [
-          {
-            name: 'dev',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'true = dev channel, false = stable.',
-          },
-        ],
-        body: 'dev=true',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/updateGeofile',
-        summary:
-          'Refresh the default GeoIP / GeoSite data files. Use the /:fileName variant to update one file.',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/updateGeofile/:fileName',
-        summary: 'Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).',
-        params: [
-          {
-            name: 'fileName',
-            in: 'path',
-            type: 'string',
-            desc: 'Filename of the data file to refresh.',
-          },
-        ],
+          'Upload a local ZIP to replace the panel, Xray, or GeoData and restart the service.',
+        requestContentType: 'application/zip',
+        requestSchema: { type: 'string', format: 'binary' },
+        responseObjectSchema: {
+          type: 'object',
+          properties: { runId: { type: 'string' } },
+          required: ['runId'],
+        },
+        responses: {
+          '413': { description: 'Uploaded ZIP exceeds 256 MiB.' },
+          '415': { description: 'Content-Type must be application/zip.' },
+        },
       },
       {
         method: 'POST',
@@ -871,84 +881,6 @@ export const sections: readonly Section[] = [
         ],
         body: 'certFile=/root/cert.crt',
         response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/getRemoteCertHash',
-        summary:
-          'Run `xray tls ping` against a remote server and return its live leaf-certificate SHA-256 hash(es) for pinning (pinnedPeerCertSha256).',
-        params: [
-          {
-            name: 'server',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com.',
-          },
-          {
-            name: 'allowPrivate',
-            in: 'body (form)',
-            type: 'boolean',
-            optional: true,
-            desc: 'Ping a private/internal/loopback server (LAN, Docker service name). Default false (SSRF guard blocks it and the error response sets obj.privateTarget=true).',
-          },
-        ],
-        body: 'server=cloudflare-dns.com',
-        response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/scanRealityTarget',
-        summary:
-          'Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.',
-        params: [
-          {
-            name: 'target',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443.',
-          },
-          {
-            name: 'sni',
-            in: 'body (form)',
-            type: 'string',
-            optional: true,
-            desc: 'SNI the handshake sends and the certificate is verified against (the inbound serverNames). Defaults to the target host, which a fronting proxy answers with its default certificate.',
-          },
-          {
-            name: 'xver',
-            in: 'body (form)',
-            type: 'number',
-            optional: true,
-            desc: 'PROXY protocol version the target expects (matches the inbound xver). 0 = none.',
-          },
-          {
-            name: 'allowPrivate',
-            in: 'body (form)',
-            type: 'boolean',
-            optional: true,
-            desc: 'Probe a private/internal/loopback target (LAN, Docker service name). Default false (SSRF guard blocks it and the response sets privateTarget=true).',
-          },
-        ],
-        body: 'target=www.cloudflare.com:443',
-        responseSchema: 'RealityScanResult',
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/server/scanRealityTargets',
-        summary:
-          'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
-        params: [
-          {
-            name: 'targets',
-            in: 'body (form)',
-            type: 'string',
-            optional: true,
-            desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
-          },
-        ],
-        body: 'targets=104.16.0.0/24,www.apple.com:443',
-        responseSchema: 'RealityScanResult',
-        responseSchemaArray: true,
       },
       {
         method: 'GET',
@@ -1852,15 +1784,6 @@ export const sections: readonly Section[] = [
         path: '/panel/api/nodes/probe/:id',
         summary: 'Probe an existing node, updating its cached health state.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-      },
-      {
-        method: 'POST',
-        path: '/panel/api/nodes/updatePanel',
-        summary:
-          'Trigger the official panel self-updater on each given node (downloads the latest release and restarts). Only enabled, online nodes are updated; offline/disabled ones are reported as skipped. Set "dev": true to move the nodes to the rolling per-commit dev channel instead of the latest stable release. Returns a per-node result list.',
-        body: '{\n  "ids": [1, 2, 3],\n  "dev": false\n}',
-        response:
-          '{\n  "success": true,\n  "obj": [\n    { "id": 1, "name": "de-1", "ok": true },\n    { "id": 2, "name": "fr-1", "ok": false, "error": "node is offline" }\n  ]\n}',
       },
       {
         method: 'GET',

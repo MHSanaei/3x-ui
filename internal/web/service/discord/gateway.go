@@ -18,6 +18,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -141,6 +142,9 @@ func (g *GatewayClient) IsRunning() bool {
 
 // Start begins the Gateway connection and listening loop.
 func (g *GatewayClient) Start(parentCtx context.Context) error {
+	if offline.Running() {
+		return offline.ErrRemote
+	}
 	g.mu.Lock()
 	if g.running {
 		g.mu.Unlock()

@@ -1,3 +1,5 @@
+> This branch provides a Linux systemd offline deployment and local ZIP replacement. See [offline deployment and updates](OFFLINE.md). The upstream instructions below document the original project.
+
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
 <p align="center">

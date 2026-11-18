@@ -76,6 +76,7 @@ function schemaFromParam(p) {
 }
 
 function requestBodyContentType(ep, bodyParams) {
+  if (ep.requestContentType) return ep.requestContentType;
   const locations = new Set(bodyParams.map((p) => p.in));
   if (locations.size > 1) {
     throw new Error(

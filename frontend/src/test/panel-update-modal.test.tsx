@@ -1,62 +1,32 @@
-import { fireEvent, screen } from '@testing-library/react';
-import { Modal } from 'antd';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PanelUpdateModal from '@/pages/index/PanelUpdateModal';
 import { HttpUtil } from '@/utils';
 import { renderWithProviders } from './test-utils';
 
-let restoreUseModal = () => {};
+describe('offline update modal', () => {
+  afterEach(() => vi.mocked(HttpUtil.post).mockReset());
 
-describe('panel update modal', () => {
-  afterEach(() => {
-    restoreUseModal();
-    restoreUseModal = () => {};
-    vi.mocked(HttpUtil.post).mockReset();
-  });
-
-  it('lets the confirmation close before the update request finishes', () => {
-    const confirm = vi.fn();
-    const useModal = vi.spyOn(Modal, 'useModal').mockReturnValue([
-      {
-        confirm,
-        error: vi.fn(),
-        warning: vi.fn(),
-      } as unknown as ReturnType<typeof Modal.useModal>[0],
-      <span key="modal-context" />,
-    ]);
-    restoreUseModal = () => useModal.mockRestore();
-    vi.mocked(HttpUtil.post).mockReturnValue(new Promise(() => {}));
-    const onClose = vi.fn();
+  it('uploads the selected ZIP as a binary request', async () => {
     const onBusy = vi.fn();
-    renderWithProviders(
-      <PanelUpdateModal
-        open
-        info={{
-          channel: 'dev',
-          currentVersion: 'dev+old',
-          latestVersion: 'dev+new',
-          currentCommit: 'old',
-          latestCommit: 'new',
-          updateAvailable: true,
-        }}
-        devChannelEnable
-        onClose={onClose}
-        onBusy={onBusy}
-      />,
+    vi.mocked(HttpUtil.post).mockReturnValue(new Promise(() => {}));
+    renderWithProviders(<PanelUpdateModal open onClose={vi.fn()} onBusy={onBusy} />);
+
+    const select = screen.getByLabelText('Select update ZIP');
+    const apply = screen.getByRole('button', { name: 'Upload and apply' });
+    expect((apply as HTMLButtonElement).disabled).toBe(true);
+    const file = new File(['example'], 'update.zip', { type: 'application/zip' });
+    fireEvent.change(select, { target: { files: [file] } });
+    fireEvent.click(apply);
+
+    await waitFor(() =>
+      expect(HttpUtil.post).toHaveBeenCalledWith(
+        '/panel/api/server/uploadUpdate',
+        file,
+        expect.objectContaining({ headers: { 'Content-Type': 'application/zip' } }),
+      ),
     );
-
-    fireEvent.click(screen.getByRole('button', { name: /Update Panel/ }));
-    expect(confirm).toHaveBeenCalledOnce();
-    const config = confirm.mock.calls[0]?.[0];
-    if (!config?.onOk) throw new Error('Confirmation onOk handler was not registered');
-
-    expect(config.onOk()).toBeUndefined();
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(HttpUtil.post).toHaveBeenCalledWith('/panel/api/server/updatePanel');
-    expect(onBusy).toHaveBeenCalledWith({
-      busy: true,
-      tip: 'Installation is in progress, please do not refresh this page (dev+new)',
-    });
+    expect(onBusy).toHaveBeenCalledWith(expect.objectContaining({ busy: true }));
   });
 });

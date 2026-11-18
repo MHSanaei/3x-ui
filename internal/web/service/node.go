@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -60,6 +61,9 @@ type NodeService struct{}
 // certificate and returns the leaf certificate's SHA-256 as base64, so the UI
 // can offer a "fetch and pin current certificate" action.
 func (s *NodeService) FetchCertFingerprint(ctx context.Context, n *model.Node) (string, error) {
+	if offline.Running() && !offline.LocalHost(n.Address) {
+		return "", offline.ErrRemote
+	}
 	addr, err := netsafe.NormalizeHost(n.Address)
 	if err != nil {
 		return "", err

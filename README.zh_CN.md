@@ -1,3 +1,5 @@
+> 本分支提供 Linux systemd 离线部署和 ZIP 替换更新。请参阅[离线部署与更新](OFFLINE.md)。下方保留上游项目说明。
+
 [English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
 
 <p align="center">

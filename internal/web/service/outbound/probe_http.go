@@ -20,6 +20,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -109,6 +110,9 @@ func probeModeLabel(mode string) string {
 // through a temp xray instance (UDP-transport outbounds are always forced to
 // the HTTP probe — a raw dial can't measure them).
 func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
 		return &TestOutboundResult{Mode: probeModeLabel(mode), Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
@@ -122,6 +126,9 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 // supplies the config context (sockopt.dialerProxy chains); testURL falls
 // back to the default probe URL when empty.
 func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string) ([]*TestOutboundResult, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(outboundsJSON), &raw); err != nil {
 		return nil, fmt.Errorf("invalid outbounds JSON: %w", err)

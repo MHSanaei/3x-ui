@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	piaprotocol "github.com/mhsanaei/3x-ui/v3/internal/pia"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -74,6 +75,9 @@ func NewPiaService() *PiaService {
 }
 
 func (s *PiaService) Login(username, password string) (*PiaAccountView, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	tok, err := s.Auth.Authenticate(context.Background(), username, []byte(password))
 	if err != nil {
 		return nil, err
@@ -105,6 +109,9 @@ func (s *PiaService) DelPiaData() error {
 }
 
 func (s *PiaService) GetCountries() ([]PiaCountryView, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	regions, err := s.regions()
 	if err != nil {
 		return nil, err
@@ -127,6 +134,9 @@ func (s *PiaService) GetCountries() ([]PiaCountryView, error) {
 }
 
 func (s *PiaService) GetServers(countryCode string) (*PiaServersView, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	code := strings.ToUpper(strings.TrimSpace(countryCode))
 	if !validCountryCode(code) {
 		return nil, piaprotocol.NewError(piaprotocol.CodeInvalidInput, "Select a country.")
@@ -155,6 +165,9 @@ func (s *PiaService) GetServers(countryCode string) (*PiaServersView, error) {
 }
 
 func (s *PiaService) AddKey(hostname string) (*PiaKeyView, error) {
+	if offline.Running() {
+		return nil, offline.ErrRemote
+	}
 	hostname = strings.TrimSpace(hostname)
 	if hostname == "" {
 		return nil, piaprotocol.NewError(piaprotocol.CodeInvalidInput, "Select a PIA server.")

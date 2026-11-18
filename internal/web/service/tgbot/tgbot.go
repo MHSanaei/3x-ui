@@ -19,6 +19,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -315,6 +316,9 @@ func (t *Tgbot) setCachedServerStats(stats string) {
 
 // Start initializes and starts the Telegram bot with the provided translation files.
 func (t *Tgbot) Start(i18nFS embed.FS) error {
+	if offline.Running() {
+		return offline.ErrRemote
+	}
 	// Initialize localizer
 	err := locale.InitLocalizer(i18nFS, &t.settingService)
 	if err != nil {

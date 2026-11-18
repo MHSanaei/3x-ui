@@ -183,7 +183,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// large backups and streams them to disk, so only its exact route suffix is
 	// exempt. Follow-up: make the limit a setting.
 	const maxRequestBodyBytes = 10 << 20 // 10 MiB
-	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB"))
+	engine.Use(middleware.MaxBodyBytes(maxRequestBodyBytes, "/panel/api/server/importDB", "/panel/api/server/uploadUpdate"))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
@@ -309,9 +309,7 @@ const (
 	cadenceClientIPScan  = "@every 10s"
 	cadenceNodeHeartbeat = "@every 5s"
 	cadenceNodeTraffic   = "@every 5s"
-	cadenceOutboundSub   = "@every 5m"
 	cadenceReapOrphans   = "@every 5m"
-	cadenceRemoteRouting = "@every 5m"
 	cadenceXrayLogPrune  = "@every 10m"
 	cadenceCheckHash     = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
@@ -363,21 +361,11 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 
 	_, _ = s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
 
-	// Outbound subscription auto-refresh (respects per-sub updateInterval)
-	_, _ = s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
-
 	_, _ = s.cron.AddJob(cadenceReapOrphans, job.NewReapSyncOrphansJob())
-
-	// Warm permanent routing URLs immediately and refresh them outside the
-	// latency-sensitive subscription request path.
-	remoteRoutingJob := job.NewRemoteRoutingJob()
-	_, _ = s.cron.AddJob(cadenceRemoteRouting, remoteRoutingJob)
-	common.GoRecover("remote-routing-warm", remoteRoutingJob.Run)
 
 	// check client ips from log file every day
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
 	_, _ = s.cron.AddJob(cadenceXrayLogPrune, job.NewPruneXrayLogsJob())
-	_, _ = s.cron.AddJob("@hourly", job.NewWarpIpJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour
@@ -675,8 +663,6 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	// Register discord subscriber (always — it checks discordBotEnable at runtime)
 	s.discordService = discord.NewDiscordService(s.settingService)
-	discordSub := discord.NewSubscriber(s.settingService, s.discordService)
-	s.bus.Subscribe("discord-notifier", discordSub.HandleEvent)
 
 	// Wire discord service to controller for test endpoint
 	controller.SetDiscordService(s.discordService)

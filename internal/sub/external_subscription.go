@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -103,6 +104,9 @@ type subscriptionFetchResult struct {
 // last cached value (if present) or nil — never an error, so the rest of the
 // client's subscription still renders.
 func fetchSubscriptionLinks(rawURL string) subscriptionFetchResult {
+	if offline.Running() {
+		return subscriptionFetchResult{err: offline.ErrRemote}
+	}
 	rawURL = strings.TrimSpace(rawURL)
 	if rawURL == "" {
 		return subscriptionFetchResult{}

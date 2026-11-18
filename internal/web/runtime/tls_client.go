@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/offline"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -201,6 +202,12 @@ func dropNodeClients(nodeID int, keep string) {
 // HTTPClientForNode returns the pooled client for n, building it on first use
 // and whenever the node's identity or TLS material changes.
 func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
+	if offline.Running() && !offline.LocalHost(n.Address) {
+		return nil, offline.ErrRemote
+	}
+	if offline.Running() {
+		proxyURL = ""
+	}
 	mode := n.TlsVerifyMode
 	if mode == "" {
 		mode = "verify"
