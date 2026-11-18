@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/ha"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -54,6 +56,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
+	if m := ha.Active(); m != nil {
+		engine.Use(ha.GinGuard(m.Current, ha.SubTarget))
+	}
 
 	subDomain, err := s.settingService.GetSubDomain()
 	if err != nil {
@@ -406,27 +411,51 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
-	certFile, err := s.settingService.GetSubCertFile()
+	listener, err := s.openListener()
 	if err != nil {
 		return err
+	}
+	s.listener = listener
+
+	s.httpServer = &http.Server{
+		Handler: engine,
+		// The subscription server is the most exposed (public) listener; without
+		// these a few slow-header connections exhaust it (Slowloris). Mirrors the
+		// panel server timeouts in internal/web/web.go.
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	go network.ServeHTTP(s.httpServer, listener, "Subscription server")
+
+	return nil
+}
+
+// openListener binds the subscription port from the settings (read-only).
+func (s *Server) openListener() (net.Listener, error) {
+	certFile, err := s.settingService.GetSubCertFile()
+	if err != nil {
+		return nil, err
 	}
 	keyFile, err := s.settingService.GetSubKeyFile()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	listen, err := s.settingService.GetSubListen()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	port, err := s.settingService.GetSubPort()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
 	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if certFile != "" || keyFile != "" {
@@ -445,21 +474,23 @@ func (s *Server) Start() (err error) {
 	} else {
 		logger.Info("Sub server running HTTP on", listener.Addr())
 	}
-	s.listener = listener
+	return listener, nil
+}
 
-	s.httpServer = &http.Server{
-		Handler: engine,
-		// The subscription server is the most exposed (public) listener; without
-		// these a few slow-header connections exhaust it (Slowloris). Mirrors the
-		// panel server timeouts in internal/web/web.go.
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       120 * time.Second,
+// StartStandby serves h on the subscription port while this HA node is not
+// master; returns without listening when the subscription server is off.
+func (s *Server) StartStandby(h http.Handler) error {
+	subEnable, err := s.settingService.GetSubEnable()
+	if err != nil || !subEnable {
+		return err
 	}
-
-	go network.ServeHTTP(s.httpServer, listener, "Subscription server")
-
+	listener, err := s.openListener()
+	if err != nil {
+		return err
+	}
+	s.listener = listener
+	s.httpServer = &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second}
+	go network.ServeHTTP(s.httpServer, listener, "Subscription server (HA standby)")
 	return nil
 }
 
