@@ -40,6 +40,16 @@ func GetBinaryPath() string {
 	return config.GetBinFolderPath() + "/" + GetBinaryName()
 }
 
+// GetTelemtBinaryName returns the telemt binary filename, named like the mtg one.
+func GetTelemtBinaryName() string {
+	return fmt.Sprintf("telemt-%s-%s", runtime.GOOS, runtime.GOARCH)
+}
+
+// GetTelemtBinaryPath returns the full path to the telemt binary in the bin folder.
+func GetTelemtBinaryPath() string {
+	return config.GetBinFolderPath() + "/" + GetTelemtBinaryName()
+}
+
 func configDir() string {
 	return config.GetBinFolderPath() + "/mtproto"
 }
@@ -98,7 +108,7 @@ func (w *procLogWriter) emitLocked(line string) {
 		return
 	}
 	w.lastLine = trimmed
-	logger.Infof("mtproto: mtg %s | %s", w.label, trimmed)
+	logger.Infof("mtproto: %s | %s", w.label, trimmed)
 }
 
 func (w *procLogWriter) LastLine() string {
@@ -107,12 +117,14 @@ func (w *procLogWriter) LastLine() string {
 	return w.lastLine
 }
 
-// Process wraps a single mtg process invocation for one mtproto inbound.
+// Process wraps a single sidecar (mtg or telemt) invocation for one mtproto inbound.
 type Process struct {
 	mu              sync.RWMutex
 	cmd             *exec.Cmd
 	done            chan struct{}
 	configPath      string
+	binaryPath      string
+	workDir         string
 	logWriter       *procLogWriter
 	exitErr         error
 	intentionalStop atomic.Bool
@@ -121,7 +133,19 @@ type Process struct {
 func newProcess(configPath, label string) *Process {
 	return &Process{
 		configPath: configPath,
-		logWriter:  &procLogWriter{label: label},
+		binaryPath: GetBinaryPath(),
+		logWriter:  &procLogWriter{label: "mtg " + label},
+	}
+}
+
+// newTelemtProcess runs telemt in the foreground from workDir, where it keeps
+// its own state (tlsfront/, cache/, the quota file).
+func newTelemtProcess(configPath, workDir, label string) *Process {
+	return &Process{
+		configPath: configPath,
+		binaryPath: GetTelemtBinaryPath(),
+		workDir:    workDir,
+		logWriter:  &procLogWriter{label: "telemt " + label},
 	}
 }
 
@@ -157,12 +181,24 @@ func (p *Process) GetResult() string {
 	return ""
 }
 
-// Start launches the mtg process against its generated config file.
+// Reload sends SIGHUP, which makes telemt re-read its config (and includes) at once.
+func (p *Process) Reload() error {
+	p.mu.RLock()
+	cmd := p.cmd
+	p.mu.RUnlock()
+	if !p.IsRunning() || cmd == nil || cmd.Process == nil {
+		return errors.New("process is not running")
+	}
+	return cmd.Process.Signal(syscall.SIGHUP)
+}
+
+// Start launches the sidecar process against its generated config file.
 func (p *Process) Start() error {
 	if p.IsRunning() {
 		return errors.New("mtg is already running")
 	}
-	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "run", p.configPath)
+	cmd := exec.CommandContext(context.Background(), p.binaryPath, "run", p.configPath)
+	cmd.Dir = p.workDir
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 	done := make(chan struct{})
@@ -197,7 +233,7 @@ func (p *Process) wait(cmd *exec.Cmd, done chan struct{}) {
 			return
 		}
 	}
-	logger.Errorf("mtproto: mtg process exited: %v", err)
+	logger.Errorf("mtproto: %s process exited: %v", p.logWriter.label, err)
 	p.setExitErr(err)
 }
 

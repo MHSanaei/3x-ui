@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -17,6 +19,7 @@ import (
 // manager can start and stop it without a real mtg-multi binary.
 func TestMain(m *testing.M) {
 	if os.Getenv("MTG_FAKE_CHILD") == "1" {
+		recordHangups(os.Getenv("MTG_FAKE_HUPFILE"))
 		if f, err := os.OpenFile(os.Getenv("MTG_FAKE_PIDFILE"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 			fmt.Fprintf(f, "%d\n", os.Getpid())
 			f.Close()
@@ -34,6 +37,21 @@ func TestMain(m *testing.M) {
 		select {}
 	}
 	os.Exit(m.Run())
+}
+
+// recordHangups keeps the fake child alive on SIGHUP (telemt's reload signal)
+// and appends one line per signal to hupFile.
+func recordHangups(hupFile string) {
+	hups := make(chan os.Signal, 1)
+	signal.Notify(hups, syscall.SIGHUP)
+	go func() {
+		for range hups {
+			if f, err := os.OpenFile(hupFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+				fmt.Fprintln(f, "hup")
+				f.Close()
+			}
+		}
+	}()
 }
 
 func installFakeMtg(t *testing.T) string {

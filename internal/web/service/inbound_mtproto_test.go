@@ -3,10 +3,13 @@ package service
 import (
 	"encoding/hex"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 )
 
 func TestMtprotoRoutesThroughXray(t *testing.T) {
@@ -142,5 +145,47 @@ func TestNormalizeMtprotoSecretHealsClients(t *testing.T) {
 	got := clients[0].(map[string]any)["secret"].(string)
 	if !strings.HasPrefix(got, "ee") || !strings.HasSuffix(got, hex.EncodeToString([]byte("a.com"))) {
 		t.Fatalf("client secret should be healed to front the inbound domain, got %q", got)
+	}
+}
+
+// TestValidateMtprotoTelemtHost: a telemt inbound the host cannot run is refused
+// on save (400), not left to fail silently in the reconcile job.
+func TestValidateMtprotoTelemtHost(t *testing.T) {
+	binDir := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", binDir)
+	telemt := `{"backend":"telemt","clients":[]}`
+	nodeID := 3
+	cases := []struct {
+		name    string
+		ib      *model.Inbound
+		install bool
+		wantErr string
+	}{
+		{"no binary", &model.Inbound{Protocol: model.MTProto, Settings: telemt}, false, "needs " + mtproto.GetTelemtBinaryName()},
+		{"node-owned needs no local binary", &model.Inbound{Protocol: model.MTProto, Settings: telemt, NodeID: &nodeID}, false, ""},
+		{"hostname listen", &model.Inbound{Protocol: model.MTProto, Settings: telemt, Listen: "proxy.example.com"}, true, "listens on IP addresses only"},
+		{"ip listen", &model.Inbound{Protocol: model.MTProto, Settings: telemt, Listen: "::"}, true, ""},
+		{"mtg keeps hostnames", &model.Inbound{Protocol: model.MTProto, Settings: `{"clients":[]}`, Listen: "proxy.example.com"}, false, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			bin := filepath.Join(binDir, mtproto.GetTelemtBinaryName())
+			_ = os.Remove(bin)
+			if c.install {
+				if err := os.WriteFile(bin, []byte("#!/bin/sh\n"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			err := validateMtprotoSettings(c.ib)
+			if c.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+				t.Fatalf("error = %v, want %q", err, c.wantErr)
+			}
+		})
 	}
 }

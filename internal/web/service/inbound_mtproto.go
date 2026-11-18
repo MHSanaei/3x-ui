@@ -7,6 +7,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
 // DesiredMtprotoInstances derives the mtg sidecar configs this panel should be
@@ -153,4 +154,25 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 			mgr.ResetQuota(sec.Name)
 		}
 	}
+}
+
+// validateMtprotoSettings refuses a telemt inbound this host cannot run or telemt
+// would reject, so a save never takes the inbound down.
+func validateMtprotoSettings(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.MTProto {
+		return nil
+	}
+	if err := mtproto.ValidateSettings(inbound.Settings); err != nil {
+		return common.NewErrorf("%s", err)
+	}
+	if mtproto.SettingsBackend(inbound.Settings) != mtproto.BackendTelemt {
+		return nil
+	}
+	if !mtproto.ValidTelemtListen(inbound.Listen) {
+		return common.NewErrorf("mtproto telemt listens on IP addresses only, not %q", inbound.Listen)
+	}
+	if inbound.NodeID == nil && !mtproto.TelemtAvailable() {
+		return common.NewErrorf("mtproto telemt backend needs %s in the bin folder", mtproto.GetTelemtBinaryName())
+	}
+	return nil
 }
