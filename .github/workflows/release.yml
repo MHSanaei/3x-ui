@@ -171,6 +171,25 @@ jobs:
               rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
               ;;
           esac
+          # telemt (second MTProto backend) publishes static musl builds for
+          # amd64 and arm64 only; other platforms ship without it. It is a
+          # third-party binary the panel drives through its config keys,
+          # /v1/config/state and metric names, so the version and checksums are pinned.
+          TELEMT_VER=3.5.17
+          case "${{ matrix.platform }}" in
+            amd64|arm64)
+              if [ "${{ matrix.platform }}" == "amd64" ]; then
+                TELEMT_ARCH=x86_64; TELEMT_SHA256=f1591635849e0aad31f147692b21726da2f49499aae3ece79f8760c92925133a
+              else
+                TELEMT_ARCH=aarch64; TELEMT_SHA256=c80b0159b41cf410b2a87cf62676d67a16a537bd7207602b60dd9ce56e14d1f6
+              fi
+              curl -sfLR $CURL_RETRY -o telemt.tar.gz "https://github.com/telemt/telemt/releases/download/${TELEMT_VER}/telemt-${TELEMT_ARCH}-linux-musl.tar.gz"
+              echo "${TELEMT_SHA256}  telemt.tar.gz" | sha256sum -c -
+              tar -xzf telemt.tar.gz telemt
+              mv telemt "telemt-linux-${{ matrix.platform }}"
+              rm -f telemt.tar.gz
+              ;;
+          esac
           cd ../..
 
       - name: Package
