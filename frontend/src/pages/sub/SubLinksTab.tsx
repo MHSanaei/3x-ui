@@ -1,8 +1,19 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, QRCode, Tag } from 'antd';
+import { Button, QRCode, Segmented, Tag } from 'antd';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 
 import SubQrButton from './SubQrButton';
+
+type SubLinkKind = 'SUB' | 'JSON' | 'CLASH';
+
+interface SubLinkRow {
+  kind: SubLinkKind;
+  color: string;
+  url: string;
+  title: string;
+  downloadable: boolean;
+}
 
 interface SubLinksTabProps {
   subUrl: string;
@@ -13,20 +24,61 @@ interface SubLinksTabProps {
 
 const appendRawView = (url: string) => `${url}${url.includes('?') ? '&' : '?'}view=raw`;
 
+const trimTrailingSlash = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path);
+
+function parseRowUrl(raw: string, baseOrigin: string): URL | null {
+  try {
+    return new URL(raw, baseOrigin);
+  } catch {
+    return null;
+  }
+}
+
+function defaultQrKind(rows: SubLinkRow[]): SubLinkKind | undefined {
+  if (rows.length === 0 || typeof window === 'undefined') return rows[0]?.kind;
+  const { origin, pathname } = window.location;
+  const currentPath = trimTrailingSlash(pathname);
+  const parsed = rows.map((row) => ({ kind: row.kind, url: parseRowUrl(row.url, origin) }));
+  // Browser visits to the JSON or Clash URL render this same HTML page.
+  const exact = parsed.find(
+    (entry) =>
+      entry.url?.origin === origin && trimTrailingSlash(entry.url.pathname) === currentPath,
+  );
+  if (exact) return exact.kind;
+  if (currentPath !== '/') {
+    const byPath = parsed.find(
+      (entry) => entry.url !== null && trimTrailingSlash(entry.url.pathname) === currentPath,
+    );
+    if (byPath) return byPath.kind;
+  }
+  return rows[0].kind;
+}
+
 export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }: SubLinksTabProps) {
   const { t } = useTranslation();
   const subLabel = t('pages.settings.subSettings');
-  const rows = [
-    { kind: 'SUB', color: 'green', url: subUrl, title: subLabel, downloadable: false },
+  const rows: SubLinkRow[] = [
+    { kind: 'SUB' as const, color: 'green', url: subUrl, title: subLabel, downloadable: false },
     {
-      kind: 'JSON',
+      kind: 'JSON' as const,
       color: 'purple',
       url: subJsonUrl,
       title: `${subLabel} JSON`,
       downloadable: true,
     },
-    { kind: 'CLASH', color: 'gold', url: subClashUrl, title: 'Clash / Mihomo', downloadable: true },
+    {
+      kind: 'CLASH' as const,
+      color: 'gold',
+      url: subClashUrl,
+      title: 'Clash / Mihomo',
+      downloadable: true,
+    },
   ].filter((row) => row.url);
+
+  const [selectedKind, setSelectedKind] = useState<SubLinkKind | undefined>(() =>
+    defaultQrKind(rows),
+  );
+  const activeRow = rows.find((row) => row.kind === selectedKind) ?? rows[0];
 
   return (
     <div className="sub-rows">
@@ -64,11 +116,11 @@ export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }:
           </div>
         </div>
       ))}
-      {subUrl && (
+      {activeRow && (
         <div className="sub-qr-card">
           <div className="sub-qr-code">
             <QRCode
-              value={subUrl}
+              value={activeRow.url}
               size={112}
               type="svg"
               bordered={false}
@@ -76,9 +128,18 @@ export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }:
               bgColor="#ffffff"
             />
           </div>
-          <div>
+          <div className="sub-qr-body">
             <div className="sub-qr-title">{t('subscription.scanTitle')}</div>
             <div className="sub-muted">{t('subscription.scanHint')}</div>
+            {rows.length > 1 && (
+              <Segmented<SubLinkKind>
+                size="small"
+                className="sub-qr-segmented"
+                value={activeRow.kind}
+                onChange={setSelectedKind}
+                options={rows.map((row) => ({ value: row.kind, label: row.kind }))}
+              />
+            )}
           </div>
         </div>
       )}
