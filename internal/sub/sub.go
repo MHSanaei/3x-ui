@@ -140,9 +140,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubUpdates = "10"
 	}
 
-	// The per-client subscription rate limit: off by default, a sane ceiling
-	// when enabled. An unreadable limit falls back to the default instead of
-	// failing the server start.
+	// Off by default; an unreadable limit falls back to the default instead of failing the start.
 	subRateLimitEnable, err := s.settingService.GetSubRateLimitEnable()
 	if err != nil {
 		return nil, err

@@ -79,6 +79,8 @@ export const AllSettingSchema = z
     subKeyFile: z.string().optional(),
     externalSubUserAgent: z.string().max(512).optional(),
     subUpdates: z.number().int().min(0).max(525600).optional(),
+    subRateLimitEnable: z.boolean().optional(),
+    subRateLimit: z.number().int().min(1).max(1000).optional(),
     subEncrypt: z.boolean().optional(),
     subURI: z.string().optional(),
     subJsonURI: z.string().optional(),
