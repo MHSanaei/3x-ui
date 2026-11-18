@@ -701,6 +701,11 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		}
 		if len(servers) > 0 {
 			proxy["dns"] = servers
+			// mihomo ignores dns without this flag, but aborts the whole config on
+			// a value its dns.ParseNameServer rejects, so only bare IPs opt in.
+			if allBareIPs(servers) {
+				proxy["remote-dns-resolve"] = true
+			}
 		}
 	}
 
