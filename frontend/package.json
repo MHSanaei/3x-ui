@@ -71,7 +71,7 @@
     "@vitest/browser-playwright": "5.1.0",
     "@vitest/coverage-v8": "^5.1.0",
     "husky": "^9.1.7",
-    "jsdom": "^31.0.0",
+    "jsdom": "^31.0.1",
     "lint-staged": "^17.6.0",
     "msw": "^3.0.5",
     "oxfmt": "0.78.0",
