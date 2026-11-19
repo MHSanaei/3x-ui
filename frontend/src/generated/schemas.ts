@@ -197,6 +197,31 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo": {
         "type": "string"
       },
+      "smtpUserCooldownMinutes": {
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserRateMB": {
+        "maximum": 100000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserRateSeconds": {
+        "maximum": 86400,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserWindowGB": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserWindowMinutes": {
+        "maximum": 1440,
+        "minimum": 0,
+        "type": "integer"
+      },
       "smtpUsername": {
         "type": "string"
       },
@@ -641,6 +666,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPassword",
       "smtpPort",
       "smtpTo",
+      "smtpUserCooldownMinutes",
+      "smtpUserRateMB",
+      "smtpUserRateSeconds",
+      "smtpUserWindowGB",
+      "smtpUserWindowMinutes",
       "smtpUsername",
       "subAnnounce",
       "subCalendarExpireInclusive",
@@ -987,6 +1017,31 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "smtpTo": {
         "type": "string"
+      },
+      "smtpUserCooldownMinutes": {
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserRateMB": {
+        "maximum": 100000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserRateSeconds": {
+        "maximum": 86400,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserWindowGB": {
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "smtpUserWindowMinutes": {
+        "maximum": 1440,
+        "minimum": 0,
+        "type": "integer"
       },
       "smtpUsername": {
         "type": "string"
@@ -1440,6 +1495,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpPassword",
       "smtpPort",
       "smtpTo",
+      "smtpUserCooldownMinutes",
+      "smtpUserRateMB",
+      "smtpUserRateSeconds",
+      "smtpUserWindowGB",
+      "smtpUserWindowMinutes",
       "smtpUsername",
       "subAnnounce",
       "subCalendarExpireInclusive",

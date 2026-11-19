@@ -1859,7 +1859,16 @@
       "subHostSortMode": "Orden de nodos de suscripción",
       "subHostSortInbound": "Orden de entradas (predeterminado)",
       "subHostSortHosts": "Orden de hosts",
-      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden."
+      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden.",
+      "eventUserRateHigh": "Ancho de banda elevado sostenido por usuario",
+      "eventUserTrafficHigh": "Tráfico por usuario en ventana móvil",
+      "userTrafficRate": "Umbral de velocidad (MB/s)",
+      "userTrafficDuration": "Duración continua (segundos)",
+      "userTrafficWindowLimit": "Umbral de tráfico (GB)",
+      "userTrafficWindow": "Ventana móvil (minutos)",
+      "userTrafficCooldown": "Intervalo mínimo por usuario y regla",
+      "userTrafficMinutes": "minutos",
+      "userTrafficHelp": "Usuarios de Xray local, subida + bajada. MB = 1 000 000 bytes; GB = 1 000 000 000 bytes. Promedios de intervalos de ~5 segundos; una interrupción reinicia la duración. Un aviso por episodio; tras recuperarse también se aplica el intervalo mínimo. Guardar no requiere reiniciar Xray. No se estiman datos ausentes."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "CORRECTO",
     "statusFailed": "FALLIDO",
     "statusDown": "CAÍDO",
-    "statusUp": "ACTIVO"
+    "statusUp": "ACTIVO",
+    "userRateHigh": "Ancho de banda elevado sostenido por usuario",
+    "userTrafficHigh": "Tráfico del usuario excedido en ventana móvil",
+    "labelUser": "Correo del usuario",
+    "labelRemark": "Nota",
+    "labelRate": "Velocidad media durante el exceso sostenido",
+    "labelTraffic": "Tráfico en la ventana móvil",
+    "labelThreshold": "Umbral",
+    "labelDuration": "Duración / ventana",
+    "userTrafficScope": "Xray local, subida + bajada, MB/GB decimales. Velocidades medias por intervalo; solo se cuentan incrementos observados."
   },
   "commandPalette": {
     "title": "Paleta de comandos",

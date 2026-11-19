@@ -56,18 +56,23 @@ type AllSetting struct {
 	TgLang          string `json:"tgLang" form:"tgLang"`
 	TgEnabledEvents string `json:"tgEnabledEvents" form:"tgEnabledEvents"`
 
-	SmtpEnable         bool   `json:"smtpEnable" form:"smtpEnable"`
-	SmtpHost           string `json:"smtpHost" form:"smtpHost"`
-	SmtpPort           int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"`
-	SmtpUsername       string `json:"smtpUsername" form:"smtpUsername"`
-	SmtpPassword       string `json:"smtpPassword" form:"smtpPassword"`
-	SmtpFrom           string `json:"smtpFrom" form:"smtpFrom"`
-	SmtpFromName       string `json:"smtpFromName" form:"smtpFromName"`
-	SmtpTo             string `json:"smtpTo" form:"smtpTo"`
-	SmtpEncryptionType string `json:"smtpEncryptionType" form:"smtpEncryptionType"`
-	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`
-	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
-	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
+	SmtpEnable              bool   `json:"smtpEnable" form:"smtpEnable"`
+	SmtpHost                string `json:"smtpHost" form:"smtpHost"`
+	SmtpPort                int    `json:"smtpPort" form:"smtpPort" validate:"gte=1,lte=65535"`
+	SmtpUsername            string `json:"smtpUsername" form:"smtpUsername"`
+	SmtpPassword            string `json:"smtpPassword" form:"smtpPassword"`
+	SmtpFrom                string `json:"smtpFrom" form:"smtpFrom"`
+	SmtpFromName            string `json:"smtpFromName" form:"smtpFromName"`
+	SmtpTo                  string `json:"smtpTo" form:"smtpTo"`
+	SmtpEncryptionType      string `json:"smtpEncryptionType" form:"smtpEncryptionType"`
+	SmtpEnabledEvents       string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`
+	SmtpCpu                 int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
+	SmtpMemory              int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
+	SmtpUserRateMB          int    `json:"smtpUserRateMB" form:"smtpUserRateMB" validate:"gte=0,lte=100000"`
+	SmtpUserRateSeconds     int    `json:"smtpUserRateSeconds" form:"smtpUserRateSeconds" validate:"gte=0,lte=86400"`
+	SmtpUserWindowGB        int    `json:"smtpUserWindowGB" form:"smtpUserWindowGB" validate:"gte=0,lte=1000000"`
+	SmtpUserWindowMinutes   int    `json:"smtpUserWindowMinutes" form:"smtpUserWindowMinutes" validate:"gte=0,lte=1440"`
+	SmtpUserCooldownMinutes int    `json:"smtpUserCooldownMinutes" form:"smtpUserCooldownMinutes" validate:"gte=0,lte=10080"`
 
 	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
 	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
@@ -275,6 +280,9 @@ func checkIPOrCIDRList(list, message string) error {
 }
 
 func (s *AllSetting) CheckValid() error {
+	if err := s.checkUserTrafficAlerts(); err != nil {
+		return err
+	}
 	if s.WebListen != "" {
 		ip := net.ParseIP(s.WebListen)
 		if ip == nil {

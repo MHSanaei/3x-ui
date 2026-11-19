@@ -1,5 +1,5 @@
 {
-  "title": "运维",
+  "title": "杩愮淮",
   "icon": "ServerCog",
   "pages": [
     "reverse-proxy",
@@ -8,6 +8,7 @@
     "backup-restore",
     "telegram-bot",
     "discord-bot",
+    "email-alerts",
     "security"
   ]
 }

@@ -231,10 +231,15 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultLimitIP":     "0",
 
 	// Event bus — per-subscriber event filtering (empty = all disabled)
-	"tgEnabledEvents":   "login.attempt,cpu.high",
-	"smtpEnabledEvents": "login.attempt,cpu.high",
-	"smtpCpu":           "80",
-	"smtpMemory":        "80",
+	"tgEnabledEvents":         "login.attempt,cpu.high",
+	"smtpEnabledEvents":       "login.attempt,cpu.high",
+	"smtpCpu":                 "80",
+	"smtpMemory":              "80",
+	"smtpUserRateMB":          "7",
+	"smtpUserRateSeconds":     "60",
+	"smtpUserWindowGB":        "5",
+	"smtpUserWindowMinutes":   "30",
+	"smtpUserCooldownMinutes": "60",
 
 	// Consecutive failed observatory probes before an outbound.down event fires
 	"outboundDownThreshold": "3",

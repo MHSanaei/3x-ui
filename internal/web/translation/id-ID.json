@@ -1859,7 +1859,16 @@
       "subHostSortMode": "Urutan node langganan",
       "subHostSortInbound": "Urutan inbound (bawaan)",
       "subHostSortHosts": "Urutan host",
-      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
+      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri.",
+      "eventUserRateHigh": "Bandwidth tinggi berkelanjutan per pengguna",
+      "eventUserTrafficHigh": "Trafik pengguna dalam jendela bergulir",
+      "userTrafficRate": "Ambang kecepatan (MB/s)",
+      "userTrafficDuration": "Durasi berkelanjutan (detik)",
+      "userTrafficWindowLimit": "Ambang trafik (GB)",
+      "userTrafficWindow": "Jendela bergulir (menit)",
+      "userTrafficCooldown": "Interval minimum per pengguna dan aturan",
+      "userTrafficMinutes": "menit",
+      "userTrafficHelp": "Pengguna Xray lokal, unggah + unduh. MB = 1.000.000 byte; GB = 1.000.000.000 byte. Rata-rata interval ~5 detik; jeda mereset durasi. Satu peringatan per kejadian; setelah pulih, interval minimum tetap berlaku. Simpan tanpa memulai ulang Xray. Riwayat yang hilang tidak diperkirakan."
     },
     "xray": {
       "save": "Simpan",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "BERHASIL",
     "statusFailed": "GAGAL",
     "statusDown": "MATI",
-    "statusUp": "AKTIF"
+    "statusUp": "AKTIF",
+    "userRateHigh": "Bandwidth tinggi berkelanjutan per pengguna",
+    "userTrafficHigh": "Trafik pengguna melampaui jendela bergulir",
+    "labelUser": "Email pengguna",
+    "labelRemark": "Catatan",
+    "labelRate": "Kecepatan rata-rata selama pelampauan berkelanjutan",
+    "labelTraffic": "Trafik dalam jendela bergulir",
+    "labelThreshold": "Ambang",
+    "labelDuration": "Durasi / jendela",
+    "userTrafficScope": "Xray lokal, unggah + unduh, MB/GB desimal. Kecepatan adalah rata-rata interval; hanya pertambahan yang diamati yang dihitung."
   },
   "commandPalette": {
     "title": "Palet Perintah",

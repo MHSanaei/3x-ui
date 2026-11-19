@@ -1980,7 +1980,16 @@
       "subHostSortMode": "Subscription Node Ordering",
       "subHostSortInbound": "Inbound order (default)",
       "subHostSortHosts": "Hosts order",
-      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
+      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting.",
+      "eventUserRateHigh": "User sustained high bandwidth",
+      "eventUserTrafficHigh": "User rolling-window traffic",
+      "userTrafficRate": "Rate threshold (MB/s)",
+      "userTrafficDuration": "Continuous duration (seconds)",
+      "userTrafficWindowLimit": "Traffic threshold (GB)",
+      "userTrafficWindow": "Rolling window (minutes)",
+      "userTrafficCooldown": "Minimum interval per user and rule",
+      "userTrafficMinutes": "minutes",
+      "userTrafficHelp": "Local Xray users, upload + download. MB = 1,000,000 bytes; GB = 1,000,000,000 bytes. Uses existing ~5-second interval averages. Every valid interval must exceed the rate threshold; a gap breaks continuity. Sends once per episode; after recovery a new alert must also pass the minimum interval. Settings apply after saving without restarting Xray. Missing history is never estimated."
     },
     "xray": {
       "save": "Save",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "SUCCESS",
     "statusFailed": "FAILED",
     "statusDown": "DOWN",
-    "statusUp": "UP"
+    "statusUp": "UP",
+    "userRateHigh": "User sustained high bandwidth",
+    "userTrafficHigh": "User rolling-window traffic exceeded",
+    "labelUser": "User email",
+    "labelRemark": "Remark",
+    "labelRate": "Average rate during sustained period",
+    "labelTraffic": "Traffic inside rolling window",
+    "labelThreshold": "Threshold",
+    "labelDuration": "Duration / window",
+    "userTrafficScope": "Local Xray upload + download; decimal MB/GB. Rates are sampled interval averages. Only observed increments are counted."
   },
   "commandPalette": {
     "title": "Command Palette",

@@ -174,6 +174,12 @@ export class AllSetting {
   smtpEnabledEvents = 'login.attempt,cpu.high';
   smtpCpu = 80;
   smtpMemory = 80;
+  smtpUserRateMB = 7;
+  smtpUserRateSeconds = 60;
+  smtpUserWindowGB = 5;
+  smtpUserWindowMinutes = 30;
+  smtpUserCooldownMinutes = 60;
+
   outboundDownThreshold = 3;
   nodeDownThreshold = 1;
   hasTgBotToken = false;

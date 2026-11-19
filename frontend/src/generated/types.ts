@@ -67,6 +67,11 @@ export interface AllSetting {
   smtpPassword: string;
   smtpPort: number;
   smtpTo: string;
+  smtpUserCooldownMinutes: number;
+  smtpUserRateMB: number;
+  smtpUserRateSeconds: number;
+  smtpUserWindowGB: number;
+  smtpUserWindowMinutes: number;
   smtpUsername: string;
   subAnnounce: string;
   subCalendarExpireInclusive: boolean;
@@ -258,6 +263,11 @@ export interface AllSettingView {
   smtpPassword: string;
   smtpPort: number;
   smtpTo: string;
+  smtpUserCooldownMinutes: number;
+  smtpUserRateMB: number;
+  smtpUserRateSeconds: number;
+  smtpUserWindowGB: number;
+  smtpUserWindowMinutes: number;
   smtpUsername: string;
   subAnnounce: string;
   subCalendarExpireInclusive: boolean;

@@ -18,8 +18,10 @@ const (
 	EventNodeUp   EventType = "node.up"
 
 	// System health
-	EventCPUHigh    EventType = "cpu.high"
-	EventMemoryHigh EventType = "memory.high"
+	EventCPUHigh         EventType = "cpu.high"
+	EventMemoryHigh      EventType = "memory.high"
+	EventUserRateHigh    EventType = "user.rate.high"
+	EventUserTrafficHigh EventType = "user.traffic.high"
 
 	// Security
 	EventLoginAttempt EventType = "login.attempt"
@@ -62,4 +64,10 @@ type LoginEventData struct {
 type SystemMetricData struct {
 	Percent   float64 // current usage percentage
 	Threshold int     // configured threshold
+}
+
+// UserTrafficData describes local-Xray upload+download usage in decimal bytes.
+type UserTrafficData struct {
+	Email, Name                  string
+	Bytes, Threshold, DurationMS int64
 }

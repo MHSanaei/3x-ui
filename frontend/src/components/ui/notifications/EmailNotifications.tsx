@@ -1,4 +1,5 @@
-import { InputNumber } from 'antd';
+import { InputNumber, Space, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   CloudServerOutlined,
   ThunderboltOutlined,
@@ -10,6 +11,7 @@ import type { AllSetting } from '@/models/setting';
 import { NotificationLayout } from './NotificationLayout';
 import { NotificationGroup } from './NotificationGroup';
 import type { NotificationGroupConfig } from './types';
+import { UserTrafficAlertInputs } from './UserTrafficAlertInputs';
 
 const GROUPS: NotificationGroupConfig[] = [
   {
@@ -70,6 +72,30 @@ const GROUPS: NotificationGroupConfig[] = [
     title: 'eventGroupSystem',
     events: [
       {
+        key: 'user.rate.high',
+        label: 'eventUserRateHigh',
+        settingKey: 'smtpUserRateMB',
+        extra: ({ allSetting, updateSetting }) => (
+          <UserTrafficAlertInputs
+            rule="rate"
+            allSetting={allSetting}
+            updateSetting={updateSetting}
+          />
+        ),
+      },
+      {
+        key: 'user.traffic.high',
+        label: 'eventUserTrafficHigh',
+        settingKey: 'smtpUserWindowGB',
+        extra: ({ allSetting, updateSetting }) => (
+          <UserTrafficAlertInputs
+            rule="window"
+            allSetting={allSetting}
+            updateSetting={updateSetting}
+          />
+        ),
+      },
+      {
         key: 'cpu.high',
         label: 'eventCPUHigh',
         settingKey: 'smtpCpu',
@@ -116,6 +142,7 @@ interface Props {
 }
 
 export function EmailNotifications({ allSetting, updateSetting }: Props) {
+  const { t } = useTranslation();
   const events = allSetting.smtpEnabledEvents || '';
   const selected = events
     ? events
@@ -150,6 +177,27 @@ export function EmailNotifications({ allSetting, updateSetting }: Props) {
           updateSetting={updateSetting}
         />
       ))}
+      {selected.some((key) => key === 'user.rate.high' || key === 'user.traffic.high') && (
+        <Space orientation="vertical" size={8} style={{ gridColumn: '1 / -1' }}>
+          <Space wrap>
+            <Typography.Text>{t('pages.settings.userTrafficCooldown')}</Typography.Text>
+            <InputNumber
+              min={1}
+              max={10080}
+              precision={0}
+              value={allSetting.smtpUserCooldownMinutes}
+              aria-label={t('pages.settings.userTrafficCooldown')}
+              onChange={(value) => {
+                if (value != null) updateSetting({ smtpUserCooldownMinutes: value });
+              }}
+            />
+            <Typography.Text>{t('pages.settings.userTrafficMinutes')}</Typography.Text>
+          </Space>
+          <Typography.Paragraph type="secondary">
+            {t('pages.settings.userTrafficHelp')}
+          </Typography.Paragraph>
+        </Space>
+      )}
     </NotificationLayout>
   );
 }

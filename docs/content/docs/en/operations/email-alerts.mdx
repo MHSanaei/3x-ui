@@ -1,0 +1,69 @@
+---
+title: Email alerts
+description: Configure SMTP and optional per-user sustained-bandwidth and rolling-traffic alerts.
+---
+
+Configure and test SMTP in **Panel Settings → Email**, then select events in the
+notification controls. Existing CPU, memory, service and login alerts retain
+their settings. The two user traffic rules are disabled by default.
+
+## User traffic rules
+
+The **System** group beside CPU and memory notifications adds:
+
+| Rule | Default | Adjustable fields |
+|---|---|---|
+| Sustained high bandwidth | More than 7 MB/s for at least 60 seconds | Rate and continuous duration |
+| Rolling-window traffic | More than 5 GB in the preceding 30 minutes | Traffic and window duration |
+
+Both rules evaluate each **local Xray user email** independently, adding upload
+and download. One email shared by several local inbounds is counted together.
+Remote nodes and other proxy cores are outside this feature's scope.
+MB is 1,000,000 bytes; GB is 1,000,000,000 bytes. Thresholds are positive whole
+numbers. Duration accepts 1–86400 seconds; the window accepts 1–1440 minutes.
+Settings take effect on the next valid poll after saving, without restarting Xray.
+
+The email identifies the user and available remark, measured usage, threshold,
+duration/window and detection time. It contains no client credentials, visited
+domains or subscription links. Detection is also logged in the panel journal.
+
+## Sampling and missing data
+
+The rules consume the existing approximately five-second Xray traffic increments;
+they add no polling job and never reset the counters. Each interval's speed uses
+its actual duration. Every contiguous interval must exceed the rate threshold
+for the requested continuous duration. This measures interval averages, not
+instantaneous speed; a brief peak cannot stand in for an entire minute.
+
+Startup, a core replacement, a failed poll and intervals longer than 15 seconds
+break continuity. The next poll establishes a baseline and contributes no usage.
+Missing history is not reconstructed from lifetime counters.
+
+Rolling sums include only complete, trusted intervals inside the window.
+Excluding a partially overlapping boundary interval is conservative and can
+delay detection by one poll. An incomplete window may still alert when its
+observed bytes already exceed the threshold.
+
+## Repeated alerts, persistence and cost
+
+Each user and rule emits once per episode. Observed usage at or below the
+threshold rearms it; the configurable minimum interval must also have elapsed
+before another alert. Its default is 60 minutes, with a range of 1–10080 minutes.
+Changing rules resets the continuous condition but retains cooldown timestamps.
+
+Rolling increments and episode/cooldown state are stored in two additive tables,
+`user_traffic_alert_samples` and `user_traffic_alert_states`. On restart, rolling
+history and cooldowns survive while continuous rate tracking starts afresh.
+Samples are pruned approximately every minute to the configured rolling window;
+increasing the window later cannot recover samples already pruned. Inactive state
+is pruned after 14 days. Cleanup continues while notifications are disabled.
+
+Only positive traffic intervals create samples, and no samples are collected
+while the rolling rule is disabled. Idle users do not create baseline state rows;
+unchanged state avoids writes except an hourly retention refresh. Query parameter
+lists are batched. Storage and rolling-sum work still grow with active users and
+the selected window; keep the window appropriate for the server's capacity.
+
+Delivery uses the existing SMTP subscriber and its error logging. This feature
+does not add a durable email retry queue or guarantee inbox delivery. Test SMTP
+before relying on alerts. Rules only notify; they do not limit or disable users.

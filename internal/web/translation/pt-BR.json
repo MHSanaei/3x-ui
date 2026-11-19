@@ -1859,7 +1859,16 @@
       "subHostSortMode": "Ordem dos nós da assinatura",
       "subHostSortInbound": "Ordem das entradas (padrão)",
       "subHostSortHosts": "Ordem dos hosts",
-      "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação."
+      "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação.",
+      "eventUserRateHigh": "Largura de banda alta sustentada por usuário",
+      "eventUserTrafficHigh": "Tráfego do usuário em janela móvel",
+      "userTrafficRate": "Limite de velocidade (MB/s)",
+      "userTrafficDuration": "Duração contínua (segundos)",
+      "userTrafficWindowLimit": "Limite de tráfego (GB)",
+      "userTrafficWindow": "Janela móvel (minutos)",
+      "userTrafficCooldown": "Intervalo mínimo por usuário e regra",
+      "userTrafficMinutes": "minutos",
+      "userTrafficHelp": "Usuários locais do Xray, envio + recebimento. MB = 1.000.000 bytes; GB = 1.000.000.000 bytes. Médias de intervalos de ~5 segundos; uma lacuna reinicia a duração. Um alerta por episódio; após a recuperação, aplica-se o intervalo mínimo. Salvar não exige reiniciar o Xray. Dados ausentes não são estimados."
     },
     "xray": {
       "importRules": "Importar regras",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "SUCESSO",
     "statusFailed": "FALHOU",
     "statusDown": "INATIVO",
-    "statusUp": "ATIVO"
+    "statusUp": "ATIVO",
+    "userRateHigh": "Largura de banda alta sustentada por usuário",
+    "userTrafficHigh": "Tráfego do usuário excedido na janela móvel",
+    "labelUser": "E-mail do usuário",
+    "labelRemark": "Observação",
+    "labelRate": "Velocidade média durante o excesso contínuo",
+    "labelTraffic": "Tráfego na janela móvel",
+    "labelThreshold": "Limite",
+    "labelDuration": "Duração / janela",
+    "userTrafficScope": "Xray local, envio + recebimento, MB/GB decimais. Velocidades médias por intervalo; apenas incrementos observados são contabilizados."
   },
   "commandPalette": {
     "title": "Paleta de comandos",
