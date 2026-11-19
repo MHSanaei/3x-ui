@@ -859,12 +859,31 @@ export function parseWireguardLink(link: string): Raw | null {
 export function parseOutboundLink(link: string): Raw | null {
   const trimmed = link.trim();
   if (!trimmed) return null;
-  return (
+  const outbound =
     parseVmessLink(trimmed) ??
     parseVlessLink(trimmed) ??
     parseTrojanLink(trimmed) ??
     parseShadowsocksLink(trimmed) ??
     parseHysteria2Link(trimmed) ??
-    parseWireguardLink(trimmed)
-  );
+    parseWireguardLink(trimmed);
+  if (outbound) dropHostLocalKeys(outbound);
+  return outbound;
+}
+
+// Keys that redirect the core's dial or name files on the importing host; extra=, fm= and
+// vmess JSON copy provider objects verbatim, and the core binds keys case-folded.
+const HOST_LOCAL_KEYS = new Set(['dialerproxy', 'certificatefile', 'keyfile', 'masterkeylog']);
+
+function dropHostLocalKeys(value: unknown): void {
+  if (Array.isArray(value)) {
+    value.forEach(dropHostLocalKeys);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const obj = value as Raw;
+  for (const key of Object.keys(obj)) {
+    // Upper-casing first folds the long s and the Kelvin sign the way Go's decoder does.
+    if (HOST_LOCAL_KEYS.has(key.toUpperCase().toLowerCase())) delete obj[key];
+    else dropHostLocalKeys(obj[key]);
+  }
 }

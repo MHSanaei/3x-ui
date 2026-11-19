@@ -180,7 +180,7 @@ export default function HostsPage() {
         <AppSidebar />
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} size="large">
+            <Spin aria-live="off" spinning={!fetched} delay={200} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (

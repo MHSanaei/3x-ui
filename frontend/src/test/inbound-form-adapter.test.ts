@@ -228,6 +228,21 @@ describe('formValuesToWirePayload', () => {
     expect(payload.sniffing).toBe('');
   });
 
+  // xray-core 26.10.31 (#7295): the XHTTP server reads h2Params; the form must not strip it.
+  it('keeps an XHTTP inbound h2Params set through JSON', () => {
+    const h2Params = { MaxConcurrentStreams: 512, MaxReadFrameSize: 1048576 };
+    const values = rawInboundToFormValues({
+      ...vlessRow,
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: { path: '/x', mode: 'auto', h2Params },
+      },
+    });
+    const payload = formValuesToWirePayload(values);
+    expect(JSON.parse(payload.streamSettings).xhttpSettings.h2Params).toEqual(h2Params);
+  });
+
   it('omits nodeId when null', () => {
     const values = rawInboundToFormValues({ ...vlessRow, nodeId: null });
     const payload = formValuesToWirePayload(values);

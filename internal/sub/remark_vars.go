@@ -423,6 +423,13 @@ func gregorianToJalali(gy, gm, gd int) (jy, jm, jd int) {
 	refJDN := 2460311
 	days := int64(jdn - refJDN)
 	jy, jm, jd = 1402, 10, 11
+	// Leap years follow y % 33, so whole 33-year blocks are skipped: a node-reported expiry
+	// can lie hundreds of millions of years away, and the walk below goes month by month.
+	const jalaliCycleDays = 33*365 + 8
+	if cycles := days / jalaliCycleDays; cycles != 0 {
+		jy += int(cycles) * 33
+		days -= cycles * jalaliCycleDays
+	}
 
 	// Walk forward
 	for days > 0 {

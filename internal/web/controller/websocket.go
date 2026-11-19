@@ -34,7 +34,12 @@ func checkSameOrigin(r *http.Request) bool {
 	if err != nil || u.Hostname() == "" {
 		return false
 	}
-	host, _, err := net.SplitHostPort(r.Host)
+	// Cookies ignore scheme and port, so both must match too; behind a TLS-terminating
+	// proxy the request arrives as http and the browser's https origin still passes.
+	if u.Scheme != "https" && (u.Scheme != "http" || r.TLS != nil) {
+		return false
+	}
+	host, port, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		// IPv6 literals without a port arrive as "[::1]"; net.SplitHostPort
 		// fails in that case while url.Hostname() returns the address without
@@ -44,7 +49,21 @@ func checkSameOrigin(r *http.Request) bool {
 			host = host[1 : len(host)-1]
 		}
 	}
-	return strings.EqualFold(u.Hostname(), host)
+	if !strings.EqualFold(u.Hostname(), host) {
+		return false
+	}
+	return port == "" || port == originPort(u)
+}
+
+// originPort is the Origin's port, or the default a browser leaves out for its scheme.
+func originPort(u *url.URL) string {
+	if p := u.Port(); p != "" {
+		return p
+	}
+	if u.Scheme == "https" {
+		return "443"
+	}
+	return "80"
 }
 
 // WebSocketController handles the HTTP→WebSocket upgrade for real-time updates.

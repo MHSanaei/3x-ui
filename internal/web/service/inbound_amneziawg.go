@@ -237,6 +237,9 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 	if err := amneziawg.ValidateServerObfuscation(parsed.Server.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
+	if err := amneziawg.ValidateMTU(parsed.Server.MTU); err != nil {
+		return fmt.Errorf("amneziawg: %w", err)
+	}
 	if err := amneziawg.ValidateIPv6Subnet(parsed.Server.IPv6Enabled, parsed.Server.IPv6Subnet); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
@@ -309,7 +312,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 
 	// Host readiness gates only a save that starts the kernel datapath: a host that
 	// later loses its module must still let the admin edit, disable or switch it.
-	if parsed.Server.KernelMode && inbound.NodeID == nil {
+	if parsed.Server.KernelMode {
 		inst, ok := amneziawg.InstanceFromInbound(inbound)
 		if !ok {
 			inst = amneziawg.Instance{
@@ -320,11 +323,27 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, old 
 			for _, client := range parsed.Clients {
 				if client.Enable {
 					inst.Peers = append(inst.Peers, amneziawg.Peer{
+						Email:          client.Email,
 						AllowedIPs:     client.AllowedIPs,
-						ForwardedPorts: client.ForwardedPorts,
+						ForwardedPorts: client.ForwardedPortsSpec(),
 					})
 				}
 			}
+		}
+		if len(inst.Address) == 0 {
+			v4Base, _, err := defaultAmneziaWGSubnetBases(inbound.Settings)
+			if err != nil {
+				return err
+			}
+			inst.Address = []string{v4Base}
+		}
+		if inbound.Enable {
+			if err := amneziawgkern.ValidatePeerSubnets(inst); err != nil {
+				return err
+			}
+		}
+		if inbound.NodeID != nil {
+			return nil
 		}
 		check := amneziawgkern.ValidateInstanceFeatures
 		wasRunningKernel := old != nil && old.Enable && amneziawgKernelModeSettings(old.Settings)
@@ -369,7 +388,7 @@ func (s *InboundService) loadPortConflictContext(db *gorm.DB, nodeID *int) (port
 // amneziaWGForwardedPortsConflict renders one client's ForwardedPorts collision,
 // or nil: the single copy both the pre-Save pass and the post-Save re-run use.
 func (s *InboundService) amneziaWGForwardedPortsConflict(ctx portConflictContext, c *model.Client) error {
-	hit := s.checkForwardedPortsConflict(ctx, c.ForwardedPorts)
+	hit := s.checkForwardedPortsConflict(ctx, c.ForwardedPortsSpec())
 	if hit == "" {
 		return nil
 	}

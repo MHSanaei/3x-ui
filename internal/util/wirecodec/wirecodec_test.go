@@ -2,6 +2,7 @@ package wirecodec
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -47,5 +48,19 @@ func TestSha256HexStableAndSensitive(t *testing.T) {
 	}
 	if len(a) != 64 {
 		t.Fatalf("expected 64 hex chars, got %d", len(a))
+	}
+}
+
+// Every extra frame made the decoder copy all output so far into a larger buffer, so a
+// few KiB of tiny frames cost gigabytes of allocation for one authenticated request.
+func TestDecompressOfManyFramesAllocatesTheOutputOnce(t *testing.T) {
+	frame := Compress(bytes.Repeat([]byte("A"), 4096))
+	src := bytes.Repeat(frame, 2000)
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	_, _ = Decompress(src, 8<<20)
+	runtime.ReadMemStats(&after)
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 64<<20 {
+		t.Fatalf("decoding %d bytes of frames allocated %d MiB", len(src), allocated>>20)
 	}
 }

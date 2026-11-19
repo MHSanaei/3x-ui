@@ -56,8 +56,10 @@ _openapi:
       title: Create a new inbound. Send the full inbound payload (protocol, port,
         settings, streamSettings, sniffing, remark, expiryTime, total, enable).
         settings, streamSettings, and sniffing may be sent as nested JSON
-        objects (preferred) or as JSON-encoded strings (legacy).
-      url: '#create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy'
+        objects (preferred) or as JSON-encoded strings (legacy). VLESS empty
+        fallback arrays are normalized away; nonempty fallbacks cannot be
+        combined with active server decryption.
+      url: '#create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy-vless-empty-fallback-arrays-are-normalized-away-nonempty-fallbacks-cannot-be-combined-with-active-server-decryption'
     - depth: 2
       title: Delete an inbound by ID. Also removes its associated client stats rows.
       url: '#delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows'
@@ -70,8 +72,10 @@ _openapi:
       title: 'Replace an inbound’s configuration. Body shape mirrors /add, but the
         inbound keeps its stored client list and enable flag: settings.clients
         and enable in the body are ignored. Manage clients through the
-        /panel/api/clients endpoints and toggle the inbound with /setEnable.'
-      url: '#replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable'
+        /panel/api/clients endpoints and toggle the inbound with /setEnable.
+        Remove effective fallback rules before enabling VLESS server
+        decryption.'
+      url: '#replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable-remove-effective-fallback-rules-before-enabling-vless-server-decryption'
     - depth: 2
       title: Toggle only the enable flag without serialising the whole settings JSON.
         Recommended for UI switches on large inbounds.
@@ -96,8 +100,9 @@ _openapi:
       url: '#reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost'
     - depth: 2
       title: Bulk-import an inbound from a JSON blob (e.g. one exported via the UI).
-        The body uses form encoding with a single "data" field.
-      url: '#bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field'
+        The body uses form encoding with a single "data" field. VLESS fallback
+        validation is identical to /add.
+      url: '#bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field-vless-fallback-validation-is-identical-to-add'
     - depth: 2
       title: Receive a master panel's aggregated per-client usage, keyed by the
         master's GUID. Stored in a side table used only for the UI display
@@ -113,8 +118,10 @@ _openapi:
       url: '#list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used'
     - depth: 2
       title: Replace the entire fallback list for a master inbound. Body is JSON.
-        Triggers an Xray restart.
-      url: '#replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart'
+        Nonempty lists require TCP with TLS/REALITY and no active VLESS server
+        decryption. An empty list can remove rules even from an incompatible
+        inbound. Triggers an Xray restart.
+      url: '#replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-nonempty-lists-require-tcp-with-tlsreality-and-no-active-vless-server-decryption-an-empty-list-can-remove-rules-even-from-an-incompatible-inbound-triggers-an-xray-restart'
   structuredData:
     headings:
       - content: List every inbound owned by the authenticated user, including each
@@ -157,8 +164,10 @@ _openapi:
       - content: Create a new inbound. Send the full inbound payload (protocol, port,
           settings, streamSettings, sniffing, remark, expiryTime, total,
           enable). settings, streamSettings, and sniffing may be sent as nested
-          JSON objects (preferred) or as JSON-encoded strings (legacy).
-        id: create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy
+          JSON objects (preferred) or as JSON-encoded strings (legacy). VLESS
+          empty fallback arrays are normalized away; nonempty fallbacks cannot
+          be combined with active server decryption.
+        id: create-a-new-inbound-send-the-full-inbound-payload-protocol-port-settings-streamsettings-sniffing-remark-expirytime-total-enable-settings-streamsettings-and-sniffing-may-be-sent-as-nested-json-objects-preferred-or-as-json-encoded-strings-legacy-vless-empty-fallback-arrays-are-normalized-away-nonempty-fallbacks-cannot-be-combined-with-active-server-decryption
       - content: Delete an inbound by ID. Also removes its associated client stats rows.
         id: delete-an-inbound-by-id-also-removes-its-associated-client-stats-rows
       - content: Delete many inbounds in one call. Processes the list sequentially;
@@ -168,8 +177,10 @@ _openapi:
       - content: 'Replace an inbound’s configuration. Body shape mirrors /add, but the
           inbound keeps its stored client list and enable flag: settings.clients
           and enable in the body are ignored. Manage clients through the
-          /panel/api/clients endpoints and toggle the inbound with /setEnable.'
-        id: replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable
+          /panel/api/clients endpoints and toggle the inbound with /setEnable.
+          Remove effective fallback rules before enabling VLESS server
+          decryption.'
+        id: replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable-remove-effective-fallback-rules-before-enabling-vless-server-decryption
       - content: Toggle only the enable flag without serialising the whole settings
           JSON. Recommended for UI switches on large inbounds.
         id: toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
@@ -188,8 +199,9 @@ _openapi:
           accounting history is lost.
         id: reset-upload--download-counters-on-every-inbound-destructive--accounting-history-is-lost
       - content: Bulk-import an inbound from a JSON blob (e.g. one exported via the UI).
-          The body uses form encoding with a single "data" field.
-        id: bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field
+          The body uses form encoding with a single "data" field. VLESS fallback
+          validation is identical to /add.
+        id: bulk-import-an-inbound-from-a-json-blob-eg-one-exported-via-the-ui-the-body-uses-form-encoding-with-a-single-data-field-vless-fallback-validation-is-identical-to-add
       - content: Receive a master panel's aggregated per-client usage, keyed by the
           master's GUID. Stored in a side table used only for the UI display
           overlay and local quota enforcement — never folded into the local
@@ -202,8 +214,10 @@ _openapi:
           inbound's listen+port is used.
         id: list-the-fallback-rules-attached-to-a-master-vlesstrojan-tcp-tls-inbound-each-rule-links-one-child-inbound-the-dest-to-optional-snialpnpathdestxver-match-criteria-when-dest-is-empty-the-child-inbounds-listenport-is-used
       - content: Replace the entire fallback list for a master inbound. Body is JSON.
-          Triggers an Xray restart.
-        id: replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
+          Nonempty lists require TCP with TLS/REALITY and no active VLESS server
+          decryption. An empty list can remove rules even from an incompatible
+          inbound. Triggers an Xray restart.
+        id: replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-nonempty-lists-require-tcp-with-tlsreality-and-no-active-vless-server-decryption-an-empty-list-can-remove-rules-even-from-an-incompatible-inbound-triggers-an-xray-restart
     contents: []
 ---
 

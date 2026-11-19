@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"mime"
 	"net"
@@ -41,6 +42,54 @@ func NewEmailService(settingService service.SettingService) *EmailService {
 const smtpConnectTimeout = 10 * time.Second
 
 var smtpDeadline = 30 * time.Second
+
+// smtpMaxServerBytes caps what one session reads from the server, TLS handshake
+// included: net/smtp buffers a reply of any length, so the deadline alone is no bound.
+const smtpMaxServerBytes = 1 << 20
+
+var errSMTPReplyTooLarge = errors.New("smtp server sent more data than a session may read")
+
+// limitedConn fails every Read once the peer has sent remaining bytes.
+type limitedConn struct {
+	net.Conn
+	remaining int64
+}
+
+func (c *limitedConn) Read(p []byte) (int, error) {
+	if c.remaining <= 0 {
+		return 0, errSMTPReplyTooLarge
+	}
+	if int64(len(p)) > c.remaining {
+		p = p[:c.remaining]
+	}
+	n, err := c.Conn.Read(p)
+	c.remaining -= int64(n)
+	return n, err
+}
+
+// dialSMTP opens a connection capped at smtpMaxServerBytes; timeout covers the
+// dial and, with implicitTLS, the handshake.
+func dialSMTP(addr, host string, timeout time.Duration, implicitTLS bool) (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	raw, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	// The cap sits below TLS: net/smtp allows PLAIN auth only on a *tls.Conn,
+	// and this keeps it in force across a later STARTTLS upgrade.
+	limited := &limitedConn{Conn: raw, remaining: smtpMaxServerBytes}
+	if !implicitTLS {
+		return limited, nil
+	}
+	conn := tls.Client(limited, &tls.Config{ServerName: host})
+	if err = conn.HandshakeContext(ctx); err != nil {
+		raw.Close()
+		return nil, err
+	}
+	return conn, nil
+}
 
 // Send sends an HTML email to all configured recipients.
 func (s *EmailService) Send(subject, body string) error {
@@ -139,19 +188,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 
 	// Stage 1: Connect
-	var conn net.Conn
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
-
-	switch encryptionType {
-	case "tls":
-		conn, err = (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
-			ServerName:         host,
-			InsecureSkipVerify: false,
-		}}).DialContext(context.Background(), "tcp", addr)
-	default:
-		conn, err = dialer.Dial("tcp", addr)
-	}
-
+	conn, err := dialSMTP(addr, host, 5*time.Second, encryptionType == "tls")
 	if err != nil {
 		return SMTPTestResult{false, "connect", classifySMTPError(err)}
 	}
@@ -216,12 +253,7 @@ func (s *EmailService) TestConnection() SMTPTestResult {
 }
 
 func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
-	// Dial with explicit timeout
-	dialer := &net.Dialer{Timeout: smtpConnectTimeout}
-	conn, err := (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: false,
-	}}).DialContext(context.Background(), "tcp", addr)
+	conn, err := dialSMTP(addr, host, smtpConnectTimeout, true)
 	if err != nil {
 		return err
 	}
@@ -266,7 +298,7 @@ func (s *EmailService) sendWithTLS(addr string, auth smtp.Auth, from string, to 
 // timeout and arms a connection deadline, so a server that never speaks or
 // stalls mid-protocol cannot block the sender goroutine past smtpDeadline.
 func (s *EmailService) sendPlain(addr string, auth smtp.Auth, from string, to []string, msg []byte, host string) error {
-	conn, err := (&net.Dialer{Timeout: smtpConnectTimeout}).Dial("tcp", addr)
+	conn, err := dialSMTP(addr, host, smtpConnectTimeout, false)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Typography, message } from 'antd';
 
-import { SelectAllClearButtons } from '@/components/form';
+import { SelectAllClearButtons, selectTagRender } from '@/components/form';
 import type { InboundOption } from '@/hooks/useClients';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { BulkAttachResult } from '@/schemas/client';
@@ -106,6 +106,7 @@ export default function BulkAttachInboundsModal({
             />
             <Select
               mode="multiple"
+              tagRender={selectTagRender}
               style={{ width: '100%' }}
               value={targetIds}
               onChange={setTargetIds}

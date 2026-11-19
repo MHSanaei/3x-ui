@@ -19,6 +19,7 @@ import (
 	"mime/multipart"
 	stdnet "net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/exec"
@@ -402,6 +403,10 @@ type MLKEM768Response struct {
 	Client string `json:"client" example:"mlkem768-client"`
 }
 
+// maxPublicIPBytes caps an IP echo service's answer; a textual IPv6 address
+// with its line ending fits well within it.
+const maxPublicIPBytes = 64
+
 func getPublicIP(url string) string {
 	client := &http.Client{
 		Timeout: 3 * time.Second,
@@ -425,17 +430,19 @@ func getPublicIP(url string) string {
 		return "N/A"
 	}
 
-	ip, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPublicIPBytes))
 	if err != nil {
 		return "N/A"
 	}
 
-	ipString := strings.TrimSpace(string(ip))
-	if ipString == "" {
+	// The answer is cached and sent with every status sample, so only a bare
+	// address is accepted; an over-long one is cut above and fails to parse.
+	ip, err := netip.ParseAddr(strings.TrimSpace(string(body)))
+	if err != nil {
 		return "N/A"
 	}
 
-	return ipString
+	return ip.WithZone("").String()
 }
 
 var publicIPv4Services = []string{
@@ -873,34 +880,10 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 		return s.emaCPU, nil
 	}
 
-	// Compute busy and total deltas
-	// Note: Guest and GuestNice times are already included in User and Nice respectively,
-	// so we exclude them to avoid double-counting (Linux kernel accounting)
-	idleDelta := cur.Idle - s.lastCPUTimes.Idle
-	busyDelta := (cur.User - s.lastCPUTimes.User) +
-		(cur.System - s.lastCPUTimes.System) +
-		(cur.Nice - s.lastCPUTimes.Nice) +
-		(cur.Iowait - s.lastCPUTimes.Iowait) +
-		(cur.Irq - s.lastCPUTimes.Irq) +
-		(cur.Softirq - s.lastCPUTimes.Softirq) +
-		(cur.Steal - s.lastCPUTimes.Steal)
-
-	totalDelta := busyDelta + idleDelta
-
-	// Update last sample for next time
+	raw, ok := sys.CPUBusyPercent(s.lastCPUTimes, cur)
 	s.lastCPUTimes = cur
-
-	// Guard against division by zero or negative deltas (e.g., counter resets)
-	if totalDelta <= 0 {
+	if !ok {
 		return s.emaCPU, nil
-	}
-
-	raw := 100.0 * (busyDelta / totalDelta)
-	if raw < 0 {
-		raw = 0
-	}
-	if raw > 100 {
-		raw = 100
 	}
 
 	// Exponential moving average to smooth spikes
@@ -921,15 +904,21 @@ const (
 	// maxXrayDigestBytes caps the .dgst checksum sidecar read; it is a few
 	// hundred bytes in practice.
 	maxXrayDigestBytes = 64 << 10
+	// maxXrayReleasesBytes caps the GitHub release list read; a page of
+	// releases with all their assets is a few MiB.
+	maxXrayReleasesBytes = 32 << 20
+)
+
+// Tests point these at a local server that stands in for GitHub.
+var (
+	xrayReleasesURL = "https://api.github.com/repos/XTLS/Xray-core/releases"
+	xrayDownloadURL = "https://github.com/XTLS/Xray-core/releases/download"
 )
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
-	const (
-		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
-		bufferSize = 8192
-	)
+	const bufferSize = 8192
 
-	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, XrayURL, nil)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, xrayReleasesURL, nil)
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -941,7 +930,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 
 	// Check HTTP status code - GitHub API returns object instead of array on error
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, maxXrayReleasesBytes))
 		var errorResponse struct {
 			Message string `json:"message"`
 		}
@@ -953,7 +942,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 
 	buffer := bytes.NewBuffer(make([]byte, bufferSize))
 	buffer.Reset()
-	if _, err := buffer.ReadFrom(resp.Body); err != nil {
+	if _, err := buffer.ReadFrom(io.LimitReader(resp.Body, maxXrayReleasesBytes)); err != nil {
 		return nil, err
 	}
 
@@ -1031,7 +1020,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	}
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
-	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
+	url := fmt.Sprintf("%s/%s/%s", xrayDownloadURL, version, fileName)
 	client := s.settingService.NewProxiedHTTPClient(60 * time.Second)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
@@ -1144,12 +1133,8 @@ func (s *ServerService) UpdateXray(version string) error {
 		return fmt.Errorf("xray version %q is not in the fetched release list", version)
 	}
 
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
-	}
-
-	// 2. Download the zip
+	// Keep the running core up until the swap. The download may need its panel egress
+	// bridge, and if the candidate fails the config check, clients stay on the old core.
 	zipFileName, err := s.downloadXRay(version)
 	if err != nil {
 		return err
@@ -1171,19 +1156,20 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	// 3. Helper to extract files
-	copyZipFile := func(zipName string, fileName string) error {
+	// Stage next to the target so the swap is an atomic rename on one filesystem, and
+	// keep the target's extension so Windows will run the staged file for the check.
+	stageZipFile := func(zipName string, fileName string) (string, error) {
 		zipFile, err := reader.Open(zipName)
 		if err != nil {
-			return err
+			return "", err
 		}
 		defer zipFile.Close()
 		if err := os.MkdirAll(filepath.Dir(fileName), 0o755); err != nil {
-			return err
+			return "", err
 		}
-		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
+		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*"+filepath.Ext(fileName))
 		if err != nil {
-			return err
+			return "", err
 		}
 		tmpPath := tmpFile.Name()
 		ok := false
@@ -1195,42 +1181,53 @@ func (s *ServerService) UpdateXray(version string) error {
 		}()
 		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
 		if err != nil {
-			return err
+			return "", err
 		}
 		if n > maxXrayBinaryBytes {
-			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
+			return "", fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
 		}
 		if err := tmpFile.Chmod(0o755); err != nil {
-			return err
+			return "", err
 		}
 		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-		if runtime.GOOS == "windows" {
-			_ = os.Remove(fileName)
-		}
-		if err := os.Rename(tmpPath, fileName); err != nil {
-			return err
+			return "", err
 		}
 		ok = true
-		return nil
+		return tmpPath, nil
 	}
 
-	// 4. Extract correct binary
+	zipName, target := "xray", xray.GetBinaryPath()
 	if runtime.GOOS == "windows" {
-		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
-		err = copyZipFile("xray.exe", targetBinary)
-	} else {
-		err = copyZipFile("xray", xray.GetBinaryPath())
+		zipName, target = "xray.exe", filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
 	}
+	staged, err := stageZipFile(zipName, target)
 	if err != nil {
 		return err
 	}
+	defer os.Remove(staged)
 
-	// 5. Restart xray
+	xrayConfig, err := s.xrayService.GetXrayConfig()
+	if err != nil {
+		return err
+	}
+	if err := xray.CheckConfig(staged, xrayConfig); err != nil {
+		return fmt.Errorf("xray %s failed the config check and was not installed: %w", version, err)
+	}
+
+	if runtime.GOOS == "windows" {
+		// Windows cannot replace a running executable.
+		if err := s.StopXrayService(); err != nil {
+			logger.Warning("failed to stop xray before update:", err)
+		}
+		_ = os.Remove(target)
+	}
+	if err := os.Rename(staged, target); err != nil {
+		return err
+	}
+
 	if err := s.xrayService.RestartXray(true); err != nil {
 		logger.Error("start xray failed:", err)
-		return err
+		return fmt.Errorf("xray %s is installed, but the restart failed: %w", version, err)
 	}
 
 	return nil
@@ -1467,6 +1464,37 @@ func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWG
 	return logs
 }
 
+// Xray's HTTP inbound logs the requested URL whole, so an access-log line has
+// no length bound; GetXrayLogs keeps this much of a line's start and of its end.
+const (
+	maxAccessLogLineBytes = 64 << 10
+	accessLogLineEndBytes = 1 << 10
+)
+
+// readAccessLogLine returns the next line of r. A line longer than r's buffer
+// loses its middle and keeps its end (route, email) instead of failing the read.
+func readAccessLogLine(r *bufio.Reader) (string, error) {
+	chunk, more, err := r.ReadLine()
+	if err != nil {
+		return "", err
+	}
+	line := string(chunk)
+
+	var end []byte
+	for more {
+		chunk, more, err = r.ReadLine()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		end = append(end, chunk...)
+		end = end[max(0, len(end)-accessLogLineEndBytes):]
+	}
+	return line + string(end), nil
+}
+
 func (s *ServerService) GetXrayLogs(
 	count string,
 	filter string,
@@ -1482,7 +1510,10 @@ func (s *ServerService) GetXrayLogs(
 		Proxied
 	)
 
-	countInt, _ := strconv.Atoi(count)
+	countInt, err := strconv.Atoi(count)
+	if err != nil || countInt < 1 || countInt > 10000 {
+		countInt = 100
+	}
 	var entries []LogEntry
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
@@ -1496,10 +1527,17 @@ func (s *ServerService) GetXrayLogs(
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	reader := bufio.NewReaderSize(file, maxAccessLogLineBytes)
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	for {
+		line, err := readAccessLogLine(reader)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil
+		}
+		line = strings.TrimSpace(line)
 
 		if line == "" || strings.Contains(line, "api -> api") {
 			// skipping empty lines and api calls
@@ -1530,15 +1568,12 @@ func (s *ServerService) GetXrayLogs(
 			entry.Event = Proxied
 		}
 
+		// Anyone reaching an inbound port adds lines here, so only the newest
+		// countInt entries are kept while reading, not one per line of the file.
 		entries = append(entries, entry)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil
-	}
-
-	if len(entries) > countInt {
-		entries = entries[len(entries)-countInt:]
+		if len(entries) > countInt {
+			entries = entries[1:]
+		}
 	}
 
 	return entries
@@ -2099,9 +2134,9 @@ func (s *ServerService) importPostgresDB(file multipart.File, keepHostSettings b
 	case importKindPgDump:
 		return s.restorePostgresDump(file, keepHostSettings)
 	case importKindSQLiteDB:
-		return s.migrateSQLiteIntoPostgres(file, false)
+		return s.migrateSQLiteIntoPostgres(file, false, keepHostSettings)
 	case importKindSQLiteDump:
-		return s.migrateSQLiteIntoPostgres(file, true)
+		return s.migrateSQLiteIntoPostgres(file, true, keepHostSettings)
 	default:
 		return common.NewError("Invalid file: expected a PostgreSQL custom-format dump (.dump) from this panel's Back Up, a SQLite database (.db), or a SQLite migration dump")
 	}
@@ -2183,7 +2218,7 @@ func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSetting
 	return nil
 }
 
-func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump bool) error {
+func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump, keepHostSettings bool) error {
 	tempDir, err := os.MkdirTemp("", "x-ui-pg-migrate-*")
 	if err != nil {
 		return common.NewErrorf("Error creating temporary folder: %v", err)
@@ -2224,6 +2259,11 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 		logger.Warningf("Failed to stop Xray before DB restore: %v", errStop)
 	}
 
+	var keptSettings hostBoundSnapshot
+	if keepHostSettings {
+		keptSettings = captureHostBoundSettings()
+	}
+
 	if errClose := database.CloseDB(); errClose != nil {
 		logger.Warningf("Failed to close existing DB before restore: %v", errClose)
 	}
@@ -2232,6 +2272,9 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 
 	if errInit := database.InitDB(config.GetDBPath()); errInit != nil {
 		return common.NewErrorf("Restore finished but reopening the database failed: %v", errInit)
+	}
+	if migrateErr == nil {
+		restoreHostBoundSettings(keptSettings)
 	}
 	s.inboundService.MigrateDB()
 
@@ -2687,6 +2730,9 @@ func (s *ServerService) GetCertHash(certFile string, certContent string) ([]stri
 		if !ok {
 			return nil, common.NewError("certificate file is not referenced by any inbound or panel setting")
 		}
+		if err := xray.CheckCertFile(known); err != nil {
+			return nil, err
+		}
 		b, err := os.ReadFile(known)
 		if err != nil {
 			return nil, err
@@ -2760,6 +2806,10 @@ func (s *ServerService) knownCertFiles() []string {
 	}
 	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
 		for _, inbound := range inbounds {
+			// A node row's path names a file on the node's host, not on this one.
+			if inbound.NodeID != nil {
+				continue
+			}
 			files = collectCertFiles(inbound.StreamSettings, files)
 		}
 	}

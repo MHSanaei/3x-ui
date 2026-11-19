@@ -103,12 +103,12 @@ func TestResetTrafficByEmail_LeavesRecordEnableTrue(t *testing.T) {
 	inboundSvc := &InboundService{}
 
 	email := "r-attached@x"
-	c := model.Client{Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email, Enable: false}
+	c := model.Client{Email: email, ID: "11111111-1111-1111-1111-111111111111", SubID: email, Enable: false, TotalGB: 30}
 	ib := mkInbound(t, 53003, model.VLESS, clientsSettings(t, []model.Client{c}))
 	if err := svc.SyncInbound(nil, ib.Id, []model.Client{c}); err != nil {
 		t.Fatalf("seed linkage: %v", err)
 	}
-	mkTraffic(t, ib.Id, email, 10, 20, 0, 0, false)
+	mkTraffic(t, ib.Id, email, 10, 20, 30, 0, false)
 
 	if _, err := svc.ResetTrafficByEmail(inboundSvc, email); err != nil {
 		t.Fatalf("ResetTrafficByEmail: %v", err)
@@ -142,6 +142,7 @@ func TestResetTrafficByEmail_NoInbound_LeavesRecordEnableTrue(t *testing.T) {
 		t.Fatalf("create record: %v", err)
 	}
 	forceRecordDisabled(t, svc, email)
+	mkTraffic(t, 0, email, 10, 20, 30, 0, false)
 
 	if _, err := svc.ResetTrafficByEmail(inboundSvc, email); err != nil {
 		t.Fatalf("ResetTrafficByEmail: %v", err)

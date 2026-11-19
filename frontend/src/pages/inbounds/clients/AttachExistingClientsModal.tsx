@@ -200,7 +200,7 @@ export default function AttachExistingClientsModal({
       {noClients ? (
         <Alert type="info" showIcon title={t('pages.inbounds.attachExistingNoClients')} />
       ) : (
-        <Spin spinning={loading}>
+        <Spin aria-live="off" spinning={loading}>
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
               <Space wrap>

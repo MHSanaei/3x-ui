@@ -155,6 +155,19 @@ func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 	}
 }
 
+// h2Params (xray-core 26.10.31, #7295) tunes the XHTTP server's HTTP/2; clients must not get it.
+func TestSubJsonServiceDropsXhttpServerOnlyH2Params(t *testing.T) {
+	svc := NewSubJsonService("", "", "", "", nil)
+	stream := svc.streamData(`{"network":"xhttp","security":"none","xhttpSettings":{"path":"/x","mode":"auto","h2Params":{"MaxConcurrentStreams":512}}}`, "")
+	xhttp, _ := stream["xhttpSettings"].(map[string]any)
+	if xhttp == nil || xhttp["path"] != "/x" {
+		t.Fatalf("xhttpSettings = %#v, want the inbound's path kept", stream["xhttpSettings"])
+	}
+	if h2, ok := xhttp["h2Params"]; ok {
+		t.Fatalf("xhttpSettings.h2Params = %#v, want the server-only key dropped", h2)
+	}
+}
+
 func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello"}}]}`
 	svc := NewSubJsonService("", "", finalMask, "", nil)
@@ -520,7 +533,7 @@ func TestSubJsonServiceWireguard(t *testing.T) {
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 	}
 
-	raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client)
+	raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client)
 	if raw == nil {
 		t.Fatal("genWireguard returned nil for a valid wireguard client")
 	}
@@ -564,7 +577,7 @@ func TestSubJsonServiceWireguardNoKey(t *testing.T) {
 	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
 	client := model.Client{Email: "user"}
 
-	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client); raw != nil {
+	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client); raw != nil {
 		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }
