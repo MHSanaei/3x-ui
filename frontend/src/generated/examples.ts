@@ -893,6 +893,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 10737418240,
     "up": 1048576
   },
+  "LogBucket": {
+    "errors": 3,
+    "start": 1767225600000,
+    "total": 120,
+    "warnings": 7
+  },
+  "LogCount": {
+    "count": 42,
+    "value": "203.0.113.9"
+  },
   "LogEntry": {
     "DateTime": "2025-01-01T12:00:00Z",
     "Email": "alice@example.com",
@@ -901,6 +911,156 @@ export const EXAMPLES: Record<string, unknown> = {
     "Inbound": "inbound-443",
     "Outbound": "direct",
     "ToAddress": "example.com:443"
+  },
+  "LogExternalPath": {
+    "kind": "access",
+    "path": "./access.log",
+    "suggested": "/var/log/x-ui/access.log"
+  },
+  "LogFile": {
+    "compressed": false,
+    "modTime": 1767225600000,
+    "name": "3xui.log",
+    "size": 1048576
+  },
+  "LogFileList": {
+    "external": [
+      {
+        "kind": "access",
+        "path": "./access.log",
+        "suggested": "/var/log/x-ui/access.log"
+      }
+    ],
+    "files": [
+      {
+        "compressed": false,
+        "modTime": 1767225600000,
+        "name": "3xui.log",
+        "size": 1048576
+      }
+    ],
+    "folder": "/var/log/x-ui"
+  },
+  "LogLine": {
+    "category": "app/proxyman/inbound",
+    "country": "DE",
+    "host": "example.com",
+    "inbound": "inbound-443",
+    "ip": "203.0.113.9",
+    "level": "info",
+    "message": "from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+    "offset": 52428,
+    "outbound": "direct",
+    "protocol": "tcp",
+    "raw": "2026/01/01 00:00:00.000000 from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+    "status": "accepted",
+    "time": 1767225600000,
+    "truncated": false,
+    "user": "alice@example.com"
+  },
+  "LogPage": {
+    "budgetExhausted": false,
+    "file": "3xui.log",
+    "fileSize": 1048576,
+    "lines": [
+      {
+        "category": "app/proxyman/inbound",
+        "country": "DE",
+        "host": "example.com",
+        "inbound": "inbound-443",
+        "ip": "203.0.113.9",
+        "level": "info",
+        "message": "from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+        "offset": 52428,
+        "outbound": "direct",
+        "protocol": "tcp",
+        "raw": "2026/01/01 00:00:00.000000 from 203.0.113.9:5555 accepted tcp:example.com:443 [inbound-443 \u003e\u003e direct]",
+        "status": "accepted",
+        "time": 1767225600000,
+        "truncated": false,
+        "user": "alice@example.com"
+      }
+    ],
+    "nextCursor": 52428,
+    "scannedBytes": 65536
+  },
+  "LogStats": {
+    "bucketMillis": 60000,
+    "budgetExhausted": false,
+    "countries": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "debugs": 100,
+    "errors": 12,
+    "file": "3xui.log",
+    "fileSize": 1048576,
+    "firstTime": 1767225600000,
+    "geoAvailable": true,
+    "infos": 8000,
+    "lastTime": 1767312000000,
+    "matchedLines": 8200,
+    "scannedBytes": 1048576,
+    "scannedLines": 9000,
+    "timeline": [
+      {
+        "errors": 3,
+        "start": 1767225600000,
+        "total": 120,
+        "warnings": 7
+      }
+    ],
+    "topErrorCategories": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topHosts": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topInbounds": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topIps": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topProtocols": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topStatuses": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "topUsers": [
+      {
+        "count": 42,
+        "value": "203.0.113.9"
+      }
+    ],
+    "uniqueCapped": false,
+    "uniqueHosts": 1800,
+    "uniqueIps": 312,
+    "uniqueUsers": 25,
+    "unknown": 48,
+    "unlocatedLines": 14,
+    "warnings": 40
   },
   "MLDSA65Response": {
     "seed": "mldsa65-seed",

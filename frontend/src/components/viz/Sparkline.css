@@ -17,6 +17,10 @@
   width: 100%;
 }
 
+.sparkline-container.is-clickable .u-over {
+  cursor: pointer;
+}
+
 .sparkline-tooltip {
   position: absolute;
   top: 0;

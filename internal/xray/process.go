@@ -51,6 +51,17 @@ func GetGeoipPath() string {
 	return config.GetBinFolderPath() + "/geoip.dat"
 }
 
+// AssetDir resolves the folder the running core reads its geo databases from, with the
+// precedence ensureXrayAssetLocation gives XRAY_LOCATION_ASSET over the bin folder.
+func AssetDir() string {
+	for _, key := range [...]string{"XRAY_LOCATION_ASSET", "xray.location.asset"} {
+		if dir := os.Getenv(key); dir != "" {
+			return dir
+		}
+	}
+	return config.GetBinFolderPath()
+}
+
 // GetIPLimitLogPath returns the path to the IP limit log file.
 func GetIPLimitLogPath() string {
 	return config.GetLogFolder() + "/3xipl.log"
