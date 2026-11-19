@@ -76,8 +76,6 @@ github.com/gorilla/sessions v1.4.0 h1:kpIYOp/oi6MG/p5PgxApU8srsSw9tuFbt46Lt7auzq
 github.com/gorilla/sessions v1.4.0/go.mod h1:FLWm50oby91+hl7p/wRxDth9bWSuk0qVL2emc7lT5ik=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/grbit/go-json v0.11.0 h1:bAbyMdYrYl/OjYsSqLH99N2DyQ291mHy726Mx+sYrnc=
-github.com/grbit/go-json v0.11.0/go.mod h1:IYpHsdybQ386+6g3VE6AXQ3uTGa5mquBme5/ZWmtzek=
 github.com/hashicorp/go-uuid v1.0.3 h1:2gKiV6YVmrJ1i2CKKa9obLvRieoRGviZFL26PcT/Co8=
 github.com/hashicorp/go-uuid v1.0.3/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/huin/goupnp v1.3.1 h1:n8259zVoE4BU7dBCQEUlwZK1h0Z3pxZ58ov0xbJuIQU=
@@ -145,8 +143,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/molecule-man/go-brrr v1.3.1 h1:EwaJUzRIlp/dFmIpzq4J17CA5Zi5OHo2vOGmu09hF1w=
 github.com/molecule-man/go-brrr v1.3.1/go.mod h1:7ybW6/7gA3oKY45jOfVNjSJDtrr6ea4tzbsTkjmQDC4=
-github.com/mymmrac/telego v1.12.1 h1:yx1T5pPSNsU3BjLR7jnfY0D4dtL9caH58Y9e8uzjR88=
-github.com/mymmrac/telego v1.12.1/go.mod h1:K4z3Z3Qr6AA8yEjSry3JGScu506NlLl1O4Gqascmop4=
+github.com/mymmrac/telego v1.13.0 h1:1sz4F5bstBJYjZNPPJykYBT0HHIIKvPLvARZt45swM0=
+github.com/mymmrac/telego v1.13.0/go.mod h1:gsRatcXPP0UBU9gWbKzp21yQWoPHte86AUKrVcikuaw=
 github.com/nicksnyder/go-i18n/v2 v2.7.0 h1:oiVQUmuCeNggvm/fUVb6/R0aP82BDVphZnmVHwut+J0=
 github.com/nicksnyder/go-i18n/v2 v2.7.0/go.mod h1:ZMYiWg8ndQSGNk4zbzbyJjrrVjQjuQ8pERFrnBik+c8=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 h1:lDH9UUVJtmYCjyT0CI4q8xvlXPxeZ0gYCVvWbmPlp88=
