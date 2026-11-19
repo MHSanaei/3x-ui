@@ -1859,7 +1859,16 @@
       "subHostSortMode": "Thứ tự nút đăng ký",
       "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
       "subHostSortHosts": "Thứ tự máy chủ",
-      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
+      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại.",
+      "eventUserRateHigh": "Băng thông cao liên tục của người dùng",
+      "eventUserTrafficHigh": "Lưu lượng người dùng trong cửa sổ trượt",
+      "userTrafficRate": "Ngưỡng tốc độ (MB/s)",
+      "userTrafficDuration": "Thời gian liên tục (giây)",
+      "userTrafficWindowLimit": "Ngưỡng lưu lượng (GB)",
+      "userTrafficWindow": "Cửa sổ trượt (phút)",
+      "userTrafficCooldown": "Khoảng nhắc tối thiểu cho từng người dùng và quy tắc",
+      "userTrafficMinutes": "phút",
+      "userTrafficHelp": "Người dùng Xray cục bộ, tải lên + tải xuống. MB = 1.000.000 byte; GB = 1.000.000.000 byte. Trung bình theo khoảng ~5 giây; mất mẫu sẽ đặt lại thời gian. Mỗi đợt chỉ báo một lần; sau khi phục hồi vẫn áp dụng khoảng nhắc tối thiểu. Lưu không cần khởi động lại Xray. Không ước tính lịch sử bị thiếu."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "THÀNH CÔNG",
     "statusFailed": "THẤT BẠI",
     "statusDown": "NGỪNG HOẠT ĐỘNG",
-    "statusUp": "HOẠT ĐỘNG"
+    "statusUp": "HOẠT ĐỘNG",
+    "userRateHigh": "Băng thông cao liên tục của người dùng",
+    "userTrafficHigh": "Lưu lượng người dùng vượt ngưỡng cửa sổ trượt",
+    "labelUser": "Email người dùng",
+    "labelRemark": "Ghi chú",
+    "labelRate": "Tốc độ trung bình trong thời gian vượt ngưỡng liên tục",
+    "labelTraffic": "Lưu lượng trong cửa sổ trượt",
+    "labelThreshold": "Ngưỡng",
+    "labelDuration": "Thời gian / cửa sổ",
+    "userTrafficScope": "Xray cục bộ, tải lên + tải xuống, MB/GB thập phân. Tốc độ là trung bình của khoảng lấy mẫu; chỉ tính phần tăng đã quan sát."
   },
   "commandPalette": {
     "title": "Bảng lệnh",

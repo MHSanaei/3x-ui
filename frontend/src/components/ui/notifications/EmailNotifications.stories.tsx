@@ -88,3 +88,13 @@ export const AllEventsEnabled: Story = {
     />
   ),
 };
+
+// The actual email settings controls, with both custom rules selected.
+export const UserTrafficAlerts: Story = {
+  args: placeholderArgs,
+  render: () => (
+    <StatefulDemo
+      initial={new AllSetting({ smtpEnabledEvents: 'cpu.high,user.rate.high,user.traffic.high' })}
+    />
+  ),
+};

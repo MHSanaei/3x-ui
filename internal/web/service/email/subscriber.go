@@ -2,6 +2,7 @@ package email
 
 import (
 	"fmt"
+	"html"
 	"os"
 	"strconv"
 	"strings"
@@ -137,6 +138,35 @@ func (s *Subscriber) formatMessage(e eventbus.Event) (subject, body string) {
 			content += kv(i18n("email.labelDelay"), fmt.Sprintf("%dms", data.LatencyMs))
 		}
 		body = wrap(i18n("tgbot.messages.eventNodeUp", "Name=="+e.Source), content)
+
+	case eventbus.EventUserRateHigh, eventbus.EventUserTrafficHigh:
+		if data, ok := e.Data.(*eventbus.UserTrafficData); ok {
+			title := i18n("email.userRateHigh")
+			if e.Type == eventbus.EventUserTrafficHigh {
+				title = i18n("email.userTrafficHigh")
+			}
+			safeUser := strings.Map(func(r rune) rune {
+				if r < 32 || r == 127 {
+					return -1
+				}
+				return r
+			}, data.Email)
+			subject = host + " " + title + " - " + safeUser
+			content := kv(i18n("email.labelUser"), html.EscapeString(data.Email))
+			if data.Name != "" {
+				content += kv(i18n("email.labelRemark"), html.EscapeString(data.Name))
+			}
+			if e.Type == eventbus.EventUserRateHigh && data.DurationMS > 0 {
+				content += kv(i18n("email.labelRate"), fmt.Sprintf("%.2f MB/s", float64(data.Bytes)*1000/float64(data.DurationMS)/1e6))
+				content += kv(i18n("email.labelThreshold"), fmt.Sprintf("&gt; %.2f MB/s", float64(data.Threshold)/1e6))
+			} else {
+				content += kv(i18n("email.labelTraffic"), fmt.Sprintf("%.3f GB", float64(data.Bytes)/1e9))
+				content += kv(i18n("email.labelThreshold"), fmt.Sprintf("&gt; %.3f GB", float64(data.Threshold)/1e9))
+			}
+			content += kv(i18n("email.labelDuration"), fmt.Sprintf("%.0f s", float64(data.DurationMS)/1000))
+			content += "<p>" + i18n("email.userTrafficScope") + "</p>"
+			body = wrap(title, content)
+		}
 
 	case eventbus.EventCPUHigh:
 		if data, ok := e.Data.(*eventbus.SystemMetricData); ok {

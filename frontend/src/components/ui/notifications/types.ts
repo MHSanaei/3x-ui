@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { AllSetting } from '@/models/setting';
 
 export interface NotificationEventConfig {
   key: string;
@@ -9,6 +10,8 @@ export interface NotificationEventConfig {
     value: number;
     onChange: (v: number | null) => void;
     ariaLabel: string;
+    allSetting: AllSetting;
+    updateSetting: (patch: Partial<AllSetting>) => void;
   }) => ReactNode;
 }
 

@@ -1859,7 +1859,16 @@
       "subHostSortMode": "Abonelik düğümü sıralaması",
       "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
       "subHostSortHosts": "Ana bilgisayar sırası",
-      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
+      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir.",
+      "eventUserRateHigh": "Kullanıcı için sürekli yüksek bant genişliği",
+      "eventUserTrafficHigh": "Kullanıcının kayan pencere trafiği",
+      "userTrafficRate": "Hız eşiği (MB/s)",
+      "userTrafficDuration": "Kesintisiz süre (saniye)",
+      "userTrafficWindowLimit": "Trafik eşiği (GB)",
+      "userTrafficWindow": "Kayan pencere (dakika)",
+      "userTrafficCooldown": "Kullanıcı ve kural başına en kısa bildirim aralığı",
+      "userTrafficMinutes": "dakika",
+      "userTrafficHelp": "Yerel Xray kullanıcıları, yükleme + indirme. MB = 1.000.000 bayt; GB = 1.000.000.000 bayt. Yaklaşık 5 saniyelik ortalamalar kullanılır; boşluk süreyi sıfırlar. Her olayda bir bildirim; düzelme sonrasında da en kısa aralık geçerlidir. Kaydetmek Xray yeniden başlatması gerektirmez. Eksik geçmiş tahmin edilmez."
     },
     "xray": {
       "save": "Kaydet",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "BAŞARILI",
     "statusFailed": "BAŞARISIZ",
     "statusDown": "ÇEVRİMDIŞI",
-    "statusUp": "ÇEVRİMİÇİ"
+    "statusUp": "ÇEVRİMİÇİ",
+    "userRateHigh": "Kullanıcı için sürekli yüksek bant genişliği",
+    "userTrafficHigh": "Kullanıcının kayan pencere trafik eşiği aşıldı",
+    "labelUser": "Kullanıcı e-postası",
+    "labelRemark": "Not",
+    "labelRate": "Sürekli aşım süresindeki ortalama hız",
+    "labelTraffic": "Kayan penceredeki trafik",
+    "labelThreshold": "Eşik",
+    "labelDuration": "Süre / pencere",
+    "userTrafficScope": "Yerel Xray yükleme + indirme, ondalık MB/GB. Hızlar aralık ortalamalarıdır; yalnızca gözlenen artışlar sayılır."
   },
   "commandPalette": {
     "title": "Komut Paleti",

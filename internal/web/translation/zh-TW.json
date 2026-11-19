@@ -1859,7 +1859,16 @@
       "subHostSortMode": "訂閱節點排序",
       "subHostSortInbound": "入站順序（預設）",
       "subHostSortHosts": "主機順序",
-      "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主機頁面中的排序。此設定決定伺服器輸出順序；用戶端應用程式仍可能自行排序。",
+      "eventUserRateHigh": "使用者持續高頻寬警報",
+      "eventUserTrafficHigh": "使用者滾動視窗流量警報",
+      "userTrafficRate": "速率閾值（MB/s）",
+      "userTrafficDuration": "持續時間（秒）",
+      "userTrafficWindowLimit": "流量閾值（GB）",
+      "userTrafficWindow": "滾動視窗（分鐘）",
+      "userTrafficCooldown": "同一使用者同一規則的最短提醒間隔",
+      "userTrafficMinutes": "分鐘",
+      "userTrafficHelp": "統計本機 Xray 使用者的上傳＋下載。MB＝100萬位元組，GB＝10億位元組。採用約5秒區間的平均速率；中斷會重新計時。每輪異常只提醒一次；恢復後再次超標仍須符合最短提醒間隔。儲存後生效，無須重新啟動 Xray；不估算缺失歷史。"
     },
     "xray": {
       "save": "儲存",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "成功",
     "statusFailed": "失敗",
     "statusDown": "中斷",
-    "statusUp": "恢復"
+    "statusUp": "恢復",
+    "userRateHigh": "使用者持續高頻寬警報",
+    "userTrafficHigh": "使用者滾動視窗流量警報",
+    "labelUser": "使用者信箱",
+    "labelRemark": "備註",
+    "labelRate": "持續超標期間的平均速率",
+    "labelTraffic": "滾動視窗內流量",
+    "labelThreshold": "閾值",
+    "labelDuration": "持續時間／統計視窗",
+    "userTrafficScope": "統計本機 Xray 上傳＋下載，採十進位 MB/GB。速率為採樣區間平均值，只計算已觀察到的增量。"
   },
   "commandPalette": {
     "title": "命令面板",

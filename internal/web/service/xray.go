@@ -1364,6 +1364,9 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
+// TrafficProcessIdentity changes when the local Xray process is replaced.
+func (s *XrayService) TrafficProcessIdentity() *xray.Process { return currentXrayProcess() }
+
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	process := currentXrayProcess()

@@ -1980,7 +1980,16 @@
       "subHostSortMode": "Poradie uzlov v predplatnom",
       "subHostSortInbound": "Poradie inboundov (predvolené)",
       "subHostSortHosts": "Poradie hostiteľov",
-      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
+      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie.",
+      "eventUserRateHigh": "Trvalo vysoká rýchlosť používateľa",
+      "eventUserTrafficHigh": "Prenos používateľa v kĺzavom okne",
+      "userTrafficRate": "Prah rýchlosti (MB/s)",
+      "userTrafficDuration": "Nepretržité trvanie (sekundy)",
+      "userTrafficWindowLimit": "Prah prenosu (GB)",
+      "userTrafficWindow": "Kĺzavé okno (minúty)",
+      "userTrafficCooldown": "Minimálny interval pre používateľa a pravidlo",
+      "userTrafficMinutes": "minút",
+      "userTrafficHelp": "Lokálni používatelia Xray, odosielanie + príjem. MB = 1 000 000 bajtov; GB = 1 000 000 000 bajtov. Priemery za ~5 sekúnd; výpadok vynuluje trvanie. Jedno upozornenie na epizódu; po obnovení platí minimálny interval. Uloženie nevyžaduje reštart Xray. Chýbajúca história sa neodhaduje."
     },
     "xray": {
       "save": "Uložiť",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "ÚSPEŠNÉ",
     "statusFailed": "NEÚSPEŠNÉ",
     "statusDown": "NEDOSTUPNÝ",
-    "statusUp": "DOSTUPNÝ"
+    "statusUp": "DOSTUPNÝ",
+    "userRateHigh": "Trvalo vysoká rýchlosť používateľa",
+    "userTrafficHigh": "Prekročený prenos používateľa v kĺzavom okne",
+    "labelUser": "E-mail používateľa",
+    "labelRemark": "Poznámka",
+    "labelRate": "Priemerná rýchlosť počas trvalého prekročenia",
+    "labelTraffic": "Prenos v kĺzavom okne",
+    "labelThreshold": "Prah",
+    "labelDuration": "Trvanie / okno",
+    "userTrafficScope": "Lokálny Xray, odosielanie + príjem, desiatkové MB/GB. Rýchlosti sú priemery intervalov; počítajú sa len pozorované prírastky."
   },
   "commandPalette": {
     "title": "Rýchle vyhľadávanie a príkazy",

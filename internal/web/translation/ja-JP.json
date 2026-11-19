@@ -1859,7 +1859,16 @@
       "subHostSortMode": "サブスクリプションのノード順序",
       "subHostSortInbound": "インバウンド順（既定）",
       "subHostSortHosts": "ホスト順",
-      "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。"
+      "subHostSortModeDesc": "異なるインバウンド間でもホストページの順序に従います。サーバーが出力する順序を指定しますが、クライアントアプリが独自に並べ替える場合があります。",
+      "eventUserRateHigh": "ユーザーの高帯域継続アラート",
+      "eventUserTrafficHigh": "ユーザーの移動時間窓の通信量アラート",
+      "userTrafficRate": "速度のしきい値（MB/s）",
+      "userTrafficDuration": "継続時間（秒）",
+      "userTrafficWindowLimit": "通信量のしきい値（GB）",
+      "userTrafficWindow": "移動時間窓（分）",
+      "userTrafficCooldown": "ユーザー・ルールごとの最短通知間隔",
+      "userTrafficMinutes": "分",
+      "userTrafficHelp": "ローカル Xray の送受信合計。MB＝100万バイト、GB＝10億バイト。約5秒ごとの平均速度を使用し、欠測で継続時間をリセットします。異常の継続中は1回だけ通知し、回復後の再通知にも最短間隔を適用します。保存後に反映され、Xray の再起動は不要です。欠測分は推定しません。"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "成功",
     "statusFailed": "失敗",
     "statusDown": "ダウン",
-    "statusUp": "アップ"
+    "statusUp": "アップ",
+    "userRateHigh": "ユーザーの高帯域継続アラート",
+    "userTrafficHigh": "ユーザーの移動時間窓の通信量超過",
+    "labelUser": "ユーザーのメール",
+    "labelRemark": "備考",
+    "labelRate": "継続超過中の平均速度",
+    "labelTraffic": "移動時間窓内の通信量",
+    "labelThreshold": "しきい値",
+    "labelDuration": "継続時間／時間窓",
+    "userTrafficScope": "ローカル Xray の送受信合計。MB/GB は十進数です。速度は採取区間の平均で、観測済みの増分のみ計上します。"
   },
   "commandPalette": {
     "title": "コマンドパレット",

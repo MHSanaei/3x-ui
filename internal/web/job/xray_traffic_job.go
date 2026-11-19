@@ -15,10 +15,11 @@ import (
 
 // XrayTrafficJob collects and processes traffic statistics from Xray, updating the database and optionally informing external APIs.
 type XrayTrafficJob struct {
-	settingService  service.SettingService
-	xrayService     service.XrayService
-	inboundService  service.InboundService
-	outboundService outbound.OutboundService
+	settingService    service.SettingService
+	xrayService       service.XrayService
+	inboundService    service.InboundService
+	outboundService   outbound.OutboundService
+	userTrafficAlerts service.UserTrafficAlertService
 }
 
 // clientStatsSnapshotMaxClients caps how many client_traffics rows the job
@@ -73,12 +74,16 @@ func NewXrayTrafficJob() *XrayTrafficJob {
 // fallback, scales to 10k–20k+ clients per inbound.
 func (j *XrayTrafficJob) Run() {
 	if !j.xrayService.IsXrayRunning() {
+		j.userTrafficAlerts.Reset()
 		return
 	}
+	epoch := j.xrayService.TrafficProcessIdentity()
 	traffics, clientTraffics, err := j.xrayService.GetXrayTraffic()
 	if err != nil {
+		j.userTrafficAlerts.Reset()
 		return
 	}
+	sampledAt := time.Now()
 	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
 		logger.Warning("add inbound traffic failed:", err)
@@ -86,6 +91,12 @@ func (j *XrayTrafficJob) Run() {
 	err, needRestart1 := j.outboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
 		logger.Warning("add outbound traffic failed:", err)
+	}
+	// Commit native accounting first; alerts use the original RPC completion time.
+	if epoch != j.xrayService.TrafficProcessIdentity() {
+		j.userTrafficAlerts.Reset()
+	} else if alertErr := j.userTrafficAlerts.Observe(sampledAt, epoch, clientTraffics); alertErr != nil {
+		logger.Warning("evaluate user traffic alerts failed:", alertErr)
 	}
 	if clientsDisabled {
 		restartOnDisable, settingErr := j.settingService.GetRestartXrayOnClientDisable()

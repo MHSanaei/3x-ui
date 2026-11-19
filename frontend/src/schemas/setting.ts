@@ -42,6 +42,12 @@ export const AllSettingSchema = z
     tgRunTime: z.string().optional(),
     tgBotBackup: z.boolean().optional(),
     tgCpu: z.number().int().min(0).max(100).optional(),
+    smtpUserRateMB: z.number().int().min(1).max(100000).optional(),
+    smtpUserRateSeconds: z.number().int().min(1).max(86400).optional(),
+    smtpUserWindowGB: z.number().int().min(1).max(1000000).optional(),
+    smtpUserWindowMinutes: z.number().int().min(1).max(1440).optional(),
+    smtpUserCooldownMinutes: z.number().int().min(1).max(10080).optional(),
+
     outboundDownThreshold: z.number().int().min(1).max(100).optional(),
     nodeDownThreshold: z.number().int().min(1).max(100).optional(),
     tgLang: z.string().optional(),

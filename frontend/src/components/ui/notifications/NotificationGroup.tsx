@@ -56,13 +56,15 @@ export function NotificationGroup({
             onToggle={() => onToggle(event.key)}
           >
             {event.extra && (
-              <Space size={8}>
+              <Space size={8} wrap style={{ width: '100%' }}>
                 {event.extra({
                   value:
                     Number((allSetting as unknown as Record<string, unknown>)[event.settingKey]) ||
                     0,
                   onChange: (v) => updateSetting({ [event.settingKey]: v }),
                   ariaLabel: t(`pages.settings.${event.label}`),
+                  allSetting,
+                  updateSetting,
                 })}
                 {event.hint && (
                   <Typography.Text type="secondary">

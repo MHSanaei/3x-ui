@@ -1859,7 +1859,16 @@
       "subHostSortMode": "订阅节点排序",
       "subHostSortInbound": "入站顺序（默认）",
       "subHostSortHosts": "主机顺序",
-      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。",
+      "eventUserRateHigh": "用户持续高带宽告警",
+      "eventUserTrafficHigh": "用户滚动窗口流量告警",
+      "userTrafficRate": "速率阈值（MB/s）",
+      "userTrafficDuration": "持续时间（秒）",
+      "userTrafficWindowLimit": "流量阈值（GB）",
+      "userTrafficWindow": "滚动窗口（分钟）",
+      "userTrafficCooldown": "同一用户同一规则的最短提醒间隔",
+      "userTrafficMinutes": "分钟",
+      "userTrafficHelp": "统计本机 Xray 用户的上传＋下载。MB＝100万字节，GB＝10亿字节。使用现有约5秒采样段的平均速率；每段都超标才累计持续时间，中断会重新计时。每轮异常只提醒一次；恢复后再次超标还需满足最短提醒间隔。保存后生效，无需重启 Xray；缺失历史不会估算补齐。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2860,7 +2869,16 @@
     "statusSuccess": "成功",
     "statusFailed": "失败",
     "statusDown": "断开",
-    "statusUp": "恢复"
+    "statusUp": "恢复",
+    "userRateHigh": "用户持续高带宽告警",
+    "userTrafficHigh": "用户滚动窗口流量告警",
+    "labelUser": "用户邮箱",
+    "labelRemark": "用户备注",
+    "labelRate": "持续超标期间的平均速率",
+    "labelTraffic": "滚动窗口内流量",
+    "labelThreshold": "触发阈值",
+    "labelDuration": "持续时间／统计窗口",
+    "userTrafficScope": "统计本机 Xray 用户上传＋下载，使用十进制 MB/GB。速率为采样段平均值，仅计算实际采到的增量。"
   },
   "commandPalette": {
     "title": "命令面板",
