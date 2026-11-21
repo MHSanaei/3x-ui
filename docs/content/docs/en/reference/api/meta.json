@@ -15,6 +15,7 @@
     "hosts",
     "nodes",
     "backup",
+    "mcp",
     "websocket"
   ]
 }
