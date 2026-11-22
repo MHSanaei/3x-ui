@@ -142,6 +142,26 @@ func TestCheckValidNormalizesPanelAndSubDomains(t *testing.T) {
 					t.Errorf("CheckValid(%q) saved %q, want %q", tc.in, *target, tc.want)
 				}
 			})
+
+// The override is displayed on the overview and used in backup filenames, so a
+// hostname, wrong-family or zoned address must be rejected at save time.
+func TestCheckValidPublicIPOverride(t *testing.T) {
+	cases := []struct {
+		v4, v6 string
+		ok     bool
+	}{
+		{"", "", true},
+		{"203.0.113.9", "2001:db8::1", true},
+		{"example.com", "", false},
+		{"2001:db8::1", "", false},
+		{"", "203.0.113.9", false},
+		{"", "fe80::1%eth0", false},
+		{"", "::ffff:203.0.113.9", false},
+	}
+	for _, c := range cases {
+		s := &AllSetting{WebPort: 2053, SubPort: 2096, PublicIpv4Override: c.v4, PublicIpv6Override: c.v6}
+		if err := s.CheckValid(); (err == nil) != c.ok {
+			t.Errorf("v4=%q v6=%q: err=%v, want ok=%v", c.v4, c.v6, err, c.ok)
 		}
 	}
 }
