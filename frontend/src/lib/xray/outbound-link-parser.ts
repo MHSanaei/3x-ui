@@ -98,7 +98,9 @@ function applyXhttpStringFromParams(xhttp: Raw, params: URLSearchParams): void {
   }
   for (const k of XHTTP_NUMBER_KEYS) {
     const v = params.get(k);
-    if (v !== null && v !== '') xhttp[k] = Number(v) || 0;
+    if (v !== null && v !== '') {
+      xhttp[k] = k === 'uplinkChunkSize' && v.includes('-') ? v : Number(v) || 0;
+    }
   }
   for (const k of XHTTP_BOOL_KEYS) {
     const v = params.get(k);
@@ -123,7 +125,9 @@ function applyXhttpStringFromJson(xhttp: Raw, json: Record<string, unknown>): vo
     }
   }
   for (const k of XHTTP_NUMBER_KEYS) {
-    if (typeof json[k] === 'number') xhttp[k] = json[k];
+    if (typeof json[k] === 'number' || (k === 'uplinkChunkSize' && typeof json[k] === 'string')) {
+      xhttp[k] = json[k];
+    }
   }
   for (const k of XHTTP_BOOL_KEYS) {
     if (typeof json[k] === 'boolean') xhttp[k] = json[k];

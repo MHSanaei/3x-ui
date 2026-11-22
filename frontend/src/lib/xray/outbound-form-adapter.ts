@@ -1,4 +1,4 @@
-import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { flattenXhttpExtra, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
@@ -583,7 +583,7 @@ function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   liftLegacyXDriveService(next);
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
-    const xhttp = { ...(xh as Raw) };
+    const xhttp = flattenXhttpExtra(xh as Raw);
     const xmux = xhttp.xmux;
     if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
       xhttp.enableXmux = true;

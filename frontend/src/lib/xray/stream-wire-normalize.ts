@@ -5,6 +5,8 @@
 // them anyway bloats configs and — for sockopt — can inject doc-example
 // values like tcpWindowClamp: 600 that throttle throughput.
 
+import { flattenXhttpExtra } from '@/schemas/protocols/stream/xhttp';
+
 export type StreamWireSide = 'inbound' | 'outbound';
 
 const PACKET_UP_FIELDS = [
@@ -222,7 +224,7 @@ export function normalizeXhttpForWire(
   raw: Record<string, unknown>,
   side: StreamWireSide,
 ): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...raw };
+  const out = flattenXhttpExtra(raw);
   liftLegacyXhttpSessionKeys(out);
   const mode = typeof out.mode === 'string' && out.mode !== '' ? out.mode : 'auto';
   const enableXmux = out.enableXmux === true;
@@ -236,7 +238,6 @@ export function normalizeXhttpForWire(
     if (out.scMinPostsIntervalMs === '' || out.scMinPostsIntervalMs === '30') {
       delete out.scMinPostsIntervalMs;
     }
-    delete out.uplinkChunkSize;
   }
 
   if (isRecord(out.xmux)) {
@@ -259,7 +260,8 @@ export function normalizeXhttpForWire(
   if (out.noGRPCHeader !== true) delete out.noGRPCHeader;
   if (out.noSSEHeader !== true) delete out.noSSEHeader;
   if (out.serverMaxHeaderBytes === 0) delete out.serverMaxHeaderBytes;
-  if (out.uplinkChunkSize === 0) delete out.uplinkChunkSize;
+  if (out.uplinkChunkSize === 0 || out.uplinkChunkSize === '' || out.uplinkChunkSize === '0')
+    delete out.uplinkChunkSize;
 
   if (mode === 'stream-one') {
     for (const key of PACKET_UP_FIELDS) delete out[key];

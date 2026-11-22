@@ -11,6 +11,10 @@ import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inboun
 import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
+import { InboundSchema } from '@/schemas/api/inbound';
+import { genVlessLink } from '@/lib/xray/inbound-link';
+import { parseVlessLink } from '@/lib/xray/outbound-link-parser';
+
 // Round-trip: raw DB row → InboundFormValues → wire payload, asserting
 // that the JSON-stringified settings/streamSettings/sniffing in the
 // payload deserialize back to the same data the raw row carried.
@@ -485,5 +489,32 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
     const stream = JSON.parse(payload.streamSettings) as Record<string, Record<string, unknown>>;
     const xmux = stream.xhttpSettings.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');
+  });
+});
+
+describe('XHTTP separate download', () => {
+  const downloadSettings = {
+    address: 'download.example.org',
+    port: 443,
+    network: 'xhttp',
+    security: 'tls',
+    tlsSettings: { serverName: 'download.example.org', alpn: ['h2'] },
+    xhttpSettings: { path: '/down' },
+  };
+
+  it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {
+    const tuning = { downloadSettings, noGRPCHeader: true, uplinkChunkSize: '512-1024' };
+    const xhttpSettings = { path: '/up', ...(wrapped ? { extra: tuning } : tuning) };
+    const stream = { network: 'xhttp', security: 'none', xhttpSettings };
+    const form = rawInboundToFormValues({ ...vlessRow, streamSettings: JSON.stringify(stream) });
+    const saved = JSON.parse(formValuesToWirePayload(InboundFormSchema.parse(form)).streamSettings);
+    expect(saved.xhttpSettings).toMatchObject({ path: '/up', ...tuning });
+    const inbound = InboundSchema.parse({ ...vlessRow, streamSettings: saved });
+    const url = genVlessLink({
+      inbound,
+      address: 'up.example.org',
+      clientId: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
+    });
+    expect(parseVlessLink(url)).toMatchObject({ streamSettings: { xhttpSettings: tuning } });
   });
 });

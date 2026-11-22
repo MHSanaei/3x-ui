@@ -108,6 +108,14 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     extra.sessionKey = extra.sessionIDKey;
   }
 
+  if (xhttp.downloadSettings && Object.keys(xhttp.downloadSettings).length > 0) {
+    extra.downloadSettings = xhttp.downloadSettings;
+  }
+  if (xhttp.noGRPCHeader) extra.noGRPCHeader = true;
+  if (xhttp.uplinkChunkSize && xhttp.uplinkChunkSize !== '0') {
+    extra.uplinkChunkSize = xhttp.uplinkChunkSize;
+  }
+
   // Headers on the wire are a record; emit them as a map upstream's
   // SplitHTTPConfig.headers expects, dropping Host (already on the URL).
   if (xhttp.headers && Object.keys(xhttp.headers).length > 0) {

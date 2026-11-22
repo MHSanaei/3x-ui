@@ -5,13 +5,6 @@ import { WsHeaderMapSchema } from '@/schemas/protocols/stream/ws';
 export const XHttpModeSchema = z.enum(['auto', 'packet-up', 'stream-up', 'stream-one']);
 export type XHttpMode = z.infer<typeof XHttpModeSchema>;
 
-// xHTTP (SplitHTTPConfig) is xray-core's modern stream-multiplexed transport.
-// The field set is large because the schema mirrors what the server-side
-// listener reads — plus a few client-only fields (`uplinkHTTPMethod`,
-// `headers`) the panel embeds into share-link `extra` blobs even though the
-// server ignores them at runtime. Outbound has additional fields (uplinkChunk
-// sizes, noGRPCHeader, scMinPostsIntervalMs, xmux, downloadSettings) which
-// belong on the outbound class instead, not modeled here.
 // XMUX is the connection-multiplexing layer xHTTP uses to fan out
 // parallel requests over a small pool of upstream connections. Fields
 // are strings because they accept dash-range values like '16-32'.
@@ -61,9 +54,17 @@ export const XHTTP_SESSION_ID_TABLES = [
 // sessionIDTable/sessionIDLength. Lift any legacy keys persisted by an older
 // panel onto the new names so a saved inbound/outbound never silently loses
 // its session setting, then drop the legacy keys so we never emit both.
+// In core's wrapped syntax only host, path and mode come from the outer
+// object. The panel edits the equivalent flat syntax.
+export function flattenXhttpExtra(raw: Record<string, unknown>): Record<string, unknown> {
+  const { extra, host, path, mode } = raw;
+  if (!extra || typeof extra !== 'object' || Array.isArray(extra)) return { ...raw };
+  return { ...extra, host, path, mode };
+}
+
 function migrateLegacyXhttp(v: unknown): unknown {
   if (v == null || typeof v !== 'object' || Array.isArray(v)) return v;
-  const o = { ...(v as Record<string, unknown>) };
+  const o = flattenXhttpExtra(v as Record<string, unknown>);
   if (o.sessionIDPlacement === undefined && o.sessionPlacement !== undefined) {
     o.sessionIDPlacement = o.sessionPlacement;
   }
@@ -77,7 +78,8 @@ function migrateLegacyXhttp(v: unknown): unknown {
 
 export const XHttpStreamSettingsSchema = z.preprocess(
   migrateLegacyXhttp,
-  z.object({
+  z.looseObject({
+    downloadSettings: z.record(z.string(), z.unknown()).optional(),
     path: z.string().default('/'),
     host: z.string().default(''),
     mode: XHttpModeSchema.default('auto'),
@@ -101,7 +103,9 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     // Empty default on purpose: xray-core already defaults to 1MB/30ms, and
     // baking the literal values into every config and share link gives DPI a
     // stable fingerprint (#5141 — TSPU keys on scMinPostsIntervalMs=30).
-    scMaxEachPostBytes: z.string().default(''),
+    scMaxEachPostBytes: z
+      .union([z.string(), z.number().int().nonnegative().transform(String)])
+      .default(''),
     noSSEHeader: z.boolean().default(false),
     scMaxBufferedPosts: z.number().int().min(0).default(30),
     scStreamUpServerSecs: z.string().default('20-80'),
@@ -115,9 +119,10 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     // them in share-link `extra` blobs so the same xhttp config can
     // round-trip on both sides.
     // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
-    // - uplinkChunkSize & noGRPCHeader: outbound-only; stripped from inbound wire
     scMinPostsIntervalMs: z.string().default(''),
-    uplinkChunkSize: z.number().int().min(0).default(0),
+    uplinkChunkSize: z
+      .union([z.number().int().min(0), z.string().regex(/^(?:\d+(?:-\d+)?)?$/)])
+      .default(0),
     noGRPCHeader: z.boolean().default(false),
     xmux: XHttpXmuxSchema.optional(),
     // UI-only toggle controlling whether the XMUX sub-form is expanded.
