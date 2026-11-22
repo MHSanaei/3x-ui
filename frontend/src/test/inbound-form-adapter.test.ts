@@ -519,3 +519,37 @@ describe('XHTTP separate download', () => {
     expect(parseVlessLink(url)).toMatchObject({ streamSettings: { xhttpSettings: tuning } });
   });
 });
+
+it.each([true, false])(
+  'saves an unrelated edit with numeric XHTTP ranges (wrapped=%s)',
+  (wrapped) => {
+    const ranges = {
+      xPaddingBytes: 512,
+      scMinPostsIntervalMs: 60,
+      scMaxEachPostBytes: 32768,
+      scStreamUpServerSecs: 25,
+      sessionIDLength: 12,
+      sessionIDTable: 'Base62',
+      xmux: { maxConcurrency: 4, hMaxRequestTimes: 700, hMaxReusableSecs: 2400 },
+    };
+    const form = rawInboundToFormValues({
+      ...vlessRow,
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: wrapped ? { extra: ranges } : ranges,
+      },
+    });
+    const parsed = InboundFormSchema.parse({ ...form, remark: 'edited' });
+    const payload = formValuesToWirePayload(parsed);
+    expect(payload.remark).toBe('edited');
+    expect(JSON.parse(payload.streamSettings).xhttpSettings).toMatchObject({
+      xPaddingBytes: '512',
+      scMinPostsIntervalMs: '60',
+      scMaxEachPostBytes: '32768',
+      scStreamUpServerSecs: '25',
+      sessionIDLength: '12',
+      xmux: { maxConcurrency: '4', hMaxRequestTimes: '700', hMaxReusableSecs: '2400' },
+    });
+  },
+);

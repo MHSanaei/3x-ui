@@ -15,6 +15,9 @@ export function xhttpUplinkMethods(mode?: string) {
   ];
 }
 
+// Xray accepts an int32 or a range string. Text controls use the string form.
+const rangeText = z.union([z.string(), z.int32().transform(String)]);
+
 // XMUX is the connection-multiplexing layer xHTTP uses to fan out
 // parallel requests over a small pool of upstream connections. Fields
 // are strings because they accept dash-range values like '16-32'.
@@ -24,11 +27,11 @@ export function xhttpUplinkMethods(mode?: string) {
 // default resurrected on load made every re-save silently delete the
 // user's maxConcurrency.
 export const XHttpXmuxSchema = z.object({
-  maxConcurrency: z.string().default('16-32'),
+  maxConcurrency: rangeText.default('16-32'),
   maxConnections: z.union([z.string(), z.number()]).default(0),
   cMaxReuseTimes: z.union([z.string(), z.number()]).default(0),
-  hMaxRequestTimes: z.string().default('600-900'),
-  hMaxReusableSecs: z.string().default('1800-3000'),
+  hMaxRequestTimes: rangeText.default('600-900'),
+  hMaxReusableSecs: rangeText.default('1800-3000'),
   hKeepAlivePeriod: z.number().int().min(0).default(0),
 });
 export type XHttpXmux = z.infer<typeof XHttpXmuxSchema>;
@@ -114,7 +117,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     path: z.string().default('/'),
     host: z.string().default(''),
     mode: XHttpModeSchema.default('auto'),
-    xPaddingBytes: z.string().default('100-1000'),
+    xPaddingBytes: rangeText.default('100-1000'),
     xPaddingObfsMode: z.boolean().default(false),
     xPaddingKey: z.string().default(''),
     xPaddingHeader: z.string().default(''),
@@ -126,7 +129,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     // ASCII charset. sessionIDLength: dash-range string (e.g. '8-16'); only
     // honored when a table is set. xray-core enforces the room-size minimum.
     sessionIDTable: z.string().default(''),
-    sessionIDLength: z.string().default(''),
+    sessionIDLength: rangeText.default(''),
     seqPlacement: z.string().default(''),
     seqKey: z.string().default(''),
     uplinkDataPlacement: z.string().default(''),
@@ -139,7 +142,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(
       .default(''),
     noSSEHeader: z.boolean().default(false),
     scMaxBufferedPosts: z.number().int().min(0).default(30),
-    scStreamUpServerSecs: z.string().default('20-80'),
+    scStreamUpServerSecs: rangeText.default('20-80'),
     serverMaxHeaderBytes: z.number().int().min(0).default(0),
     uplinkHTTPMethod: z.string().default(''),
     headers: WsHeaderMapSchema.default({}),
@@ -150,7 +153,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     // them in share-link `extra` blobs so the same xhttp config can
     // round-trip on both sides.
     // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
-    scMinPostsIntervalMs: z.string().default(''),
+    scMinPostsIntervalMs: rangeText.default(''),
     uplinkChunkSize: XHttpChunkSizeSchema,
     noGRPCHeader: z.boolean().default(false),
     xmux: XHttpXmuxSchema.optional(),
