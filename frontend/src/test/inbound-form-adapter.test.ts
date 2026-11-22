@@ -480,7 +480,7 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
     expect(xhttp.enableXmux).toBe(true);
     const xmux = xhttp.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');
-    expect(xmux.maxConnections).toBe(0);
+    expect(xmux).not.toHaveProperty('maxConnections');
   });
 
   it('formValuesToWirePayload keeps maxConcurrency on an unedited re-save', () => {
@@ -557,7 +557,7 @@ it.each([true, false])(
       scMaxEachPostBytes: '32768',
       scStreamUpServerSecs: '25',
       sessionIDLength: '12',
-      xmux: { maxConcurrency: '4', hMaxRequestTimes: '700', hMaxReusableSecs: '2400' },
+      xmux: { maxConcurrency: 4, hMaxRequestTimes: 700, hMaxReusableSecs: 2400 },
     });
   },
 );

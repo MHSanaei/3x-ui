@@ -111,7 +111,9 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     extra.sessionKey = extra.sessionIDKey;
   }
 
-  if (xhttp.xmux) extra.xmux = resolveXmuxExclusivity(xhttp.xmux);
+  if (xhttp.xmux && Object.keys(xhttp.xmux).length > 0) {
+    extra.xmux = resolveXmuxExclusivity(xhttp.xmux);
+  }
   if (xhttp.downloadSettings && Object.keys(xhttp.downloadSettings).length > 0) {
     extra.downloadSettings = xhttp.downloadSettings;
   }

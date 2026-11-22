@@ -27,10 +27,8 @@ import {
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 import { tlsCertUsesFiles } from '@/schemas/protocols/security/tls';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
-import { XHttpStreamSettingsSchema, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
-
-const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -195,7 +193,6 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
       const xmux = xhttp.xmux;
       if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
         xhttp.enableXmux = true;
-        xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Record<string, unknown>) };
       }
     }
     const so = streamRecord.sockopt;
