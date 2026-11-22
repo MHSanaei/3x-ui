@@ -11,7 +11,7 @@ const root = 'streamSettings.xhttpSettings.downloadSettings';
 export function XhttpDownloadForm({ mode }: { mode?: string }) {
   const { t } = useTranslation();
   const id = useId();
-  const { control, setValue, unregister } = useFormContext();
+  const { control, getValues, setValue, unregister } = useFormContext();
   const download = useWatch({ control, name: root });
   const security = download?.security;
   const securityBlock = security === 'reality' ? 'realitySettings' : 'tlsSettings';
@@ -25,9 +25,29 @@ export function XhttpDownloadForm({ mode }: { mode?: string }) {
           disabled={!download && mode === 'stream-one'}
           onChange={(enabled) => {
             if (enabled) {
+              const upload = getValues('streamSettings.xhttpSettings') ?? {};
+              const xhttpSettings: Record<string, unknown> = { path: upload.path || '/' };
+              for (const key of [
+                'host',
+                'headers',
+                'sessionIDPlacement',
+                'sessionIDKey',
+                'sessionIDTable',
+                'sessionIDLength',
+                'seqPlacement',
+                'seqKey',
+                'xPaddingBytes',
+                'xPaddingObfsMode',
+                'xPaddingKey',
+                'xPaddingHeader',
+                'xPaddingPlacement',
+                'xPaddingMethod',
+              ]) {
+                if (upload[key] !== undefined) xhttpSettings[key] = structuredClone(upload[key]);
+              }
               setValue(
                 root,
-                { network: 'xhttp', port: 443, security: 'tls', xhttpSettings: { path: '/' } },
+                { network: 'xhttp', port: 443, security: 'tls', xhttpSettings },
                 { shouldDirty: true },
               );
             } else {
@@ -92,7 +112,13 @@ export function XhttpDownloadForm({ mode }: { mode?: string }) {
                     : 'password')
                 }
                 label={t('pages.inbounds.publicKey')}
-                rules={{ required: true }}
+                rules={{
+                  required: true,
+                  pattern: {
+                    value: /^[A-Za-z0-9_-]{43}$/,
+                    message: 'Enter a 32-byte unpadded base64url REALITY public key.',
+                  },
+                }}
               >
                 <Input />
               </FormField>
@@ -105,6 +131,12 @@ export function XhttpDownloadForm({ mode }: { mode?: string }) {
               <FormField
                 name={root + '.realitySettings.shortId'}
                 label={t('pages.xray.outboundForm.shortId')}
+                rules={{
+                  pattern: {
+                    value: /^(?:[0-9a-fA-F]{2}){0,8}$/,
+                    message: 'Enter up to 8 hexadecimal bytes.',
+                  },
+                }}
               >
                 <Input />
               </FormField>

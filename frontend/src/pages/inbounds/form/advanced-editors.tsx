@@ -13,8 +13,8 @@ import {
 function normalizeAdvancedStream(stream: unknown): unknown {
   if (!stream || typeof stream !== 'object' || !('xhttpSettings' in stream)) return stream;
   const xhttp = stream.xhttpSettings;
-  if (!xhttp || typeof xhttp !== 'object' || !('extra' in xhttp)) return stream;
-  const flat = flattenXhttpExtra(xhttp);
+  if (!xhttp || typeof xhttp !== 'object' || Array.isArray(xhttp)) return stream;
+  const flat = flattenXhttpExtra(xhttp as Record<string, unknown>);
   if (flat.xmux) flat.enableXmux = true;
   return { ...stream, xhttpSettings: flat };
 }

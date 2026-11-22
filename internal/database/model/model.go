@@ -308,6 +308,31 @@ func healVersionField(raw string, path []string) (string, bool) {
 	return string(out), true
 }
 
+// NormalizeXhttpExtra applies Xray's replacement semantics to a decoded stream.
+func NormalizeXhttpExtra(stream map[string]any) bool {
+	xh, _ := stream["xhttpSettings"].(map[string]any)
+	raw, wrapped := xh["extra"]
+	if !wrapped {
+		return false
+	}
+	inner, ok := raw.(map[string]any)
+	if !ok && raw != nil {
+		return false
+	}
+	flat := make(map[string]any, len(inner)+3)
+	for k, v := range inner {
+		flat[k] = v
+	}
+	for _, k := range []string{"host", "path", "mode"} {
+		delete(flat, k)
+		if v, ok := xh[k]; ok {
+			flat[k] = v
+		}
+	}
+	stream["xhttpSettings"] = flat
+	return true
+}
+
 // StripInboundXhttpClientFields removes xHTTP knobs that belong on the
 // client dialer and subscription share-link extras only. xray-core's XHTTP
 // inbound listener does not consume them; the panel still stores them on
@@ -323,8 +348,9 @@ func StripInboundXhttpClientFields(streamSettings string) (string, bool) {
 	if stream["network"] != "xhttp" {
 		return streamSettings, false
 	}
+	changed := NormalizeXhttpExtra(stream)
 	xhttp, ok := stream["xhttpSettings"].(map[string]any)
-	if !ok || len(xhttp) == 0 {
+	if !ok {
 		return streamSettings, false
 	}
 	clientOnly := []string{
@@ -334,7 +360,6 @@ func StripInboundXhttpClientFields(streamSettings string) (string, bool) {
 		"uplinkChunkSize",
 		"noGRPCHeader",
 	}
-	changed := false
 	for _, key := range clientOnly {
 		if _, has := xhttp[key]; has {
 			delete(xhttp, key)

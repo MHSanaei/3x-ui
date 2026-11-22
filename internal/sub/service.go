@@ -1909,6 +1909,7 @@ func findClientIndex(clients []model.Client, email string) int {
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
 	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	model.NormalizeXhttpExtra(stream)
 	return stream
 }
 

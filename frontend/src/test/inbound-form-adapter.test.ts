@@ -502,6 +502,22 @@ describe('XHTTP separate download', () => {
     xhttpSettings: { path: '/down' },
   };
 
+  it.each([
+    ['stream-one', downloadSettings],
+    ['auto', { ...downloadSettings, network: 'tcp' }],
+    ['auto', { ...downloadSettings, security: 'reality', realitySettings: { password: 'abc' } }],
+  ] as const)('rejects invalid separate download settings before save', (mode, download) => {
+    const form = rawInboundToFormValues({
+      ...vlessRow,
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: { mode, extra: { downloadSettings: download } },
+      },
+    });
+    expect(InboundFormSchema.safeParse(form).success).toBe(false);
+  });
+
   it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {
     const tuning = {
       downloadSettings,

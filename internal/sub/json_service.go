@@ -765,8 +765,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 }
 
 func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {
-	var streamSettings map[string]any
-	if err := json.Unmarshal([]byte(stream), &streamSettings); err != nil || streamSettings == nil {
+	streamSettings := unmarshalStreamSettings(stream)
+	if streamSettings == nil {
 		streamSettings = map[string]any{}
 	}
 	security, _ := streamSettings["security"].(string)

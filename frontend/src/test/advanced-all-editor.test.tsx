@@ -140,19 +140,23 @@ function XhttpHarness({ slice }: { slice: boolean }) {
   );
 }
 
-it.each([true, false])('edits a pasted wrapped download in the form (slice=%s)', async (slice) => {
+it.each([
+  [true, true],
+  [true, false],
+  [false, true],
+  [false, false],
+])('edits pasted XMUX and download settings (slice=%s, wrapped=%s)', async (slice, wrapped) => {
   render(<XhttpHarness slice={slice} />);
   const json = editor();
   const pasted = JSON.parse(json.value);
+  const tuning = {
+    futureOption: { strategy: 'keep' },
+    xmux: { maxConnections: 9 },
+    downloadSettings: { network: 'xhttp', address: 'old.example', port: 443 },
+  };
   pasted.streamSettings = {
     network: 'xhttp',
-    xhttpSettings: {
-      path: '/up',
-      extra: {
-        futureOption: { strategy: 'keep' },
-        downloadSettings: { network: 'xhttp', address: 'old.example', port: 443 },
-      },
-    },
+    xhttpSettings: { path: '/up', ...(wrapped ? { extra: tuning } : tuning) },
   };
   fireEvent.change(json, { target: { value: JSON.stringify(pasted) } });
   expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
@@ -162,6 +166,8 @@ it.each([true, false])('edits a pasted wrapped download in the form (slice=%s)',
   expect(saved).toMatchObject({
     path: '/up',
     futureOption: { strategy: 'keep' },
+    xmux: { maxConnections: 9 },
+    enableXmux: true,
     downloadSettings: { address: 'new.example' },
   });
   expect(saved).not.toHaveProperty('extra');

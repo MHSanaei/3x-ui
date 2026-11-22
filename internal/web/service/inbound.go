@@ -716,6 +716,9 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 // validateInboundBuildInput refuses what xray-core's in-process build would expand without
 // bound; certificate paths are checked only where this host is the one opening them.
 func validateInboundBuildInput(inbound *model.Inbound) error {
+	if err := validateXhttpDownload(inbound.StreamSettings); err != nil {
+		return err
+	}
 	if err := xray.CheckStreamBuildCost([]byte(inbound.StreamSettings)); err != nil {
 		return err
 	}

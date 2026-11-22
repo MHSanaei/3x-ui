@@ -7,7 +7,16 @@ import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm'
 
 function Harness({ mode, existing }: { mode: string; existing?: object }) {
   const form = useForm({
-    defaultValues: { streamSettings: { xhttpSettings: { downloadSettings: existing } } },
+    defaultValues: {
+      streamSettings: {
+        xhttpSettings: {
+          path: '/up',
+          sessionIDPlacement: 'header',
+          sessionIDKey: 'X-Session',
+          downloadSettings: existing,
+        },
+      },
+    },
   });
   const values = useWatch({ control: form.control });
   return (
@@ -23,7 +32,13 @@ describe('separate XHTTP download', () => {
     render(<Harness mode="packet-up" />);
     const toggle = screen.getByRole('switch');
     fireEvent.click(toggle);
-    expect(screen.getByTestId('wire').textContent).toContain('"network":"xhttp"');
+    expect(
+      JSON.parse(screen.getByTestId('wire').textContent!).streamSettings.xhttpSettings
+        .downloadSettings,
+    ).toMatchObject({
+      network: 'xhttp',
+      xhttpSettings: { path: '/up', sessionIDPlacement: 'header', sessionIDKey: 'X-Session' },
+    });
     fireEvent.click(toggle);
     expect(screen.getByTestId('wire').textContent).not.toContain('downloadSettings');
   });

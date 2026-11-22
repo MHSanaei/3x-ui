@@ -67,7 +67,7 @@ export const XHTTP_SESSION_ID_TABLES = [
 export function flattenXhttpExtra(raw: Record<string, unknown>): Record<string, unknown> {
   const { extra, host, path, mode } = raw;
   const flat: Record<string, unknown> =
-    extra && typeof extra === 'object' && !Array.isArray(extra)
+    extra === null || (typeof extra === 'object' && !Array.isArray(extra))
       ? { ...extra, host, path, mode }
       : { ...raw };
   if (flat.xmux === null) delete flat.xmux;
