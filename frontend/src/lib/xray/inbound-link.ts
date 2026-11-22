@@ -14,6 +14,7 @@ import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-pro
 import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
+import { resolveXmuxExclusivity } from './stream-wire-normalize';
 import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { hasWgQuickHook, joinConfLines } from './conf-lines';
@@ -87,12 +88,14 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     'uplinkDataPlacement',
     'uplinkDataKey',
     'scMaxEachPostBytes',
+    'scMinPostsIntervalMs',
   ] as const;
   // Values matching xray-core's own defaults stay off the wire — old panels
   // seeded them into every config and the literal values are a DPI
   // fingerprint (#5141). Mirrors the sub service's filter.
   const coreDefaults: Partial<Record<(typeof stringFields)[number], string>> = {
     scMaxEachPostBytes: '1000000',
+    scMinPostsIntervalMs: '30',
   };
   for (const k of stringFields) {
     const v = xhttp[k];
@@ -108,6 +111,7 @@ function buildXhttpExtra(xhttp: XHttpStreamSettings | undefined): Record<string,
     extra.sessionKey = extra.sessionIDKey;
   }
 
+  if (xhttp.xmux) extra.xmux = resolveXmuxExclusivity(xhttp.xmux);
   if (xhttp.downloadSettings && Object.keys(xhttp.downloadSettings).length > 0) {
     extra.downloadSettings = xhttp.downloadSettings;
   }

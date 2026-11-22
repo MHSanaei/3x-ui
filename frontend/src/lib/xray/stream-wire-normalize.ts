@@ -62,7 +62,7 @@ export function int32RangeUpper(v: unknown): number {
 // and maxConcurrency. A positive maxConnections is an explicit opt-in to
 // connection-pool mode — honor it and drop the leftover maxConcurrency
 // default that load-time hydration backfills onto older saved configs.
-function resolveXmuxExclusivity(xmux: Record<string, unknown>): Record<string, unknown> {
+export function resolveXmuxExclusivity(xmux: Record<string, unknown>): Record<string, unknown> {
   if (int32RangeUpper(xmux.maxConnections) > 0 && int32RangeUpper(xmux.maxConcurrency) > 0) {
     const out = { ...xmux };
     delete out.maxConcurrency;

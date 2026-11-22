@@ -10,8 +10,9 @@ export function xhttpUplinkMethods(mode?: string) {
     { value: '', label: 'Default (POST)' },
     ...['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map((value) => ({ value, label: value })),
     { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
-    // HEAD cannot return the response body required by a single bidirectional stream.
-    { value: 'HEAD', label: 'HEAD', disabled: mode !== 'packet-up' && mode !== 'stream-up' },
+    // OpenStream drains the upload response before closing its request body.
+    // HEAD has no response body to keep a streaming upload open.
+    { value: 'HEAD', label: 'HEAD (packet-up only)', disabled: mode !== 'packet-up' },
   ];
 }
 
@@ -71,8 +72,12 @@ export const XHTTP_SESSION_ID_TABLES = [
 // object. The panel edits the equivalent flat syntax.
 export function flattenXhttpExtra(raw: Record<string, unknown>): Record<string, unknown> {
   const { extra, host, path, mode } = raw;
-  if (!extra || typeof extra !== 'object' || Array.isArray(extra)) return { ...raw };
-  return { ...extra, host, path, mode };
+  const flat: Record<string, unknown> =
+    extra && typeof extra === 'object' && !Array.isArray(extra)
+      ? { ...extra, host, path, mode }
+      : { ...raw };
+  if (flat.downloadSettings === null) delete flat.downloadSettings;
+  return flat;
 }
 
 function migrateLegacyXhttp(v: unknown): unknown {

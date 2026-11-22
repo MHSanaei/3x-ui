@@ -503,7 +503,13 @@ describe('XHTTP separate download', () => {
   };
 
   it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {
-    const tuning = { downloadSettings, noGRPCHeader: true, uplinkChunkSize: '512-1024' };
+    const tuning = {
+      downloadSettings,
+      noGRPCHeader: true,
+      uplinkChunkSize: '512-1024',
+      scMinPostsIntervalMs: '60',
+      xmux: { maxConnections: 4 },
+    };
     const advanced = { ...tuning, futureOption: { weights: [1, 2] } };
     const xhttpSettings = { path: '/up', ...(wrapped ? { extra: advanced } : advanced) };
     const stream = { network: 'xhttp', security: 'none', xhttpSettings };
@@ -517,6 +523,8 @@ describe('XHTTP separate download', () => {
       clientId: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
     });
     expect(parseVlessLink(url)).toMatchObject({ streamSettings: { xhttpSettings: tuning } });
+    const extra = JSON.parse(new URL(url).searchParams.get('extra')!);
+    expect(extra.xmux).not.toHaveProperty('maxConcurrency');
   });
 });
 
@@ -551,5 +559,22 @@ it.each([true, false])(
       sessionIDLength: '12',
       xmux: { maxConcurrency: '4', hMaxRequestTimes: '700', hMaxReusableSecs: '2400' },
     });
+  },
+);
+
+it.each([true, false])(
+  'treats explicit null downloadSettings as disabled (wrapped=%s)',
+  (wrapped) => {
+    const tuning = { downloadSettings: null, xPaddingBytes: '200-300' };
+    const stream = {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: wrapped ? { extra: tuning } : tuning,
+    };
+    const form = rawInboundToFormValues({ ...vlessRow, streamSettings: JSON.stringify(stream) });
+    const parsed = InboundFormSchema.parse({ ...form, remark: 'edited' });
+    const saved = JSON.parse(formValuesToWirePayload(parsed).streamSettings);
+    expect(saved.xhttpSettings).not.toHaveProperty('downloadSettings');
+    expect(saved.xhttpSettings.xPaddingBytes).toBe('200-300');
   },
 );
