@@ -1133,11 +1133,16 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if ka := client.KeepAliveSeconds(); ka > 0 {
 		params["keepalive"] = strconv.Itoa(ka)
 	}
+	if finalmask, ok := unmarshalStreamSettings(inbound.StreamSettings)["finalmask"].(map[string]any); ok {
+		applyFinalMaskParams(finalmask, params)
+	}
 	endpoints := s.advertisedEndpoints(inbound)
 	links := make([]string, 0, len(endpoints))
 	for _, e := range endpoints {
 		link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(e.Address, e.Port))
-		links = append(links, buildLinkWithParams(link, params, s.endpointRemark(inbound, email, e.ep, "")))
+		epParams := cloneStringMap(params)
+		applyEndpointFinalMask(e, epParams)
+		links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, e.ep, "")))
 	}
 	return strings.Join(links, "\n")
 }
