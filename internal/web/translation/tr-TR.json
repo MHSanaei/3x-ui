@@ -553,6 +553,7 @@
         "streamUpServer": "Stream-Up Sunucusu",
         "serverMaxHeaderBytes": "Sunucu Maks. Başlık Byte'ı",
         "paddingBytes": "Dolgu (Padding) Byte'ı",
+        "separateDownload": "Ayrı indirme kanalı kullan",
         "uplinkHttpMethod": "Uplink HTTP Yöntemi",
         "paddingObfsMode": "Dolgu (Padding) Obfs Modu",
         "paddingKey": "Dolgu (Padding) Anahtarı",

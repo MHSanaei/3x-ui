@@ -604,6 +604,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "サーバー最大ヘッダーバイト",
         "paddingBytes": "Padding バイト",
+        "separateDownload": "ダウンロードに別の経路を使用",
         "uplinkHttpMethod": "Uplink HTTP メソッド",
         "paddingObfsMode": "Padding 難読化モード",
         "paddingKey": "Padding Key",

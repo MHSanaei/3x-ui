@@ -553,6 +553,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Máx. bytes cabecera servidor",
         "paddingBytes": "Bytes de Padding",
+        "separateDownload": "Usar un canal de descarga separado",
         "uplinkHttpMethod": "Método HTTP Uplink",
         "paddingObfsMode": "Modo obfs de Padding",
         "paddingKey": "Padding Key",

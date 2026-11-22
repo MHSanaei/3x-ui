@@ -2,11 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { AutoComplete, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm';
 import { HeaderMapEditor } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
 import { int32RangeUpper } from '@/lib/xray/stream-wire-normalize';
-import { XHTTP_SESSION_ID_TABLES } from '@/schemas/protocols/stream/xhttp';
+import { xhttpUplinkMethods, XHTTP_SESSION_ID_TABLES } from '@/schemas/protocols/stream/xhttp';
 
 import { MODE_OPTIONS } from '../outbound-form-constants';
 
@@ -40,6 +41,11 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
   const uplinkDataPlacement = useWatch({ control, name: `${XH}.uplinkDataPlacement` }) as
     | string
     | undefined;
+  const method = useWatch({ control, name: 'streamSettings.xhttpSettings.uplinkHTTPMethod' });
+  const hasDownload = !!useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.downloadSettings',
+  });
   const enableXmux = !!useWatch({ control, name: `${XH}.enableXmux` });
 
   function onXmuxMaxConcurrencyChange(value: unknown) {
@@ -68,7 +74,15 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
         label={t('pages.inbounds.info.mode')}
         name={['streamSettings', 'xhttpSettings', 'mode']}
       >
-        <Select options={MODE_OPTIONS} />
+        <Select
+          options={MODE_OPTIONS.map((option) => ({
+            ...option,
+            disabled:
+              (option.value === 'stream-one' && hasDownload) ||
+              !!xhttpUplinkMethods(option.value).find((option) => option.value === method)
+                ?.disabled,
+          }))}
+        />
       </FormField>
       <FormField
         label={t('pages.inbounds.form.paddingBytes')}
@@ -141,16 +155,9 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
         label={t('pages.inbounds.form.uplinkHttpMethod')}
         name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
       >
-        <Select
-          placeholder="Default (POST)"
-          options={[
-            { value: '', label: 'Default (POST)' },
-            { value: 'POST', label: 'POST' },
-            { value: 'PUT', label: 'PUT' },
-            { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
-          ]}
-        />
+        <Select placeholder="Default (POST)" options={xhttpUplinkMethods(mode)} />
       </FormField>
+      <XhttpDownloadForm mode={mode} />
 
       {/* Session + sequence + uplinkData placements:
           three orthogonal slots Xray uses to thread
@@ -267,13 +274,13 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
                 label={t('pages.xray.outboundForm.uplinkChunkSize')}
                 name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
               >
-                <InputNumber min={0} placeholder="0 (unlimited)" style={{ width: '100%' }} />
+                <Input placeholder="512-1024" />
               </FormField>
             </>
           )}
         </>
       )}
-      {(mode === 'stream-up' || mode === 'stream-one') && (
+      {(mode === 'auto' || mode === 'stream-up' || mode === 'stream-one') && (
         <FormField
           label={t('pages.xray.outboundForm.noGrpcHeader')}
           name={['streamSettings', 'xhttpSettings', 'noGRPCHeader']}

@@ -5,6 +5,16 @@ import { WsHeaderMapSchema } from '@/schemas/protocols/stream/ws';
 export const XHttpModeSchema = z.enum(['auto', 'packet-up', 'stream-up', 'stream-one']);
 export type XHttpMode = z.infer<typeof XHttpModeSchema>;
 
+export function xhttpUplinkMethods(mode?: string) {
+  return [
+    { value: '', label: 'Default (POST)' },
+    ...['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map((value) => ({ value, label: value })),
+    { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
+    // HEAD cannot return the response body required by a single bidirectional stream.
+    { value: 'HEAD', label: 'HEAD', disabled: mode !== 'packet-up' && mode !== 'stream-up' },
+  ];
+}
+
 // XMUX is the connection-multiplexing layer xHTTP uses to fan out
 // parallel requests over a small pool of upstream connections. Fields
 // are strings because they accept dash-range values like '16-32'.

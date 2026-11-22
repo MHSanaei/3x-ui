@@ -553,6 +553,7 @@
         "streamUpServer": "سرور Stream-Up",
         "serverMaxHeaderBytes": "حداکثر بایت هدر سرور",
         "paddingBytes": "بایت‌های Padding",
+        "separateDownload": "استفاده از مسیر دانلود جداگانه",
         "uplinkHttpMethod": "متد HTTP آپلینک",
         "paddingObfsMode": "حالت ابهام Padding",
         "paddingKey": "کلید Padding",

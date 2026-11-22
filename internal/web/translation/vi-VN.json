@@ -604,6 +604,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Byte header máy chủ tối đa",
         "paddingBytes": "Byte Padding",
+        "separateDownload": "Dùng kênh tải xuống riêng",
         "uplinkHttpMethod": "Uplink HTTP method",
         "paddingObfsMode": "Chế độ obfs Padding",
         "paddingKey": "Padding Key",

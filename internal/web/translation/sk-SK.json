@@ -555,6 +555,7 @@
         "streamUpServer": "Server na odosielanie dát",
         "serverMaxHeaderBytes": "Najväčšia veľkosť hlavičiek servera",
         "paddingBytes": "Počet bajtov výplne",
+        "separateDownload": "Použiť samostatný kanál na sťahovanie",
         "uplinkHttpMethod": "Metóda HTTP pri odosielaní",
         "paddingObfsMode": "Režim maskovania výplne",
         "paddingKey": "Kľúč výplne",

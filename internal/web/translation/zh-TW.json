@@ -553,6 +553,7 @@
         "streamUpServer": "Stream-Up 伺服器",
         "serverMaxHeaderBytes": "伺服器最大標頭位元組",
         "paddingBytes": "Padding 位元組",
+        "separateDownload": "使用獨立下載通道",
         "uplinkHttpMethod": "Uplink HTTP 方法",
         "paddingObfsMode": "Padding 混淆模式",
         "paddingKey": "Padding Key",

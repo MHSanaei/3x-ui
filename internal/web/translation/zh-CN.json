@@ -603,6 +603,7 @@
         "streamUpServer": "Stream-Up 服务器",
         "serverMaxHeaderBytes": "服务器最大头字节",
         "paddingBytes": "Padding 字节",
+        "separateDownload": "使用独立下载通道",
         "uplinkHttpMethod": "Uplink HTTP 方法",
         "paddingObfsMode": "Padding 混淆模式",
         "paddingKey": "Padding Key",

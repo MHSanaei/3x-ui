@@ -553,6 +553,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Server Max Header Bytes",
         "paddingBytes": "Padding Bytes",
+        "separateDownload": "Використовувати окремий канал завантаження",
         "uplinkHttpMethod": "HTTP-метод Uplink",
         "paddingObfsMode": "Padding Obfs Mode",
         "paddingKey": "Padding Key",
