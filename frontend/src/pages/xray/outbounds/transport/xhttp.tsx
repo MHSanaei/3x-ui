@@ -4,10 +4,14 @@ import { useFormContext, useWatch } from 'react-hook-form';
 
 import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm';
 import { HeaderMapEditor } from '@/components/form';
-import { FormField } from '@/components/form/rhf';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
 import { int32RangeUpper } from '@/lib/xray/stream-wire-normalize';
-import { xhttpUplinkMethods, XHTTP_SESSION_ID_TABLES } from '@/schemas/protocols/stream/xhttp';
+import {
+  XHttpChunkSizeSchema,
+  xhttpUplinkMethods,
+  XHTTP_SESSION_ID_TABLES,
+} from '@/schemas/protocols/stream/xhttp';
 
 import { MODE_OPTIONS } from '../outbound-form-constants';
 
@@ -273,6 +277,7 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
               <FormField
                 label={t('pages.xray.outboundForm.uplinkChunkSize')}
                 name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
+                rules={{ validate: rhfZodValidate(XHttpChunkSizeSchema) }}
               >
                 <Input placeholder="512-1024" />
               </FormField>

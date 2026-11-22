@@ -504,11 +504,12 @@ describe('XHTTP separate download', () => {
 
   it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {
     const tuning = { downloadSettings, noGRPCHeader: true, uplinkChunkSize: '512-1024' };
-    const xhttpSettings = { path: '/up', ...(wrapped ? { extra: tuning } : tuning) };
+    const advanced = { ...tuning, futureOption: { weights: [1, 2] } };
+    const xhttpSettings = { path: '/up', ...(wrapped ? { extra: advanced } : advanced) };
     const stream = { network: 'xhttp', security: 'none', xhttpSettings };
     const form = rawInboundToFormValues({ ...vlessRow, streamSettings: JSON.stringify(stream) });
     const saved = JSON.parse(formValuesToWirePayload(InboundFormSchema.parse(form)).streamSettings);
-    expect(saved.xhttpSettings).toMatchObject({ path: '/up', ...tuning });
+    expect(saved.xhttpSettings).toMatchObject({ path: '/up', ...advanced });
     const inbound = InboundSchema.parse({ ...vlessRow, streamSettings: saved });
     const url = genVlessLink({
       inbound,

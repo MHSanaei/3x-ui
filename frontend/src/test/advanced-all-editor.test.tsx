@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
-import { AdvancedAllEditor } from '@/pages/inbounds/form/advanced-editors';
+import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm';
+import { AdvancedAllEditor, AdvancedSliceEditor } from '@/pages/inbounds/form/advanced-editors';
 
 vi.mock('@/components/form', () => ({
   JsonEditor: ({ value, onChange }: { value: string; onChange: (next: string) => void }) => (
@@ -123,4 +124,45 @@ describe('AdvancedAllEditor JSON buffer (#6854)', () => {
     expect(JSON.parse(input.value)).toMatchObject({ port: 8443, tag: 'auto-8443' });
     expect(input.value).toContain('"port": 8443,\n\n');
   });
+});
+
+function XhttpHarness({ slice }: { slice: boolean }) {
+  const methods = useForm({ defaultValues: { streamSettings: { network: 'xhttp' } } });
+  return (
+    <FormProvider {...methods}>
+      {slice ? (
+        <AdvancedSliceEditor path="streamSettings" wrapKey="streamSettings" />
+      ) : (
+        <AdvancedAllEditor streamEnabled sniffingEnabled={false} />
+      )}
+      <XhttpDownloadForm mode="packet-up" />
+    </FormProvider>
+  );
+}
+
+it.each([true, false])('edits a pasted wrapped download in the form (slice=%s)', async (slice) => {
+  render(<XhttpHarness slice={slice} />);
+  const json = editor();
+  const pasted = JSON.parse(json.value);
+  pasted.streamSettings = {
+    network: 'xhttp',
+    xhttpSettings: {
+      path: '/up',
+      extra: {
+        futureOption: { strategy: 'keep' },
+        downloadSettings: { network: 'xhttp', address: 'old.example', port: 443 },
+      },
+    },
+  };
+  fireEvent.change(json, { target: { value: JSON.stringify(pasted) } });
+  expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
+  fireEvent.change(screen.getByDisplayValue('old.example'), { target: { value: 'new.example' } });
+  await flushFormEffects();
+  const saved = JSON.parse(json.value).streamSettings.xhttpSettings;
+  expect(saved).toMatchObject({
+    path: '/up',
+    futureOption: { strategy: 'keep' },
+    downloadSettings: { address: 'new.example' },
+  });
+  expect(saved).not.toHaveProperty('extra');
 });

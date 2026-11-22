@@ -9,7 +9,7 @@ import { Wireguard } from '@/utils';
 import { formValuesToWirePayload, rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
 import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
-import { XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
+import { XHttpChunkSizeSchema, XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms/outbound-form';
 import {
   canEnableReality,
@@ -349,6 +349,15 @@ export default function OutboundFormModal({
     } else {
       if (!(await methods.trigger())) return;
       values = methods.getValues();
+    }
+    if (values.streamSettings?.network === 'xhttp') {
+      const result = XHttpChunkSizeSchema.safeParse(
+        values.streamSettings.xhttpSettings?.uplinkChunkSize,
+      );
+      if (!result.success) {
+        messageApi.error(result.error.issues[0].message);
+        return;
+      }
     }
     const tagValue = (values.tag ?? '').trim();
     if (!tagValue) {

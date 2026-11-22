@@ -86,6 +86,27 @@ function migrateLegacyXhttp(v: unknown): unknown {
   return o;
 }
 
+const maxChunkSize = 0x7fffffff;
+const chunkSizeMessage =
+  'Enter a nonnegative integer or byte range, e.g. 512-1024 (maximum 2147483647).';
+export const XHttpChunkSizeSchema = z
+  .union(
+    [
+      z.number().int().min(0).max(maxChunkSize),
+      z
+        .string()
+        .refine(
+          (value) =>
+            value === '' ||
+            (/^\d+(?:-\d+)?$/.test(value) &&
+              value.split('-').every((part) => Number(part) <= maxChunkSize)),
+          chunkSizeMessage,
+        ),
+    ],
+    { error: chunkSizeMessage },
+  )
+  .default(0);
+
 export const XHttpStreamSettingsSchema = z.preprocess(
   migrateLegacyXhttp,
   z.looseObject({
@@ -130,9 +151,7 @@ export const XHttpStreamSettingsSchema = z.preprocess(
     // round-trip on both sides.
     // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
     scMinPostsIntervalMs: z.string().default(''),
-    uplinkChunkSize: z
-      .union([z.number().int().min(0), z.string().regex(/^(?:\d+(?:-\d+)?)?$/)])
-      .default(0),
+    uplinkChunkSize: XHttpChunkSizeSchema,
     noGRPCHeader: z.boolean().default(false),
     xmux: XHttpXmuxSchema.optional(),
     // UI-only toggle controlling whether the XMUX sub-form is expanded.

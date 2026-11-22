@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { flattenXhttpExtra } from '@/schemas/protocols/stream/xhttp';
 import { JsonEditor } from '@/components/form';
 import {
   pruneEmpty,
@@ -8,6 +9,15 @@ import {
   normalizeClients,
   dropLegacyOptionalEmpties,
 } from '@/lib/xray/inbound-form-adapter';
+
+function normalizeAdvancedStream(stream: unknown): unknown {
+  if (!stream || typeof stream !== 'object' || !('xhttpSettings' in stream)) return stream;
+  const xhttp = stream.xhttpSettings;
+  if (!xhttp || typeof xhttp !== 'object' || !('extra' in xhttp)) return stream;
+  const flat = flattenXhttpExtra(xhttp);
+  if (flat.xmux) flat.enableXmux = true;
+  return { ...stream, xhttpSettings: flat };
+}
 
 /*
  * Sub-editor for one slice of the form (settings, streamSettings, sniffing).
@@ -71,8 +81,9 @@ export function AdvancedSliceEditor({
             wrapKey && parsed && typeof parsed === 'object' && !Array.isArray(parsed)
               ? ((parsed as Record<string, unknown>)[wrapKey] ?? {})
               : parsed;
-          setValue(path, toWrite);
-          lastEmitRef.current = JSON.stringify(wrapKey ? { [wrapKey]: toWrite } : toWrite, null, 2);
+          const value = path === 'streamSettings' ? normalizeAdvancedStream(toWrite) : toWrite;
+          setValue(path, value);
+          lastEmitRef.current = serialize(value);
         } catch {
           /* invalid JSON; keep buffer, don't push to form */
         }
@@ -228,6 +239,7 @@ export function AdvancedAllEditor({
           setValue('sniffing', parsed.sniffing);
         }
         if (streamEnabled && parsed.streamSettings && typeof parsed.streamSettings === 'object') {
+          parsed.streamSettings = normalizeAdvancedStream(parsed.streamSettings);
           setValue('streamSettings', parsed.streamSettings);
         }
         const canonical = serialize();

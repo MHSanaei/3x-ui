@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import OutboundXhttpForm from '@/pages/xray/outbounds/transport/xhttp';
 import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm';
 
 function Harness({ mode, existing }: { mode: string; existing?: object }) {
@@ -51,4 +52,34 @@ describe('separate XHTTP download', () => {
     render(<Harness mode="stream-one" />);
     expect((screen.getByRole('switch') as HTMLButtonElement).disabled).toBe(true);
   });
+});
+
+it('blocks malformed outbound chunk ranges and accepts a corrected range', async () => {
+  const onSave = vi.fn();
+  function OutboundHarness() {
+    const form = useForm({
+      defaultValues: {
+        streamSettings: {
+          xhttpSettings: { mode: 'packet-up', uplinkDataPlacement: 'header' },
+        },
+      },
+    });
+    return (
+      <FormProvider {...form}>
+        <form onSubmit={form.handleSubmit(onSave)}>
+          <OutboundXhttpForm onXmuxToggle={() => {}} />
+          <button type="submit">Save</button>
+        </form>
+      </FormProvider>
+    );
+  }
+  render(<OutboundHarness />);
+  const chunk = screen.getByPlaceholderText('512-1024');
+  fireEvent.change(chunk, { target: { value: '512-abc' } });
+  fireEvent.click(screen.getByText('Save'));
+  await waitFor(() => expect(chunk.getAttribute('aria-invalid')).toBe('true'));
+  expect(onSave).not.toHaveBeenCalled();
+  fireEvent.change(chunk, { target: { value: '512-1024' } });
+  fireEvent.click(screen.getByText('Save'));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 });
