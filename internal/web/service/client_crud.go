@@ -942,19 +942,9 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 			}).Error; err != nil {
 			return needRestart, err
 		}
-		// No inbound left, so UpdateClientStat never runs; keep the enforcement
-		// row (client_traffics) in step with the record the traffic lifecycle
-		// loop acts on (#7160): expiry/total/reset synced from the edit, usage
-		// counters (up/down) preserved, and enable re-asserted both ways or a
-		// re-enabled client stays off / a disabled one keeps serving.
-		if err := database.GetDB().Model(xray.ClientTraffic{}).
-			Where("email = ?", existing.Email).
-			Updates(map[string]any{
-				"expiry_time": merged.ExpiryTime,
-				"total":       merged.TotalGB,
-				"reset":       merged.Reset,
-				"enable":      merged.Enable,
-			}).Error; err != nil {
+		// No inbound left, so UpdateInboundClient never syncs the enforcement row the
+		// renewal and auto-disable loops read (#7160).
+		if err := inboundSvc.UpdateClientStat(database.GetDB(), existing.Email, merged.ToClient()); err != nil {
 			return needRestart, err
 		}
 	}
