@@ -325,8 +325,7 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 		return
 	}
 
-	outboundSvc := a.probeOutboundService()
-	result, err := outboundSvc.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
+	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode, a.panelDNS())
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -359,8 +358,7 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 		return
 	}
 
-	outboundSvc := a.probeOutboundService()
-	results, err := outboundSvc.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode, a.panelDNS())
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -369,23 +367,20 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 	jsonObj(c, results, nil)
 }
 
-// probeOutboundService returns the outbound test service with the panel's dns
-// section installed (#7131): HTTP-mode probes run in a throwaway xray whose
-// config previously had no "dns" at all, so any hostname that only the panel's
-// own resolvers could see failed the test while working fine in production.
-// A missing or unreadable dns section silently keeps the old OS-resolution
-// behaviour — the test button must not break over a settings read.
-func (a *XraySettingController) probeOutboundService() *outbound.OutboundService {
-	svc := &a.OutboundService
-	if template, err := a.SettingService.GetXrayConfigTemplate(); err == nil {
-		var cfg struct {
-			DNS json_util.RawMessage `json:"dns"`
-		}
-		if json.Unmarshal([]byte(template), &cfg) == nil {
-			svc.SetProbeDNS(cfg.DNS)
-		}
+// panelDNS is the stored template's dns section; the outbound test resolves with it, as the
+// running core does, or a name only the panel's resolvers know fails the test (#7131).
+func (a *XraySettingController) panelDNS() json_util.RawMessage {
+	template, err := a.SettingService.GetXrayConfigTemplate()
+	if err != nil {
+		return nil
 	}
-	return svc
+	var cfg struct {
+		DNS json_util.RawMessage `json:"dns"`
+	}
+	if json.Unmarshal([]byte(template), &cfg) != nil {
+		return nil
+	}
+	return cfg.DNS
 }
 
 // balancerStatus reports the live state (override + strategy picks) of the

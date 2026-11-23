@@ -103,45 +103,23 @@ func probeModeLabel(mode string) string {
 	}
 }
 
-// SanitizeProbeDNS narrows the panel's dns section down to the keys the probe
-// instance can actually use (#7131): resolution only needs servers/hosts/
-// clientIp/queryStrategy/tag-mapping keys, and everything routing-coupled must
-// go — the probe config has no dns inbound and no routing rules besides its
-// own inbound→outbound pairs, so a copied "tag" would point at nothing and a
-// "script" would drop the core into a path the real config never exercises.
-func SanitizeProbeDNS(raw json_util.RawMessage) json_util.RawMessage {
-	if len(raw) == 0 {
-		return nil
-	}
+// probeDNS is the panel's dns section as the throwaway instance can load it: "tag" names
+// routing the probe config does not have, and the core refuses a "script" beside servers.
+func probeDNS(panelDNS json_util.RawMessage) json_util.RawMessage {
 	var dns map[string]any
-	if json.Unmarshal(raw, &dns) != nil || dns == nil {
+	if len(panelDNS) == 0 || json.Unmarshal(panelDNS, &dns) != nil {
 		return nil
 	}
-	// Same refusal rules the real config applies (xray.go's dropRefusedScript
-	// keeps the section but drops the script); for the probe the script is
-	// simply never useful, so drop it unconditionally when it coexists with
-	// anything else, and always drop the routing-coupled keys below.
-	delete(dns, "script")
 	delete(dns, "tag")
-
-	keep := map[string]bool{
-		"servers": true, "hosts": true, "clientIp": true, "queryStrategy": true,
-		"disableFallback": true, "disableFallbackIfMatch": true, "enableParallelQuery": true,
-	}
-	cleaned := make(map[string]any, len(dns))
-	for key, value := range dns {
-		if keep[key] {
-			cleaned[key] = value
-		}
-	}
-	if len(cleaned) == 0 {
+	delete(dns, "script")
+	if len(dns) == 0 {
 		return nil
 	}
-	out, err := json.Marshal(cleaned)
+	cleaned, err := json.Marshal(dns)
 	if err != nil {
 		return nil
 	}
-	return json_util.RawMessage(out)
+	return cleaned
 }
 
 // TestOutbound probes a single outbound; legacy single-test API kept for the
@@ -149,12 +127,12 @@ func SanitizeProbeDNS(raw json_util.RawMessage) json_util.RawMessage {
 // the outbound's endpoints directly, anything else routes a real HTTP request
 // through a temp xray instance (UDP-transport outbounds are always forced to
 // the HTTP probe — a raw dial can't measure them).
-func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
+func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) (*TestOutboundResult, error) {
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
 		return &TestOutboundResult{Mode: probeModeLabel(mode), Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
 	}
-	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode)
+	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode, panelDNS)
 	return results[0], nil
 }
 
@@ -162,7 +140,7 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 // input, in input order, each carrying the outbound's tag. allOutboundsJSON
 // supplies the config context (sockopt.dialerProxy chains); testURL falls
 // back to the default probe URL when empty.
-func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string) ([]*TestOutboundResult, error) {
+func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) ([]*TestOutboundResult, error) {
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(outboundsJSON), &raw); err != nil {
 		return nil, fmt.Errorf("invalid outbounds JSON: %w", err)
@@ -177,13 +155,13 @@ func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, al
 			items[i] = ob
 		}
 	}
-	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode), nil
+	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode, panelDNS), nil
 }
 
 // testOutboundsParsed splits items into the TCP lane (direct dials, bounded
 // worker pool) and the HTTP lane (one shared temp xray instance), runs both,
 // and returns results aligned with items. A nil item marks unparseable input.
-func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string) []*TestOutboundResult {
+func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) []*TestOutboundResult {
 	results := make([]*TestOutboundResult, len(items))
 
 	modeLabel := probeModeLabel(mode)
@@ -291,7 +269,8 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	}
 	defer httpTestSemaphore.Unlock()
 
-	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay, s.probeDNS)
+	dns := probeDNS(panelDNS)
+	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay, dns)
 	if err == nil {
 		return results
 	}
@@ -304,25 +283,12 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	// instance so the broken outbound reports xray's real error and the
 	// rest still get tested. Serial: the poisoned case fails fast (~1s).
 	for _, it := range httpItems {
-		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay, s.probeDNS); ferr != nil {
+		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay, dns); ferr != nil {
 			it.result.Success = false
 			it.result.Error = ferr.Error()
 		}
 	}
 	return results
-}
-
-// withProbeDNS makes the probe instance resolve like the running core: the
-// panel's dns section rides along on every config this batch path builds
-// (#7131). The section is sanitized here as well as at SetProbeDNS, so no
-// call path can smuggle routing-coupled keys into the throwaway config.
-// nil dns leaves configs unchanged.
-func withProbeDNS(items []*httpBatchItem, allOutbounds []any, ports []int, dns json_util.RawMessage) *xray.Config {
-	cfg := buildBatchTestConfig(items, allOutbounds, ports)
-	if clean := SanitizeProbeDNS(dns); len(clean) > 0 {
-		cfg.DNSConfig = clean
-	}
-	return cfg
 }
 
 // runHTTPProbeBatch makes one shared-process attempt for the given items,
@@ -338,7 +304,8 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 	}
 	defer release()
 
-	cfg := withProbeDNS(items, allOutbounds, ports, dns)
+	cfg := buildBatchTestConfig(items, allOutbounds, ports)
+	cfg.DNSConfig = dns
 
 	configPath, err := createTestConfigPath()
 	if err != nil {
