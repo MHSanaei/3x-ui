@@ -61,13 +61,15 @@ dkms status -m amneziawg -v 1.0.0 | grep -q . || dkms add -m amneziawg -v 1.0.0
 dkms build -m amneziawg -v 1.0.0
 dkms install -m amneziawg -v 1.0.0 --force
 
+log "Loading the module"
+modprobe amneziawg
+lsmod | grep -q '^amneziawg' || die "module did not load"
+
 # The panel is sandboxed with ProtectKernelModules=yes, so the boot-time load
 # has to come from modules-load.d; modprobe alone only lasts until reboot (#7186).
 log "Loading the module at boot"
 mkdir -p /etc/modules-load.d
 printf 'amneziawg\n' > /etc/modules-load.d/amneziawg.conf
-modprobe amneziawg
-lsmod | grep -q '^amneziawg' || die "module did not load"
 
 log "Building amneziawg-tools"
 cd "$SRC_DIR/amneziawg-tools/src"
