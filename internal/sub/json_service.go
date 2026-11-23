@@ -157,16 +157,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		// endpoints resolve against this pre-loop snapshot.
 		baseInbound := *inbound
 		if !subReq.hostsFirst {
-			var suppressFallback bool
-			baseEps, suppressFallback = subReq.hostEndpointsForFormat(inbound, "json")
-			if suppressFallback {
-				hasBoundClosed = true
-				if countHiddenClients(clients, seenEmails) {
-					hasEnabledClient = true
-				}
-				continue
-			}
-			if len(baseEps) > 0 {
+			if baseEps = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}

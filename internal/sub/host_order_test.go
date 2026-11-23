@@ -127,7 +127,7 @@ func TestSub_HostOrderFiltersAndFallbacks(t *testing.T) {
 	t.Cleanup(func() { _ = db.Callback().Query().Remove(callback) })
 	for _, format := range []string{"raw", "clash", "json"} {
 		queries = 0
-		want := []string{"format.example.com", "a.example.com", "198.51.100.20", "legacy.example.com"}
+		want := []string{"format.example.com", "a.example.com", "hidden.example.com", "198.51.100.20", "legacy.example.com"}
 		if format == "clash" {
 			want = want[1:]
 		}

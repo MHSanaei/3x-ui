@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -907,6 +909,86 @@ func TestSubscriptionRouteGroupsAreNotCacheable(t *testing.T) {
 			}
 			if cc := resp.Header().Get("Cache-Control"); !strings.Contains(cc, "no-store") {
 				t.Fatalf("Cache-Control = %q (status %d), want a no-store directive", cc, resp.Code)
+			}
+		})
+	}
+}
+
+// Shadowrocket copies the %2B, %2F and %3D of a SIP022 userinfo into the password as they
+// are, so authentication fails; it reads the base64url form of the other methods (#7146).
+func TestSubs_SS2022UserinfoFollowsTheClient(t *testing.T) {
+	seedSubDB(t)
+	gin.SetMode(gin.TestMode)
+	const (
+		subId  = "sr-ss2022"
+		email  = "sr-ss2022@e"
+		srvKey = "YctPZ6U7xPPcU+gp3u+0tx/tRizJN9K8y+uKlW2qjlI="
+		cliKey = "AbC123+dEf456/GhI789+jKl012/MnO345+pQr67890="
+	)
+	db := database.GetDB()
+	ib := &model.Inbound{
+		UserId: 1, Tag: "HK-11702", Enable: true, Listen: "203.0.113.5", Port: 11702,
+		Protocol: model.Shadowsocks, Remark: "HK-11702",
+		Settings: fmt.Sprintf(
+			`{"method":"2022-blake3-aes-256-gcm","password":%q,"network":"tcp,udp","clients":[{"email":%q,"password":%q,"subId":%q,"enable":true}]}`,
+			srvKey, email, cliKey, subId,
+		),
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	client := &model.ClientRecord{Email: email, SubID: subId, Password: cliKey, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound: %v", err)
+	}
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
+
+	for _, tc := range []struct{ name, userAgent, wantUserinfo string }{
+		{
+			name:         "v2rayNG keeps the percent-encoded SIP022 userinfo",
+			userAgent:    "v2rayNG/1.8.5",
+			wantUserinfo: "2022-blake3-aes-256-gcm:YctPZ6U7xPPcU%2Bgp3u%2B0tx%2FtRizJN9K8y%2BuKlW2qjlI%3D:AbC123%2BdEf456%2FGhI789%2BjKl012%2FMnO345%2BpQr67890%3D",
+		},
+		{
+			name:         "Shadowrocket gets the base64url userinfo",
+			userAgent:    "Shadowrocket/2.2.58 (iPhone; iOS 17.5; Scale/3.00)",
+			wantUserinfo: "MjAyMi1ibGFrZTMtYWVzLTI1Ni1nY206WWN0UFo2VTd4UFBjVStncDN1KzB0eC90Uml6Sk45Szh5K3VLbFcycWpsST06QWJDMTIzK2RFZjQ1Ni9HaEk3ODkraktsMDEyL01uTzM0NStwUXI2Nzg5MD0",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/"+subId, nil)
+			req.Header.Set("User-Agent", tc.userAgent)
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK {
+				t.Fatalf("status = %d, body = %s", resp.Code, resp.Body.String())
+			}
+			raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(resp.Body.String()))
+			if err != nil {
+				t.Fatalf("decode subscription body: %v", err)
+			}
+			body := strings.TrimSpace(string(raw))
+			u, err := url.Parse(body)
+			if err != nil {
+				t.Fatalf("parse %q: %v", body, err)
+			}
+			if got := strings.TrimPrefix(strings.SplitN(body, "@", 2)[0], "ss://"); got != tc.wantUserinfo {
+				t.Fatalf("userinfo = %q, want %q", got, tc.wantUserinfo)
+			}
+			if u.Host != "203.0.113.5:11702" {
+				t.Fatalf("host = %q, want 203.0.113.5:11702", u.Host)
+			}
+			parsed, err := link.ParseLink(body)
+			if err != nil {
+				t.Fatalf("ParseLink: %v", err)
+			}
+			server := parsed.Outbound["settings"].(map[string]any)["servers"].([]any)[0].(map[string]any)
+			if server["password"] != srvKey+":"+cliKey {
+				t.Fatalf("password read back = %q, want %q", server["password"], srvKey+":"+cliKey)
 			}
 		})
 	}

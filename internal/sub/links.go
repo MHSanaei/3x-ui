@@ -38,10 +38,7 @@ func (p *LinkProvider) SubLinksForSubId(host, subId string) ([]string, error) {
 func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email string) []string {
 	svc := p.build(host)
 	svc.projectThroughFallbackMaster(inbound)
-	baseEps, suppressFallback := svc.hostEndpointsForFormat(inbound, "raw")
-	if suppressFallback {
-		return nil
-	}
+	baseEps := svc.hostEndpoints(inbound, "raw")
 	if client, ok := svc.clientForLink(inbound, email); ok {
 		effectiveEps, bound := svc.clientHostEndpoints(inbound, client, "raw", baseEps)
 		if bound && len(effectiveEps) == 0 {
