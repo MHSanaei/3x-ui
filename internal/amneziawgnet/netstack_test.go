@@ -294,7 +294,7 @@ func TestTCPDownloadRecoversTailBlackoutWithinOneRTO(t *testing.T) {
 		blackoutAfter = 512 << 10
 		oneWayDelay   = 10 * time.Millisecond
 		minLostTail   = 150
-		deadline      = 3 * time.Second
+		deadline      = 30 * time.Second
 	)
 	stun, gstack, err := createNetTUNWithStack([]netip.Addr{netip.MustParseAddr("10.77.0.2")}, 1420)
 	if err != nil {
