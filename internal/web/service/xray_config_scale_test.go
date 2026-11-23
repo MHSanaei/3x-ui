@@ -3,12 +3,59 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
+
+func BenchmarkGetXrayConfigDisabledClients(b *testing.B) {
+	b.Setenv("XUI_LOG_FOLDER", b.TempDir())
+	setupScaleDB(b)
+	b.Cleanup(logger.CloseLogger)
+	seedScaleDataset(b, 2000, 5)
+	db := database.GetDB()
+	// Fix the generated credentials and lifecycle values for before/after comparisons.
+	if err := db.Model(&model.ClientRecord{}).Where("id > 0").
+		Updates(map[string]any{"uuid": "11111111-1111-1111-1111-111111111111", "expiry_time": 0}).Error; err != nil {
+		b.Fatal(err)
+	}
+	if err := db.Model(&model.Inbound{}).Where("id > 0").Update("settings", `{"clients":[]}`).Error; err != nil {
+		b.Fatal(err)
+	}
+	if err := db.Model(&xray.ClientTraffic{}).Where("id > 0").
+		Updates(map[string]any{"enable": false, "expiry_time": 0}).Error; err != nil {
+		b.Fatal(err)
+	}
+	svc := &XrayService{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := svc.GetXrayConfig(); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	const marker = "disabled-client benchmark log boundary"
+	logger.Info(marker)
+	if _, err := svc.GetXrayConfig(); err != nil {
+		b.Fatal(err)
+	}
+	entries, bytes := 0, 0
+	for _, line := range logger.GetLogs(10000, "DEBUG") {
+		if strings.HasSuffix(line, " INFO - "+marker) {
+			break
+		}
+		entries++
+		bytes += len(line) + 1
+	}
+	b.ReportMetric(float64(entries), "logs/op")
+	b.ReportMetric(float64(bytes), "buffered-log-bytes/op")
+}
 
 // TestGetXrayConfigScale measures building the full Xray config (the path
 // every restart/reconcile takes) and, separately, how much of the per-inbound
