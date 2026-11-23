@@ -266,11 +266,11 @@ func (t *Tgbot) sendBackupScreen(chatID int64) {
 	// carries the backup and what it is for.
 	body := summary + "\n\n" + t.depleteReport()
 	caption := trimCaption(body, botCaptionLimit)
-	if t.sendDocumentWithCaption(chatID, dbData, t.serverService.BackupFilename(""), caption) {
+	if t.sendBackupFile(chatID, dbData, t.serverService.BackupFilename(""), caption) {
 		// The generated config travels with the DB on both backup paths: an
 		// operator restoring from the file would otherwise lose it silently.
 		if config, err := os.ReadFile(xray.GetConfigPath()); err == nil {
-			t.sendDocumentWithCaption(chatID, config, "config.json", "")
+			t.sendBackupFile(chatID, config, "config.json", "")
 		}
 		if rest := strings.TrimSpace(strings.TrimPrefix(body, caption)); rest != "" {
 			// Rare: the summary outgrew a caption. The file already landed.
