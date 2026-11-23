@@ -102,7 +102,7 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 	if err := s.saveSetting("twoFactorEnable", "true"); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.saveSetting("twoFactorToken", "totp-secret"); err != nil {
+	if err := s.saveSetting("twoFactorToken", "JBSWY3DPEHPK3PXP"); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.saveSetting("smtpPassword", "smtp-secret"); err != nil {
@@ -126,7 +126,7 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 	if got, _ := s.GetLdapPassword(); got != "ldap-secret" {
 		t.Fatalf("ldap password = %q, want preserved secret", got)
 	}
-	if got, _ := s.GetTwoFactorToken(); got != "totp-secret" {
+	if got, _ := s.GetTwoFactorToken(); got != "JBSWY3DPEHPK3PXP" {
 		t.Fatalf("2fa token = %q, want preserved secret", got)
 	}
 	if got, _ := s.GetSmtpPassword(); got != "smtp-secret" {
@@ -134,6 +134,44 @@ func TestUpdateAllSettingPreservesRedactedSecrets(t *testing.T) {
 	}
 	if got, _ := s.GetDiscordBotToken(); got != "discord-secret" {
 		t.Fatalf("discord token = %q, want preserved secret", got)
+	}
+}
+
+// Turning 2FA on stores the secret in the form the TOTP decoder takes, and refuses
+// one that no authenticator code could ever match.
+func TestUpdateAllSettingTwoFactorSecret(t *testing.T) {
+	cases := []struct {
+		name, stored, submitted, want string
+		wantErr                       bool
+	}{
+		{name: "canonical", submitted: "JBSWY3DPEHPK3PXP", want: "JBSWY3DPEHPK3PXP"},
+		{name: "lower case and grouped", submitted: "jbsw y3dp ehpk 3pxp", want: "JBSWY3DPEHPK3PXP"},
+		{name: "redacted keeps stored", stored: "ORIGINALSECRET234567", submitted: "", want: "ORIGINALSECRET234567"},
+		{name: "not base32", stored: "ORIGINALSECRET234567", submitted: "totp-secret", want: "ORIGINALSECRET234567", wantErr: true},
+		{name: "nothing stored", submitted: "", want: "", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setupSettingTestDB(t)
+			s := &SettingService{}
+			if err := s.SetTwoFactorToken(tc.stored); err != nil {
+				t.Fatal(err)
+			}
+			view, err := s.GetAllSettingView()
+			if err != nil {
+				t.Fatal(err)
+			}
+			settings := &view.AllSetting
+			settings.TwoFactorEnable = true
+			settings.TwoFactorToken = tc.submitted
+			err = s.UpdateAllSetting(settings, SecretClears{})
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("UpdateAllSetting error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if got, _ := s.GetTwoFactorToken(); got != tc.want {
+				t.Fatalf("stored 2FA secret = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

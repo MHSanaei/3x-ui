@@ -4,6 +4,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/xlzd/gotp"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
@@ -72,5 +75,38 @@ func TestUserSettersRefuseNamesTheLoginRouteRefuses(t *testing.T) {
 	var stored model.User
 	if err := database.GetDB().First(&stored, user.Id).Error; err != nil || stored.Username != "admin" {
 		t.Fatalf("stored username = %q (%v), want it unchanged", stored.Username, err)
+	}
+}
+
+// A stored 2FA secret in a form gotp cannot decode made every login panic (HTTP 500).
+func TestCheckUserTwoFactorSecretForms(t *testing.T) {
+	cases := []struct {
+		name, stored, codeSecret string
+		want                     bool
+	}{
+		{"canonical", "JBSWY3DPEHPK3PXP", "JBSWY3DPEHPK3PXP", true},
+		{"lower case", "jbswy3dpehpk3pxp", "JBSWY3DPEHPK3PXP", true},
+		{"not base32", "totp-secret", "JBSWY3DPEHPK3PXP", false},
+		{"empty secret", "", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+			svc := &UserService{}
+			if err := svc.UpdateFirstUser("admin", "s3cret-Pass"); err != nil {
+				t.Fatalf("UpdateFirstUser: %v", err)
+			}
+			if err := svc.settingService.SetTwoFactorEnable(true); err != nil {
+				t.Fatal(err)
+			}
+			if err := svc.settingService.SetTwoFactorToken(tc.stored); err != nil {
+				t.Fatal(err)
+			}
+			code := gotp.NewDefaultTOTP(tc.codeSecret).AtTime(time.Now())
+			user, err := svc.CheckUser("admin", "s3cret-Pass", code)
+			if got := err == nil && user != nil; got != tc.want {
+				t.Fatalf("CheckUser with stored secret %q: ok = %v (%v), want %v", tc.stored, got, err, tc.want)
+			}
+		})
 	}
 }

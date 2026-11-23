@@ -502,6 +502,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = true
+	subReq.omitServerDescription = !IsHappClient(userAgent) && !IsIncyClient(userAgent)
 	subs, _, _, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
