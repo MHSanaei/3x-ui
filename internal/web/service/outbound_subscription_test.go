@@ -399,25 +399,21 @@ func TestAssignStableTags(t *testing.T) {
 		}
 	})
 
-	t.Run("regenerates tags when tagPrefix is shortened (#7110)", func(t *testing.T) {
-		parsed := []link.Outbound{
-			{"tag": "Frankfurt"},
-			{"tag": "canada-1"},
-			{"tag": "Frankfurt"},
+	t.Run("keeps an identity's tag when its remark shrinks to a suffix of the old one", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "DE"}}
+		prev := map[string]string{"id-1": "gh-premium-de"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, map[int]string{0: "gh-premium-de"}, 1, "gh-")
+		if got[0] != "gh-premium-de" {
+			t.Fatalf("got %q, want gh-premium-de: a renamed remark must not move the tag routing rules name", got[0])
 		}
-		prev := map[string]string{
-			"id-1": "eu-de-frankfurt",
-			"id-3": "eu-de-frankfurt-1",
-		}
-		prevPos := map[int]string{
-			0: "eu-de-frankfurt",
-			1: "eu-de-canada-1",
-			2: "eu-de-frankfurt-1",
-		}
-		got := assignStableTags(parsed, []string{"id-1", "id-2-new", "id-3"}, prev, prevPos, 1, "eu-")
-		want := []string{"eu-frankfurt", "eu-canada-1", "eu-frankfurt-1"}
-		if !slices.Equal(got, want) {
-			t.Fatalf("got %v, want %v (shortening prefix from eu-de- to eu- must drop the old de- segment)", got, want)
+	})
+
+	t.Run("a dash-only prefix adds nothing, so stored tags keep matching", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Tokyo-2"}}
+		prev := map[string]string{"id-1": "tokyo"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, nil, 1, "-")
+		if got[0] != "tokyo" {
+			t.Fatalf("got %q, want tokyo", got[0])
 		}
 	})
 }
