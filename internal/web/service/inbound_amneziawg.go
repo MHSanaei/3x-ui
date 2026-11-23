@@ -376,7 +376,7 @@ func (s *InboundService) loadPortConflictContext(db *gorm.DB, nodeID *int) (port
 		ctx.onNode = true
 		q = q.Where("node_id = ?", *nodeID)
 	} else {
-		if webPort, err := (&SettingService{}).GetPort(); err == nil {
+		if webPort, err := (&SettingService{}).GetListenPort(); err == nil {
 			ctx.webPort = webPort
 		}
 		q = q.Where("node_id IS NULL")
