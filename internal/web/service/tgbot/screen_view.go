@@ -89,11 +89,11 @@ func (t *Tgbot) categoryRows(category string) [][]telego.InlineKeyboardButton {
 
 // screenCategory draws one menu subject. The hint line names the subject, so a
 // user who arrived through a notification can see where they are.
-func (t *Tgbot) screenCategory(chatID int64, category string) {
+func (t *Tgbot) screenCategory(chatID int64, category string, delivery ...screenDelivery) {
 	body := t.I18nBot("tgbot.messages.category_" + category)
 	rows := [][]telego.InlineKeyboardButton{}
 	rows = append(rows, t.categoryRows(category)...)
-	t.renderScreen(chatID, t.newScreen("main", body, rows...))
+	t.renderScreen(chatID, t.newScreen("main", body, rows...), delivery...)
 }
 
 // btn is where a localized label becomes a callback button; btn2 is btn with a
