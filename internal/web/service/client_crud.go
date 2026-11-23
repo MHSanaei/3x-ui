@@ -942,14 +942,10 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 			}).Error; err != nil {
 			return needRestart, err
 		}
-		// No inbound left, so UpdateClientStat never runs; re-assert the
-		// enforcement row's off switch here or a re-enabled client stays off.
-		if merged.Enable {
-			if err := database.GetDB().Model(xray.ClientTraffic{}).
-				Where("email = ?", existing.Email).
-				UpdateColumn("enable", true).Error; err != nil {
-				return needRestart, err
-			}
+		// No inbound left, so UpdateInboundClient never syncs the enforcement row the
+		// renewal and auto-disable loops read (#7160).
+		if err := inboundSvc.UpdateClientStat(database.GetDB(), existing.Email, merged.ToClient()); err != nil {
+			return needRestart, err
 		}
 	}
 
