@@ -2021,10 +2021,8 @@ func pgConnEnv(dsn string) (env []string, dbname string, err error) {
 	return env, dbname, nil
 }
 
-// pgDumpTimeout bounds one pg_dump run. A PostgreSQL server that accepts the
-// connection and then stops answering would otherwise hang the database
-// download and every scheduled backup, and SkipIfStillRunning would silently
-// skip each later backup run.
+// pgDumpTimeout bounds one pg_dump run: a server that stops answering would hang the
+// download and, through SkipIfStillRunning, silently skip every later scheduled backup.
 var pgDumpTimeout = time.Hour
 
 func (s *ServerService) exportPostgresDB() ([]byte, error) {
