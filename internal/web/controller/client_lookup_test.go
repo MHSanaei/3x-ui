@@ -152,3 +152,43 @@ func TestClientGetBySubIDRequiresAdmin(t *testing.T) {
 		})
 	}
 }
+
+func TestClientQueryAliasTokenScopes(t *testing.T) {
+	router, api := newAPIAuthTestEngine(t)
+	NewClientController(router.Group("/base/panel/api/clients", api.checkAPIAuth, api.enforceTokenScope))
+	for _, scope := range []string{model.ApiScopeAdmin, model.ApiScopeMonitor, model.ApiScopeNodeSync, model.ApiScopeNodeAdmin} {
+		if err := database.GetDB().Create(&model.ApiToken{Name: scope, Token: crypto.HashTokenSHA256(scope), Enabled: true, Scope: scope}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "get"},
+		{http.MethodPost, "update"},
+		{http.MethodPost, "del"},
+	} {
+		for _, scope := range []string{"", model.ApiScopeAdmin, model.ApiScopeMonitor, model.ApiScopeNodeSync, model.ApiScopeNodeAdmin} {
+			t.Run(route.path+"/scope="+scope, func(t *testing.T) {
+				req := httptest.NewRequest(route.method, "/base/panel/api/clients/"+route.path+"?email=missing", strings.NewReader(`{"email":"restored-client"}`))
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Requested-With", "XMLHttpRequest")
+				if scope != "" {
+					req.Header.Set("Authorization", "Bearer "+scope)
+				}
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+				want := http.StatusOK
+				if scope == "" {
+					want = http.StatusUnauthorized
+				} else if scope == model.ApiScopeMonitor || (route.method == http.MethodGet && scope != model.ApiScopeAdmin) {
+					want = http.StatusForbidden
+				}
+				if w.Code != want {
+					t.Fatalf("status = %d, want %d, body = %s", w.Code, want, w.Body.String())
+				}
+			})
+		}
+	}
+}

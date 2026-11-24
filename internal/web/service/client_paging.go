@@ -186,11 +186,7 @@ func newClientQuery(db *gorm.DB, nowMs, expireDiffMs, trafficDiffBytes int64) cl
 		usedExpr:         "(COALESCE(ct.up, 0) + COALESCE(ct.down, 0))",
 	}
 	freshSince := globalTrafficFreshSince(db.NowFunc())
-	var probe int64
-	err := db.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error
-	if err != nil || probe == 0 {
+	if !hasFreshGlobalTraffic(db, freshSince) {
 		return q
 	}
 	// A master still pushes cross-panel usage here, so the predicates have to

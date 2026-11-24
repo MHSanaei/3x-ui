@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Both XDRIVE ends carry the same service, folder and secrets; an absent tuning knob takes
-// the core's default (segmentBytes and concurrency are capped there at 16 MiB / 64).
+// the core's default (segmentBytes and concurrency are capped there at 16 MiB / 256).
 export const XDriveServiceSchema = z.enum(['google-drive', 'local', 'template', 's3']);
 export type XDriveService = z.infer<typeof XDriveServiceSchema>;
 

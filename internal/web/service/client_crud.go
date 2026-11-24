@@ -37,8 +37,23 @@ func hasForbiddenClientChar(s string) bool {
 }
 
 func validateClientEmail(email string) error {
+	if email == "." || email == ".." {
+		return common.NewError("client email must not be '.' or '..'")
+	}
 	if hasForbiddenClientChar(email) {
 		return common.NewError("client email contains an invalid character:", email)
+	}
+	return nil
+}
+
+func validateClientsNames(clients []model.Client) error {
+	for _, client := range clients {
+		if err := validateClientEmail(client.Email); err != nil {
+			return err
+		}
+		if err := validateClientSubID(client.SubID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -672,6 +687,12 @@ func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
 }
 
 func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model.Client, limitHwid int, inboundFilter ...int) (bool, error) {
+	return s.update(inboundSvc, id, updated, limitHwid, false, inboundFilter)
+}
+
+// keepInboundFlows: the caller sent no flow, so every inbound keeps its own and an
+// unlinked record keeps its stored one.
+func (s *ClientService) update(inboundSvc *InboundService, id int, updated model.Client, limitHwid int, keepInboundFlows bool, inboundFilter []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return false, err
@@ -773,6 +794,12 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		updated.Secret = existing.Secret
 	}
 
+	// A client the quota loop switched off comes back on when this update
+	// restores a usable window, as BulkAdjust already does on a renewal (#5619).
+	if !updated.Enable && s.renewalReenables(existing.Email, updated.TotalGB, updated.ExpiryTime) {
+		updated.Enable = true
+	}
+
 	if updated.Email != existing.Email {
 		var collisionCount int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
@@ -794,6 +821,14 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 		if subCollision > 0 {
 			return false, common.NewError("Duplicate subId:", updated.SubID)
+		}
+	}
+
+	var inboundFlows map[int]string
+	if keepInboundFlows {
+		updated.Flow = existing.Flow
+		if inboundFlows, err = inboundFlowOverrides(id); err != nil {
+			return false, err
 		}
 	}
 
@@ -825,6 +860,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			return false, err
 		}
 		clientForInbound := updated
+		if keepInboundFlows {
+			clientForInbound.Flow = inboundFlows[ibId]
+		}
 		if ips, ok := updated.AllowedIPsByInbound[ibId]; ok {
 			clientForInbound.AllowedIPs = ips
 		} else if tunnelCount > 1 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
@@ -914,6 +952,11 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"traffic_reset":        merged.TrafficReset,
 				"traffic_reset_day":    merged.TrafficResetDay,
 			}).Error; err != nil {
+			return needRestart, err
+		}
+		// No inbound left, so UpdateInboundClient never syncs the enforcement row the
+		// renewal and auto-disable loops read (#7160).
+		if err := inboundSvc.UpdateClientStat(database.GetDB(), existing.Email, merged.ToClient()); err != nil {
 			return needRestart, err
 		}
 	}

@@ -79,32 +79,39 @@ const depletedClientsCond = `((total > 0 AND up + down >= total)
 			AND g.up + g.down >= client_traffics.total
 	)))`
 
-// depletedClientsCondLocal is depletedClientsCond without the cross-panel
-// client_global_traffics check. The EXISTS branch is a correlated subquery that
-// turns every traffic poll into a full client_traffics scan; on a panel no
-// master pushes to (the common case) client_global_traffics is empty, so the
-// branch can never match and is pure CPU cost (#5392). Placeholders: now.
+// depletedClientsScanCond is depletedClientsCond for the scan of every enabled client:
+// one set of over-quota ids, not a lookup per row; masters are never summed (#7008).
+const depletedClientsScanCond = `((total > 0 AND up + down >= total)
+	OR (expiry_time > 0 AND expiry_time <= ?)
+	OR id IN (
+		SELECT c.id FROM client_traffics c
+		JOIN client_global_traffics g ON g.email = c.email
+		WHERE c.total > 0 AND g.updated_at >= ? AND g.up + g.down >= c.total
+	))`
+
+// depletedClientsCondLocal drops the client_global_traffics check, which cannot match
+// on a panel no master pushes to (the common case, #5392). Placeholders: now.
 const depletedClientsCondLocal = `((total > 0 AND up + down >= total)
 	OR (expiry_time > 0 AND expiry_time <= ?))`
 
 // depletedCond includes cross-panel quota usage only while a master's row is fresh.
-// Without fresh global rows, the local-only predicate avoids a correlated EXISTS scan.
+// Without fresh global rows, the local-only predicate skips global lookups.
 func depletedCond(tx *gorm.DB) (string, []any) {
+	return depletedCondWithGlobal(tx, depletedClientsCond)
+}
+
+func depletedCondWithGlobal(tx *gorm.DB, globalCond string) (string, []any) {
 	now := tx.NowFunc()
 	freshSince := globalTrafficFreshSince(now)
-	var probe int64
-	err := tx.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error
-	if err == nil && probe > 0 {
-		return depletedClientsCond, []any{now.UnixMilli(), freshSince}
+	if hasFreshGlobalTraffic(tx, freshSince) {
+		return globalCond, []any{now.UnixMilli(), freshSince}
 	}
 	return depletedClientsCondLocal, []any{now.UnixMilli()}
 }
 
 func (s *InboundService) disableInvalidClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, []int, error) {
 	now := time.Now().UnixMilli()
-	cond, condArgs := depletedCond(tx)
+	cond, condArgs := depletedCondWithGlobal(tx, depletedClientsScanCond)
 
 	var depletedRows []xray.ClientTraffic
 	err := tx.Model(xray.ClientTraffic{}).
@@ -273,6 +280,48 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	// A just-disabled client must leave subscriptions within this tick.
 	InvalidateSubData()
 	return &snapshot, &ib, nil
+}
+
+// markClientEnabledInSettings is the re-enable twin of
+// markClientsDisabledInSettings: flip one email's stored entry back on.
+func (s *InboundService) markClientEnabledInSettings(tx *gorm.DB, inboundID int, email string) error {
+	var ib model.Inbound
+	if err := tx.Model(&model.Inbound{}).Where("id = ?", inboundID).First(&ib).Error; err != nil {
+		return err
+	}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(ib.Settings), &settings); err != nil {
+		return err
+	}
+	clients, _ := settings["clients"].([]any)
+	now := time.Now().Unix() * 1000
+	mutated := false
+	for i := range clients {
+		entry, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if e, _ := entry["email"].(string); e != email {
+			continue
+		}
+		if cur, _ := entry["enable"].(bool); cur {
+			continue
+		}
+		entry["enable"] = true
+		entry["updated_at"] = now
+		clients[i] = entry
+		mutated = true
+	}
+	if !mutated {
+		return nil
+	}
+	settings["clients"] = clients
+	bs, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	return tx.Model(&model.Inbound{}).Where("id = ?", inboundID).
+		Update("settings", string(bs)).Error
 }
 
 // trafficDisabledEmails reports which emails have a switched-off stats row. The
