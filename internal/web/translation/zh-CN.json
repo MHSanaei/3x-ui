@@ -302,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本机设置",
-      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。",
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。 也会保留网络流量接口选择。",
       "logLines": "行数",
       "timeRange": "时间范围"
     },
@@ -446,6 +446,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "开启后，入站定时重置只清零本入站的流量。用户在所有节点上的累计用量会保留，按用户自己的周期重置。\n\n关闭后，本入站定时重置时，也会清零关联用户在所有节点上的累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",
@@ -1043,7 +1045,8 @@
         "delDepleted": "已删除 {count} 个已耗尽的客户端",
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
-        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个",
+        "bulkLinksAppended": "已更新 {clients} 个客户端：新增 {added} 条，跳过 {skipped} 条重复项，{errors} 个客户端未找到。"
       },
       "renewMax": "最大续期次数",
       "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
@@ -1071,7 +1074,13 @@
       "renewsUsed": "已用续期次数",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。",
       "renewIntervalDesc": "到期后从上次截止时间增加指定天数（每天 24 小时），并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
-      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。"
+      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
+      "bulkAdjustSettings": "限额与设置",
+      "bulkAppendLinks": "追加外部链接",
+      "bulkAppendLinksHint": "追加到所有选中的客户端。保留现有条目及其设置，跳过类型和值相同的重复条目。其他调整请单独应用。",
+      "bulkAppendLinksRequired": "请至少添加一个外部链接或订阅。",
+      "externalLinkInvalid": "请输入支持的分享链接。",
+      "externalSubscriptionInvalid": "请输入 http(s) 订阅地址。"
     },
     "groups": {
       "name": "名称",
@@ -1115,6 +1124,11 @@
       "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。"
     },
     "nodes": {
+      "restartXray": "重启 Xray",
+      "restartPanel": "重启面板",
+      "restartConfirmTitle": "重启 {name}？",
+      "restartXrayContent": "此节点上活跃的 Xray 连接将会中断。",
+      "restartPanelContent": "节点面板和订阅服务将重启，并可能暂时不可用。需要节点上的 node-admin 或 admin API 令牌。",
       "addNode": "添加节点",
       "editNode": "编辑节点",
       "totalNodes": "节点总数",
@@ -1184,6 +1198,8 @@
         "xrayStopped": "已停止"
       },
       "toasts": {
+        "xrayRestarted": "已重启节点上的 Xray。",
+        "panelRestartAccepted": "已接受面板重启请求。节点可能暂时不可用。",
         "list": "加载节点失败",
         "obtain": "加载节点失败",
         "add": "添加节点",
@@ -1247,6 +1263,17 @@
       "warnDefaultSubPath": "默认订阅路径 \"/sub/\" 众所周知 — 请更改。",
       "warnDefaultJsonPath": "默认 JSON 订阅路径 \"/json/\" 众所周知 — 请更改。",
       "TGBotSettings": "Telegram 机器人",
+      "networkTrafficInterfaceTitle": "网络流量接口",
+      "networkTrafficMode": "网络流量监控模式",
+      "networkTrafficDescription": "选择用于统计系统流量总量和速度的接口。旧版汇总模式可能对叠加接口的流量重复计数。在 Docker 中，仅能访问容器网络命名空间内的接口。",
+      "networkTrafficLegacy": "所有接口（旧版）",
+      "networkTrafficAutomatic": "自动",
+      "networkTrafficManual": "手动",
+      "networkTrafficUnavailable": "所选网络接口不可用。请选择可用接口或其他监控模式。",
+      "networkTrafficAutoResolved": "默认路由接口：{interface}",
+      "networkTrafficLoadError": "无法加载网络接口。",
+      "networkTrafficEmpty": "没有可用的网络接口。",
+      "networkTrafficAutoUnavailable": "默认路由接口不可用。在检测恢复或更改模式之前，流量指标将不可用。",
       "panelListeningIP": "面板监听 IP",
       "panelListeningIPDesc": "默认留空监听所有 IP",
       "panelListeningDomain": "面板监听域名",
@@ -1389,6 +1416,10 @@
       "subDomainDesc": "订阅服务监听的域名（留空表示监听所有域名和 IP）。当「反向代理 URI」为空时，也会作为显示的订阅链接的回退域名——如果面板和订阅通过不同的域名访问(例如位于反向代理之后)，请设置「反向代理 URI」。",
       "subUpdates": "更新间隔",
       "subUpdatesDesc": "客户端应用中订阅 URL 的更新间隔（单位：小时）",
+      "subRateLimitEnable": "订阅请求限速",
+      "subRateLimitEnableDesc": "限制每个客户端 IP 获取订阅 URL 的频率。超过限制的请求会收到带有 Retry-After 提示的 HTTP 429。可信代理 CIDR（常规设置）决定客户端按哪个地址计数。",
+      "subRateLimit": "每分钟请求数",
+      "subRateLimitDesc": "限速开启时，每个客户端 IP 每分钟允许获取订阅的最大次数。",
       "externalSubUserAgent": "外部订阅 User-Agent",
       "externalSubUserAgentDesc": "面板拉取客户端外部订阅 URL 时发送的 User-Agent。留空则使用默认值（v2rayNG/1.8.5）。部分服务商会拒绝未知客户端。",
       "subEncrypt": "编码",

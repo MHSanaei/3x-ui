@@ -43,6 +43,12 @@ periodic **traffic reset** schedule: `never` (default), `hourly`, `daily`,
 
 For `monthly` resets, select a day from 1 to 31. If the selected day does not
 exist in a shorter month, the reset runs on that month's last day.
+
+Enable **Keep client usage** to reset only the inbound's counters on its schedule.
+Clients keep their accumulated usage until their own reset. With the switch off,
+the schedule also resets the attached clients' usage, including their usage on
+other inbounds. Upgrade the master and the nodes hosting the inbound before
+enabling this option on a managed inbound.
 </Step>
 
 </Steps>

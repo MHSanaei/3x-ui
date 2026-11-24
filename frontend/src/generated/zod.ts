@@ -15,18 +15,6 @@ export type ProcessState = z.infer<typeof ProcessStateSchema>;
 export const ProtocolSchema = z.string();
 export type Protocol = z.infer<typeof ProtocolSchema>;
 
-export const addrFamilySchema = z.number().int();
-export type addrFamily = z.infer<typeof addrFamilySchema>;
-
-export const staticEgressResolverSchema = z.string();
-export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
-
-export const trafficLocalApplyActionSchema = z.number().int();
-export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
-
-export const transportBitsSchema = z.number().int();
-export type transportBits = z.infer<typeof transportBitsSchema>;
-
 export const AllSettingSchema = z.object({
   datepicker: z.string(),
   discordAdminIds: z.string(),
@@ -66,6 +54,8 @@ export const AllSettingSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  networkTrafficInterface: z.string(),
+  networkTrafficMode: z.enum(['legacy', 'auto', 'manual']),
   nodeDownThreshold: z.number().int().min(1).max(100),
   outboundDownThreshold: z.number().int().min(1).max(100),
   pageSize: z.number().int().min(0).max(1000),
@@ -181,6 +171,8 @@ export const AllSettingSchema = z.object({
   subPort: z.number().int().min(1).max(65535),
   subProfileMode: z.string(),
   subProfileUrl: z.string(),
+  subRateLimit: z.number().int().min(1).max(1000),
+  subRateLimitEnable: z.boolean(),
   subRoutingRules: z.string(),
   subShowIdentityOnAllLinks: z.boolean(),
   subSupportUrl: z.string(),
@@ -262,6 +254,8 @@ export const AllSettingViewSchema = z.object({
   ldapUserAttr: z.string(),
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
+  networkTrafficInterface: z.string(),
+  networkTrafficMode: z.enum(['legacy', 'auto', 'manual']),
   nodeDownThreshold: z.number().int().min(1).max(100),
   outboundDownThreshold: z.number().int().min(1).max(100),
   pageSize: z.number().int().min(0).max(1000),
@@ -377,6 +371,8 @@ export const AllSettingViewSchema = z.object({
   subPort: z.number().int().min(1).max(65535),
   subProfileMode: z.string(),
   subProfileUrl: z.string(),
+  subRateLimit: z.number().int().min(1).max(1000),
+  subRateLimitEnable: z.boolean(),
   subRoutingRules: z.string(),
   subShowIdentityOnAllLinks: z.boolean(),
   subSupportUrl: z.string(),
@@ -445,6 +441,26 @@ export const BlockerSchema = z.object({
   detail: z.string().optional(),
 });
 export type Blocker = z.infer<typeof BlockerSchema>;
+
+export const BulkAdjustReportSchema = z.object({
+  email: z.string(),
+  reason: z.string(),
+});
+export type BulkAdjustReport = z.infer<typeof BulkAdjustReportSchema>;
+
+export const BulkAdjustResultSchema = z.object({
+  adjusted: z.number().int(),
+  externalLinks: z.lazy(() => BulkExternalLinksResultSchema).nullable().optional(),
+  skipped: z.array(z.lazy(() => BulkAdjustReportSchema)).optional(),
+});
+export type BulkAdjustResult = z.infer<typeof BulkAdjustResultSchema>;
+
+export const BulkExternalLinksResultSchema = z.object({
+  added: z.number().int(),
+  errors: z.number().int(),
+  skipped: z.number().int(),
+});
+export type BulkExternalLinksResult = z.infer<typeof BulkExternalLinksResultSchema>;
 
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
@@ -624,6 +640,16 @@ export const ClientsSummarySchema = z.object({
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 
+export const ExternalLinkInputSchema = z.object({
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int().optional(),
+  kind: z.string().optional(),
+  namePrefix: z.string().optional(),
+  remark: z.string().optional(),
+  value: z.string(),
+});
+export type ExternalLinkInput = z.infer<typeof ExternalLinkInputSchema>;
+
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
   path: z.string().optional(),
@@ -788,6 +814,7 @@ export const InboundSchema = z.object({
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),
+  preserveClientTraffic: z.boolean().nullable().optional(),
   protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'amneziawg', 'tuic', 'masque']),
   remark: z.string(),
   settings: z.unknown(),
@@ -887,6 +914,27 @@ export const MsgSchema = z.object({
   success: z.boolean(),
 });
 export type Msg = z.infer<typeof MsgSchema>;
+
+export const NetworkInterfaceOptionSchema = z.object({
+  name: z.string(),
+  up: z.boolean(),
+});
+export type NetworkInterfaceOption = z.infer<typeof NetworkInterfaceOptionSchema>;
+
+export const NetworkInterfacesResponseSchema = z.object({
+  automatic: z.string(),
+  automaticError: z.string(),
+  interfaces: z.array(z.lazy(() => NetworkInterfaceOptionSchema)),
+});
+export type NetworkInterfacesResponse = z.infer<typeof NetworkInterfacesResponseSchema>;
+
+export const NetworkTrafficSelectionSchema = z.object({
+  available: z.boolean(),
+  error: z.string(),
+  mode: z.string(),
+  name: z.string(),
+});
+export type NetworkTrafficSelection = z.infer<typeof NetworkTrafficSelectionSchema>;
 
 export const NewUUIDResponseSchema = z.object({
   uuid: z.string(),
@@ -1150,6 +1198,34 @@ export const SponsorListSchema = z.object({
   sponsors: z.array(z.lazy(() => SponsorSchema)),
 });
 export type SponsorList = z.infer<typeof SponsorListSchema>;
+
+export const StatusSchema = z.object({
+  amneziawg: z.unknown(),
+  appStats: z.unknown(),
+  cpu: z.number(),
+  cpuCores: z.number().int(),
+  cpuSpeedMhz: z.number(),
+  disk: z.unknown(),
+  diskIO: z.unknown(),
+  diskTraffic: z.unknown(),
+  loads: z.array(z.number()),
+  logicalPro: z.number().int(),
+  mem: z.unknown(),
+  netIO: z.unknown(),
+  netTraffic: z.unknown(),
+  networkInterface: z.lazy(() => NetworkTrafficSelectionSchema).nullable().optional(),
+  panelGuid: z.string(),
+  panelVersion: z.string(),
+  publicIP: z.unknown(),
+  resourceScope: z.string().optional(),
+  swap: z.unknown(),
+  tcpCount: z.number().int(),
+  udpCount: z.number().int(),
+  unavailableMetrics: z.array(z.string()).optional(),
+  uptime: z.number().int(),
+  xray: z.unknown(),
+});
+export type Status = z.infer<typeof StatusSchema>;
 
 export const SubBalancerSchema = z.object({
   createdAt: z.number().int(),

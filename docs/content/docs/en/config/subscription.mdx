@@ -23,6 +23,8 @@ panel's subscription settings:
 | `subCertFile` / `subKeyFile` | _(none)_ | TLS cert + key — when set, the server serves **HTTPS**. |
 | `subEncrypt`  | `true`  | Base64-encode the raw subscription body.                        |
 | `subUpdates`  | `12`    | Suggested refresh interval (hours) sent to clients.             |
+| `subRateLimitEnable` | `false` | Limit how often one client address may fetch subscription URLs; over the limit the server answers `429` with `Retry-After`. |
+| `subRateLimit` | `60`   | Fetches allowed per client address and minute (1–1000) while the limit is on. Behind a reverse proxy, `trustedProxyCIDRs` decides which address counts as the client. |
 
 A subscription URL looks like:
 

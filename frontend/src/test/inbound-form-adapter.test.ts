@@ -275,7 +275,7 @@ describe('formValuesToWirePayload', () => {
     // the wire payload prunes empty arrays and collapses disabled sniffing
     // to `{ enabled: false }`. Top-level scalars and the protocol picker
     // must still survive the round trip without loss.
-    const original = rawInboundToFormValues(vlessRow);
+    const original = rawInboundToFormValues({ ...vlessRow, preserveClientTraffic: true });
     const payload = formValuesToWirePayload(original);
     const replay = rawInboundToFormValues({
       port: payload.port,
@@ -293,6 +293,7 @@ describe('formValuesToWirePayload', () => {
       expiryTime: payload.expiryTime,
       trafficReset: payload.trafficReset,
       trafficResetDay: payload.trafficResetDay,
+      preserveClientTraffic: payload.preserveClientTraffic,
       lastTrafficResetTime: payload.lastTrafficResetTime,
       nodeId: payload.nodeId ?? null,
     });
@@ -303,6 +304,7 @@ describe('formValuesToWirePayload', () => {
     expect(replay.up).toBe(original.up);
     expect(replay.down).toBe(original.down);
     expect(replay.trafficResetDay).toBe(original.trafficResetDay);
+    expect(replay.preserveClientTraffic).toBe(true);
     expect(replay.streamSettings).toEqual(original.streamSettings);
   });
 
@@ -310,6 +312,12 @@ describe('formValuesToWirePayload', () => {
     expect(
       rawInboundToFormValues({ ...vlessRow, trafficResetDay: undefined }).trafficResetDay,
     ).toBe(1);
+  });
+
+  it('keeps the existing reset behavior for older inbounds', () => {
+    const values = rawInboundToFormValues(vlessRow);
+    expect(values.preserveClientTraffic).toBe(false);
+    expect(formValuesToWirePayload(values).preserveClientTraffic).toBe(false);
   });
 });
 

@@ -302,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Giữ cài đặt của máy này",
-      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên.",
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên. Lựa chọn giao diện lưu lượng mạng cũng được giữ lại.",
       "logLines": "Số dòng",
       "timeRange": "Khoảng thời gian"
     },
@@ -446,6 +446,8 @@
       "importInbound": "Nhập inbound",
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
+      "preserveClientTraffic": "Giữ mức sử dụng của máy khách",
+      "preserveClientTrafficHelp": "Khi bật, thao tác đặt lại theo lịch chỉ đưa bộ đếm lưu lượng của inbound này về 0. Tổng lưu lượng của mỗi máy khách trên tất cả các node được giữ lại cho đến lần đặt lại theo lịch riêng của máy khách đó.\n\nKhi tắt, mỗi lần inbound này được đặt lại theo lịch, tổng lưu lượng mà mỗi máy khách liên kết với inbound đã sử dụng trên tất cả các node cũng trở về 0.",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
         "daily": "Hàng ngày",
@@ -1043,7 +1045,8 @@
         "delDepleted": "Đã xóa {count} khách hàng hết hạn mức",
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
-        "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
+        "importedMixed": "Đã nhập {ok}, bỏ qua {failed}",
+        "bulkLinksAppended": "Đã cập nhật {clients} máy khách: thêm {added}, bỏ qua {skipped} mục trùng, không tìm thấy {errors} máy khách."
       },
       "renewMax": "Số lần gia hạn tối đa",
       "renewMaxDesc": "Gia hạn tự động được phép chạy bao nhiêu lần trước khi để khách hàng hết hạn. 0 nghĩa là không giới hạn. Bù lại nhiều kỳ đã bỏ lỡ sẽ tiêu tốn một lần gia hạn cho mỗi kỳ.",
@@ -1071,7 +1074,13 @@
       "renewsUsed": "Số lần gia hạn đã dùng",
       "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto.",
       "renewIntervalDesc": "Sau khi hết hạn, cộng số ngày đã đặt (mỗi ngày 24 giờ) vào thời điểm hết hạn trước đó và đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm.",
-      "renewWeeklyDesc": "Gia hạn theo lịch diễn ra lúc nửa đêm theo múi giờ của bảng điều khiển và cũng đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm."
+      "renewWeeklyDesc": "Gia hạn theo lịch diễn ra lúc nửa đêm theo múi giờ của bảng điều khiển và cũng đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm.",
+      "bulkAdjustSettings": "Giới hạn và cài đặt",
+      "bulkAppendLinks": "Thêm liên kết ngoài",
+      "bulkAppendLinksHint": "Thêm vào mọi máy khách đã chọn. Giữ nguyên mục và cài đặt hiện có; bỏ qua các cặp loại và giá trị trùng lặp. Áp dụng các điều chỉnh khác riêng biệt.",
+      "bulkAppendLinksRequired": "Thêm ít nhất một liên kết hoặc đăng ký ngoài.",
+      "externalLinkInvalid": "Nhập liên kết chia sẻ được hỗ trợ.",
+      "externalSubscriptionInvalid": "Nhập URL đăng ký http(s)."
     },
     "groups": {
       "name": "Tên",
@@ -1115,6 +1124,11 @@
       "removeFromGroupResult": "Đã xóa {count} client khỏi {name}."
     },
     "nodes": {
+      "restartXray": "Khởi động lại Xray",
+      "restartPanel": "Khởi động lại bảng điều khiển",
+      "restartConfirmTitle": "Khởi động lại {name}?",
+      "restartXrayContent": "Các kết nối Xray đang hoạt động trên nút này sẽ bị ngắt.",
+      "restartPanelContent": "Bảng điều khiển và dịch vụ đăng ký của nút sẽ khởi động lại và có thể tạm thời không khả dụng. Yêu cầu mã API node-admin hoặc admin trên nút.",
       "addNode": "Thêm nút",
       "editNode": "Sửa node",
       "totalNodes": "Tổng số nút",
@@ -1184,6 +1198,8 @@
         "xrayStopped": "Đã dừng"
       },
       "toasts": {
+        "xrayRestarted": "Đã khởi động lại Xray trên nút.",
+        "panelRestartAccepted": "Đã chấp nhận yêu cầu khởi động lại bảng điều khiển. Nút có thể tạm thời không khả dụng.",
         "list": "Không tải được danh sách nút",
         "obtain": "Không tải được nút",
         "add": "Thêm nút",
@@ -1247,6 +1263,17 @@
       "warnDefaultSubPath": "Đường dẫn đăng ký mặc định \"/sub/\" đã quá phổ biến — đổi nó.",
       "warnDefaultJsonPath": "Đường dẫn đăng ký JSON mặc định \"/json/\" đã quá phổ biến — đổi nó.",
       "TGBotSettings": "Bot Telegram",
+      "networkTrafficInterfaceTitle": "Giao diện lưu lượng mạng",
+      "networkTrafficMode": "Chế độ lưu lượng mạng",
+      "networkTrafficDescription": "Chọn giao diện dùng cho tổng lưu lượng và tốc độ của hệ thống. Chế độ cộng gộp cũ có thể đếm hai lần lưu lượng của các giao diện xếp chồng. Trong Docker, chỉ các giao diện thuộc không gian tên mạng của container mới khả dụng.",
+      "networkTrafficLegacy": "Tất cả giao diện (Cũ)",
+      "networkTrafficAutomatic": "Tự động",
+      "networkTrafficManual": "Thủ công",
+      "networkTrafficUnavailable": "Giao diện mạng đã chọn không khả dụng. Hãy chọn giao diện khả dụng hoặc chế độ giám sát khác.",
+      "networkTrafficAutoResolved": "Giao diện tuyến mặc định: {interface}",
+      "networkTrafficLoadError": "Không thể tải danh sách giao diện mạng.",
+      "networkTrafficEmpty": "Không có giao diện mạng khả dụng.",
+      "networkTrafficAutoUnavailable": "Không có giao diện tuyến mặc định khả dụng. Các chỉ số lưu lượng sẽ không khả dụng cho đến khi việc phát hiện phục hồi hoặc chế độ được thay đổi.",
       "panelListeningIP": "IP Nghe của bảng điều khiển",
       "panelListeningIPDesc": "Mặc định để trống để nghe tất cả các IP.",
       "panelListeningDomain": "Tên miền của nghe bảng điều khiển",
@@ -1389,6 +1416,10 @@
       "subDomainDesc": "Mặc định để trống để nghe tất cả các tên miền và IP. Cũng được dùng làm tên miền dự phòng cho liên kết đăng ký hiển thị khi \"URI proxy trung gian\" để trống — hãy đặt \"URI proxy trung gian\" nếu bảng điều khiển và đăng ký được truy cập qua các tên miền khác nhau (ví dụ: đứng sau proxy trung gian).",
       "subUpdates": "Khoảng thời gian cập nhật gói đăng ký",
       "subUpdatesDesc": "Số giờ giữa các cập nhật trong ứng dụng khách",
+      "subRateLimitEnable": "Giới hạn tốc độ gói đăng ký",
+      "subRateLimitEnableDesc": "Giới hạn tần suất mỗi IP khách hàng có thể tải các URL gói đăng ký. Các yêu cầu vượt giới hạn nhận HTTP 429 kèm gợi ý Retry-After. Các CIDR proxy đáng tin (cài đặt chung) quyết định địa chỉ nào được dùng để đếm khách hàng.",
+      "subRateLimit": "Yêu cầu mỗi phút",
+      "subRateLimitDesc": "Số lần tải gói đăng ký tối đa cho mỗi IP khách hàng mỗi phút khi giới hạn tốc độ đang bật.",
       "externalSubUserAgent": "User-Agent đăng ký bên ngoài",
       "externalSubUserAgentDesc": "Header User-Agent khi panel tải URL đăng ký bên ngoài của client. Để trống để dùng mặc định (v2rayNG/1.8.5). Một số nhà cung cấp từ chối client lạ.",
       "subEncrypt": "Mã hóa",

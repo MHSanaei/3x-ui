@@ -302,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Bu makinenin ayarlarını koru",
-      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur.",
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur. Ağ trafiği arayüzü seçimi de korunur.",
       "logLines": "Satır sayısı",
       "timeRange": "Zaman aralığı"
     },
@@ -446,6 +446,8 @@
       "importInbound": "Gelen Bağlantı İçe Aktar",
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDay": "Aylık sıfırlama günü",
+      "preserveClientTraffic": "İstemci kullanımını koru",
+      "preserveClientTrafficHelp": "Seçenek açıkken zamanlanmış sıfırlama yalnızca bu gelen bağlantının trafik sayaçlarını sıfırlar. Her istemcinin tüm düğümlerdeki toplam kullanımı, kendi sıfırlama zamanı gelene kadar korunur.\n\nSeçenek kapalıyken bu gelen bağlantının zamanlanmış sıfırlaması, bağlantıyla ilişkili istemcilerin tüm düğümlerdeki toplam kullanımını da sıfırlar.",
       "periodicTrafficReset": {
         "never": "Asla",
         "daily": "Günlük",
@@ -1043,7 +1045,8 @@
         "delDepleted": "{count} tükenmiş kullanıcı silindi",
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
-        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı",
+        "bulkLinksAppended": "{clients} istemci güncellendi: {added} eklendi, {skipped} tekrar atlandı, {errors} istemci bulunamadı."
       },
       "renewMax": "En fazla yenileme",
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
@@ -1071,7 +1074,13 @@
       "renewsUsed": "Kullanılan yenileme",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
       "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
-      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "bulkAdjustSettings": "Sınırlar ve ayarlar",
+      "bulkAppendLinks": "Harici bağlantılar ekle",
+      "bulkAppendLinksHint": "Seçilen tüm istemcilere eklenir. Mevcut girdiler ve ayarları korunur; aynı tür ve değere sahip tekrarlar atlanır. Diğer ayarlamaları ayrı uygulayın.",
+      "bulkAppendLinksRequired": "En az bir harici bağlantı veya abonelik ekleyin.",
+      "externalLinkInvalid": "Desteklenen bir paylaşım bağlantısı girin.",
+      "externalSubscriptionInvalid": "Bir http(s) abonelik URL’si girin."
     },
     "groups": {
       "name": "İsim",
@@ -1115,6 +1124,11 @@
       "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
     },
     "nodes": {
+      "restartXray": "Xray yeniden başlat",
+      "restartPanel": "Paneli yeniden başlat",
+      "restartConfirmTitle": "{name} yeniden başlatılsın mı?",
+      "restartXrayContent": "Bu düğümdeki etkin Xray bağlantıları kesilecektir.",
+      "restartPanelContent": "Düğüm paneli ve abonelik hizmetleri yeniden başlatılacak ve geçici olarak kullanılamayabilir. Düğümde node-admin veya admin API belirteci gerekir.",
       "addNode": "Düğüm Ekle",
       "editNode": "Düğümü Düzenle",
       "totalNodes": "Toplam Düğüm",
@@ -1184,6 +1198,8 @@
         "xrayStopped": "Durduruldu"
       },
       "toasts": {
+        "xrayRestarted": "Düğümde Xray yeniden başlatıldı.",
+        "panelRestartAccepted": "Panel yeniden başlatma isteği kabul edildi. Düğüm geçici olarak kullanılamayabilir.",
         "list": "Düğümler yüklenemedi",
         "obtain": "Düğüm yüklenemedi",
         "add": "Düğüm ekle",
@@ -1247,6 +1263,17 @@
       "warnDefaultSubPath": "Varsayılan abonelik yolu \"/sub/\" yaygın olarak bilinmektedir — değiştirin.",
       "warnDefaultJsonPath": "Varsayılan JSON abonelik yolu \"/json/\" yaygın olarak bilinmektedir — değiştirin.",
       "TGBotSettings": "Telegram Botu",
+      "networkTrafficInterfaceTitle": "Ağ trafiği arayüzü",
+      "networkTrafficMode": "Ağ trafiği izleme modu",
+      "networkTrafficDescription": "Sistem trafik toplamları ve hızı için kullanılacak arayüzü seçin. Eski toplama modu, katmanlı arayüzlerde aynı trafiği iki kez sayabilir. Docker içinde yalnızca kapsayıcının ağ ad alanındaki arayüzler kullanılabilir.",
+      "networkTrafficLegacy": "Tüm arayüzler (Eski)",
+      "networkTrafficAutomatic": "Otomatik",
+      "networkTrafficManual": "Manuel",
+      "networkTrafficUnavailable": "Seçilen ağ arayüzü kullanılamıyor. Kullanılabilir bir arayüz veya başka bir izleme modu seçin.",
+      "networkTrafficAutoResolved": "Varsayılan rota arayüzü: {interface}",
+      "networkTrafficLoadError": "Ağ arayüzleri yüklenemedi.",
+      "networkTrafficEmpty": "Kullanılabilir ağ arayüzü yok.",
+      "networkTrafficAutoUnavailable": "Varsayılan rota arayüzü yok. Algılama düzelene veya mod değiştirilene kadar trafik ölçümleri kullanılamaz.",
       "panelListeningIP": "Dinleme IP",
       "panelListeningIPDesc": "Web paneli için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "panelListeningDomain": "Dinleme Alan Adı",
@@ -1389,6 +1416,10 @@
       "subDomainDesc": "Abonelik hizmeti için alan adı. (tüm alan adlarını ve IP'leri dinlemek için boş bırakın). Ayrıca, \"Ters Proxy URI\" boşsa gösterilen abonelik bağlantısı için yedek alan adı olarak da kullanılır — panel ve abonelik farklı alan adları üzerinden erişiliyorsa (örneğin bir ters proxy arkasında) \"Ters Proxy URI\"yi ayarlayın.",
       "subUpdates": "Güncelleme Aralıkları",
       "subUpdatesDesc": "İstemci uygulamalarındaki abonelik URL'sinin güncellenme aralığı. (birim: saat)",
+      "subRateLimitEnable": "Abonelik hız sınırı",
+      "subRateLimitEnableDesc": "Her istemci IP'sinin abonelik URL'lerini ne sıklıkla çekebileceğini sınırlar. Limiti aşan istekler Retry-After ipucuyla HTTP 429 alır. Güvenilir proxy CIDR'leri (genel ayarlar) bir istemcinin hangi adresle sayılacağını belirler.",
+      "subRateLimit": "Dakika başına istek",
+      "subRateLimitDesc": "Hız sınırı açıkken istemci IP başına dakikada izin verilen maksimum abonelik çekme sayısı.",
       "externalSubUserAgent": "Harici abonelik User-Agent",
       "externalSubUserAgentDesc": "Panel istemci harici abonelik URL’sini çekerken gönderilen User-Agent. Boş bırakılırsa varsayılan (v2rayNG/1.8.5) kullanılır. Bazı sağlayıcılar bilinmeyen istemcileri reddeder.",
       "subEncrypt": "Kodla",
