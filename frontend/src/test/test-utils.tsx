@@ -49,6 +49,12 @@ function openDropdownOptions(): string[] {
 }
 
 export function listSelectOptions(fieldId: string): string[] {
+  const native = document.getElementById(fieldId);
+  if (native instanceof HTMLSelectElement) {
+    return Array.from(native.options)
+      .filter((option) => !option.hidden)
+      .map((option) => option.text);
+  }
   const select = selectRootForField(fieldId);
   openSelect(select);
   const opts = openDropdownOptions();
@@ -57,6 +63,13 @@ export function listSelectOptions(fieldId: string): string[] {
 }
 
 export function chooseSelectOption(fieldId: string, optionText: string) {
+  const native = document.getElementById(fieldId);
+  if (native instanceof HTMLSelectElement) {
+    const option = Array.from(native.options).find((item) => item.text === optionText);
+    if (!option) throw new Error(`Option '${optionText}' not found for field '${fieldId}'`);
+    fireEvent.change(native, { target: { value: option.value } });
+    return;
+  }
   const select = selectRootForField(fieldId);
   openSelect(select);
   const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(

@@ -713,6 +713,15 @@ func (s *SettingService) GetPort() (int, error) {
 	return s.getInt("webPort")
 }
 
+// GetListenPort returns the port the panel actually listens on: a valid
+// XUI_PORT overrides the stored webPort.
+func (s *SettingService) GetListenPort() (int, error) {
+	if port, configured, err := config.GetPortOverride(); configured && err == nil {
+		return port, nil
+	}
+	return s.GetPort()
+}
+
 func (s *SettingService) SetPort(port int) error {
 	return s.setInt("webPort", port)
 }
@@ -1682,6 +1691,12 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
+	}
+	if allSetting.TwoFactorEnable {
+		if !totp.ValidSecret(allSetting.TwoFactorToken) {
+			return errors.New("two-factor secret must be a non-empty base32 key")
+		}
+		allSetting.TwoFactorToken = totp.NormalizeSecret(allSetting.TwoFactorToken)
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
 		return err

@@ -216,6 +216,19 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgen
 	return sub, nil
 }
 
+// normalizedSubscriptionPrefix is what link.SuggestTag puts in front of every tag of the
+// subscription: the prefix with one trailing dash, or nothing for a dash-only prefix.
+func normalizedSubscriptionPrefix(subID int, tagPrefix string) string {
+	prefix := strings.TrimSpace(tagPrefix)
+	if prefix == "" {
+		prefix = fmt.Sprintf("sub%d-", subID)
+	}
+	if p := strings.TrimSuffix(prefix, "-"); p != "" {
+		return p + "-"
+	}
+	return ""
+}
+
 // Update updates editable fields.
 func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
 	sub, err := s.Get(id)
@@ -233,15 +246,18 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 		updateInterval = 600
 	}
 	prefix := strings.TrimSpace(tagPrefix)
-	if prefix == "" {
+	if prefix == "" && sub.TagPrefix != "" {
 		prefix, err = s.nextDefaultSubPrefix(sub.Id)
 		if err != nil {
 			return err
 		}
 	}
+	oldEffective := normalizedSubscriptionPrefix(sub.Id, sub.TagPrefix)
+	newEffective := normalizedSubscriptionPrefix(sub.Id, prefix)
+
 	// Only the editable columns: a whole-row save would put back fetch results that a
 	// refresh stored meanwhile, or re-create a row deleted meanwhile.
-	return database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).Updates(map[string]any{
+	updates := map[string]any{
 		"remark":          strings.TrimSpace(remark),
 		"url":             cleanURL,
 		"enabled":         enabled,
@@ -251,7 +267,74 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, 
 		"prepend":         prepend,
 		"tag_prefix":      prefix,
 		"update_interval": updateInterval,
-	}).Error
+	}
+	if oldEffective != newEffective {
+		s.rewriteStoredPrefix(sub, oldEffective, newEffective, updates)
+	}
+	return database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).Updates(updates).Error
+}
+
+// rewriteStoredPrefix moves the stored tags and identities to the new prefix at edit time,
+// so the panel shows them at once and the next refresh finds nothing stale to reuse.
+func (s *OutboundSubscriptionService) rewriteStoredPrefix(sub *model.OutboundSubscription, oldPrefix, newPrefix string, updates map[string]any) {
+	if strings.TrimSpace(sub.LinkIdentities) == "" && strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
+		return
+	}
+	externalUsed := s.reservedExternalTags(sub.Id)
+	used := make(map[string]bool)
+	renamed := make(map[string]string)
+
+	allocate := func(oldTag string) string {
+		if oldTag == "" {
+			return ""
+		}
+		if mapped, ok := renamed[oldTag]; ok {
+			return mapped
+		}
+		base := oldTag
+		if strings.HasPrefix(oldTag, oldPrefix) {
+			rest := strings.TrimPrefix(oldTag, oldPrefix)
+			if rest != "" {
+				base = newPrefix + rest
+			}
+		}
+		final := base
+		for k := 1; used[final] || externalUsed[final]; k++ {
+			final = fmt.Sprintf("%s-%d", base, k)
+		}
+		used[final] = true
+		renamed[oldTag] = final
+		return final
+	}
+
+	if strings.TrimSpace(sub.LastFetchedOutbounds) != "" {
+		var obs []any
+		if json.Unmarshal([]byte(sub.LastFetchedOutbounds), &obs) == nil {
+			for _, item := range obs {
+				if m, ok := item.(map[string]any); ok {
+					if t, _ := m["tag"].(string); t != "" {
+						m["tag"] = allocate(t)
+					}
+				}
+			}
+			if b, err := json.Marshal(obs); err == nil {
+				updates["last_fetched_outbounds"] = string(b)
+			}
+		}
+	}
+	if strings.TrimSpace(sub.LinkIdentities) != "" {
+		var prev map[string]string
+		if json.Unmarshal([]byte(sub.LinkIdentities), &prev) == nil {
+			for id, t := range prev {
+				if t != "" {
+					prev[id] = allocate(t)
+				}
+			}
+			if b, err := json.Marshal(prev); err == nil {
+				updates["link_identities"] = string(b)
+			}
+		}
+	}
 }
 
 // Delete removes a subscription.
@@ -507,11 +590,13 @@ func (s *OutboundSubscriptionService) fetchOutbounds(sub *model.OutboundSubscrip
 		keptIdentities = append(keptIdentities, identities[i])
 	}
 
-	// Assign tags with stability (identity reuse, positional fallback, then a
-	// fresh allocation), keeping tags unique within this batch. Extracted into a
-	// pure function so it can be unit-tested without network/DB. Tags are written
-	// back into the parsed outbounds in place.
-	assigned := assignStableTags(keptLinks, keptIdentities, prev, prevTagByIndex, sub.Id, sub.TagPrefix)
+	// Identity reuse, positional fallback, then a fresh allocation; tags stay unique in the
+	// batch and against the template and the other subscriptions.
+	var externalUsed map[string]bool
+	if sub.Id > 0 {
+		externalUsed = s.reservedExternalTags(sub.Id)
+	}
+	assigned := assignStableTagsWithExternal(keptLinks, keptIdentities, prev, prevTagByIndex, sub.Id, sub.TagPrefix, externalUsed)
 
 	// Persist identities for next time
 	newIdent := map[string]string{}
@@ -601,10 +686,23 @@ func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscriptio
 // written back into parsed[i]["tag"]. The returned slice holds the assigned tags
 // in order. When tagPrefix is empty a "sub<subID>-" prefix is used for fresh tags.
 func assignStableTags(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string) []string {
+	return assignStableTagsWithExternal(parsed, identities, prev, prevTagByIndex, subID, tagPrefix, nil)
+}
+
+func assignStableTagsWithExternal(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string, externalUsed map[string]bool) []string {
+	prefix := tagPrefix
+	if prefix == "" {
+		prefix = fmt.Sprintf("sub%d-", subID)
+	}
+	expectedPrefix := normalizedSubscriptionPrefix(subID, prefix)
+
 	reservedStableTags := map[string]bool{}
 	for i := range parsed {
 		if i < len(identities) && prev[identities[i]] != "" {
-			reservedStableTags[prev[identities[i]]] = true
+			tag := prev[identities[i]]
+			if strings.HasPrefix(tag, expectedPrefix) && !externalUsed[tag] {
+				reservedStableTags[tag] = true
+			}
 		}
 	}
 
@@ -617,31 +715,27 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 		}
 		candidate := ""
 		identityTag := ""
-		if old, ok := prev[id]; ok && old != "" {
+		if old, ok := prev[id]; ok && old != "" && strings.HasPrefix(old, expectedPrefix) {
 			candidate = old
 			identityTag = old
 		}
 		if candidate == "" {
 			// try to reuse by rough positional match from previous fetch (best effort)
-			if old, ok := prevTagByIndex[i]; ok && old != "" && !reservedStableTags[old] {
+			if old, ok := prevTagByIndex[i]; ok && old != "" && strings.HasPrefix(old, expectedPrefix) && !reservedStableTags[old] {
 				candidate = old
 			}
 		}
 		if candidate == "" {
 			// fresh allocation
-			prefix := tagPrefix
-			if prefix == "" {
-				prefix = fmt.Sprintf("sub%d-", subID)
-			}
 			remark := ""
 			if m, ok := parsed[i]["tag"].(string); ok {
 				remark = m
 			}
 			candidate = link.SuggestTag(prefix, remark, i)
 		}
-		// ensure local uniqueness inside this batch
+		// ensure uniqueness inside this batch and against template / other subscriptions
 		final := candidate
-		for k := 1; used[final] || (reservedStableTags[final] && final != identityTag); k++ {
+		for k := 1; used[final] || externalUsed[final] || (reservedStableTags[final] && final != identityTag); k++ {
 			final = fmt.Sprintf("%s-%d", candidate, k)
 		}
 		used[final] = true
@@ -653,11 +747,104 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 	return assigned
 }
 
+// templateOutboundTags is the set of tags the stored Xray template's own outbounds use.
+func (s *OutboundSubscriptionService) templateOutboundTags() map[string]bool {
+	used := make(map[string]bool)
+	if database.GetDB() == nil {
+		return used
+	}
+	tpl, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil || strings.TrimSpace(tpl) == "" {
+		return used
+	}
+	var cfg xray.Config
+	if err := json.Unmarshal([]byte(tpl), &cfg); err != nil || len(cfg.OutboundConfigs) == 0 {
+		return used
+	}
+	var templateOutbounds []any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &templateOutbounds); err != nil {
+		return used
+	}
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				used[tag] = true
+			}
+		}
+	}
+	return used
+}
+
+// reservedExternalTags is every tag the template and the other subscriptions hold, so a
+// refresh or prefix edit stores tags that already collide with none of them.
+func (s *OutboundSubscriptionService) reservedExternalTags(excludeSubID int) map[string]bool {
+	used := s.templateOutboundTags()
+	db := database.GetDB()
+	if db == nil {
+		return used
+	}
+	var subs []*model.OutboundSubscription
+	if err := db.Where("id <> ?", excludeSubID).Order("priority asc, id asc").Find(&subs).Error; err != nil {
+		return used
+	}
+	for _, sub := range subs {
+		if strings.TrimSpace(sub.LastFetchedOutbounds) == "" {
+			continue
+		}
+		var arr []any
+		if json.Unmarshal([]byte(sub.LastFetchedOutbounds), &arr) != nil {
+			continue
+		}
+		for _, item := range arr {
+			if ob, ok := item.(map[string]any); ok {
+				if tag, _ := ob["tag"].(string); tag != "" {
+					used[tag] = true
+				}
+			}
+		}
+	}
+	return used
+}
+
+// dedupeSubscriptionOutboundList gives a colliding outbound a "-N" tag on a copy; Xray
+// refuses to start on a duplicate tag ("existing tag found").
+func dedupeSubscriptionOutboundList(list []any, usedTags map[string]bool) []any {
+	out := make([]any, len(list))
+	for i, item := range list {
+		ob, ok := item.(map[string]any)
+		if !ok {
+			out[i] = item
+			continue
+		}
+		tag, _ := ob["tag"].(string)
+		if tag == "" {
+			out[i] = item
+			continue
+		}
+		if !usedTags[tag] {
+			usedTags[tag] = true
+			out[i] = item
+			continue
+		}
+		cloned := make(map[string]any, len(ob))
+		for k, v := range ob {
+			cloned[k] = v
+		}
+		final := tag
+		for k := 1; usedTags[final]; k++ {
+			final = fmt.Sprintf("%s-%d", tag, k)
+		}
+		usedTags[final] = true
+		cloned["tag"] = final
+		logger.Debugf("outbound subscription tag %q collides with an existing outbound, renamed to %q", tag, final)
+		out[i] = cloned
+	}
+	return out
+}
+
 // AllActiveOutbounds returns the concatenation of the last-fetched outbounds
 // for every enabled subscription. This is the set that should be merged into
-// the final Xray config. Order: subscription creation order (by id asc) so
-// that later subscriptions can shadow earlier ones if the admin uses colliding
-// prefixes (last writer wins inside xray, but we try to keep tags unique).
+// the final Xray config.
 func (s *OutboundSubscriptionService) AllActiveOutbounds() ([]any, error) {
 	prepend, appendList, err := s.activeOutboundsSplit()
 	if err != nil {
@@ -708,6 +895,9 @@ func (s *OutboundSubscriptionService) activeOutboundsSplit() (prepend []any, app
 			appendList = append(appendList, arr...)
 		}
 	}
+	usedTags := s.templateOutboundTags()
+	prepend = dedupeSubscriptionOutboundList(prepend, usedTags)
+	appendList = dedupeSubscriptionOutboundList(appendList, usedTags)
 	return prepend, appendList, nil
 }
 
