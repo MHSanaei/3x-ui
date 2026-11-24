@@ -503,10 +503,14 @@ describe('XHTTP separate download', () => {
   };
 
   it.each([
-    ['stream-one', downloadSettings],
-    ['auto', { ...downloadSettings, network: 'tcp' }],
-    ['auto', { ...downloadSettings, security: 'reality', realitySettings: { password: 'abc' } }],
-  ] as const)('rejects invalid separate download settings before save', (mode, download) => {
+    ['stream-one', downloadSettings, 'Separate download is incompatible with stream-one.'],
+    ['auto', { ...downloadSettings, network: 'tcp' }, 'Select XHTTP for the download transport.'],
+    [
+      'auto',
+      { ...downloadSettings, security: 'reality', realitySettings: { password: 'abc' } },
+      'Enter a 32-byte unpadded base64url REALITY public key.',
+    ],
+  ] as const)('rejects invalid separate download settings before save', (mode, download, why) => {
     const form = rawInboundToFormValues({
       ...vlessRow,
       streamSettings: {
@@ -515,7 +519,8 @@ describe('XHTTP separate download', () => {
         xhttpSettings: { mode, extra: { downloadSettings: download } },
       },
     });
-    expect(InboundFormSchema.safeParse(form).success).toBe(false);
+    const result = InboundFormSchema.safeParse(form);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([why]);
   });
 
   it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {

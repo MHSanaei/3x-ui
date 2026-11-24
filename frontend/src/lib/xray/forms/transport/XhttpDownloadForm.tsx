@@ -5,8 +5,14 @@ import { useFormContext, useWatch } from 'react-hook-form';
 
 import { NativeSelect } from '@/components/form/NativeSelect';
 import { FormField } from '@/components/form/rhf';
+import { UTLS_FINGERPRINT } from '@/schemas/primitives';
 
 const root = 'streamSettings.xhttpSettings.downloadSettings';
+
+// The core refuses to build a REALITY client whose fingerprint is unsafe or unknown.
+const REALITY_FINGERPRINT_OPTIONS = Object.values(UTLS_FINGERPRINT)
+  .filter((fp) => fp !== UTLS_FINGERPRINT.UTLS_UNSAFE)
+  .map((fp) => ({ value: fp, label: fp }));
 
 export function XhttpDownloadForm({ mode }: { mode?: string }) {
   const { t } = useTranslation();
@@ -126,7 +132,7 @@ export function XhttpDownloadForm({ mode }: { mode?: string }) {
                 name={root + '.realitySettings.fingerprint'}
                 label={t('pages.inbounds.form.fingerprint')}
               >
-                <Input placeholder="chrome" />
+                <NativeSelect options={REALITY_FINGERPRINT_OPTIONS} />
               </FormField>
               <FormField
                 name={root + '.realitySettings.shortId'}
