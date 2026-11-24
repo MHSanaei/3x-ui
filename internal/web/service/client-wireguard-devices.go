@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 type WireguardDeviceInbound struct {
@@ -79,6 +81,46 @@ func validWireguardDeviceName(name string) (string, error) {
 	return name, nil
 }
 
+// nodeWireguardDeviceChecker is the node runtime's probe; the local one serves devices itself.
+type nodeWireguardDeviceChecker interface {
+	CheckWireguardDevices(ctx context.Context) error
+}
+
+// requireNodesServeWireguardDevices runs before the write: a device an older node ignores
+// would be handed out as a working config and leave that node pending a push it refuses.
+func requireNodesServeWireguardDevices(email string) error {
+	inbounds, err := wireguardDeviceInbounds(database.GetDB(), email)
+	if err != nil {
+		return err
+	}
+	mgr := runtime.GetManager()
+	checked := make(map[int]struct{})
+	for _, inbound := range inbounds {
+		if inbound.NodeID == nil || mgr == nil {
+			continue
+		}
+		if _, done := checked[*inbound.NodeID]; done {
+			continue
+		}
+		checked[*inbound.NodeID] = struct{}{}
+		rt, err := mgr.RuntimeFor(inbound.NodeID)
+		if err != nil {
+			return err
+		}
+		checker, ok := rt.(nodeWireguardDeviceChecker)
+		if !ok {
+			continue
+		}
+		ctx, cancel := nodePushContext()
+		err = checker.CheckWireguardDevices(ctx)
+		cancel()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *ClientService) AddWireguardDevice(email, name string) error {
 	name, err := validWireguardDeviceName(name)
 	if err != nil {
@@ -89,6 +131,9 @@ func (s *ClientService) AddWireguardDevice(email, name string) error {
 		return err
 	}
 	device := model.WireguardDevice{Id: uuid.NewString(), Name: name, Enable: true, PrivateKey: privateKey, PublicKey: publicKey}
+	if err := requireNodesServeWireguardDevices(email); err != nil {
+		return err
+	}
 	return s.mutateWireguardDevices(email, func(client *model.Client) error {
 		if len(client.WireguardDevices)+1 >= model.EffectiveWireguardDeviceLimit(client.WgDeviceLimit) {
 			return errors.New("WireGuard device limit reached")

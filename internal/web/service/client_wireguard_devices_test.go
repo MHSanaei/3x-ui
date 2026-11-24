@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"testing"
 
@@ -163,5 +165,61 @@ func TestWireguardDeviceMetadataEditPreservesDevices(t *testing.T) {
 	b, _ := json.Marshal(after.Inbounds[0].Devices)
 	if string(a) != string(b) {
 		t.Fatalf("metadata update changed devices")
+	}
+}
+
+// oldNodeRuntime is a node whose build ignores a client's extra WireGuard devices.
+type oldNodeRuntime struct{ fakeNodeRuntime }
+
+const oldNodeRefusal = "node old does not support WireGuard client devices"
+
+func (*oldNodeRuntime) CheckWireguardDevices(context.Context) error {
+	return errors.New(oldNodeRefusal)
+}
+
+// A device the node would never serve must be refused before it is stored: saved, the
+// panel would hand out its config and leave the node waiting for a push it rejects.
+func TestWireguardDeviceRefusedBeforeSaveOnNodeWithoutSupport(t *testing.T) {
+	svc, ids := setupWireguardDeviceClient(t, "node@wg", 51930)
+	mgr := useTestRuntimeManager(t)
+	db := database.GetDB()
+	node := &model.Node{Name: "old", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&model.Inbound{}).Where("id = ?", ids[0]).Update("node_id", node.Id).Error; err != nil {
+		t.Fatal(err)
+	}
+	deviceCount := func() int {
+		t.Helper()
+		list, err := svc.WireguardDevices("node@wg")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(list.Inbounds[0].Devices)
+	}
+	nodeDirty := func() bool {
+		t.Helper()
+		_, _, dirty, _, err := (&NodeService{}).NodeSyncState(node.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return dirty
+	}
+
+	mgr.SetRuntimeOverride(node.Id, &oldNodeRuntime{})
+	if err := svc.AddWireguardDevice("node@wg", "Phone"); err == nil || err.Error() != oldNodeRefusal {
+		t.Fatalf("add on an old node: err = %v, want %q", err, oldNodeRefusal)
+	}
+	if got := deviceCount(); got != 1 || nodeDirty() {
+		t.Fatalf("refused add left %d devices, node dirty = %v; want 1 and false", got, nodeDirty())
+	}
+
+	mgr.SetRuntimeOverride(node.Id, &fakeNodeRuntime{})
+	if err := svc.AddWireguardDevice("node@wg", "Phone"); err != nil {
+		t.Fatalf("add on a current node: %v", err)
+	}
+	if got := deviceCount(); got != 2 || !nodeDirty() {
+		t.Fatalf("accepted add left %d devices, node dirty = %v; want 2 and true", got, nodeDirty())
 	}
 }

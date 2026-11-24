@@ -183,10 +183,55 @@ func (r *Remote) checkInboundCapabilities(ctx context.Context, ib *model.Inbound
 	if err := r.requireAmneziaWGKernel(ctx, ib); err != nil {
 		return err
 	}
+	if inboundHasWireguardDevices(ib) {
+		if err := r.requireWireguardDevices(ctx); err != nil {
+			return err
+		}
+	}
 	if !ib.PreservesClientTraffic() || !ib.HasTrafficResetSchedule() {
 		return nil
 	}
 	return r.requirePreserveClientTraffic(ctx)
+}
+
+func inboundHasWireguardDevices(ib *model.Inbound) bool {
+	if ib.Protocol != model.WireGuard {
+		return false
+	}
+	var settings struct {
+		Clients []struct {
+			WireguardDevices []json.RawMessage `json:"wireguardDevices"`
+		} `json:"clients"`
+	}
+	if json.Unmarshal([]byte(ib.Settings), &settings) != nil {
+		return false
+	}
+	for _, client := range settings.Clients {
+		if len(client.WireguardDevices) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckWireguardDevices probes the current node build before the master stores a
+// client's first extra device; learned caps go stale across an upgrade or rollback.
+func (r *Remote) CheckWireguardDevices(ctx context.Context) error {
+	if _, err := r.do(ctx, http.MethodGet, "panel/api/server/status", nil); err != nil {
+		return fmt.Errorf("cannot verify WireGuard device support on node %s: %w", r.node.Name, err)
+	}
+	return r.requireWireguardDevices(ctx)
+}
+
+func (r *Remote) requireWireguardDevices(ctx context.Context) error {
+	supported, err := r.nodeSupports(ctx, wirecodec.CapWireguardDevices)
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return fmt.Errorf("node %s does not support WireGuard client devices; upgrade its panel before adding devices", r.node.Name)
+	}
+	return nil
 }
 
 // CheckPreserveClientTraffic probes the current node build before the master

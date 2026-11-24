@@ -187,6 +187,9 @@ func TestMasterNodeContract(t *testing.T) {
 				{"CheckPreserveClientTraffic reads the node's reset capability", []string{"CheckPreserveClientTraffic"}, func() error {
 					return master.CheckPreserveClientTraffic(ctx)
 				}, nil},
+				{"CheckWireguardDevices reads the node's device capability", []string{"CheckWireguardDevices"}, func() error {
+					return master.CheckWireguardDevices(ctx)
+				}, nil},
 				{"AddInbound creates the inbound with its clients", []string{"AddInbound"}, func() error {
 					return master.AddInbound(ctx, masterInbound("added", true, "c0", "c1"))
 				}, func(t *testing.T) {
