@@ -228,9 +228,6 @@ interface ThemeContextValue {
   isDark: boolean;
   /** Ultra dark is a variant of dark and never applies to light. */
   isUltra: boolean;
-  toggleTheme: () => void;
-  toggleUltra: () => void;
-  setMode: (mode: ThemeMode) => void;
   /** Walks light → dark → ultra dark → system → light. */
   cycleTheme: () => void;
   antdThemeConfig: ThemeConfig;
@@ -256,9 +253,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_ULTRA, String(isUltra));
   }, [mode, isDark, isUltra]);
 
-  const toggleTheme = useCallback(() => setModeState(isDark ? 'light' : 'dark'), [isDark]);
-  const toggleUltra = useCallback(() => setUltraRequested((v) => !v), []);
-  const setMode = useCallback((next: ThemeMode) => setModeState(next), []);
   const cycleTheme = useCallback(() => {
     const next = nextTheme(mode, isUltra);
     setModeState(next.mode);
@@ -272,13 +266,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       mode,
       isDark,
       isUltra,
-      toggleTheme,
-      toggleUltra,
-      setMode,
       cycleTheme,
       antdThemeConfig,
     }),
-    [mode, isDark, isUltra, toggleTheme, toggleUltra, setMode, cycleTheme, antdThemeConfig],
+    [mode, isDark, isUltra, cycleTheme, antdThemeConfig],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

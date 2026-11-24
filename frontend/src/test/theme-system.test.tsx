@@ -36,15 +36,12 @@ function flipSystemScheme(dark: boolean) {
 }
 
 function Harness() {
-  const { mode, isDark, isUltra, setMode, cycleTheme } = useTheme();
+  const { mode, isDark, isUltra, cycleTheme } = useTheme();
   return (
     <div>
       <span data-testid="mode">{mode}</span>
       <span data-testid="dark">{String(isDark)}</span>
       <span data-testid="ultra">{String(isUltra)}</span>
-      <button type="button" onClick={() => setMode('system')}>
-        system
-      </button>
       <button type="button" onClick={cycleTheme}>
         cycle
       </button>
@@ -90,8 +87,8 @@ describe('theme mode', () => {
   });
 
   it('follows the OS scheme in system mode', () => {
+    localStorage.setItem('theme-mode', 'system');
     const ui = renderHarness();
-    fireEvent.click(ui.getByText('system'));
 
     expect(ui.mode()).toBe('system');
     expect(ui.dark()).toBe('true');

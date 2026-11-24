@@ -15,8 +15,8 @@ function StorybookTheme({ theme }: { theme: 'light' | 'dark' }) {
 }
 
 function ThemeToggle() {
-  const { toggleTheme } = useTheme();
-  return <button onClick={toggleTheme}>toggle</button>;
+  const { cycleTheme } = useTheme();
+  return <button onClick={cycleTheme}>toggle</button>;
 }
 
 afterEach(() => {
@@ -31,15 +31,16 @@ afterEach(() => {
 // Without color-scheme the browser paints native scrollbars light inside dark
 // modals, e.g. the Edit Client body.
 test('native scrollbars follow the panel theme', () => {
+  localStorage.setItem('theme-mode', 'light');
   const { getByRole } = render(
     <ThemeProvider>
       <ThemeToggle />
     </ThemeProvider>,
   );
-  expect(document.documentElement.style.colorScheme).toBe('dark');
+  expect(document.documentElement.style.colorScheme).toBe('light');
 
   fireEvent.click(getByRole('button'));
-  expect(document.documentElement.style.colorScheme).toBe('light');
+  expect(document.documentElement.style.colorScheme).toBe('dark');
 });
 
 test('native scrollbars follow the Storybook theme', () => {
