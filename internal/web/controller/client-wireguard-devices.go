@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -16,7 +17,12 @@ func (a *ClientController) finishWireguardDeviceWrite(c *gin.Context, err error)
 		jsonObj(c, nil, err)
 		return
 	}
-	a.xrayService.SetToNeedReconcile()
+	// Applied now, not at the next 30 s reconcile tick: until then a disabled or
+	// deleted device kept its tunnel (measured 12-24 s on a running panel).
+	if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
+		logger.Warning("apply WireGuard device change failed, left to the next reconcile:", applyErr)
+		a.xrayService.SetToNeedReconcile()
+	}
 	notifyClientsChanged()
 	a.wireguardDevices(c)
 }
