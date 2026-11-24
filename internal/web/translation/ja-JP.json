@@ -128,7 +128,11 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeUltraDark": "ウルトラダーク",
+    "themeSystem": "システム"
   },
   "pages": {
     "login": {
@@ -1297,6 +1301,13 @@
       "tgNotifyLoginDesc": "誰かがパネルにログインしようとしたときに、ユーザー名、IPアドレス、時間を表示する",
       "sessionMaxAge": "セッション期間",
       "sessionMaxAgeDesc": "ログイン状態を保持する期間（単位：分）",
+      "publicIpRefresh": "パブリックIPの更新",
+      "publicIpRefreshDesc": "外部サービスでパブリックIPを再検出する間隔。0なら一度だけ検出し、更新しません。(単位: 分)",
+      "publicIpv6Detect": "パブリックIPv6を検出",
+      "publicIpv6DetectDesc": "IPv4のみのサーバーではオフにすると、IPv6の問い合わせをすべて省略します。",
+      "publicIpv4Override": "パブリックIPv4の手動指定",
+      "publicIpv6Override": "パブリックIPv6の手動指定",
+      "publicIpOverrideDesc": "検出せずにこのアドレスを使用します。外部への問い合わせは行いません。空欄の場合は自動検出します。",
       "expireTimeDiff": "有効期限通知のしきい値",
       "expireTimeDiffDesc": "このしきい値に達した場合、有効期限に関する通知を受け取る（単位：日）",
       "trafficDiff": "トラフィック消耗しきい値",

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Menu, Popover, Space } from 'antd';
 import {
+  DesktopOutlined,
   MoonFilled,
   MoonOutlined,
   SunOutlined,
@@ -10,7 +11,7 @@ import {
 } from '@ant-design/icons';
 
 import { LanguageManager } from '@/utils';
-import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import { pauseAnimationsUntilLeave, themeModeKey, useTheme } from '@/hooks/useTheme';
 
 interface SubHeaderProps {
   title: string;
@@ -22,19 +23,11 @@ interface SubHeaderProps {
 
 export default function SubHeader({ title, sId, email, lang, onLangChange }: SubHeaderProps) {
   const { t } = useTranslation();
-  const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const { mode, isDark, isUltra, cycleTheme: advanceTheme } = useTheme();
 
   const cycleTheme = () => {
     pauseAnimationsUntilLeave('sub-theme-cycle');
-    if (!isDark) {
-      toggleTheme();
-      if (isUltra) toggleUltra();
-    } else if (!isUltra) {
-      toggleUltra();
-    } else {
-      toggleUltra();
-      toggleTheme();
-    }
+    advanceTheme();
   };
 
   const langMenuItems = useMemo(
@@ -53,13 +46,17 @@ export default function SubHeader({ title, sId, email, lang, onLangChange }: Sub
     [],
   );
 
-  const themeIcon = !isDark ? (
-    <SunOutlined aria-hidden />
-  ) : !isUltra ? (
-    <MoonOutlined aria-hidden />
-  ) : (
-    <MoonFilled aria-hidden />
-  );
+  const themeIcon =
+    mode === 'system' ? (
+      <DesktopOutlined aria-hidden />
+    ) : !isDark ? (
+      <SunOutlined aria-hidden />
+    ) : !isUltra ? (
+      <MoonOutlined aria-hidden />
+    ) : (
+      <MoonFilled aria-hidden />
+    );
+  const themeLabel = `${t('menu.theme')}: ${t(themeModeKey(mode, isUltra))}`;
   const initial = Array.from(title)[0]?.toUpperCase();
 
   return (
@@ -83,8 +80,8 @@ export default function SubHeader({ title, sId, email, lang, onLangChange }: Sub
           shape="circle"
           size="large"
           className="toolbar-btn"
-          aria-label={t('menu.theme')}
-          title={t('menu.theme')}
+          aria-label={themeLabel}
+          title={themeLabel}
           icon={themeIcon}
           onClick={cycleTheme}
         />
