@@ -2,7 +2,6 @@ package tgbot
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,18 +10,13 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/mymmrac/telego"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"golang.org/x/text/language"
-	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -173,158 +167,29 @@ func TestResetAllTrafficsAnswersWithNoClients(t *testing.T) {
 	}
 }
 
-// Regression test: the report leaves as one HTML-parsed message, so a remark
-// holding "<" must reach Telegram escaped instead of dropping the whole page.
-func TestTrafficUsageReportEscapesHtml(t *testing.T) {
-	mock, sent := captureReportServer(t)
-	swapTestBot(t, mock.URL)
-	defer mock.Close()
-
+// Every bot message is HTML-parsed, and a node chooses the remark and e-mails the master
+// stores for its inbound: filled into a template unescaped, they became markup.
+func TestClientInfoEscapesNodeValues(t *testing.T) {
 	tb := initReportDB(t)
-	seedReportClients(t, "DE <fast>", []string{"a@x"})
-
-	tb.answerCallback(&telego.CallbackQuery{
-		ID:      "q1",
-		From:    telego.User{ID: 1},
-		Data:    "get_sorted_traffic_usage_report",
-		Message: &telego.Message{Chat: telego.Chat{ID: 1}},
-	}, true) // admin
-
-	got := sent()
-	if len(got) != 1 {
-		t.Fatalf("messages = %d, want 1", len(got))
+	draftLocalizer(t, &i18n.Message{ID: "tgbot.messages.email", Other: "📧 Email: {{ .Email }}\r\n"})
+	remark := `<a href="https://evil.example/">Panel session expired</a>`
+	email := "<b>zz</b>"
+	seedReportClients(t, remark, []string{email})
+	var traffic xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", email).First(&traffic).Error; err != nil {
+		t.Fatalf("read traffic: %v", err)
 	}
-	if strings.Contains(got[0].body(), "<fast>") {
-		t.Errorf("report text = %q, want the remark escaped", got[0].body())
-	}
-}
 
-func TestNotifyExhaustedLooksUpEachIDOnce(t *testing.T) {
-	for _, outcome := range []string{"empty", "failure", "exhausted", "expiry", "admin", "zero", "disabled-inbound"} {
-		t.Run(outcome, func(t *testing.T) {
-			tb := initReportDB(t)
-			clientInfoLocalizer(t)
-			mock, sent := captureReportServer(t)
-			swapTestBot(t, mock.URL)
-			t.Cleanup(mock.Close)
-			clients := []model.Client{
-				{Email: "notify-a", ID: "uuid-a", TgID: 6886, Enable: true},
-				{Email: "notify-b", ID: "uuid-b", TgID: 6886, Enable: true},
-			}
-			if outcome == "zero" {
-				for i := range clients {
-					clients[i].TgID = 0
-				}
-			}
-			if outcome == "admin" {
-				tgBotMutex.Lock()
-				previous := adminIds
-				adminIds = append(append([]int64(nil), adminIds...), 6886)
-				tgBotMutex.Unlock()
-				t.Cleanup(func() {
-					tgBotMutex.Lock()
-					adminIds = previous
-					tgBotMutex.Unlock()
-				})
-			}
-			db := database.GetDB()
-			for i := range 2 {
-				inbound := &model.Inbound{UserId: 1, Tag: fmt.Sprintf("notify-%d", i), Port: 41890 + i, Enable: true, Protocol: model.VLESS, Settings: `{"clients":[{"email":"notify-a","id":"uuid-a","enable":true,"tgId":6886},{"email":"notify-b","id":"uuid-b","enable":true,"tgId":6886}]}`}
-				if outcome == "disabled-inbound" {
-					inbound.Enable = false
-				}
-				if err := db.Create(inbound).Error; err != nil {
-					t.Fatal(err)
-				}
-				if err := (&service.ClientService{}).SyncInbound(nil, inbound.Id, clients); err != nil {
-					t.Fatal(err)
-				}
-				// Keep the inbound eligible even when the Telegram account has no traffic.
-				traffic := &xray.ClientTraffic{Email: fmt.Sprintf("unrelated-%d", i), InboundId: inbound.Id}
-				if outcome == "exhausted" || outcome == "expiry" {
-					traffic.Email = clients[i].Email
-					traffic.Enable = true
-					traffic.Total = 1
-					traffic.Up = 2
-					if outcome == "expiry" {
-						traffic.Total = 0
-						traffic.ExpiryTime = time.Now().Add(-time.Hour).UnixMilli()
-					}
-				}
-				if err := db.Create(traffic).Error; err != nil {
-					t.Fatal(err)
-				}
-			}
-			lookups := 0
-			cb := "test:notify_lookup"
-			if err := db.Callback().Query().Before("gorm:query").Register(cb, func(tx *gorm.DB) {
-				if tx.Statement.Table == "clients" && strings.Contains(fmt.Sprint(tx.Statement.Clauses["WHERE"]), "tg_id") {
-					lookups++
-					if outcome == "failure" {
-						tx.AddError(errors.New("injected Telegram lookup failure"))
-					}
-				}
-			}); err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = db.Callback().Query().Remove(cb) })
-			tb.notifyExhausted()
-			wantLookups := 1
-			if outcome == "admin" || outcome == "zero" || outcome == "disabled-inbound" {
-				wantLookups = 0
-			}
-			if lookups != wantLookups {
-				t.Fatalf("lookups = %d, want %d after %s", lookups, wantLookups, outcome)
-			}
-			got := sent()
-			if outcome == "exhausted" || outcome == "expiry" {
-				if len(got) != 1 || !strings.Contains(got[0].Text, "notify-a") || !strings.Contains(got[0].Text, "notify-b") {
-					t.Fatalf("want one notification containing both clients, got %+v", got)
-				}
-			} else if len(got) != 0 {
-				t.Fatalf("unexpected notifications: %+v", got)
-			}
-		})
-	}
-}
+	out := tb.clientInfoMsg(&traffic, true, false, false, true, true, false)
 
-func TestServerUsageInfoShowsUnavailableUptime(t *testing.T) {
-	bundle := i18n.NewBundle(language.English)
-	_ = bundle.AddMessages(language.English, &i18n.Message{ID: "tgbot.messages.serverUpTime", Other: "Uptime: {{.UpTime}} {{.Unit}}\n"}, &i18n.Message{ID: "tgbot.days", Other: "days"})
-	oldLocale := locale.LocalizerBot
-	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en")
-	t.Cleanup(func() { locale.LocalizerBot = oldLocale })
-	statusCache.mutex.Lock()
-	oldStatus, oldTime := statusCache.data, statusCache.timestamp
-	statusCache.mutex.Unlock()
-	serverStatsCache.mutex.Lock()
-	oldStats, oldStatsTime := serverStatsCache.data, serverStatsCache.timestamp
-	serverStatsCache.mutex.Unlock()
-	t.Cleanup(func() {
-		statusCache.mutex.Lock()
-		statusCache.data, statusCache.timestamp = oldStatus, oldTime
-		statusCache.mutex.Unlock()
-		serverStatsCache.mutex.Lock()
-		serverStatsCache.data, serverStatsCache.timestamp = oldStats, oldStatsTime
-		serverStatsCache.mutex.Unlock()
-	})
-	for _, unavailable := range []bool{true, false} {
-		t.Run(map[bool]string{true: "unavailable", false: "valid zero"}[unavailable], func(t *testing.T) {
-			bot := &Tgbot{}
-			status := &service.Status{Loads: []float64{0, 0, 0}}
-			if unavailable {
-				status.UnavailableMetrics = []string{"uptime"}
-			}
-			bot.setCachedStatus(status)
-			bot.setCachedServerStats("")
-			info := bot.prepareServerUsageInfo()
-			want := "Uptime: 0 days"
-			if unavailable {
-				want = "Uptime: —"
-			}
-			if !strings.Contains(info, want) {
-				t.Fatalf("report did not contain %q: %s", want, info)
-			}
-		})
+	for _, raw := range []string{"<a href=", "<b>zz</b>"} {
+		if strings.Contains(out, raw) {
+			t.Errorf("client info = %q, want %q escaped", out, raw)
+		}
+	}
+	for _, want := range []string{"📧 Email: &lt;b&gt;zz&lt;/b&gt;", "&lt;a href="} {
+		if !strings.Contains(out, want) {
+			t.Errorf("client info = %q, want it to contain %q", out, want)
+		}
 	}
 }

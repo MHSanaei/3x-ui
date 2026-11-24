@@ -252,6 +252,47 @@ func TestCleanField_Protection(t *testing.T) {
 	}
 }
 
+func TestFormatEmbed_ForeignTextIsNotMarkdown(t *testing.T) {
+	sub := NewSubscriber(setupTestDB(t), nil)
+	const text = "a_b\n**x** [reset](https://attacker.example/) <@1> `c`"
+	const want = "a\\_b\n\\*\\*x\\*\\* \\[reset\\](https\\://attacker.example/) \\<@1\\> \\`c\\`"
+
+	for name, tc := range map[string]struct {
+		event eventbus.Event
+		field int
+	}{
+		"failed login username": {eventbus.Event{
+			Type: eventbus.EventLoginAttempt,
+			Data: &eventbus.LoginEventData{Username: text, IP: "2001:db8::1", Status: "fail", Time: "2026-10-15 02:52:22"},
+		}, 0},
+		"successful login username": {eventbus.Event{
+			Type: eventbus.EventLoginAttempt,
+			Data: &eventbus.LoginEventData{Username: text, IP: "2001:db8::1", Status: "success", Time: "2026-10-15 02:52:22"},
+		}, 0},
+		"node-reported xray error": {eventbus.Event{
+			Type:   eventbus.EventNodeDown,
+			Source: "node-1",
+			Data:   &eventbus.NodeHealthData{XrayError: text},
+		}, 1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			embed, ok := sub.FormatEmbed(tc.event)
+			if !ok || len(embed.Fields) <= tc.field {
+				t.Fatalf("expected an alert with field %d, got ok=%v fields=%d", tc.field, ok, len(embed.Fields))
+			}
+			if got := embed.Fields[tc.field].Value; got != want {
+				t.Errorf("field value = %q, want %q", got, want)
+			}
+			// Only markup is escaped: the IP and time fields go out as written.
+			for _, f := range embed.Fields[tc.field+1:] {
+				if strings.Contains(f.Value, `\`) {
+					t.Errorf("field %q = %q, want it untouched", f.Name, f.Value)
+				}
+			}
+		})
+	}
+}
+
 func TestHandleEvent_EndToEndWithServer(t *testing.T) {
 	settingService := setupTestDB(t)
 	_ = settingService.SetDiscordBotEnable(true)

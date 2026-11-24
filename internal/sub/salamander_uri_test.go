@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -84,5 +85,44 @@ func TestGenHysteriaLinkGeckoStillWarnsOnExtraKeys(t *testing.T) {
 	}
 	if found == 0 {
 		t.Fatal("leftover salamander key did not warn alongside the gecko export")
+	}
+}
+
+// The names may be a node's: 50 renames of one oversized setting must leave
+// one fixed-size entry for the inbound and warning lines of bounded length.
+func TestGenHysteriaLinkSalamanderWarningStateIsBounded(t *testing.T) {
+	const id = 910004
+	for i := range 50 {
+		name := strconv.Itoa(i) + strings.Repeat("k", 4096)
+		in := &model.Inbound{
+			Id: id, Listen: "203.0.113.1", Port: 443, Protocol: model.Hysteria,
+			Settings:       `{"version":2,"clients":[{"auth":"secret","email":"user"}]}`,
+			StreamSettings: `{"security":"tls","finalmask":{"udp":[{"type":"salamander","settings":{"password":"pw","` + name + `":1}}]}}`,
+		}
+		(&SubService{}).genHysteriaLink(in, "user")
+	}
+	entries := 0
+	salamanderWarningSeen.Range(func(key, _ any) bool {
+		if strings.HasPrefix(fmt.Sprint(key), strconv.Itoa(id)) {
+			entries++
+		}
+		return true
+	})
+	if entries != 1 {
+		t.Fatalf("salamanderWarningSeen holds %d entries for one inbound, want 1", entries)
+	}
+	needle := "inbound " + strconv.Itoa(id) + ": salamander settings"
+	found := 0
+	for _, line := range logger.GetLogs(100, "warning") {
+		if !strings.Contains(line, needle) {
+			continue
+		}
+		found++
+		if len(line) > 512 {
+			t.Fatalf("warning line is %d bytes long, want at most 512", len(line))
+		}
+	}
+	if found == 0 {
+		t.Fatal("renamed salamander settings did not warn at all")
 	}
 }

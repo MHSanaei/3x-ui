@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { clientManagementPath } from '@/api/client-management';
 import { markLocalInvalidate } from '@/api/invalidationTracker';
 import {
   ClientHydrateSchema,
@@ -337,7 +338,7 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const hydrate = useCallback(async (email: string): Promise<ClientHydrate | null> => {
     if (!email) return null;
-    const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`);
+    const msg = await HttpUtil.get(clientManagementPath('get', email));
     if (!msg?.success || !msg.obj) return null;
     const validated = parseMsg(msg, ClientHydrateSchema, 'clients/get');
     return validated.obj;
@@ -369,7 +370,7 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const updateMut = useMutation({
     mutationFn: ({ email, client }: { email: string; client: unknown }) =>
-      HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS),
+      HttpUtil.post(clientManagementPath('update', email), client, JSON_HEADERS),
     onSuccess: (msg) => {
       if (msg?.success) invalidateAll();
     },
@@ -377,9 +378,8 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const removeMut = useMutation({
     mutationFn: ({ email, keepTraffic }: { email: string; keepTraffic?: boolean }) => {
-      const url = keepTraffic
-        ? `/panel/api/clients/del/${encodeURIComponent(email)}?keepTraffic=1`
-        : `/panel/api/clients/del/${encodeURIComponent(email)}`;
+      let url = clientManagementPath('del', email);
+      if (keepTraffic) url += `${url.includes('?') ? '&' : '?'}keepTraffic=1`;
       return HttpUtil.post(url);
     },
     onSuccess: (msg) => {

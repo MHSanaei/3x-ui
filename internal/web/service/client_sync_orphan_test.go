@@ -155,3 +155,49 @@ func TestReapSyncOrphansIgnoresUnmarkedOrphans(t *testing.T) {
 		t.Fatalf("unmarked orphan was reaped: %d rows survive, want 1", surviving)
 	}
 }
+
+// With its only node silent no merge runs, so an admin's attach has to clear the mark
+// itself, or the client's next detach is reaped instead of kept for manual cleanup.
+func TestAdminAttachClearsSyncOrphanMark(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+	clientSvc := &ClientService{}
+
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+
+	const email = "rescued@x"
+	const keep = "keep@x"
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, keep)
+	bothSettings := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true},{"email":%q,"enable":true}]}`, keep, email)
+	syncNodeWithSettings(t, svc, 1, "n1-in", bothSettings,
+		xray.ClientTraffic{Email: keep, Enable: true},
+		xray.ClientTraffic{Email: email, Enable: true})
+	syncNodeWithSettings(t, svc, 1, "n1-in", fmt.Sprintf(`{"clients":[{"email":%q,"enable":true}]}`, keep),
+		xray.ClientTraffic{Email: keep, Enable: true})
+	if readOrphanMark(t, db, email) <= 0 {
+		t.Fatal("setup: expected the merge to mark the client")
+	}
+	backdateOrphanMark(t, db, email)
+
+	master := &model.Inbound{UserId: 1, Tag: "master-in", Enable: true, Port: 40001, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if err := db.Create(master).Error; err != nil {
+		t.Fatalf("create master inbound: %v", err)
+	}
+	if err := clientSvc.ApplyInboundClientDelta(db, master.Id, []model.Client{{Email: email, Enable: true}}, nil); err != nil {
+		t.Fatalf("attach: %v", err)
+	}
+	if at := readOrphanMark(t, db, email); at != 0 {
+		t.Fatalf("attached client kept its orphan mark: sync_orphaned_at=%d", at)
+	}
+
+	if err := clientSvc.ApplyInboundClientDelta(db, master.Id, nil, []string{email}); err != nil {
+		t.Fatalf("detach: %v", err)
+	}
+	reaped, err := clientSvc.ReapSyncOrphans()
+	if err != nil {
+		t.Fatalf("reap: %v", err)
+	}
+	if rec, _ := countClientRows(t, db, email); reaped != 0 || rec != 1 {
+		t.Fatalf("admin-detached client was reaped: reaped=%d clients=%d, want 0/1", reaped, rec)
+	}
+}

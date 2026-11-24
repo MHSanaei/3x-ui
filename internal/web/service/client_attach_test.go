@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -93,5 +95,125 @@ func TestAddressesFitAmneziaWGInbound(t *testing.T) {
 	}
 	if !addressesFitAmneziaWGInbound([]string{"10.8.1.21/32"}, &awgInbound) {
 		t.Error("an address genuinely inside the awg inbound's own configured subnet must fit")
+	}
+}
+
+// A /0 reported by a node contains every address of the target inbound, and its
+// host bits are what the AmneziaWG forwarder reads as the peer's address, so
+// Attach refuses it next to another client exactly as it refuses the /32.
+func TestAttachRefusesDefaultRouteNextToHeldAddress(t *testing.T) {
+	attaches := map[string]func(*ClientService, *InboundService, string, int) error{
+		"Attach": func(s *ClientService, inboundSvc *InboundService, email string, ibId int) error {
+			_, err := s.AttachByEmail(inboundSvc, email, []int{ibId})
+			return err
+		},
+		"BulkAttach": func(s *ClientService, inboundSvc *InboundService, email string, ibId int) error {
+			result, _, err := s.BulkAttach(inboundSvc, []string{email}, []int{ibId})
+			if err == nil && len(result.Errors) > 0 {
+				err = errors.New(strings.Join(result.Errors, "; "))
+			}
+			return err
+		},
+	}
+	for name, attach := range attaches {
+		for _, protocol := range []model.Protocol{model.WireGuard, model.AmneziaWG} {
+			t.Run(name+"/"+string(protocol), func(t *testing.T) {
+				setupConflictDB(t)
+				node := 1
+				seedInboundConflict(t, "own", "0.0.0.0", 51830, protocol, ``, `{"subnetIp":"10.8.1.0","subnetCidr":24,"server":{"subnetIp":"10.8.1.0","subnetCidr":24},"clients":[`+
+					`{"email":"local","subId":"s-local","enable":true,"publicKey":"QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=","allowedIPs":["10.8.1.2/32"]}]}`)
+				seedInboundConflictNode(t, "node", "0.0.0.0", 44301, protocol, ``, `{"clients":[`+
+					`{"email":"host-bits","subId":"s-host-bits","enable":true,"publicKey":"QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=","allowedIPs":["10.8.1.2/0"]}]}`, &node)
+
+				s := &ClientService{}
+				inboundSvc := &InboundService{}
+				var own model.Inbound
+				for _, tag := range []string{"node", "own"} {
+					own = model.Inbound{}
+					if err := database.GetDB().Where("tag = ?", tag).First(&own).Error; err != nil {
+						t.Fatalf("read seeded %s row: %v", tag, err)
+					}
+					clients, err := inboundSvc.GetClients(&own)
+					if err != nil {
+						t.Fatalf("GetClients(%s): %v", tag, err)
+					}
+					if err := s.SyncInbound(nil, own.Id, clients); err != nil {
+						t.Fatalf("SyncInbound(%s): %v", tag, err)
+					}
+				}
+
+				err := attach(s, inboundSvc, "host-bits", own.Id)
+				if err == nil || !strings.Contains(err.Error(), "10.8.1.2/0 overlaps 10.8.1.2/32") {
+					t.Errorf("attach of host-bits (10.8.1.2/0): err = %v, want an overlap with 10.8.1.2/32", err)
+				}
+				got, gErr := s.TunnelAllowedIPsByInbound(inboundSvc, "host-bits", []int{own.Id})
+				if gErr != nil {
+					t.Fatalf("TunnelAllowedIPsByInbound: %v", gErr)
+				}
+				if _, held := got[own.Id]; held {
+					t.Errorf("host-bits landed on the master's inbound with %q", got[own.Id])
+				}
+			})
+		}
+	}
+}
+
+// A forward is a listener on the inbound's host; carried over from a node-reported
+// client, it let the node pick ports on the master, a future relay port among them.
+func TestAttachDoesNotCarryForwardedPorts(t *testing.T) {
+	attaches := map[string]func(*ClientService, *InboundService, string, int) error{
+		"Attach": func(s *ClientService, inboundSvc *InboundService, email string, ibId int) error {
+			_, err := s.AttachByEmail(inboundSvc, email, []int{ibId})
+			return err
+		},
+		"BulkAttach": func(s *ClientService, inboundSvc *InboundService, email string, ibId int) error {
+			result, _, err := s.BulkAttach(inboundSvc, []string{email}, []int{ibId})
+			if err == nil && len(result.Errors) > 0 {
+				err = errors.New(strings.Join(result.Errors, "; "))
+			}
+			return err
+		},
+	}
+	for name, attach := range attaches {
+		t.Run(name, func(t *testing.T) {
+			setupConflictDB(t)
+			node := 1
+			seedInboundConflict(t, "own", "0.0.0.0", 51830, model.AmneziaWG, ``, awgRelayWindowSettings(t, "own"))
+			seedInboundConflictNode(t, "node", "0.0.0.0", 44301, model.AmneziaWG, ``, `{"clients":[`+
+				`{"email":"forwarder","subId":"s-fwd","enable":true,"publicKey":"QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=","allowedIPs":["10.9.1.2/32"],"forwardedPorts":"8022"}]}`, &node)
+
+			s := &ClientService{}
+			inboundSvc := &InboundService{}
+			var own model.Inbound
+			for _, tag := range []string{"node", "own"} {
+				own = model.Inbound{}
+				if err := database.GetDB().Where("tag = ?", tag).First(&own).Error; err != nil {
+					t.Fatalf("read seeded %s row: %v", tag, err)
+				}
+				clients, err := inboundSvc.GetClients(&own)
+				if err != nil {
+					t.Fatalf("GetClients(%s): %v", tag, err)
+				}
+				if err := s.SyncInbound(nil, own.Id, clients); err != nil {
+					t.Fatalf("SyncInbound(%s): %v", tag, err)
+				}
+			}
+
+			if err := attach(s, inboundSvc, "forwarder", own.Id); err != nil {
+				t.Fatalf("attach: %v", err)
+			}
+			if err := database.GetDB().First(&own, own.Id).Error; err != nil {
+				t.Fatalf("reread own inbound: %v", err)
+			}
+			clients, err := inboundSvc.GetClients(&own)
+			if err != nil {
+				t.Fatalf("GetClients(own): %v", err)
+			}
+			for _, c := range clients {
+				if c.Email == "forwarder" && c.ForwardedPortsSpec() != "" {
+					t.Fatalf("attach carried forwardedPorts %q onto the master's inbound", c.ForwardedPortsSpec())
+				}
+			}
+		})
 	}
 }

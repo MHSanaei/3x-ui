@@ -52,6 +52,10 @@ export interface AllSetting {
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -243,6 +247,10 @@ export interface AllSettingView {
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -443,7 +451,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
-  forwardedPorts?: string;
+  forwardedPorts?: string | null;
   group?: string;
   id?: string;
   keepAlive?: number | string;

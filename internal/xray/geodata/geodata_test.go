@@ -6,6 +6,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -404,6 +405,97 @@ func TestFileAboveSizeLimitIsRejected(t *testing.T) {
 	}
 	if len(files) != 1 || files[0].Error != ErrFileTooLarge.Error() {
 		t.Errorf("ListFiles() = %+v, want the file listed with a too-large error", files)
+	}
+}
+
+// Rebuilding the merged attribute list for every further record of a category
+// made this sub-megabyte database take minutes to index instead of milliseconds.
+func TestCategorySplitOverManyRecordsIsIndexedInOnePass(t *testing.T) {
+	dir := t.TempDir()
+	tagged := make([]*xraygeodata.Domain, 0, 20000)
+	for i := range 20000 {
+		tagged = append(tagged, domain(xraygeodata.Domain_Full, "a.example", strconv.Itoa(i)))
+	}
+	sites := []*xraygeodata.GeoSite{site("x", tagged...)}
+	for range 20000 {
+		sites = append(sites, site("x", domain(xraygeodata.Domain_Full, "a.example", "extra")))
+	}
+	writeSiteDB(t, dir, "split.dat", sites...)
+
+	started := time.Now()
+	page, err := NewStore(dir).Categories("split.dat", "", 0, 1)
+	if err != nil {
+		t.Fatalf("Categories() error = %v", err)
+	}
+	if elapsed := time.Since(started); elapsed > 10*time.Second {
+		t.Errorf("indexing took %s", elapsed)
+	}
+	got := page.Items[0]
+	if got.Entries != 40000 || len(got.Attributes) != 20001 {
+		t.Fatalf("category x: %d entries and %d attributes, want 40000 and 20001", got.Entries, len(got.Attributes))
+	}
+	if !slices.IsSorted(got.Attributes) || !slices.Contains(got.Attributes, "extra") {
+		t.Errorf("attributes are not the sorted union of every record: %q ... %q", got.Attributes[0], got.Attributes[20000])
+	}
+}
+
+func TestFileAboveIndexLimitIsRejected(t *testing.T) {
+	rule := domain(xraygeodata.Domain_Full, "a.b")
+	categories := make([]*xraygeodata.GeoSite, MaxIndexSize+1)
+	records := make([]*xraygeodata.GeoSite, MaxIndexSize+1)
+	keys := make([]string, MaxIndexSize)
+	tagged := make([]*xraygeodata.Domain, MaxIndexSize)
+	for i := range categories {
+		categories[i] = site(strconv.Itoa(i))
+		records[i] = site("z", rule)
+	}
+	categories[0].Domain = append(categories[0].Domain, rule)
+	for i := range keys {
+		keys[i] = strconv.Itoa(i)
+		tagged[i] = domain(xraygeodata.Domain_Full, "a.b", keys[i])
+	}
+
+	tests := []struct {
+		name  string
+		sites []*xraygeodata.GeoSite
+		want  error
+	}{
+		{name: "categories at the limit", sites: categories[:MaxIndexSize]},
+		{name: "categories", sites: categories, want: ErrIndexTooLarge},
+		{name: "records of one category", sites: records, want: ErrIndexTooLarge},
+		{name: "attributes at the limit", sites: []*xraygeodata.GeoSite{site("z", tagged[1:]...)}},
+		{name: "attributes across rules", sites: []*xraygeodata.GeoSite{site("z", tagged...)}, want: ErrIndexTooLarge},
+		{
+			name:  "attributes of one rule",
+			sites: []*xraygeodata.GeoSite{site("z", domain(xraygeodata.Domain_Full, "a.b", keys...))},
+			want:  ErrIndexTooLarge,
+		},
+		{
+			name:  "one attribute repeated on one rule",
+			sites: []*xraygeodata.GeoSite{site("z", domain(xraygeodata.Domain_Full, "a.b", strings.Fields(strings.Repeat("k ", MaxIndexSize+1))...))},
+			want:  ErrIndexTooLarge,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeSiteDB(t, dir, "geosite.dat", tt.sites...)
+			store := NewStore(dir)
+
+			if _, err := store.Categories("geosite.dat", "", 0, 10); !errors.Is(err, tt.want) {
+				t.Fatalf("error = %v, want %v", err, tt.want)
+			}
+			if len(store.indexes) != 1 {
+				t.Errorf("cached indexes = %d, want the outcome cached once", len(store.indexes))
+			}
+			files, err := store.ListFiles()
+			if err != nil {
+				t.Fatalf("ListFiles() error = %v", err)
+			}
+			if tt.want != nil && (len(files) != 1 || files[0].Error != tt.want.Error()) {
+				t.Errorf("ListFiles() = %+v, want the file listed with %q", files, tt.want)
+			}
+		})
 	}
 }
 

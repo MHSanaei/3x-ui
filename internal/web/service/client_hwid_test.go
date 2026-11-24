@@ -62,6 +62,54 @@ func TestClientHwidGate(t *testing.T) {
 	}
 }
 
+// The gate runs before the subscription lookup, so a subId no enabled client
+// owns must pass through without leaving a client_hwids row behind.
+func TestClientHwidGateDoesNotTrackUnknownSubID(t *testing.T) {
+	initClientHwidTestDB(t)
+	svc := &ClientService{}
+	db := database.GetDB()
+	rec := seedHwidClient(t, 0)
+
+	countRows := func(subID string) int64 {
+		t.Helper()
+		var rows int64
+		if err := db.Model(&model.ClientHwid{}).Where("sub_id = ?", subID).Count(&rows).Error; err != nil {
+			t.Fatalf("count rows for %q: %v", subID, err)
+		}
+		return rows
+	}
+
+	res, err := svc.EnforceHwidForSubID("no-such-sub", HwidRequest{Hwid: "device-ghost", UserAgent: "Happ/1.0"})
+	if err != nil || res != (HwidGateResult{Allowed: true}) {
+		t.Fatalf("unknown subId gate: err=%v res=%+v", err, res)
+	}
+	if rows := countRows("no-such-sub"); rows != 0 {
+		t.Fatalf("client_hwids rows for an unknown subId = %d, want 0", rows)
+	}
+
+	if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).UpdateColumn("enable", false).Error; err != nil {
+		t.Fatalf("disable client: %v", err)
+	}
+	res, err = svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-ghost"})
+	if err != nil || res != (HwidGateResult{Allowed: true}) {
+		t.Fatalf("disabled subId gate: err=%v res=%+v", err, res)
+	}
+	if rows := countRows(rec.SubID); rows != 0 {
+		t.Fatalf("client_hwids rows for a disabled subId = %d, want 0", rows)
+	}
+
+	if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).UpdateColumn("enable", true).Error; err != nil {
+		t.Fatalf("enable client: %v", err)
+	}
+	res, err = svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-ghost"})
+	if err != nil || res != (HwidGateResult{Allowed: true}) {
+		t.Fatalf("known subId gate: err=%v res=%+v", err, res)
+	}
+	if rows := countRows(rec.SubID); rows != 1 {
+		t.Fatalf("client_hwids rows for a known unlimited subId = %d, want 1", rows)
+	}
+}
+
 func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	initClientHwidTestDB(t)
 	svc := &ClientService{}
@@ -238,6 +286,48 @@ func TestClientHwidGateSharedSubIdUsesMaxLimit(t *testing.T) {
 	if res.Allowed || !res.NotSupported {
 		t.Fatalf("missing HWID should be denied: %+v", res)
 	}
+}
+
+func TestClientHwidGateHoldsWhileClientDisabled(t *testing.T) {
+	initClientHwidTestDB(t)
+	svc := &ClientService{}
+	db := database.GetDB()
+	rec := seedHwidClient(t, 1)
+
+	if res, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-one"}); err != nil || !res.Allowed {
+		t.Fatalf("register first device = %+v, %v", res, err)
+	}
+	if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).UpdateColumn("enable", false).Error; err != nil {
+		t.Fatalf("disable client: %v", err)
+	}
+
+	assertStillLimited := func(stage string) {
+		t.Helper()
+		res, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-two"})
+		if err != nil {
+			t.Fatalf("%s: second device: %v", stage, err)
+		}
+		if res.Allowed || !res.MaxDevicesReached || res.Limit != 1 {
+			t.Fatalf("%s: disabled client must keep its device limit: %+v", stage, res)
+		}
+		if res, err = svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-one"}); err != nil || !res.Allowed {
+			t.Fatalf("%s: registered device = %+v, %v", stage, res, err)
+		}
+		var count int64
+		if err := db.Model(&model.ClientHwid{}).Where("sub_id = ?", rec.SubID).Count(&count).Error; err != nil {
+			t.Fatalf("%s: count HWIDs: %v", stage, err)
+		}
+		if count != 1 {
+			t.Fatalf("%s: stored HWIDs = %d, want 1", stage, count)
+		}
+	}
+	assertStillLimited("only client disabled")
+
+	// An enabled sibling without a limit must not lift it either.
+	if err := db.Create(&model.ClientRecord{Email: "second@example.com", SubID: rec.SubID, UUID: "22222222-2222-4333-8444-555555555555", Enable: true, LimitHwid: 0}).Error; err != nil {
+		t.Fatalf("seed second client: %v", err)
+	}
+	assertStillLimited("unlimited sibling enabled")
 }
 
 func TestClientHwidSlotStatus(t *testing.T) {

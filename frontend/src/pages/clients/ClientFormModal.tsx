@@ -33,7 +33,7 @@ import ClientExternalLinksFields from './ClientExternalLinksFields';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { useRawHostsQuery } from '@/api/queries/useRawHostsQuery';
-import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
+import { DateTimePicker, SelectAllClearButtons, selectTagRender } from '@/components/form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
@@ -770,10 +770,10 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: !!values.enable,
     };
+    // Sent even when empty, so clearing the tag never rests on how the server
+    // reads an omitted key.
     const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
-    if (reverseTagValue) {
-      clientPayload.reverse = { tag: reverseTagValue };
-    }
+    clientPayload.reverse = reverseTagValue ? { tag: reverseTagValue } : null;
 
     if (showWireguard || showAmneziawg) {
       // AmneziaWG peers are wire-identical to WireGuard peers (same
@@ -1142,11 +1142,11 @@ export default function ClientFormModal({
                             <Select
                               id={`${uid}-host-rule-override`}
                               mode="multiple"
+                              tagRender={selectTagRender}
                               value={clientHostRuleIds || []}
                               onChange={(v) => methods.setValue('clientHostRuleIds', v)}
                               options={hostRuleOptions}
                               placeholder={t('pages.clients.hostRuleOverridePlaceholder')}
-                              maxTagCount="responsive"
                               placement="topLeft"
                               listHeight={220}
                               allowClear
@@ -1200,11 +1200,11 @@ export default function ClientFormModal({
                         <Select
                           id={`${uid}-inbounds`}
                           mode="multiple"
+                          tagRender={selectTagRender}
                           value={inboundIds}
                           onChange={handleInboundChange}
                           options={inboundOptions}
                           placeholder={t('pages.clients.selectInbound')}
-                          maxTagCount="responsive"
                           placement="topLeft"
                           listHeight={220}
                           showSearch={{

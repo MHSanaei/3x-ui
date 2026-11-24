@@ -211,3 +211,102 @@ func TestProcessObserved_PublishesBanForCommittedScan(t *testing.T) {
 		t.Fatalf("a published address must be recorded so the next scan does not repeat it")
 	}
 }
+
+const (
+	rawStream      = `{"network":"tcp","security":"none"}`
+	shadowsocksUDP = `{"method":"2022-blake3-aes-256-gcm","network":"tcp,udp","clients":[{"email":"mallory","limitIp":1,"enable":true}]}`
+)
+
+// One datagram with a forged source puts any address on the core's online list,
+// so an address seen for such a client must not reach the file fail2ban follows.
+func TestPublishBans_WithholdsAddressesOnlyADatagramVouchesFor(t *testing.T) {
+	const email, forged = "mallory", "192.0.2.77"
+	node := 1
+	for _, tc := range []struct {
+		name      string
+		second    *model.Inbound
+		wantInLog bool
+	}{
+		{"only a TCP inbound", nil, true},
+		{"also on Shadowsocks with UDP", &model.Inbound{Enable: true}, false},
+		{"Shadowsocks with UDP is disabled", &model.Inbound{Enable: false}, true},
+		// Node syncs merge the node's observations into the same row (#6587).
+		{"Shadowsocks with UDP runs on a node", &model.Inbound{Enable: true, NodeID: &node}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupIntegrationDB(t)
+			db := database.GetDB()
+			// The scan resolves a client to its lowest inbound id, which is this one.
+			inbound := seedLinkedInboundWithClient(t, "inbound-vless", email, 1)
+			if tc.second != nil {
+				tc.second.Tag, tc.second.Port, tc.second.Protocol = "inbound-ss", 4322, model.Shadowsocks
+				tc.second.Settings, tc.second.StreamSettings = shadowsocksUDP, rawStream
+				if err := db.Create(tc.second).Error; err != nil {
+					t.Fatalf("seed second inbound: %v", err)
+				}
+				var client model.ClientRecord
+				if err := db.Where("email = ?", email).First(&client).Error; err != nil {
+					t.Fatalf("read client: %v", err)
+				}
+				if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: tc.second.Id}).Error; err != nil {
+					t.Fatalf("link second inbound: %v", err)
+				}
+			}
+
+			now := time.Now().Unix()
+			row := seedClientIps(t, email, []model.ClientIpEntry{{IP: forged, Timestamp: now - 5}})
+			live := []model.ClientIpEntry{{IP: forged, Timestamp: now - 5}, {IP: "203.0.113.4", Timestamp: now}}
+			overLimit, _ := NewCheckClientIpJob().enforceIpLimitForTest(t, row, inbound, email, 1, live, true)
+
+			if !overLimit {
+				t.Error("the client is over its limit and must still be disconnected")
+			}
+			body, _ := os.ReadFile(readIpLimitLogPath())
+			if got := contains(string(body), forged); got != tc.wantInLog {
+				t.Errorf("older address in the fail2ban log = %v, want %v:\n%s", got, tc.wantInLog, body)
+			}
+		})
+	}
+}
+
+// getInboundByEmail's settings scan is all that ties such a client to an inbound.
+func TestPublishBans_ClientOutsideTheRelationIsJudgedByItsResolvedInbound(t *testing.T) {
+	setupIntegrationDB(t)
+	const email, forged = "mallory", "192.0.2.77"
+	inbound := seedInboundOnlyWithClient(t, "inbound-ss", email, 1)
+	inbound.Protocol, inbound.Settings, inbound.StreamSettings = model.Shadowsocks, shadowsocksUDP, rawStream
+
+	now := time.Now().Unix()
+	row := seedClientIps(t, email, []model.ClientIpEntry{{IP: forged, Timestamp: now - 5}})
+	live := []model.ClientIpEntry{{IP: forged, Timestamp: now - 5}, {IP: "203.0.113.4", Timestamp: now}}
+	NewCheckClientIpJob().enforceIpLimitForTest(t, row, inbound, email, 1, live, true)
+
+	if body, _ := os.ReadFile(readIpLimitLogPath()); contains(string(body), forged) {
+		t.Errorf("an address only a datagram vouches for was written for fail2ban:\n%s", body)
+	}
+}
+
+func TestAcceptsUnverifiedSources(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		protocol model.Protocol
+		settings string
+		stream   string
+		want     bool
+	}{
+		{"shadowsocks tcp,udp", model.Shadowsocks, shadowsocksUDP, rawStream, true},
+		{"shadowsocks network list", model.Shadowsocks, `{"network":["tcp","UDP"]}`, rawStream, true},
+		{"shadowsocks tcp", model.Shadowsocks, `{"network":"tcp"}`, rawStream, false},
+		{"shadowsocks core default", model.Shadowsocks, `{}`, rawStream, false},
+		{"vless raw", model.VLESS, `{"clients":[]}`, rawStream, false},
+		{"vless ignores settings.network", model.VLESS, `{"network":"udp"}`, rawStream, false},
+		{"vless kcp", model.VLESS, `{"clients":[]}`, `{"network":"kcp"}`, true},
+		{"vless mkcp by its newer key", model.VLESS, `{"clients":[]}`, `{"network":"tcp","method":"mKCP"}`, true},
+		{"hysteria proves the address in its QUIC handshake", model.Hysteria, `{"clients":[]}`, `{"network":"hysteria"}`, false},
+	} {
+		inbound := &model.Inbound{Protocol: tc.protocol, Settings: tc.settings, StreamSettings: tc.stream}
+		if got := acceptsUnverifiedSources(inbound); got != tc.want {
+			t.Errorf("%s: acceptsUnverifiedSources = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

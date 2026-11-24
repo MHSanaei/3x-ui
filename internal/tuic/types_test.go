@@ -3,6 +3,7 @@ package tuic
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -156,5 +157,25 @@ func TestBindTo(t *testing.T) {
 				t.Fatalf("BindTo(%q) = %q, want %q", tc.listen, got, tc.want)
 			}
 		})
+	}
+}
+
+// A pushed TUIC inbound names any path on this host, and both readers take the file
+// whole, so a device or an oversized file is refused before either opens it.
+func TestCertificateReadersRefuseWhatIsNoBoundedRegularFile(t *testing.T) {
+	big := filepath.Join(t.TempDir(), "big.pem")
+	if err := os.WriteFile(big, make([]byte, 1<<20+1), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadCertificate(big, big); err == nil || !strings.Contains(err.Error(), "regular file") {
+		t.Fatalf("loadCertificate(oversized) = %v, want the path refused before the read", err)
+	}
+	inst := Instance{Certificate: big}
+	before := inst.StructuralFingerprint()
+	if err := os.WriteFile(big, append(make([]byte, 1<<20), 1, 2), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if inst.StructuralFingerprint() != before {
+		t.Fatal("the oversized certificate file was read into the fingerprint")
 	}
 }

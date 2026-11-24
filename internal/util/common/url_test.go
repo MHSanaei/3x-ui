@@ -18,6 +18,8 @@ func TestEnsureURLScheme(t *testing.T) {
 		{"mailto", "mailto:support@example.com", "mailto:support@example.com"},
 		{"tel", "tel:+1234567890", "tel:+1234567890"},
 		{"trims whitespace", "  t.me/xui_support  ", "https://t.me/xui_support"},
+		{"capitalized mailto", "Mailto:support@example.com", "Mailto:support@example.com"},
+		{"uppercase tel", "TEL:+1234567890", "TEL:+1234567890"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

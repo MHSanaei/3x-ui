@@ -10,6 +10,7 @@ import (
 
 	piaprotocol "github.com/mhsanaei/3x-ui/v3/internal/pia"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
@@ -324,7 +325,7 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 		return
 	}
 
-	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
+	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode, a.panelDNS())
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -357,13 +358,29 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 		return
 	}
 
-	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode, a.panelDNS())
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 
 	jsonObj(c, results, nil)
+}
+
+// panelDNS is the stored template's dns section; the outbound test resolves with it, as the
+// running core does, or a name only the panel's resolvers know fails the test (#7131).
+func (a *XraySettingController) panelDNS() json_util.RawMessage {
+	template, err := a.SettingService.GetXrayConfigTemplate()
+	if err != nil {
+		return nil
+	}
+	var cfg struct {
+		DNS json_util.RawMessage `json:"dns"`
+	}
+	if json.Unmarshal([]byte(template), &cfg) != nil {
+		return nil
+	}
+	return cfg.DNS
 }
 
 // balancerStatus reports the live state (override + strategy picks) of the
@@ -565,6 +582,8 @@ func (a *XraySettingController) updateOutboundSub(c *gin.Context) {
 		jsonMsg(c, "Failed to update outbound subscription", err)
 		return
 	}
+	// enabled and prepend decide which outbounds are merged and where.
+	a.XrayService.SetToNeedRestart()
 	jsonObj(c, "", nil)
 }
 
@@ -630,19 +649,7 @@ func (a *XraySettingController) parseOutboundSubURL(c *gin.Context) {
 	allowPrivate := c.PostForm("allowPrivate") == "true"
 	allowInsecure := c.PostForm("allowInsecure") == "true"
 	userAgent := c.PostForm("userAgent")
-	// Use a throw-away service instance; it only needs the settingService for proxy.
-	svc := service.OutboundSubscriptionService{}
-	// We don't have a direct "fetch once" that returns without storing, so we
-	// temporarily create a disabled row, refresh it, then delete. Cleaner would
-	// be to expose a pure ParseURL on the service, but this keeps the surface small.
-	tmp, err := svc.Create("preview", rawURL, "", userAgent, false, 600, allowPrivate, false, allowInsecure)
-	if err != nil {
-		jsonMsg(c, "Failed to preview subscription", err)
-		return
-	}
-	obs, err := svc.Refresh(tmp.Id)
-	// best-effort cleanup
-	_ = svc.Delete(tmp.Id)
+	obs, err := a.OutboundSubscriptionService.Preview(rawURL, userAgent, allowPrivate, allowInsecure)
 	if err != nil {
 		jsonMsg(c, "Failed to fetch/parse subscription", err)
 		return

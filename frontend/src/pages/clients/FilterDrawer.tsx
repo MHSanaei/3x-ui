@@ -17,6 +17,7 @@ import {
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
+import { selectTagRender } from '@/components/form';
 import type { InboundOption } from '@/hooks/useClients';
 import type { NodeRecord } from '@/schemas/node';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -118,24 +119,24 @@ export default function FilterDrawer({
           <Select
             id={`${uid}-protocols`}
             mode="multiple"
+            tagRender={selectTagRender}
             value={filters.protocols}
             onChange={(v) => patch('protocols', v as string[])}
             options={protocolOptions}
             placeholder={t('pages.inbounds.protocol')}
-            maxTagCount="responsive"
             allowClear
           />
         </Form.Item>
 
-        <Form.Item label={t('inbounds')} htmlFor={`${uid}-inbounds`}>
+        <Form.Item label={t('pages.clients.attachedInbounds')} htmlFor={`${uid}-inbounds`}>
           <Select
             id={`${uid}-inbounds`}
             mode="multiple"
+            tagRender={selectTagRender}
             value={filters.inboundIds}
             onChange={(v) => patch('inboundIds', v as number[])}
             options={inboundOptions}
-            placeholder={t('inbounds')}
-            maxTagCount="responsive"
+            placeholder={t('pages.clients.attachedInbounds')}
             allowClear
             showSearch={{ optionFilterProp: 'label' }}
             listHeight={220}
@@ -147,11 +148,11 @@ export default function FilterDrawer({
             <Select
               id={`${uid}-nodes`}
               mode="multiple"
+              tagRender={selectTagRender}
               value={filters.nodeIds}
               onChange={(v) => patch('nodeIds', v as number[])}
               options={nodeOptions}
               placeholder={t('pages.clients.filters.nodes')}
-              maxTagCount="responsive"
               allowClear
               showSearch={{ optionFilterProp: 'label' }}
               listHeight={220}
@@ -163,11 +164,11 @@ export default function FilterDrawer({
           <Select
             id={`${uid}-groups`}
             mode="multiple"
+            tagRender={selectTagRender}
             value={filters.groups}
             onChange={(v) => patch('groups', v as string[])}
             options={groupOptions}
             placeholder={t('pages.clients.groupPlaceholder')}
-            maxTagCount="responsive"
             allowClear
             showSearch={{ optionFilterProp: 'label' }}
             listHeight={220}

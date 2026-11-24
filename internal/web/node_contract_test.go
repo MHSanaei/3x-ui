@@ -363,6 +363,7 @@ var remoteMethodsOutsideContract = map[string]string{
 	"AdoptedInboundAliases": "local alias bookkeeping",
 	"AdvancePushedInbound":  "local fingerprint bookkeeping",
 	"ForgetPushedInbound":   "local fingerprint bookkeeping",
+	"ForgetInbound":         "local bookkeeping for an inbound the node no longer has",
 	"UpdatePanel":           "replaces the node binary; node-sync is denied it on purpose (#6201)",
 }
 

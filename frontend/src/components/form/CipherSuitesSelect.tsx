@@ -3,6 +3,7 @@ import type { SelectProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import { TLS_CIPHER_OPTION, TLS_CIPHER_PRESETS } from '@/schemas/primitives';
+import { selectTagRender } from './SelectTag';
 
 const CIPHER_SUITE_OPTIONS = Object.values(TLS_CIPHER_OPTION).map((v) => ({ value: v, label: v }));
 
@@ -46,6 +47,7 @@ export default function CipherSuitesSelect({
       tokenSeparators={[':', ',']}
       {...rest}
       mode="tags"
+      tagRender={selectTagRender}
       options={[
         { label: t('pages.inbounds.form.presets'), options: PRESET_OPTIONS },
         { label: t('pages.inbounds.form.cipherSuites'), options: CIPHER_SUITE_OPTIONS },

@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -11,26 +12,35 @@ import (
 
 func TestShouldSkipLegacyUnencryptedOutboundRejection(t *testing.T) {
 	prohibited := errors.New("vless without TLS or other encryption is prohibited unless the server address is a private IP or domain")
+	public := []byte(`{"protocol":"vless","settings":{"address":"8.8.8.8","port":443}}`)
+	cgnat := []byte(`{"protocol":"vless","settings":{"address":"100.64.1.2","port":443}}`)
+	cgnatVnext := []byte(`{"protocol":"vless","settings":{"vnext":[{"address":"100.100.1.1","port":443}]}}`)
+	benchmarkTrojan := []byte(`{"protocol":"trojan","settings":{"servers":[{"address":"198.18.0.9","port":443}]}}`)
 
 	tests := []struct {
-		name    string
-		version string
-		err     error
-		want    bool
+		name     string
+		version  string
+		outbound []byte
+		err      error
+		want     bool
 	}{
-		{name: "older core", version: "26.4.25", err: prohibited, want: true},
-		{name: "boundary version", version: "26.7.11", err: prohibited, want: false},
-		{name: "newer core", version: "26.10.0", err: prohibited, want: false},
-		{name: "unknown version", version: "Unknown", err: prohibited, want: false},
-		{name: "unparseable version", version: "26.7", err: prohibited, want: false},
-		{name: "empty version", version: "", err: prohibited, want: false},
-		{name: "unrelated validation error", version: "26.4.25", err: errors.New("invalid outbound"), want: false},
+		{name: "older core", version: "26.4.25", outbound: public, err: prohibited, want: true},
+		{name: "boundary version", version: "26.7.11", outbound: public, err: prohibited, want: false},
+		{name: "newer core", version: "26.10.0", outbound: public, err: prohibited, want: false},
+		{name: "unknown version", version: "Unknown", outbound: public, err: prohibited, want: false},
+		{name: "unparseable version", version: "26.7", outbound: public, err: prohibited, want: false},
+		{name: "empty version", version: "", outbound: public, err: prohibited, want: false},
+		{name: "unrelated validation error", version: "26.4.25", outbound: public, err: errors.New("invalid outbound"), want: false},
+		{name: "cgnat on a core that still counts it private", version: "26.10.21", outbound: cgnat, err: prohibited, want: true},
+		{name: "cgnat vnext on a core that still counts it private", version: "26.10.21", outbound: cgnatVnext, err: prohibited, want: true},
+		{name: "benchmark range trojan on a core that still counts it private", version: "26.10.21", outbound: benchmarkTrojan, err: prohibited, want: true},
+		{name: "cgnat on the core that narrowed private", version: "26.10.29", outbound: cgnat, err: prohibited, want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := shouldSkipLegacyUnencryptedOutboundRejection(tt.version, tt.err); got != tt.want {
-				t.Fatalf("shouldSkipLegacyUnencryptedOutboundRejection(%q, %v) = %v, want %v", tt.version, tt.err, got, tt.want)
+			if got := shouldSkipLegacyUnencryptedOutboundRejection(tt.version, tt.outbound, tt.err); got != tt.want {
+				t.Fatalf("shouldSkipLegacyUnencryptedOutboundRejection(%q, %s, %v) = %v, want %v", tt.version, tt.outbound, tt.err, got, tt.want)
 			}
 		})
 	}
@@ -270,6 +280,44 @@ func TestCheckXrayConfig_RefusesLuaScriptsTheCoreRefuses(t *testing.T) {
 			if tc.want == "" {
 				if err != nil {
 					t.Fatalf("CheckXrayConfig = %v, want the script the core accepts kept", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("CheckXrayConfig = %v, want one containing %q", err, tc.want)
+			}
+		})
+	}
+}
+
+// xray-core 26.10.29 (#7267) refuses these geodata settings when the core starts, stopping every inbound.
+func TestCheckXrayConfig_RefusesGeodataTheCoreRefuses(t *testing.T) {
+	const outbounds = `"outbounds":[{"protocol":"freedom","tag":"direct"}]`
+	geodata := func(cron string, files ...string) string {
+		assets := make([]string, len(files))
+		for i, f := range files {
+			assets[i] = `{"url":"https://example.com/` + f + `","file":"` + f + `"}`
+		}
+		return `{"geodata":{"cron":"` + cron + `","assets":[` + strings.Join(assets, ",") + `]},` + outbounds + `}`
+	}
+	tooMany := make([]string, 101)
+	for i := range tooMany {
+		tooMany[i] = "geo" + strconv.Itoa(i) + ".dat"
+	}
+	tests := []struct{ name, template, want string }{
+		{"file that is not .dat", geodata("0 4 * * *", "custom.mmdb"), "file extension must be .dat"},
+		{"more than 100 assets", geodata("0 4 * * *", tooMany...), "at most 100 assets"},
+		{"cron the core cannot parse", geodata("every day", "custom.dat"), "invalid geodata cron"},
+		{"interval under a minute", geodata("@every 30s", "custom.dat"), "at least 1 minute"},
+		{"upper-case extension on a daily cron", geodata("0 4 * * *", "Custom.DAT"), ""},
+		{"no cron leaves the assets unscheduled", geodata("", "custom.mmdb"), ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := (&XraySettingService{}).CheckXrayConfig(tc.template)
+			if tc.want == "" {
+				if err != nil {
+					t.Fatalf("CheckXrayConfig = %v, want the geodata the core accepts kept", err)
 				}
 				return
 			}
