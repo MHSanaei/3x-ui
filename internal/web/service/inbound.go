@@ -1353,6 +1353,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return inbound, false, err
 		}
 	}
+	if err := s.validateNodeTrafficReset(inbound, nil); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -2058,6 +2061,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Restore the stored NodeID before any host-scoped check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	if err := s.validateNodeTrafficReset(inbound, oldInbound); err != nil {
+		return inbound, false, err
+	}
 	if err := normalizeVlessFallbacks(inbound); err != nil {
 		return nil, false, err
 	}

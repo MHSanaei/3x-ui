@@ -197,6 +197,11 @@ func (i Inbound) PreservesClientTraffic() bool {
 	return i.PreserveClientTraffic != nil && *i.PreserveClientTraffic
 }
 
+// HasTrafficResetSchedule reports whether the inbound has periodic resets enabled.
+func (i *Inbound) HasTrafficResetSchedule() bool {
+	return i.TrafficReset != "" && i.TrafficReset != "never"
+}
+
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
 // objects rather than escaped strings, so API consumers don't need to JSON.parse
 // a string inside a string. Empty fields render as null; fields whose stored

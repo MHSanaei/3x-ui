@@ -183,9 +183,22 @@ func (r *Remote) checkInboundCapabilities(ctx context.Context, ib *model.Inbound
 	if err := r.requireAmneziaWGKernel(ctx, ib); err != nil {
 		return err
 	}
-	if !ib.PreservesClientTraffic() || ib.TrafficReset == "" || ib.TrafficReset == "never" {
+	if !ib.PreservesClientTraffic() || !ib.HasTrafficResetSchedule() {
 		return nil
 	}
+	return r.requirePreserveClientTraffic(ctx)
+}
+
+// CheckPreserveClientTraffic probes the current node build before the master
+// commits an opt-in. An upgrade or rollback can make previously learned caps stale.
+func (r *Remote) CheckPreserveClientTraffic(ctx context.Context) error {
+	if _, err := r.do(ctx, http.MethodGet, "panel/api/server/status", nil); err != nil {
+		return fmt.Errorf("cannot verify support for keeping client usage on node %s: %w", r.node.Name, err)
+	}
+	return r.requirePreserveClientTraffic(ctx)
+}
+
+func (r *Remote) requirePreserveClientTraffic(ctx context.Context) error {
 	supported, err := r.nodeSupports(ctx, wirecodec.CapPreserveClientTraffic)
 	if err != nil {
 		return err
