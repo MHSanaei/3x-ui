@@ -44,6 +44,7 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  mcpEnable: boolean;
   networkTrafficInterface: string;
   networkTrafficMode: string;
   nodeDownThreshold: number;
@@ -256,6 +257,7 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  mcpEnable: boolean;
   networkTrafficInterface: string;
   networkTrafficMode: string;
   nodeDownThreshold: number;
