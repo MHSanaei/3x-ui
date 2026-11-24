@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, within } from '@testing-library/react';
 import { QRCode } from 'antd';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import SubLinksTab from '@/pages/sub/SubLinksTab';
 import { renderWithProviders } from './test-utils';
@@ -25,10 +25,6 @@ function expectedQrMarkup(value: string): string {
   return html;
 }
 
-afterEach(() => {
-  window.history.replaceState({}, '', '/');
-});
-
 describe('SubLinksTab inline QR card', () => {
   it('switches the inline QR code between enabled subscription formats', () => {
     const view = renderWithProviders(
@@ -36,6 +32,7 @@ describe('SubLinksTab inline QR card', () => {
         subUrl={SUB_URL}
         subJsonUrl={JSON_URL}
         subClashUrl={CLASH_URL}
+        format="raw"
         onCopy={vi.fn()}
       />,
     );
@@ -54,31 +51,31 @@ describe('SubLinksTab inline QR card', () => {
     expect(qrSvg()).toBe(expectedQrMarkup(JSON_URL));
   });
 
-  it('defaults the inline QR code to CLASH when opened via the Clash URL even alongside a malformed URI', () => {
-    window.history.replaceState({}, '', '/clash/abc?html=1');
-
+  it.each([
+    ['clash', CLASH_URL],
+    ['json', JSON_URL],
+  ] as const)('starts on the %s QR code when that route rendered the page', (format, url) => {
     const view = renderWithProviders(
       <SubLinksTab
         subUrl={SUB_URL}
-        subJsonUrl="http://[::1"
+        subJsonUrl={JSON_URL}
         subClashUrl={CLASH_URL}
+        format={format}
         onCopy={vi.fn()}
       />,
     );
 
     const card = view.container.querySelector('.sub-qr-card') as HTMLElement;
-    expect(card.querySelector('.sub-qr-code svg')?.innerHTML).toBe(expectedQrMarkup(CLASH_URL));
+    expect(card.querySelector('.sub-qr-code svg')?.innerHTML).toBe(expectedQrMarkup(url));
   });
 
-  it('renders the inline QR card without a switcher when only Clash subscription is present', () => {
+  it('offers no switcher when only the raw subscription is enabled', () => {
     const view = renderWithProviders(
-      <SubLinksTab subUrl="" subJsonUrl="" subClashUrl={CLASH_URL} onCopy={vi.fn()} />,
+      <SubLinksTab subUrl={SUB_URL} subJsonUrl="" subClashUrl="" format="raw" onCopy={vi.fn()} />,
     );
 
     const card = view.container.querySelector('.sub-qr-card') as HTMLElement;
-    expect(card).not.toBeNull();
-    expect(card.querySelector('.sub-qr-code svg')?.innerHTML).toBe(expectedQrMarkup(CLASH_URL));
+    expect(card.querySelector('.sub-qr-code svg')?.innerHTML).toBe(expectedQrMarkup(SUB_URL));
     expect(card.querySelector('.ant-segmented')).toBeNull();
-    expect(screen.getByText('Clash / Mihomo')).not.toBeNull();
   });
 });

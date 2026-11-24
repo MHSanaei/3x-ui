@@ -15,46 +15,33 @@ interface SubLinkRow {
   downloadable: boolean;
 }
 
+type SubPageFormat = NonNullable<SubPageData['subFormat']>;
+
 interface SubLinksTabProps {
   subUrl: string;
   subJsonUrl: string;
   subClashUrl: string;
+  format: SubPageFormat;
   onCopy: (value: string) => void;
 }
 
 const appendRawView = (url: string) => `${url}${url.includes('?') ? '&' : '?'}view=raw`;
 
-const trimTrailingSlash = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path);
+// The server names the format of the route that rendered the page; aliases
+// such as /mihomo/ and /clash-legacy/ never match a row URL, so paths cannot.
+const QR_KIND_BY_FORMAT: Record<SubPageFormat, SubLinkKind> = {
+  raw: 'SUB',
+  json: 'JSON',
+  clash: 'CLASH',
+};
 
-function parseRowUrl(raw: string, baseOrigin: string): URL | null {
-  try {
-    return new URL(raw, baseOrigin);
-  } catch {
-    return null;
-  }
-}
-
-function defaultQrKind(rows: SubLinkRow[]): SubLinkKind | undefined {
-  if (rows.length === 0 || typeof window === 'undefined') return rows[0]?.kind;
-  const { origin, pathname } = window.location;
-  const currentPath = trimTrailingSlash(pathname);
-  const parsed = rows.map((row) => ({ kind: row.kind, url: parseRowUrl(row.url, origin) }));
-  // Browser visits to the JSON or Clash URL render this same HTML page.
-  const exact = parsed.find(
-    (entry) =>
-      entry.url?.origin === origin && trimTrailingSlash(entry.url.pathname) === currentPath,
-  );
-  if (exact) return exact.kind;
-  if (currentPath !== '/') {
-    const byPath = parsed.find(
-      (entry) => entry.url !== null && trimTrailingSlash(entry.url.pathname) === currentPath,
-    );
-    if (byPath) return byPath.kind;
-  }
-  return rows[0].kind;
-}
-
-export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }: SubLinksTabProps) {
+export default function SubLinksTab({
+  subUrl,
+  subJsonUrl,
+  subClashUrl,
+  format,
+  onCopy,
+}: SubLinksTabProps) {
   const { t } = useTranslation();
   const subLabel = t('pages.settings.subSettings');
   const rows: SubLinkRow[] = [
@@ -75,9 +62,7 @@ export default function SubLinksTab({ subUrl, subJsonUrl, subClashUrl, onCopy }:
     },
   ].filter((row) => row.url);
 
-  const [selectedKind, setSelectedKind] = useState<SubLinkKind | undefined>(() =>
-    defaultQrKind(rows),
-  );
+  const [selectedKind, setSelectedKind] = useState<SubLinkKind>(QR_KIND_BY_FORMAT[format]);
   const activeRow = rows.find((row) => row.kind === selectedKind) ?? rows[0];
 
   return (
