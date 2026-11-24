@@ -1708,7 +1708,9 @@ func applyXrayHotDiff(hotAPI *xray.XrayAPI, diff *xray.HotDiff) bool {
 	// the additions that follow.
 	for _, u := range diff.RemovedUsers {
 		var err error
-		if u.Protocol == string(model.WireGuard) {
+		if key, _ := u.User["publicKey"].(string); u.Protocol == string(model.WireGuard) && key != "" {
+			err = hotAPI.RemoveWireguardPeer(u.Tag, key)
+		} else if u.Protocol == string(model.WireGuard) {
 			err = hotAPI.RemoveWireguardUsers(u.Tag, u.Email)
 		} else {
 			err = hotAPI.RemoveUser(u.Tag, u.Email)
