@@ -314,7 +314,7 @@ export default function SubscriptionFormatsTab({
                   >
                     <GoRegexInput
                       value={allSetting.subClashUserAgentRegex}
-                      placeholder="(?i)(clash|mihomo)"
+                      placeholder="(?i)(clash|mihomo|rabbit-hole)"
                       onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
                     />
                   </SettingListItem>

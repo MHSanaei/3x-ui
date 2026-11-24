@@ -52,6 +52,10 @@ export interface AllSetting {
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -243,6 +247,10 @@ export interface AllSettingView {
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -734,6 +742,7 @@ export interface Inbound {
   nodeId?: number | null;
   originNodeGuid?: string;
   port: number;
+  preserveClientTraffic?: boolean | null;
   protocol: Protocol;
   remark: string;
   settings: unknown;

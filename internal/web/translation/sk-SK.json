@@ -128,7 +128,11 @@
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
     "unpinSidebar": "Odopnúť bočné menu",
-    "subFormats": "Formáty odberu"
+    "subFormats": "Formáty odberu",
+    "themeLight": "Svetlá",
+    "themeDark": "Tmavá",
+    "themeUltraDark": "Ultra tmavá",
+    "themeSystem": "Systém"
   },
   "pages": {
     "login": {
@@ -443,6 +447,8 @@
       "importInbound": "Importovať vstup",
       "periodicTrafficResetTitle": "Nulovanie spotreby",
       "periodicTrafficResetDay": "Deň mesačného nulovania",
+      "preserveClientTraffic": "Zachovať spotrebu klientov",
+      "preserveClientTrafficHelp": "Keď je táto možnosť zapnutá, podľa plánu sa vynulujú iba počítadlá prenosu tohto vstupu. Celková spotreba každého klienta na všetkých serveroch sa zachová až do vynulovania podľa jeho vlastného plánu.\n\nAk je možnosť vypnutá, pri plánovanom vynulovaní tohto vstupu sa vynuluje aj celková spotreba jeho klientov na všetkých serveroch.",
       "periodicTrafficReset": {
         "never": "Nikdy",
         "daily": "Denne",
@@ -1422,6 +1428,13 @@
       "tgNotifyLoginDesc": "Pri každom pokuse o prihlásenie do panelu poslať používateľské meno, IP adresu a čas.",
       "sessionMaxAge": "Platnosť prihlásenia",
       "sessionMaxAgeDesc": "Ako dlho môžete zostať prihlásení (jednotka: minúta).",
+      "publicIpRefresh": "Obnovenie verejnej IP",
+      "publicIpRefreshDesc": "Ako často panel znova zisťuje svoju verejnú IP cez externé služby. 0 zistí raz a už neobnovuje. (jednotka: minúta)",
+      "publicIpv6Detect": "Zisťovať verejnú IPv6",
+      "publicIpv6DetectDesc": "Vypnite na serveroch len s IPv4, aby sa preskočili všetky dotazy IPv6.",
+      "publicIpv4Override": "Ručná verejná IPv4",
+      "publicIpv6Override": "Ručná verejná IPv6",
+      "publicIpOverrideDesc": "Použije sa táto adresa namiesto zisťovania; nevykonajú sa pre ňu žiadne externé dotazy. Ak chcete automatické zisťovanie, nechajte prázdne.",
       "expireTimeDiff": "Upozornenie na koniec platnosti",
       "expireTimeDiffDesc": "Upozorniť na koniec platnosti pri dosiahnutí tohto prahu (jednotka: deň).",
       "trafficDiff": "Upozornenie na dátový limit",

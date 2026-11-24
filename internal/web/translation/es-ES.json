@@ -128,7 +128,11 @@
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
     "unpinSidebar": "Desfijar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeUltraDark": "Ultra oscuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "Importar un entrante",
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDay": "Día de reinicio mensual",
+      "preserveClientTraffic": "Conservar el consumo de los clientes",
+      "preserveClientTrafficHelp": "Si se activa, el reinicio programado solo pone a cero los contadores de esta entrada. Cada cliente conserva su consumo acumulado en todos los nodos hasta su propio reinicio programado.\n\nSi se desactiva, el reinicio programado de esta entrada también pone a cero el consumo acumulado de sus clientes en todos los nodos.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -1297,6 +1303,13 @@
       "tgNotifyLoginDesc": "Muestra el nombre de usuario, dirección IP y hora cuando alguien intenta iniciar sesión en su panel.",
       "sessionMaxAge": "Edad Máxima de Sesión",
       "sessionMaxAgeDesc": "La duración de una sesión de inicio de sesión (unidad: minutos).",
+      "publicIpRefresh": "Actualización de IP pública",
+      "publicIpRefreshDesc": "Con qué frecuencia el panel vuelve a detectar su IP pública mediante servicios externos. 0 la detecta una vez y no la actualiza. (unidad: minuto)",
+      "publicIpv6Detect": "Detectar IPv6 pública",
+      "publicIpv6DetectDesc": "Desactívalo en servidores solo IPv4 para omitir todas las consultas IPv6.",
+      "publicIpv4Override": "IPv4 pública manual",
+      "publicIpv6Override": "IPv6 pública manual",
+      "publicIpOverrideDesc": "Usa esta dirección en lugar de detectarla; no se hacen consultas externas para ella. Déjalo vacío para detectarla.",
       "expireTimeDiff": "Umbral de Expiración para Notificación",
       "expireTimeDiffDesc": "Reciba notificaciones sobre la expiración de la cuenta antes del umbral (unidad: días).",
       "trafficDiff": "Umbral de Tráfico para Notificación",

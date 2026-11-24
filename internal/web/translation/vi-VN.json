@@ -128,7 +128,11 @@
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
     "unpinSidebar": "Bỏ ghim thanh bên",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeUltraDark": "Siêu tối",
+    "themeSystem": "Hệ thống"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "Nhập inbound",
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
+      "preserveClientTraffic": "Giữ mức sử dụng của máy khách",
+      "preserveClientTrafficHelp": "Khi bật, thao tác đặt lại theo lịch chỉ đưa bộ đếm lưu lượng của inbound này về 0. Tổng lưu lượng của mỗi máy khách trên tất cả các node được giữ lại cho đến lần đặt lại theo lịch riêng của máy khách đó.\n\nKhi tắt, mỗi lần inbound này được đặt lại theo lịch, tổng lưu lượng mà mỗi máy khách liên kết với inbound đã sử dụng trên tất cả các node cũng trở về 0.",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
         "daily": "Hàng ngày",
@@ -1297,6 +1303,13 @@
       "tgNotifyLoginDesc": "Hiển thị tên người dùng, địa chỉ IP và thời gian khi ai đó cố gắng đăng nhập vào bảng điều khiển của bạn.",
       "sessionMaxAge": "Thời gian tối đa của phiên",
       "sessionMaxAgeDesc": "Thời gian của phiên đăng nhập (đơn vị: phút)",
+      "publicIpRefresh": "Làm mới IP công khai",
+      "publicIpRefreshDesc": "Tần suất bảng điều khiển phát hiện lại IP công khai qua dịch vụ bên ngoài. 0 là phát hiện một lần và không làm mới. (đơn vị: phút)",
+      "publicIpv6Detect": "Phát hiện IPv6 công khai",
+      "publicIpv6DetectDesc": "Tắt trên máy chủ chỉ có IPv4 để bỏ qua mọi truy vấn IPv6.",
+      "publicIpv4Override": "IPv4 công khai thủ công",
+      "publicIpv6Override": "IPv6 công khai thủ công",
+      "publicIpOverrideDesc": "Dùng địa chỉ này thay vì phát hiện; không có truy vấn bên ngoài nào cho nó. Để trống để tự phát hiện.",
       "expireTimeDiff": "Ngưỡng hết hạn cho thông báo",
       "expireTimeDiffDesc": "Nhận thông báo về việc hết hạn tài khoản trước ngưỡng này (đơn vị: ngày)",
       "trafficDiff": "Ngưỡng lưu lượng cho thông báo",

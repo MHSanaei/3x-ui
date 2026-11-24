@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { Base64 } from '@/utils';
 
 import { normalizeUdpHop, upgradeLegacyUdpHop } from './udphop-mask';
@@ -854,9 +856,146 @@ export function parseWireguardLink(link: string): Raw | null {
   };
 }
 
+const AWG_CONF_INTS: Record<string, string> = {
+  mtu: 'mtu',
+  jc: 'jc',
+  jmin: 'jmin',
+  jmax: 'jmax',
+  s1: 's1',
+  s2: 's2',
+  s3: 's3',
+  s4: 's4',
+};
+const AWG_CONF_STRINGS: Record<string, string> = {
+  h1: 'h1',
+  h2: 'h2',
+  h3: 'h3',
+  h4: 'h4',
+  i1: 'i1',
+  i2: 'i2',
+  i3: 'i3',
+  i4: 'i4',
+  i5: 'i5',
+  headerprotectionkey: 'headerProtectionKey',
+  contentpaddingaddition: 'contentPaddingAddition',
+  rekeyaftertime: 'rekeyAfterTime',
+  rekeytimeout: 'rekeyTimeout',
+  rejectaftertime: 'rejectAfterTime',
+  keepalivetimeout: 'keepaliveTimeout',
+  maxhandshakeattempts: 'maxHandshakeAttempts',
+};
+
+function splitList(v: string): string[] {
+  return v
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Mirrors Go's amneziaWGOutboundFromConf: only known keys survive, so wg-quick hooks never do.
+function amneziaWGOutboundFromConf(conf: string, fallbackTag: string): Raw | null {
+  // An absent .conf line means 0 (as in Go); the form adapter would default S3/S4 to 12.
+  const settings: Raw = {
+    ...Object.fromEntries(Object.values(AWG_CONF_INTS).map((f) => [f, 0])),
+    randomTrailers: false,
+    disableCookies: false,
+  };
+  const peer: Raw = { allowedIPs: ['0.0.0.0/0', '::/0'] };
+  let tag = '';
+  for (const rawLine of conf.split('\n')) {
+    const line = rawLine.trim();
+    if (line.startsWith('#')) {
+      if (!tag) tag = line.slice(1).trim();
+      continue;
+    }
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim().toLowerCase();
+    const v = line.slice(eq + 1).trim();
+    if (key in AWG_CONF_INTS) {
+      if (/^\d+$/.test(v)) settings[AWG_CONF_INTS[key]] = Number(v);
+    } else if (key in AWG_CONF_STRINGS) {
+      settings[AWG_CONF_STRINGS[key]] = v;
+    } else if (key === 'privatekey') settings.secretKey = v;
+    else if (key === 'address') settings.address = splitList(v);
+    else if (key === 'dns') {
+      const dns = splitList(v);
+      if (dns.length > 0) settings.dns = dns[0];
+    } else if (key === 'randomtrailers') settings.randomTrailers = v.toLowerCase() === 'on';
+    else if (key === 'disablecookies') settings.disableCookies = v.toLowerCase() === 'on';
+    else if (key === 'publickey') peer.publicKey = v;
+    else if (key === 'presharedkey') peer.presharedKey = v;
+    else if (key === 'allowedips') peer.allowedIPs = splitList(v);
+    else if (key === 'endpoint') peer.endpoint = v;
+    // The outbound holds one interval; a ranged "20-30" keeps its lower bound so NAT refresh survives.
+    else if (key === 'persistentkeepalive' && /^\d+\s*(-\s*\d+)?$/.test(v))
+      peer.keepAlive = parseInt(v, 10);
+  }
+  if (!settings.secretKey || !peer.publicKey || !peer.endpoint) return null;
+  settings.peers = [peer];
+  return { protocol: 'amneziawg', tag: tag || fallbackTag, settings };
+}
+
+// Same per-key cap as Go's maxAmneziaVPNPayload; a real key is a few KiB.
+const MAX_AMNEZIAVPN_PAYLOAD = 1 << 20;
+
+// inflateBounded stops reading once the cap is passed, so a zip bomb never lands in memory.
+async function inflateBounded(zlib: Uint8Array<ArrayBuffer>, cap: number): Promise<string | null> {
+  const reader = new Blob([zlib])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate'))
+    .getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let total = 0;
+  for (let r = await reader.read(); !r.done; r = await reader.read()) {
+    total += r.value.length;
+    if (total > cap) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(r.value, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
+const AmneziaVPNKeySchema = z.object({
+  description: z.string().optional(),
+  containers: z.array(
+    z.object({ awg: z.object({ last_config: z.string().optional() }).optional() }),
+  ),
+});
+const AmneziaVPNLastConfigSchema = z.object({ config: z.string() });
+
+// vpn:// is base64url(.conf) from 3x-ui, or base64url(qCompress(JSON)) from the AmneziaVPN
+// app: a 4-byte length, then zlib, holding the .conf in containers[].awg.last_config.
+export async function parseAmneziaVPNLink(link: string): Promise<Raw | null> {
+  if (!link.startsWith('vpn://')) return null;
+  try {
+    const b64 = link.slice('vpn://'.length).replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) =>
+      c.charCodeAt(0),
+    );
+    if (bytes.length <= 6 || bytes[4] !== 0x78) {
+      return amneziaWGOutboundFromConf(new TextDecoder().decode(bytes), '');
+    }
+    const json = await inflateBounded(bytes.slice(4), MAX_AMNEZIAVPN_PAYLOAD);
+    if (json === null) return null;
+    const key = AmneziaVPNKeySchema.parse(JSON.parse(json));
+    for (const c of key.containers) {
+      if (!c.awg?.last_config) continue;
+      const { config } = AmneziaVPNLastConfigSchema.parse(JSON.parse(c.awg.last_config));
+      if (config) return amneziaWGOutboundFromConf(config, key.description ?? '');
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Dispatcher — first non-null parser wins. Returns null when no parser
-// recognizes the link's protocol scheme.
-export function parseOutboundLink(link: string): Raw | null {
+// recognizes the link's protocol scheme. Async because AmneziaVPN keys are zlib-compressed.
+export async function parseOutboundLink(link: string): Promise<Raw | null> {
   const trimmed = link.trim();
   if (!trimmed) return null;
   const outbound =
@@ -865,7 +1004,8 @@ export function parseOutboundLink(link: string): Raw | null {
     parseTrojanLink(trimmed) ??
     parseShadowsocksLink(trimmed) ??
     parseHysteria2Link(trimmed) ??
-    parseWireguardLink(trimmed);
+    parseWireguardLink(trimmed) ??
+    (await parseAmneziaVPNLink(trimmed));
   if (outbound) dropHostLocalKeys(outbound);
   return outbound;
 }

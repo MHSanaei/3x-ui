@@ -128,7 +128,11 @@
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
     "unpinSidebar": "取消固定侧边栏",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeUltraDark": "极致深色",
+    "themeSystem": "跟随系统"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "开启后，入站定时重置只清零本入站的流量。用户在所有节点上的累计用量会保留，按用户自己的周期重置。\n\n关闭后，本入站定时重置时，也会清零关联用户在所有节点上的累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",
@@ -1297,6 +1303,13 @@
       "tgNotifyLoginDesc": "当有人试图登录你的面板时显示用户名、IP 地址和时间",
       "sessionMaxAge": "会话时长",
       "sessionMaxAgeDesc": "保持登录状态的时长（单位：分钟）",
+      "publicIpRefresh": "公网 IP 刷新",
+      "publicIpRefreshDesc": "面板通过外部服务重新检测公网 IP 的间隔。0 表示仅检测一次，不再刷新。（单位：分钟）",
+      "publicIpv6Detect": "检测公网 IPv6",
+      "publicIpv6DetectDesc": "仅有 IPv4 的服务器请关闭，以跳过所有 IPv6 查询。",
+      "publicIpv4Override": "手动指定公网 IPv4",
+      "publicIpv6Override": "手动指定公网 IPv6",
+      "publicIpOverrideDesc": "使用此地址而不进行检测，不会为其发起任何外部查询。留空则自动检测。",
       "expireTimeDiff": "到期通知阈值",
       "expireTimeDiffDesc": "达到此阈值时，将收到有关到期时间的通知（单位：天）",
       "trafficDiff": "流量耗尽阈值",
