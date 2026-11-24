@@ -128,7 +128,11 @@
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
     "unpinSidebar": "Desafixar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeUltraDark": "Ultra escuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Manter as configurações desta máquina",
-      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado.",
+      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado. A seleção da interface de tráfego de rede também é preservada.",
       "logLines": "Número de linhas",
       "timeRange": "Intervalo de tempo"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Importar um Inbound",
       "periodicTrafficResetTitle": "Reset de Tráfego",
       "periodicTrafficResetDay": "Dia da redefinição mensal",
+      "preserveClientTraffic": "Manter o consumo dos clientes",
+      "preserveClientTrafficHelp": "Com a opção ativada, a redefinição agendada zera apenas os contadores de tráfego desta entrada. Cada cliente mantém o consumo acumulado em todos os nós até a sua própria redefinição agendada.\n\nCom a opção desativada, a redefinição agendada desta entrada também zera o consumo acumulado em todos os nós pelos clientes vinculados a ela.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -1038,7 +1044,8 @@
         "delDepleted": "{count} clientes esgotados excluídos",
         "delOrphans": "{count} clientes sem inbound excluídos",
         "imported": "{count} clientes importados",
-        "importedMixed": "{ok} importados, {failed} ignorados"
+        "importedMixed": "{ok} importados, {failed} ignorados",
+        "bulkLinksAppended": "{clients} clientes atualizados: {added} adicionados, {skipped} duplicados ignorados, {errors} clientes não encontrados."
       },
       "renewMax": "Renovações máximas",
       "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
@@ -1066,7 +1073,13 @@
       "renewsUsed": "Renovações usadas",
       "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
       "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
-      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
+      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
+      "bulkAdjustSettings": "Limites e configurações",
+      "bulkAppendLinks": "Adicionar links externos",
+      "bulkAppendLinksHint": "Adiciona a todos os clientes selecionados. Preserva as entradas e configurações existentes; ignora pares de tipo e valor duplicados. Aplique outros ajustes separadamente.",
+      "bulkAppendLinksRequired": "Adicione pelo menos um link ou assinatura externa.",
+      "externalLinkInvalid": "Insira um link de compartilhamento compatível.",
+      "externalSubscriptionInvalid": "Insira uma URL de assinatura http(s)."
     },
     "groups": {
       "name": "Nome",
@@ -1110,6 +1123,11 @@
       "removeFromGroupResult": "Removidos {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar painel",
+      "restartConfirmTitle": "Reiniciar {name}?",
+      "restartXrayContent": "As conexões Xray ativas neste nó serão interrompidas.",
+      "restartPanelContent": "O painel e os serviços de assinatura do nó serão reiniciados e poderão ficar indisponíveis temporariamente. Requer um token de API node-admin ou admin no nó.",
       "addNode": "Adicionar nó",
       "editNode": "Editar nó",
       "totalNodes": "Total de nós",
@@ -1179,6 +1197,8 @@
         "xrayStopped": "Parado"
       },
       "toasts": {
+        "xrayRestarted": "Xray reiniciado no nó.",
+        "panelRestartAccepted": "Solicitação de reinício do painel aceita. O nó poderá ficar indisponível temporariamente.",
         "list": "Falha ao carregar os nós",
         "obtain": "Falha ao carregar o nó",
         "add": "Adicionar nó",
@@ -1242,6 +1262,17 @@
       "warnDefaultSubPath": "O caminho de assinatura padrão \"/sub/\" é bem conhecido — altere-o.",
       "warnDefaultJsonPath": "O caminho de assinatura JSON padrão \"/json/\" é bem conhecido — altere-o.",
       "TGBotSettings": "Bot do Telegram",
+      "networkTrafficInterfaceTitle": "Interface de tráfego de rede",
+      "networkTrafficMode": "Modo de tráfego de rede",
+      "networkTrafficDescription": "Selecione a interface usada nos totais e na velocidade do tráfego do sistema. A agregação antiga pode contar duas vezes o tráfego de interfaces sobrepostas. No Docker, apenas interfaces do namespace de rede do contêiner estão disponíveis.",
+      "networkTrafficLegacy": "Todas as interfaces (Legado)",
+      "networkTrafficAutomatic": "Automático",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "A interface de rede selecionada está indisponível. Escolha uma interface disponível ou outro modo de monitoramento.",
+      "networkTrafficAutoResolved": "Interface da rota padrão: {interface}",
+      "networkTrafficLoadError": "Não foi possível carregar as interfaces de rede.",
+      "networkTrafficEmpty": "Nenhuma interface de rede disponível.",
+      "networkTrafficAutoUnavailable": "Nenhuma interface de rota padrão disponível. As métricas de tráfego ficam indisponíveis até a recuperação da detecção ou a mudança do modo.",
       "panelListeningIP": "IP de Escuta",
       "panelListeningIPDesc": "O endereço IP para o painel web. (deixe em branco para escutar em todos os IPs)",
       "panelListeningDomain": "Domínio de Escuta",

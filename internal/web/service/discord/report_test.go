@@ -20,6 +20,26 @@ type mockServerProvider struct {
 	filename string
 }
 
+func TestReportNetworkUnavailableDoesNotReportZeroTraffic(t *testing.T) {
+	settings := setupTestDB(t)
+	_ = settings.SetDiscordLang("en-US")
+	_ = settings.SetDiscordBotBackup(false)
+	status := &service.Status{UnavailableMetrics: []string{"netTraffic"}, Loads: []float64{0, 0, 0}}
+	report, _, err := NewDiscordService(settings).BuildReport(context.Background(), &mockServerProvider{status: status}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range report.Embeds[0].Fields {
+		if field.Name == "Network Traffic" {
+			if field.Value != "The selected network interface is unavailable. Choose an available interface or another monitoring mode." {
+				t.Fatalf("traffic=%q", field.Value)
+			}
+			return
+		}
+	}
+	t.Fatal("traffic field missing")
+}
+
 func (m *mockServerProvider) GetStatus(lastStatus *service.Status) *service.Status {
 	return m.status
 }

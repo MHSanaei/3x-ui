@@ -13,6 +13,34 @@ afterEach(() => {
 });
 
 describe('useAllSettings', () => {
+  it('saves a manual traffic interface and reloads it in a fresh settings session', async () => {
+    let stored: { networkTrafficMode?: string; networkTrafficInterface?: string } = {};
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, body) => {
+      if (url === '/panel/api/setting/all') return new Msg(true, '', stored);
+      if (url === '/panel/api/setting/update') stored = body as typeof stored;
+      return new Msg(true, '', {});
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+    );
+    const first = renderHook(() => useAllSettings(), { wrapper });
+    await waitFor(() => expect(first.result.current.fetched).toBe(true));
+    expect(first.result.current.allSetting.networkTrafficMode).toBe('legacy');
+    act(() =>
+      first.result.current.updateSetting({
+        networkTrafficMode: 'manual',
+        networkTrafficInterface: 'enP6129s1',
+      }),
+    );
+    await act(async () => {
+      await first.result.current.saveAll();
+    });
+    first.unmount();
+    const second = renderHook(() => useAllSettings(), { wrapper });
+    await waitFor(() => expect(second.result.current.fetched).toBe(true));
+    expect(second.result.current.allSetting.networkTrafficMode).toBe('manual');
+    expect(second.result.current.allSetting.networkTrafficInterface).toBe('enP6129s1');
+  });
   it('persists the subscription host ordering mode and reloads it in a fresh session', async () => {
     let storedMode = 'inbound-first';
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, body) => {

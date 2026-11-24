@@ -128,7 +128,11 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeUltraDark": "Ultra Dark",
+    "themeSystem": "System"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file.",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file. Network traffic interface selection is also preserved.",
       "logLines": "Number of lines",
       "timeRange": "Time range"
     },
@@ -443,6 +447,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
@@ -1038,7 +1044,8 @@
         "delDepleted": "{count} depleted clients deleted",
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
-        "importedMixed": "{ok} imported, {failed} skipped"
+        "importedMixed": "{ok} imported, {failed} skipped",
+        "bulkLinksAppended": "{clients} clients updated: {added} added, {skipped} duplicates skipped, {errors} clients not found."
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
@@ -1066,7 +1073,13 @@
       "renewsUsed": "Renewals used",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds.",
       "renewIntervalDesc": "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
-      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended."
+      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
+      "bulkAdjustSettings": "Limits and settings",
+      "bulkAppendLinks": "Append external links",
+      "bulkAppendLinksHint": "Append to every selected client. Existing entries and their settings stay unchanged; duplicate kind and value pairs are skipped. Apply other adjustments separately.",
+      "bulkAppendLinksRequired": "Add at least one external link or subscription.",
+      "externalLinkInvalid": "Enter a supported share link.",
+      "externalSubscriptionInvalid": "Enter an http(s) subscription URL."
     },
     "groups": {
       "name": "Name",
@@ -1231,6 +1244,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1300,6 +1318,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",
@@ -1363,6 +1383,17 @@
       "warnDefaultSubPath": "Default subscription path \"/sub/\" is well-known — change it.",
       "warnDefaultJsonPath": "Default JSON subscription path \"/json/\" is well-known — change it.",
       "TGBotSettings": "Telegram Bot",
+      "networkTrafficInterfaceTitle": "Network Traffic Interface",
+      "networkTrafficMode": "Network traffic mode",
+      "networkTrafficDescription": "Select the interface used for system traffic totals and speed. Legacy aggregation can double-count stacked interfaces. In Docker, only interfaces in the container network namespace are available.",
+      "networkTrafficLegacy": "All interfaces (Legacy)",
+      "networkTrafficAutomatic": "Automatic",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "The selected network interface is unavailable. Choose an available interface or another monitoring mode.",
+      "networkTrafficAutoResolved": "Default-route interface: {interface}",
+      "networkTrafficLoadError": "Could not load network interfaces.",
+      "networkTrafficEmpty": "No network interfaces are available.",
+      "networkTrafficAutoUnavailable": "No default-route interface is available. Traffic metrics remain unavailable until detection recovers or the mode changes.",
       "panelListeningIP": "Listen IP",
       "panelListeningIPDesc": "The IP address for the web panel. (leave blank to listen on all IPs)",
       "panelListeningDomain": "Listen Domain",
