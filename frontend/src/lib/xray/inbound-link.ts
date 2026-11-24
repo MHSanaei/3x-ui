@@ -1019,6 +1019,7 @@ export interface GenWireguardLinkInput {
   port: number;
   remark?: string;
   peerIndex: number;
+  finalmask?: FinalMaskStreamSettings;
 }
 
 // Wireguard share link: wireguard://<peerPrivKey>@<host>:<port>
@@ -1043,6 +1044,7 @@ export function genWireguardLink(input: GenWireguardLinkInput): string {
   if (typeof settings.mtu === 'number' && settings.mtu > 0) {
     url.searchParams.set('mtu', String(settings.mtu));
   }
+  applyFinalMaskToParams(input.finalmask, url.searchParams);
 
   url.hash = encodeURIComponent(remark);
   return url.toString();
@@ -1736,6 +1738,7 @@ function wireguardFanout(
         port: e.port,
         remark: tunnelPeerRemark(remark, e.remark, i, p),
         peerIndex: i,
+        finalmask: inbound.streamSettings?.finalmask,
       }),
     ),
   );
