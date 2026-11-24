@@ -128,7 +128,11 @@
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
     "unpinSidebar": "取消固定侧边栏",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeUltraDark": "极致深色",
+    "themeSystem": "跟随系统"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "开启后，入站定时重置只清零本入站的流量。用户在所有节点上的累计用量会保留，按用户自己的周期重置。\n\n关闭后，本入站定时重置时，也会清零关联用户在所有节点上的累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",
@@ -1038,7 +1044,8 @@
         "delDepleted": "已删除 {count} 个已耗尽的客户端",
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
-        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个",
+        "bulkLinksAppended": "已更新 {clients} 个客户端：新增 {added} 条，跳过 {skipped} 条重复项，{errors} 个客户端未找到。"
       },
       "renewMax": "最大续期次数",
       "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
@@ -1066,7 +1073,13 @@
       "renewsUsed": "已用续期次数",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。",
       "renewIntervalDesc": "到期后从上次截止时间增加指定天数（每天 24 小时），并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
-      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。"
+      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
+      "bulkAdjustSettings": "限额与设置",
+      "bulkAppendLinks": "追加外部链接",
+      "bulkAppendLinksHint": "追加到所有选中的客户端。保留现有条目及其设置，跳过类型和值相同的重复条目。其他调整请单独应用。",
+      "bulkAppendLinksRequired": "请至少添加一个外部链接或订阅。",
+      "externalLinkInvalid": "请输入支持的分享链接。",
+      "externalSubscriptionInvalid": "请输入 http(s) 订阅地址。"
     },
     "groups": {
       "name": "名称",
@@ -1110,6 +1123,11 @@
       "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。"
     },
     "nodes": {
+      "restartXray": "重启 Xray",
+      "restartPanel": "重启面板",
+      "restartConfirmTitle": "重启 {name}？",
+      "restartXrayContent": "此节点上活跃的 Xray 连接将会中断。",
+      "restartPanelContent": "节点面板和订阅服务将重启，并可能暂时不可用。需要节点上的 node-admin 或 admin API 令牌。",
       "addNode": "添加节点",
       "editNode": "编辑节点",
       "totalNodes": "节点总数",
@@ -1179,6 +1197,8 @@
         "xrayStopped": "已停止"
       },
       "toasts": {
+        "xrayRestarted": "已重启节点上的 Xray。",
+        "panelRestartAccepted": "已接受面板重启请求。节点可能暂时不可用。",
         "list": "加载节点失败",
         "obtain": "加载节点失败",
         "add": "添加节点",

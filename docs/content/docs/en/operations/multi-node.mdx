@@ -39,6 +39,24 @@ and emitting `node.up` / `node.down` events (see the
   those as read-only **transitive** sub-nodes (Node 1 → Node 2 → Node 3).
 </Callout>
 
+### Restart a node
+
+Open a directly configured node's action menu and choose **Restart Xray** or
+**Restart Panel**, then confirm the node name. Restart Xray interrupts that
+node's active Xray connections. Restart Panel restarts its panel and subscription
+services after a three-second delay; the success message acknowledges the request,
+and the node may be temporarily unavailable.
+
+Restart actions are disabled for disabled nodes and read-only transitive nodes.
+An enabled node can be contacted even when its last heartbeat says offline.
+Connection and permission failures are reported without automatically retrying.
+
+Xray restart supports the node's existing `node-sync`, `node-admin`, and `admin`
+API tokens. Panel restart requires `node-admin` or `admin`; mTLS connections must
+also present an explicit `node-admin` bearer token. Update older nodes before
+using `node-admin` for panel restart. The master-side node actions retain the
+normal Nodes API permissions.
+
 ### Mutual TLS (mTLS) between master and node
 
 For the strongest trust, use `tlsVerifyMode = mtls` (requires `https`):

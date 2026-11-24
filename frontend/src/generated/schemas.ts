@@ -1762,6 +1762,73 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "BulkAdjustReport": {
+    "properties": {
+      "email": {
+        "example": "carol",
+        "type": "string"
+      },
+      "reason": {
+        "example": "client not found",
+        "type": "string"
+      }
+    },
+    "required": [
+      "email",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "BulkAdjustResult": {
+    "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+    "properties": {
+      "adjusted": {
+        "example": 2,
+        "type": "integer"
+      },
+      "externalLinks": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BulkExternalLinksResult"
+          }
+        ],
+        "nullable": true
+      },
+      "skipped": {
+        "example": [],
+        "items": {
+          "$ref": "#/components/schemas/BulkAdjustReport"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "adjusted"
+    ],
+    "type": "object"
+  },
+  "BulkExternalLinksResult": {
+    "properties": {
+      "added": {
+        "example": 4,
+        "type": "integer"
+      },
+      "errors": {
+        "example": 0,
+        "type": "integer"
+      },
+      "skipped": {
+        "example": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "added",
+      "errors",
+      "skipped"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -2570,6 +2637,40 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "ExternalLinkInput": {
+    "description": "ExternalLinkInput is one row from the client form's Links tab.",
+    "properties": {
+      "enable": {
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "kind": {
+        "example": "link",
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "example": "Backup",
+        "type": "string"
+      },
+      "value": {
+        "example": "vless://uuid@example.com:443",
+        "type": "string"
+      }
+    },
+    "required": [
+      "value"
+    ],
+    "type": "object"
+  },
   "FallbackParentInfo": {
     "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
     "properties": {
@@ -3257,6 +3358,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 0,
         "type": "integer"
+      },
+      "preserveClientTraffic": {
+        "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+        "nullable": true,
+        "type": "boolean"
       },
       "protocol": {
         "enum": [
