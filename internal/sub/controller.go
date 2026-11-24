@@ -505,6 +505,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = true
 	subReq.omitServerDescription = !IsHappClient(userAgent) && !IsIncyClient(userAgent)
+	subReq.ss2022Base64Userinfo = IsShadowrocketClient(userAgent)
 	subs, _, _, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
