@@ -180,6 +180,40 @@ export class PromiseUtil {
       setTimeout(resolve, timeout);
     });
   }
+
+  /**
+   * Waits for a restarting panel before the page navigates to `url`.
+   * After `delay` (the server schedules the restart a few seconds after the
+   * request) it polls `url` until something answers below 500, so a reverse
+   * proxy's 502 during a slow shutdown is not what the browser loads.
+   * A cross-origin target (new port or protocol) can only be probed with
+   * `no-cors`: any answer there means the listener is up. Resolves false when
+   * `timeout` passes; the caller navigates anyway.
+   */
+  static async waitForPanel(
+    url: string,
+    { delay = 5000, interval = 2000, timeout = 90_000 } = {},
+  ): Promise<boolean> {
+    await PromiseUtil.sleep(delay);
+    const target = new URL(url, window.location.href);
+    const sameOrigin = target.origin === window.location.origin;
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(target, {
+          cache: 'no-store',
+          redirect: 'manual',
+          mode: sameOrigin ? 'same-origin' : 'no-cors',
+          signal: AbortSignal.timeout(Math.max(interval, 1000)),
+        });
+        if (res.type === 'opaque' || res.type === 'opaqueredirect' || res.status < 500) return true;
+      } catch {
+        /* not listening yet */
+      }
+      await PromiseUtil.sleep(interval);
+    }
+    return false;
+  }
 }
 
 export interface RandomSeqOptions {
