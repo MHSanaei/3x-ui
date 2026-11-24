@@ -2008,6 +2008,7 @@
         "localIpPlaceholder": "IP lokal",
         "dialerProxyPlaceholder": "Pilih outbound untuk dirantai",
         "dialerProxyHint": "Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membuat rantai proxy. Kosongkan untuk terhubung langsung.",
+        "dialerProxyMissing": "Tidak ada outbound dengan tag ini yang tersedia untuk dirantai.",
         "targetStrategyHint": "Cara domain tujuan diresolusi sebelum terhubung: AsIs (default) mengirim apa adanya, UseIP… meresolusi dengan fallback, ForceIP… wajib berhasil diresolusi.",
         "addressRequired": "Alamat wajib diisi",
         "portRequired": "Port wajib diisi",

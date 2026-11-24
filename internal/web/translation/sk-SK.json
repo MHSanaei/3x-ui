@@ -2129,6 +2129,7 @@
         "localIpPlaceholder": "miestna IP",
         "dialerProxyPlaceholder": "Vyberte výstup na zreťazenie",
         "dialerProxyHint": "Pripojí tento výstup cez iný výstup určený značkou a vytvorí reťaz proxy. Prázdne pole znamená priame pripojenie.",
+        "dialerProxyMissing": "Nie je dostupný žiadny výstup s touto značkou, cez ktorý by sa dalo reťaziť.",
         "targetStrategyHint": "Ako sa pred pripojením preloží cieľová doména: AsIs (predvolené) ju pošle nepreloženú, UseIP… ju preloží s náhradným postupom, ForceIP… vyžaduje úspešný preklad.",
         "addressRequired": "Zadajte adresu",
         "portRequired": "Zadajte port",

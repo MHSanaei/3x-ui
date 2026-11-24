@@ -2129,6 +2129,7 @@
         "localIpPlaceholder": "local IP",
         "dialerProxyPlaceholder": "Select an outbound to chain through",
         "dialerProxyHint": "Dial this outbound through another outbound (by tag) to build a proxy chain. Leave empty to connect directly.",
+        "dialerProxyMissing": "No outbound with this tag is available to chain through.",
         "targetStrategyHint": "How the destination domain is resolved before connecting: AsIs (default) sends it unresolved, UseIP… resolves with fallback, ForceIP… requires successful resolution.",
         "addressRequired": "Address is required",
         "portRequired": "Port is required",
