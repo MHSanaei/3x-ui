@@ -4,12 +4,12 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -27,7 +27,7 @@ func TestClientTrafficLifecyclePostgres(t *testing.T) {
 	}{
 		{"inbound save", TestInboundEditWritesOnlyDriftedTraffic},
 		{"fields and errors", TestUpdateClientStatPreservesLifecycleAndCounters},
-		{"concurrent accounting", TestInboundEditAndTrafficDeltaPreserveBothWrites},
+		{"row locks", checkUpdateClientStatRowLocks},
 		{"one connection", TestUpdateClientTrafficsStaysOnOneConnection},
 		{"rename onto existing stats", TestUpdateInboundClientRenameOntoExistingStatStaysOnOneConnection},
 		{"master lifecycle", TestInboundUpdateFromMasterAppliesClientLifecycle},
@@ -214,30 +214,54 @@ func lifecycleUniqueViolation(err error) bool {
 		errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique
 }
 
-func TestInboundEditAndTrafficDeltaPreserveBothWrites(t *testing.T) {
+func checkUpdateClientStatRowLocks(t *testing.T) {
+	t.Helper()
 	setupBulkDB(t)
+	db := database.GetDB()
 	svc := &InboundService{}
-	const email = "delta-during-edit@x"
-	ib := seedTrafficLifecycleInbound(t, svc, []model.Client{
-		{Email: email, ID: "00000000-0000-4000-8000-000000000001", Enable: true, TotalGB: 1 << 30},
-	})
-	execLifecycleTestSQL(t, "UPDATE client_traffics SET total = 0 WHERE email = 'delta-during-edit@x'")
-	var workers sync.WaitGroup
-	workers.Go(func() {
-		if _, _, err := svc.AddTraffic(nil, []*xray.ClientTraffic{{Email: email, Up: 19, Down: 21}}); err != nil {
-			t.Error(err)
-		}
-	})
-	workers.Go(func() {
-		form := *ib
-		form.Remark = "concurrent edit"
-		if _, _, err := svc.UpdateInbound(&form); err != nil {
-			t.Error(err)
-		}
-	})
-	workers.Wait()
-	if got := readClientTraffic(t, email); got.Up != 19 || got.Down != 21 || got.LastOnline <= 0 ||
-		got.Total != 1<<30 || !got.Enable {
-		t.Fatalf("lost traffic delta or lifecycle repair: %+v", got)
+	for _, test := range []struct {
+		name       string
+		total      int64
+		wantLocked bool
+	}{
+		{"identical", 1000, false},
+		{"changed", 2000, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			row := xray.ClientTraffic{Email: test.name + "@x", Enable: true, Total: 1000}
+			if err := db.Create(&row).Error; err != nil {
+				t.Fatal(err)
+			}
+			tx := db.Begin()
+			if tx.Error != nil {
+				t.Fatal(tx.Error)
+			}
+			defer func() { _ = tx.Rollback().Error }()
+			client := model.Client{Email: row.Email, Enable: true, TotalGB: test.total}
+			if err := svc.UpdateClientStat(tx, row.Email, &client); err != nil {
+				t.Fatal(err)
+			}
+
+			// Probe on another connection while the UPDATE transaction is still open.
+			err := db.Transaction(func(other *gorm.DB) error {
+				var locked xray.ClientTraffic
+				return other.Clauses(clause.Locking{Strength: "UPDATE", Options: "NOWAIT"}).
+					Where("id = ?", row.Id).Take(&locked).Error
+			})
+			if test.wantLocked {
+				var pgErr *pgconn.PgError
+				if !errors.As(err, &pgErr) || pgErr.Code != "55P03" {
+					t.Fatalf("changed update should hold a row lock (SQLSTATE 55P03), got %v", err)
+				}
+			} else if err != nil {
+				t.Fatalf("identical update should leave the row available, got %v", err)
+			}
+			if err := tx.Commit().Error; err != nil {
+				t.Fatal(err)
+			}
+			if got := readClientTraffic(t, row.Email).Total; got != test.total {
+				t.Fatalf("committed total = %d, want %d", got, test.total)
+			}
+		})
 	}
 }
