@@ -197,6 +197,23 @@ func (p *panel) deleteInboundRow(id int) {
 	}
 }
 
+func (p *panel) setClientTrafficHome(email string, inboundID int) {
+	p.t.Helper()
+	if p.cmd != nil {
+		p.t.Fatalf("%s: setClientTrafficHome on a running panel", p.name)
+	}
+	sharedDBMu.Lock()
+	defer sharedDBMu.Unlock()
+	if err := database.InitDB(filepath.Join(p.dir, "db", "x-ui.db")); err != nil {
+		p.t.Fatalf("%s: open db: %v", p.name, err)
+	}
+	defer func() { _ = database.CloseDB() }()
+	result := database.GetDB().Table("client_traffics").Where("email = ?", email).Update("inbound_id", inboundID)
+	if result.Error != nil || result.RowsAffected != 1 {
+		p.t.Fatalf("%s: set traffic home: rows=%d error=%v", p.name, result.RowsAffected, result.Error)
+	}
+}
+
 func (p *panel) seedClientIpAttribution(email, ips string) string {
 	p.t.Helper()
 	if p.cmd != nil {

@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Лицензия: **MIT**): _Управление входящими, клиентами, настройками панели и конфигурацией Xray через код с помощью Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Лицензия: **MIT**): _Нативный Android-клиент для 3x-ui — дашборд, входящие, клиенты с QR, узлы и управление несколькими панелями. Доступен в F-Droid._
+- [3x-ui-exporter](https://github.com/nike38rus/3x-ui-exporter) (Лицензия: **MIT**): _Лёгкий экспортер Prometheus и дашборд Grafana для 3x-ui и Xray Core — трафик в реальном времени, активные клиенты, открытые сокеты, балансировщики и состояние задержек._
 
 ## Поддержка проекта
 

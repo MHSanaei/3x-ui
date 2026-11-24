@@ -529,3 +529,36 @@ func TestValidateObfuscationRejectsMalformedSignaturePackets(t *testing.T) {
 		})
 	}
 }
+
+// Each handshake initiation sends Jc junk packets and the I1-I5 packets, allocated from
+// these values; unbounded, one connection (an unauthenticated peer) killed the panel.
+func TestValidateObfuscationBoundsWhatAHandshakeAllocates(t *testing.T) {
+	for name, mutate := range map[string]func(*Obfuscation31){
+		"jc past the documented range": func(o *Obfuscation31) { o.Jc = maxJunkPackets + 1 },
+		"jmax past a datagram":         func(o *Obfuscation31) { o.Jmax = maxPreamblePacket + 1 },
+		"random bytes past a datagram": func(o *Obfuscation31) { o.I1 = "<r 70000>" },
+		"negative length":              func(o *Obfuscation31) { o.I2 = "<r -1>" },
+		"spec past a datagram":         func(o *Obfuscation31) { o.I3 = "<r 40000><rc 40000>" },
+	} {
+		o := validObfuscation()
+		mutate(&o)
+		if err := ValidateObfuscation(o); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	o := validObfuscation()
+	o.I1 = "<b 0xf6ab3267fa><r 1200><t>"
+	if err := ValidateObfuscation(o); err != nil {
+		t.Fatalf("an ordinary I1 was refused: %v", err)
+	}
+}
+
+// amneziawg-go stores the MTU as an int32; a wider value wraps and the device panics.
+func TestMTUIsBoundedWhereItIsSavedAndWhereItIsRead(t *testing.T) {
+	if err := ValidateMTU(MaxMTU + 1); err == nil {
+		t.Fatal("an MTU past 65535 was accepted")
+	}
+	if got := EffectiveMTU(1<<31, 0); got != MaxMTU {
+		t.Fatalf("EffectiveMTU(2^31) = %d, want a stored oversized value capped at %d", got, MaxMTU)
+	}
+}

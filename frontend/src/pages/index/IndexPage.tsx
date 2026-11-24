@@ -174,6 +174,7 @@ export default function IndexPage() {
         <Layout className="content-shell">
           <Layout.Content className="content-area">
             <Spin
+              aria-live="off"
               spinning={loading || !fetched}
               delay={200}
               description={loading ? loadingTip : t('loading')}

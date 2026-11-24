@@ -319,6 +319,7 @@ export const ClientFormSchema = z.object({
     .string()
     .trim()
     .min(1, 'pages.clients.email')
+    .refine((v) => v !== '.' && v !== '..', 'pages.clients.emailReservedName')
     .refine((v) => !hasForbiddenClientChars(v), 'pages.clients.emailInvalidChars'),
   subId: z.string().refine((v) => !hasForbiddenClientChars(v), 'pages.clients.subIdInvalidChars'),
   uuid: z.string(),

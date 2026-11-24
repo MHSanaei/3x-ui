@@ -3,7 +3,10 @@ package sub
 import (
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/goccy/go-yaml"
 )
@@ -41,30 +44,66 @@ func yamlScalarIsAmbiguous(s string) bool {
 	return yamlNonStringWords[s] || yamlNonStringNumber.MatchString(s)
 }
 
+// yamlEscapedString is written double-quoted on one line: the encoder's block scalars
+// mishandle CR and the Unicode line breaks, so the text could continue as YAML.
+type yamlEscapedString string
+
+func (s yamlEscapedString) MarshalYAML() ([]byte, error) {
+	return []byte(strconv.Quote(string(s))), nil
+}
+
+func yamlNeedsEscaping(s string) bool {
+	if !utf8.ValidString(s) {
+		return true
+	}
+	return strings.ContainsFunc(s, func(r rune) bool { return !unicode.IsPrint(r) })
+}
+
+func quoteYAMLString(s string) any {
+	switch {
+	case yamlNeedsEscaping(s):
+		return yamlEscapedString(s)
+	case yamlScalarIsAmbiguous(s):
+		return yamlQuotedString(s)
+	}
+	return s
+}
+
 func quoteAmbiguousYAMLScalars(v any) any {
 	if v == nil {
 		return nil
 	}
 	if s, ok := v.(string); ok {
-		if yamlScalarIsAmbiguous(s) {
-			return yamlQuotedString(s)
-		}
-		return s
+		return quoteYAMLString(s)
 	}
 
 	rv := reflect.ValueOf(v)
 	switch rv.Kind() {
 	case reflect.Map:
 		out := make(map[string]any, rv.Len())
+		escapedKeys := false
 		iter := rv.MapRange()
 		for iter.Next() {
 			key, ok := iter.Key().Interface().(string)
 			if !ok {
 				return v
 			}
+			escapedKeys = escapedKeys || yamlNeedsEscaping(key)
 			out[key] = quoteAmbiguousYAMLScalars(iter.Value().Interface())
 		}
-		return out
+		if !escapedKeys {
+			return out
+		}
+		// Only marshaler-typed keys escape, and only a map[any]any key keeps its type.
+		keyed := make(map[any]any, len(out))
+		for key, value := range out {
+			if yamlNeedsEscaping(key) {
+				keyed[yamlEscapedString(key)] = value
+			} else {
+				keyed[key] = value
+			}
+		}
+		return keyed
 	case reflect.Slice, reflect.Array:
 		if rv.Kind() == reflect.Slice && rv.Type().Elem().Kind() == reflect.Uint8 {
 			return v

@@ -1124,3 +1124,32 @@ describe('obfs=gecko packetSize validation', () => {
     expect(packetSizeOf(link)).toBeUndefined();
   });
 });
+
+describe('parseOutboundLink — host-local keys', () => {
+  it('drops keys that redirect the dial or name host files, however they are cased', () => {
+    const extra = encodeURIComponent(
+      JSON.stringify({
+        downloadSettings: {
+          address: '8.8.8.8',
+          port: 443,
+          sockopt: { dialerProxy: 'api', tcpFastOpen: true },
+          tlsSettings: {
+            serverName: 'cdn.example.com',
+            certificates: [{ CERTIFICATEFILE: '/dev/zero', keyFile: '/etc/shadow' }],
+            maſterKeyLog: '/root/keys',
+          },
+        },
+      }),
+    );
+    const fm = encodeURIComponent(
+      JSON.stringify({ tcp: [{ type: 'header-custom', settings: { DialerProxy: 'api' } }] }),
+    );
+    const out = parseOutboundLink(
+      `vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=${extra}&fm=${fm}#node`,
+    );
+    const json = JSON.stringify(out);
+    expect(json).not.toMatch(/dialerproxy|certificatefile|keyfile|maſterkeylog/i);
+    expect(json).toContain('"tcpFastOpen":true');
+    expect(json).toContain('"serverName":"cdn.example.com"');
+  });
+});

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	goruntime "runtime"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -337,4 +339,55 @@ func TestFanoutReportsEveryFailingInbound(t *testing.T) {
 			t.Fatalf("healthy inbound %d did not get the client", healthy.Id)
 		}
 	})
+}
+
+// An inbound id costs two bytes of request body, so a repeated one must not cost
+// the panel another copy of the client: 2000 ids x 8 MB of comment was 16 GB.
+func TestRepeatedInboundIdCostsOneCopyOfTheClient(t *testing.T) {
+	const commentBytes = 1 << 20
+	client := func(email string) model.Client {
+		return model.Client{Email: email, Comment: strings.Repeat("x", commentBytes), Enable: true}
+	}
+
+	cases := map[string]func(svc *ClientService, inboundSvc *InboundService, spare int, ids []int) error{
+		"Create": func(svc *ClientService, inboundSvc *InboundService, _ int, ids []int) error {
+			_, err := svc.Create(inboundSvc, &ClientCreatePayload{Client: client("repeated@x"), InboundIds: ids})
+			return err
+		},
+		"BulkCreate": func(svc *ClientService, inboundSvc *InboundService, _ int, ids []int) error {
+			res, _, err := svc.BulkCreate(inboundSvc, []ClientCreatePayload{{Client: client("repeated@x"), InboundIds: ids}})
+			if err == nil && res.Created != 1 {
+				t.Fatalf("bulk create: created %d, skipped %+v", res.Created, res.Skipped)
+			}
+			return err
+		},
+		"Attach": func(svc *ClientService, inboundSvc *InboundService, spare int, ids []int) error {
+			if _, err := svc.CreateOne(inboundSvc, spare, client("repeated@x")); err != nil {
+				return err
+			}
+			_, err := svc.AttachByEmail(inboundSvc, "repeated@x", ids)
+			return err
+		},
+	}
+	for name, run := range cases {
+		t.Run(name, func(t *testing.T) {
+			setupBulkDB(t)
+			ib := mkInbound(t, 21011, model.VLESS, `{"clients":[]}`)
+			spare := mkInbound(t, 21012, model.VLESS, `{"clients":[]}`)
+
+			var before, after goruntime.MemStats
+			goruntime.ReadMemStats(&before)
+			if err := run(&ClientService{}, &InboundService{}, spare.Id, slices.Repeat([]int{ib.Id}, 300)); err != nil {
+				t.Fatal(err)
+			}
+			goruntime.ReadMemStats(&after)
+
+			if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 100*commentBytes {
+				t.Fatalf("allocated %d MiB for a 1 MiB client named on one inbound", allocated>>20)
+			}
+			if emails := settingsClientEmails(t, ib.Id); len(emails) != 1 {
+				t.Fatalf("clients on the inbound = %v, want the one", emails)
+			}
+		})
+	}
 }

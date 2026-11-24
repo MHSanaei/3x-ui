@@ -65,11 +65,18 @@ func AllowPrivateFromContext(ctx context.Context) bool {
 
 var defaultDialer = &net.Dialer{Timeout: 10 * time.Second}
 
+// minDialAttempt is net.Dialer's floor for one address of a name.
+const minDialAttempt = 2 * time.Second
+
 func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
 	}
+	// One budget for the whole call, shared by the addresses as net.Dialer does: a name the
+	// peer controls may resolve to thousands of addresses that never answer.
+	ctx, cancel := context.WithTimeout(ctx, defaultDialer.Timeout)
+	defer cancel()
 	allowPrivate := AllowPrivateFromContext(ctx)
 	var ips []net.IPAddr
 	if ip := net.ParseIP(host); ip != nil {
@@ -81,12 +88,20 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 		}
 	}
 	var lastErr, blockedErr error
-	for _, ipAddr := range ips {
+	for i, ipAddr := range ips {
 		if !allowPrivate && IsBlockedIP(ipAddr.IP) {
 			blockedErr = fmt.Errorf("%w %s", ErrPrivateAddressBlocked, ipAddr.IP)
 			continue
 		}
-		conn, derr := defaultDialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+		deadline, _ := ctx.Deadline()
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			break
+		}
+		attempt := max(remaining/time.Duration(len(ips)-i), min(minDialAttempt, remaining))
+		attemptCtx, attemptCancel := context.WithTimeout(ctx, attempt)
+		conn, derr := defaultDialer.DialContext(attemptCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+		attemptCancel()
 		if derr == nil {
 			return conn, nil
 		}

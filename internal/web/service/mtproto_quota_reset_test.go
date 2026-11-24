@@ -112,7 +112,7 @@ func TestPanelResetsZeroSidecarQuota(t *testing.T) {
 // sidecar's quota counters must stay too or clients get their quota again free.
 func TestInboundResetAllKeepsSidecarQuota(t *testing.T) {
 	_, logPath := startQuotaSidecar(t, 46204, model.Client{Enable: true})
-	if err := (&InboundService{}).ResetAllTraffics(); err != nil {
+	if _, err := (&InboundService{}).ResetAllTraffics(); err != nil {
 		t.Fatalf("ResetAllTraffics: %v", err)
 	}
 	if got := quotaResets(t, logPath); len(got) != 0 {

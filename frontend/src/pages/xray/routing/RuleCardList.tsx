@@ -152,9 +152,7 @@ export default function RuleCardList({
               <span className="flow-arrow">→</span>
               <div className="flow-side flow-side-target">
                 <span className="flow-label">
-                  {rule.balancerTag
-                    ? t('pages.xray.balancer') || 'Balancer'
-                    : t('pages.xray.Outbounds')}
+                  {rule.balancerTag ? t('pages.xray.rules.balancer') : t('pages.xray.Outbounds')}
                 </span>
                 {rule.outboundTag ? (
                   <Tag color="green" className="flow-tag">
