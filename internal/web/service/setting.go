@@ -35,7 +35,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo|rabbit-hole)`
 	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
@@ -74,6 +74,10 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
+	"publicIpRefreshMinutes":      "5",
+	"publicIpv6Detect":            "true",
+	"publicIpv4Override":          "",
+	"publicIpv6Override":          "",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
@@ -714,6 +718,15 @@ func (s *SettingService) GetPort() (int, error) {
 	return s.getInt("webPort")
 }
 
+// GetListenPort returns the port the panel actually listens on: a valid
+// XUI_PORT overrides the stored webPort.
+func (s *SettingService) GetListenPort() (int, error) {
+	if port, configured, err := config.GetPortOverride(); configured && err == nil {
+		return port, nil
+	}
+	return s.GetPort()
+}
+
 func (s *SettingService) SetPort(port int) error {
 	return s.setInt("webPort", port)
 }
@@ -740,6 +753,22 @@ func (s *SettingService) GetExpireDiff() (int, error) {
 
 func (s *SettingService) GetTrafficDiff() (int, error) {
 	return s.getInt("trafficDiff")
+}
+
+func (s *SettingService) GetPublicIpRefreshMinutes() (int, error) {
+	return s.getInt("publicIpRefreshMinutes")
+}
+
+func (s *SettingService) GetPublicIpv6Detect() (bool, error) {
+	return s.getBool("publicIpv6Detect")
+}
+
+func (s *SettingService) GetPublicIpv4Override() (string, error) {
+	return s.getString("publicIpv4Override")
+}
+
+func (s *SettingService) GetPublicIpv6Override() (string, error) {
+	return s.getString("publicIpv6Override")
 }
 
 func (s *SettingService) GetSessionMaxAge() (int, error) {
@@ -1687,6 +1716,12 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
+	}
+	if allSetting.TwoFactorEnable {
+		if !totp.ValidSecret(allSetting.TwoFactorToken) {
+			return errors.New("two-factor secret must be a non-empty base32 key")
+		}
+		allSetting.TwoFactorToken = totp.NormalizeSecret(allSetting.TwoFactorToken)
 	}
 	if err := validateSettingsURLs(allSetting); err != nil {
 		return err

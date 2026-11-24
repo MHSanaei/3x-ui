@@ -26,6 +26,7 @@ export default function MuxForm({ protocol, network, flow = '' }: MuxFormProps) 
         <>
           <FormField
             label={t('pages.settings.subFormats.concurrency')}
+            tooltip={t('pages.settings.subFormats.concurrencyHint')}
             name={['mux', 'concurrency']}
           >
             <InputNumber min={-1} max={1024} />

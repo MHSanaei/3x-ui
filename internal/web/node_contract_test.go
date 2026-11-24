@@ -180,6 +180,9 @@ func TestMasterNodeContract(t *testing.T) {
 				run    func() error
 				check  func(t *testing.T)
 			}{
+				{"CheckPreserveClientTraffic reads the node's reset capability", []string{"CheckPreserveClientTraffic"}, func() error {
+					return master.CheckPreserveClientTraffic(ctx)
+				}, nil},
 				{"AddInbound creates the inbound with its clients", []string{"AddInbound"}, func() error {
 					return master.AddInbound(ctx, masterInbound("added", true, "c0", "c1"))
 				}, func(t *testing.T) {
