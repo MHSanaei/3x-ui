@@ -248,6 +248,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup, router http.Handler) {
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)
 
+	// REALITY watch — spare targets and automatic replacement per REALITY inbound
+	NewRealityWatchController(api.Group("/realityWatch"))
+
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)
 	api.POST(mcp.Path, a.requireMCPEnabled, gin.WrapH(mcp.NewHandler(router)))
