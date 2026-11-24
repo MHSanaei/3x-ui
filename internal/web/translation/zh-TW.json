@@ -128,7 +128,11 @@
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
     "unpinSidebar": "取消固定側邊欄",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "淺色",
+    "themeDark": "深色",
+    "themeUltraDark": "極致深色",
+    "themeSystem": "跟隨系統"
   },
   "pages": {
     "login": {
@@ -151,6 +155,11 @@
       "xrayStatus": "Xray",
       "stopXray": "停止",
       "restartXray": "重新啟動",
+      "startXray": "啟動",
+      "stopXrayDisabledHint": "Xray 未執行",
+      "stopXrayConfirmTitle": "停止 Xray?",
+      "stopXrayConfirmContent": "停止 Xray 將立即中斷所有代理連線。確定要繼續嗎?",
+      "stopXrayConfirmOk": "停止 Xray",
       "xraySwitch": "版本",
       "xrayUpdates": "Xray 更新",
       "xraySwitchClickDesk": "請謹慎選擇，因為較舊版本可能與當前配置不相容",
@@ -437,6 +446,8 @@
       "importInbound": "匯入入站規則",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客戶端用量",
+      "preserveClientTrafficHelp": "開啟後，定時重設只會將此入站的流量歸零。每位使用者在所有節點的累計用量都會保留，並依自己的週期重設。\n\n關閉後，此入站定時重設時，也會將關聯使用者在所有節點的累計用量歸零。",
       "periodicTrafficReset": {
         "never": "從不",
         "daily": "每日",
@@ -775,7 +786,7 @@
         "autoSystemDnsToGateway": "系統 DNS 指向閘道",
         "autoSystemDnsToGatewayTooltip": "僅限 Linux：將 systemd-resolved 指向 TUN 閘道，使系統解析經過 Xray。需要設定閘道，失敗時 TUN 不會啟動。",
         "autoSystemWfpBlockLeak": "阻止洩漏 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS（連接埠 53、853 及 DNS Client 服務）只走 TUN，需設定 DNS 伺服器；windnsclient 只針對該服務；其他連接埠請輸入 tcp/連接埠 或 udp/連接埠；misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。",
+        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：all 阻止 TUN 之外的所有流量，allexceptlan 同樣如此但保留區域網路可達；dns 讓 DNS（連接埠 53、853 及 DNS Client 服務）只走 TUN；windnsclient 只針對該服務；tcp、udp、icmp 阻止整個協定；指定連接埠請輸入 tcp/連接埠、udp/連接埠、單獨的連接埠或 起-迄 範圍；在前面加上 CIDR（1.1.1.0/24:53、[::/0]:all）可將該值限定於這些位址；misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。凡是涵蓋連接埠 53 的值都需設定 DNS 伺服器。",
         "maxVersion": "最高版本",
         "headerName": "標頭名稱",
         "headerValue": "標頭值"
@@ -851,6 +862,7 @@
       "has": "擁有",
       "hasNot": "不擁有",
       "actions": "操作",
+      "columns": "欄位",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "該客戶端的流量配額。0 = 不限制。",
       "expiryTime": "到期時間",
@@ -1032,7 +1044,8 @@
         "delDepleted": "已刪除 {count} 個已耗盡的客戶端",
         "delOrphans": "已刪除 {count} 個未關聯的客戶端",
         "imported": "已匯入 {count} 個客戶端",
-        "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個"
+        "importedMixed": "已匯入 {ok} 個，跳過 {failed} 個",
+        "bulkLinksAppended": "已更新 {clients} 個用戶端：新增 {added} 筆，略過 {skipped} 筆重複項目，找不到 {errors} 個用戶端。"
       },
       "renewMax": "最大續期次數",
       "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
@@ -1060,7 +1073,13 @@
       "renewsUsed": "已用續期次數",
       "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。",
       "renewIntervalDesc": "到期後從上次截止時間增加指定天數（每天 24 小時），並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
-      "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。"
+      "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
+      "bulkAdjustSettings": "限額與設定",
+      "bulkAppendLinks": "附加外部連結",
+      "bulkAppendLinksHint": "附加至所有選取的用戶端。保留現有項目及其設定，略過類型和值相同的重複項目。其他調整請單獨套用。",
+      "bulkAppendLinksRequired": "請至少新增一個外部連結或訂閱。",
+      "externalLinkInvalid": "請輸入支援的分享連結。",
+      "externalSubscriptionInvalid": "請輸入 http(s) 訂閱網址。"
     },
     "groups": {
       "name": "名稱",
@@ -1104,6 +1123,11 @@
       "removeFromGroupResult": "已從 {name} 移除 {count} 個客戶端。"
     },
     "nodes": {
+      "restartXray": "重新啟動 Xray",
+      "restartPanel": "重新啟動面板",
+      "restartConfirmTitle": "重新啟動 {name}？",
+      "restartXrayContent": "此節點上使用中的 Xray 連線將會中斷。",
+      "restartPanelContent": "節點面板與訂閱服務將重新啟動，可能暫時無法使用。需要節點上的 node-admin 或 admin API 權杖。",
       "addNode": "新增節點",
       "editNode": "編輯節點",
       "totalNodes": "節點總數",
@@ -1173,6 +1197,8 @@
         "xrayStopped": "已停止"
       },
       "toasts": {
+        "xrayRestarted": "已重新啟動節點上的 Xray。",
+        "panelRestartAccepted": "已接受面板重新啟動請求。節點可能暫時無法使用。",
         "list": "載入節點失敗",
         "obtain": "載入節點失敗",
         "add": "新增節點",
@@ -1194,7 +1220,7 @@
       "tlsPin": "釘選憑證（SHA-256）",
       "tlsSkip": "略過驗證",
       "tlsMtls": "雙向 TLS（用戶端憑證）",
-      "mtlsFormHint": "此節點使用用戶端憑證對面板進行驗證。請從「節點 mTLS」區域複製本面板的 CA 到該節點，設定其受信任的 CA，然後重新啟動該節點。",
+      "mtlsFormHint": "此節點使用用戶端憑證對面板進行驗證。請從「節點 mTLS」區域複製本面板的 CA 到該節點，設定其受信任的 CA，然後重新啟動該節點。 從這裡更新此節點的面板仍需要具有 node-admin 權限範圍的 API 權杖。",
       "mtls": {
         "title": "節點 mTLS",
         "intro": "雙向 TLS 在節點間呼叫的 API 權杖之上增加用戶端憑證驗證。此為選用項目：留空則僅使用權杖驗證。",
@@ -1291,6 +1317,13 @@
       "tgNotifyLoginDesc": "當有人試圖登入你的面板時顯示使用者名稱、IP 地址和時間",
       "sessionMaxAge": "會話時長",
       "sessionMaxAgeDesc": "保持登入狀態的時長（單位：分鐘）",
+      "publicIpRefresh": "公網 IP 重新整理",
+      "publicIpRefreshDesc": "面板透過外部服務重新偵測公網 IP 的間隔。0 表示僅偵測一次，不再重新整理。（單位：分鐘）",
+      "publicIpv6Detect": "偵測公網 IPv6",
+      "publicIpv6DetectDesc": "僅有 IPv4 的伺服器請關閉，以略過所有 IPv6 查詢。",
+      "publicIpv4Override": "手動指定公網 IPv4",
+      "publicIpv6Override": "手動指定公網 IPv6",
+      "publicIpOverrideDesc": "使用此位址而不進行偵測，不會為其發起任何外部查詢。留空則自動偵測。",
       "expireTimeDiff": "到期通知閾值",
       "expireTimeDiffDesc": "達到此閾值時，將收到有關到期時間的通知（單位：天）",
       "trafficDiff": "流量耗盡閾值",
@@ -1439,6 +1472,7 @@
         "applyTo": "套用至",
         "addNoise": "+ 雜訊",
         "concurrency": "並發",
+        "concurrencyHint": "每個連線承載的串流數量。xray-core 26.11.9 及更新版本會把 0 到 128 之間的值一律提高到 128；更早的核心依填寫的數值使用（0 表示 8）。-1 關閉 TCP mux。",
         "xudpConcurrency": "xudp 並發",
         "xudpUdp443": "xudp UDP 443"
       },
@@ -2028,6 +2062,7 @@
         "localIpPlaceholder": "本地 IP",
         "dialerProxyPlaceholder": "選擇要串接的出站",
         "dialerProxyHint": "讓此出站透過另一個出站（以標籤指定）連線，以建立代理鏈。留空則直接連線。",
+        "dialerProxyMissing": "沒有帶此標籤的出站可供串接。",
         "targetStrategyHint": "連線前如何解析目標網域：AsIs（預設）原樣傳送，UseIP… 解析失敗時回退，ForceIP… 必須解析成功。",
         "addressRequired": "地址為必填",
         "portRequired": "連接埠為必填",

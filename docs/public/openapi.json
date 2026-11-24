@@ -170,6 +170,21 @@
           "panelOutbound": {
             "type": "string"
           },
+          "publicIpRefreshMinutes": {
+            "description": "0 stops refreshing the detected public IP after the first success.",
+            "maximum": 10080,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "publicIpv4Override": {
+            "type": "string"
+          },
+          "publicIpv6Detect": {
+            "type": "boolean"
+          },
+          "publicIpv6Override": {
+            "type": "string"
+          },
           "realityScanCandidates": {
             "type": "string"
           },
@@ -686,6 +701,10 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "publicIpRefreshMinutes",
+          "publicIpv4Override",
+          "publicIpv6Detect",
+          "publicIpv6Override",
           "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
@@ -1009,6 +1028,21 @@
             "type": "integer"
           },
           "panelOutbound": {
+            "type": "string"
+          },
+          "publicIpRefreshMinutes": {
+            "description": "0 stops refreshing the detected public IP after the first success.",
+            "maximum": 10080,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "publicIpv4Override": {
+            "type": "string"
+          },
+          "publicIpv6Detect": {
+            "type": "boolean"
+          },
+          "publicIpv6Override": {
             "type": "string"
           },
           "realityScanCandidates": {
@@ -1537,6 +1571,10 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "publicIpRefreshMinutes",
+          "publicIpv4Override",
+          "publicIpv6Detect",
+          "publicIpv6Override",
           "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
@@ -1813,6 +1851,73 @@
         },
         "required": [
           "code"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustReport": {
+        "properties": {
+          "email": {
+            "example": "carol",
+            "type": "string"
+          },
+          "reason": {
+            "example": "client not found",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustResult": {
+        "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+        "properties": {
+          "adjusted": {
+            "example": 2,
+            "type": "integer"
+          },
+          "externalLinks": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BulkExternalLinksResult"
+              }
+            ],
+            "nullable": true
+          },
+          "skipped": {
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/BulkAdjustReport"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjusted"
+        ],
+        "type": "object"
+      },
+      "BulkExternalLinksResult": {
+        "properties": {
+          "added": {
+            "example": 4,
+            "type": "integer"
+          },
+          "errors": {
+            "example": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "errors",
+          "skipped"
         ],
         "type": "object"
       },
@@ -2624,6 +2729,40 @@
         ],
         "type": "object"
       },
+      "ExternalLinkInput": {
+        "description": "ExternalLinkInput is one row from the client form's Links tab.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "example": "link",
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "example": "Backup",
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
       "FallbackParentInfo": {
         "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
         "properties": {
@@ -3311,6 +3450,11 @@
             "maximum": 65535,
             "minimum": 0,
             "type": "integer"
+          },
+          "preserveClientTraffic": {
+            "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+            "nullable": true,
+            "type": "boolean"
           },
           "protocol": {
             "enum": [
@@ -5479,6 +5623,7 @@
                       "nodeId": null,
                       "originNodeGuid": "",
                       "port": 443,
+                      "preserveClientTraffic": null,
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
@@ -9833,25 +9978,71 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "emails"
+                ],
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "addDays": {
+                    "type": "integer"
+                  },
+                  "addBytes": {
+                    "type": "integer"
+                  },
+                  "flow": {
+                    "type": "string"
+                  },
+                  "limitHwid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "adTag": {
+                    "type": "string"
+                  },
+                  "externalLinks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/ExternalLinkInput"
+                    }
+                  }
+                }
               },
               "example": {
                 "emails": [
                   "alice",
                   "bob"
                 ],
-                "addDays": 30,
-                "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision",
-                "limitHwid": 2,
-                "adTag": "0123456789abcdef0123456789abcdef"
+                "externalLinks": [
+                  {
+                    "kind": "link",
+                    "value": "vless://uuid@example.com:443",
+                    "remark": "Backup",
+                    "enable": true,
+                    "expiryTime": 0
+                  },
+                  {
+                    "kind": "subscription",
+                    "value": "https://provider.example/sub",
+                    "namePrefix": "[provider] ",
+                    "enable": true,
+                    "expiryTime": 0
+                  }
+                ]
               }
             }
           }
@@ -9870,19 +10061,17 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/BulkAdjustResult"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
                     "adjusted": 2,
-                    "skipped": [
-                      {
-                        "email": "carol",
-                        "reason": "unlimited expiry"
-                      }
-                    ]
+                    "externalLinks": null,
+                    "skipped": []
                   }
                 }
               }
@@ -12270,6 +12459,88 @@
         ],
         "summary": "Probe an existing node, updating its cached health state.",
         "operationId": "post_panel_api_nodes_probe_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartXray/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.",
+        "operationId": "post_panel_api_nodes_restartXray_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartPanel/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.",
+        "operationId": "post_panel_api_nodes_restartPanel_id",
         "parameters": [
           {
             "name": "id",
@@ -17081,6 +17352,7 @@
                   "nodeId": null,
                   "originNodeGuid": "",
                   "port": 443,
+                  "preserveClientTraffic": null,
                   "protocol": "vless",
                   "remark": "VLESS-443",
                   "settings": null,

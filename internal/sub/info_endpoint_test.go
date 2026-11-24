@@ -128,3 +128,50 @@ func TestSubInfoEndpoint_HTMLPageStillWinsWithoutFormatParam(t *testing.T) {
 		t.Fatalf("injected page data must carry isOnline; body=%s", w.Body.String())
 	}
 }
+
+func TestSubPageDataNamesTheFormatOfTheVisitedRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initSubDB(t)
+	seedInfoEndpointSub(t, "fmt-sub", "fmt@x")
+	for key, value := range map[string]string{
+		"subPath": "/sub/", "subJsonPath": "/json/", "subClashPath": "/clash/",
+		"subJsonEnable": "true", "subClashEnable": "true",
+	} {
+		if err := database.GetDB().Where("key = ?", key).Delete(&model.Setting{}).Error; err != nil {
+			t.Fatalf("clear %s: %v", key, err)
+		}
+		if err := database.GetDB().Create(&model.Setting{Key: key, Value: value}).Error; err != nil {
+			t.Fatalf("set %s: %v", key, err)
+		}
+	}
+	oldDistFS := distFS
+	distFS = testDistFS
+	t.Cleanup(func() { distFS = oldDistFS })
+
+	router, err := (&Server{}).initRouter()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for path, want := range map[string]string{
+		"/sub/fmt-sub":          "raw",
+		"/json/fmt-sub":         "json",
+		"/clash/fmt-sub":        "clash",
+		"/mihomo/fmt-sub":       "clash",
+		"/clash-legacy/fmt-sub": "clash",
+	} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Host = "sub.example.com"
+			req.Header.Set("Accept", "text/html")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", w.Code, w.Body.String())
+			}
+			if marker := `"subFormat":"` + want + `"`; !strings.Contains(w.Body.String(), marker) {
+				t.Fatalf("page data lacks %s; body=%s", marker, w.Body.String())
+			}
+		})
+	}
+}

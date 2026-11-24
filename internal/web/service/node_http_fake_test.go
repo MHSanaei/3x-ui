@@ -13,6 +13,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 )
 
 // fakeNodeHTTP emulates a node panel over real HTTP, so the master's Remote
@@ -22,6 +23,7 @@ type fakeNodeHTTP struct {
 	mu   sync.Mutex
 	tags map[string]int
 	hits map[string]int
+	caps string
 	// hold makes every non-list request block until the master gives up.
 	hold    bool
 	release chan struct{}
@@ -32,6 +34,9 @@ func newFakeNodeHTTP(t *testing.T) *fakeNodeHTTP {
 	f := &fakeNodeHTTP{tags: map[string]int{}, hits: map[string]int{}, release: make(chan struct{})}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		f.mu.Lock()
+		w.Header().Set(wirecodec.CapsHeader, f.caps)
+		f.mu.Unlock()
 		if strings.HasSuffix(r.URL.Path, "/inbounds/list") {
 			f.mu.Lock()
 			f.hits["list"]++

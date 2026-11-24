@@ -128,7 +128,11 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeUltraDark": "ウルトラダーク",
+    "themeSystem": "システム"
   },
   "pages": {
     "login": {
@@ -151,6 +155,11 @@
       "xrayStatus": "Xray",
       "stopXray": "停止",
       "restartXray": "再起動",
+      "startXray": "開始",
+      "stopXrayDisabledHint": "Xray は実行されていません",
+      "stopXrayConfirmTitle": "Xray を停止しますか?",
+      "stopXrayConfirmContent": "Xray を停止すると、すべてのプロキシ接続が直ちに切断されます。続行しますか?",
+      "stopXrayConfirmOk": "Xray を停止",
       "xraySwitch": "バージョン",
       "xrayUpdates": "Xrayの更新",
       "xraySwitchClickDesk": "慎重に選択してください。古いバージョンは現在の設定と互換性がない可能性があります。",
@@ -437,6 +446,8 @@
       "importInbound": "インバウンドルールをインポート",
       "periodicTrafficResetTitle": "トラフィックリセット",
       "periodicTrafficResetDay": "毎月のリセット日",
+      "preserveClientTraffic": "クライアントの使用量を保持",
+      "preserveClientTrafficHelp": "オンにすると、定期リセットでこのインバウンドの通信量だけがゼロになります。各クライアントの全ノードでの累計使用量は、そのクライアント自身の定期リセットまで保持されます。\n\nオフにすると、このインバウンドの定期リセット時に、紐付けられたクライアントの全ノードでの累計使用量もゼロになります。",
       "periodicTrafficReset": {
         "never": "なし",
         "daily": "毎日",
@@ -775,7 +786,7 @@
         "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
         "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
         "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS（ポート 53・853 と DNS Client サービス）を TUN 内に留め、DNS サーバーが必要です。windnsclient はそのサービスのみを対象にします。その他のポートは tcp/ポート または udp/ポート と入力します。misconfigtun は TUN へのルートがない IP バージョンを遮断します。",
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：all は TUN の外をすべて遮断し、allexceptlan は同様ですがローカルネットワークには到達できます。dns は DNS（ポート 53・853 と DNS Client サービス）を TUN 内に留めます。windnsclient はそのサービスのみを対象にします。tcp・udp・icmp はプロトコル全体を遮断します。特定のポートは tcp/ポート、udp/ポート、ポート番号のみ、または 下限-上限 の範囲で入力します。先頭に CIDR（1.1.1.0/24:53、[::/0]:all）を付けると、そのアドレスだけに限定されます。misconfigtun は TUN へのルートがない IP バージョンを遮断します。ポート 53 を含む値には DNS サーバーが必要です。",
         "maxVersion": "最大バージョン",
         "headerName": "ヘッダー名",
         "headerValue": "ヘッダー値"
@@ -851,6 +862,7 @@
       "has": "あり",
       "hasNot": "なし",
       "actions": "操作",
+      "columns": "列",
       "totalGB": "トラフィック上限 (GB)",
       "totalGBDesc": "このクライアントのデータ割当量。0 = 無制限。",
       "expiryTime": "有効期限",
@@ -1032,7 +1044,8 @@
         "delDepleted": "使い切った {count} 件のクライアントを削除しました",
         "delOrphans": "未アタッチの {count} 件のクライアントを削除しました",
         "imported": "{count} 件のクライアントをインポートしました",
-        "importedMixed": "{ok} 件インポート、{failed} 件スキップ"
+        "importedMixed": "{ok} 件インポート、{failed} 件スキップ",
+        "bulkLinksAppended": "{clients}クライアントを更新：{added}件追加、重複{skipped}件をスキップ、{errors}クライアントが見つかりません。"
       },
       "renewMax": "最大更新回数",
       "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
@@ -1060,7 +1073,13 @@
       "renewsUsed": "使用済み更新回数",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。",
       "renewIntervalDesc": "期限切れ後、前回の期限に指定日数（1 日 24 時間）を加算し、クライアントの通信量をリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
-      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。"
+      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
+      "bulkAdjustSettings": "制限と設定",
+      "bulkAppendLinks": "外部リンクを追加",
+      "bulkAppendLinksHint": "選択したすべてのクライアントに追加します。既存の項目と設定を保持し、種類と値が同じ項目はスキップします。他の調整は別に適用してください。",
+      "bulkAppendLinksRequired": "外部リンクまたはサブスクリプションを1件以上追加してください。",
+      "externalLinkInvalid": "対応する共有リンクを入力してください。",
+      "externalSubscriptionInvalid": "http(s)のサブスクリプションURLを入力してください。"
     },
     "groups": {
       "name": "名前",
@@ -1104,6 +1123,11 @@
       "removeFromGroupResult": "{count} クライアントを {name} から外しました。"
     },
     "nodes": {
+      "restartXray": "Xrayを再起動",
+      "restartPanel": "パネルを再起動",
+      "restartConfirmTitle": "{name}を再起動しますか？",
+      "restartXrayContent": "このノードのアクティブなXray接続は切断されます。",
+      "restartPanelContent": "ノードのパネルとサブスクリプションサービスを再起動するため、一時的に利用できなくなる場合があります。ノードのnode-adminまたはadmin APIトークンが必要です。",
       "addNode": "ノードを追加",
       "editNode": "ノード編集",
       "totalNodes": "ノード総数",
@@ -1173,6 +1197,8 @@
         "xrayStopped": "停止"
       },
       "toasts": {
+        "xrayRestarted": "ノードのXrayを再起動しました。",
+        "panelRestartAccepted": "パネルの再起動リクエストを受け付けました。ノードが一時的に利用できなくなる場合があります。",
         "list": "ノードの読み込みに失敗しました",
         "obtain": "ノードの読み込みに失敗しました",
         "add": "ノードを追加",
@@ -1194,7 +1220,7 @@
       "tlsPin": "証明書をピン留め（SHA-256）",
       "tlsSkip": "検証をスキップ",
       "tlsMtls": "相互 TLS（クライアント証明書）",
-      "mtlsFormHint": "このノードはクライアント証明書でパネルを認証します。「ノード mTLS」セクションからこのパネルの CA をノードにコピーし、信頼する CA を設定してから再起動してください。",
+      "mtlsFormHint": "このノードはクライアント証明書でパネルを認証します。「ノード mTLS」セクションからこのパネルの CA をノードにコピーし、信頼する CA を設定してから再起動してください。 ここからこのノードのパネルを更新するには、node-admin スコープの API トークンが引き続き必要です。",
       "mtls": {
         "title": "ノード mTLS",
         "intro": "相互 TLS は、ノード間通信で API トークンに加えてクライアント証明書による認証を追加します。任意です。空のままにするとトークンのみの認証になります。",
@@ -1291,6 +1317,13 @@
       "tgNotifyLoginDesc": "誰かがパネルにログインしようとしたときに、ユーザー名、IPアドレス、時間を表示する",
       "sessionMaxAge": "セッション期間",
       "sessionMaxAgeDesc": "ログイン状態を保持する期間（単位：分）",
+      "publicIpRefresh": "パブリックIPの更新",
+      "publicIpRefreshDesc": "外部サービスでパブリックIPを再検出する間隔。0なら一度だけ検出し、更新しません。(単位: 分)",
+      "publicIpv6Detect": "パブリックIPv6を検出",
+      "publicIpv6DetectDesc": "IPv4のみのサーバーではオフにすると、IPv6の問い合わせをすべて省略します。",
+      "publicIpv4Override": "パブリックIPv4の手動指定",
+      "publicIpv6Override": "パブリックIPv6の手動指定",
+      "publicIpOverrideDesc": "検出せずにこのアドレスを使用します。外部への問い合わせは行いません。空欄の場合は自動検出します。",
       "expireTimeDiff": "有効期限通知のしきい値",
       "expireTimeDiffDesc": "このしきい値に達した場合、有効期限に関する通知を受け取る（単位：日）",
       "trafficDiff": "トラフィック消耗しきい値",
@@ -1439,6 +1472,7 @@
         "applyTo": "適用先",
         "addNoise": "+ ノイズ",
         "concurrency": "並行数",
+        "concurrencyHint": "1 接続あたりのストリーム数。xray-core 26.11.9 以降は 0〜128 の値をすべて 128 に引き上げます。それより古いコアは指定した数値をそのまま使います（0 は 8）。-1 で TCP mux を無効にします。",
         "xudpConcurrency": "xudp 並行数",
         "xudpUdp443": "xudp UDP 443"
       },
@@ -2028,6 +2062,7 @@
         "localIpPlaceholder": "ローカル IP",
         "dialerProxyPlaceholder": "経由するアウトバウンドを選択",
         "dialerProxyHint": "このアウトバウンドを別のアウトバウンド（タグ指定）経由で接続し、プロキシチェーンを構成します。直接接続する場合は空のままにします。",
+        "dialerProxyMissing": "このタグのアウトバウンドがないため、チェーンできません。",
         "targetStrategyHint": "接続前に宛先ドメインをどう解決するか：AsIs（既定）はそのまま送信、UseIP… は解決を試み失敗時はフォールバック、ForceIP… は解決必須。",
         "addressRequired": "アドレスは必須です",
         "portRequired": "ポートは必須です",

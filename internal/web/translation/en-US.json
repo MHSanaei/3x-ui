@@ -128,7 +128,11 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeUltraDark": "Ultra Dark",
+    "themeSystem": "System"
   },
   "pages": {
     "login": {
@@ -151,6 +155,11 @@
       "xrayStatus": "Xray",
       "stopXray": "Stop",
       "restartXray": "Restart",
+      "startXray": "Start",
+      "stopXrayDisabledHint": "Xray is not running",
+      "stopXrayConfirmTitle": "Stop Xray?",
+      "stopXrayConfirmContent": "Stopping Xray will immediately interrupt all proxy connections. Are you sure you want to continue?",
+      "stopXrayConfirmOk": "Stop Xray",
       "xraySwitch": "Version",
       "xrayUpdates": "Xray Updates",
       "xraySwitchClickDesk": "Choose carefully, as older versions may not be compatible with current configurations.",
@@ -438,6 +447,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
@@ -776,7 +787,7 @@
         "autoSystemDnsToGateway": "System DNS to gateway",
         "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
         "autoSystemWfpBlockLeak": "Block leaks (WFP)",
-        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS (ports 53 and 853 and the DNS Client service) inside the TUN and needs DNS servers; windnsclient covers only that service; type tcp/PORT or udp/PORT for any other port; misconfigtun blocks an IP version that no route sends into the TUN.",
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: all blocks everything outside the TUN, allexceptlan does the same but keeps the local network reachable; dns keeps DNS (ports 53 and 853 and the DNS Client service) inside the TUN; windnsclient covers only that service; tcp, udp and icmp block a whole protocol; type tcp/PORT, udp/PORT, a bare PORT or a LOW-HIGH range for specific ports; a CIDR in front (1.1.1.0/24:53, [::/0]:all) limits a value to those addresses; misconfigtun blocks an IP version that no route sends into the TUN. Any value that covers port 53 needs DNS servers.",
         "maxVersion": "Max version",
         "headerName": "Header name",
         "headerValue": "Header value"
@@ -851,6 +862,7 @@
       "has": "Has",
       "hasNot": "Doesn't have",
       "actions": "Actions",
+      "columns": "Columns",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
       "expiryTime": "Expiry",
@@ -1032,7 +1044,8 @@
         "delDepleted": "{count} depleted clients deleted",
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
-        "importedMixed": "{ok} imported, {failed} skipped"
+        "importedMixed": "{ok} imported, {failed} skipped",
+        "bulkLinksAppended": "{clients} clients updated: {added} added, {skipped} duplicates skipped, {errors} clients not found."
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
@@ -1060,7 +1073,13 @@
       "renewsUsed": "Renewals used",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds.",
       "renewIntervalDesc": "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
-      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended."
+      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
+      "bulkAdjustSettings": "Limits and settings",
+      "bulkAppendLinks": "Append external links",
+      "bulkAppendLinksHint": "Append to every selected client. Existing entries and their settings stay unchanged; duplicate kind and value pairs are skipped. Apply other adjustments separately.",
+      "bulkAppendLinksRequired": "Add at least one external link or subscription.",
+      "externalLinkInvalid": "Enter a supported share link.",
+      "externalSubscriptionInvalid": "Enter an http(s) subscription URL."
     },
     "groups": {
       "name": "Name",
@@ -1225,6 +1244,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1294,6 +1318,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",
@@ -1315,7 +1341,7 @@
       "tlsPin": "Pin certificate (SHA-256)",
       "tlsSkip": "Skip verification",
       "tlsMtls": "Mutual TLS (client certificate)",
-      "mtlsFormHint": "This node authenticates the panel with a client certificate. Copy this panel's CA from the Node mTLS section onto the node, set its Trusted parent CA, then restart it.",
+      "mtlsFormHint": "This node authenticates the panel with a client certificate. Copy this panel's CA from the Node mTLS section onto the node, set its Trusted parent CA, then restart it. Updating this node's panel from here still needs an API token with the node-admin scope.",
       "mtls": {
         "title": "Node mTLS",
         "intro": "Mutual TLS adds a client-certificate factor on top of the API token for node-to-node calls. It is opt-in: leave it empty to keep token-only auth.",
@@ -1416,6 +1442,13 @@
       "tgNotifyLoginDesc": "Get notified about the username, IP address, and time whenever someone attempts to log into your web panel.",
       "sessionMaxAge": "Session Duration",
       "sessionMaxAgeDesc": "The duration for which you can stay logged in. (unit: minute)",
+      "publicIpRefresh": "Public IP Refresh",
+      "publicIpRefreshDesc": "How often the panel re-detects its public IP through external services. 0 detects once and never refreshes. (unit: minute)",
+      "publicIpv6Detect": "Detect Public IPv6",
+      "publicIpv6DetectDesc": "Turn off on IPv4-only servers to skip all IPv6 lookups.",
+      "publicIpv4Override": "Public IPv4 Override",
+      "publicIpv6Override": "Public IPv6 Override",
+      "publicIpOverrideDesc": "Use this address instead of detecting it; no external lookups are made for it. Leave empty to detect.",
       "expireTimeDiff": "Expiration Date Notification",
       "expireTimeDiffDesc": "Get notified about expiration date when reaching this threshold. (unit: day)",
       "trafficDiff": "Traffic Cap Notification",
@@ -1564,6 +1597,7 @@
         "applyTo": "Apply to",
         "addNoise": "+ Noise",
         "concurrency": "Concurrency",
+        "concurrencyHint": "Streams per connection. xray-core 26.11.9 and newer raise any value from 0 to 128 to 128; older cores use the number as written (0 means 8). -1 turns TCP mux off.",
         "xudpConcurrency": "xudp concurrency",
         "xudpUdp443": "xudp UDP 443"
       },
@@ -2149,6 +2183,7 @@
         "localIpPlaceholder": "local IP",
         "dialerProxyPlaceholder": "Select an outbound to chain through",
         "dialerProxyHint": "Dial this outbound through another outbound (by tag) to build a proxy chain. Leave empty to connect directly.",
+        "dialerProxyMissing": "No outbound with this tag is available to chain through.",
         "targetStrategyHint": "How the destination domain is resolved before connecting: AsIs (default) sends it unresolved, UseIP… resolves with fallback, ForceIP… requires successful resolution.",
         "addressRequired": "Address is required",
         "portRequired": "Port is required",
