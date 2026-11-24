@@ -32,7 +32,10 @@ func (a *SUBController) writeHwidRejection(c *gin.Context, result service.HwidGa
 		return
 	}
 	remark := "Device limit reached"
-	if result.NotSupported {
+	switch {
+	case result.Blocked:
+		remark = "Device blocked"
+	case result.NotSupported:
 		remark = "HWID required"
 	}
 	node := statusNode{remark: remark, blocked: true}

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -46,4 +48,28 @@ func TestSubscriptionBannedHwidWithUnlimitedDevices(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertRealConfig("banned-device")
+}
+
+// A banned device that has its configs replaced must read that it is blocked: the limit
+// is not full, and freeing a slot would not let it back in.
+func TestSubscriptionBannedHwidReplacementNamesTheBan(t *testing.T) {
+	router, subID := initHwidSubRouter(t, 0, WithSUBEncryption(false))
+	if err := database.GetDB().Create(&model.Setting{Key: "subHwidRejectWithConfig", Value: "true"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if r := requestSub(t, router, http.MethodGet, "/sub/"+subID, "banned-device", ""); r.Code != http.StatusOK {
+		t.Fatalf("register: %d", r.Code)
+	}
+	svc := &service.ClientService{}
+	list, err := svc.ListClientHwids("route@example.com")
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list: %+v, %v", list, err)
+	}
+	if err := svc.SetClientHwidBlocked("route@example.com", list[0].Id, true); err != nil {
+		t.Fatal(err)
+	}
+	r := requestSub(t, router, http.MethodGet, "/sub/"+subID, "banned-device", "")
+	if want := "socks://192.0.2.1:1#Device%20blocked\n"; r.Code != http.StatusOK || r.Body.String() != want {
+		t.Fatalf("banned replacement = %d %q, want 200 %q", r.Code, r.Body.String(), want)
+	}
 }
