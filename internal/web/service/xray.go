@@ -204,6 +204,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	excludedClients, excludedInbounds := 0, 0
 	for _, inbound := range inbounds {
 		if !inbound.Enable {
 			continue
@@ -213,6 +214,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 		if inbound.Protocol == model.MTProto || inbound.Protocol == model.AmneziaWG || inbound.Protocol == model.TUIC {
 			continue
+		}
+		if err := normalizeVlessFallbacks(inbound); err != nil {
+			return nil, err
+		}
+		if err := validateVlessManagedFallbacks(nil, inbound); err != nil {
+			return nil, err
 		}
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
@@ -242,10 +249,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 		finalClients := make([]any, 0, len(dbClients))
 		var wgPeers []any
+		excludedBefore := excludedClients
 		for i := range dbClients {
 			c := dbClients[i]
 			if enable, exists := enableMap[c.Email]; exists && !enable {
-				logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c.Email)
+				excludedClients++
 				continue
 			}
 			if !c.Enable {
@@ -313,6 +321,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				continue
 			}
 			finalClients = append(finalClients, entry)
+		}
+		if excludedClients > excludedBefore {
+			excludedInbounds++
 		}
 
 		var mutated bool
@@ -485,6 +496,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 	xrayConfig.RouterConfig = dropRefusedScript(xrayConfig.RouterConfig, "routing", routingScriptRefused)
 	xrayConfig.DNSConfig = dropRefusedScript(xrayConfig.DNSConfig, "dns", dnsScriptRefused)
+	if excludedClients > 0 {
+		logger.Infof("Xray config generated: excluded %d disabled client entries across %d inbounds", excludedClients, excludedInbounds)
+	}
 	return xrayConfig, nil
 }
 
@@ -1127,10 +1141,24 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
+
+	// Template outbounds take tag priority (must not be altered by injected subscriptions).
+	usedTags := make(map[string]bool)
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				usedTags[tag] = true
+			}
+		}
+	}
+
+	prependClean := dedupeSubscriptionOutboundList(prepend, usedTags)
+	appendClean := dedupeSubscriptionOutboundList(appendList, usedTags)
+
 	var merged []any
-	merged = append(merged, prepend...)
+	merged = append(merged, prependClean...)
 	merged = append(merged, templateOutbounds...)
-	merged = append(merged, appendList...)
+	merged = append(merged, appendClean...)
 	combined, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return
@@ -1503,6 +1531,9 @@ func (s *XrayService) RestartXray(isForce bool) error {
 
 	xrayConfig, err := s.GetXrayConfig()
 	if err != nil {
+		if process := currentXrayProcess(); process != nil && process.IsRunning() {
+			xrayState.holdBack(fmt.Sprintf("config refused: %v", err))
+		}
 		return err
 	}
 

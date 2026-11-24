@@ -157,6 +157,21 @@ export const SCHEMAS: Record<string, unknown> = {
       "panelOutbound": {
         "type": "string"
       },
+      "publicIpRefreshMinutes": {
+        "description": "0 stops refreshing the detected public IP after the first success.",
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "publicIpv4Override": {
+        "type": "string"
+      },
+      "publicIpv6Detect": {
+        "type": "boolean"
+      },
+      "publicIpv6Override": {
+        "type": "string"
+      },
       "realityScanCandidates": {
         "type": "string"
       },
@@ -641,6 +656,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
+      "publicIpRefreshMinutes",
+      "publicIpv4Override",
+      "publicIpv6Detect",
+      "publicIpv6Override",
       "realityScanCandidates",
       "remarkTemplate",
       "restartXrayOnClientDisable",
@@ -961,6 +980,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "panelOutbound": {
+        "type": "string"
+      },
+      "publicIpRefreshMinutes": {
+        "description": "0 stops refreshing the detected public IP after the first success.",
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "publicIpv4Override": {
+        "type": "string"
+      },
+      "publicIpv6Detect": {
+        "type": "boolean"
+      },
+      "publicIpv6Override": {
         "type": "string"
       },
       "realityScanCandidates": {
@@ -1455,6 +1489,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
+      "publicIpRefreshMinutes",
+      "publicIpv4Override",
+      "publicIpv6Detect",
+      "publicIpv6Override",
       "realityScanCandidates",
       "remarkTemplate",
       "restartXrayOnClientDisable",

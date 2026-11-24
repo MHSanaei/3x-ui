@@ -387,6 +387,35 @@ func TestAssignStableTags(t *testing.T) {
 			t.Fatalf("got[1] = %q, want %q", got[1], base+"-1")
 		}
 	})
+
+	t.Run("regenerates tags with new prefix when tagPrefix changed (#7110)", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "canada-1"}}
+		prev := map[string]string{"id-canada": "gh-canada-1"}
+		prevPos := map[int]string{0: "gh-canada-1"}
+		got := assignStableTags(parsed, []string{"id-canada"}, prev, prevPos, 1, "gh1-")
+		want := "gh1-canada-1"
+		if got[0] != want {
+			t.Fatalf("got %q, want %q (old tag with old prefix must not be preserved)", got[0], want)
+		}
+	})
+
+	t.Run("keeps an identity's tag when its remark shrinks to a suffix of the old one", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "DE"}}
+		prev := map[string]string{"id-1": "gh-premium-de"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, map[int]string{0: "gh-premium-de"}, 1, "gh-")
+		if got[0] != "gh-premium-de" {
+			t.Fatalf("got %q, want gh-premium-de: a renamed remark must not move the tag routing rules name", got[0])
+		}
+	})
+
+	t.Run("a dash-only prefix adds nothing, so stored tags keep matching", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Tokyo-2"}}
+		prev := map[string]string{"id-1": "tokyo"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, nil, 1, "-")
+		if got[0] != "tokyo" {
+			t.Fatalf("got %q, want tokyo", got[0])
+		}
+	})
 }
 
 // TestOutboundsContainTag covers the guard that ensures the outbound under test
@@ -731,5 +760,121 @@ func TestOutboundSubscriptionRefreshDropsXhttpDownloadSettingsTheCorePanicsOn(t 
 	want := map[string]string{"9.9.9.9": "p-complete"}
 	if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, want) {
 		t.Fatalf("tags by address = %v, want %v", got, want)
+	}
+}
+
+func TestOutboundSubscriptionUpdateRewritesShortenedPrefixAndPreservesLegacyBlankPrefix(t *testing.T) {
+	setupSettingTestDB(t)
+	svc := &OutboundSubscriptionService{}
+
+	// 1. Shortening TagPrefix ("eu-de-" -> "eu-") updates stored tags immediately
+	// and keeps the shortened prefix across subsequent refreshes.
+	subID := serveOutboundSubscription(t, "eu-de-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000000@8.8.8.8:443?security=tls&type=tcp#Frankfurt\n"
+	})
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Update("enabled", true).Error; err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	tags, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tags, []string{"eu-de-frankfurt"}) {
+		t.Fatalf("initial tags = %v, want [eu-de-frankfurt]", tags)
+	}
+	subBefore, err := svc.Get(subID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if err := svc.Update(subID, "DE", subBefore.Url, "eu-", "", true, 600, true, false, false); err != nil {
+		t.Fatalf("Update shortened prefix: %v", err)
+	}
+	activeTags, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(activeTags, []string{"eu-frankfurt"}) {
+		t.Fatalf("AllActiveOutboundTags after Update = %v (%v), want [eu-frankfurt]", activeTags, err)
+	}
+	tagsAfterRefresh, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tagsAfterRefresh, []string{"eu-frankfurt"}) {
+		t.Fatalf("tags after Refresh with shortened prefix = %v, want [eu-frankfurt]", tagsAfterRefresh)
+	}
+
+	// 2. Editing a legacy blank-prefix subscription (where sub.Id != 1 and sub1- is free)
+	// without touching the blank prefix must keep its sub<id>- tags unchanged.
+	legacyID := serveOutboundSubscription(t, "", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000001@8.8.4.4:443?security=tls&type=tcp#Tokyo\n"
+	})
+	if legacyID == 1 {
+		t.Fatalf("expected legacy subscription id > 1, got %d", legacyID)
+	}
+	wantLegacyTag := fmt.Sprintf("sub%d-tokyo", legacyID)
+	legacyTags, _ := refreshOutboundTags(t, legacyID)
+	if !slices.Equal(legacyTags, []string{wantLegacyTag}) {
+		t.Fatalf("initial legacy tags = %v, want [%s]", legacyTags, wantLegacyTag)
+	}
+	legacySub, err := svc.Get(legacyID)
+	if err != nil {
+		t.Fatalf("Get legacy: %v", err)
+	}
+	if err := svc.Update(legacyID, "edited-remark", legacySub.Url, "", "", true, 900, true, false, false); err != nil {
+		t.Fatalf("Update legacy subscription: %v", err)
+	}
+	legacyAfterUpdate, err := svc.Get(legacyID)
+	if err != nil {
+		t.Fatalf("Get legacy after Update: %v", err)
+	}
+	if legacyAfterUpdate.TagPrefix != "" {
+		t.Fatalf("legacy TagPrefix = %q, want empty string preserved", legacyAfterUpdate.TagPrefix)
+	}
+	legacyTagsAfterRefresh, _ := refreshOutboundTags(t, legacyID)
+	if !slices.Equal(legacyTagsAfterRefresh, []string{wantLegacyTag}) {
+		t.Fatalf("legacy tags after Update+Refresh = %v, want [%s] preserved", legacyTagsAfterRefresh, wantLegacyTag)
+	}
+}
+
+func TestOutboundSubscriptionCrossSubscriptionCollisionPersistsAndMatchesPanelSurfaces(t *testing.T) {
+	setupSettingTestDB(t)
+	svc := &OutboundSubscriptionService{}
+
+	sub1 := serveOutboundSubscription(t, "gh-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000011@1.1.1.1:443?security=tls&type=tcp#canada-1\n"
+	})
+	sub2 := serveOutboundSubscription(t, "gh-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000022@8.8.8.8:443?security=tls&type=tcp#canada-1\n"
+	})
+	for idx, id := range []int{sub1, sub2} {
+		if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", id).Updates(map[string]any{
+			"enabled":  true,
+			"priority": idx,
+		}).Error; err != nil {
+			t.Fatalf("enable sub %d: %v", id, err)
+		}
+	}
+
+	tags1, _ := refreshOutboundTags(t, sub1)
+	tags2, _ := refreshOutboundTags(t, sub2)
+	if !slices.Equal(tags1, []string{"gh-canada-1"}) {
+		t.Fatalf("sub1 persisted tags = %v, want [gh-canada-1]", tags1)
+	}
+	if !slices.Equal(tags2, []string{"gh-canada-1-1"}) {
+		t.Fatalf("sub2 persisted tags = %v, want [gh-canada-1-1]", tags2)
+	}
+
+	// Panel surfaces (AllActiveOutboundTags) must list both distinct tags.
+	panelTags, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTags, []string{"gh-canada-1", "gh-canada-1-1"}) {
+		t.Fatalf("AllActiveOutboundTags = %v (%v), want [gh-canada-1 gh-canada-1-1]", panelTags, err)
+	}
+
+	// Reordering subscription priorities or disabling sub1 must not swap sub2's persisted tag.
+	if err := svc.Move(sub2, true); err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+	panelTagsAfterMove, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTagsAfterMove, []string{"gh-canada-1-1", "gh-canada-1"}) {
+		t.Fatalf("AllActiveOutboundTags after Move = %v (%v), want [gh-canada-1-1 gh-canada-1]", panelTagsAfterMove, err)
+	}
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub1).Update("enabled", false).Error; err != nil {
+		t.Fatalf("disable sub1: %v", err)
+	}
+	panelTagsAfterDisable, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTagsAfterDisable, []string{"gh-canada-1-1"}) {
+		t.Fatalf("AllActiveOutboundTags after disabling sub1 = %v (%v), want [gh-canada-1-1]", panelTagsAfterDisable, err)
 	}
 }

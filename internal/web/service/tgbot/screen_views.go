@@ -22,18 +22,18 @@ import (
 
 // screenHome is the admin's landing screen: the numbers you open the bot for,
 // then the menu, with the bot's avatar until the panel can host its own artwork.
-func (t *Tgbot) screenHome(chatID, userID int64) {
+func (t *Tgbot) screenHome(chatID, userID int64, delivery ...screenDelivery) {
 	if level := t.levelOf(userID); level != levelAdmin {
-		t.screenClientHome(chatID, userID)
+		t.screenClientHome(chatID, userID, delivery...)
 		return
 	}
 	body := t.homeSummary()
-	t.renderScreen(chatID, t.newScreen("main", body, t.homeRows()...))
+	t.renderScreen(chatID, t.newScreen("main", body, t.homeRows()...), delivery...)
 }
 
 // screenClientHome is a client's own entry point: its usage, then links and QR.
 // /start once gave clients the ADMIN menu (panel ops, every client's email).
-func (t *Tgbot) screenClientHome(chatID, userID int64) {
+func (t *Tgbot) screenClientHome(chatID, userID int64, delivery ...screenDelivery) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(userID)
 	if err != nil || len(traffics) == 0 {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(userID, 10)))
@@ -59,7 +59,7 @@ func (t *Tgbot) screenClientHome(chatID, userID int64) {
 			))
 		}
 	}
-	t.renderScreen(chatID, t.rootScreen("main", body.String(), rows...))
+	t.renderScreen(chatID, t.rootScreen("main", body.String(), rows...), delivery...)
 }
 
 // homeSummary is the panel overview line used by the menu and the report, so
@@ -91,13 +91,13 @@ func (t *Tgbot) homeSummary() string {
 }
 
 // screenServer renders the server-usage screen.
-func (t *Tgbot) screenServer(chatID int64) {
+func (t *Tgbot) screenServer(chatID int64, delivery ...screenDelivery) {
 	body := strings.TrimRight(t.prepareServerUsageInfo(), "\r\n")
 	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.refresh", cbServer)),
 		t.backRow(),
 	}
-	t.renderScreen(chatID, t.newScreen("status", body, rows...))
+	t.renderScreen(chatID, t.newScreen("status", body, rows...), delivery...)
 }
 
 // screenOnlines lists who is connected right now; client names are plain text
@@ -266,11 +266,11 @@ func (t *Tgbot) sendBackupScreen(chatID int64) {
 	// carries the backup and what it is for.
 	body := summary + "\n\n" + t.depleteReport()
 	caption := trimCaption(body, botCaptionLimit)
-	if t.sendDocumentWithCaption(chatID, dbData, t.serverService.BackupFilename(""), caption) {
+	if t.sendBackupFile(chatID, dbData, t.serverService.BackupFilename(""), caption) {
 		// The generated config travels with the DB on both backup paths: an
 		// operator restoring from the file would otherwise lose it silently.
 		if config, err := os.ReadFile(xray.GetConfigPath()); err == nil {
-			t.sendDocumentWithCaption(chatID, config, "config.json", "")
+			t.sendBackupFile(chatID, config, "config.json", "")
 		}
 		if rest := strings.TrimSpace(strings.TrimPrefix(body, caption)); rest != "" {
 			// Rare: the summary outgrew a caption. The file already landed.

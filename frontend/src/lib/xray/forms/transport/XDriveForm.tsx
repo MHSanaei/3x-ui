@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, InputNumber, Select, Switch, Typography } from 'antd';
@@ -28,6 +29,13 @@ const TUNING_FIELDS = [
   ['sessionTtlSeconds', 'sessionTtl', 300],
   ['concurrency', 'concurrency', 8],
 ] as const;
+
+// xray-core 26.11.9 (#7340, #7352) gives the Google Drive backend its own defaults.
+const GOOGLE_DRIVE_TUNING_DEFAULTS: Partial<Record<string, number>> = {
+  flushIntervalMs: 10,
+  maxPollIntervalMs: 200,
+  concurrency: 64,
+};
 
 const GOOGLE_DRIVE_SECRETS = ['clientId', 'clientSecret', 'refreshToken'] as const;
 const S3_SECRETS = [
@@ -89,7 +97,7 @@ export default function XDriveForm() {
   return (
     <>
       <FormField label={t('pages.inbounds.form.xdrive.service')} name={[...BASE, 'service']}>
-        <Select options={serviceOptions} />
+        <NativeSelect options={serviceOptions} />
       </FormField>
       <FormField
         label={t('pages.inbounds.form.xdrive.remoteFolder')}
@@ -191,9 +199,15 @@ export default function XDriveForm() {
           </FormField>
         </>
       )}
-      {TUNING_FIELDS.map(([key, label, placeholder]) => (
+      {TUNING_FIELDS.map(([key, label, coreDefault]) => (
         <FormField key={key} label={t(`pages.inbounds.form.xdrive.${label}`)} name={[...BASE, key]}>
-          <InputNumber min={0} placeholder={String(placeholder)} style={{ width: '100%' }} />
+          <InputNumber
+            min={0}
+            placeholder={String(
+              (service === 'google-drive' && GOOGLE_DRIVE_TUNING_DEFAULTS[key]) || coreDefault,
+            )}
+            style={{ width: '100%' }}
+          />
         </FormField>
       ))}
     </>

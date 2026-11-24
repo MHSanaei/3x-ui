@@ -28,7 +28,7 @@ func TestTestOutboundsTCPModeForcesCoreSpelledUDPToHTTPProbe(t *testing.T) {
 	})
 
 	batch := mustJSON(t, []any{map[string]any{"tag": "wg", "protocol": "WireGuard"}})
-	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp")
+	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp", nil)
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestTestOutboundsRejectsUntestableIDsInAnyCase(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			batch := mustJSON(t, []any{map[string]any{"tag": "t1", "protocol": tt.protocol}})
-			results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp")
+			results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp", nil)
 			if err != nil {
 				t.Fatalf("TestOutbounds: %v", err)
 			}
@@ -166,7 +166,7 @@ func TestTestOutboundsTCPLaneReadsProtocolIDCaseInsensitively(t *testing.T) {
 		"protocol": "SOCKS",
 		"settings": map[string]any{"servers": []any{map[string]any{"address": "127.0.0.1", "port": port}}},
 	}})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp", nil)
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}

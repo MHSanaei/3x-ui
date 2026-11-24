@@ -1159,6 +1159,52 @@ func TestBuildWireguardProxyForClash(t *testing.T) {
 	}
 }
 
+func TestBuildWireguardProxyForClashRemoteDNSResolve(t *testing.T) {
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+	tests := []struct {
+		name       string
+		dns        string
+		wantDNS    []string
+		wantRemote bool
+	}{
+		{name: "bare ips opt in", dns: "1.1.1.1, 8.8.8.8", wantDNS: []string{"1.1.1.1", "8.8.8.8"}, wantRemote: true},
+		{name: "doh url keeps dns without the flag", dns: "https://1.1.1.1/dns-query", wantDNS: []string{"https://1.1.1.1/dns-query"}},
+		{name: "mixed list is not all bare", dns: "1.1.1.1, dns.example.com", wantDNS: []string{"1.1.1.1", "dns.example.com"}},
+		{name: "no dns", dns: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &SubClashService{SubService: &SubService{}}
+			inbound := &model.Inbound{
+				Listen:   "203.0.113.9",
+				Port:     51820,
+				Protocol: model.WireGuard,
+				Settings: `{"dns":"` + tt.dns + `"}`,
+			}
+			client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.0.0.2/32"}}
+
+			proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+			if proxy == nil {
+				t.Fatal("buildProxy returned nil")
+			}
+			dns, _ := proxy["dns"].([]string)
+			if !reflect.DeepEqual(dns, tt.wantDNS) {
+				t.Fatalf("dns = %v, want %v", proxy["dns"], tt.wantDNS)
+			}
+			remote, present := proxy["remote-dns-resolve"]
+			if tt.wantRemote && remote != true {
+				t.Fatalf("remote-dns-resolve = %v, want true", remote)
+			}
+			if !tt.wantRemote && present {
+				t.Fatalf("remote-dns-resolve = %v, want absent", remote)
+			}
+		})
+	}
+}
+
 func TestBuildWireguardProxyForClashNoKey(t *testing.T) {
 	svc := &SubClashService{SubService: &SubService{}}
 	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
