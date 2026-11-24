@@ -1241,6 +1241,16 @@ export default function ClientsPage() {
     ],
   );
 
+  const rowClassName = useCallback(
+    (record: ClientRecord) => {
+      const bucket = clientBucket(record);
+      if (bucket === 'depleted') return 'client-row-depleted';
+      if (bucket === 'expiring') return 'client-row-expiring';
+      return '';
+    },
+    [clientBucket],
+  );
+
   const tablePagination = {
     current: currentPage,
     pageSize: tablePageSize,
@@ -1708,6 +1718,7 @@ export default function ClientsPage() {
                           loading={transitioning}
                           rowKey="email"
                           rowSelection={rowSelection}
+                          rowClassName={rowClassName}
                           pagination={tablePagination}
                           size="small"
                           scroll={{ x: 1200 }}
@@ -1767,11 +1778,13 @@ export default function ClientsPage() {
                             )}
                             {filteredClients.map((row) => {
                               const bucket = clientBucket(row);
+                              const cardClass = ['client-card'];
+                              if (selectedRowKeys.includes(row.email))
+                                cardClass.push('is-selected');
+                              if (bucket === 'depleted' || bucket === 'expiring')
+                                cardClass.push(`is-${bucket}`);
                               return (
-                                <div
-                                  key={row.email}
-                                  className={`client-card${selectedRowKeys.includes(row.email) ? ' is-selected' : ''}`}
-                                >
+                                <div key={row.email} className={cardClass.join(' ')}>
                                   <div className="card-head">
                                     <Checkbox
                                       checked={selectedRowKeys.includes(row.email)}

@@ -74,9 +74,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		}
 		subReq.projectThroughFallbackMaster(inbound)
 		var baseEps []map[string]any
+		var hostsClosed bool
 		baseStream := inbound.StreamSettings
 		if !subReq.hostsFirst {
-			if baseEps = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
+			if baseEps, hostsClosed = subReq.hostEndpoints(inbound, "clash"); len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}
@@ -85,6 +86,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
+			if hostsClosed {
+				hasBoundClosed = true
+				continue
+			}
 			if subReq.hostsFirst {
 				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed
@@ -701,6 +706,11 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		}
 		if len(servers) > 0 {
 			proxy["dns"] = servers
+			// mihomo ignores dns without this flag, but aborts the whole config on
+			// a value its dns.ParseNameServer rejects, so only bare IPs opt in.
+			if allBareIPs(servers) {
+				proxy["remote-dns-resolve"] = true
+			}
 		}
 	}
 
