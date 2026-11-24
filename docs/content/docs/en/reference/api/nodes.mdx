@@ -80,6 +80,17 @@ _openapi:
       title: Aggregated metric history for a node — same shape as /server/history,
         scoped to one node.
       url: '#aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node'
+    - depth: 2
+      title: Push this panel’s shared node routing policy to the given nodes (Node
+        Routing page). Each node stores the policy and re-applies its Xray so
+        the rules take effect. Omit rules to use the stored policy; clear=true
+        wipes the policy on the targets. Returns a per-node result list.
+      url: '#push-this-panels-shared-node-routing-policy-to-the-given-nodes-node-routing-page-each-node-stores-the-policy-and-re-applies-its-xray-so-the-rules-take-effect-omit-rules-to-use-the-stored-policy-cleartrue-wipes-the-policy-on-the-targets-returns-a-per-node-result-list'
+    - depth: 2
+      title: 'Master-only node endpoint: store (or clear with an empty payload) the
+        routing policy a master panel pushed to this node, then re-apply Xray.
+        Refused for panel users without a master push.'
+      url: '#master-only-node-endpoint-store-or-clear-with-an-empty-payload-the-routing-policy-a-master-panel-pushed-to-this-node-then-re-apply-xray-refused-for-panel-users-without-a-master-push'
   structuredData:
     headings:
       - content: List every configured node with its connection details, health, and
@@ -139,6 +150,15 @@ _openapi:
       - content: Aggregated metric history for a node — same shape as /server/history,
           scoped to one node.
         id: aggregated-metric-history-for-a-node--same-shape-as-serverhistory-scoped-to-one-node
+      - content: Push this panel’s shared node routing policy to the given nodes (Node
+          Routing page). Each node stores the policy and re-applies its Xray so
+          the rules take effect. Omit rules to use the stored policy; clear=true
+          wipes the policy on the targets. Returns a per-node result list.
+        id: push-this-panels-shared-node-routing-policy-to-the-given-nodes-node-routing-page-each-node-stores-the-policy-and-re-applies-its-xray-so-the-rules-take-effect-omit-rules-to-use-the-stored-policy-cleartrue-wipes-the-policy-on-the-targets-returns-a-per-node-result-list
+      - content: 'Master-only node endpoint: store (or clear with an empty payload) the
+          routing policy a master panel pushed to this node, then re-apply Xray.
+          Refused for panel users without a master push.'
+        id: master-only-node-endpoint-store-or-clear-with-an-empty-payload-the-routing-policy-a-master-panel-pushed-to-this-node-then-re-apply-xray-refused-for-panel-users-without-a-master-push
     contents: []
 ---
 
@@ -149,7 +169,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/mtls/reloadClient","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/nodes/list","method":"get"},{"path":"/panel/api/nodes/mtls/ca","method":"post"},{"path":"/panel/api/nodes/mtls/trustCA","method":"post"},{"path":"/panel/api/nodes/mtls/reloadClient","method":"post"},{"path":"/panel/api/nodes/get/{id}","method":"get"},{"path":"/panel/api/nodes/webCert/{id}","method":"get"},{"path":"/panel/api/nodes/add","method":"post"},{"path":"/panel/api/nodes/update/{id}","method":"post"},{"path":"/panel/api/nodes/del/{id}","method":"post"},{"path":"/panel/api/nodes/setEnable/{id}","method":"post"},{"path":"/panel/api/nodes/test","method":"post"},{"path":"/panel/api/nodes/certFingerprint","method":"post"},{"path":"/panel/api/nodes/inbounds","method":"post"},{"path":"/panel/api/nodes/probe/{id}","method":"post"},{"path":"/panel/api/nodes/updatePanel","method":"post"},{"path":"/panel/api/nodes/history/{id}/{metric}/{bucket}","method":"get"},{"path":"/panel/api/nodes/routing/apply","method":"post"},{"path":"/panel/api/nodes/routing/control","method":"post"}]} showTitle />
     </>
   );
 }

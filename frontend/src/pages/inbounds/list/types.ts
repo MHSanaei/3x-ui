@@ -54,6 +54,7 @@ export interface InboundSpeedEntry {
 
 export type RowAction =
   | 'edit'
+  | 'changeId'
   | 'showInfo'
   | 'export'
   | 'subs'

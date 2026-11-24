@@ -77,6 +77,15 @@ _openapi:
         decryption.'
       url: '#replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable-remove-effective-fallback-rules-before-enabling-vless-server-decryption'
     - depth: 2
+      title: 'Pre-flight check for changing an inbound’s ID (tag): reports whether the
+        target is usable and what a rename would touch. Writes nothing.'
+      url: '#pre-flight-check-for-changing-an-inbounds-id-tag-reports-whether-the-target-is-usable-and-what-a-rename-would-touch-writes-nothing'
+    - depth: 2
+      title: Safely rename an inbound’s ID (tag). Rewrites routing rules and loopback
+        outbounds that point at the old tag, re-pushes the node when the inbound
+        is node-hosted, and flags an xray restart when routing changed.
+      url: '#safely-rename-an-inbounds-id-tag-rewrites-routing-rules-and-loopback-outbounds-that-point-at-the-old-tag-re-pushes-the-node-when-the-inbound-is-node-hosted-and-flags-an-xray-restart-when-routing-changed'
+    - depth: 2
       title: Toggle only the enable flag without serialising the whole settings JSON.
         Recommended for UI switches on large inbounds.
       url: '#toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds'
@@ -181,6 +190,14 @@ _openapi:
           Remove effective fallback rules before enabling VLESS server
           decryption.'
         id: replace-an-inbounds-configuration-body-shape-mirrors-add-but-the-inbound-keeps-its-stored-client-list-and-enable-flag-settingsclients-and-enable-in-the-body-are-ignored-manage-clients-through-the-panelapiclients-endpoints-and-toggle-the-inbound-with-setenable-remove-effective-fallback-rules-before-enabling-vless-server-decryption
+      - content: 'Pre-flight check for changing an inbound’s ID (tag): reports whether
+          the target is usable and what a rename would touch. Writes nothing.'
+        id: pre-flight-check-for-changing-an-inbounds-id-tag-reports-whether-the-target-is-usable-and-what-a-rename-would-touch-writes-nothing
+      - content: Safely rename an inbound’s ID (tag). Rewrites routing rules and
+          loopback outbounds that point at the old tag, re-pushes the node when
+          the inbound is node-hosted, and flags an xray restart when routing
+          changed.
+        id: safely-rename-an-inbounds-id-tag-rewrites-routing-rules-and-loopback-outbounds-that-point-at-the-old-tag-re-pushes-the-node-when-the-inbound-is-node-hosted-and-flags-an-xray-restart-when-routing-changed
       - content: Toggle only the enable flag without serialising the whole settings
           JSON. Recommended for UI switches on large inbounds.
         id: toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
@@ -228,7 +245,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/amneziawgKernelReadiness","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/amneziawgKernelReadiness","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/checkTag","method":"post"},{"path":"/panel/api/inbounds/changeTag/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
     </>
   );
 }

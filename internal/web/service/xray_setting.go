@@ -76,6 +76,15 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	return s.saveSetting("xrayTemplateConfig", newXraySettings)
 }
 
+// SaveMasterRoutingRules stores the master-pushed node routing policy after
+// validating it, so a bad push can never corrupt the node's own routing.
+func (s *XraySettingService) SaveMasterRoutingRules(rules string) error {
+	if err := validateNodeRoutingRules(rules); err != nil {
+		return err
+	}
+	return s.SetMasterRoutingRules(strings.TrimSpace(rules))
+}
+
 func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 	xrayConfig := &xray.Config{}
 	err := json.Unmarshal([]byte(XrayTemplateConfig), xrayConfig)

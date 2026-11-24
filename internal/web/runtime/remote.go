@@ -533,6 +533,16 @@ func (r *Remote) SetInboundSubSortIndex(ctx context.Context, ib *model.Inbound, 
 	return err
 }
 
+// PushRoutingRules applies the master's node routing policy on the node: rules
+// is a JSON array of Xray routing rules, or "" to clear the policy. The node
+// stores it and re-applies its Xray, so the change survives node restarts.
+func (r *Remote) PushRoutingRules(ctx context.Context, rules string) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/nodes/routing/control", map[string]any{
+		"rules": rules,
+	})
+	return err
+}
+
 // ReconcileInbound pushes ib only when its wire payload differs from the last
 // successful push, or when the node no longer reports the tag (existsOnNode
 // false) — a node that dropped/restarted must still be re-seeded. Returns

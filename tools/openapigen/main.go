@@ -95,6 +95,7 @@ func run(root, outDir string) error {
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
+				"InboundTagChangeCheck",
 				"HappLinkResult",
 				"ClientSlim",
 				"ClientRenewalPreviewRequest",
@@ -108,6 +109,7 @@ func run(root, outDir string) error {
 				"MLKEM768Response",
 				"NodeMutationRequest",
 				"NodeView",
+				"NodeRoutingApplyResult",
 				"ProbeResultUI",
 				"RealityScanResult",
 				"GeodataTokenIssue",

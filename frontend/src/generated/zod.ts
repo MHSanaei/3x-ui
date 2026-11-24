@@ -44,6 +44,7 @@ export const AllSettingSchema = z.object({
   externalTrafficInformEnable: z.boolean(),
   externalTrafficInformURI: z.string(),
   happLinkEnable: z.boolean(),
+  inboundListOrder: z.string(),
   ipLimitAllowlist: z.string(),
   ldapAutoCreate: z.boolean(),
   ldapAutoDelete: z.boolean(),
@@ -67,6 +68,8 @@ export const AllSettingSchema = z.object({
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
   nodeDownThreshold: z.number().int().min(1).max(100),
+  nodeRoutingControl: z.boolean(),
+  nodeRoutingRules: z.string(),
   outboundDownThreshold: z.number().int().min(1).max(100),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
@@ -236,6 +239,7 @@ export const AllSettingViewSchema = z.object({
   hasTgBotToken: z.boolean(),
   hasTwoFactorToken: z.boolean(),
   hasWarpSecret: z.boolean(),
+  inboundListOrder: z.string(),
   ipLimitAllowlist: z.string(),
   ldapAutoCreate: z.boolean(),
   ldapAutoDelete: z.boolean(),
@@ -259,6 +263,8 @@ export const AllSettingViewSchema = z.object({
   ldapUserFilter: z.string(),
   ldapVlessField: z.string(),
   nodeDownThreshold: z.number().int().min(1).max(100),
+  nodeRoutingControl: z.boolean(),
+  nodeRoutingRules: z.string(),
   outboundDownThreshold: z.number().int().min(1).max(100),
   pageSize: z.number().int().min(0).max(1000),
   panelOutbound: z.string(),
@@ -841,6 +847,15 @@ export const InboundOptionSchema = z.object({
 });
 export type InboundOption = z.infer<typeof InboundOptionSchema>;
 
+export const InboundTagChangeCheckSchema = z.object({
+  nodeTagConflict: z.boolean(),
+  reason: z.string(),
+  routingRefs: z.number().int(),
+  unchanged: z.boolean(),
+  valid: z.boolean(),
+});
+export type InboundTagChangeCheck = z.infer<typeof InboundTagChangeCheckSchema>;
+
 export const InboundTrafficSummarySchema = z.object({
   down: z.number().int(),
   enable: z.boolean(),
@@ -950,6 +965,14 @@ export const NodeMutationRequestSchema = z.object({
 });
 export type NodeMutationRequest = z.infer<typeof NodeMutationRequestSchema>;
 
+export const NodeRoutingApplyResultSchema = z.object({
+  applied: z.boolean(),
+  error: z.string(),
+  name: z.string(),
+  nodeId: z.number().int(),
+});
+export type NodeRoutingApplyResult = z.infer<typeof NodeRoutingApplyResultSchema>;
+
 export const NodeViewSchema = z.object({
   activeCount: z.number().int(),
   address: z.string(),
@@ -972,6 +995,7 @@ export const NodeViewSchema = z.object({
   lastError: z.string(),
   lastHeartbeat: z.number().int(),
   latencyMs: z.number().int(),
+  masterRoutingRules: z.string(),
   memPct: z.number(),
   name: z.string(),
   netDown: z.number().int(),

@@ -88,6 +88,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/bulkDel", a.bulkDelInbounds)
 	g.POST("/update/:id", a.updateInbound)
+	g.POST("/checkTag", a.checkTag)
+	g.POST("/changeTag/:id", a.changeTag)
 	g.POST("/setEnable/:id", a.setInboundEnable)
 	g.POST("/:id/subSortIndex", a.setInboundSubSortIndex)
 	g.POST("/:id/resetTraffic", a.resetInboundTraffic)
@@ -274,6 +276,52 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 		a.xrayService.SetToNeedRestart()
 	}
 	user := session.GetLoginUser(c)
+	a.broadcastInboundsUpdate(user.Id)
+	notifyClientsChanged()
+}
+
+// checkTag validates a prospective inbound ID (tag) change and reports its
+// impact without committing anything; the panel shows it before the rename.
+func (a *InboundController) checkTag(c *gin.Context) {
+	user := session.GetLoginUser(c)
+	var req struct {
+		InboundId int    `json:"inboundId" form:"inboundId"`
+		NewTag    string `json:"newTag" form:"newTag"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	result, err := a.inboundService.CheckTagChange(user.Id, req.InboundId, req.NewTag)
+	jsonObj(c, result, err)
+}
+
+// changeTag renames an inbound's identifier (tag) by driving the proven
+// UpdateInbound path, so routing rewrites, node re-push and the xray restart
+// all happen exactly as for a form edit.
+func (a *InboundController) changeTag(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	var req struct {
+		NewTag string `json:"newTag" form:"newTag"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	user := session.GetLoginUser(c)
+	needRestart, err := a.inboundService.ChangeInboundTag(user.Id, id, req.NewTag)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
 	a.broadcastInboundsUpdate(user.Id)
 	notifyClientsChanged()
 }

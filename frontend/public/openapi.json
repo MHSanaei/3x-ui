@@ -81,6 +81,10 @@
           "happLinkEnable": {
             "type": "boolean"
           },
+          "inboundListOrder": {
+            "example": "id",
+            "type": "string"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -156,6 +160,12 @@
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
+          },
+          "nodeRoutingControl": {
+            "type": "boolean"
+          },
+          "nodeRoutingRules": {
+            "type": "string"
           },
           "outboundDownThreshold": {
             "maximum": 100,
@@ -626,6 +636,7 @@
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "happLinkEnable",
+          "inboundListOrder",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -649,6 +660,8 @@
           "ldapUserFilter",
           "ldapVlessField",
           "nodeDownThreshold",
+          "nodeRoutingControl",
+          "nodeRoutingRules",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -872,6 +885,10 @@
           "hasWarpSecret": {
             "type": "boolean"
           },
+          "inboundListOrder": {
+            "example": "id",
+            "type": "string"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -947,6 +964,12 @@
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
+          },
+          "nodeRoutingControl": {
+            "type": "boolean"
+          },
+          "nodeRoutingRules": {
+            "type": "string"
           },
           "outboundDownThreshold": {
             "maximum": 100,
@@ -1425,6 +1448,7 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "inboundListOrder",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -1448,6 +1472,8 @@
           "ldapUserFilter",
           "ldapVlessField",
           "nodeDownThreshold",
+          "nodeRoutingControl",
+          "nodeRoutingRules",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
@@ -3480,6 +3506,40 @@
         ],
         "type": "object"
       },
+      "InboundTagChangeCheck": {
+        "description": "InboundTagChangeCheck is the pre-flight report for an inbound ID (tag)\nchange: whether the target is usable and what a rename would touch, so the\npanel can show the impact before committing.",
+        "properties": {
+          "nodeTagConflict": {
+            "description": "NodeTagConflict reports a same-name inbound on the hosting node that the\nnew tag would collide with once the prefix is stripped.",
+            "example": false,
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "routingRefs": {
+            "description": "RoutingRefs is how many routing rules on this panel reference the\ncurrent tag; a rename rewrites them all.",
+            "example": 2,
+            "type": "integer"
+          },
+          "unchanged": {
+            "example": false,
+            "type": "boolean"
+          },
+          "valid": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodeTagConflict",
+          "reason",
+          "routingRefs",
+          "unchanged",
+          "valid"
+        ],
+        "type": "object"
+      },
       "InboundTrafficSummary": {
         "properties": {
           "down": {
@@ -3940,6 +4000,33 @@
         ],
         "type": "object"
       },
+      "NodeRoutingApplyResult": {
+        "description": "NodeRoutingApplyResult is one node's outcome in a bulk routing apply; a\nfailed node never blocks the rest, each row carries its own error.",
+        "properties": {
+          "applied": {
+            "example": true,
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "name": {
+            "example": "edge-1",
+            "type": "string"
+          },
+          "nodeId": {
+            "example": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "error",
+          "name",
+          "nodeId"
+        ],
+        "type": "object"
+      },
       "NodeView": {
         "description": "NodeView is the browser/API read contract for nodes. Credentials are\nwrite-only: responses expose only whether a node has a token configured.",
         "properties": {
@@ -4033,6 +4120,9 @@
           "latencyMs": {
             "example": 42,
             "type": "integer"
+          },
+          "masterRoutingRules": {
+            "type": "string"
           },
           "memPct": {
             "example": 45.2,
@@ -4144,6 +4234,7 @@
           "lastError",
           "lastHeartbeat",
           "latencyMs",
+          "masterRoutingRules",
           "memPct",
           "name",
           "netDown",
@@ -5898,6 +5989,114 @@
                     "tls"
                   ]
                 }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/checkTag": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Pre-flight check for changing an inbound’s ID (tag): reports whether the target is usable and what a rename would touch. Writes nothing.",
+        "operationId": "post_panel_api_inbounds_checkTag",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "inboundId": 1,
+                "newTag": "n1-in-443-tcp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "unchanged": false,
+                    "valid": true,
+                    "reason": "",
+                    "routingRefs": 2,
+                    "nodeTagConflict": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/changeTag/{id}": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Safely rename an inbound’s ID (tag). Rewrites routing rules and loopback outbounds that point at the old tag, re-pushes the node when the inbound is node-hosted, and flags an xray restart when routing changed.",
+        "operationId": "post_panel_api_inbounds_changeTag_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Inbound ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "newTag": "n1-in-443-tcp"
               }
             }
           }
@@ -11445,6 +11644,7 @@
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
+                      "masterRoutingRules": "",
                       "memPct": 45.2,
                       "name": "edge-1",
                       "netDown": 1048576,
@@ -11649,6 +11849,7 @@
                     "lastError": "",
                     "lastHeartbeat": 1700000000,
                     "latencyMs": 42,
+                    "masterRoutingRules": "",
                     "memPct": 45.2,
                     "name": "edge-1",
                     "netDown": 1048576,
@@ -11802,6 +12003,7 @@
                     "lastError": "",
                     "lastHeartbeat": 1700000000,
                     "latencyMs": 42,
+                    "masterRoutingRules": "",
                     "memPct": 45.2,
                     "name": "edge-1",
                     "netDown": 1048576,
@@ -12308,6 +12510,113 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/routing/apply": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Push this panel’s shared node routing policy to the given nodes (Node Routing page). Each node stores the policy and re-applies its Xray so the rules take effect. Omit rules to use the stored policy; clear=true wipes the policy on the targets. Returns a per-node result list.",
+        "operationId": "post_panel_api_nodes_routing_apply",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "nodeIds": [
+                  1,
+                  2
+                ],
+                "rules": "[{ \"type\": \"field\", \"network\": \"tcp\", \"port\": 443, \"outboundTag\": \"direct\" }]",
+                "clear": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "nodeId": 1,
+                      "name": "de-1",
+                      "applied": true
+                    },
+                    {
+                      "nodeId": 2,
+                      "name": "fr-1",
+                      "applied": false,
+                      "error": "node unreachable"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/routing/control": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Master-only node endpoint: store (or clear with an empty payload) the routing policy a master panel pushed to this node, then re-apply Xray. Refused for panel users without a master push.",
+        "operationId": "post_panel_api_nodes_routing_control",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "rules": "[{ \"type\": \"field\", \"outboundTag\": \"direct\" }]"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -17032,6 +17341,7 @@
                   "lastError": "",
                   "lastHeartbeat": 1700000000,
                   "latencyMs": 42,
+                  "masterRoutingRules": "",
                   "memPct": 45.2,
                   "name": "edge-1",
                   "netDown": 1048576,

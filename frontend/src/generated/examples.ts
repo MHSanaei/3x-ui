@@ -17,6 +17,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
     "happLinkEnable": false,
+    "inboundListOrder": "id",
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -40,6 +41,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "nodeDownThreshold": 1,
+    "nodeRoutingControl": false,
+    "nodeRoutingRules": "",
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
@@ -207,6 +210,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,
+    "inboundListOrder": "id",
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -230,6 +234,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserFilter": "",
     "ldapVlessField": "",
     "nodeDownThreshold": 1,
+    "nodeRoutingControl": false,
+    "nodeRoutingRules": "",
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
@@ -886,6 +892,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "wgMtu": 0,
     "wgPublicKey": ""
   },
+  "InboundTagChangeCheck": {
+    "nodeTagConflict": false,
+    "reason": "",
+    "routingRefs": 2,
+    "unchanged": false,
+    "valid": true
+  },
   "InboundTrafficSummary": {
     "down": 2097152,
     "enable": true,
@@ -985,6 +998,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "scheme": "http",
     "tlsVerifyMode": "verify"
   },
+  "NodeRoutingApplyResult": {
+    "applied": true,
+    "error": "",
+    "name": "edge-1",
+    "nodeId": 1
+  },
   "NodeView": {
     "activeCount": 20,
     "address": "node.example.com",
@@ -1009,6 +1028,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "lastError": "",
     "lastHeartbeat": 1700000000,
     "latencyMs": 42,
+    "masterRoutingRules": "",
     "memPct": 45.2,
     "name": "edge-1",
     "netDown": 1048576,

@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
@@ -45,6 +47,8 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.POST("/mtls/ca", a.mtlsCa)
 	g.POST("/mtls/trustCA", a.setMtlsTrustCA)
 	g.POST("/mtls/reloadClient", a.reloadMtlsClient)
+	g.POST("/routing/control", a.routingControl)
+	g.POST("/routing/apply", a.routingApply)
 }
 
 // reloadMtlsClient validates the credential currently stored by the master and
@@ -85,6 +89,75 @@ func (a *NodeController) setMtlsTrustCA(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.saveMtls"), nil)
+}
+
+func (a *NodeController) routingControl(c *gin.Context) {
+	scopeValue, _ := c.Get("api_token_scope")
+	scope, _ := scopeValue.(string)
+	// Master-only: mirrors the inbound master-push gate, so a node's own panel
+	// users cannot forge a master routing push.
+	if !model.IsNodeSyncApiScope(scope) && c.GetHeader(wirecodec.MasterPushHeader) == "" {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), errors.New("master only"))
+		return
+	}
+	var req struct {
+		Rules string `json:"rules"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
+		return
+	}
+	prevRules, _ := (&service.XraySettingService{}).GetMasterRoutingRules()
+	if err := (&service.XraySettingService{}).SaveMasterRoutingRules(req.Rules); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
+		return
+	}
+	// Only attempt an immediate re-apply when Xray is actually running: if it
+	// is stopped the policy (stored above) takes effect on the next start. When
+	// Xray is running and refuses the resulting config, revert to the previous
+	// (working) policy and report the failure so the master does not mirror a
+	// policy the node cannot apply.
+	if a.xrayService.IsXrayRunning() {
+		if err := a.xrayService.RestartXray(false); err != nil {
+			logger.Warning("apply node routing policy, re-apply Xray failed:", err)
+			_ = (&service.XraySettingService{}).SaveMasterRoutingRules(prevRules)
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), err)
+			return
+		}
+	}
+	jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingControl"), nil)
+}
+
+// routingApply pushes this panel's shared node routing policy to the given
+// nodes and mirrors it on their rows. The request may carry an explicit
+// rules payload (what the operator is looking at in the editor); otherwise the
+// stored nodeRoutingRules setting is used. clear=true wipes the policy.
+func (a *NodeController) routingApply(c *gin.Context) {
+	var req struct {
+		NodeIds []int  `json:"nodeIds" form:"nodeIds"`
+		Rules   string `json:"rules" form:"rules"`
+		Clear   bool   `json:"clear" form:"clear"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingApply"), err)
+		return
+	}
+	var rules string
+	switch {
+	case req.Clear:
+		rules = ""
+	case req.Rules != "":
+		rules = req.Rules
+	default:
+		var err error
+		rules, err = (&service.SettingService{}).GetNodeRoutingRules()
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.routingApply"), err)
+			return
+		}
+	}
+	results, err := a.nodeService.ApplyRoutingControl(req.NodeIds, rules)
+	jsonObj(c, results, err)
 }
 
 func (a *NodeController) list(c *gin.Context) {

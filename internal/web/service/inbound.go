@@ -58,6 +58,38 @@ func normalizeInboundShareAddrStrategy(strategy string) string {
 	}
 }
 
+// listOrder returns the configured inbound list order, falling back to id
+// order when the setting is unreadable so listing can never fail on it.
+func (s *InboundService) listOrder() string {
+	mode, err := (&SettingService{}).GetInboundListOrder()
+	if err != nil {
+		return "id"
+	}
+	return mode
+}
+
+// inboundListOrderSQL maps the inboundListOrder setting to a whitelisted
+// ORDER BY clause; table may prefix column names for the joined options
+// query. Every mode falls back to id so the list stays deterministic.
+func inboundListOrderSQL(mode, table string) string {
+	prefix := ""
+	if table != "" {
+		prefix = table + "."
+	}
+	switch mode {
+	case "remark":
+		return prefix + "remark ASC, " + prefix + "id ASC"
+	case "port":
+		return prefix + "port ASC, " + prefix + "id ASC"
+	case "protocol":
+		return prefix + "protocol ASC, " + prefix + "id ASC"
+	case "subSortIndex":
+		return "COALESCE(" + prefix + "sub_sort_index, 1) ASC, " + prefix + "id ASC"
+	default:
+		return prefix + "id ASC"
+	}
+}
+
 func normalizeInboundShareAddress(inbound *model.Inbound) {
 	if inbound == nil {
 		return
@@ -192,7 +224,8 @@ func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).
+		Order(inboundListOrderSQL(s.listOrder(), "")).Find(&inbounds).Error
 	if err == nil {
 		err = attachClientStats(db, inbounds)
 	}
@@ -238,7 +271,8 @@ func (s *InboundService) annotateLocalOriginGuid(inbounds []*model.Inbound) {
 func (s *InboundService) GetInboundsSlim(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).Order("id ASC").Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("user_id = ?", userId).
+		Order(inboundListOrderSQL(s.listOrder(), "")).Find(&inbounds).Error
 	if err == nil {
 		err = attachClientStats(db, inbounds)
 	}
@@ -392,7 +426,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		Select("inbounds.id, inbounds.remark, inbounds.tag, inbounds.protocol, inbounds.port, inbounds.enable, inbounds.stream_settings, inbounds.settings, inbounds.listen, inbounds.share_addr, inbounds.share_addr_strategy, inbounds.node_id, COALESCE(nodes.address, '') AS node_address, inbounds.disable_flow").
 		Joins("LEFT JOIN nodes ON nodes.id = inbounds.node_id").
 		Where("inbounds.user_id = ?", userId).
-		Order("inbounds.id ASC").
+		Order(inboundListOrderSQL(s.listOrder(), "inbounds")).
 		Scan(&rows).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
