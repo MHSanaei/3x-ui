@@ -3,11 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 
-/*
- * `system` mode has to survive two things nothing else in the panel exercises:
- * the OS flipping its scheme while the tab stays open, and the legacy
- * `dark-mode` boolean written by every build before this feature.
- */
+// `system` must survive two things nothing else exercises: the OS flipping its
+// scheme while the tab stays open, and the legacy `dark-mode` boolean.
 
 type SchemeListener = (event: { matches: boolean }) => void;
 

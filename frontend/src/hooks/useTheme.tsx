@@ -66,11 +66,7 @@ function resolveDark(mode: ThemeMode, systemDark: boolean): boolean {
   return mode === 'system' ? systemDark : mode === 'dark';
 }
 
-/**
- * light → dark → ultra dark → system → light. Ultra dark only exists on top of
- * dark, so every step is visible even when the OS scheme matches the current
- * one: leaving system always lands on light.
- */
+/** Ultra dark rides on dark, so leaving system always lands on light. */
 function nextTheme(mode: ThemeMode, isUltra: boolean): { mode: ThemeMode; ultra: boolean } {
   if (mode === 'light') return { mode: 'dark', ultra: false };
   if (mode === 'dark') {
@@ -232,8 +228,6 @@ interface ThemeContextValue {
   isDark: boolean;
   /** Ultra dark is a variant of dark and never applies to light. */
   isUltra: boolean;
-  /** Whether the OS currently asks for a dark scheme. */
-  systemDark: boolean;
   toggleTheme: () => void;
   toggleUltra: () => void;
   setMode: (mode: ThemeMode) => void;
@@ -245,8 +239,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Read at mount rather than reusing the module-level snapshot so a stored
-  // preference written by another tab (or by a test) is honoured.
+  // Read at mount so a preference written by another tab or a test is honoured.
   const [mode, setModeState] = useState<ThemeMode>(readMode);
   const [ultraRequested, setUltraRequested] = useState<boolean>(readUltra);
   // Tracks the OS scheme live so `system` mode follows the user flipping their
@@ -279,24 +272,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       mode,
       isDark,
       isUltra,
-      systemDark,
       toggleTheme,
       toggleUltra,
       setMode,
       cycleTheme,
       antdThemeConfig,
     }),
-    [
-      mode,
-      isDark,
-      isUltra,
-      systemDark,
-      toggleTheme,
-      toggleUltra,
-      setMode,
-      cycleTheme,
-      antdThemeConfig,
-    ],
+    [mode, isDark, isUltra, toggleTheme, toggleUltra, setMode, cycleTheme, antdThemeConfig],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
