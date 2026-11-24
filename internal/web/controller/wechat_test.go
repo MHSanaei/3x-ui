@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,8 @@ func TestWechatTestEndpointRefusesDisabledSavedConfiguration(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if response.Code != http.StatusOK || result.Success || result.Msg == "" {
+	// Without the endpoint's own check the sender fails too, but with its generic configuration error.
+	if response.Code != http.StatusOK || result.Success || !strings.HasSuffix(result.Msg, "(WeChat notifications are disabled)") {
 		t.Fatalf("disabled test endpoint returned %d %s", response.Code, response.Body.String())
 	}
 }

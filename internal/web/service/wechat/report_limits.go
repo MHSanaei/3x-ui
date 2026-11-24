@@ -3,10 +3,10 @@ package wechat
 import (
 	"context"
 	"strings"
-	"unicode"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 type reportClientLimit struct {
@@ -31,7 +31,7 @@ func reportClientLimits(ctx context.Context, inbounds []*model.Inbound) (map[str
 		}
 	}
 	limits := make(map[string]reportClientLimit, len(emails))
-	spellings := reportEmailSpellings(emails)
+	spellings := service.EmailSpellings(emails)
 	// Each spelling is bound twice, keeping each query at no more than 500 parameters.
 	const batchSize = 250
 	for start := 0; start < len(spellings); start += batchSize {
@@ -46,28 +46,4 @@ func reportClientLimits(ctx context.Context, inbounds []*model.Inbound) (map[str
 		}
 	}
 	return limits, nil
-}
-
-// SQLite LOWER folds ASCII only; match the same Unicode spellings as inbound identity lookups.
-func reportEmailSpellings(emails []string) []string {
-	seen := make(map[string]bool, len(emails))
-	spellings := make([]string, 0, len(emails))
-	for _, email := range emails {
-		lower := strings.ToLower(email)
-		variants := []string{lower}
-		if strings.ContainsFunc(email, func(r rune) bool { return r > unicode.MaxASCII }) {
-			title := lower
-			if runes := []rune(lower); len(runes) > 0 {
-				title = strings.ToUpper(string(runes[:1])) + string(runes[1:])
-			}
-			variants = append(variants, email, strings.ToUpper(email), title)
-		}
-		for _, variant := range variants {
-			if !seen[variant] {
-				seen[variant] = true
-				spellings = append(spellings, variant)
-			}
-		}
-	}
-	return spellings
 }
