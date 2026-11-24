@@ -114,6 +114,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			client := *rec.ToClient()
 			// Forwards are set per inbound; see Attach.
 			client.ForwardedPorts = nil
+			prepareWireguardDeviceAddresses(&client, inbound)
 			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
 				client.Flow = flow
 			}
@@ -288,17 +289,17 @@ type inboundApplyOutcome struct {
 	err         error
 }
 
-// BulkAdjustResult is returned by BulkAdjust to report how many clients were
-// successfully updated and which were skipped (typically because the field
-// being adjusted was unlimited for that client) or failed.
+// BulkAdjustResult reports changed clients and per-client skip reasons.
+// ExternalLinks contains row counts only for append requests.
 type BulkAdjustResult struct {
-	Adjusted int                `json:"adjusted"`
-	Skipped  []BulkAdjustReport `json:"skipped,omitempty"`
+	Adjusted      int                      `json:"adjusted" example:"2"`
+	Skipped       []BulkAdjustReport       `json:"skipped,omitempty" example:"[]"`
+	ExternalLinks *BulkExternalLinksResult `json:"externalLinks,omitempty"`
 }
 
 type BulkAdjustReport struct {
-	Email  string `json:"email"`
-	Reason string `json:"reason"`
+	Email  string `json:"email" example:"carol"`
+	Reason string `json:"reason" example:"client not found"`
 }
 
 type bulkAdjustEntry struct {
@@ -1649,9 +1650,10 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 		successEmails = append(successEmails, email)
 	}
 
+	var trafficErr error
 	if len(successEmails) > 0 {
 		now := time.Now().UnixMilli()
-		if err := runSerializedTx(func(tx *gorm.DB) error {
+		trafficErr = runSerializedTx(func(tx *gorm.DB) error {
 			for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 				if e := tx.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Update("enable", enable).Error; e != nil {
 					return e
@@ -1662,9 +1664,17 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 				}
 			}
 			return nil
-		}); err != nil {
-			return result, needRestart, err
+		})
+	}
+	// Sidecars serve by the traffic rows, so push them only after the rows flip;
+	// a push before it left a bulk-enabled client off until the reconcile job.
+	for i, ibRes := range enableResults {
+		if enablePanics[i] == nil && ibRes.sidecar != "" {
+			applyBulkSidecar(inboundSvc, enableIds[i], ibRes.sidecar)
 		}
+	}
+	if trafficErr != nil {
+		return result, needRestart, trafficErr
 	}
 
 	result.Changed = len(successEmails)
@@ -1677,6 +1687,19 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 type bulkSetEnableInboundResult struct {
 	perEmailSkipped map[string]string
 	needRestart     bool
+	sidecar         model.Protocol // local sidecar inbound to push after the traffic rows
+}
+
+func applyBulkSidecar(inboundSvc *InboundService, inboundId int, protocol model.Protocol) {
+	defer lockInbound(inboundId).Unlock()
+	switch protocol {
+	case model.MTProto:
+		inboundSvc.applyLocalMtproto(inboundId)
+	case model.AmneziaWG:
+		inboundSvc.applyLocalAmneziaWG(inboundId)
+	case model.TUIC:
+		inboundSvc.applyLocalTuic(inboundId)
+	}
 }
 
 func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, inboundId int, emails []string, enable bool) bulkSetEnableInboundResult {
@@ -1807,19 +1830,12 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	if oldInbound.NodeID == nil {
 		if !push {
 			res.needRestart = true
+		} else if servedOutsideXray(oldInbound.Protocol) {
+			res.sidecar = oldInbound.Protocol
 		} else {
 			for _, ch := range changed {
 				if enable {
-					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":    ch.client.Email,
-						"id":       ch.client.ID,
-						"security": ch.client.Security,
-						"flow":     ch.client.Flow,
-						"auth":     ch.client.Auth,
-						"password": ch.client.Password,
-						"cipher":   cipher,
-						"reverse":  ch.client.Reverse,
-					})
+					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&ch.client, cipher))
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
 						res.needRestart = true

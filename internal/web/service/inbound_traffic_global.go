@@ -15,6 +15,15 @@ import (
 
 const globalTrafficHeartbeatInterval = time.Hour
 
+// hasFreshGlobalTraffic stops at the first fresh row; COUNT with LIMIT still counted them all.
+// It probes on every call so a new push or a stale master takes effect at once.
+func hasFreshGlobalTraffic(db *gorm.DB, freshSince int64) bool {
+	var fresh bool
+	err := db.Raw("SELECT EXISTS (SELECT 1 FROM client_global_traffics WHERE updated_at >= ?)", freshSince).
+		Scan(&fresh).Error
+	return err == nil && fresh
+}
+
 // AcceptGlobalTraffic overwrites hosted clients' per-master usage, including lower resets.
 // Identical usage refreshes hourly; client_traffics remains local-only for delta accounting.
 func (s *InboundService) AcceptGlobalTraffic(masterGuid string, traffics []*xray.ClientTraffic) error {
@@ -114,10 +123,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 	}
 	freshSince := globalTrafficFreshSince(db.NowFunc())
 	// Cheap short-circuit for the common case (a panel no master pushes to).
-	var probe int64
-	if err := db.Model(&model.ClientGlobalTraffic{}).
-		Where("updated_at >= ?", freshSince).
-		Limit(1).Count(&probe).Error; err != nil || probe == 0 {
+	if !hasFreshGlobalTraffic(db, freshSince) {
 		return
 	}
 

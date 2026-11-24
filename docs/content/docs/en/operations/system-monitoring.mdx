@@ -10,7 +10,7 @@ The overview page combines a current server snapshot with short time-series char
 
 Each overview chart has the same time-range selector in its upper-right corner. The default is **2m**. The choices are **2m**, **5m**, **30m**, **1h**, **6h**, and **12h**. Changing any selector changes the window on every overview chart.
 
-The number of chart points stays capped at 60. Short windows use finer samples; longer windows use averages. The selector controls how much history is visible, while the browser refreshes the data in the background at a separate, throttled interval.
+The number of chart points stays capped at 60. Short windows use finer samples; longer windows use averages. At **2m** the charts are live: every status poll, once every 2 seconds, adds a point. A longer window is read from the server's stored history and refreshed once per point, at most once a minute.
 
 The **System history** dialog has per-metric tabs and longer windows: **2m**, **1h**, **3h**, **6h**, **12h**, **24h**, **2d**, and **7d**. It refreshes only the active metric, and slows its polling as the selected window grows.
 
@@ -42,6 +42,6 @@ System history is saved to `system_metrics.gob` in the panel's database director
 
 ## API
 
-The overview requests `GET /panel/api/server/overviewHistory/{bucket}`. `bucket` is the interval in seconds and accepts `2`, `5`, `30`, `60`, `180`, or `360` for the overview's 2 minute through 12 hour windows. The response contains up to 60 `{ "t": unixSeconds, "v": value }` points for each overview metric.
+For a window longer than **2m** the overview requests `GET /panel/api/server/overviewHistory/{bucket}`. `bucket` is the number of seconds one point covers: `5`, `30`, `60`, `360` and `720` give the 5 minute through 12 hour windows. The response contains up to 60 `{ "t": unixSeconds, "v": value }` points for each overview metric.
 
 The system history dialog requests `GET /panel/api/server/history/{metric}/{bucket}` for the active metric. It uses the same `{t, v}` point format and supports the longer bucket values documented in the [Server API reference](/docs/reference/api/server).

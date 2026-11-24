@@ -9,6 +9,7 @@
     "backup-restore",
     "telegram-bot",
     "discord-bot",
+    "wechat-notifications",
     "security"
   ]
 }

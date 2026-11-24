@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -284,6 +285,35 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
+		if ib.Protocol == model.WireGuard {
+			if keepAlive, ok := userMap["keepAlive"].(string); ok {
+				userMap = maps.Clone(userMap)
+				delete(userMap, "keepAlive")
+				if keepAlive != "" {
+					value := model.KeepAliveValue(keepAlive)
+					if err := value.Validate(false); err != nil {
+						return err
+					}
+					userMap["keepAlive"] = value.Seconds()
+				}
+			}
+			data, err := json.Marshal(userMap)
+			if err != nil {
+				return err
+			}
+			var client model.Client
+			if err := json.Unmarshal(data, &client); err != nil {
+				return err
+			}
+			for _, peer := range model.WireguardClients(client) {
+				user := model.WireguardPeerFromClient(peer)
+				user["keepAlive"] = wgKeepAlive(peer.KeepAliveSeconds())
+				if err := api.AddUser(string(ib.Protocol), ib.Tag, user); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
 		return api.AddUser(string(ib.Protocol), ib.Tag, userMap)
 	})
 }
@@ -299,6 +329,9 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
+		if ib.Protocol == model.WireGuard {
+			return api.RemoveWireguardUsers(ib.Tag, email)
+		}
 		return api.RemoveUser(ib.Tag, email)
 	})
 }
@@ -308,16 +341,17 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 		return nil
 	}
 	user := map[string]any{
-		"email":        client.Email,
-		"id":           client.ID,
-		"security":     client.Security,
-		"flow":         client.Flow,
-		"auth":         client.Auth,
-		"password":     client.Password,
-		"publicKey":    client.PublicKey,
-		"allowedIPs":   client.AllowedIPs,
-		"preSharedKey": client.PreSharedKey,
-		"keepAlive":    wgKeepAlive(client.KeepAliveSeconds()),
+		"email":            client.Email,
+		"id":               client.ID,
+		"security":         client.Security,
+		"flow":             client.Flow,
+		"auth":             client.Auth,
+		"password":         client.Password,
+		"publicKey":        client.PublicKey,
+		"allowedIPs":       client.AllowedIPs,
+		"preSharedKey":     client.PreSharedKey,
+		"keepAlive":        wgKeepAlive(client.KeepAliveSeconds()),
+		"wireguardDevices": client.WireguardDevices,
 	}
 	return l.AddUser(ctx, ib, user)
 }
@@ -349,16 +383,17 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 		return nil
 	}
 	user := map[string]any{
-		"email":        payload.Email,
-		"id":           payload.ID,
-		"security":     payload.Security,
-		"flow":         payload.Flow,
-		"auth":         payload.Auth,
-		"password":     payload.Password,
-		"publicKey":    payload.PublicKey,
-		"allowedIPs":   payload.AllowedIPs,
-		"preSharedKey": payload.PreSharedKey,
-		"keepAlive":    wgKeepAlive(payload.KeepAliveSeconds()),
+		"email":            payload.Email,
+		"id":               payload.ID,
+		"security":         payload.Security,
+		"flow":             payload.Flow,
+		"auth":             payload.Auth,
+		"password":         payload.Password,
+		"publicKey":        payload.PublicKey,
+		"allowedIPs":       payload.AllowedIPs,
+		"preSharedKey":     payload.PreSharedKey,
+		"keepAlive":        wgKeepAlive(payload.KeepAliveSeconds()),
+		"wireguardDevices": payload.WireguardDevices,
 	}
 	return l.AddUser(ctx, ib, user)
 }

@@ -83,6 +83,21 @@ _openapi:
         an app remain valid until the external provider revokes them.
       url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them'
     - depth: 2
+      title: List WireGuard devices and their per-inbound addresses.
+      url: '#list-wireguard-devices-and-their-per-inbound-addresses'
+    - depth: 2
+      title: Create a WireGuard device on every attached WireGuard inbound.
+      url: '#create-a-wireguard-device-on-every-attached-wireguard-inbound'
+    - depth: 2
+      title: Set the maximum number of WireGuard devices.
+      url: '#set-the-maximum-number-of-wireguard-devices'
+    - depth: 2
+      title: Rename or enable a WireGuard device.
+      url: '#rename-or-enable-a-wireguard-device'
+    - depth: 2
+      title: Delete an additional WireGuard device and release its address.
+      url: '#delete-an-additional-wireguard-device-and-release-its-address'
+    - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
         moved.
@@ -133,9 +148,19 @@ _openapi:
         "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
         supports it (omit or "" to leave it unchanged). The optional limitHwid
         sets maximum registered devices (0 = unlimited). The optional adTag sets
-        MTProto Telegram sponsor channel ("none" clears). Returns the adjusted
-        count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons'
+        MTProto Telegram sponsor channel ("none" clears). Alternatively, send
+        externalLinks to append external share links and http(s) subscriptions
+        to each selected client in one transaction. This mode cannot be combined
+        with other adjustments. Existing entries, metadata, and ordering are
+        preserved. Duplicates match (kind, value) per client, including repeated
+        input rows; the first entry wins. Missing clients are not written and
+        appear in skipped. externalLinks.added counts inserted rows,
+        externalLinks.skipped counts duplicate rows across found clients,
+        externalLinks.errors counts missing clients, and adjusted counts clients
+        receiving at least one new row. Validation or database failure aborts
+        the whole append without writes. Repeating an append is idempotent and
+        does not restart Xray.'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -256,17 +281,26 @@ _openapi:
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
     - depth: 2
-      title: List registered HWID devices for a client with a short fingerprint. Full
-        hashes are not exposed.
-      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed'
+      title: List registered HWID devices for a client with a short fingerprint and a
+        blocked flag. Bans are scoped to the subscription ID shared by the
+        client. Full hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed'
     - depth: 2
-      title: Clear all registered HWID devices for a client so new devices can
-        register again.
-      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
+      title: Clear unblocked HWID registrations for a client so devices can register
+        again. Blocked devices and their bans are preserved.
+      url: '#clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved'
     - depth: 2
-      title: Remove a single registered HWID device by its id, freeing one slot under
-        the HWID limit.
-      url: '#remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit'
+      title: Remove a single unblocked HWID device by its id, freeing one slot under
+        the HWID limit. A blocked device must be unblocked before it can be
+        removed.
+      url: '#remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed'
+    - depth: 2
+      title: Block or unblock one device for the client subscription. Send an explicit
+        boolean blocked value. A ban denies subscription bodies for that HWID
+        even with limitHwid=0, does not consume a device slot, and survives
+        clearing devices or changing the limit. It does not revoke copied
+        credentials or identify requests with a different or missing HWID.
+      url: '#block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid'
     - depth: 2
       title: List the emails of currently connected clients (last seen within the
         heartbeat window), deduped across every node.
@@ -381,6 +415,16 @@ _openapi:
           emitted on future subscription fetches; credentials already imported
           by an app remain valid until the external provider revokes them.
         id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them
+      - content: List WireGuard devices and their per-inbound addresses.
+        id: list-wireguard-devices-and-their-per-inbound-addresses
+      - content: Create a WireGuard device on every attached WireGuard inbound.
+        id: create-a-wireguard-device-on-every-attached-wireguard-inbound
+      - content: Set the maximum number of WireGuard devices.
+        id: set-the-maximum-number-of-wireguard-devices
+      - content: Rename or enable a WireGuard device.
+        id: rename-or-enable-a-wireguard-device
+      - content: Delete an additional WireGuard device and release its address.
+        id: delete-an-additional-wireguard-device-and-release-its-address
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
@@ -428,8 +472,19 @@ _openapi:
           the inbound supports it (omit or "" to leave it unchanged). The
           optional limitHwid sets maximum registered devices (0 = unlimited).
           The optional adTag sets MTProto Telegram sponsor channel ("none"
-          clears). Returns the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons
+          clears). Alternatively, send externalLinks to append external share
+          links and http(s) subscriptions to each selected client in one
+          transaction. This mode cannot be combined with other adjustments.
+          Existing entries, metadata, and ordering are preserved. Duplicates
+          match (kind, value) per client, including repeated input rows; the
+          first entry wins. Missing clients are not written and appear in
+          skipped. externalLinks.added counts inserted rows,
+          externalLinks.skipped counts duplicate rows across found clients,
+          externalLinks.errors counts missing clients, and adjusted counts
+          clients receiving at least one new row. Validation or database failure
+          aborts the whole append without writes. Repeating an append is
+          idempotent and does not restart Xray.'
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling
@@ -534,15 +589,24 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
-      - content: List registered HWID devices for a client with a short fingerprint.
-          Full hashes are not exposed.
-        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed
-      - content: Clear all registered HWID devices for a client so new devices can
-          register again.
-        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
-      - content: Remove a single registered HWID device by its id, freeing one slot
-          under the HWID limit.
-        id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
+      - content: List registered HWID devices for a client with a short fingerprint and
+          a blocked flag. Bans are scoped to the subscription ID shared by the
+          client. Full hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed
+      - content: Clear unblocked HWID registrations for a client so devices can register
+          again. Blocked devices and their bans are preserved.
+        id: clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved
+      - content: Remove a single unblocked HWID device by its id, freeing one slot under
+          the HWID limit. A blocked device must be unblocked before it can be
+          removed.
+        id: remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed
+      - content: Block or unblock one device for the client subscription. Send an
+          explicit boolean blocked value. A ban denies subscription bodies for
+          that HWID even with limitHwid=0, does not consume a device slot, and
+          survives clearing devices or changing the limit. It does not revoke
+          copied credentials or identify requests with a different or missing
+          HWID.
+        id: block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid
       - content: List the emails of currently connected clients (last seen within the
           heartbeat window), deduped across every node.
         id: list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
@@ -739,6 +803,26 @@ _openapi:
           still have detached the remaining inbounds. Detach writes nothing
           beyond the inbounds, so every error carries the prefix.'
         heading: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
+      - content: The original credentials remain the primary device. Additional devices
+          share their parent client email, traffic quota, expiry and enable
+          state. Keep each device configuration on one device. Device-specific
+          subscriptions use the existing subscription URL with the wgDevice
+          query parameter set to the device ID.
+        heading: list-wireguard-devices-and-their-per-inbound-addresses
+      - content: Keys are generated once and each inbound allocates an available tunnel
+          address. All inbounds commit together. The default limit is 5 devices
+          including primary.
+        heading: create-a-wireguard-device-on-every-attached-wireguard-inbound
+      - content: The limit includes primary and disabled devices. Choose 1 to 32. Values
+          below the current device count are rejected.
+        heading: set-the-maximum-number-of-wireguard-devices
+      - content: The primary device is managed through the parent client. Disabled
+          additional devices retain their reserved addresses.
+        heading: rename-or-enable-a-wireguard-device
+      - content: The device is removed from every attached WireGuard inbound. Its
+          previously downloaded configuration loses access after the
+          configuration is applied.
+        heading: delete-an-additional-wireguard-device-and-release-its-address
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
@@ -748,7 +832,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/update","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/del","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/update","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/del","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/wireguardDevices","method":"get"},{"path":"/panel/api/clients/wireguardDevices","method":"post"},{"path":"/panel/api/clients/wireguardDevices/limit","method":"put"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"patch"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"delete"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}/block","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

@@ -156,3 +156,26 @@ func TestHashedLinkCallbackServesOwnClient(t *testing.T) {
 		t.Errorf("message calls = %d, want 1: the owner's hashed button must still be served", n)
 	}
 }
+
+// Every per-client link action names its target in the button, so each must
+// refuse another customer's client before it draws anything.
+func TestEveryClientLinkActionRefusesAForeignClient(t *testing.T) {
+	for _, action := range clientLinkActions {
+		t.Run(action, func(t *testing.T) {
+			tb, calls := newLinksCallbackTgbot(t, ownerMail)
+			data := action + " someone-else@x"
+			if action == "link_one" {
+				data += " 0"
+			}
+
+			tapClientLinks(t, tb, ownerTgID, data)
+
+			if n := calls("sendMessage") + calls("sendPhoto"); n != 0 {
+				t.Errorf("%q drew %d message(s) for a foreign client", data, n)
+			}
+			if n := calls("answerCallbackQuery"); n != 1 {
+				t.Errorf("%q answered %d time(s), want the refusal", data, n)
+			}
+		})
+	}
+}

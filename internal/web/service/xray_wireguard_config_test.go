@@ -195,6 +195,40 @@ func TestGetXrayConfigWireGuardDisabledClientExcluded(t *testing.T) {
 	}
 }
 
+func TestGetXrayConfigWireGuardDevicesUseInboundIdentityAndParentLifecycle(t *testing.T) {
+	client := model.Client{
+		Email: "devices@wg.test", Enable: true, PublicKey: "primary", AllowedIPs: []string{"10.0.0.2/32"},
+		WireguardDevices: []model.WireguardDevice{{Id: "stale", Enable: true, PublicKey: "stale-shared-key", AllowedIPs: []string{"10.9.0.3/32"}}},
+	}
+	seedWGInbound(t, "wg-devices", 51829, []model.Client{client})
+	client.WireguardDevices = []model.WireguardDevice{
+		{Id: "phone", Enable: true, PublicKey: "phone-key", AllowedIPs: []string{"10.0.0.3/32"}},
+		{Id: "disabled", Enable: false, PublicKey: "disabled-key", AllowedIPs: []string{"10.0.0.4/32"}},
+	}
+	settings, err := json.Marshal(map[string]any{"secretKey": wgTestSecretKey(), "clients": []model.Client{client}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", "wg-devices").Update("settings", string(settings)).Error; err != nil {
+		t.Fatal(err)
+	}
+	peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-devices"))
+	if len(peers) != 2 || peers[1]["publicKey"] != "phone-key" {
+		t.Fatalf("expected inbound-local primary and phone peers: %v", peers)
+	}
+	for _, peer := range peers {
+		if peer["email"] != client.Email {
+			t.Fatalf("lost common traffic attribution: %v", peer)
+		}
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", client.Email).Update("enable", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	if peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-devices")); len(peers) != 0 {
+		t.Fatalf("disabled parent retained device peers: %v", peers)
+	}
+}
+
 func TestGetXrayConfigWireGuardUsesInboundLocalTunnelFields(t *testing.T) {
 	email := seedDualTunnelClient(t, true, model.KeepAlivePtr(15))
 
