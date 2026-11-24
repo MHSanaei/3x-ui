@@ -2341,7 +2341,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				}
 				postCommitApply = func() {
 					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
-						logger.Debug("Inbound clients updated in place on", rt.Name(), ":", oldInbound.Tag)
 						return
 					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
@@ -2425,12 +2424,22 @@ func servedOutsideXray(protocol model.Protocol) bool {
 	return protocol == model.MTProto || protocol == model.TUIC || protocol == model.AmneziaWG
 }
 
-// applyInboundUserOps reports whether per-user core ops moved running to next, so
-// its listener and live connections survive; false means rebuild the handler.
+// applyInboundUserOps handles client-only changes in place, or returns false
+// when the handler must be rebuilt.
 func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool {
 	diff, ok := xray.InboundUserOps(running.GenXrayInboundConfig(), next.GenXrayInboundConfig())
 	if !ok {
 		return false
+	}
+	if next.Protocol == model.WireGuard {
+		if diff.DropsUsers() {
+			return false
+		}
+		if !diff.Empty() {
+			// Reconcile peers and the Xray config snapshot together.
+			(&XrayService{}).SetToNeedReconcile()
+		}
+		return true
 	}
 	ctx := context.Background()
 	for _, u := range diff.RemovedUsers {
@@ -2451,6 +2460,7 @@ func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool 
 			return false
 		}
 	}
+	logger.Debug("Inbound clients updated in place on", rt.Name(), ":", next.Tag)
 	return true
 }
 

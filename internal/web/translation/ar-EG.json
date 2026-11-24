@@ -816,6 +816,17 @@
       "tabBasics": "أساسي",
       "tabCredentials": "بيانات الاعتماد",
       "tabLinks": "الروابط",
+      "wgDevices": {
+        "title": "أجهزة WireGuard",
+        "limit": "الحد الأقصى للأجهزة",
+        "primary": "الجهاز الأساسي",
+        "enabled": "مفعّل",
+        "subscription": "نسخ رابط الاشتراك",
+        "deleteConfirm": "هل تريد حذف هذا الجهاز وتحرير عنوانه؟",
+        "remove": "حذف",
+        "name": "اسم الجهاز",
+        "add": "إضافة جهاز"
+      },
       "wireguardConfig": "إعدادات WireGuard",
       "config": "الإعداد",
       "linksHint": "أضف روابط مشاركة من جهات خارجية وعناوين اشتراك خارجية لتضمينها في اشتراك هذا العميل.",

@@ -520,6 +520,8 @@ export const ClientSchema = z.object({
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']).optional(),
   trafficResetDay: z.number().int().min(1).max(31).optional(),
   updated_at: z.number().int().optional(),
+  wgDeviceLimit: z.number().int().optional(),
+  wireguardDevices: z.array(z.lazy(() => WireguardDeviceSchema)).optional(),
 });
 export type Client = z.infer<typeof ClientSchema>;
 
@@ -577,6 +579,8 @@ export const ClientRecordSchema = z.object({
   trafficResetDay: z.number().int(),
   updatedAt: z.number().int(),
   uuid: z.string(),
+  wgDeviceLimit: z.number().int(),
+  wireguardDevices: z.array(z.lazy(() => WireguardDeviceSchema)),
 });
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
 
@@ -1309,4 +1313,15 @@ export const UserSchema = z.object({
   username: z.string(),
 });
 export type User = z.infer<typeof UserSchema>;
+
+export const WireguardDeviceSchema = z.object({
+  allowedIPs: z.array(z.string()),
+  enable: z.boolean(),
+  id: z.string(),
+  name: z.string(),
+  preSharedKey: z.string().optional(),
+  privateKey: z.string(),
+  publicKey: z.string(),
+});
+export type WireguardDevice = z.infer<typeof WireguardDeviceSchema>;
 

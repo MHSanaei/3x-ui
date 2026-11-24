@@ -364,18 +364,19 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 // peers fail it without publicKey/allowedIPs, and a failed add restarts Xray.
 func coreUserFromClient(c *model.Client, cipher string) map[string]any {
 	return map[string]any{
-		"email":        c.Email,
-		"id":           c.ID,
-		"auth":         c.Auth,
-		"security":     c.Security,
-		"flow":         c.Flow,
-		"password":     c.Password,
-		"cipher":       cipher,
-		"publicKey":    c.PublicKey,
-		"allowedIPs":   c.AllowedIPs,
-		"preSharedKey": c.PreSharedKey,
-		"keepAlive":    keepAliveStr(c.KeepAliveSeconds()),
-		"reverse":      c.Reverse,
+		"email":            c.Email,
+		"id":               c.ID,
+		"auth":             c.Auth,
+		"security":         c.Security,
+		"flow":             c.Flow,
+		"password":         c.Password,
+		"cipher":           cipher,
+		"publicKey":        c.PublicKey,
+		"allowedIPs":       c.AllowedIPs,
+		"preSharedKey":     c.PreSharedKey,
+		"keepAlive":        keepAliveStr(c.KeepAliveSeconds()),
+		"reverse":          c.Reverse,
+		"wireguardDevices": c.WireguardDevices,
 	}
 }
 

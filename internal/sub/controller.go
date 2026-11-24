@@ -40,7 +40,7 @@ const (
 // client, never-existed id) and becomes 404. A real error becomes 500. No
 // body — VPN clients only look at the status.
 func writeSubError(c *gin.Context, err error) {
-	if err == nil {
+	if err == nil || errors.Is(err, errWireguardDeviceUnavailable) {
 		c.Status(http.StatusNotFound)
 		return
 	}
@@ -460,6 +460,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subId := c.Param("subid")
 	_, host, _, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
+	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = false
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
@@ -534,6 +535,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
+	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = true
 	subReq.omitServerDescription = !IsHappClient(userAgent) && !IsIncyClient(userAgent)
 	subReq.ss2022Base64Userinfo = IsShadowrocketClient(userAgent)
@@ -881,7 +883,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray, c.Query("wgDevice"))
 	if err != nil {
 		writeSubError(c, err)
 		return true
@@ -941,10 +943,12 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	var clashSub, header string
 	var err error
+	clashService := *a.subClashService
+	clashService.SubService = a.subClashService.SubService.ForWireguardDevice(c.Query("wgDevice"))
 	if legacy {
-		clashSub, header, err = a.subClashService.GetClashLegacy(subId, host)
+		clashSub, header, err = clashService.GetClashLegacy(subId, host)
 	} else {
-		clashSub, header, err = a.subClashService.GetClash(subId, host)
+		clashSub, header, err = clashService.GetClash(subId, host)
 	}
 	if err != nil {
 		if errors.Is(err, errNoLegacyClashProxies) {
@@ -977,7 +981,11 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 
 func builtinProfileURL(c *gin.Context, scheme, hostWithPort string) string {
 	// Drop download/format selectors so the opt-in link always opens the HTML page.
-	return fmt.Sprintf("%s://%s%s?html=1", scheme, hostWithPort, c.Request.URL.EscapedPath())
+	profileURL := fmt.Sprintf("%s://%s%s?html=1", scheme, hostWithPort, c.Request.URL.EscapedPath())
+	if device := c.Query("wgDevice"); device != "" {
+		profileURL += "&wgDevice=" + url.QueryEscape(device)
+	}
+	return profileURL
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.

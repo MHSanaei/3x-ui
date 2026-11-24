@@ -816,6 +816,17 @@
       "tabBasics": "Cơ bản",
       "tabCredentials": "Thông tin xác thực",
       "tabLinks": "Liên kết",
+      "wgDevices": {
+        "title": "Thiết bị WireGuard",
+        "limit": "Giới hạn thiết bị",
+        "primary": "Thiết bị chính",
+        "enabled": "Đã bật",
+        "subscription": "Sao chép liên kết đăng ký",
+        "deleteConfirm": "Xóa thiết bị này và giải phóng địa chỉ của thiết bị?",
+        "remove": "Xóa",
+        "name": "Tên thiết bị",
+        "add": "Thêm thiết bị"
+      },
       "wireguardConfig": "Cấu hình WireGuard",
       "config": "Cấu hình",
       "linksHint": "Thêm liên kết chia sẻ của bên thứ ba và URL đăng ký từ xa để đưa vào đăng ký của khách hàng này.",

@@ -296,7 +296,7 @@ func sharedRecordWouldChange(rec *model.ClientRecord, reported *model.Client) bo
 	incoming.CreatedAt = 0
 	merged := *rec
 	applyClientRecordMerge(&merged, incoming)
-	keepLinkOwnedFields(&merged, rec, false)
+	keepLinkOwnedFields(&merged, rec, false, false)
 	return !reflect.DeepEqual(merged, *rec)
 }
 

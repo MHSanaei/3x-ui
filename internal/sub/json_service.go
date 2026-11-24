@@ -115,8 +115,11 @@ func (s *SubJsonService) bakedTemplate() map[string]any {
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
-func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
+func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool, wireguardDevice ...string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
+	if len(wireguardDevice) > 0 {
+		subReq.wireguardDevice = wireguardDevice[0]
+	}
 	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
@@ -144,7 +147,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	var hidden []subConfigEntry
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients := subReq.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -238,6 +241,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				entries = append(entries, entry)
 			}
 		}
+	}
+	if err := subReq.validateWireguardDevice(); err != nil {
+		return "", "", err
 	}
 	entries = s.appendBalancerEntries(entries, hidden, balancers)
 

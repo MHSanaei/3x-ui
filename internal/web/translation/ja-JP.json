@@ -816,6 +816,17 @@
       "tabBasics": "基本",
       "tabCredentials": "認証情報",
       "tabLinks": "リンク",
+      "wgDevices": {
+        "title": "WireGuardデバイス",
+        "limit": "デバイス数の上限",
+        "primary": "メインデバイス",
+        "enabled": "有効",
+        "subscription": "サブスクリプションをコピー",
+        "deleteConfirm": "このデバイスを削除してアドレスを解放しますか？",
+        "remove": "削除",
+        "name": "デバイス名",
+        "add": "デバイスを追加"
+      },
       "wireguardConfig": "WireGuard 設定",
       "config": "設定",
       "linksHint": "サードパーティの共有リンクやリモートのサブスクリプションURLを追加して、このクライアントのサブスクリプションに含めます。",

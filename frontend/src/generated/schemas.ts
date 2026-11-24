@@ -2125,6 +2125,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Last update timestamp",
         "format": "int64",
         "type": "integer"
+      },
+      "wgDeviceLimit": {
+        "type": "integer"
+      },
+      "wireguardDevices": {
+        "items": {
+          "$ref": "#/components/schemas/WireguardDevice"
+        },
+        "type": "array"
       }
     },
     "required": [
@@ -2339,6 +2348,15 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "uuid": {
         "type": "string"
+      },
+      "wgDeviceLimit": {
+        "type": "integer"
+      },
+      "wireguardDevices": {
+        "items": {
+          "$ref": "#/components/schemas/WireguardDevice"
+        },
+        "type": "array"
       }
     },
     "required": [
@@ -2374,7 +2392,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "trafficReset",
       "trafficResetDay",
       "updatedAt",
-      "uuid"
+      "uuid",
+      "wgDeviceLimit",
+      "wireguardDevices"
     ],
     "type": "object"
   },
@@ -5404,6 +5424,44 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "password",
       "username"
+    ],
+    "type": "object"
+  },
+  "WireguardDevice": {
+    "description": "WireguardDevice is an additional peer sharing its client's quota and lifecycle.\nThe original client credentials remain the primary device for compatibility.",
+    "properties": {
+      "allowedIPs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "enable": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "enable",
+      "id",
+      "name",
+      "privateKey",
+      "publicKey"
     ],
     "type": "object"
   }

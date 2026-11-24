@@ -816,6 +816,17 @@
       "tabBasics": "Základné údaje",
       "tabCredentials": "Prihlasovacie údaje",
       "tabLinks": "Odkazy",
+      "wgDevices": {
+        "title": "Zariadenia WireGuard",
+        "limit": "Limit zariadení",
+        "primary": "Hlavné zariadenie",
+        "enabled": "Zapnuté",
+        "subscription": "Kopírovať odber",
+        "deleteConfirm": "Odstrániť toto zariadenie a uvoľniť jeho adresu?",
+        "remove": "Odstrániť",
+        "name": "Názov zariadenia",
+        "add": "Pridať zariadenie"
+      },
       "wireguardConfig": "Konfigurácia WireGuard",
       "config": "Konfigurácia",
       "linksHint": "Pridajte externé odkazy na pripojenie a vzdialené odbery konfigurácií, ktoré sa majú zahrnúť do odberu tohto klienta.",

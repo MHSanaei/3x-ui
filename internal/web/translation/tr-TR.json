@@ -816,6 +816,17 @@
       "tabBasics": "Temel",
       "tabCredentials": "Kimlik Bilgileri",
       "tabLinks": "Bağlantılar",
+      "wgDevices": {
+        "title": "WireGuard cihazları",
+        "limit": "Cihaz sınırı",
+        "primary": "Ana cihaz",
+        "enabled": "Etkin",
+        "subscription": "Aboneliği kopyala",
+        "deleteConfirm": "Bu cihaz silinsin ve adresi serbest bırakılsın mı?",
+        "remove": "Sil",
+        "name": "Cihaz adı",
+        "add": "Cihaz ekle"
+      },
       "wireguardConfig": "WireGuard yapılandırması",
       "config": "Yapılandırma",
       "linksHint": "Bu istemcinin aboneliğine dahil etmek için üçüncü taraf paylaşım bağlantıları ve uzak abonelik URL'leri ekleyin.",
