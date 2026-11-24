@@ -1,11 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+
+	"gorm.io/gorm"
 )
 
 func TestClientGroup_RenameKeepsMembershipAndBindings(t *testing.T) {
@@ -321,6 +324,101 @@ func TestClientGroup_CreateAndUpdateRejectUnknownHostGroup(t *testing.T) {
 	}
 	if renamed != 0 || bindings != 0 {
 		t.Fatalf("failed update left renamed=%d bindings=%d", renamed, bindings)
+	}
+}
+
+// Deleting an inbound removes its host rows; a binding to the vanished host
+// group must not survive as a stale tag that blocks later group edits.
+func TestClientGroup_StaleBindingAfterInboundDelete(t *testing.T) {
+	initTrafficTestDB(t)
+	db := database.GetDB()
+	group := &model.ClientGroup{Name: "VIP"}
+	if err := db.Create(group).Error; err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	inbound := &model.Inbound{UserId: 1, Tag: "in", Enable: true, Port: 4504, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if _, err := (&HostService{}).AddHostGroup(&entity.HostGroup{
+		GroupId: "hg", InboundIds: []int{inbound.Id}, Hosts: []string{"a.cdn.com"}, Remark: "A",
+	}); err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	svc := &ClientService{}
+	if _, err := svc.SetGroupHostGroups("VIP", []string{"hg"}); err != nil {
+		t.Fatalf("SetGroupHostGroups: %v", err)
+	}
+
+	if err := (&InboundService{}).deleteInboundRow(db, inbound.Id); err != nil {
+		t.Fatalf("deleteInboundRow: %v", err)
+	}
+	groups, err := svc.ListGroups()
+	if err != nil {
+		t.Fatalf("ListGroups: %v", err)
+	}
+	if got := findGroupSummary(groups, "VIP"); len(got.HostGroupIds) != 0 {
+		t.Fatalf("stale host rules after inbound delete = %v, want none", got.HostGroupIds)
+	}
+	if _, err := svc.SetGroupHostGroups("VIP", []string{}); err != nil {
+		t.Fatalf("edit after inbound delete: %v", err)
+	}
+}
+
+// The clients table gets the canonical group spelling while inbound settings can
+// still hold a case variant. Rename and delete must follow the client, not the
+// spelling, or a later sync resurrects the old group.
+func TestClientGroup_RenameAndDeleteFollowCanonicalizedJSONCase(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	id := "77777777-7777-7777-7777-777777777777"
+	ib := mkInbound(t, 4505, model.VLESS, clientsSettings(t, []model.Client{{
+		Email: "case@x", ID: id, Enable: true, Group: "vip",
+	}}))
+	svc := &ClientService{}
+	if err := svc.SyncInbound(nil, ib.Id, []model.Client{{
+		Email: "case@x", ID: id, Enable: true, Group: "VIP",
+	}}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	var rec model.ClientRecord
+	if err := db.Where("email = ?", "case@x").First(&rec).Error; err != nil {
+		t.Fatalf("reload client: %v", err)
+	}
+	if rec.Group != "VIP" {
+		t.Fatalf("client group = %q, want canonical VIP", rec.Group)
+	}
+	assertInboundClientGroup(t, db, ib.Id, "case@x", "vip")
+
+	if _, err := svc.UpdateGroup("VIP", "Gold", nil); err != nil {
+		t.Fatalf("UpdateGroup: %v", err)
+	}
+	assertInboundClientGroup(t, db, ib.Id, "case@x", "Gold")
+
+	if _, err := svc.DeleteGroup("Gold"); err != nil {
+		t.Fatalf("DeleteGroup: %v", err)
+	}
+	assertInboundClientGroup(t, db, ib.Id, "case@x", "")
+}
+
+func assertInboundClientGroup(t *testing.T, db *gorm.DB, inboundID int, email, want string) {
+	t.Helper()
+	var settings string
+	if err := db.Model(&model.Inbound{}).Where("id = ?", inboundID).Pluck("settings", &settings).Error; err != nil {
+		t.Fatalf("load settings: %v", err)
+	}
+	var parsed struct {
+		Clients []map[string]any `json:"clients"`
+	}
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		t.Fatalf("unmarshal settings: %v", err)
+	}
+	if len(parsed.Clients) != 1 {
+		t.Fatalf("settings clients = %d, want 1: %s", len(parsed.Clients), settings)
+	}
+	got, _ := parsed.Clients[0]["group"].(string)
+	if got != want {
+		t.Fatalf("settings group = %q, want %q: %s", got, want, settings)
 	}
 }
 

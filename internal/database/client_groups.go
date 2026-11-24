@@ -43,7 +43,13 @@ func EnsureClientGroup(tx *gorm.DB, name string) (*model.ClientGroup, error) {
 // PruneHostGroupClientGroups drops bindings whose host group no longer has any
 // hosts row (e.g. the inbound was deleted). Idempotent; runs on every start.
 func PruneHostGroupClientGroups() error {
-	return db.Exec(`DELETE FROM host_group_client_groups
+	return PruneHostGroupClientGroupsTx(db)
+}
+
+// PruneHostGroupClientGroupsTx drops bindings to rules whose hosts are gone, so
+// deleting an inbound cannot leave a group bound to a rule nobody can select.
+func PruneHostGroupClientGroupsTx(tx *gorm.DB) error {
+	return tx.Exec(`DELETE FROM host_group_client_groups
 		WHERE host_group_id NOT IN (SELECT DISTINCT group_id FROM hosts)
 		   OR client_group_id NOT IN (SELECT id FROM client_groups)`).Error
 }

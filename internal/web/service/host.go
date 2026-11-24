@@ -401,7 +401,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 				return err
 			}
 		}
-		return nil
+		return database.PruneHostGroupClientGroupsTx(tx)
 	})
 	if err != nil {
 		return nil, err

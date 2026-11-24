@@ -541,6 +541,10 @@ func (s *ClientService) replaceGroupValue(oldName, newName string, hostGroupIDs 
 			}
 		}
 
+		emailSet := make(map[string]struct{}, len(affectedEmails))
+		for _, email := range affectedEmails {
+			emailSet[email] = struct{}{}
+		}
 		for _, ibID := range inboundIDs {
 			var ib model.Inbound
 			if err := tx.First(&ib, ibID).Error; err != nil {
@@ -560,15 +564,19 @@ func (s *ClientService) replaceGroupValue(oldName, newName string, hostGroupIDs 
 				if !ok {
 					continue
 				}
-				if g, ok := cm["group"].(string); ok && g == oldName {
-					if newName == "" {
-						delete(cm, "group")
-					} else {
-						cm["group"] = newName
-					}
-					clients[i] = cm
-					modified = true
+				email, _ := cm["email"].(string)
+				if _, hit := emailSet[email]; !hit {
+					continue
 				}
+				// The clients row may have been canonicalized without rewriting the
+				// settings JSON, so match by member rather than by stored spelling.
+				if newName == "" {
+					delete(cm, "group")
+				} else {
+					cm["group"] = newName
+				}
+				clients[i] = cm
+				modified = true
 			}
 			if modified {
 				settings["clients"] = clients
