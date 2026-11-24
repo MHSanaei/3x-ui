@@ -74,6 +74,10 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
+	"publicIpRefreshMinutes":      "5",
+	"publicIpv6Detect":            "true",
+	"publicIpv4Override":          "",
+	"publicIpv6Override":          "",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
@@ -748,6 +752,22 @@ func (s *SettingService) GetExpireDiff() (int, error) {
 
 func (s *SettingService) GetTrafficDiff() (int, error) {
 	return s.getInt("trafficDiff")
+}
+
+func (s *SettingService) GetPublicIpRefreshMinutes() (int, error) {
+	return s.getInt("publicIpRefreshMinutes")
+}
+
+func (s *SettingService) GetPublicIpv6Detect() (bool, error) {
+	return s.getBool("publicIpv6Detect")
+}
+
+func (s *SettingService) GetPublicIpv4Override() (string, error) {
+	return s.getString("publicIpv4Override")
+}
+
+func (s *SettingService) GetPublicIpv6Override() (string, error) {
+	return s.getString("publicIpv6Override")
 }
 
 func (s *SettingService) GetSessionMaxAge() (int, error) {

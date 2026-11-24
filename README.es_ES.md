@@ -200,6 +200,7 @@ Herramientas e integraciones construidas por la comunidad alrededor de 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Licencia: **MIT**): _Gestiona inbounds, clientes, configuración del panel y configuración de Xray como código con Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Licencia: **MIT**): _Cliente nativo de Android para 3x-ui — panel de control, inbounds, clientes con compartición por QR, nodos y gestión de múltiples paneles. Disponible en F-Droid._
+- [3x-ui-exporter](https://github.com/nike38rus/3x-ui-exporter) (Licencia: **MIT**): _Exportador ligero de Prometheus y panel de Grafana para 3x-ui y Xray Core — tráfico en tiempo real, clientes activos, sockets abiertos, balanceadores y estado de latencia._
 
 ## Apoyar el Proyecto
 
