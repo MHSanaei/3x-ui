@@ -73,7 +73,12 @@ func TestNetworkTrafficCollectionRebasesAfterFailureAndRecovery(t *testing.T) {
 			return []networkDefaultRoute{{iface, 4, 10}}, nil
 		},
 	}
-	svc := &ServerService{networkTrafficReader: reader, cachedCpuSpeedMhz: 1}
+	// No public IP lookup is due: GetStatus would start a real one that outlives the test.
+	notDue := time.Now().Add(time.Hour)
+	svc := &ServerService{
+		networkTrafficReader: reader, cachedCpuSpeedMhz: 1,
+		cachedIPv4: "192.0.2.1", cachedIPv6: "N/A", nextIPv4Lookup: notDue, nextIPv6Lookup: notDue,
+	}
 	legacy := svc.GetStatus(nil)
 	if legacy.NetTraffic.Sent != 2*bytes || legacy.NetworkInterface.Mode != "legacy" {
 		t.Fatalf("legacy default: sent=%d selection=%+v", legacy.NetTraffic.Sent, legacy.NetworkInterface)
