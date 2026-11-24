@@ -44,10 +44,11 @@ _openapi:
     - depth: 2
       title: >-
         Update an existing client by email. Changes propagate to every attached
-        inbound. Body is the JSON client payload — supply the full set of fields
-        you want to keep (the server replaces the row, it does not patch).
+        inbound. Body is the JSON client payload: omitted fields keep their
+        current values, and an explicit zero, empty or null value clears a
+        field, except as noted below.
       url: >-
-        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+        #update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
     - depth: 2
       title: >-
         Delete a client by email. Removes it from every attached inbound and
@@ -358,11 +359,11 @@ _openapi:
           create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
       - content: >-
           Update an existing client by email. Changes propagate to every
-          attached inbound. Body is the JSON client payload — supply the full
-          set of fields you want to keep (the server replaces the row, it does
-          not patch).
+          attached inbound. Body is the JSON client payload: omitted fields keep
+          their current values, and an explicit zero, empty or null value clears
+          a field, except as noted below.
         id: >-
-          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+          update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
       - content: >-
           Delete a client by email. Removes it from every attached inbound and
           drops its traffic record unless keepTraffic=1 is passed.

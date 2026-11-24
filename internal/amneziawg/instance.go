@@ -34,7 +34,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 			PublicKey:      c.PublicKey,
 			PresharedKey:   c.PreSharedKey,
 			AllowedIPs:     c.AllowedIPs,
-			ForwardedPorts: c.ForwardedPorts,
+			ForwardedPorts: c.ForwardedPortsSpec(),
 		})
 	}
 	if len(peers) == 0 {

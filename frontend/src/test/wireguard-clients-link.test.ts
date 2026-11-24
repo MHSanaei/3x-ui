@@ -88,3 +88,18 @@ describe('wireguard multi-client link/config fan-out', () => {
     expect(links[0]).toContain('address=10.0.0.9%2F32');
   });
 });
+
+describe('wireguard finalmask', () => {
+  it('puts the inbound finalmask into the link as fm', () => {
+    const base = wgInbound();
+    const mask = { tcp: [], udp: [{ type: 'salamander', settings: { password: 'pw' } }] };
+    const inbound = InboundSchema.parse({
+      ...base,
+      streamSettings: { network: 'tcp', security: 'none', tcpSettings: {}, finalmask: mask },
+    });
+    const link = genWireguardLinks({ inbound, remark: 'wg', fallbackHostname: 'h.example' }).split(
+      '\r\n',
+    )[0];
+    expect(JSON.parse(new URL(link).searchParams.get('fm') ?? '')).toEqual(mask);
+  });
+});

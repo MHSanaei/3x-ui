@@ -38,7 +38,7 @@ func TestResetAllTrafficsDoesNotBlockWriterOnNodeCall(t *testing.T) {
 	mgr.SetRuntimeOverride(node.Id, fake)
 
 	done := make(chan error, 1)
-	go func() { done <- (&InboundService{}).ResetAllTraffics() }()
+	go func() { _, err := (&InboundService{}).ResetAllTraffics(); done <- err }()
 
 	select {
 	case <-fake.reached:

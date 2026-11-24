@@ -113,3 +113,25 @@ func TestInactiveExternalOnlySubRemainsKnownWithoutExposingLinks(t *testing.T) {
 		})
 	}
 }
+
+// Clients stored without a subId share no subscription; a blank key must not
+// select all of them. The routes never pass one, in-process callers can.
+func TestBlankSubIdResolvesToNothing(t *testing.T) {
+	for _, subId := range []string{"", " "} {
+		seedSubDB(t)
+		seedSubInbound(t, subId, "one", 4431, 1, `{"network":"tcp","security":"none"}`)
+		seedSubInbound(t, subId, "two", 4432, 2, `{"network":"tcp","security":"none"}`)
+		seedInactiveExternalOnlySub(t, subId, "ext@e", true, time.Now().Add(time.Hour).UnixMilli())
+
+		links, emails, _, _, err := NewSubService("").GetSubs(subId, "req.example.com")
+		if err != nil || len(links) != 0 || len(emails) != 0 {
+			t.Errorf("GetSubs(%q) = %v, %v, %v; want nothing", subId, links, emails, err)
+		}
+		if out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson(subId, "req.example.com", false); err != nil || out != "" {
+			t.Errorf("GetJson(%q) = %q, %v; want nothing", subId, out, err)
+		}
+		if out, _, err := NewSubClashService(false, "", false, NewSubService("")).GetClash(subId, "req.example.com"); err != nil || out != "" {
+			t.Errorf("GetClash(%q) = %q, %v; want nothing", subId, out, err)
+		}
+	}
+}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
-import { HeaderMapEditor } from '@/components/form';
+import { HeaderMapEditor, selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { MASQUE_DEFAULT_PATH } from '@/schemas/protocols/stream/masque';
 
@@ -79,6 +79,7 @@ export default function MasqueForm() {
           >
             <Select
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',', ' ']}
               open={false}
               placeholder="172.16.0.2, 2606:4700:110:8a36::2"

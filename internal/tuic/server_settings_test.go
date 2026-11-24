@@ -127,3 +127,19 @@ func TestEnsureStartupFailureHonorsInboundLogThreshold(t *testing.T) {
 		})
 	}
 }
+
+// Seconds turn into a Duration by multiplication; a pushed value past the int64 range
+// wrapped negative and the QUIC listener panicked on the first ClientHello, every start.
+func TestNewServerRefusesTimeoutsPastADay(t *testing.T) {
+	cert, key := generateTestCert(t)
+	for name, inst := range map[string]Instance{
+		"max_idle_time":          {MaxIdleTime: 1 << 40},
+		"authentication_timeout": {AuthenticationTimeout: MaxTimeoutSeconds + 1},
+	} {
+		inst.Listen, inst.Certificate, inst.PrivateKey = "127.0.0.1", string(cert), string(key)
+		if s, err := NewServer(inst, &SocksRelay{Addr: "127.0.0.1:1"}); err == nil {
+			_ = s.Close()
+			t.Errorf("%s past a day was accepted", name)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"encoding/base64"
 	"strings"
 	"sync"
 	"testing"
@@ -215,10 +216,63 @@ func TestInviteAttemptLimit(t *testing.T) {
 	}
 }
 
+// Regression test: anonymous admins, channels and linked-channel posts all arrive
+// under three fixed user ids. A claim under one opened a throttle window of its
+// own and bound the client to everybody who can post that way.
+func TestClaimSentForChatIsRefused(t *testing.T) {
+	tb, calls := newInviteTgbot(t, "invitee@x")
+
+	origBy := inviteAttemptsBy
+	inviteAttemptsBy = map[int64]*inviteAttempts{}
+	t.Cleanup(func() { inviteAttemptsBy = origBy })
+
+	placeholders := []telego.User{
+		{ID: 1087968824, IsBot: true, Username: "GroupAnonymousBot"},
+		{ID: 136817688, IsBot: true, Username: "Channel_Bot"},
+		{ID: 777000, FirstName: "Telegram"},
+	}
+	for _, from := range placeholders {
+		message := commandFrom(from.ID, "/start "+mustInvitePayload(t, "sub-invite"))
+		message.From = &from
+		message.Chat = telego.Chat{ID: -1001234500001, Type: telego.ChatTypeSupergroup}
+		message.SenderChat = &message.Chat
+
+		if isAdmin, ok := tb.gateCommand(message); ok {
+			tb.answerCommand(message, message.Chat.ID, isAdmin)
+		}
+		if got := tb.levelOf(from.ID); got != levelStranger {
+			t.Errorf("placeholder user %d claimed the invite: level %d", from.ID, got)
+		}
+	}
+	if len(inviteAttemptsBy) != 0 {
+		t.Errorf("throttle windows = %d, want none for placeholder users", len(inviteAttemptsBy))
+	}
+	if n := calls("sendMessage"); n != len(placeholders) {
+		t.Errorf("sendMessage calls = %d, want %d refusals", n, len(placeholders))
+	}
+	if outcome, _ := tb.resolveInviteToken("sub-invite", 8080); outcome != inviteBindable {
+		t.Errorf("owner's outcome afterwards = %d, want bindable", outcome)
+	}
+}
+
 func TestTgUserMentionEscapesName(t *testing.T) {
 	got := tgUserMention(&telego.User{ID: 42, FirstName: "<b>Eve</b>", Username: "eve"})
 	want := `<a href="tg://user?id=42">&lt;b&gt;Eve&lt;/b&gt;</a> @eve`
 	if got != want {
 		t.Errorf("tgUserMention = %q, want %q", got, want)
 	}
+}
+
+// The bot's handlers recover panics, so a claim that panicked with inviteClaimMu held left
+// it locked for good and every later /start claim parked on a worker slot.
+func TestInviteClaimReleasesTheLockWhenItPanics(t *testing.T) {
+	func() {
+		defer func() { _ = recover() }()
+		// No database is open here, so resolving the token panics inside the lock.
+		(&Tgbot{}).claimInvite(1, 1, base64.RawURLEncoding.EncodeToString([]byte("some-sub-id")))
+	}()
+	if !inviteClaimMu.TryLock() {
+		t.Fatal("inviteClaimMu is still held after a claim panicked")
+	}
+	inviteClaimMu.Unlock()
 }

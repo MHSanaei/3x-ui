@@ -6,6 +6,7 @@ import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 import type { Path } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { InputAddon } from '@/components/ui';
 import { FormField } from '@/components/form/rhf';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
@@ -253,6 +254,7 @@ export default function BalancerFormModal({
           <FormField name="selector" label={t('pages.xray.balancer.selector')} required>
             <Select
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',']}
               options={outboundTags.map((tg) => ({ value: tg, label: tg }))}
             />

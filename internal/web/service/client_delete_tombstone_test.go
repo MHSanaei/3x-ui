@@ -3,7 +3,9 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -195,5 +197,31 @@ func TestRolledBackCreateKeepsTombstone(t *testing.T) {
 	}
 	if !isClientEmailTombstoned(email) {
 		t.Fatal("a create that rolled back withdrew the delete tombstone, so a stale node snapshot can resurrect the deleted client")
+	}
+}
+
+// The email reaches a LIKE pre-filter: a long near-miss costs SQLite text times pattern
+// length while holding the database, and wildcards must not match either.
+func TestFindInboundIdsByClientEmailTreatsTheEmailLiterally(t *testing.T) {
+	setupConflictDB(t)
+	settings := `{"clients":[{"email":"real@x"}],"pad":"` + strings.Repeat("a", 1<<20) + `"}`
+	if err := database.GetDB().Create(&model.Inbound{UserId: 1, Tag: "big", Port: 41601, Protocol: model.VLESS, Settings: settings}).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	done := make(chan []int, 1)
+	go func() {
+		ids, _ := (&ClientService{}).findInboundIdsByClientEmail(strings.Repeat("a", 10000) + "b")
+		done <- ids
+	}()
+	select {
+	case ids := <-done:
+		if len(ids) != 0 {
+			t.Fatalf("a wildcard email matched inbounds %v", ids)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the email lookup is still running after 5 s")
+	}
+	if ids, err := (&ClientService{}).findInboundIdsByClientEmail("real@x"); err != nil || len(ids) != 1 {
+		t.Fatalf("lookup of a real email = %v, %v", ids, err)
 	}
 }

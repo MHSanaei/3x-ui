@@ -127,3 +127,32 @@ func TestQuotedScalarEscapesQuotes(t *testing.T) {
 		t.Errorf("password round-tripped to %#v\n%s", got, out)
 	}
 }
+
+// Node-reported paths, remarks and header names reach the profile; a line break the
+// encoder writes bare would start a top-level key of the subscriber's Clash config.
+func TestLineBreaksStayInsideTheirScalar(t *testing.T) {
+	for _, value := range []string{
+		"/ws\r\n\r\nmode:\r  direct", "/ws\n\n\n\n\n\n\rmode:\r  direct", "a\nb\nc\u0085mode: direct",
+		"a\nb\nc mode: direct", "a\nb\nc mode: direct", "2026-01-01\n\n\rmode: direct",
+	} {
+		profile := map[string]any{"proxies": []any{map[string]any{
+			"name":    "n",
+			"ws-opts": map[string]any{"path": value, "headers": map[string]any{value: "v"}},
+		}}}
+		out, err := marshalClashYAML(profile)
+		if err != nil {
+			t.Fatalf("marshal %q: %v", value, err)
+		}
+		if strings.ContainsAny(string(out), "\r\u0085  ") || strings.Contains(string(out), "\nmode:") {
+			t.Fatalf("value %q escaped its scalar:\n%q", value, out)
+		}
+		var back map[string]any
+		if err := yaml.Unmarshal(out, &back); err != nil {
+			t.Fatalf("read back %q: %v\n%q", value, err, out)
+		}
+		opts := back["proxies"].([]any)[0].(map[string]any)["ws-opts"].(map[string]any)
+		if opts["path"] != value || opts["headers"].(map[string]any)[value] != "v" {
+			t.Fatalf("value %q did not round-trip:\n%q", value, out)
+		}
+	}
+}

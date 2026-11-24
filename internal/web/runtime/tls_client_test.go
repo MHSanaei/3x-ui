@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
@@ -660,5 +661,72 @@ func TestDecodeCertPin(t *testing.T) {
 				t.Fatalf("decoded bytes mismatch for %q", c.in)
 			}
 		})
+	}
+}
+
+// The master presents the same credentials to every node; a node's redirect must not
+// carry a request (a push, the mTLS certificate) to another host.
+func TestNodeClientsDoNotFollowARedirectToAnotherHost(t *testing.T) {
+	var otherHit atomic.Int32
+	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { otherHit.Add(1) }))
+	defer other.Close()
+	hostile := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/panel/api/inbounds/update/1", http.StatusTemporaryRedirect)
+	}))
+	defer hostile.Close()
+	u, _ := url.Parse(hostile.URL)
+	port, _ := strconv.Atoi(u.Port())
+	for _, node := range []*model.Node{
+		{Id: 41, Address: u.Hostname(), Port: port, Scheme: "https", TlsVerifyMode: "skip", AllowPrivateAddress: true},
+		{Id: 42, Address: u.Hostname(), Port: port, Scheme: "http", AllowPrivateAddress: true},
+	} {
+		client, err := HTTPClientForNode(node, "")
+		if err != nil {
+			t.Fatalf("HTTPClientForNode: %v", err)
+		}
+		req, _ := http.NewRequestWithContext(netsafe.ContextWithAllowPrivate(context.Background(), true),
+			http.MethodPost, hostile.URL+"/panel/api/inbounds/list", strings.NewReader("{}"))
+		if resp, err := client.Do(req); err == nil {
+			_ = resp.Body.Close()
+		}
+	}
+	if otherHit.Load() != 0 {
+		t.Fatalf("a node's redirect reached another host %d time(s)", otherHit.Load())
+	}
+}
+
+// The transport keeps dialing for its pool after a request gives up, so a node that
+// never answers the TLS handshake would hold a socket and two goroutines forever.
+func TestNodeTransportGivesUpOnAStalledTLSHandshake(t *testing.T) {
+	previous := nodeTLSHandshakeTimeout
+	nodeTLSHandshakeTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { nodeTLSHandshakeTimeout = previous })
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+	closed := make(chan struct{})
+	go func() {
+		conn, err := lis.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_, _ = io.Copy(io.Discard, conn) // returns once the master hangs up
+		close(closed)
+	}()
+	client := &http.Client{Transport: newNodeTransport(&tls.Config{InsecureSkipVerify: true})}
+	ctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(context.Background(), true), 50*time.Millisecond)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+lis.Addr().String()+"/", nil)
+	if resp, err := client.Do(req); err == nil {
+		_ = resp.Body.Close()
+	}
+	select {
+	case <-closed:
+	case <-time.After(3 * time.Second):
+		t.Fatal("the stalled handshake's connection is still open")
 	}
 }

@@ -30,9 +30,15 @@ const MaxFileSize int64 = 256 << 20
 // the caller asks for.
 const MaxPageSize = 500
 
+// MaxIndexSize caps the category records plus attribute keys one database may
+// keep in the index: each costs hundreds of bytes in memory for ten on disk.
+const MaxIndexSize = 1 << 16
+
 var (
 	// ErrFileTooLarge reports a database above MaxFileSize.
 	ErrFileTooLarge = errors.New("geodata file is too large to browse")
+	// ErrIndexTooLarge reports a database above MaxIndexSize.
+	ErrIndexTooLarge = errors.New("geodata category index is too large to browse")
 	// ErrInvalidName reports a file name that does not resolve to a .dat file
 	// directly inside the asset directory.
 	ErrInvalidName = errors.New("invalid geodata file name")
@@ -226,7 +232,8 @@ func (s *Store) index(name string) (*index, error) {
 // isPermanent reports whether an error will repeat for the same bytes, and is
 // therefore worth caching instead of re-deriving on every request.
 func isPermanent(err error) bool {
-	return errors.Is(err, ErrUnrecognized) || errors.Is(err, ErrInvalidName) || errors.Is(err, ErrFileTooLarge)
+	return errors.Is(err, ErrUnrecognized) || errors.Is(err, ErrInvalidName) || errors.Is(err, ErrFileTooLarge) ||
+		errors.Is(err, ErrIndexTooLarge)
 }
 
 func (s *Store) cachedIndex(key fileKey) (*index, bool) {

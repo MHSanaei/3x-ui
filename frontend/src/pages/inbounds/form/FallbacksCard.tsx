@@ -10,6 +10,7 @@ import {
 import type { FallbackRow } from '@/schemas/forms/inbound-form';
 
 interface FallbacksCardProps {
+  canAdd?: boolean;
   fallbacks: FallbackRow[];
   fallbackChildOptions: { label: string; value: number }[];
   addFallback: () => void;
@@ -20,6 +21,7 @@ interface FallbacksCardProps {
 }
 
 export default function FallbacksCard({
+  canAdd = true,
   fallbacks,
   fallbackChildOptions,
   addFallback,
@@ -38,6 +40,7 @@ export default function FallbacksCard({
         size="small"
         icon={<PlusOutlined aria-hidden />}
         onClick={addFallback}
+        disabled={!canAdd}
       >
         {t('pages.inbounds.fallbacks.add') || 'Add fallback'}
       </Button>
@@ -45,7 +48,9 @@ export default function FallbacksCard({
         size="small"
         onClick={addAllFallbacks}
         disabled={
-          fallbackChildOptions.length === 0 || fallbacks.length >= fallbackChildOptions.length
+          !canAdd ||
+          fallbackChildOptions.length === 0 ||
+          fallbacks.length >= fallbackChildOptions.length
         }
         title={t('pages.inbounds.form.addAllFallbackTooltip')}
       >

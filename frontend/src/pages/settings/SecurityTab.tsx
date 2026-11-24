@@ -169,7 +169,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
     if (!token) return;
     const ok = await ClipboardManager.copyText(token);
     if (ok) messageApi.success(t('copySuccess'));
-    else messageApi.error(t('copyFail') ?? 'Copy failed');
+    else messageApi.error(t('copyFail'));
   }
 
   function openCreateModal() {
@@ -381,7 +381,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
                     + {t('pages.settings.security.apiTokenNew') || 'New token'}
                   </Button>
                 </div>
-                <Spin spinning={apiTokensLoading}>
+                <Spin aria-live="off" spinning={apiTokensLoading}>
                   {!apiTokens.length && !apiTokensLoading && (
                     <Empty
                       description={t('pages.settings.security.apiTokenEmpty') || 'No tokens yet'}

@@ -180,6 +180,8 @@ type SocksUDPSession struct {
 	targetEP net.Addr
 	user     string
 	closed   atomic.Bool
+	// onClose runs once when the session closes, releasing its place in a budget.
+	onClose func()
 }
 
 // DialUDP establishes a SOCKS5 UDP ASSOCIATE tunnel to Xray.
@@ -311,6 +313,9 @@ func (s *SocksUDPSession) Receive(buf []byte) (*Address, []byte, error) {
 func (s *SocksUDPSession) Close() error {
 	if s.closed.Swap(true) {
 		return nil
+	}
+	if s.onClose != nil {
+		s.onClose()
 	}
 	_ = s.udpConn.Close()
 	return s.ctrl.Close()

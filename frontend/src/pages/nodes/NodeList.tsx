@@ -127,7 +127,14 @@ function StatusLabel({ status, xrayState }: HealthProps) {
       </span>
     );
   }
-  return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
+  // A sub-node's status is free text from its parent node: show it as unknown, not as a key.
+  return (
+    <span>
+      {t(`pages.nodes.statusValues.${status || 'unknown'}`, {
+        defaultValue: t('pages.nodes.statusValues.unknown'),
+      })}
+    </span>
+  );
 }
 
 function formatPct(p?: number, available = true): string {
@@ -188,11 +195,11 @@ export default function NodeList({
   const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  // Map a node GUID to its display name so a transitive sub-node can show which
-  // parent it is reached through (#4983).
+  // Map a direct node's GUID to its display name so a transitive sub-node can show
+  // which parent it is reached through (#4983); the master walks one level only.
   const nameByGuid = useMemo(() => {
     const m = new Map<string, string>();
-    for (const n of nodes) if (n.guid) m.set(n.guid, n.name || n.guid);
+    for (const n of nodes) if (n.guid && !n.transitive) m.set(n.guid, n.name || n.guid);
     return m;
   }, [nodes]);
 

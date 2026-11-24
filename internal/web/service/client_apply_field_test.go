@@ -144,3 +144,76 @@ func TestSetClientEnableByEmail_MultiInbound(t *testing.T) {
 		}
 	}
 }
+
+// Regression test: removing a client's Telegram user cleared tgId on one inbound
+// only, so the next sync of the sibling bound the removed account again.
+func TestSetClientTelegramUserID_MultiInbound(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+
+	db := database.GetDB()
+
+	const email = "multitg@example.com"
+	const uid = "ce8d33df-3a64-4f10-8f9b-91c3a8e0c333"
+	clientJSON := `{"clients":[{"email":"` + email + `","id":"` + uid + `","enable":true,"subId":"sub-tg-1","tgId":4242}]}`
+
+	first := &model.Inbound{
+		Tag: "vless-tg-a", Enable: true, Port: 50021, Protocol: model.VLESS,
+		StreamSettings: `{"network":"tcp","security":"reality"}`, Settings: clientJSON,
+	}
+	second := &model.Inbound{
+		Tag: "vless-tg-b", Enable: true, Port: 50022, Protocol: model.VLESS,
+		StreamSettings: `{"network":"ws","security":"tls"}`, Settings: clientJSON,
+	}
+	for _, ib := range []*model.Inbound{first, second} {
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create inbound %s: %v", ib.Tag, err)
+		}
+	}
+
+	clientSvc := ClientService{}
+	inboundSvc := InboundService{}
+	for _, ib := range []*model.Inbound{first, second} {
+		clients, err := inboundSvc.GetClients(ib)
+		if err != nil {
+			t.Fatalf("GetClients(%s): %v", ib.Tag, err)
+		}
+		if err := clientSvc.SyncInbound(nil, ib.Id, clients); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", ib.Tag, err)
+		}
+	}
+	traffic := &xray.ClientTraffic{InboundId: first.Id, Email: email, Enable: true}
+	if err := db.Create(traffic).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	if _, err := clientSvc.SetClientTelegramUserID(&inboundSvc, traffic.Id, 0); err != nil {
+		t.Fatalf("SetClientTelegramUserID: %v", err)
+	}
+
+	for _, ib := range []*model.Inbound{first, second} {
+		fresh, err := inboundSvc.GetInbound(ib.Id)
+		if err != nil {
+			t.Fatalf("GetInbound(%s): %v", ib.Tag, err)
+		}
+		clients, err := inboundSvc.GetClients(fresh)
+		if err != nil {
+			t.Fatalf("GetClients(%s): %v", ib.Tag, err)
+		}
+		if len(clients) != 1 || clients[0].TgID != 0 {
+			t.Errorf("inbound %s still binds the removed Telegram user: %+v", ib.Tag, clients)
+		}
+		if err := clientSvc.SyncInbound(nil, ib.Id, clients); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", ib.Tag, err)
+		}
+	}
+
+	rec, err := clientSvc.GetRecordByEmail(nil, email)
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.TgID != 0 {
+		t.Errorf("client record tgId = %d after the siblings were synced, want 0", rec.TgID)
+	}
+}

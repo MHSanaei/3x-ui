@@ -140,8 +140,13 @@ const (
 	maxIdleNodeConnsPerHost = 8
 )
 
+// nodeTLSHandshakeTimeout ends a handshake the node never answers: the transport keeps
+// dialing for its pool after the request gives up, so without it the socket lives forever.
+var nodeTLSHandshakeTimeout = remoteHTTPTimeout
+
 func newNodeTransport(tlsCfg *tls.Config) *http.Transport {
 	return &http.Transport{
+		TLSHandshakeTimeout: nodeTLSHandshakeTimeout,
 		MaxIdleConns:        maxIdleNodeConns,
 		MaxIdleConnsPerHost: maxIdleNodeConnsPerHost,
 		IdleConnTimeout:     60 * time.Second,
@@ -152,7 +157,16 @@ func newNodeTransport(tlsCfg *tls.Config) *http.Transport {
 
 // defaultNodeHTTPClient reaches nodes trusting the system CA store ("verify"
 // mode or plain http); shared so connections pool across nodes.
-var defaultNodeHTTPClient = &http.Client{Transport: newNodeTransport(nil)}
+var defaultNodeHTTPClient = &http.Client{Transport: newNodeTransport(nil), CheckRedirect: NoCrossHostRedirect}
+
+// NoCrossHostRedirect keeps a request on the host:port it was sent to: the master presents
+// the same credentials to every node, so a node's Location must not carry them elsewhere.
+func NoCrossHostRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 || !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+		return http.ErrUseLastResponse
+	}
+	return nil
+}
 
 // nodeClients caches one client per node: heartbeat and traffic sync reach it
 // every few seconds, and a rebuilt client would open its own empty pool.
@@ -214,6 +228,7 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	client.CheckRedirect = NoCrossHostRedirect
 
 	nodeClientsMu.Lock()
 	if entry, ok := nodeClientsCache[key]; ok {
