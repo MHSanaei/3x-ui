@@ -35,7 +35,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo|rabbit-hole)`
 	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"

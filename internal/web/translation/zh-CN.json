@@ -128,7 +128,11 @@
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
     "unpinSidebar": "取消固定侧边栏",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeUltraDark": "极致深色",
+    "themeSystem": "跟随系统"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "开启后，入站定时重置只清零本入站的流量。用户在所有节点上的累计用量会保留，按用户自己的周期重置。\n\n关闭后，本入站定时重置时，也会清零关联用户在所有节点上的累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",

@@ -128,7 +128,11 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeUltraDark": "ウルトラダーク",
+    "themeSystem": "システム"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "インバウンドルールをインポート",
       "periodicTrafficResetTitle": "トラフィックリセット",
       "periodicTrafficResetDay": "毎月のリセット日",
+      "preserveClientTraffic": "クライアントの使用量を保持",
+      "preserveClientTrafficHelp": "オンにすると、定期リセットでこのインバウンドの通信量だけがゼロになります。各クライアントの全ノードでの累計使用量は、そのクライアント自身の定期リセットまで保持されます。\n\nオフにすると、このインバウンドの定期リセット時に、紐付けられたクライアントの全ノードでの累計使用量もゼロになります。",
       "periodicTrafficReset": {
         "never": "なし",
         "daily": "毎日",

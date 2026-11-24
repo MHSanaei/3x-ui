@@ -128,7 +128,11 @@
     "openMenu": "開啟選單",
     "pinSidebar": "固定側邊欄",
     "unpinSidebar": "取消固定側邊欄",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "淺色",
+    "themeDark": "深色",
+    "themeUltraDark": "極致深色",
+    "themeSystem": "跟隨系統"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "匯入入站規則",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客戶端用量",
+      "preserveClientTrafficHelp": "開啟後，定時重設只會將此入站的流量歸零。每位使用者在所有節點的累計用量都會保留，並依自己的週期重設。\n\n關閉後，此入站定時重設時，也會將關聯使用者在所有節點的累計用量歸零。",
       "periodicTrafficReset": {
         "never": "從不",
         "daily": "每日",

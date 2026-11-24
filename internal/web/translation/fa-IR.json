@@ -128,7 +128,11 @@
     "openMenu": "باز کردن منو",
     "pinSidebar": "ثابت کردن نوار کناری",
     "unpinSidebar": "برداشتن تثبیت نوار کناری",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "روشن",
+    "themeDark": "تیره",
+    "themeUltraDark": "تیره فوق‌العاده",
+    "themeSystem": "سیستم"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "افزودن یک ورودی",
       "periodicTrafficResetTitle": "بازنشانی ترافیک",
       "periodicTrafficResetDay": "روز بازنشانی ماهانه",
+      "preserveClientTraffic": "حفظ مصرف کاربران",
+      "preserveClientTrafficHelp": "اگر این گزینه روشن باشد، بازنشانی زمان‌بندی‌شده فقط شمارنده‌های ترافیک همین ورودی را صفر می‌کند. مجموع مصرف هر کاربر در همهٔ نودها تا زمان بازنشانی خود آن کاربر حفظ می‌شود.\n\nاگر این گزینه خاموش باشد، بازنشانی زمان‌بندی‌شدهٔ این ورودی مجموع مصرف کاربران متصل به آن را هم در همهٔ نودها صفر می‌کند.",
       "periodicTrafficReset": {
         "never": "هرگز",
         "daily": "روزانه",
