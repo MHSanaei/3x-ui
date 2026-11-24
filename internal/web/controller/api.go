@@ -7,6 +7,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/mcp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -24,6 +25,7 @@ type APIController struct {
 	settingController     *SettingController
 	xraySettingController *XraySettingController
 	userService           panel.UserService
+	settingService        service.SettingService
 	apiTokenService       panel.ApiTokenService
 	Tgbot                 tgbot.Tgbot
 }
@@ -34,6 +36,16 @@ func NewAPIController(g *gin.RouterGroup, router http.Handler) *APIController {
 	a := &APIController{}
 	a.initRouter(g, router)
 	return a
+}
+
+// requireMCPEnabled hides the MCP endpoint until the operator turns it on: it hands
+// a token's whole API reach to whatever agent holds that token.
+func (a *APIController) requireMCPEnabled(c *gin.Context) {
+	if enabled, err := a.settingService.GetMcpEnable(); err != nil || !enabled {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Next()
 }
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
@@ -238,7 +250,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup, router http.Handler) {
 
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)
-	api.POST(mcp.Path, gin.WrapH(mcp.NewHandler(router)))
+	api.POST(mcp.Path, a.requireMCPEnabled, gin.WrapH(mcp.NewHandler(router)))
 }
 
 // BackuptoTgbot sends a backup of the panel data to Telegram bot admins.

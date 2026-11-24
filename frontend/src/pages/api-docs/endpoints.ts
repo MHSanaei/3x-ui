@@ -2174,7 +2174,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/mcp',
         summary:
-          'Stateless streamable-HTTP MCP endpoint (JSON-RPC 2.0). Exposes panel tools for inbounds, clients, server, Xray, nodes, hosts and settings; each tool call runs the matching /panel/api route with the caller’s credentials.',
+          'Stateless streamable-HTTP MCP endpoint (JSON-RPC 2.0). Exposes panel tools for inbounds, clients, server, Xray, nodes, hosts and settings; each tool call runs the matching /panel/api route with the caller’s credentials. Off by default: answers 404 until the MCP server is enabled under Settings → Security → API Token.',
         params: [
           {
             name: 'toolsets',

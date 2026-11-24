@@ -90,6 +90,7 @@ var defaultValueMap = map[string]string{
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
 	"subHwidRejectWithConfig":     "false",
+	"mcpEnable":                   "false",
 	"subHostSortMode":             "inbound-first",
 	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
@@ -821,6 +822,10 @@ func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 
 func (s *SettingService) GetSubHwidRejectWithConfig() (bool, error) {
 	return s.getBool("subHwidRejectWithConfig")
+}
+
+func (s *SettingService) GetMcpEnable() (bool, error) {
+	return s.getBool("mcpEnable")
 }
 
 func (s *SettingService) GetSubHostSortMode() (string, error) {

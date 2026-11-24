@@ -1531,6 +1531,8 @@
         "twoFactor": "Autentikasi dua faktor",
         "twoFactorEnable": "Aktifkan 2FA",
         "twoFactorEnableDesc": "Menambahkan lapisan autentikasi tambahan untuk keamanan lebih.",
+        "mcpEnable": "Server MCP",
+        "mcpEnableDesc": "Mengizinkan agen AI mengelola panel ini melalui /panel/api/mcp dengan token API. Agen dapat melakukan semua yang diizinkan tokennya; biarkan nonaktif jika tidak digunakan.",
         "twoFactorModalSetTitle": "Aktifkan autentikasi dua faktor",
         "twoFactorModalDeleteTitle": "Nonaktifkan autentikasi dua faktor",
         "twoFactorModalSteps": "Untuk menyiapkan autentikasi dua faktor, lakukan beberapa langkah:",

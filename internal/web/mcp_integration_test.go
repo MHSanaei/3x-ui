@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/robfig/cron/v3"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
@@ -22,9 +24,21 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 )
 
+func setMCPEnabled(t *testing.T, enabled bool) {
+	t.Helper()
+	db := database.GetDB()
+	if err := db.Where("key = ?", "mcpEnable").Delete(&model.Setting{}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.Setting{Key: "mcpEnable", Value: strconv.FormatBool(enabled)}).Error; err != nil {
+		t.Fatal(err)
+	}
+}
+
 func newMCPTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	setMCPEnabled(t, true)
 	previous := global.GetWebServer()
 	s := NewServer(nil)
 	s.cron = cron.New(cron.WithLocation(time.Local), cron.WithSeconds())
@@ -95,6 +109,28 @@ func connectMCP(t *testing.T, endpoint, token string) (*sdk.ClientSession, error
 
 // TestMCPEndpointUsesPanelAuth catches the MCP route escaping checkAPIAuth or
 // token scopes, and tool calls that drop the caller's credentials on re-entry.
+// The endpoint puts an admin token's whole reach in an agent's hands, so a panel
+// serves it only after the operator has turned it on.
+func TestMCPEndpointIsHiddenUntilEnabled(t *testing.T) {
+	srv := newMCPTestServer(t)
+	endpoint := srv.URL + "/panel/api/mcp"
+	token := createToken(t, "admin", model.ApiScopeAdmin)
+
+	if err := database.GetDB().Where("key = ?", "mcpEnable").Delete(&model.Setting{}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := connectMCP(t, endpoint, token); err == nil || !strings.HasSuffix(err.Error(), http.StatusText(http.StatusNotFound)) {
+		t.Fatalf("default panel: connect err = %v, want a 404", err)
+	}
+
+	setMCPEnabled(t, true)
+	session, err := connectMCP(t, endpoint, token)
+	if err != nil {
+		t.Fatalf("enabled panel: %v", err)
+	}
+	_ = session.Close()
+}
+
 func TestMCPEndpointUsesPanelAuth(t *testing.T) {
 	srv := newMCPTestServer(t)
 	endpoint := srv.URL + "/panel/api/mcp"

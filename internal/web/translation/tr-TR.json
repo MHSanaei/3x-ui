@@ -1531,6 +1531,8 @@
         "twoFactor": "İki Adımlı Doğrulama",
         "twoFactorEnable": "2FA'yı Etkinleştir",
         "twoFactorEnableDesc": "Daha fazla güvenlik için ek bir doğrulama katmanı ekler.",
+        "mcpEnable": "MCP sunucusu",
+        "mcpEnableDesc": "Yapay zekâ ajanlarının bir API belirteciyle /panel/api/mcp üzerinden bu paneli yönetmesine izin verir. Ajan, belirtecinin izin verdiği her şeyi yapabilir; kullanmıyorsanız kapalı bırakın.",
         "twoFactorModalSetTitle": "İki Adımlı Doğrulamayı Etkinleştir",
         "twoFactorModalDeleteTitle": "İki Adımlı Doğrulamayı Devre Dışı Bırak",
         "twoFactorModalSteps": "İki adımlı doğrulamayı ayarlamak için şu adımları izleyin:",
