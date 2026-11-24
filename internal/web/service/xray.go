@@ -1704,7 +1704,16 @@ func applyXrayHotDiff(hotAPI *xray.XrayAPI, diff *xray.HotDiff) bool {
 	// Removals first so changed handlers and port swaps never collide with
 	// the additions that follow.
 	for _, u := range diff.RemovedUsers {
-		if err := hotAPI.RemoveUser(u.Tag, u.Email); err != nil && !xray.IsMissingHandlerErr(err) {
+		var err error
+		if u.Protocol == string(model.WireGuard) {
+			err = hotAPI.RemoveWireguardUsers(u.Tag, u.Email)
+		} else {
+			err = hotAPI.RemoveUser(u.Tag, u.Email)
+			if xray.IsMissingHandlerErr(err) {
+				continue
+			}
+		}
+		if err != nil {
 			logger.Info("hot apply: remove user [", u.Email, "] from [", u.Tag, "] failed:", err)
 			return false
 		}
@@ -1760,7 +1769,7 @@ func persistHotConfig(process *xray.Process) {
 // already applied through the runtime API) replaces the existing user instead.
 func addUserReconciling(api *xray.XrayAPI, u xray.UserOp) error {
 	err := api.AddUser(u.Protocol, u.Tag, u.User)
-	if err == nil || !xray.IsUserExistsErr(err) {
+	if err == nil || u.Protocol == string(model.WireGuard) || !xray.IsUserExistsErr(err) {
 		return err
 	}
 	if delErr := api.RemoveUser(u.Tag, u.Email); delErr != nil && !xray.IsMissingHandlerErr(delErr) {

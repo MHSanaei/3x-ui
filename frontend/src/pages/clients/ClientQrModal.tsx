@@ -342,6 +342,7 @@ function ClientQrModalContent({
       hosts,
       window.location.hostname,
       subSettings.publicHost ?? '',
+      true,
     );
   }, [client, wgInbounds, wireguardDevices.data, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 

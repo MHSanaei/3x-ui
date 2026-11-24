@@ -252,18 +252,21 @@ func InboundUserOps(oldIb, newIb *InboundConfig) (*HotDiff, bool) {
 
 var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}, "shadowsocks": {}}
 
-// diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
-// differ only in settings.clients, so the handler (and its listener) survives.
+// diffInboundUsers emits AlterInbound ops for changes to users or WireGuard peers
+// while keeping the existing handler and listener.
 func diffInboundUsers(oldIb, newIb *InboundConfig, diff *HotDiff) bool {
 	if oldIb.Port != newIb.Port || oldIb.Protocol != newIb.Protocol || oldIb.Tag != newIb.Tag {
-		return false
-	}
-	if _, ok := userDiffableProtocols[oldIb.Protocol]; !ok {
 		return false
 	}
 	if !rawEqualNormalized(oldIb.Listen, newIb.Listen) ||
 		!rawEqualNormalized(oldIb.StreamSettings, newIb.StreamSettings) ||
 		!rawEqualNormalized(oldIb.Sniffing, newIb.Sniffing) {
+		return false
+	}
+	if oldIb.Protocol == "wireguard" {
+		return diffWireguardPeers(oldIb, newIb, diff)
+	}
+	if _, ok := userDiffableProtocols[oldIb.Protocol]; !ok {
 		return false
 	}
 	oldClients, oldRest, ok := splitSettingsClients(oldIb.Settings)

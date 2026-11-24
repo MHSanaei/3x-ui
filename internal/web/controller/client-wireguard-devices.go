@@ -16,7 +16,7 @@ func (a *ClientController) finishWireguardDeviceWrite(c *gin.Context, err error)
 		jsonObj(c, nil, err)
 		return
 	}
-	a.xrayService.SetToNeedRestart()
+	a.xrayService.SetToNeedReconcile()
 	notifyClientsChanged()
 	a.wireguardDevices(c)
 }

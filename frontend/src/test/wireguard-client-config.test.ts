@@ -215,4 +215,54 @@ describe('buildWireguardDeviceConfigs', () => {
     );
     expect(configs).toEqual([]);
   });
+
+  it('includes the primary config of a disabled client when requested', () => {
+    const disabledClient = { ...client, enable: false };
+    const devices = {
+      limit: 5,
+      inbounds: [
+        {
+          inboundId: 90,
+          devices: [
+            {
+              id: 'primary',
+              name: '',
+              enable: false,
+              privateKey: 'disabled-key',
+              publicKey: 'disabled-public-key',
+              preSharedKey: '',
+              allowedIPs: ['10.0.0.4/32'],
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      buildWireguardDeviceConfigs(
+        disabledClient,
+        [inbound],
+        devices,
+        undefined,
+        [],
+        'example.com',
+        '',
+      ),
+    ).toEqual([]);
+
+    const configs = buildWireguardDeviceConfigs(
+      disabledClient,
+      [inbound],
+      devices,
+      undefined,
+      [],
+      'example.com',
+      '',
+      true,
+    );
+    expect(configs).toHaveLength(1);
+    expect(configs[0]).toMatchObject({ deviceId: 'primary', enabled: false });
+    expect(configs[0].text).toContain('PrivateKey = disabled-key');
+    expect(configs[0].text).toContain('Address = 10.0.0.4/32');
+  });
 });
