@@ -1,0 +1,6 @@
+# actionlint v1.7.12 bundles claude-code-action metadata older than v1.0.288,
+# which added allow_fork_prs; drop this entry once actionlint knows the input.
+paths:
+  .github/workflows/claude-pr-review.yml:
+    ignore:
+      - 'input "allow_fork_prs" is not defined in action "anthropics/claude-code-action@v1"'

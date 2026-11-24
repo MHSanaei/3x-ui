@@ -32,6 +32,7 @@ var (
 	twCtx        context.Context
 	twCancel     context.CancelFunc
 	twDone       chan struct{}
+	twApplyMu    sync.Mutex
 )
 
 // StartTrafficWriter spins up the serial writer goroutine. Safe to call again
@@ -197,7 +198,11 @@ func isSerializedTx(tx *gorm.DB) bool {
 	return serializedTxOf(tx) != nil
 }
 
+// safeApply holds twApplyMu so an inline fallback (no writer, or shutdown drain)
+// never runs beside another write: overlapping resets switched a client back off.
 func safeApply(fn func() error) (err error) {
+	twApplyMu.Lock()
+	defer twApplyMu.Unlock()
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("traffic writer panic: %v", r)
