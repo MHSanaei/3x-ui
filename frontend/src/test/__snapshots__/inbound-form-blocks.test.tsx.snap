@@ -117,6 +117,7 @@ exports[`inbound transport forms > XhttpForm field structure is stable 1`] = `
   "Padding Bytes",
   "Headers",
   "Uplink HTTP Method",
+  "Use separate download",
   "Padding Obfs Mode",
   "Session Placement",
   "Session ID Table",
