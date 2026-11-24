@@ -45,6 +45,9 @@ export const FreedomFinalRuleSchema = z.object({
   network: z.string().optional(),
   port: z.string().optional(),
   ip: z.array(z.string()).default([]),
+  delay: z.string().optional(),
+  logLevel: z.string().optional(),
+  // xray-core 26.11.9 (#7329) deprecated blockDelay in favour of delay.
   blockDelay: z.string().optional(),
 });
 export type FreedomFinalRule = z.infer<typeof FreedomFinalRuleSchema>;
