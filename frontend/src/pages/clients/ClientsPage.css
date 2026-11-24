@@ -31,9 +31,15 @@
   margin-bottom: 12px;
 }
 
+/* Sticks below the fixed drawer handle (12px + 40px) rather than under it. */
 .filter-bar.mobile {
+  position: sticky;
+  top: 60px;
+  z-index: 10;
   gap: 6px;
-  margin-bottom: 8px;
+  margin: 0 -12px 8px;
+  padding: 6px 12px;
+  background: var(--bg-card);
 }
 
 .filter-bar.mobile > * {

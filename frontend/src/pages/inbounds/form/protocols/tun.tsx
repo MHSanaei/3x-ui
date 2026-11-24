@@ -47,12 +47,18 @@ function StringList({ name, label, tooltip, placeholder }: StringListProps) {
   );
 }
 
-// Named autoSystemWfpBlockLeak values; xray-core 26.10.31 also takes typed "tcp/<port>" or "udp/<port>".
+// Named autoSystemWfpBlockLeak values of xray-core 26.11.9 (#7315); ports, port ranges
+// and a CIDR prefix ("1.1.1.0/24:53") are typed, and the core validates them at save.
 const WFP_BLOCK_LEAK_OPTIONS = [
-  { value: 'dns', label: 'dns' },
-  { value: 'windnsclient', label: 'windnsclient' },
-  { value: 'misconfigtun', label: 'misconfigtun' },
-];
+  'all',
+  'allexceptlan',
+  'dns',
+  'windnsclient',
+  'misconfigtun',
+  'tcp',
+  'udp',
+  'icmp',
+].map((value) => ({ value, label: value }));
 
 export default function TunFields() {
   const { t } = useTranslation();
