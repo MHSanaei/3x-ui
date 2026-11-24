@@ -103,17 +103,36 @@ func probeModeLabel(mode string) string {
 	}
 }
 
+// probeDNS is the panel's dns section as the throwaway instance can load it: "tag" names
+// routing the probe config does not have, and the core refuses a "script" beside servers.
+func probeDNS(panelDNS json_util.RawMessage) json_util.RawMessage {
+	var dns map[string]any
+	if len(panelDNS) == 0 || json.Unmarshal(panelDNS, &dns) != nil {
+		return nil
+	}
+	delete(dns, "tag")
+	delete(dns, "script")
+	if len(dns) == 0 {
+		return nil
+	}
+	cleaned, err := json.Marshal(dns)
+	if err != nil {
+		return nil
+	}
+	return cleaned
+}
+
 // TestOutbound probes a single outbound; legacy single-test API kept for the
 // /testOutbound endpoint. Dispatch matches TestOutbounds: mode "tcp" dials
 // the outbound's endpoints directly, anything else routes a real HTTP request
 // through a temp xray instance (UDP-transport outbounds are always forced to
 // the HTTP probe — a raw dial can't measure them).
-func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
+func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) (*TestOutboundResult, error) {
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
 		return &TestOutboundResult{Mode: probeModeLabel(mode), Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
 	}
-	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode)
+	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode, panelDNS)
 	return results[0], nil
 }
 
@@ -121,7 +140,7 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 // input, in input order, each carrying the outbound's tag. allOutboundsJSON
 // supplies the config context (sockopt.dialerProxy chains); testURL falls
 // back to the default probe URL when empty.
-func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string) ([]*TestOutboundResult, error) {
+func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) ([]*TestOutboundResult, error) {
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(outboundsJSON), &raw); err != nil {
 		return nil, fmt.Errorf("invalid outbounds JSON: %w", err)
@@ -136,13 +155,13 @@ func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, al
 			items[i] = ob
 		}
 	}
-	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode), nil
+	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode, panelDNS), nil
 }
 
 // testOutboundsParsed splits items into the TCP lane (direct dials, bounded
 // worker pool) and the HTTP lane (one shared temp xray instance), runs both,
 // and returns results aligned with items. A nil item marks unparseable input.
-func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string) []*TestOutboundResult {
+func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string, panelDNS json_util.RawMessage) []*TestOutboundResult {
 	results := make([]*TestOutboundResult, len(items))
 
 	modeLabel := probeModeLabel(mode)
@@ -250,7 +269,8 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	}
 	defer httpTestSemaphore.Unlock()
 
-	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay)
+	dns := probeDNS(panelDNS)
+	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay, dns)
 	if err == nil {
 		return results
 	}
@@ -263,7 +283,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	// instance so the broken outbound reports xray's real error and the
 	// rest still get tested. Serial: the poisoned case fails fast (~1s).
 	for _, it := range httpItems {
-		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay); ferr != nil {
+		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay, dns); ferr != nil {
 			it.result.Success = false
 			it.result.Error = ferr.Error()
 		}
@@ -277,7 +297,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 // whether splitting the batch into per-item instances could help (true for
 // start failures / early exits that a poisoned config would explain, false
 // for environmental failures like a missing binary or no free ports).
-func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool) (retryPerItem bool, err error) {
+func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool, dns json_util.RawMessage) (retryPerItem bool, err error) {
 	ports, release, err := reserveLoopbackPorts(len(items))
 	if err != nil {
 		return false, fmt.Errorf("Failed to reserve test ports: %w", err)
@@ -285,6 +305,7 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 	defer release()
 
 	cfg := buildBatchTestConfig(items, allOutbounds, ports)
+	cfg.DNSConfig = dns
 
 	configPath, err := createTestConfigPath()
 	if err != nil {

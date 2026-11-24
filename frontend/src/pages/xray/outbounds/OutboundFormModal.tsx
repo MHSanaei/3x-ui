@@ -591,6 +591,7 @@ export default function OutboundFormModal({
                         protocol === 'wireguard') && (
                         <SockoptForm
                           outboundTags={dialerProxyTags ?? existingTags}
+                          warnMissingDialerProxy
                           showDomainStrategy={protocol !== 'freedom'}
                         />
                       )}
