@@ -115,6 +115,14 @@ func migrateInboundExcludeFromSubColumn() error {
 	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
 }
 
+func migrateInboundPreserveClientTrafficColumn(tx *gorm.DB) error {
+	migrator := tx.Migrator()
+	if !migrator.HasTable(&model.Inbound{}) || migrator.HasColumn(&model.Inbound{}, "preserve_client_traffic") {
+		return nil
+	}
+	return migrator.AddColumn(&model.Inbound{}, "PreserveClientTraffic")
+}
+
 func migrateClientKeepAliveRangeColumn() error {
 	migrator := db.Migrator()
 	if !migrator.HasTable(&model.ClientRecord{}) || migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive_range") {
@@ -134,6 +142,9 @@ func initModels() error {
 		return err
 	}
 	if err := migrateInboundExcludeFromSubColumn(); err != nil {
+		return err
+	}
+	if err := migrateInboundPreserveClientTrafficColumn(db); err != nil {
 		return err
 	}
 	models := allModels()

@@ -220,6 +220,9 @@ export const ClientHydrateSchema = z.object({
 export const BulkAdjustResultSchema = z.object({
   adjusted: z.number(),
   skipped: z.array(z.object({ email: z.string(), reason: z.string() })).optional(),
+  externalLinks: z
+    .object({ added: z.number().int(), skipped: z.number().int(), errors: z.number().int() })
+    .optional(),
 });
 
 export const BulkDeleteResultSchema = z.object({
