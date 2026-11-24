@@ -169,6 +169,7 @@ func TestClientIpSyncPostgresScanner(t *testing.T) {
 		{"CanonicalWriters", clientIpWritersPreserveCanonicalBytes},
 		{"CreateConflict", processObservedCreateConflictPreservesUnion},
 		{"ConcurrentWriter", processObservedKeepsNodeSyncWrite},
+		{"LimitProbe", checkLimitIpProbe},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cleanup, err := testpg.IsolatePackage("job_ip_sync")
