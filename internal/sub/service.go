@@ -693,7 +693,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	traffic.Enable = hasEnabledClient
 
 	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
-		dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
+		dummyLink := (statusNode{remark: remark}).link()
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			return []string{dummyLink}, emails, lastOnline, traffic, nil
 		}
@@ -1938,6 +1938,7 @@ func findClientIndex(clients []model.Client, email string) int {
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
 	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	model.NormalizeXhttpExtra(stream)
 	return stream
 }
 
@@ -3399,6 +3400,7 @@ type PageData struct {
 	SubUrl        string
 	SubJsonUrl    string
 	SubClashUrl   string
+	Format        string
 	SubTitle      string
 	SubSupportUrl string
 	SubAnnounce   string

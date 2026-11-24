@@ -21,17 +21,24 @@ type Msg struct {
 }
 
 type AllSetting struct {
-	WebListen             string `json:"webListen" form:"webListen"`
-	WebDomain             string `json:"webDomain" form:"webDomain"`
-	WebPort               int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`
-	WebCertFile           string `json:"webCertFile" form:"webCertFile"`
-	WebKeyFile            string `json:"webKeyFile" form:"webKeyFile"`
-	WebBasePath           string `json:"webBasePath" form:"webBasePath"`
-	SessionMaxAge         int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"`
-	TrustedProxyCIDRs     string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
-	RealityScanCandidates string `json:"realityScanCandidates" form:"realityScanCandidates"`
-	IpLimitAllowlist      string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
-	PanelOutbound         string `json:"panelOutbound" form:"panelOutbound"`
+	WebListen     string `json:"webListen" form:"webListen"`
+	WebDomain     string `json:"webDomain" form:"webDomain"`
+	WebPort       int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`
+	WebCertFile   string `json:"webCertFile" form:"webCertFile"`
+	WebKeyFile    string `json:"webKeyFile" form:"webKeyFile"`
+	WebBasePath   string `json:"webBasePath" form:"webBasePath"`
+	SessionMaxAge int    `json:"sessionMaxAge" form:"sessionMaxAge" validate:"gte=1,lte=525600"`
+	// 0 stops refreshing the detected public IP after the first success.
+	PublicIpRefreshMinutes  int    `json:"publicIpRefreshMinutes" form:"publicIpRefreshMinutes" validate:"gte=0,lte=10080"`
+	PublicIpv6Detect        bool   `json:"publicIpv6Detect" form:"publicIpv6Detect"`
+	PublicIpv4Override      string `json:"publicIpv4Override" form:"publicIpv4Override"`
+	PublicIpv6Override      string `json:"publicIpv6Override" form:"publicIpv6Override"`
+	TrustedProxyCIDRs       string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
+	RealityScanCandidates   string `json:"realityScanCandidates" form:"realityScanCandidates"`
+	IpLimitAllowlist        string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
+	PanelOutbound           string `json:"panelOutbound" form:"panelOutbound"`
+	NetworkTrafficMode      string `json:"networkTrafficMode" form:"networkTrafficMode" validate:"omitempty,oneof=legacy auto manual" example:"legacy"`
+	NetworkTrafficInterface string `json:"networkTrafficInterface" form:"networkTrafficInterface" example:"eth0"`
 
 	PageSize                   int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
 	ExpireDiff                 int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
@@ -39,6 +46,7 @@ type AllSetting struct {
 	RemarkTemplate             string `json:"remarkTemplate" form:"remarkTemplate"`
 	SubShowIdentityOnAllLinks  bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
 	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
+	SubHwidRejectWithConfig    bool   `json:"subHwidRejectWithConfig" form:"subHwidRejectWithConfig"`
 	SubHostSortMode            string `json:"subHostSortMode" form:"subHostSortMode" example:"inbound-first"`
 	SubCalendarExpireInclusive bool   `json:"subCalendarExpireInclusive" form:"subCalendarExpireInclusive"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
@@ -69,6 +77,17 @@ type AllSetting struct {
 	SmtpEnabledEvents  string `json:"smtpEnabledEvents" form:"smtpEnabledEvents"`
 	SmtpCpu            int    `json:"smtpCpu" form:"smtpCpu" validate:"gte=0,lte=100"`
 	SmtpMemory         int    `json:"smtpMemory" form:"smtpMemory" validate:"gte=0,lte=100"`
+
+	WechatEnable        bool   `json:"wechatEnable" form:"wechatEnable"`
+	WechatMode          string `json:"wechatMode" form:"wechatMode"`
+	WechatWebhookURL    string `json:"wechatWebhookURL" form:"wechatWebhookURL"`
+	WechatToken         string `json:"wechatToken" form:"wechatToken"`
+	WechatLang          string `json:"wechatLang" form:"wechatLang"`
+	WechatReportEnable  bool   `json:"wechatReportEnable" form:"wechatReportEnable"`
+	WechatRunTime       string `json:"wechatRunTime" form:"wechatRunTime"`
+	WechatEnabledEvents string `json:"wechatEnabledEvents" form:"wechatEnabledEvents"`
+	WechatCpu           int    `json:"wechatCpu" form:"wechatCpu" validate:"gte=0,lte=100"`
+	WechatMemory        int    `json:"wechatMemory" form:"wechatMemory" validate:"gte=0,lte=100"`
 
 	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
 	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
@@ -113,6 +132,8 @@ type AllSetting struct {
 	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`
 	ExternalSubUserAgent        string `json:"externalSubUserAgent" form:"externalSubUserAgent"`
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates" validate:"gte=0,lte=525600"`
+	SubRateLimitEnable          bool   `json:"subRateLimitEnable" form:"subRateLimitEnable"`
+	SubRateLimit                int    `json:"subRateLimit" form:"subRateLimit" validate:"gte=1,lte=1000"`
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
 	RestartXrayOnClientDisable  bool   `json:"restartXrayOnClientDisable" form:"restartXrayOnClientDisable"`
@@ -220,14 +241,16 @@ type AllSetting struct {
 type AllSettingView struct {
 	AllSetting
 
-	HasTgBotToken      bool `json:"hasTgBotToken"`
-	HasTwoFactorToken  bool `json:"hasTwoFactorToken"`
-	HasLdapPassword    bool `json:"hasLdapPassword"`
-	HasApiToken        bool `json:"hasApiToken"`
-	HasWarpSecret      bool `json:"hasWarpSecret"`
-	HasNordSecret      bool `json:"hasNordSecret"`
-	HasSmtpPassword    bool `json:"hasSmtpPassword"`
-	HasDiscordBotToken bool `json:"hasDiscordBotToken"`
+	HasTgBotToken       bool `json:"hasTgBotToken"`
+	HasTwoFactorToken   bool `json:"hasTwoFactorToken"`
+	HasLdapPassword     bool `json:"hasLdapPassword"`
+	HasApiToken         bool `json:"hasApiToken"`
+	HasWarpSecret       bool `json:"hasWarpSecret"`
+	HasNordSecret       bool `json:"hasNordSecret"`
+	HasSmtpPassword     bool `json:"hasSmtpPassword"`
+	HasDiscordBotToken  bool `json:"hasDiscordBotToken"`
+	HasWechatWebhookURL bool `json:"hasWechatWebhookURL"`
+	HasWechatToken      bool `json:"hasWechatToken"`
 }
 
 func pathHasForbiddenChar(s string) bool {
@@ -397,6 +420,13 @@ func (s *AllSetting) CheckValid() error {
 		}
 	}
 
+	if err := checkPublicIPOverride(s.PublicIpv4Override, true); err != nil {
+		return err
+	}
+	if err := checkPublicIPOverride(s.PublicIpv6Override, false); err != nil {
+		return err
+	}
+
 	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {
 		return err
 	}
@@ -418,6 +448,23 @@ func (s *AllSetting) CheckValid() error {
 		}
 	}
 
+	return nil
+}
+
+// checkPublicIPOverride accepts an empty value or a bare address of the
+// family; the override is shown on the overview and used in backup filenames.
+func checkPublicIPOverride(value string, wantV4 bool) error {
+	if value == "" {
+		return nil
+	}
+	ip, err := netip.ParseAddr(value)
+	if err != nil || ip.Zone() != "" || ip.Is4() != wantV4 || ip.Is4In6() {
+		family := "IPv6"
+		if wantV4 {
+			family = "IPv4"
+		}
+		return common.NewErrorf("public %s override is not a valid %s address: %s", family, family, value)
+	}
 	return nil
 }
 

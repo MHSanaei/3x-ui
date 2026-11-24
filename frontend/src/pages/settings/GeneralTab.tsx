@@ -19,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 import SecretInput from './SecretInput';
+import NetworkTrafficSettings from './NetworkTrafficSettings';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -255,6 +256,65 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.publicIpRefresh')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="publicIpRefreshMinutes"
+                    value={allSetting.publicIpRefreshMinutes}
+                  />
+                }
+                description={t('pages.settings.publicIpRefreshDesc')}
+              >
+                <InputNumber
+                  value={allSetting.publicIpRefreshMinutes}
+                  min={0}
+                  max={10080}
+                  style={{ width: '100%' }}
+                  onChange={onNumber((v) => updateSetting({ publicIpRefreshMinutes: v }))}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.publicIpv6Detect')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="publicIpv6Detect"
+                    value={allSetting.publicIpv6Detect}
+                  />
+                }
+                description={t('pages.settings.publicIpv6DetectDesc')}
+              >
+                <Switch
+                  checked={allSetting.publicIpv6Detect}
+                  onChange={(v) => updateSetting({ publicIpv6Detect: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.publicIpv4Override')}
+                description={t('pages.settings.publicIpOverrideDesc')}
+              >
+                <Input
+                  value={allSetting.publicIpv4Override}
+                  onChange={(e) => updateSetting({ publicIpv4Override: e.target.value.trim() })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.publicIpv6Override')}
+                description={t('pages.settings.publicIpOverrideDesc')}
+              >
+                <Input
+                  value={allSetting.publicIpv6Override}
+                  onChange={(e) => updateSetting({ publicIpv6Override: e.target.value.trim() })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.trustedProxyCidrs')}
                 description={t('pages.settings.trustedProxyCidrsDesc')}
               >
@@ -313,6 +373,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   }
                 />
               </SettingListItem>
+
+              <NetworkTrafficSettings allSetting={allSetting} updateSetting={updateSetting} />
 
               <SettingListItem
                 paddings="small"

@@ -622,7 +622,7 @@ func (s *InboundService) emailSubIDsForClients(clients []model.Client) (map[stri
 	}
 	result := make(map[string]string, len(emails))
 	db := database.GetDB()
-	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
+	for _, batch := range chunkStrings(EmailSpellings(emails), sqlInChunk) {
 		var rows []struct {
 			Email string
 			SubID string `gorm:"column:sub_id"`
@@ -667,6 +667,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeXDriveService(inbound.StreamSettings)
+	inbound.StreamSettings = syncXhttpDownloadRequestShape(inbound.StreamSettings)
 }
 
 // canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
@@ -716,6 +717,9 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 // validateInboundBuildInput refuses what xray-core's in-process build would expand without
 // bound; certificate paths are checked only where this host is the one opening them.
 func validateInboundBuildInput(inbound *model.Inbound) error {
+	if err := validateXhttpDownload(inbound.StreamSettings); err != nil {
+		return err
+	}
 	if err := xray.CheckStreamBuildCost([]byte(inbound.StreamSettings)); err != nil {
 		return err
 	}
@@ -1352,6 +1356,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := checkNodeCanHostProtocol(database.GetDB(), *inbound.NodeID, inbound.Protocol); err != nil {
 			return inbound, false, err
 		}
+	}
+	if err := s.validateNodeTrafficReset(inbound, nil); err != nil {
+		return inbound, false, err
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
@@ -2064,6 +2071,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Restore the stored NodeID before any host-scoped check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	if err := s.validateNodeTrafficReset(inbound, oldInbound); err != nil {
+		return inbound, false, err
+	}
 	if err := normalizeVlessFallbacks(inbound); err != nil {
 		return nil, false, err
 	}
@@ -2244,6 +2254,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.ExpiryTime = inbound.ExpiryTime
 		oldInbound.TrafficReset = inbound.TrafficReset
 		oldInbound.TrafficResetDay = inbound.TrafficResetDay
+		if inbound.PreserveClientTraffic != nil {
+			oldInbound.PreserveClientTraffic = inbound.PreserveClientTraffic
+		}
+		inbound.PreserveClientTraffic = oldInbound.PreserveClientTraffic
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol

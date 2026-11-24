@@ -66,6 +66,9 @@ type Inbound struct {
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
 
+	// Older snapshots omit this field.
+	PreserveClientTraffic *bool `json:"preserveClientTraffic,omitempty" form:"preserveClientTraffic" gorm:"not null;default:false"` // Keep client usage during scheduled inbound resets
+
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
 	Port              int      `json:"port" form:"port" validate:"gte=0,lte=65535" example:"443"`
@@ -189,6 +192,16 @@ type ApiToken struct {
 	ExpiresAt int64  `json:"expiresAt" gorm:"not null;default:0"`
 }
 
+// PreservesClientTraffic reports whether a scheduled inbound reset keeps client usage.
+func (i Inbound) PreservesClientTraffic() bool {
+	return i.PreserveClientTraffic != nil && *i.PreserveClientTraffic
+}
+
+// HasTrafficResetSchedule reports whether the inbound has periodic resets enabled.
+func (i *Inbound) HasTrafficResetSchedule() bool {
+	return i.TrafficReset != "" && i.TrafficReset != "never"
+}
+
 // MarshalJSON emits settings, streamSettings, and sniffing as nested JSON
 // objects rather than escaped strings, so API consumers don't need to JSON.parse
 // a string inside a string. Empty fields render as null; fields whose stored
@@ -308,6 +321,31 @@ func healVersionField(raw string, path []string) (string, bool) {
 	return string(out), true
 }
 
+// NormalizeXhttpExtra applies Xray's replacement semantics to a decoded stream.
+func NormalizeXhttpExtra(stream map[string]any) bool {
+	xh, _ := stream["xhttpSettings"].(map[string]any)
+	raw, wrapped := xh["extra"]
+	if !wrapped {
+		return false
+	}
+	inner, ok := raw.(map[string]any)
+	if !ok && raw != nil {
+		return false
+	}
+	flat := make(map[string]any, len(inner)+3)
+	for k, v := range inner {
+		flat[k] = v
+	}
+	for _, k := range []string{"host", "path", "mode"} {
+		delete(flat, k)
+		if v, ok := xh[k]; ok {
+			flat[k] = v
+		}
+	}
+	stream["xhttpSettings"] = flat
+	return true
+}
+
 // StripInboundXhttpClientFields removes xHTTP knobs that belong on the
 // client dialer and subscription share-link extras only. xray-core's XHTTP
 // inbound listener does not consume them; the panel still stores them on
@@ -323,8 +361,9 @@ func StripInboundXhttpClientFields(streamSettings string) (string, bool) {
 	if stream["network"] != "xhttp" {
 		return streamSettings, false
 	}
+	changed := NormalizeXhttpExtra(stream)
 	xhttp, ok := stream["xhttpSettings"].(map[string]any)
-	if !ok || len(xhttp) == 0 {
+	if !ok {
 		return streamSettings, false
 	}
 	clientOnly := []string{
@@ -334,7 +373,6 @@ func StripInboundXhttpClientFields(streamSettings string) (string, bool) {
 		"uplinkChunkSize",
 		"noGRPCHeader",
 	}
-	changed := false
 	for _, key := range clientOnly {
 		if _, has := xhttp[key]; has {
 			delete(xhttp, key)
@@ -1135,6 +1173,7 @@ type ClientHwid struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	SubID       string `json:"subId" gorm:"column:sub_id;not null;index;uniqueIndex:idx_client_hwids_sub_hash,priority:1"`
 	HwidHash    string `json:"-" gorm:"column:hwid_hash;size:64;not null;uniqueIndex:idx_client_hwids_sub_hash,priority:2"`
+	Blocked     bool   `json:"blocked" gorm:"not null;default:false"`
 	FirstSeen   int64  `json:"firstSeen" gorm:"column:first_seen;not null"`
 	LastSeen    int64  `json:"lastSeen" gorm:"column:last_seen;not null;index"`
 	UserAgent   string `json:"userAgent" gorm:"column:user_agent"`

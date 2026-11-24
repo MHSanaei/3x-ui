@@ -1085,7 +1085,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 			emailExpr,
 		)
 		stillSet := make(map[string]struct{}, len(rowEmails))
-		for _, batch := range chunkStrings(emailSpellings(rowEmails), sqlInChunk) {
+		for _, batch := range chunkStrings(EmailSpellings(rowEmails), sqlInChunk) {
 			var stillReferenced []string
 			if err := tx.Raw(stillQuery, batch, batch).Scan(&stillReferenced).Error; err != nil {
 				return err
@@ -1100,7 +1100,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 				toDelete = append(toDelete, e)
 			}
 		}
-		for _, batch := range chunkStrings(emailSpellings(toDelete), sqlInChunk) {
+		for _, batch := range chunkStrings(EmailSpellings(toDelete), sqlInChunk) {
 			if err := tx.Where("LOWER(email) IN ? OR email IN ?", batch, batch).Delete(xray.ClientTraffic{}).Error; err != nil {
 				return err
 			}
