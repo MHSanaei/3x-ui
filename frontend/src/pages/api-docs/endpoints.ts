@@ -455,8 +455,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/status',
         summary:
           'Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v25.10.31" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
+        responseSchema: 'Status',
       },
       {
         method: 'GET',
@@ -465,6 +464,13 @@ export const sections: readonly Section[] = [
           'Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the "IP Limit" field, since enforcement depends on Fail2ban being installed.',
         response:
           '{\n  "success": true,\n  "obj": {\n    "enabled": true,\n    "installed": true,\n    "usable": true,\n    "windows": false\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/networkInterfaces',
+        summary:
+          'List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.',
+        responseSchema: 'NetworkInterfacesResponse',
       },
       {
         method: 'GET',
@@ -822,7 +828,7 @@ export const sections: readonly Section[] = [
             name: 'keepHostSettings',
             in: 'body (multipart)',
             type: 'boolean',
-            desc: "Keep this machine's addresses, certificates and node identity. Default true.",
+            desc: "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true.",
             optional: true,
             defaultValue: true,
           },
