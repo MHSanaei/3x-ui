@@ -314,7 +314,7 @@ export default function SubscriptionFormatsTab({
                   >
                     <GoRegexInput
                       value={allSetting.subClashUserAgentRegex}
-                      placeholder="(?i)(clash|mihomo)"
+                      placeholder="(?i)(clash|mihomo|rabbit-hole)"
                       onChange={(value) => updateSetting({ subClashUserAgentRegex: value })}
                     />
                   </SettingListItem>
@@ -361,6 +361,7 @@ export default function SubscriptionFormatsTab({
                   <SettingListItem
                     paddings="small"
                     title={t('pages.settings.subFormats.concurrency')}
+                    description={t('pages.settings.subFormats.concurrencyHint')}
                   >
                     <InputNumber
                       value={muxObj.concurrency}

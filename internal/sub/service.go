@@ -46,6 +46,12 @@ type SubService struct {
 	// other context — the sub info page, the panel's link/QR displays — renders
 	// the name-only template, like Remnawave.
 	subscriptionBody bool
+	// omitServerDescription drops the ?serverDescription= tail, which only Happ
+	// and INCY read; other clients show it in the node name (#7105).
+	omitServerDescription bool
+	// ss2022Base64Userinfo emits a Shadowsocks 2022 userinfo as base64url: Shadowrocket
+	// takes the percent-escapes of the SIP022 form literally (#7146).
+	ss2022Base64Userinfo bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
 	usageShown                 map[string]bool
@@ -587,14 +593,15 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		// Host overrides apply AFTER fallback projection so a host's
 		// address/TLS wins over the projected master stream.
 		var hostEps []map[string]any
+		var hostsClosed bool
 		if !s.hostsFirst {
-			hostEps = s.hostEndpoints(inbound, "raw")
+			hostEps, hostsClosed = s.hostEndpoints(inbound, "raw")
 		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
-			if s.rendered.spent() {
+			if hostsClosed || s.rendered.spent() {
 				seenEmails[client.Email] = struct{}{}
 				continue
 			}
@@ -695,7 +702,10 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 	}
 	s.primeLinkClients(inbound.Id, clients, true)
 	s.projectThroughFallbackMaster(inbound)
-	hostEps := s.hostEndpoints(inbound, "raw")
+	hostEps, hostsClosed := s.hostEndpoints(inbound, "raw")
+	if hostsClosed {
+		return nil
+	}
 	var out []string
 	seen := make(map[string]struct{}, len(clients))
 	for _, client := range clients {
@@ -1130,11 +1140,16 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if ka := client.KeepAliveSeconds(); ka > 0 {
 		params["keepalive"] = strconv.Itoa(ka)
 	}
+	if finalmask, ok := unmarshalStreamSettings(inbound.StreamSettings)["finalmask"].(map[string]any); ok {
+		applyFinalMaskParams(finalmask, params)
+	}
 	endpoints := s.advertisedEndpoints(inbound)
 	links := make([]string, 0, len(endpoints))
 	for _, e := range endpoints {
 		link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(e.Address, e.Port))
-		links = append(links, buildLinkWithParams(link, params, s.endpointRemark(inbound, email, e.ep, "")))
+		epParams := cloneStringMap(params)
+		applyEndpointFinalMask(e, epParams)
+		links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, e.ep, "")))
 	}
 	return strings.Join(links, "\n")
 }
@@ -1589,7 +1604,9 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
 	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
 	var userInfo string
-	if strings.HasPrefix(method, "2022") {
+	if strings.HasPrefix(method, "2022") && s.ss2022Base64Userinfo {
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s:%s", method, inboundPassword, client.Password))
+	} else if strings.HasPrefix(method, "2022") {
 		userInfo = fmt.Sprintf("%s:%s:%s",
 			url.QueryEscape(method),
 			url.QueryEscape(inboundPassword),
@@ -1744,7 +1761,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			// VLESS/Trojan/SS get the host's description through buildEndpointLinks;
 			// this loop renders the fragment itself, so add it here too (#6738).
 			remark := s.endpointRemark(inbound, email, ep, "quic")
-			remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			if !s.omitServerDescription {
+				remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			}
 			links = append(links, buildLinkWithParams(link, epParams, remark))
 		}
 		return strings.Join(links, "\n")
