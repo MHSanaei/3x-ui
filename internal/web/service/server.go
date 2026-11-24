@@ -511,15 +511,15 @@ func publicIPDeadline(okAt time.Time, refresh time.Duration) time.Time {
 	return okAt.Add(refresh)
 }
 
-// settlePublicIP makes one family follow the settings: a fixed value
-// (override, or "N/A" for disabled IPv6) pins it and stops lookups, and a
-// changed interval re-times the last success so it takes effect immediately.
+// settlePublicIP makes one family follow the settings: a fixed value pins it
+// and stops lookups; a changed interval re-times the last success.
 func settlePublicIP(fixed string, pinned *bool, cached *string, next, okAt *time.Time, refresh time.Duration) {
 	switch {
 	case fixed != "":
 		*cached, *next, *pinned = fixed, publicIPNever, true
 	case *pinned:
-		*cached, *next, *pinned = "", time.Time{}, false
+		// okAt is zeroed so a pre-pin success cannot re-time the next tick.
+		*cached, *next, *pinned, *okAt = "", time.Time{}, false, time.Time{}
 	case !okAt.IsZero():
 		*next = publicIPDeadline(*okAt, refresh)
 	}

@@ -725,3 +725,19 @@ func TestPublicIPOverridePinsOneFamilyAndClearingResumesLookup(t *testing.T) {
 		assertCachedPublicIPs(t, svc, "192.0.2.10", "2001:db8::10")
 	})
 }
+
+// A success from before the override must not re-time the family once the
+// override is cleared, or refresh 0 would leave it blank until restart.
+func TestSettlePublicIPClearedOverrideForgetsOldSuccess(t *testing.T) {
+	var (
+		pinned     bool
+		cached     string
+		next, okAt = time.Time{}, time.Now()
+	)
+	settlePublicIP("198.51.100.7", &pinned, &cached, &next, &okAt, 0)
+	settlePublicIP("", &pinned, &cached, &next, &okAt, 0)
+	settlePublicIP("", &pinned, &cached, &next, &okAt, 0)
+	if !next.IsZero() || cached != "" {
+		t.Fatalf("after clearing override next=%v cached=%q, want immediate lookup", next, cached)
+	}
+}
