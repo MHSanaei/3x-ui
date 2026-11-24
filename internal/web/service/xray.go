@@ -1708,7 +1708,9 @@ func applyXrayHotDiff(hotAPI *xray.XrayAPI, diff *xray.HotDiff) bool {
 	// the additions that follow.
 	for _, u := range diff.RemovedUsers {
 		var err error
-		if u.Protocol == string(model.WireGuard) {
+		if key, _ := u.User["publicKey"].(string); u.Protocol == string(model.WireGuard) && key != "" {
+			err = hotAPI.RemoveWireguardPeer(u.Tag, key)
+		} else if u.Protocol == string(model.WireGuard) {
 			err = hotAPI.RemoveWireguardUsers(u.Tag, u.Email)
 		} else {
 			err = hotAPI.RemoveUser(u.Tag, u.Email)
@@ -1839,6 +1841,15 @@ func (s *XrayService) SetToNeedRestart() {
 
 // SetToNeedReconcile schedules config reconciliation without forcing an unchanged core to restart.
 func (s *XrayService) SetToNeedReconcile() { isNeedXrayReconcile.Store(true) }
+
+// ReconcileNow applies a change at once instead of at the 30 s tick. A core that is
+// down only stays flagged: starting it is the tick's job.
+func (s *XrayService) ReconcileNow() {
+	s.SetToNeedReconcile()
+	if s.IsXrayRunning() {
+		s.ApplyPendingRestart()
+	}
+}
 
 // GetXrayAPIPort returns the port the local xray process is listening on
 // for its gRPC HandlerService, or 0 when xray isn't currently running.

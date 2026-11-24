@@ -16,7 +16,9 @@ func (a *ClientController) finishWireguardDeviceWrite(c *gin.Context, err error)
 		jsonObj(c, nil, err)
 		return
 	}
-	a.xrayService.SetToNeedReconcile()
+	// Not left to the 30 s reconcile tick: until then a disabled or deleted device
+	// kept its tunnel (measured 12-24 s on a running panel).
+	a.xrayService.ReconcileNow()
 	notifyClientsChanged()
 	a.wireguardDevices(c)
 }

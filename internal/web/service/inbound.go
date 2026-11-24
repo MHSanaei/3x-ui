@@ -2432,12 +2432,10 @@ func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool 
 		return false
 	}
 	if next.Protocol == model.WireGuard {
-		if diff.DropsUsers() {
-			return false
-		}
 		if !diff.Empty() {
-			// Reconcile peers and the Xray config snapshot together.
-			(&XrayService{}).SetToNeedReconcile()
+			// Peers and the config snapshot move together, and now: a peer removed on a
+			// node kept its tunnel until the node's next reconcile tick.
+			(&XrayService{}).ReconcileNow()
 		}
 		return true
 	}

@@ -33,7 +33,8 @@ type InboundReplacement struct {
 	Next     *InboundConfig
 }
 
-// UserOp is a per-user AlterInbound operation; User is nil for removals.
+// UserOp is a per-user AlterInbound operation; User is nil for removals, except a
+// WireGuard peer's, which is removed by its public key.
 type UserOp struct {
 	Tag      string
 	Protocol string
@@ -55,6 +56,10 @@ func (d *HotDiff) DropsUsers() bool {
 		readded[u.Tag+"\x00"+u.Email] = struct{}{}
 	}
 	for _, u := range d.RemovedUsers {
+		// A WireGuard session ends with its peer; nothing is left running to drop.
+		if u.Protocol == "wireguard" {
+			continue
+		}
 		if _, ok := readded[u.Tag+"\x00"+u.Email]; !ok {
 			return true
 		}

@@ -1025,6 +1025,52 @@ func (x *XrayAPI) RemoveWireguardUsers(inboundTag, email string) error {
 	return nil
 }
 
+// wireguardRemovalEmail labels the one peer about to go: the core removes by email
+// only, and all of a client's devices share theirs.
+const wireguardRemovalEmail = "3x-ui-wireguard-peer-removal"
+
+// RemoveWireguardPeer removes one peer by public key and leaves every other peer and
+// its session alone: it relabels the peer in place, then removes that label.
+func (x *XrayAPI) RemoveWireguardPeer(inboundTag, publicKey string) error {
+	if x.HandlerServiceClient == nil {
+		return common.NewError("xray HandlerServiceClient is not initialized")
+	}
+	wanted, err := wgutil.KeyToHex(publicKey)
+	if err != nil || wanted == "" {
+		return fmt.Errorf("wireguard publicKey: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
+	defer cancel()
+	response, err := (*x.HandlerServiceClient).GetInboundUsers(ctx, &command.GetInboundUserRequest{Tag: inboundTag})
+	if err != nil {
+		return fmt.Errorf("list wireguard peers: %w", err)
+	}
+	for _, user := range response.GetUsers() {
+		account, err := user.GetAccount().GetInstance()
+		if err != nil {
+			continue
+		}
+		peer, ok := account.(*wireguard.PeerConfig)
+		if !ok || !strings.EqualFold(peer.GetPublicKey(), wanted) {
+			continue
+		}
+		if user.GetEmail() != wireguardRemovalEmail {
+			_, err = (*x.HandlerServiceClient).AlterInbound(ctx, &command.AlterInboundRequest{
+				Tag: inboundTag,
+				Operation: serial.ToTypedMessage(&command.AddUserOperation{
+					User: &protocol.User{Email: wireguardRemovalEmail, Account: user.GetAccount()},
+				}),
+			})
+			if err != nil {
+				return fmt.Errorf("relabel wireguard peer: %w", err)
+			}
+		}
+		break
+	}
+	// Also clears a label an interrupted earlier removal left behind.
+	return x.RemoveWireguardUsers(inboundTag, wireguardRemovalEmail)
+}
+
 // RemoveUser removes a user from an inbound in the Xray core by email.
 func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	if x.HandlerServiceClient == nil {

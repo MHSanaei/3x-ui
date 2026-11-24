@@ -69,14 +69,20 @@ func TestWireguardDeviceChangesKeepOtherCorePeers(t *testing.T) {
 		next.InboundConfigs = slices.Clone(previous.InboundConfigs)
 		next.InboundConfigs[len(next.InboundConfigs)-1] = *render()
 		diff, ok := xray.ComputeHotDiff(previous, &next)
-		if !ok || diff.DropsUsers() || len(diff.RemovedInboundTags)+len(diff.AddedInbounds) != 0 ||
-			len(diff.AddedUsers) != 1 || diff.AddedUsers[0].Email != "owner" ||
-			diff.AddedUsers[0].User["keepAlive"] != "25" {
-			t.Fatalf("%s: expected only owner peer changes, got %+v", step.name, diff)
+		if !ok || diff.DropsUsers() || len(diff.RemovedInboundTags)+len(diff.AddedInbounds) != 0 {
+			t.Fatalf("%s: expected an in-place peer change, got %+v", step.name, diff)
 		}
-		if step.active && len(diff.RemovedUsers) != 0 ||
-			!step.active && (len(diff.RemovedUsers) != 1 || diff.RemovedUsers[0].Email != "owner") {
-			t.Fatalf("%s: unexpected removals: %+v", step.name, diff.RemovedUsers)
+		// Only the phone's own peer may be touched: removing or re-adding the owner's
+		// primary peer resets the tunnel of a device nobody changed.
+		touched, untouched := diff.AddedUsers, diff.RemovedUsers
+		if !step.active {
+			touched, untouched = diff.RemovedUsers, diff.AddedUsers
+		}
+		if len(touched) != 1 || len(untouched) != 0 || touched[0].Email != "owner" || touched[0].User["publicKey"] != phone {
+			t.Fatalf("%s: added=%+v removed=%+v, want one op on the phone's peer only", step.name, diff.AddedUsers, diff.RemovedUsers)
+		}
+		if step.active && touched[0].User["keepAlive"] != "25" {
+			t.Fatalf("%s: device peer lost the client's keepalive: %+v", step.name, touched[0].User)
 		}
 		if !applyXrayHotDiff(api, diff) {
 			t.Fatalf("%s: peer update failed", step.name)
