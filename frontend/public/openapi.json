@@ -152,6 +152,19 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
+            "type": "string"
+          },
           "nodeDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -168,6 +181,21 @@
             "type": "integer"
           },
           "panelOutbound": {
+            "type": "string"
+          },
+          "publicIpRefreshMinutes": {
+            "description": "0 stops refreshing the detected public IP after the first success.",
+            "maximum": 10080,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "publicIpv4Override": {
+            "type": "string"
+          },
+          "publicIpv6Detect": {
+            "type": "boolean"
+          },
+          "publicIpv6Override": {
             "type": "string"
           },
           "realityScanCandidates": {
@@ -354,6 +382,9 @@
             "example": "inbound-first",
             "type": "string"
           },
+          "subHwidRejectWithConfig": {
+            "type": "boolean"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -504,6 +535,14 @@
           "subProfileUrl": {
             "type": "string"
           },
+          "subRateLimit": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "subRateLimitEnable": {
+            "type": "boolean"
+          },
           "subRoutingRules": {
             "type": "string"
           },
@@ -607,6 +646,40 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "wechatCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatEnable": {
+            "type": "boolean"
+          },
+          "wechatEnabledEvents": {
+            "type": "string"
+          },
+          "wechatLang": {
+            "type": "string"
+          },
+          "wechatMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatMode": {
+            "type": "string"
+          },
+          "wechatReportEnable": {
+            "type": "boolean"
+          },
+          "wechatRunTime": {
+            "type": "string"
+          },
+          "wechatToken": {
+            "type": "string"
+          },
+          "wechatWebhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -648,10 +721,16 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "publicIpRefreshMinutes",
+          "publicIpv4Override",
+          "publicIpv6Detect",
+          "publicIpv6Override",
           "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
@@ -710,6 +789,7 @@
           "subHappTunType",
           "subHideSettings",
           "subHostSortMode",
+          "subHwidRejectWithConfig",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -759,6 +839,8 @@
           "subPort",
           "subProfileMode",
           "subProfileUrl",
+          "subRateLimit",
+          "subRateLimitEnable",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
           "subSupportUrl",
@@ -789,7 +871,17 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "wechatCpu",
+          "wechatEnable",
+          "wechatEnabledEvents",
+          "wechatLang",
+          "wechatMemory",
+          "wechatMode",
+          "wechatReportEnable",
+          "wechatRunTime",
+          "wechatToken",
+          "wechatWebhookURL"
         ],
         "type": "object"
       },
@@ -872,6 +964,12 @@
           "hasWarpSecret": {
             "type": "boolean"
           },
+          "hasWechatToken": {
+            "type": "boolean"
+          },
+          "hasWechatWebhookURL": {
+            "type": "boolean"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -943,6 +1041,19 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
+            "type": "string"
+          },
           "nodeDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -959,6 +1070,21 @@
             "type": "integer"
           },
           "panelOutbound": {
+            "type": "string"
+          },
+          "publicIpRefreshMinutes": {
+            "description": "0 stops refreshing the detected public IP after the first success.",
+            "maximum": 10080,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "publicIpv4Override": {
+            "type": "string"
+          },
+          "publicIpv6Detect": {
+            "type": "boolean"
+          },
+          "publicIpv6Override": {
             "type": "string"
           },
           "realityScanCandidates": {
@@ -1145,6 +1271,9 @@
             "example": "inbound-first",
             "type": "string"
           },
+          "subHwidRejectWithConfig": {
+            "type": "boolean"
+          },
           "subIncyAnnounceUrl": {
             "type": "string"
           },
@@ -1295,6 +1424,14 @@
           "subProfileUrl": {
             "type": "string"
           },
+          "subRateLimit": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "subRateLimitEnable": {
+            "type": "boolean"
+          },
           "subRoutingRules": {
             "type": "string"
           },
@@ -1398,6 +1535,40 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "wechatCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatEnable": {
+            "type": "boolean"
+          },
+          "wechatEnabledEvents": {
+            "type": "string"
+          },
+          "wechatLang": {
+            "type": "string"
+          },
+          "wechatMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "wechatMode": {
+            "type": "string"
+          },
+          "wechatReportEnable": {
+            "type": "boolean"
+          },
+          "wechatRunTime": {
+            "type": "string"
+          },
+          "wechatToken": {
+            "type": "string"
+          },
+          "wechatWebhookURL": {
+            "type": "string"
           }
         },
         "required": [
@@ -1425,6 +1596,8 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "hasWechatToken",
+          "hasWechatWebhookURL",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -1447,10 +1620,16 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "publicIpRefreshMinutes",
+          "publicIpv4Override",
+          "publicIpv6Detect",
+          "publicIpv6Override",
           "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
@@ -1509,6 +1688,7 @@
           "subHappTunType",
           "subHideSettings",
           "subHostSortMode",
+          "subHwidRejectWithConfig",
           "subIncyAnnounceUrl",
           "subIncyAppAutoDetect",
           "subIncyBannerBgColor",
@@ -1558,6 +1738,8 @@
           "subPort",
           "subProfileMode",
           "subProfileUrl",
+          "subRateLimit",
+          "subRateLimitEnable",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
           "subSupportUrl",
@@ -1588,7 +1770,17 @@
           "webDomain",
           "webKeyFile",
           "webListen",
-          "webPort"
+          "webPort",
+          "wechatCpu",
+          "wechatEnable",
+          "wechatEnabledEvents",
+          "wechatLang",
+          "wechatMemory",
+          "wechatMode",
+          "wechatReportEnable",
+          "wechatRunTime",
+          "wechatToken",
+          "wechatWebhookURL"
         ],
         "type": "object"
       },
@@ -1717,6 +1909,73 @@
         },
         "required": [
           "code"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustReport": {
+        "properties": {
+          "email": {
+            "example": "carol",
+            "type": "string"
+          },
+          "reason": {
+            "example": "client not found",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustResult": {
+        "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+        "properties": {
+          "adjusted": {
+            "example": 2,
+            "type": "integer"
+          },
+          "externalLinks": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BulkExternalLinksResult"
+              }
+            ],
+            "nullable": true
+          },
+          "skipped": {
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/BulkAdjustReport"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjusted"
+        ],
+        "type": "object"
+      },
+      "BulkExternalLinksResult": {
+        "properties": {
+          "added": {
+            "example": 4,
+            "type": "integer"
+          },
+          "errors": {
+            "example": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "errors",
+          "skipped"
         ],
         "type": "object"
       },
@@ -1892,6 +2151,15 @@
             "description": "Last update timestamp",
             "format": "int64",
             "type": "integer"
+          },
+          "wgDeviceLimit": {
+            "type": "integer"
+          },
+          "wireguardDevices": {
+            "items": {
+              "$ref": "#/components/schemas/WireguardDevice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2106,6 +2374,15 @@
           },
           "uuid": {
             "type": "string"
+          },
+          "wgDeviceLimit": {
+            "type": "integer"
+          },
+          "wireguardDevices": {
+            "items": {
+              "$ref": "#/components/schemas/WireguardDevice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2141,7 +2418,9 @@
           "trafficReset",
           "trafficResetDay",
           "updatedAt",
-          "uuid"
+          "uuid",
+          "wgDeviceLimit",
+          "wireguardDevices"
         ],
         "type": "object"
       },
@@ -2525,6 +2804,40 @@
           "online",
           "onlineCount",
           "total"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkInput": {
+        "description": "ExternalLinkInput is one row from the client form's Links tab.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "example": "link",
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "example": "Backup",
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
         ],
         "type": "object"
       },
@@ -3216,6 +3529,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "preserveClientTraffic": {
+            "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+            "nullable": true,
+            "type": "boolean"
+          },
           "protocol": {
             "enum": [
               "vmess",
@@ -3606,6 +3924,72 @@
           "msg",
           "obj",
           "success"
+        ],
+        "type": "object"
+      },
+      "NetworkInterfaceOption": {
+        "properties": {
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "up": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "up"
+        ],
+        "type": "object"
+      },
+      "NetworkInterfacesResponse": {
+        "properties": {
+          "automatic": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "automaticError": {
+            "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterfaceOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "automatic",
+          "automaticError",
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "NetworkTrafficSelection": {
+        "properties": {
+          "available": {
+            "example": true,
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "mode": {
+            "example": "manual",
+            "type": "string"
+          },
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "error",
+          "mode",
+          "name"
         ],
         "type": "object"
       },
@@ -4874,6 +5258,99 @@
         ],
         "type": "object"
       },
+      "Status": {
+        "description": "Status represents comprehensive system and application status information.\nIt includes CPU, memory, disk, network statistics, and Xray process status.",
+        "properties": {
+          "amneziawg": {
+            "description": "AmneziaWG gates the overview's AmneziaWG log view: Configured stays true\nwhile an inbound exists but its embedded interface isn't up yet, which\nis exactly when that view's event lines are worth reading."
+          },
+          "appStats": {},
+          "cpu": {
+            "type": "number"
+          },
+          "cpuCores": {
+            "type": "integer"
+          },
+          "cpuSpeedMhz": {
+            "type": "number"
+          },
+          "disk": {},
+          "diskIO": {},
+          "diskTraffic": {},
+          "loads": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "logicalPro": {
+            "type": "integer"
+          },
+          "mem": {},
+          "netIO": {},
+          "netTraffic": {},
+          "networkInterface": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NetworkTrafficSelection"
+              }
+            ],
+            "nullable": true
+          },
+          "panelGuid": {
+            "type": "string"
+          },
+          "panelVersion": {
+            "type": "string"
+          },
+          "publicIP": {},
+          "resourceScope": {
+            "type": "string"
+          },
+          "swap": {},
+          "tcpCount": {
+            "type": "integer"
+          },
+          "udpCount": {
+            "type": "integer"
+          },
+          "unavailableMetrics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uptime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "xray": {}
+        },
+        "required": [
+          "amneziawg",
+          "appStats",
+          "cpu",
+          "cpuCores",
+          "cpuSpeedMhz",
+          "disk",
+          "diskIO",
+          "diskTraffic",
+          "loads",
+          "logicalPro",
+          "mem",
+          "netIO",
+          "netTraffic",
+          "panelGuid",
+          "panelVersion",
+          "publicIP",
+          "swap",
+          "tcpCount",
+          "udpCount",
+          "uptime",
+          "xray"
+        ],
+        "type": "object"
+      },
       "SubBalancer": {
         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
         "properties": {
@@ -5099,6 +5576,44 @@
           "id",
           "password",
           "username"
+        ],
+        "type": "object"
+      },
+      "WireguardDevice": {
+        "description": "WireguardDevice is an additional peer sharing its client's quota and lifecycle.\nThe original client credentials remain the primary device for compatibility.",
+        "properties": {
+          "allowedIPs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preSharedKey": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allowedIPs",
+          "enable",
+          "id",
+          "name",
+          "privateKey",
+          "publicKey"
         ],
         "type": "object"
       },
@@ -5513,6 +6028,7 @@
                       "nodeId": null,
                       "originNodeGuid": "",
                       "port": 443,
+                      "preserveClientTraffic": null,
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
@@ -6587,39 +7103,42 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/Status"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "cpu": 12.5,
-                    "mem": {
-                      "current": 2147483648,
-                      "total": 8589934592
-                    },
-                    "swap": {
-                      "current": 0,
-                      "total": 4294967296
-                    },
-                    "disk": {
-                      "current": 53687091200,
-                      "total": 268435456000
-                    },
-                    "netIO": {
-                      "up": 1073741824,
-                      "down": 2147483648
-                    },
-                    "xray": {
-                      "state": "running",
-                      "version": "v25.10.31"
-                    },
-                    "tcpCount": 42,
-                    "load": {
-                      "load1": 0.5,
-                      "load5": 0.3,
-                      "load15": 0.2
-                    }
+                    "amneziawg": null,
+                    "appStats": null,
+                    "cpu": 0,
+                    "cpuCores": 0,
+                    "cpuSpeedMhz": 0,
+                    "disk": null,
+                    "diskIO": null,
+                    "diskTraffic": null,
+                    "loads": [
+                      0
+                    ],
+                    "logicalPro": 0,
+                    "mem": null,
+                    "netIO": null,
+                    "netTraffic": null,
+                    "networkInterface": null,
+                    "panelGuid": "",
+                    "panelVersion": "",
+                    "publicIP": null,
+                    "resourceScope": "",
+                    "swap": null,
+                    "tcpCount": 0,
+                    "udpCount": 0,
+                    "unavailableMetrics": [
+                      ""
+                    ],
+                    "uptime": 0,
+                    "xray": null
                   }
                 }
               }
@@ -6659,6 +7178,51 @@
                     "installed": true,
                     "usable": true,
                     "windows": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/networkInterfaces": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.",
+        "operationId": "get_panel_api_server_networkInterfaces",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/NetworkInterfacesResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "automatic": "eth0",
+                    "automaticError": "",
+                    "interfaces": [
+                      {
+                        "name": "eth0",
+                        "up": true
+                      }
+                    ]
                   }
                 }
               }
@@ -7989,7 +8553,7 @@
                   "keepHostSettings": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Keep this machine's addresses, certificates and node identity. Default true."
+                    "description": "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true."
                   }
                 },
                 "required": [
@@ -8852,6 +9416,48 @@
         }
       }
     },
+    "/panel/api/clients/get": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Fetch one client by email, including the inbound IDs and external config IDs it is attached to.",
+        "operationId": "get_panel_api_clients_get",
+        "description": "Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/get/subId/{subId}": {
       "get": {
         "tags": [
@@ -8975,7 +9581,7 @@
         ],
         "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.",
         "operationId": "post_panel_api_clients_add",
-        "description": "Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by another client` when its range overlaps an address or prefix a different client of that same inbound holds, or `... used by a client on <inbound>` when the holder sits on another WireGuard or AmneziaWG inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides with `10.0.0.5/32`; a `/0` entry collides with every address of its family another client holds, and only a `0.0.0.0/0` or `::/0` default route that is already stored (legacy peers) keeps nobody out. Allocation likewise skips every address inside a prefix another client holds. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.",
+        "description": "Client email must not be exactly `.` or `..`. Existing reserved-name clients can be read, renamed to a valid name, or deleted using the query-parameter /get, /update and /del aliases. Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by another client` when its range overlaps an address or prefix a different client of that same inbound holds, or `... used by a client on <inbound>` when the holder sits on another WireGuard or AmneziaWG inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides with `10.0.0.5/32`; a `/0` entry collides with every address of its family another client holds, and only a `0.0.0.0/0` or `::/0` default route that is already stored (legacy peers) keeps nobody out. Allocation likewise skips every address inside a prefix another client holds. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9141,13 +9747,77 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).",
+        "summary": "Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload: omitted fields keep their current values, and an explicit zero, empty or null value clears a field, except as noted below.",
         "operationId": "post_panel_api_clients_update_email",
-        "description": "The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.",
+        "description": "An omitted `flow` leaves every attached inbound on its own flow. Send `\"reverse\": null` to remove the reverse tag. Credentials (`id`, `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG `allowedIPs` are never cleared: an empty value keeps the stored one. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.",
         "parameters": [
           {
             "name": "email",
             "in": "path",
+            "required": true,
+            "description": "Current client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "email": "alice@example.com",
+                "totalGB": 107374182400,
+                "expiryTime": 1767225600000,
+                "limitHwid": 2,
+                "tgId": 123456789,
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Client updated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/update": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload: omitted fields keep their current values, and an explicit zero, empty or null value clears a field, except as noted below.",
+        "operationId": "post_panel_api_clients_update",
+        "description": "Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization. An omitted `flow` leaves every attached inbound on its own flow. Send `\"reverse\": null` to remove the reverse tag. Credentials (`id`, `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG `allowedIPs` are never cleared: an empty value keeps the stored one. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
             "required": true,
             "description": "Current client email (unique identifier).",
             "schema": {
@@ -9212,6 +9882,61 @@
           {
             "name": "email",
             "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keepTraffic",
+            "in": "query",
+            "required": true,
+            "description": "Pass 1 to retain the xray_client_traffic row after deletion.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Client deleted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/del": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.",
+        "operationId": "post_panel_api_clients_del",
+        "description": "Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have removed the client from the remaining inbounds; the client record is kept in that case, so re-running the call retries exactly the leftovers. The record and traffic rows are dropped after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the client already removed from every inbound.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
             "required": true,
             "description": "Client email (unique identifier).",
             "schema": {
@@ -9485,6 +10210,464 @@
         }
       }
     },
+    "/panel/api/clients/wireguardDevices": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List WireGuard devices and their per-inbound addresses.",
+        "operationId": "get_panel_api_clients_wireguardDevices",
+        "description": "The original credentials remain the primary device. Additional devices share their parent client email, traffic quota, expiry and enable state. Keep each device configuration on one device. Device-specific subscriptions use the existing subscription URL with the wgDevice query parameter set to the device ID.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Create a WireGuard device on every attached WireGuard inbound.",
+        "operationId": "post_panel_api_clients_wireguardDevices",
+        "description": "Keys are generated once and each inbound allocates an available tunnel address. All inbounds commit together. The default limit is 5 devices including primary.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Device name with 1 to 64 characters on one line."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "example": {
+                "name": "Phone"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/wireguardDevices/limit": {
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Set the maximum number of WireGuard devices.",
+        "operationId": "put_panel_api_clients_wireguardDevices_limit",
+        "description": "The limit includes primary and disabled devices. Choose 1 to 32. Values below the current device count are rejected.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Maximum device count including primary."
+                  }
+                },
+                "required": [
+                  "limit"
+                ]
+              },
+              "example": {
+                "limit": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/wireguardDevices/{deviceId}": {
+      "patch": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Rename or enable a WireGuard device.",
+        "operationId": "patch_panel_api_clients_wireguardDevices_deviceId",
+        "description": "The primary device is managed through the parent client. Disabled additional devices retain their reserved addresses.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Additional device UUID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New device name."
+                  },
+                  "enable": {
+                    "type": "boolean",
+                    "description": "Whether the device can connect."
+                  }
+                }
+              },
+              "example": {
+                "name": "Work phone",
+                "enable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete an additional WireGuard device and release its address.",
+        "operationId": "delete_panel_api_clients_wireguardDevices_deviceId",
+        "description": "The device is removed from every attached WireGuard inbound. Its previously downloaded configuration loses access after the configuration is applied.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "description": "Additional device UUID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "limit": 5,
+                    "inbounds": [
+                      {
+                        "inboundId": 3,
+                        "devices": [
+                          {
+                            "id": "primary",
+                            "name": "",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.2/32"
+                            ]
+                          },
+                          {
+                            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",
+                            "name": "Phone",
+                            "enable": true,
+                            "privateKey": "...",
+                            "publicKey": "...",
+                            "allowedIPs": [
+                              "10.0.0.3/32"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/resetAllTraffics": {
       "post": {
         "tags": [
@@ -9706,25 +10889,71 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "emails"
+                ],
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "addDays": {
+                    "type": "integer"
+                  },
+                  "addBytes": {
+                    "type": "integer"
+                  },
+                  "flow": {
+                    "type": "string"
+                  },
+                  "limitHwid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "adTag": {
+                    "type": "string"
+                  },
+                  "externalLinks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/ExternalLinkInput"
+                    }
+                  }
+                }
               },
               "example": {
                 "emails": [
                   "alice",
                   "bob"
                 ],
-                "addDays": 30,
-                "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision",
-                "limitHwid": 2,
-                "adTag": "0123456789abcdef0123456789abcdef"
+                "externalLinks": [
+                  {
+                    "kind": "link",
+                    "value": "vless://uuid@example.com:443",
+                    "remark": "Backup",
+                    "enable": true,
+                    "expiryTime": 0
+                  },
+                  {
+                    "kind": "subscription",
+                    "value": "https://provider.example/sub",
+                    "namePrefix": "[provider] ",
+                    "enable": true,
+                    "expiryTime": 0
+                  }
+                ]
               }
             }
           }
@@ -9743,19 +10972,17 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/BulkAdjustResult"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
                     "adjusted": 2,
-                    "skipped": [
-                      {
-                        "email": "carol",
-                        "reason": "unlimited expiry"
-                      }
-                    ]
+                    "externalLinks": null,
+                    "skipped": []
                   }
                 }
               }
@@ -10811,7 +12038,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.",
+        "summary": "List registered HWID devices for a client with a short fingerprint and a blocked flag. Bans are scoped to the subscription ID shared by the client. Full hashes are not exposed.",
         "operationId": "post_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -10846,6 +12073,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "blocked": false,
                       "firstSeen": 1735000000000,
                       "lastSeen": 1735100000000,
                       "userAgent": "Happ/1.0",
@@ -10865,7 +12093,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Clear all registered HWID devices for a client so new devices can register again.",
+        "summary": "Clear unblocked HWID registrations for a client so devices can register again. Blocked devices and their bans are preserved.",
         "operationId": "delete_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -10906,7 +12134,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Remove a single registered HWID device by its id, freeing one slot under the HWID limit.",
+        "summary": "Remove a single unblocked HWID device by its id, freeing one slot under the HWID limit. A blocked device must be unblocked before it can be removed.",
         "operationId": "delete_panel_api_clients_hwids_email_id",
         "parameters": [
           {
@@ -10944,6 +12172,82 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}/{id}/block": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Block or unblock one device for the client subscription. Send an explicit boolean blocked value. A ban denies subscription bodies for that HWID even with limitHwid=0, does not consume a device slot, and survives clearing devices or changing the limit. It does not revoke copied credentials or identify requests with a different or missing HWID.",
+        "operationId": "post_panel_api_clients_hwids_email_id_block",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Device id, from the list endpoint.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "blocked": {
+                    "type": "boolean",
+                    "description": "true to block the device, false to unblock it."
+                  }
+                },
+                "required": [
+                  "blocked"
+                ]
+              },
+              "example": {
+                "blocked": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Updated successfully."
                 }
               }
             }
@@ -12143,6 +13447,88 @@
         ],
         "summary": "Probe an existing node, updating its cached health state.",
         "operationId": "post_panel_api_nodes_probe_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartXray/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.",
+        "operationId": "post_panel_api_nodes_restartXray_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartPanel/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.",
+        "operationId": "post_panel_api_nodes_restartPanel_id",
         "parameters": [
           {
             "name": "id",
@@ -14139,6 +15525,36 @@
                 "example": {
                   "success": true,
                   "msg": "Test notification sent successfully"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testWechat": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Send a text test notification using the saved WeChat destination. Supports WeCom group robots and compatible personal WeChat webhook gateways. Requires WeChat notifications to be enabled.",
+        "operationId": "post_panel_api_setting_testWechat",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
@@ -17053,9 +18469,10 @@
                   "type": "string",
                   "enum": [
                     "xray",
-                    "tuic"
+                    "tuic",
+                    "node"
                   ],
-                  "description": "Present for native TUIC samples; omitted Xray samples default to xray."
+                  "description": "Present for native TUIC samples and for clients served by managed nodes; omitted Xray samples default to xray."
                 },
                 "clientTrafficIntervalMs": {
                   "type": "integer",
@@ -17300,6 +18717,7 @@
                   "nodeId": null,
                   "originNodeGuid": "",
                   "port": 443,
+                  "preserveClientTraffic": null,
                   "protocol": "vless",
                   "remark": "VLESS-443",
                   "settings": null,

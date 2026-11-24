@@ -23,6 +23,8 @@ panel's subscription settings:
 | `subCertFile` / `subKeyFile` | _(none)_ | TLS cert + key — when set, the server serves **HTTPS**. |
 | `subEncrypt`  | `true`  | Base64-encode the raw subscription body.                        |
 | `subUpdates`  | `12`    | Suggested refresh interval (hours) sent to clients.             |
+| `subRateLimitEnable` | `false` | Limit how often one client address may fetch subscription URLs; over the limit the server answers `429` with `Retry-After`. |
+| `subRateLimit` | `60`   | Fetches allowed per client address and minute (1–1000) while the limit is on. Behind a reverse proxy, `trustedProxyCIDRs` decides which address counts as the client. |
 
 A subscription URL looks like:
 
@@ -37,6 +39,22 @@ list at `subPath` and the **JSON** (Xray-json) config at the JSON path. Build th
 URLs and preview both bodies here:
 
 <SubscriptionBuilder />
+
+## Replacing nodes after an HWID rejection
+
+In **Panel settings → Subscription**, enable **Replace configs when HWID is
+rejected** (`subHwidRejectWithConfig`, off by default). When HWID is missing or
+the device limit is reached, the server returns HTTP 200 with a non-working
+node instead of 404. This supports raw/base64 links, Xray JSON, Clash/Mihomo,
+legacy Clash, and automatic format detection. Compatible apps can accept the
+update and replace previously downloaded nodes. With this option off, the
+existing 404 response and HWID error headers are preserved.
+
+Replacement requires the app to refresh and accept the subscription. It does
+not revoke copied credentials or immediately terminate existing connections.
+Deleting a device only frees its slot: it can register again if a slot is
+available. To reject it after deletion, the remaining devices must fill the
+configured limit.
 
 ## Output formats
 
@@ -69,8 +87,8 @@ If an administrator has already assigned `/mihomo/` or `/clash-legacy/` to a
 different configurable subscription path, that existing path is preserved and
 the conflicting alias is skipped with a warning at startup.
 
-Automatic Clash format detection keeps the existing `(?i)(clash|mihomo)`
-default matcher so existing subscription URLs continue returning YAML.
+Automatic Clash format detection defaults to the `(?i)(clash|mihomo|rabbit-hole)`
+matcher, so existing subscription URLs continue returning YAML.
 It does not distinguish legacy clients from Mihomo-based clients; Clash for
 Windows users must use `/clash-legacy/<sub-id>` for a compatible profile.
 

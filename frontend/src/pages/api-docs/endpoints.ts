@@ -455,8 +455,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/status',
         summary:
           'Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v25.10.31" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
+        responseSchema: 'Status',
       },
       {
         method: 'GET',
@@ -465,6 +464,13 @@ export const sections: readonly Section[] = [
           'Reports whether per-client IP limits can be enforced on this host. The panel uses it to gate the "IP Limit" field, since enforcement depends on Fail2ban being installed.',
         response:
           '{\n  "success": true,\n  "obj": {\n    "enabled": true,\n    "installed": true,\n    "usable": true,\n    "windows": false\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/networkInterfaces',
+        summary:
+          'List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.',
+        responseSchema: 'NetworkInterfacesResponse',
       },
       {
         method: 'GET',
@@ -822,7 +828,7 @@ export const sections: readonly Section[] = [
             name: 'keepHostSettings',
             in: 'body (multipart)',
             type: 'boolean',
-            desc: "Keep this machine's addresses, certificates and node identity. Default true.",
+            desc: "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true.",
             optional: true,
             defaultValue: true,
           },
@@ -1151,6 +1157,19 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/get',
+        summary:
+          'Fetch one client by email, including the inbound IDs and external config IDs it is attached to.',
+        description:
+          'Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "client": { "id": 1, "email": "alice@example.com", ... },\n    "inboundIds": [3, 5],\n    "externalLinks": [\n      { "id": 11, "kind": "link", "value": "vless://...", "remark": "DE", "enable": true, "expiryTime": 0 },\n      { "id": 12, "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] ", "lastFetchAt": 1767220000000, "lastFetchError": "" }\n    ]\n  }\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/get/subId/:subId',
         summary: 'Fetch clients by subscription ID.',
         description:
@@ -1195,7 +1214,7 @@ export const sections: readonly Section[] = [
         summary:
           'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.',
         description:
-          'Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by another client` when its range overlaps an address or prefix a different client of that same inbound holds, or `... used by a client on <inbound>` when the holder sits on another WireGuard or AmneziaWG inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides with `10.0.0.5/32`; a `/0` entry collides with every address of its family another client holds, and only a `0.0.0.0/0` or `::/0` default route that is already stored (legacy peers) keeps nobody out. Allocation likewise skips every address inside a prefix another client holds. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.',
+          'Client email must not be exactly `.` or `..`. Existing reserved-name clients can be read, renamed to a valid name, or deleted using the query-parameter /get, /update and /del aliases. Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by another client` when its range overlaps an address or prefix a different client of that same inbound holds, or `... used by a client on <inbound>` when the holder sits on another WireGuard or AmneziaWG inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides with `10.0.0.5/32`; a `/0` entry collides with every address of its family another client holds, and only a `0.0.0.0/0` or `::/0` default route that is already stored (legacy peers) keeps nobody out. Allocation likewise skips every address inside a prefix another client holds. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.',
         params: [
           {
             name: 'client',
@@ -1263,13 +1282,31 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/update/:email',
         summary:
-          'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
+          'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload: omitted fields keep their current values, and an explicit zero, empty or null value clears a field, except as noted below.',
         description:
-          'The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.',
+          'An omitted `flow` leaves every attached inbound on its own flow. Send `"reverse": null` to remove the reverse tag. Credentials (`id`, `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG `allowedIPs` are never cleared: an empty value keeps the stored one. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.',
         params: [
           {
             name: 'email',
             in: 'path',
+            type: 'string',
+            desc: 'Current client email (unique identifier).',
+          },
+        ],
+        body: '{\n  "email": "alice@example.com",\n  "totalGB": 107374182400,\n  "expiryTime": 1767225600000,\n  "limitHwid": 2,\n  "tgId": 123456789,\n  "enable": true\n}',
+        response: '{\n  "success": true,\n  "msg": "Client updated"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/update',
+        summary:
+          'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload: omitted fields keep their current values, and an explicit zero, empty or null value clears a field, except as noted below.',
+        description:
+          'Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization. An omitted `flow` leaves every attached inbound on its own flow. Send `"reverse": null` to remove the reverse tag. Credentials (`id`, `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG `allowedIPs` are never cleared: an empty value keeps the stored one. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.',
+        params: [
+          {
+            name: 'email',
+            in: 'query',
             type: 'string',
             desc: 'Current client email (unique identifier).',
           },
@@ -1286,6 +1323,24 @@ export const sections: readonly Section[] = [
           'The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have removed the client from the remaining inbounds; the client record is kept in that case, so re-running the call retries exactly the leftovers. The record and traffic rows are dropped after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the client already removed from every inbound.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'keepTraffic',
+            in: 'query',
+            type: 'integer',
+            desc: 'Pass 1 to retain the xray_client_traffic row after deletion.',
+          },
+        ],
+        response: '{\n  "success": true,\n  "msg": "Client deleted"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/del',
+        summary:
+          'Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.',
+        description:
+          'Query-parameter alias for the path endpoint. Use email=. or email=.. to manage legacy reserved names without URL dot-segment normalization. The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have removed the client from the remaining inbounds; the client record is kept in that case, so re-running the call retries exactly the leftovers. The record and traffic rows are dropped after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the client already removed from every inbound.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email (unique identifier).' },
           {
             name: 'keepTraffic',
             in: 'query',
@@ -1349,6 +1404,96 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true\n}',
       },
       {
+        method: 'GET',
+        path: '/panel/api/clients/wireguardDevices',
+        summary: 'List WireGuard devices and their per-inbound addresses.',
+        description:
+          'The original credentials remain the primary device. Additional devices share their parent client email, traffic quota, expiry and enable state. Keep each device configuration on one device. Device-specific subscriptions use the existing subscription URL with the wgDevice query parameter set to the device ID.',
+        params: [{ name: 'email', in: 'query', type: 'string', desc: 'Client email.' }],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/wireguardDevices',
+        summary: 'Create a WireGuard device on every attached WireGuard inbound.',
+        description:
+          'Keys are generated once and each inbound allocates an available tunnel address. All inbounds commit together. The default limit is 5 devices including primary.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          {
+            name: 'name',
+            in: 'body (json)',
+            type: 'string',
+            desc: 'Device name with 1 to 64 characters on one line.',
+          },
+        ],
+        body: '{\n  "name": "Phone"\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'PUT',
+        path: '/panel/api/clients/wireguardDevices/limit',
+        summary: 'Set the maximum number of WireGuard devices.',
+        description:
+          'The limit includes primary and disabled devices. Choose 1 to 32. Values below the current device count are rejected.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          {
+            name: 'limit',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Maximum device count including primary.',
+            defaultValue: 5,
+          },
+        ],
+        body: '{\n  "limit": 5\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'PATCH',
+        path: '/panel/api/clients/wireguardDevices/:deviceId',
+        summary: 'Rename or enable a WireGuard device.',
+        description:
+          'The primary device is managed through the parent client. Disabled additional devices retain their reserved addresses.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          { name: 'deviceId', in: 'path', type: 'string', desc: 'Additional device UUID.' },
+          {
+            name: 'name',
+            in: 'body (json)',
+            type: 'string',
+            optional: true,
+            desc: 'New device name.',
+          },
+          {
+            name: 'enable',
+            in: 'body (json)',
+            type: 'boolean',
+            optional: true,
+            desc: 'Whether the device can connect.',
+          },
+        ],
+        body: '{\n  "name": "Work phone",\n  "enable": true\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/clients/wireguardDevices/:deviceId',
+        summary: 'Delete an additional WireGuard device and release its address.',
+        description:
+          'The device is removed from every attached WireGuard inbound. Its previously downloaded configuration loses access after the configuration is applied.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          { name: 'deviceId', in: 'path', type: 'string', desc: 'Additional device UUID.' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/resetAllTraffics',
         summary:
@@ -1390,10 +1535,48 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkAdjust',
         summary:
-          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Returns the adjusted count and per-email skip reasons.',
-        body: '{\n  "emails": ["alice", "bob"],\n  "addDays": 30,\n  "addBytes": 53687091200,\n  "flow": "xtls-rprx-vision",\n  "limitHwid": 2,\n  "adTag": "0123456789abcdef0123456789abcdef"\n}',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "adjusted": 2,\n    "skipped": [\n      { "email": "carol", "reason": "unlimited expiry" }\n    ]\n  }\n}',
+          'Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: "none" clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound supports it (omit or "" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel ("none" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.',
+        requestSchema: {
+          type: 'object',
+          required: ['emails'],
+          properties: {
+            emails: { type: 'array', items: { type: 'string' }, minItems: 1 },
+            addDays: { type: 'integer' },
+            addBytes: { type: 'integer' },
+            flow: { type: 'string' },
+            limitHwid: { type: 'integer', minimum: 0 },
+            adTag: { type: 'string' },
+            externalLinks: {
+              type: 'array',
+              minItems: 1,
+              items: { $ref: '#/components/schemas/ExternalLinkInput' },
+            },
+          },
+        },
+        body: JSON.stringify(
+          {
+            emails: ['alice', 'bob'],
+            externalLinks: [
+              {
+                kind: 'link',
+                value: 'vless://uuid@example.com:443',
+                remark: 'Backup',
+                enable: true,
+                expiryTime: 0,
+              },
+              {
+                kind: 'subscription',
+                value: 'https://provider.example/sub',
+                namePrefix: '[provider] ',
+                enable: true,
+                expiryTime: 0,
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+        responseSchema: 'BulkAdjustResult',
       },
       {
         method: 'POST',
@@ -1581,27 +1764,45 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/hwids/:email',
         summary:
-          'List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.',
+          'List registered HWID devices for a client with a short fingerprint and a blocked flag. Bans are scoped to the subscription ID shared by the client. Full hashes are not exposed.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9",\n      "fingerprint": "6ad17c93e821"\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "blocked": false,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9",\n      "fingerprint": "6ad17c93e821"\n    }\n  ]\n}',
       },
       {
         method: 'DELETE',
         path: '/panel/api/clients/hwids/:email',
         summary:
-          'Clear all registered HWID devices for a client so new devices can register again.',
+          'Clear unblocked HWID registrations for a client so devices can register again. Blocked devices and their bans are preserved.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
       },
       {
         method: 'DELETE',
         path: '/panel/api/clients/hwids/:email/:id',
         summary:
-          'Remove a single registered HWID device by its id, freeing one slot under the HWID limit.',
+          'Remove a single unblocked HWID device by its id, freeing one slot under the HWID limit. A blocked device must be unblocked before it can be removed.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
           { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
         ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/hwids/:email/:id/block',
+        summary:
+          'Block or unblock one device for the client subscription. Send an explicit boolean blocked value. A ban denies subscription bodies for that HWID even with limitHwid=0, does not consume a device slot, and survives clearing devices or changing the limit. It does not revoke copied credentials or identify requests with a different or missing HWID.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+          { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
+          {
+            name: 'blocked',
+            in: 'body (json)',
+            type: 'boolean',
+            desc: 'true to block the device, false to unblock it.',
+          },
+        ],
+        body: '{\n  "blocked": true\n}',
+        response: '{\n  "success": true,\n  "msg": "Updated successfully."\n}',
       },
       {
         method: 'POST',
@@ -1802,6 +2003,20 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/nodes/probe/:id',
         summary: 'Probe an existing node, updating its cached health state.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/restartXray/:id',
+        summary:
+          'Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/nodes/restartPanel/:id',
+        summary:
+          'Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
       },
       {
@@ -2085,6 +2300,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/testDiscord',
         summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
         response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/testWechat',
+        summary:
+          'Send a text test notification using the saved WeChat destination. Supports WeCom group robots and compatible personal WeChat webhook gateways. Requires WeChat notifications to be enabled.',
       },
       {
         method: 'GET',

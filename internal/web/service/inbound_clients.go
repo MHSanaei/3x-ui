@@ -124,9 +124,9 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 	return clientsByInbound
 }
 
-// emailSpellings returns the arguments a "LOWER(col) IN ? OR col IN ?" match
+// EmailSpellings returns the arguments a "LOWER(col) IN ? OR col IN ?" match
 // needs: SQLite's LOWER() folds ASCII only, so non-ASCII capitals get every case.
-func emailSpellings(emails []string) []string {
+func EmailSpellings(emails []string) []string {
 	seen := make(map[string]struct{}, len(emails))
 	out := make([]string, 0, len(emails))
 	for _, e := range emails {
@@ -151,7 +151,7 @@ func emailSpellings(emails []string) []string {
 // emailUsedByOtherInbounds reports whether email lives in any inbound other than
 // exceptInboundId. Inside a transaction pass tx: a pool query there starves the pool.
 func (s *InboundService) emailUsedByOtherInbounds(db *gorm.DB, email string, exceptInboundId int) (bool, error) {
-	spellings := emailSpellings([]string{email})
+	spellings := EmailSpellings([]string{email})
 	if len(spellings) == 0 {
 		return false, nil
 	}
@@ -171,7 +171,7 @@ func (s *InboundService) emailUsedByOtherInbounds(db *gorm.DB, email string, exc
 // is keyed by the lower-cased email.
 func (s *InboundService) emailsUsedByOtherInbounds(db *gorm.DB, emails []string, exceptInboundId int) (map[string]bool, error) {
 	shared := make(map[string]bool, len(emails))
-	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
+	for _, batch := range chunkStrings(EmailSpellings(emails), sqlInChunk) {
 		var rows []struct{ Email string }
 		err := db.Table("client_inbounds").
 			Joins("JOIN clients ON clients.id = client_inbounds.client_id").

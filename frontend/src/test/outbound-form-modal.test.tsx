@@ -31,6 +31,13 @@ function formItemByLabel(label: string): Element | undefined {
 }
 
 function chooseOptionByLabel(label: string, optionText: string) {
+  const native = formItemByLabel(label)?.querySelector('select');
+  if (native) {
+    const option = Array.from(native.options).find((item) => item.text === optionText);
+    if (!option) throw new Error(`Option '${optionText}' not found for ${label}`);
+    fireEvent.change(native, { target: { value: option.value } });
+    return;
+  }
   const select = formItemByLabel(label)?.querySelector('.ant-select');
   if (!select) throw new Error(`${label} select not found`);
   fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);

@@ -1,0 +1,4 @@
+.client-bulk-adjust-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ant-color-text);
+  font-weight: 600;
+}

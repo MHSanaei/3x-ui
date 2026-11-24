@@ -37,15 +37,23 @@ var salamanderWarningSeen sync.Map
 
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
-	address        string
-	remarkTemplate string
-	datepicker     string
+	address                 string
+	remarkTemplate          string
+	datepicker              string
+	wireguardDevice         string
+	wireguardDeviceSelected bool
 	// subscriptionBody is true only when rendering the actual subscription
 	// content a client app imports (raw /sub fetch, /json, /clash). The remark
 	// template's per-client info is emitted there (on the first link); every
 	// other context — the sub info page, the panel's link/QR displays — renders
 	// the name-only template, like Remnawave.
 	subscriptionBody bool
+	// omitServerDescription drops the ?serverDescription= tail, which only Happ
+	// and INCY read; other clients show it in the node name (#7105).
+	omitServerDescription bool
+	// ss2022Base64Userinfo emits a Shadowsocks 2022 userinfo as base64url: Shadowrocket
+	// takes the percent-escapes of the SIP022 form literally (#7146).
+	ss2022Base64Userinfo bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
 	usageShown                 map[string]bool
@@ -127,6 +135,14 @@ func (s *SubService) ForRequest(host string) *SubService {
 	return &req
 }
 
+// ForWireguardDevice selects one device without changing the shared service.
+// Empty and primary retain the existing subscription identity.
+func (s *SubService) ForWireguardDevice(id string) *SubService {
+	req := *s
+	req.wireguardDevice = id
+	return &req
+}
+
 // PrepareForRequest sets per-request state (host + nodes map) on this
 // SubService instance. HTTP handlers should call ForRequest instead so the
 // controller's shared base service is never mutated by concurrent requests.
@@ -151,6 +167,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.hostGroupOrders = nil
 	s.sharedGroupSni = nil
 	s.rendered = 0
+	s.wireguardDeviceSelected = false
 	mode, _ := s.settingService.GetSubHostSortMode()
 	s.hostsFirst = mode == "hosts-first"
 	s.loadNodes()
@@ -460,6 +477,7 @@ func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, client
 		client.PrivateKey = peer.PrivateKey
 		client.PublicKey = peer.PublicKey
 		client.PreSharedKey = peer.PreSharedKey
+		client.WireguardDevices = peer.WireguardDevices
 		// append onto nil copies a non-empty list and clears a shared address when settings omit one.
 		client.AllowedIPs = append([]string(nil), peer.AllowedIPs...)
 		if peer.KeepAlive == nil {
@@ -573,7 +591,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := s.matchingClients(inbound, subId)
+		clients := s.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -587,14 +605,15 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		// Host overrides apply AFTER fallback projection so a host's
 		// address/TLS wins over the projected master stream.
 		var hostEps []map[string]any
+		var hostsClosed bool
 		if !s.hostsFirst {
-			hostEps = s.hostEndpoints(inbound, "raw")
+			hostEps, hostsClosed = s.hostEndpoints(inbound, "raw")
 		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
-			if s.rendered.spent() {
+			if hostsClosed || s.rendered.spent() {
 				seenEmails[client.Email] = struct{}{}
 				continue
 			}
@@ -642,6 +661,9 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			}
 		}
 	}
+	if err := s.validateWireguardDevice(); err != nil {
+		return nil, nil, 0, traffic, err
+	}
 	for _, ext := range externalLinks {
 		if ext.Enable {
 			hasEnabledClient = true
@@ -671,7 +693,7 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	traffic.Enable = hasEnabledClient
 
 	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
-		dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
+		dummyLink := (statusNode{remark: remark}).link()
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			return []string{dummyLink}, emails, lastOnline, traffic, nil
 		}
@@ -695,7 +717,10 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 	}
 	s.primeLinkClients(inbound.Id, clients, true)
 	s.projectThroughFallbackMaster(inbound)
-	hostEps := s.hostEndpoints(inbound, "raw")
+	hostEps, hostsClosed := s.hostEndpoints(inbound, "raw")
+	if hostsClosed {
+		return nil
+	}
 	var out []string
 	seen := make(map[string]struct{}, len(clients))
 	for _, client := range clients {
@@ -1130,11 +1155,16 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if ka := client.KeepAliveSeconds(); ka > 0 {
 		params["keepalive"] = strconv.Itoa(ka)
 	}
+	if finalmask, ok := unmarshalStreamSettings(inbound.StreamSettings)["finalmask"].(map[string]any); ok {
+		applyFinalMaskParams(finalmask, params)
+	}
 	endpoints := s.advertisedEndpoints(inbound)
 	links := make([]string, 0, len(endpoints))
 	for _, e := range endpoints {
 		link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(e.Address, e.Port))
-		links = append(links, buildLinkWithParams(link, params, s.endpointRemark(inbound, email, e.ep, "")))
+		epParams := cloneStringMap(params)
+		applyEndpointFinalMask(e, epParams)
+		links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, e.ep, "")))
 	}
 	return strings.Join(links, "\n")
 }
@@ -1589,7 +1619,9 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
 	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
 	var userInfo string
-	if strings.HasPrefix(method, "2022") {
+	if strings.HasPrefix(method, "2022") && s.ss2022Base64Userinfo {
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s:%s", method, inboundPassword, client.Password))
+	} else if strings.HasPrefix(method, "2022") {
 		userInfo = fmt.Sprintf("%s:%s:%s",
 			url.QueryEscape(method),
 			url.QueryEscape(inboundPassword),
@@ -1744,7 +1776,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			// VLESS/Trojan/SS get the host's description through buildEndpointLinks;
 			// this loop renders the fragment itself, so add it here too (#6738).
 			remark := s.endpointRemark(inbound, email, ep, "quic")
-			remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			if !s.omitServerDescription {
+				remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			}
 			links = append(links, buildLinkWithParams(link, epParams, remark))
 		}
 		return strings.Join(links, "\n")
@@ -1904,6 +1938,7 @@ func findClientIndex(clients []model.Client, email string) int {
 func unmarshalStreamSettings(streamSettings string) map[string]any {
 	var stream map[string]any
 	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	model.NormalizeXhttpExtra(stream)
 	return stream
 }
 
@@ -3365,6 +3400,7 @@ type PageData struct {
 	SubUrl        string
 	SubJsonUrl    string
 	SubClashUrl   string
+	Format        string
 	SubTitle      string
 	SubSupportUrl string
 	SubAnnounce   string
@@ -3470,10 +3506,23 @@ func (s *SubService) extractBaseFromURI(uri string) string {
 
 // buildSingleURL constructs a single URL using configured URI or base components
 func (s *SubService) buildSingleURL(configuredURI, base, basePath, subId string) string {
+	var result string
 	if configuredURI != "" {
-		return s.joinPathWithID(configuredURI, subId)
+		result = s.joinPathWithID(configuredURI, subId)
+	} else {
+		result = s.joinPathWithID(base+basePath, subId)
 	}
-	return s.joinPathWithID(base+basePath, subId)
+	if s.wireguardDevice == "" {
+		return result
+	}
+	parsed, err := url.Parse(result)
+	if err != nil {
+		return result
+	}
+	query := parsed.Query()
+	query.Set("wgDevice", s.wireguardDevice)
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }
 
 // joinPathWithID safely joins a base path with a subscription ID

@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { clientManagementPath } from '@/api/client-management';
 import { markLocalInvalidate } from '@/api/invalidationTracker';
 import {
   ClientHydrateSchema,
@@ -33,16 +34,10 @@ import {
 } from '@/schemas/client';
 import { DefaultsPayloadSchema } from '@/schemas/defaults';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { ExternalLinksAppendSchema, type ExternalLinkInput } from '@/schemas/external-link';
 
 // One row sent to POST /clients/:email/externalLinks.
-export type ExternalLinkInput = {
-  kind: 'link' | 'subscription';
-  value: string;
-  remark: string;
-  enable: boolean;
-  expiryTime: number;
-  namePrefix: string;
-};
+export type { ExternalLinkInput } from '@/schemas/external-link';
 
 export type { ClientRecord, ClientTraffic, ClientsSummary, InboundOption, ExternalLink };
 
@@ -98,7 +93,7 @@ export interface ClientSpeedEntry {
   down: number;
 }
 
-type ClientSpeedSource = 'xray' | 'tuic';
+type ClientSpeedSource = 'xray' | 'tuic' | 'node';
 
 type ClientStatRow = ClientTraffic & { email?: string };
 
@@ -305,7 +300,11 @@ export function useClients(options: UseClientsOptions = {}) {
     Partial<Record<ClientSpeedSource, Record<string, ClientSpeedEntry>>>
   >({});
   const clientSpeedExpiryTimers = useRef<Partial<Record<ClientSpeedSource, number>>>({});
-  const clientSpeedSourceVersions = useRef<Record<ClientSpeedSource, number>>({ xray: 0, tuic: 0 });
+  const clientSpeedSourceVersions = useRef<Record<ClientSpeedSource, number>>({
+    xray: 0,
+    tuic: 0,
+    node: 0,
+  });
   const clientSpeed = useMemo(() => {
     const combined: Record<string, ClientSpeedEntry> = {};
     for (const source of Object.values(clientSpeedBySource)) {
@@ -343,7 +342,7 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const hydrate = useCallback(async (email: string): Promise<ClientHydrate | null> => {
     if (!email) return null;
-    const msg = await HttpUtil.get(`/panel/api/clients/get/${encodeURIComponent(email)}`);
+    const msg = await HttpUtil.get(clientManagementPath('get', email));
     if (!msg?.success || !msg.obj) return null;
     const validated = parseMsg(msg, ClientHydrateSchema, 'clients/get');
     return validated.obj;
@@ -375,7 +374,7 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const updateMut = useMutation({
     mutationFn: ({ email, client }: { email: string; client: unknown }) =>
-      HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS),
+      HttpUtil.post(clientManagementPath('update', email), client, JSON_HEADERS),
     onSuccess: (msg) => {
       if (msg?.success) invalidateAll();
     },
@@ -383,9 +382,8 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const removeMut = useMutation({
     mutationFn: ({ email, keepTraffic }: { email: string; keepTraffic?: boolean }) => {
-      const url = keepTraffic
-        ? `/panel/api/clients/del/${encodeURIComponent(email)}?keepTraffic=1`
-        : `/panel/api/clients/del/${encodeURIComponent(email)}`;
+      let url = clientManagementPath('del', email);
+      if (keepTraffic) url += `${url.includes('?') ? '&' : '?'}keepTraffic=1`;
       return HttpUtil.post(url);
     },
     onSuccess: (msg) => {
@@ -424,7 +422,9 @@ export function useClients(options: UseClientsOptions = {}) {
       flow?: string;
       limitHwid?: number | null;
       adTag?: string;
+      externalLinks?: ExternalLinkInput[];
     }): Promise<Msg<BulkAdjustResult>> => {
+      if (payload.externalLinks !== undefined) await ExternalLinksAppendSchema.parseAsync(payload);
       const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
     },
@@ -599,9 +599,18 @@ export function useClients(options: UseClientsOptions = {}) {
       flow = '',
       limitHwid?: number | null,
       adTag?: string,
+      externalLinks?: ExternalLinkInput[],
     ) => {
       if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-      return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow, limitHwid, adTag });
+      return bulkAdjustMut.mutateAsync({
+        emails,
+        addDays,
+        addBytes,
+        flow,
+        limitHwid,
+        adTag,
+        externalLinks,
+      });
     },
     [bulkAdjustMut],
   );
@@ -751,7 +760,7 @@ export function useClients(options: UseClientsOptions = {}) {
       const p = payload as {
         onlineClients?: string[];
         clientTraffics?: { email: string; up: number; down: number }[];
-        clientTrafficSource?: 'xray' | 'tuic';
+        clientTrafficSource?: ClientSpeedSource;
         clientTrafficIntervalMs?: number;
       };
       if (Array.isArray(p.onlineClients)) {
@@ -764,7 +773,10 @@ export function useClients(options: UseClientsOptions = {}) {
         // dropped and an unchanged result returns the previous object — which lets
         // React bail out of the update instead of re-rendering the table.
         const next: Record<string, ClientSpeedEntry> = {};
-        const source = p.clientTrafficSource === 'tuic' ? 'tuic' : 'xray';
+        const source: ClientSpeedSource =
+          p.clientTrafficSource === 'tuic' || p.clientTrafficSource === 'node'
+            ? p.clientTrafficSource
+            : 'xray';
         const sampleIntervalMs =
           typeof p.clientTrafficIntervalMs === 'number' &&
           Number.isFinite(p.clientTrafficIntervalMs) &&
