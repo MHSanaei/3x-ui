@@ -49,6 +49,9 @@ type SubService struct {
 	// omitServerDescription drops the ?serverDescription= tail, which only Happ
 	// and INCY read; other clients show it in the node name (#7105).
 	omitServerDescription bool
+	// ss2022Base64Userinfo emits a Shadowsocks 2022 userinfo as base64url: Shadowrocket
+	// takes the percent-escapes of the SIP022 form literally (#7146).
+	ss2022Base64Userinfo bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
 	usageShown                 map[string]bool
@@ -1601,7 +1604,9 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
 	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
 	var userInfo string
-	if strings.HasPrefix(method, "2022") {
+	if strings.HasPrefix(method, "2022") && s.ss2022Base64Userinfo {
+		userInfo = base64.RawURLEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s:%s", method, inboundPassword, client.Password))
+	} else if strings.HasPrefix(method, "2022") {
 		userInfo = fmt.Sprintf("%s:%s:%s",
 			url.QueryEscape(method),
 			url.QueryEscape(inboundPassword),
