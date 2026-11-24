@@ -169,8 +169,9 @@ func GetManager() *Manager {
 // InstanceFromInbound derives a desired Instance from an mtproto inbound,
 // building one named secret per active client. Secrets are healed on save (see
 // normalizeMtprotoSecret) and by the migration, so they are read as-is here to
-// keep the fingerprint stable across reconciles. Returns false when the inbound
-// is not a usable mtproto inbound or has no active client secret to serve.
+// keep the fingerprint stable across reconciles; a client whose stored values
+// mtg could not parse is left out (see usableAdTag). Returns false when the
+// inbound is not a usable mtproto inbound or has no active client secret to serve.
 func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	if ib == nil || ib.Protocol != model.MTProto {
 		return Instance{}, false
@@ -205,15 +206,15 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	}
 	secrets := make([]SecretEntry, 0, len(parsed.Clients))
 	for _, c := range parsed.Clients {
-		if !c.Enable || c.Secret == "" || c.Email == "" {
+		if !c.Enable || c.Email == "" || !model.ValidMtprotoSecret(c.Secret) {
 			continue
 		}
 		entry := SecretEntry{Name: c.Email, Secret: c.Secret, AdTag: usableAdTag(c.AdTag)}
 		if c.TotalGB > 0 {
-			entry.QuotaBytes = c.TotalGB
+			entry.QuotaBytes = min(c.TotalGB, maxQuotaBytes)
 		}
 		if c.ExpiryTime > 0 {
-			entry.ExpiresUnix = c.ExpiryTime / 1000
+			entry.ExpiresUnix = min(c.ExpiryTime/1000, maxExpiresUnix)
 		}
 		secrets = append(secrets, entry)
 	}
@@ -252,6 +253,13 @@ func usableAdTag(tag string) string {
 	}
 	return tag
 }
+
+// The largest limits mtg parses: its byte parser overflows just short of
+// MaxInt64 and RFC 3339 ends with the year 9999. Larger stored values are capped.
+const (
+	maxQuotaBytes  = int64(9_000_000_000_000_000_000)
+	maxExpiresUnix = int64(253402300799)
+)
 
 // Ensure starts the mtg process for an instance, or restarts it when its
 // configuration changed. A no-op when the desired process is already running.

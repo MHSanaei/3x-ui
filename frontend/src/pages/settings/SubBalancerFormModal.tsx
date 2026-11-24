@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import SelectAllClearButtons from '@/components/form/SelectAllClearButtons';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
@@ -166,8 +167,8 @@ export default function SubBalancerFormModal({
           >
             <Select
               mode="multiple"
+              tagRender={selectTagRender}
               options={inboundOptions}
-              maxTagCount="responsive"
               listHeight={220}
               showSearch={{ optionFilterProp: 'label' }}
             />

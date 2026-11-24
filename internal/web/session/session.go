@@ -29,6 +29,9 @@ func SetLoginUser(c *gin.Context, user *model.User) error {
 		return nil
 	}
 	s := sessions.Default(c)
+	// Anyone can mint the anonymous session this request carried and plant it in a browser,
+	// so nothing in it, the CSRF token above all, outlives the privilege change.
+	s.Clear()
 	s.Set(loginUserKey, user.Id)
 	s.Set(loginEpochKey, user.LoginEpoch)
 	return s.Save()

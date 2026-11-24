@@ -40,7 +40,7 @@ func TestTestOutboundsRejectsCaseVariantUntestableIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			batch := mustJSON(t, []any{map[string]any{"tag": "probe", "protocol": tt.protocol}})
-			results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "http")
+			results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "http", nil)
 			if err != nil {
 				t.Fatalf("TestOutbounds: %v", err)
 			}

@@ -103,3 +103,45 @@ func TestCheckValidSchedules(t *testing.T) {
 		}
 	}
 }
+
+// The middleware only strips the port, so a saved scheme, port or path could
+// never match the Host header and locked the panel behind 403.
+func TestCheckValidNormalizesPanelAndSubDomains(t *testing.T) {
+	tests := []struct {
+		name, in, want, wantErr string
+	}{
+		{"empty", "", "", ""},
+		{"capitals, spaces and root dot", " Panel.Example.COM. ", "panel.example.com", ""},
+		{"IPv6 address", "2001:DB8::1", "2001:db8::1", ""},
+		{"scheme", "https://panel.example.com", "", "must be a bare host name without scheme, port or path: https://panel.example.com"},
+		{"port", "panel.example.com:8443", "", "must be a bare host name without scheme, port or path: panel.example.com:8443"},
+		{"path", "panel.example.com/x", "", "must be a bare host name without scheme, port or path: panel.example.com/x"},
+		{"inner space", "panel example.com", "", "must be a bare host name without scheme, port or path: panel example.com"},
+		{"bracketed IPv6", "[2001:db8::1]", "", "must be a bare host name without scheme, port or path: [2001:db8::1]"},
+	}
+	for _, tc := range tests {
+		for _, field := range []string{"web domain", "subscription domain"} {
+			t.Run(field+"/"+tc.name, func(t *testing.T) {
+				s := &AllSetting{WebPort: 2053, SubPort: 2096}
+				target := &s.WebDomain
+				if field == "subscription domain" {
+					target = &s.SubDomain
+				}
+				*target = tc.in
+				err := s.CheckValid()
+				if tc.wantErr != "" {
+					if err == nil || err.Error() != field+" "+tc.wantErr {
+						t.Fatalf("CheckValid(%q) error = %v, want %q", tc.in, err, field+" "+tc.wantErr)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("CheckValid(%q): unexpected error %v", tc.in, err)
+				}
+				if *target != tc.want {
+					t.Errorf("CheckValid(%q) saved %q, want %q", tc.in, *target, tc.want)
+				}
+			})
+		}
+	}
+}

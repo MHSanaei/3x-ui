@@ -210,7 +210,10 @@ func buildJsonRoutingSpec(object map[string]any) (jsonRoutingSpec, error) {
 	for _, segment := range strings.Split(order, "-") {
 		switch segment {
 		case "block", "proxy", "direct":
-			spec.RouteOrder = append(spec.RouteOrder, segment)
+			// A repeat can never match (the first rule wins) and would copy every list again.
+			if !slices.Contains(spec.RouteOrder, segment) {
+				spec.RouteOrder = append(spec.RouteOrder, segment)
+			}
 		}
 	}
 	return spec, nil

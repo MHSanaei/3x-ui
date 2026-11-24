@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -65,5 +66,34 @@ func TestWarpIntervalReportsClockPersistenceFailure(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), errInjected.Error()) {
 		t.Fatalf("response omitted clock persistence error: %s", w.Body.String())
+	}
+}
+
+// enabled and prepend decide which subscription outbounds the core runs, so an edit
+// must schedule a reload like the sibling handlers do.
+func TestUpdateOutboundSubSchedulesXrayReload(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	sub := &model.OutboundSubscription{Url: "https://provider.example/sub", TagPrefix: "p-", Enabled: true}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		c.Set("I18n", func(_ locale.I18nType, key string, _ ...string) string { return key })
+		c.Next()
+	})
+	a := NewXraySettingController(engine.Group("/panel/api"))
+	a.XrayService.IsNeedRestartAndSetFalse()
+	form := url.Values{"url": {"https://1.1.1.1/sub"}, "enabled": {"false"}}
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/xray/outbound-subs/"+strconv.Itoa(sub.Id), strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"success":true`) {
+		t.Fatalf("update = %d %s", rec.Code, rec.Body.String())
+	}
+	if !a.XrayService.IsNeedRestartAndSetFalse() {
+		t.Fatalf("disabling an outbound subscription did not schedule an Xray reload")
 	}
 }

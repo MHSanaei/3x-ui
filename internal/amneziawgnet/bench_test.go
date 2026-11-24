@@ -134,7 +134,7 @@ func newBenchTunnel(b *testing.B, listenPort int, serverAddr, clientAddr string)
 	if err != nil {
 		b.Fatalf("newUnconfiguredDevice: %v", err)
 	}
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, _, dest netip.AddrPort) {
 		defer conn.Close()
 		switch dest.Port() {
 		case benchDiscardPort:
@@ -210,7 +210,7 @@ func (t *benchTunnel) dial(b *testing.B, dest netip.AddrPort) *gonet.TCPConn {
 func BenchmarkTunnelThroughput(b *testing.B) {
 	const chunkSize = 64 << 10
 	const serverAddr = "10.203.0.1"
-	tun := newBenchTunnel(b, 58714, serverAddr, "10.203.0.2")
+	tun := newBenchTunnel(b, freeUDPPort(b), serverAddr, "10.203.0.2")
 	defer tun.closeFn()
 
 	b.Run("upload", func(b *testing.B) {

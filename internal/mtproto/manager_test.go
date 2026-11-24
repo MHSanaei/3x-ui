@@ -76,13 +76,49 @@ func TestInstanceFromInbound(t *testing.T) {
 		t.Fatal("an inbound with no active secret should not produce an instance")
 	}
 
-	badTags := &model.Inbound{Protocol: model.MTProto, Settings: `{"clients":[{"email":"x","secret":"ee00","adTag":"deadbeef","enable":true}]}`}
+	badTags := &model.Inbound{Protocol: model.MTProto, Settings: `{"clients":[{"email":"x","secret":"` + aliceSecret + `","adTag":"deadbeef","enable":true}]}`}
 	badInst, ok := InstanceFromInbound(badTags)
 	if !ok {
 		t.Fatal("expected a usable instance despite a malformed ad tag")
 	}
 	if badInst.Secrets[0].AdTag != "" {
 		t.Fatalf("a malformed ad tag must be dropped so the generated config stays valid, got %q", badInst.Secrets[0].AdTag)
+	}
+}
+
+// mtg refuses its whole config over one secret, quota or expiry it cannot
+// parse, which would take every client of the inbound down with the one holding it.
+func TestInstanceFromInboundLeavesOutWhatMtgCannotParse(t *testing.T) {
+	const good = "ee0123456789abcdef0123456789abcdef6578616d706c652e636f6d"
+	inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Protocol: model.MTProto, Port: 443, Settings: `{"clients":[` +
+		`{"email":"hex","enable":true,"secret":"` + good + `","totalGB":1000,"expiryTime":4102444800000},` +
+		`{"email":"base64","enable":true,"secret":"7gEjRWeJq83vASNFZ4mrze9leGFtcGxlLmNvbQ"},` +
+		`{"email":"truncated","enable":true,"secret":"zz"},` +
+		`{"email":"not-faketls","enable":true,"secret":"dd0123456789abcdef0123456789abcdef6578616d706c652e636f6d"},` +
+		`{"email":"no-host","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"},` +
+		`{"email":"year-10000","enable":true,"secret":"` + good + `","expiryTime":253402300800000},` +
+		`{"email":"huge-quota","enable":true,"secret":"` + good + `","totalGB":9223372036854775806}]}`})
+	if !ok {
+		t.Fatal("expected a usable instance")
+	}
+	got := map[string]SecretEntry{}
+	for _, e := range inst.Secrets {
+		got[e.Name] = e
+	}
+	if len(got) != 4 {
+		t.Fatalf("only the clients mtg can parse should be served, got %+v", inst.Secrets)
+	}
+	if e := got["hex"]; e.Secret != good || e.QuotaBytes != 1000 || e.ExpiresUnix != 4102444800 {
+		t.Fatalf("parsable values must be kept as stored, got %+v", e)
+	}
+	if _, served := got["base64"]; !served {
+		t.Fatal("mtg parses a base64 secret, so its client must be served")
+	}
+	if e := got["year-10000"]; expiresString(e.ExpiresUnix) != "9999-12-31T23:59:59Z" {
+		t.Fatalf("an expiry past RFC 3339 must be capped, got %q", expiresString(e.ExpiresUnix))
+	}
+	if e := got["huge-quota"]; e.QuotaBytes != 9_000_000_000_000_000_000 {
+		t.Fatalf("a quota mtg's parser overflows on must be capped, got %d", e.QuotaBytes)
 	}
 }
 

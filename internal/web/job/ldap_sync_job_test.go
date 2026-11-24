@@ -1,13 +1,17 @@
 package job
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func initLdapJobDB(t *testing.T) {
@@ -126,5 +130,67 @@ func TestLdapCreateClients_FlagsRestartWhenEveryClientPartlyApplies(t *testing.T
 	}
 	if !j.xrayService.IsNeedRestartAndSetFalse() {
 		t.Fatal("a partly-applied LDAP batch left Xray unflagged for restart")
+	}
+}
+
+// ldapDisabledClientsInbound seeds one local inbound holding the given clients
+// switched off everywhere, each with its own client_traffics row.
+func ldapDisabledClientsInbound(t *testing.T, rows []xray.ClientTraffic) *model.Inbound {
+	t.Helper()
+	initLdapJobDB(t)
+	db := database.GetDB()
+	clients := make([]model.Client, 0, len(rows))
+	for i, row := range rows {
+		clients = append(clients, model.Client{
+			Email: row.Email, ID: fmt.Sprintf("00000000-0000-4000-8000-%012d", i),
+			Enable: false, TotalGB: row.Total, ExpiryTime: row.ExpiryTime,
+		})
+	}
+	settings, _ := json.Marshal(map[string]any{"clients": clients, "decryption": "none"})
+	ib := &model.Inbound{
+		UserId: 1, Enable: true, Port: 47300, Protocol: model.VLESS,
+		Tag: "ldap-local-in", Settings: string(settings), StreamSettings: `{"network":"tcp"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	for i, c := range clients {
+		rec := model.ClientRecord{Email: c.Email, UUID: c.ID, Enable: false, TotalGB: c.TotalGB, ExpiryTime: c.ExpiryTime}
+		if err := db.Create(&rec).Error; err != nil {
+			t.Fatalf("create client record: %v", err)
+		}
+		// gorm default:true drops an explicit false on Create (#6478).
+		if err := db.Model(&rec).Update("enable", false).Error; err != nil {
+			t.Fatalf("disable client record: %v", err)
+		}
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+			t.Fatalf("link client: %v", err)
+		}
+		traffic := rows[i]
+		traffic.InboundId = ib.Id
+		if err := db.Create(&traffic).Error; err != nil {
+			t.Fatalf("create client traffic: %v", err)
+		}
+	}
+	return ib
+}
+
+// The directory flag stays true after an account expires or spends its quota, so
+// enabling on the flag alone undid the traffic job's disable on every sync.
+func TestLdapEnableLeavesDepletedClientsOff(t *testing.T) {
+	ib := ldapDisabledClientsInbound(t, []xray.ClientTraffic{
+		{Email: "expired@ldap", ExpiryTime: time.Now().Add(-time.Minute).UnixMilli()},
+		{Email: "spent@ldap", Total: 100, Up: 60, Down: 40},
+		{Email: "paused@ldap", Total: 100, Up: 1, ExpiryTime: time.Now().Add(time.Hour).UnixMilli()},
+		{Email: "unlimited@ldap", Up: 1 << 40},
+	})
+
+	NewLdapSyncJob().batchSetEnable([]string{"expired@ldap", "spent@ldap", "paused@ldap", "unlimited@ldap"}, true)
+
+	want := map[string]bool{"expired@ldap": false, "spent@ldap": false, "paused@ldap": true, "unlimited@ldap": true}
+	for email, enabled := range inboundClientEnables(t, ib.Id) {
+		if enabled != want[email] {
+			t.Errorf("client %s enabled = %v after the LDAP enable, want %v", email, enabled, want[email])
+		}
 	}
 }

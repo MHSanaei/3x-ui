@@ -142,6 +142,18 @@ func TestMergeClientIpsByGuid_RemapsClonedNodeSubtree(t *testing.T) {
 			t.Fatalf("create node: %v", err)
 		}
 	}
+	// A node reports only clients linked to its own inbounds.
+	nodeIb := &model.Inbound{UserId: 1, Tag: "a-in", Port: 41501, Protocol: model.VLESS, NodeID: &n1.Id, Settings: `{"clients":[]}`}
+	client := &model.ClientRecord{Email: "u@x", Enable: true, SubID: "s-u"}
+	if err := db.Create(nodeIb).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: nodeIb.Id}).Error; err != nil {
+		t.Fatalf("link client: %v", err)
+	}
 
 	if err := svc.MergeClientIpsByGuid(n1, map[string]map[string][]model.ClientIpEntry{
 		"dup": {"u@x": {{IP: "1.1.1.1", Timestamp: now}}},

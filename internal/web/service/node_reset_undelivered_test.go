@@ -275,3 +275,99 @@ func TestConcurrentNodeResetDeliveriesSendOnce(t *testing.T) {
 		t.Fatalf("node received resets %v, want exactly [once]", got)
 	}
 }
+
+// selectiveResetRuntime refuses the resets of the emails in refuse.
+type selectiveResetRuntime struct {
+	resetRecordingRuntime
+	refuse map[string]bool
+}
+
+func (r *selectiveResetRuntime) ResetClientTraffic(ctx context.Context, ib *model.Inbound, email string) error {
+	if r.refuse[email] {
+		return errors.New("refused")
+	}
+	return r.resetRecordingRuntime.ResetClientTraffic(ctx, ib, email)
+}
+
+// One reset the node never accepts must not hold back the ones queued after it, nor
+// have the ones before it re-sent (each re-send wipes the usage made in between).
+func TestNodeResetsSettleEachClientOnItsOwn(t *testing.T) {
+	nodeID, _, _ := setupRecordingNode(t, false)
+	now := time.Now().UnixNano()
+	for i, email := range []string{"a", "stuck", "c"} {
+		if err := database.GetDB().Create(&model.NodePendingReset{NodeId: nodeID, Email: email, QueuedAt: now + int64(i)}).Error; err != nil {
+			t.Fatalf("queue %s: %v", email, err)
+		}
+	}
+	rt := &selectiveResetRuntime{refuse: map[string]bool{"stuck": true}}
+	for range 2 {
+		_ = (&InboundService{}).DeliverNodeResets(context.Background(), nodeID, rt)
+	}
+	if got := rt.delivered(); !slices.Equal(got, []string{"a", "c"}) {
+		t.Fatalf("node received %v, want a and c once each", got)
+	}
+	if left := pendingResetEmails(t, nodeID); !slices.Equal(left, []string{"stuck"}) {
+		t.Fatalf("still queued: %v, want only the refused reset", left)
+	}
+}
+
+// stallingResetRuntime never answers a reset until its context ends.
+type stallingResetRuntime struct{ fakeNodeRuntime }
+
+func (*stallingResetRuntime) ResetClientTraffic(ctx context.Context, _ *model.Inbound, _ string) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// A node relays its master's reset to its own sub-nodes inline; one silent sub-node must
+// not hold that request until the master times out and sends the reset again.
+func TestNodeResetDeliveryDoesNotHoldTheRequestBehindASilentNode(t *testing.T) {
+	setupBulkDB(t)
+	mgr := useTestRuntimeManager(t)
+	node := &model.Node{Name: "silent", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := database.GetDB().Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	mgr.SetRuntimeOverride(node.Id, &stallingResetRuntime{})
+	ib := nodeInbound(t, node.Id, 41912, []model.Client{{Email: "held", ID: "11111111-1111-1111-1111-1111111111ab", Enable: true}})
+	if err := (&InboundService{}).AddClientStat(database.GetDB(), ib.Id, &model.Client{Email: "held", Enable: true}); err != nil {
+		t.Fatalf("AddClientStat: %v", err)
+	}
+	start := time.Now()
+	if _, err := (&InboundService{}).ResetClientTraffic(ib.Id, "held"); err != nil {
+		t.Fatalf("ResetClientTraffic: %v", err)
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("the reset request took %v behind a silent node", took)
+	}
+}
+
+// stallingUpdateRuntime never answers an inbound update until its context ends.
+type stallingUpdateRuntime struct{ fakeNodeRuntime }
+
+func (*stallingUpdateRuntime) UpdateInbound(ctx context.Context, _, _ *model.Inbound) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// The sync job waits on these pushes before it serves any other node, so a hanging node
+// gets one push budget in all, not one per inbound it chose to report.
+func TestTrafficRemotePlansWaitOneBudgetPerNode(t *testing.T) {
+	setupBulkDB(t)
+	mgr := useTestRuntimeManager(t)
+	node := &model.Node{Name: "hanging", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := database.GetDB().Create(node).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	mgr.SetRuntimeOverride(node.Id, &stallingUpdateRuntime{})
+	plans := make([]trafficInboundUpdatePlan, 9)
+	for i := range plans {
+		ib := model.Inbound{Id: i + 1, Tag: fmt.Sprintf("in-%d", i), NodeID: &node.Id}
+		plans[i] = trafficInboundUpdatePlan{oldInbound: ib, newInbound: ib}
+	}
+	start := time.Now()
+	(&InboundService{}).applyTrafficRemotePlans(plans)
+	if took := time.Since(start); took > nodeClientPushTimeout+2*time.Second {
+		t.Fatalf("pushing %d inbounds to one hanging node took %v", len(plans), took)
+	}
+}

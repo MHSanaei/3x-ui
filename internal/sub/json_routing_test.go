@@ -94,6 +94,18 @@ func TestParseJsonRoutingSpecRouteOrderUnknownSegments(t *testing.T) {
 	}
 }
 
+// Every group copy repeats the profile's whole site lists in the rendered routing, and a
+// later copy can never match, so a remote profile repeating groups must not multiply them.
+func TestParseJsonRoutingSpecRouteOrderKeepsEachGroupOnce(t *testing.T) {
+	spec, _, err := parseJsonRoutingSpec(`{"RouteOrder":"` + strings.Repeat("proxy-direct-block-", 500) + `proxy"}`)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if strings.Join(spec.RouteOrder, ",") != "proxy,direct,block" {
+		t.Fatalf("RouteOrder = %d segments, want proxy,direct,block once each", len(spec.RouteOrder))
+	}
+}
+
 func TestParseJsonRoutingSpecDeeplinks(t *testing.T) {
 	payload := mustMarshal(t, fullRoutingPayload())
 	cases := []string{

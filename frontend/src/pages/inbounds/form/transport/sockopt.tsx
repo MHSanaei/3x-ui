@@ -1,8 +1,10 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, InputNumber, Segmented, Select, Switch } from 'antd';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { SockoptCustomField } from '@/lib/xray/forms/fields';
 import { TCP_CONGESTION_OPTION } from '@/schemas/primitives';
@@ -206,13 +208,13 @@ export default function SockoptForm({
             name={['streamSettings', 'sockopt', 'tcpcongestion']}
             label={t('pages.inbounds.form.tcpCongestion')}
           >
-            <Select
+            <NativeSelect
               style={{ width: '50%' }}
               options={Object.values(TCP_CONGESTION_OPTION).map((c) => ({ value: c, label: c }))}
             />
           </FormField>
           <FormField name={['streamSettings', 'sockopt', 'tproxy']} label="TProxy">
-            <Select
+            <NativeSelect
               style={{ width: '50%' }}
               options={[
                 { value: 'off', label: 'Off' },
@@ -228,6 +230,7 @@ export default function SockoptForm({
           >
             <Select
               mode="tags"
+              tagRender={selectTagRender}
               style={{ width: '100%' }}
               tokenSeparators={[',']}
               options={[

@@ -152,3 +152,17 @@ func TestClientTrafficResetValidation(t *testing.T) {
 		})
 	}
 }
+
+// A node can report counters at TrafficMax; adding two in SQL overflowed and failed the
+// lookup, so no client on that cycle was reset at all.
+func TestGetClientsByTrafficResetSurvivesCountersAtTheCap(t *testing.T) {
+	initTrafficTestDB(t)
+	if err := database.GetDB().Create(&model.ClientRecord{Email: "huge", Enable: false, TrafficReset: "daily"}).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	seedClientRow(t, "huge", 1, database.TrafficMax, database.TrafficMax, 100)
+	cycles, err := (&ClientService{}).GetClientsByTrafficReset("daily")
+	if err != nil || len(cycles) != 1 || !cycles[0].Depleted() {
+		t.Fatalf("GetClientsByTrafficReset = %+v, %v; want the client, depleted", cycles, err)
+	}
+}

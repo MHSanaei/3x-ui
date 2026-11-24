@@ -117,16 +117,30 @@ const ipCommandTimeout = 3 * time.Second
 // aliased at once is harmless). Never surfaces an error — an alias failing
 // only narrows that one peer's own outbound-source-identity feature, never
 // a reason to fail the tunnel or its SOCKS5 relay.
-func applyV6Aliases(add, remove []v6Alias) {
-	for _, a := range add {
-		addV6Alias(a)
+func (m *Manager) applyV6Aliases(add, remove []v6Alias) {
+	if m.v6Owned == nil {
+		m.v6Owned = map[v6Alias]struct{}{}
 	}
+	for _, a := range add {
+		if addV6Alias(a) {
+			m.v6Owned[a] = struct{}{}
+		}
+	}
+	// A peer may name an address the host already owns (::1 on lo, its own
+	// public /128): only what this Manager itself added is ever deleted.
 	for _, a := range remove {
+		if _, ours := m.v6Owned[a]; !ours {
+			logger.Debugf("amneziawgnet: leaving IPv6 address %s on %s, not aliased by this process", a.Addr, a.Iface)
+			continue
+		}
+		delete(m.v6Owned, a)
 		removeV6Alias(a)
 	}
 }
 
-func addV6Alias(a v6Alias) {
+// addV6Alias reports whether the alias is on the host because of this call;
+// an address that was already there is the host's own, not ours to remove.
+func addV6Alias(a v6Alias) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), ipCommandTimeout)
 	defer cancel()
 	// nodad: this address is a specific peer's own admin-assigned identity,
@@ -136,16 +150,15 @@ func addV6Alias(a v6Alias) {
 	stderr, err := runIP(ctx, "-6", "addr", "add", a.Addr+"/128", "dev", a.Iface, "nodad")
 	if err == nil {
 		logger.Infof("amneziawgnet: aliased IPv6 address %s onto %s", a.Addr, a.Iface)
-		return
+		return true
 	}
 	if strings.Contains(stderr, "File exists") {
-		// Already the desired end state -- most commonly hit once, harmlessly,
-		// right after an ungraceful panel restart (the OS-level alias from
-		// before the crash outlives the process; the in-memory managed map
-		// doesn't).
-		return
+		// Already there: the host's own address, or an alias an ungraceful
+		// restart left behind -- indistinguishable, so neither is ours.
+		return false
 	}
 	logger.Warningf("amneziawgnet: alias IPv6 address %s onto %s: %v (%s)", a.Addr, a.Iface, err, strings.TrimSpace(stderr))
+	return false
 }
 
 func removeV6Alias(a v6Alias) {

@@ -14,14 +14,14 @@ export type AmneziaWGOutboundPeer = z.infer<typeof AmneziaWGOutboundPeerSchema>;
 export const AmneziaWGOutboundSettingsSchema = z.object({
   // 0 = unset, so the backend derives MTU from S4 (amneziawg.EffectiveMTU);
   // a pinned 1420 fragments every full-size packet once S4 exceeds 20.
-  mtu: z.number().int().min(0).default(0),
+  mtu: z.number().int().min(0).max(65535).default(0),
   secretKey: z.string().default(''),
   address: z.array(z.string()).default([]),
   listenPort: z.number().int().min(0).max(65535).default(0),
   dns: z.string().default(''),
-  jc: z.number().int().min(0).default(0),
-  jmin: z.number().int().min(0).default(40),
-  jmax: z.number().int().min(0).default(100),
+  jc: z.number().int().min(0).max(128).default(0),
+  jmin: z.number().int().min(0).max(65535).default(40),
+  jmax: z.number().int().min(0).max(65535).default(100),
   // The remote server sets S1-S3; only amneziawg-go's uint16 UAPI width bounds them here.
   s1: z.number().int().min(0).max(65535).default(15),
   s2: z.number().int().min(0).max(65535).default(80),

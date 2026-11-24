@@ -93,6 +93,8 @@ const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
 import { ClientInboundChips, ClientRowActions } from './RowCells';
+import ClientColumnPicker from './ClientColumnPicker';
+import { clientColumnOptions, hideClientColumns, useHiddenClientColumns } from './columnVisibility';
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -1055,7 +1057,7 @@ export default function ClientsPage() {
     if (pag?.pageSize) setPageSizeChoice(pag.pageSize);
   };
 
-  const columns = useMemo<ColumnsType<ClientRecord>>(
+  const baseColumns = useMemo<ColumnsType<ClientRecord>>(
     () => [
       {
         title: t('pages.clients.actions'),
@@ -1241,6 +1243,24 @@ export default function ClientsPage() {
     ],
   );
 
+  const [hiddenColumns, setHiddenColumns] = useHiddenClientColumns();
+
+  const columnOptions = useMemo(() => clientColumnOptions(baseColumns), [baseColumns]);
+  const columns = useMemo(
+    () => hideClientColumns(baseColumns, hiddenColumns),
+    [baseColumns, hiddenColumns],
+  );
+
+  const rowClassName = useCallback(
+    (record: ClientRecord) => {
+      const bucket = clientBucket(record);
+      if (bucket === 'depleted') return 'client-row-depleted';
+      if (bucket === 'expiring') return 'client-row-expiring';
+      return '';
+    },
+    [clientBucket],
+  );
+
   const tablePagination = {
     current: currentPage,
     pageSize: tablePageSize,
@@ -1305,6 +1325,7 @@ export default function ClientsPage() {
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
             <Spin
+              aria-live="off"
               spinning={!fetched || !hostsFetched}
               delay={200}
               description={t('loading')}
@@ -1557,6 +1578,13 @@ export default function ClientsPage() {
                             {!isMobile && t('filter')}
                           </Button>
                         </Badge>
+                        {!isMobile && (
+                          <ClientColumnPicker
+                            options={columnOptions}
+                            hidden={hiddenColumns}
+                            onChange={setHiddenColumns}
+                          />
+                        )}
                         <Select
                           value={sortValueFor(sortColumn, sortOrder)}
                           aria-label={t('sort')}
@@ -1707,9 +1735,10 @@ export default function ClientsPage() {
                           loading={transitioning}
                           rowKey="email"
                           rowSelection={rowSelection}
+                          rowClassName={rowClassName}
                           pagination={tablePagination}
                           size="small"
-                          scroll={{ x: 1200 }}
+                          scroll={{ x: 'max-content' }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
@@ -1724,7 +1753,7 @@ export default function ClientsPage() {
                           }}
                         />
                       ) : (
-                        <Spin spinning={transitioning}>
+                        <Spin aria-live="off" spinning={transitioning}>
                           <div className="client-cards">
                             {filteredClients.length > 0 && (
                               <div className="card-bulk-bar">
@@ -1766,11 +1795,13 @@ export default function ClientsPage() {
                             )}
                             {filteredClients.map((row) => {
                               const bucket = clientBucket(row);
+                              const cardClass = ['client-card'];
+                              if (selectedRowKeys.includes(row.email))
+                                cardClass.push('is-selected');
+                              if (bucket === 'depleted' || bucket === 'expiring')
+                                cardClass.push(`is-${bucket}`);
                               return (
-                                <div
-                                  key={row.email}
-                                  className={`client-card${selectedRowKeys.includes(row.email) ? ' is-selected' : ''}`}
-                                >
+                                <div key={row.email} className={cardClass.join(' ')}>
                                   <div className="card-head">
                                     <Checkbox
                                       checked={selectedRowKeys.includes(row.email)}

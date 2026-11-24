@@ -16,6 +16,8 @@ func TestClientToRecordRoundTripWireGuard(t *testing.T) {
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 		PreSharedKey: "cHNrLWJhc2U2NC0zMmJ5dGVzLXBsYWNlaG9sZGVyISE=",
 		KeepAlive:    KeepAlivePtr(25),
+
+		ForwardedPorts: ForwardedPortsPtr("80,8000-8100"),
 	}
 
 	rec := c.ToRecord()
@@ -32,6 +34,7 @@ func TestClientToRecordRoundTripWireGuard(t *testing.T) {
 		{"PublicKey", c.PublicKey, got.PublicKey},
 		{"PreSharedKey", c.PreSharedKey, got.PreSharedKey},
 		{"KeepAlive", c.KeepAliveSeconds(), got.KeepAliveSeconds()},
+		{"ForwardedPorts", c.ForwardedPortsSpec(), got.ForwardedPortsSpec()},
 	} {
 		if f.a != f.b {
 			t.Errorf("%s round-trip = %v, want %v", f.name, f.b, f.a)
@@ -56,6 +59,15 @@ func TestClientToClientOmitsUnsetKeepAlive(t *testing.T) {
 	}
 	if strings.Contains(string(blob), "keepAlive") {
 		t.Fatalf("settings payload carries keepAlive for a non-tunnel client: %s", blob)
+	}
+}
+
+// An explicit "" withdraws the forwards, which a re-saved record must never ask for.
+func TestClientToClientOmitsUnsetForwardedPorts(t *testing.T) {
+	rec := &ClientRecord{Email: "awg@example.test", Enable: true}
+
+	if got := rec.ToClient().ForwardedPorts; got != nil {
+		t.Fatalf("ForwardedPorts for a record that never set any = %q, want nil", *got)
 	}
 }
 

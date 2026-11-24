@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -20,7 +21,7 @@ import {
 } from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
-import { CipherSuitesSelect } from '@/components/form';
+import { CipherSuitesSelect, selectTagRender } from '@/components/form';
 import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField } from '@/components/form/rhf';
 import {
@@ -154,7 +155,7 @@ function CertRow({
         name={['streamSettings', 'tlsSettings', 'certificates', index, 'usage']}
         label={t('pages.inbounds.form.usageOption')}
       >
-        <Select
+        <NativeSelect
           style={{ width: '50%' }}
           options={Object.values(USAGE_OPTION).map((u) => ({ value: u, label: u }))}
         />
@@ -212,7 +213,7 @@ function EchSockoptSection() {
             name={['streamSettings', 'tlsSettings', 'echSockopt', 'domainStrategy']}
             label={t('pages.xray.wireguard.domainStrategy')}
           >
-            <Select
+            <NativeSelect
               options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({ value: v, label: v }))}
             />
           </FormField>
@@ -354,14 +355,14 @@ export default function TlsForm({
       <Form.Item htmlFor={`${uid}-minVersion`} label={t('pages.inbounds.form.minMaxVersion')}>
         <Space.Compact block>
           <FormField name={['streamSettings', 'tlsSettings', 'minVersion']} noStyle>
-            <Select
+            <NativeSelect
               id={`${uid}-minVersion`}
               style={{ width: '50%' }}
               options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
             />
           </FormField>
           <FormField name={['streamSettings', 'tlsSettings', 'maxVersion']} noStyle>
-            <Select
+            <NativeSelect
               aria-label={t('pages.inbounds.form.maxVersion')}
               style={{ width: '50%' }}
               options={Object.values(TLS_VERSION_OPTION).map((v) => ({ value: v, label: v }))}
@@ -370,7 +371,7 @@ export default function TlsForm({
         </Space.Compact>
       </Form.Item>
       <FormField name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']} label="uTLS">
-        <Select
+        <NativeSelect
           options={[
             { value: '', label: 'None' },
             ...Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp })),
@@ -380,6 +381,7 @@ export default function TlsForm({
       <FormField name={['streamSettings', 'tlsSettings', 'alpn']} label="ALPN">
         <Select
           mode="multiple"
+          tagRender={selectTagRender}
           tokenSeparators={[',']}
           style={{ width: '100%' }}
           options={Object.values(ALPN_OPTION).map((a) => ({ value: a, label: a }))}
@@ -392,6 +394,7 @@ export default function TlsForm({
       >
         <Select
           mode="tags"
+          tagRender={selectTagRender}
           tokenSeparators={[',', ' ']}
           style={{ width: '100%' }}
           options={['X25519MLKEM768', 'X25519', 'P-256', 'P-384', 'P-521'].map((c) => ({
@@ -478,6 +481,7 @@ export default function TlsForm({
               id={`${uid}-pinnedPeerCertSha256`}
               aria-describedby={`${uid}-pinnedPeerCertSha256-hint`}
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',', ' ']}
               placeholder={t('pages.inbounds.form.pinnedPeerCertSha256Placeholder')}
               style={{ width: 'calc(100% - 64px)' }}

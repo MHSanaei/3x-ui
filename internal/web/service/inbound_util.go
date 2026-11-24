@@ -1,6 +1,13 @@
 package service
 
-import "strings"
+import (
+	"strings"
+
+	"gorm.io/gorm"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+)
 
 // sqliteMaxVars is a safe ceiling for the number of bind parameters in a
 // single SQL statement. SQLite's SQLITE_MAX_VARIABLE_NUMBER is 999 on builds
@@ -101,4 +108,39 @@ func chunkCount(n, size int) int {
 		count++
 	}
 	return count
+}
+
+// attachClientStats fills each inbound's ClientStats in chunks: GORM's Preload binds one
+// variable per inbound, and nodes alone can report more inbounds than SQLite binds.
+func attachClientStats(db *gorm.DB, inbounds []*model.Inbound) error {
+	byID := make(map[int]*model.Inbound, len(inbounds))
+	ids := make([]int, 0, len(inbounds))
+	for _, ib := range inbounds {
+		byID[ib.Id] = ib
+		ids = append(ids, ib.Id)
+	}
+	for _, batch := range chunkInts(ids, sqliteMaxVars) {
+		var stats []xray.ClientTraffic
+		if err := db.Where("inbound_id IN ?", batch).Order("id ASC").Find(&stats).Error; err != nil {
+			return err
+		}
+		for _, st := range stats {
+			if ib := byID[st.InboundId]; ib != nil {
+				ib.ClientStats = append(ib.ClientStats, st)
+			}
+		}
+	}
+	return nil
+}
+
+// saveInChunks saves rows a slice at a time: one slice Save binds every column of every
+// row in a single statement, past SQLite's variable limit once there are enough rows.
+func saveInChunks[T any](tx *gorm.DB, rows []T) error {
+	const rowsPerStatement = 100
+	for start := 0; start < len(rows); start += rowsPerStatement {
+		if err := tx.Save(rows[start:min(start+rowsPerStatement, len(rows))]).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }

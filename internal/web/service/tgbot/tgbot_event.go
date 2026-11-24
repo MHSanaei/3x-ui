@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
@@ -62,6 +63,17 @@ func (t *Tgbot) isEventEnabled(eventType eventbus.EventType) bool {
 		}
 	}
 	return false
+}
+
+// oneLine keeps a value the panel did not write itself on its own line of an
+// alert: control characters and Unicode line separators become spaces.
+func oneLine(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || r == ' ' || r == ' ' {
+			return ' '
+		}
+		return r
+	}, s)
 }
 
 func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
@@ -147,7 +159,7 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 			if data.Status == "success" {
 				msg := t.I18nBot("tgbot.messages.loginSuccess")
 				msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+host)
-				msg += t.I18nBot("tgbot.messages.username", "Username=="+data.Username)
+				msg += t.I18nBot("tgbot.messages.username", "Username=="+oneLine(data.Username))
 				msg += t.I18nBot("tgbot.messages.ip", "IP=="+data.IP)
 				msg += t.I18nBot("tgbot.messages.time", "Time=="+data.Time)
 				return msg
@@ -157,7 +169,7 @@ func (t *Tgbot) formatEventMessage(e eventbus.Event) string {
 			if data.Reason != "" {
 				msg += t.I18nBot("tgbot.messages.reason", "Reason=="+data.Reason)
 			}
-			msg += t.I18nBot("tgbot.messages.username", "Username=="+data.Username)
+			msg += t.I18nBot("tgbot.messages.username", "Username=="+oneLine(data.Username))
 			msg += t.I18nBot("tgbot.messages.ip", "IP=="+data.IP)
 			msg += t.I18nBot("tgbot.messages.time", "Time=="+data.Time)
 			return msg

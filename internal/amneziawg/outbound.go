@@ -282,6 +282,9 @@ func ValidateAmneziaWGOutbound(tag string, raw []byte) error {
 	if err := ValidateObfuscation(parsed.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg outbound %q: %w", tag, err)
 	}
+	if err := ValidateMTU(parsed.MTU); err != nil {
+		return fmt.Errorf("amneziawg outbound %q: %w", tag, err)
+	}
 	for n, iv := range map[string]string{
 		"i1": parsed.I1, "i2": parsed.I2, "i3": parsed.I3, "i4": parsed.I4, "i5": parsed.I5,
 	} {

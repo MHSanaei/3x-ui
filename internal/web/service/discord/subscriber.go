@@ -98,7 +98,27 @@ func truncateUnits(s string, maxUnits int) string {
 	return b.String() + suffix
 }
 
+// markdownEscaper covers what Discord renders as markup in an embed field:
+// formatting, headings, quotes, masked links, mentions and bare-URL auto-links.
+var markdownEscaper = strings.NewReplacer(
+	`\`, `\\`, "`", "\\`", `*`, `\*`, `_`, `\_`, `~`, `\~`, `|`, `\|`, `#`, `\#`,
+	`[`, `\[`, `]`, `\]`, `<`, `\<`, `>`, `\>`, `://`, `\://`,
+)
+
+// escapeMarkdown makes text the panel did not write itself (login usernames,
+// node errors, remarks, emails) show up literally instead of as Markdown.
+func escapeMarkdown(s string) string {
+	return markdownEscaper.Replace(s)
+}
+
+// cleanField builds a field from plain text: Discord shows both strings literally.
 func cleanField(name, value string, inline bool) EmbedField {
+	return markupField(escapeMarkdown(name), escapeMarkdown(value), inline)
+}
+
+// markupField keeps the caller's own Markdown, so whatever foreign text the
+// caller puts into it has to be escaped beforehand.
+func markupField(name, value string, inline bool) EmbedField {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		name = "-"

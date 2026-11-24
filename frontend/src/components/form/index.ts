@@ -7,3 +7,4 @@ export { default as CipherSuitesSelect } from './CipherSuitesSelect';
 export { default as RemarkTemplateField } from './RemarkTemplateField';
 export { default as RemarkVarPicker } from './RemarkVarPicker';
 export { default as CustomSockoptList } from '../../lib/xray/forms/transport/CustomSockoptList';
+export { selectTagRender } from './SelectTag';

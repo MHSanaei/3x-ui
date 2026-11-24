@@ -1,6 +1,7 @@
 package amneziawgnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/netip"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -27,7 +29,7 @@ func TestManagerLifecycle(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            3,
 		InterfaceName: "awgtest3",
-		ListenPort:    58714,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.203.0.1/24"},
@@ -115,7 +117,7 @@ func TestEnsureRebuildsWhenS4ChangesTheDerivedMTU(t *testing.T) {
 			inst := amneziawg.Instance{
 				Id:            9 + i,
 				InterfaceName: fmt.Sprintf("awgtest%d", 9+i),
-				ListenPort:    58719 + i,
+				ListenPort:    0,
 				PrivateKey:    priv,
 				PublicKey:     pub,
 				Address:       []string{"10.209.0.1/24"},
@@ -212,7 +214,7 @@ func TestEnsureUnchangedInstanceDoesNotResetLivePeers(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            4,
 		InterfaceName: "awgtest4",
-		ListenPort:    58715,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.204.0.1/24"},
@@ -330,6 +332,116 @@ func TestForwardedPortsOnlyChangeStillReconcilesPortForwards(t *testing.T) {
 	conn.Close()
 }
 
+// The stack survives an in-place reconfiguration, so a flow pinned to a removed
+// peer's address would otherwise reach whichever client gets that address next.
+func TestEnsureDropsFlowsOfReassignedTunnelAddress(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	var peerPubs [3]string
+	for i := range peerPubs {
+		if _, peerPubs[i], err = wireguard.GenerateWireguardKeypair(); err != nil {
+			t.Fatalf("generate peer keypair: %v", err)
+		}
+	}
+	reused, kept := netip.MustParseAddr("10.206.0.2"), netip.MustParseAddr("10.206.0.3")
+
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            9,
+		InterfaceName: "awgtest9",
+		ListenPort:    0,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.206.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation31{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+		Peers: []amneziawg.Peer{
+			{Email: "old@test", PublicKey: peerPubs[0], AllowedIPs: []string{reused.String() + "/32"}},
+			{Email: "other@test", PublicKey: peerPubs[1], AllowedIPs: []string{kept.String() + "/32"}},
+		},
+	}
+	defer m.StopAll()
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure (create): %v", err)
+	}
+	cur := m.ifaces[inst.Id]
+
+	endpointsTo := func(addr netip.Addr) int {
+		n := 0
+		for _, ep := range cur.dev.Stack.RegisteredEndpoints() {
+			if remote, ok := endpointRemoteAddr(ep); ok && remote == addr {
+				n++
+			}
+		}
+		return n
+	}
+	waitEndpointsTo := func(addr netip.Addr, want int) {
+		t.Helper()
+		for deadline := time.Now().Add(2 * time.Second); endpointsTo(addr) != want; time.Sleep(5 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("endpoints connected to %s = %d, want %d", addr, endpointsTo(addr), want)
+			}
+		}
+	}
+
+	for _, addr := range []netip.Addr{reused, kept} {
+		raddr := tunnelFullAddress(addr, 8080)
+		udpConn, err := gonet.DialUDP(cur.dev.Stack, nil, &raddr, tunnelNetwork(addr))
+		if err != nil {
+			t.Fatalf("DialUDP %s: %v", addr, err)
+		}
+		defer udpConn.Close()
+
+		ctrl, _ := net.Pipe()
+		relayConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+		if err != nil {
+			t.Fatalf("ListenUDP: %v", err)
+		}
+		cur.udpRelay.sessions[netip.AddrPortFrom(addr, 1234)] = &socks5UDPSession{ctrl: ctrl, udpConn: relayConn}
+	}
+	dialCtx, cancelDial := context.WithCancel(context.Background())
+	dialed := make(chan struct{})
+	go func() {
+		defer close(dialed)
+		if conn, err := gonet.DialContextTCP(dialCtx, cur.dev.Stack, tunnelFullAddress(reused, 8080), tunnelNetwork(reused)); err == nil {
+			conn.Close()
+		}
+	}()
+	defer func() { cancelDial(); <-dialed }()
+	waitEndpointsTo(reused, 2)
+	waitEndpointsTo(kept, 1)
+
+	next := inst
+	next.Peers = []amneziawg.Peer{
+		{Email: "new@test", PublicKey: peerPubs[2], AllowedIPs: []string{reused.String() + "/32"}},
+		inst.Peers[1],
+	}
+	if err := m.Ensure(Desired{Instance: next}); err != nil {
+		t.Fatalf("Ensure (address reassigned): %v", err)
+	}
+	if m.ifaces[inst.Id] != cur {
+		t.Fatal("peer change rebuilt the interface instead of reconfiguring it in place")
+	}
+
+	waitEndpointsTo(reused, 0)
+	waitEndpointsTo(kept, 1)
+	cur.udpRelay.mu.Lock()
+	_, reusedSession := cur.udpRelay.sessions[netip.AddrPortFrom(reused, 1234)]
+	_, keptSession := cur.udpRelay.sessions[netip.AddrPortFrom(kept, 1234)]
+	cur.udpRelay.mu.Unlock()
+	if reusedSession {
+		t.Error("the removed peer's UDP relay session survived its address being reassigned")
+	}
+	if !keptSession {
+		t.Error("an unaffected peer's UDP relay session was torn down")
+	}
+}
+
 // TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace is a regression
 // test for the Phase 3.7 AWG 3.0 wiring: proves that populating
 // Desired.Options with a real HeaderProtectionKey/ContentPaddingAddition
@@ -353,7 +465,7 @@ func TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            7,
 		InterfaceName: "awgtest7",
-		ListenPort:    58717,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.207.0.1/24"},
@@ -413,7 +525,7 @@ func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {
 	inst := amneziawg.Instance{
 		Id:            8,
 		InterfaceName: "awgtest8",
-		ListenPort:    58718,
+		ListenPort:    0,
 		PrivateKey:    priv,
 		PublicKey:     pub,
 		Address:       []string{"10.208.0.1/24"},
