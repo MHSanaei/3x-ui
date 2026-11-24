@@ -34,6 +34,7 @@ import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from '@/pages/settings/catTabLabel';
+import { withHostPort } from '@/lib/hosts/host-port';
 import { HostFinalMaskForm, HostMuxForm, HostSockoptForm } from './json-forms';
 
 type FormShape = Omit<BulkAddHostValues, 'isDisabled'> & {
@@ -318,6 +319,12 @@ export default function HostFormModal({
                       name="port"
                       label={t('pages.hosts.fields.port')}
                       tooltip={t('pages.hosts.hints.port')}
+                      onAfterChange={(value) =>
+                        methods.setValue(
+                          'hosts',
+                          withHostPort(methods.getValues('hosts') ?? [], Number(value) || 0),
+                        )
+                      }
                     >
                       <InputNumber min={0} max={65535} />
                     </FormField>

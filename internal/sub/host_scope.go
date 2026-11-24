@@ -159,7 +159,8 @@ func (s *SubService) selectHostVariants(inbound *model.Inbound, client model.Cli
 		variants := s.hostVariantsForHosts(inbound, groupHosts, format)
 		return variants, len(variants) == 0
 	}
-	return s.subscriptionHostVariants(inbound, format), false
+	variants := s.subscriptionHostVariants(inbound, format)
+	return variants, len(variants) == 0
 }
 
 // hostVariantsForHosts orders specific hosts by the same host-group order the
