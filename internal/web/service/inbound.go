@@ -667,6 +667,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeXDriveService(inbound.StreamSettings)
+	inbound.StreamSettings = syncXhttpDownloadRequestShape(inbound.StreamSettings)
 }
 
 // canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
@@ -716,6 +717,9 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 // validateInboundBuildInput refuses what xray-core's in-process build would expand without
 // bound; certificate paths are checked only where this host is the one opening them.
 func validateInboundBuildInput(inbound *model.Inbound) error {
+	if err := validateXhttpDownload(inbound.StreamSettings); err != nil {
+		return err
+	}
 	if err := xray.CheckStreamBuildCost([]byte(inbound.StreamSettings)); err != nil {
 		return err
 	}

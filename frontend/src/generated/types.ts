@@ -4,10 +4,6 @@ export type GeoKind = string;
 export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
-export type addrFamily = number;
-export type staticEgressResolver = string;
-export type trafficLocalApplyAction = number;
-export type transportBits = number;
 
 export interface AllSetting {
   datepicker: string;
@@ -48,6 +44,8 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
@@ -114,6 +112,7 @@ export interface AllSetting {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -163,6 +162,8 @@ export interface AllSetting {
   subPort: number;
   subProfileMode: string;
   subProfileUrl: string;
+  subRateLimit: number;
+  subRateLimitEnable: boolean;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
@@ -255,6 +256,8 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
@@ -321,6 +324,7 @@ export interface AllSettingView {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -370,6 +374,8 @@ export interface AllSettingView {
   subPort: number;
   subProfileMode: string;
   subProfileUrl: string;
+  subRateLimit: number;
+  subRateLimitEnable: boolean;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
@@ -882,6 +888,24 @@ export interface Msg {
   success: boolean;
 }
 
+export interface NetworkInterfaceOption {
+  name: string;
+  up: boolean;
+}
+
+export interface NetworkInterfacesResponse {
+  automatic: string;
+  automaticError: string;
+  interfaces: NetworkInterfaceOption[];
+}
+
+export interface NetworkTrafficSelection {
+  available: boolean;
+  error: string;
+  mode: string;
+  name: string;
+}
+
 export interface NewUUIDResponse {
   uuid: string;
 }
@@ -1129,6 +1153,33 @@ export interface Sponsor {
 export interface SponsorList {
   contact?: string;
   sponsors: Sponsor[];
+}
+
+export interface Status {
+  amneziawg: unknown;
+  appStats: unknown;
+  cpu: number;
+  cpuCores: number;
+  cpuSpeedMhz: number;
+  disk: unknown;
+  diskIO: unknown;
+  diskTraffic: unknown;
+  loads: number[];
+  logicalPro: number;
+  mem: unknown;
+  netIO: unknown;
+  netTraffic: unknown;
+  networkInterface?: NetworkTrafficSelection | null;
+  panelGuid: string;
+  panelVersion: string;
+  publicIP: unknown;
+  resourceScope?: string;
+  swap: unknown;
+  tcpCount: number;
+  udpCount: number;
+  unavailableMetrics?: string[];
+  uptime: number;
+  xray: unknown;
 }
 
 export interface SubBalancer {

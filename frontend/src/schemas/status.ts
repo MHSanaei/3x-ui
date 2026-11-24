@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NetworkTrafficSelectionSchema } from '@/generated/zod';
 
 export const CurTotalInputSchema = z.object({
   current: z.number().optional(),
@@ -36,6 +37,7 @@ export const XrayInfoSchema = z
   .partial();
 
 export const StatusSchema = z.object({
+  networkInterface: NetworkTrafficSelectionSchema.optional(),
   resourceScope: z.string().optional(),
   unavailableMetrics: z.array(z.string()).optional(),
   cpu: z.number().optional(),

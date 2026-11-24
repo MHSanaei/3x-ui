@@ -13,10 +13,13 @@ import (
 
 	"github.com/mymmrac/telego"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -191,5 +194,48 @@ func TestClientInfoEscapesNodeValues(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("client info = %q, want it to contain %q", out, want)
 		}
+	}
+}
+
+func TestServerUsageInfoShowsUnavailableMetrics(t *testing.T) {
+	bundle := i18n.NewBundle(language.English)
+	_ = bundle.AddMessages(language.English, &i18n.Message{ID: "tgbot.messages.serverUpTime", Other: "Uptime: {{.UpTime}} {{.Unit}}\n"}, &i18n.Message{ID: "tgbot.days", Other: "days"})
+	_ = bundle.AddMessages(language.English, &i18n.Message{ID: "tgbot.messages.traffic", Other: "Traffic: {{.Total}}\n"}, &i18n.Message{ID: "pages.settings.networkTrafficUnavailable", Other: "NETWORK UNAVAILABLE"})
+	oldLocale := locale.SwapBotLocalizer(i18n.NewLocalizer(bundle, "en"))
+	t.Cleanup(func() { locale.SwapBotLocalizer(oldLocale) })
+	statusCache.mutex.Lock()
+	oldStatus, oldTime := statusCache.data, statusCache.timestamp
+	statusCache.mutex.Unlock()
+	serverStatsCache.mutex.Lock()
+	oldStats, oldStatsTime := serverStatsCache.data, serverStatsCache.timestamp
+	serverStatsCache.mutex.Unlock()
+	t.Cleanup(func() {
+		statusCache.mutex.Lock()
+		statusCache.data, statusCache.timestamp = oldStatus, oldTime
+		statusCache.mutex.Unlock()
+		serverStatsCache.mutex.Lock()
+		serverStatsCache.data, serverStatsCache.timestamp = oldStats, oldStatsTime
+		serverStatsCache.mutex.Unlock()
+	})
+	for _, tc := range []struct{ name, metric, want string }{
+		{"unavailable uptime", "uptime", "Uptime: —"},
+		{"valid uptime zero", "", "Uptime: 0 days"},
+		{"unavailable traffic", "netTraffic", "NETWORK UNAVAILABLE"},
+		{"valid traffic zero", "", "Traffic: 0.00B"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bot := &Tgbot{}
+			status := &service.Status{Loads: []float64{0, 0, 0}}
+			if tc.metric != "" {
+				status.UnavailableMetrics = []string{tc.metric}
+			}
+			bot.setCachedStatus(status)
+			bot.setCachedServerStats("")
+			info := bot.prepareServerUsageInfo()
+			want := tc.want
+			if !strings.Contains(info, want) {
+				t.Fatalf("report did not contain %q: %s", want, info)
+			}
+		})
 	}
 }
