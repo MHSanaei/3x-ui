@@ -589,15 +589,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	if err != nil {
 		return err
 	}
-	port, err := s.settingService.GetPort()
+	port, err := s.settingService.GetListenPort()
 	if err != nil {
 		return err
 	}
-	if envPort, configured, envErr := config.GetPortOverride(); configured {
+	if _, configured, envErr := config.GetPortOverride(); configured {
 		if envErr != nil {
 			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
 		} else {
-			port = envPort
 			logger.Info("Using XUI_PORT override for web panel port:", port)
 		}
 	}
