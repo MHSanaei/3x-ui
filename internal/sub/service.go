@@ -3384,6 +3384,7 @@ type PageData struct {
 	SubUrl        string
 	SubJsonUrl    string
 	SubClashUrl   string
+	Format        string
 	SubTitle      string
 	SubSupportUrl string
 	SubAnnounce   string
