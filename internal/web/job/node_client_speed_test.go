@@ -8,11 +8,13 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-func TestNodeClientTotals_DedupesSharedClientRow(t *testing.T) {
+// A legacy per-inbound row can lag the shared counter (#5274); listed last, it must not win.
+func TestNodeClientTotals_FoldsDivergentCopiesToTheHighest(t *testing.T) {
 	row := xray.ClientTraffic{Email: "a@x", Up: 100, Down: 200}
+	stale := xray.ClientTraffic{Email: "a@x", Up: 40, Down: 60}
 	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{
 		{Tag: "in-443", ClientStats: []xray.ClientTraffic{row, {Email: "b@x", Up: 1, Down: 2}}},
-		{Tag: "in-9452", ClientStats: []xray.ClientTraffic{row}},
+		{Tag: "in-9452", ClientStats: []xray.ClientTraffic{stale}},
 		nil,
 	}}
 	got := nodeClientTotals(snap)

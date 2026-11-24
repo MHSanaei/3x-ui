@@ -321,8 +321,8 @@ func speedStep(prev inboundSample, ok bool, cur [2]int64, now int64) (inboundSam
 		dDown * nodeInboundSpeedWindowMs / elapsed
 }
 
-// Emails are unique per panel, so a client on several inbounds of one node
-// shares one counter row: taken once, never summed.
+// A client on several inbounds of one node shares one counter row, so copies are
+// never summed; divergent copies fold to the per-field max, as the merge does (#5274).
 func nodeClientTotals(snap *runtime.TrafficSnapshot) map[string][2]int64 {
 	totals := make(map[string][2]int64)
 	if snap == nil {
@@ -336,7 +336,8 @@ func nodeClientTotals(snap *runtime.TrafficSnapshot) map[string][2]int64 {
 			if cs.Email == "" {
 				continue
 			}
-			totals[cs.Email] = [2]int64{cs.Up, cs.Down}
+			cur := totals[cs.Email]
+			totals[cs.Email] = [2]int64{max(cur[0], cs.Up), max(cur[1], cs.Down)}
 		}
 	}
 	return totals
