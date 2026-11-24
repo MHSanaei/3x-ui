@@ -128,7 +128,11 @@
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
     "unpinSidebar": "Desfijar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeUltraDark": "Ultra oscuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Mantener la configuración de esta máquina",
-      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido.",
+      "importKeepHostSettingsDesc": "Conserva las direcciones de escucha, los puertos, la ruta base, los certificados y la identidad de nodo de este panel en lugar de tomarlos del archivo subido. También se conserva la selección de interfaz de tráfico de red.",
       "logLines": "Número de líneas",
       "timeRange": "Rango de tiempo"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Importar un entrante",
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDay": "Día de reinicio mensual",
+      "preserveClientTraffic": "Conservar el consumo de los clientes",
+      "preserveClientTrafficHelp": "Si se activa, el reinicio programado solo pone a cero los contadores de esta entrada. Cada cliente conserva su consumo acumulado en todos los nodos hasta su propio reinicio programado.\n\nSi se desactiva, el reinicio programado de esta entrada también pone a cero el consumo acumulado de sus clientes en todos los nodos.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -553,6 +559,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Máx. bytes cabecera servidor",
         "paddingBytes": "Bytes de Padding",
+        "separateDownload": "Usar un canal de descarga separado",
         "uplinkHttpMethod": "Método HTTP Uplink",
         "paddingObfsMode": "Modo obfs de Padding",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "Básico",
       "tabCredentials": "Credenciales",
       "tabLinks": "Enlaces",
+      "wgDevices": {
+        "title": "Dispositivos WireGuard",
+        "limit": "Límite de dispositivos",
+        "primary": "Dispositivo principal",
+        "enabled": "Activado",
+        "subscription": "Copiar suscripción",
+        "deleteConfirm": "¿Eliminar este dispositivo y liberar su dirección?",
+        "remove": "Eliminar",
+        "name": "Nombre del dispositivo",
+        "add": "Añadir dispositivo"
+      },
       "wireguardConfig": "Configuración de WireGuard",
       "config": "Configuración",
       "linksHint": "Añade enlaces de terceros y URLs de suscripción remotas para incluirlos en la suscripción de este cliente.",
@@ -856,6 +874,7 @@
       "has": "Tiene",
       "hasNot": "No tiene",
       "actions": "Acciones",
+      "columns": "Columnas",
       "totalGB": "Límite de tráfico (GB)",
       "totalGBDesc": "Cuota de datos para este cliente. 0 = ilimitado.",
       "expiryTime": "Expiración",
@@ -873,7 +892,13 @@
       "deleteHwid": "Eliminar dispositivo",
       "deleteHwidConfirm": "¿Eliminar este dispositivo? Deberá volver a registrarse en la próxima obtención de la suscripción.",
       "hwidDeleted": "Dispositivo eliminado.",
-      "clearHwidsConfirm": "¿Eliminar todos los dispositivos registrados? Cada dispositivo deberá volver a registrarse en la próxima obtención de la suscripción.",
+      "blockHwid": "Bloquear",
+      "unblockHwid": "Desbloquear",
+      "hwidBlocked": "Bloqueado",
+      "blockHwidConfirm": "¿Impedir que este dispositivo obtenga esta suscripción?",
+      "unblockHwidConfirm": "¿Permitir que este dispositivo vuelva a obtener esta suscripción?",
+      "hwidBlockHint": "El bloqueo de dispositivos se aplica a esta suscripción incluso con un límite HWID de 0. Vaciar la lista mantiene los bloqueos.",
+      "clearHwidsConfirm": "¿Eliminar todos los dispositivos no bloqueados? Se registrarán de nuevo al obtener la suscripción. Los dispositivos bloqueados seguirán bloqueados.",
       "limitIpFail2banMissing": "Fail2ban no está instalado, por lo que no se puede aplicar el límite de IP. Instala Fail2ban desde el menú bash de x-ui para habilitar esta opción.",
       "limitIpFail2banWindows": "Fail2ban no está disponible en Windows, por lo que no se puede aplicar el límite de IP.",
       "limitIpDisabled": "La función de límite de IP está deshabilitada en este servidor.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "{count} clientes agotados eliminados",
         "delOrphans": "{count} clientes sin entrante eliminados",
         "imported": "{count} clientes importados",
-        "importedMixed": "{ok} importados, {failed} omitidos"
+        "importedMixed": "{ok} importados, {failed} omitidos",
+        "bulkLinksAppended": "{clients} clientes actualizados: {added} añadidos, {skipped} duplicados omitidos, {errors} clientes no encontrados."
       },
       "renewMax": "Renovaciones máximas",
       "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Renovaciones usadas",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto.",
       "renewIntervalDesc": "Tras expirar, añade el número configurado de días de 24 horas al vencimiento anterior y reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
-      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional."
+      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
+      "bulkAdjustSettings": "Límites y ajustes",
+      "bulkAppendLinks": "Añadir enlaces externos",
+      "bulkAppendLinksHint": "Se añaden a todos los clientes seleccionados. Se conservan las entradas y los ajustes existentes; se omiten los pares de tipo y valor duplicados. Aplica los demás ajustes por separado.",
+      "bulkAppendLinksRequired": "Añade al menos un enlace o una suscripción externa.",
+      "externalLinkInvalid": "Introduce un enlace compartido compatible.",
+      "externalSubscriptionInvalid": "Introduce una URL de suscripción http(s)."
     },
     "groups": {
       "name": "Nombre",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "Quitados {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar panel",
+      "restartConfirmTitle": "¿Reiniciar {name}?",
+      "restartXrayContent": "Se interrumpirán las conexiones Xray activas de este nodo.",
+      "restartPanelContent": "El panel y los servicios de suscripción del nodo se reiniciarán y podrían dejar de estar disponibles temporalmente. Requiere un token API node-admin o admin en el nodo.",
       "addNode": "Agregar nodo",
       "editNode": "Editar nodo",
       "totalNodes": "Total de nodos",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "Detenido"
       },
       "toasts": {
+        "xrayRestarted": "Xray se ha reiniciado en el nodo.",
+        "panelRestartAccepted": "Solicitud de reinicio del panel aceptada. El nodo podría no estar disponible temporalmente.",
         "list": "Error al cargar los nodos",
         "obtain": "Error al cargar el nodo",
         "add": "Agregar nodo",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "La ruta de suscripción por defecto \"/sub/\" es conocida — cámbiela.",
       "warnDefaultJsonPath": "La ruta de suscripción JSON por defecto \"/json/\" es conocida — cámbiela.",
       "TGBotSettings": "Bot de Telegram",
+      "networkTrafficInterfaceTitle": "Interfaz de tráfico de red",
+      "networkTrafficMode": "Modo de tráfico de red",
+      "networkTrafficDescription": "Seleccione la interfaz para los totales y la velocidad del tráfico del sistema. La agregación antigua puede contar dos veces el tráfico de interfaces superpuestas. En Docker solo están disponibles las interfaces del espacio de nombres de red del contenedor.",
+      "networkTrafficLegacy": "Todas las interfaces (heredado)",
+      "networkTrafficAutomatic": "Automático",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "La interfaz de red seleccionada no está disponible. Elija una interfaz disponible u otro modo de monitorización.",
+      "networkTrafficAutoResolved": "Interfaz de la ruta predeterminada: {interface}",
+      "networkTrafficLoadError": "No se pudieron cargar las interfaces de red.",
+      "networkTrafficEmpty": "No hay interfaces de red disponibles.",
+      "networkTrafficAutoUnavailable": "No hay una interfaz de ruta predeterminada disponible. Las métricas de tráfico no estarán disponibles hasta que se recupere la detección o se cambie el modo.",
       "panelListeningIP": "IP de Escucha del Panel",
       "panelListeningIPDesc": "Dejar en blanco por defecto para monitorear todas las IPs.",
       "panelListeningDomain": "Dominio de Escucha del Panel",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "Muestra el nombre de usuario, dirección IP y hora cuando alguien intenta iniciar sesión en su panel.",
       "sessionMaxAge": "Edad Máxima de Sesión",
       "sessionMaxAgeDesc": "La duración de una sesión de inicio de sesión (unidad: minutos).",
+      "publicIpRefresh": "Actualización de IP pública",
+      "publicIpRefreshDesc": "Con qué frecuencia el panel vuelve a detectar su IP pública mediante servicios externos. 0 la detecta una vez y no la actualiza. (unidad: minuto)",
+      "publicIpv6Detect": "Detectar IPv6 pública",
+      "publicIpv6DetectDesc": "Desactívalo en servidores solo IPv4 para omitir todas las consultas IPv6.",
+      "publicIpv4Override": "IPv4 pública manual",
+      "publicIpv6Override": "IPv6 pública manual",
+      "publicIpOverrideDesc": "Usa esta dirección en lugar de detectarla; no se hacen consultas externas para ella. Déjalo vacío para detectarla.",
       "expireTimeDiff": "Umbral de Expiración para Notificación",
       "expireTimeDiffDesc": "Reciba notificaciones sobre la expiración de la cuenta antes del umbral (unidad: días).",
       "trafficDiff": "Umbral de Tráfico para Notificación",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "Dejar en blanco por defecto para monitorear todos los dominios e IPs. También se usa como dominio de reserva para el enlace de suscripción mostrado cuando «URI de proxy inverso» está vacío — configure «URI de proxy inverso» si el panel y la suscripción se acceden por dominios diferentes (por ejemplo, detrás de un proxy inverso).",
       "subUpdates": "Intervalos de Actualización de Suscripción",
       "subUpdatesDesc": "Horas de intervalo entre actualizaciones en la aplicación del cliente.",
+      "subRateLimitEnable": "Límite de frecuencia de suscripciones",
+      "subRateLimitEnableDesc": "Limita la frecuencia con la que cada IP de cliente puede obtener las URL de suscripción. Las solicitudes que superan el límite reciben HTTP 429 con una pista Retry-After. Los CIDR de proxy confiables (ajustes generales) deciden por qué dirección se cuenta a un cliente.",
+      "subRateLimit": "Solicitudes por minuto",
+      "subRateLimitDesc": "El número máximo de descargas de suscripción por IP de cliente y minuto mientras el límite está activo.",
       "externalSubUserAgent": "User-Agent de suscripción externa",
       "externalSubUserAgentDesc": "Cabecera User-Agent al obtener la URL de suscripción externa del cliente. Déjelo vacío para usar el valor predeterminado (v2rayNG/1.8.5). Algunos proveedores rechazan clientes desconocidos.",
       "subEncrypt": "Codificar",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Reemplazar configuraciones al rechazar el HWID",
+      "subHwidRejectWithConfigDesc": "Devolver HTTP 200 con un nodo no funcional en lugar de 404 si falta el HWID o se alcanza el límite de dispositivos. Las aplicaciones compatibles pueden reemplazar los nodos guardados al actualizar; las configuraciones copiadas siguen siendo válidas. Eliminar un dispositivo libera una plaza, pero no lo bloquea permanentemente.",
       "subInfoNodeEnable": "Configuración de información separada / Nodo ficticio",
       "subInfoNodeEnableDesc": "Si está activado, la información de tráfico y días restantes se muestra en un nodo SOCKS ficticio arriba, y las suscripciones caducadas o agotadas devuelven solo el estado.",
       "subExpiredTemplate": "Plantilla de expirado",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "Orden de nodos de suscripción",
       "subHostSortInbound": "Orden de entradas (predeterminado)",
       "subHostSortHosts": "Orden de hosts",
-      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden."
+      "subHostSortModeDesc": "Sigue el orden de la página de hosts entre distintas entradas. Determina el orden emitido por el servidor; las aplicaciones cliente pueden aplicar su propio orden.",
+      "wechatSettings": "Notificaciones de WeChat",
+      "wechatEnable": "Activar notificaciones de WeChat",
+      "wechatEnableDesc": "Envía alertas mediante un robot de grupo de WeCom o una pasarela webhook compatible.",
+      "wechatMode": "Modo de envío",
+      "wechatModeDesc": "Elige el formato que admite el destino.",
+      "wechatModeWecom": "Robot de grupo de WeCom",
+      "wechatModeWebhook": "Pasarela webhook personalizada",
+      "wechatPersonalGateway": "WeChat personal necesita una pasarela compatible. El robot de WeCom envía a grupos de WeCom, no directamente a WeChat personal.",
+      "wechatWebhookURL": "URL del webhook",
+      "wechatWebhookURLConfigured": "Hay una URL guardada. Déjala vacía para conservarla.",
+      "wechatWebhookURLDesc": "Usa un destino HTTPS. La URL puede contener un secreto y el panel nunca devuelve el valor guardado.",
+      "wechatSecretPlaceholder": "Dejar vacío para conservar el valor",
+      "wechatToken": "Token Bearer",
+      "wechatTokenConfigured": "Hay un token guardado. Déjalo vacío para conservarlo.",
+      "wechatTokenDesc": "Autenticación opcional de la pasarela. Déjalo vacío si no es necesaria.",
+      "wechatLanguage": "Idioma de los mensajes",
+      "wechatSaveBeforeTest": "Guarda los cambios antes de probar. La prueba usa la configuración guardada.",
+      "wechatTest": "Enviar notificación de prueba",
+      "wechatTestSuccess": "Notificación de prueba enviada correctamente",
+      "wechatTestFailed": "No se pudo enviar la notificación de prueba",
+      "wechatReportEnable": "Informes programados",
+      "wechatReportEnableDesc": "Envía resúmenes de texto periódicos aparte de las alertas. No adjunta bases de datos ni archivos de configuración.",
+      "wechatReportTime": "Horario del informe",
+      "wechatReportTimeDesc": "Usa una expresión cron o un valor como @daily.",
+      "wechatEvents": "Alertas de eventos",
+      "wechatEventsDesc": "Elige los eventos que envían notificaciones y sus umbrales."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "IP local",
         "dialerProxyPlaceholder": "Selecciona una salida para encadenar",
         "dialerProxyHint": "Conecta esta salida a través de otra salida (por etiqueta) para crear una cadena de proxy. Déjalo vacío para conectar directamente.",
+        "dialerProxyMissing": "No hay ninguna salida con esta etiqueta disponible para encadenar.",
         "targetStrategyHint": "Cómo se resuelve el dominio de destino antes de conectar: AsIs (predeterminado) lo envía sin resolver, UseIP… resuelve con respaldo, ForceIP… exige resolución.",
         "addressRequired": "La dirección es obligatoria",
         "portRequired": "El puerto es obligatorio",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. Suscripción JSON",
       "qrLegendLink": "{{ .Code }}. Enlace de la app {{ .App }}",
       "backupFailed": "No se pudo leer la base de datos; no se envió ninguna copia de seguridad.",
-      "privateOnly": "🤖 Este bot solo funciona en el chat privado. Ábrelo en un mensaje directo."
+      "privateOnly": "🤖 Este bot solo funciona en el chat privado. Ábrelo en un mensaje directo.",
+      "chooseOneConfig": "👇 ¿Qué config quieres?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Guía de instalación</b>\nElige el dispositivo que quieres configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Instala <b>Streisand</b> o <b>V2Box</b> desde la App Store.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, pulsa <b>+</b> → <b>Add from clipboard</b>.\n4. Desliza hacia abajo para actualizar y conéctate.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Instala <b>v2rayNG</b> o <b>Hiddify</b> desde Google Play.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, pulsa <b>+</b> → <b>Import from clipboard</b>.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Instala <b>Hiddify</b> o <b>v2rayN</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Instala <b>Hiddify</b> o <b>V2Box</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Instala <b>Hiddify</b> (AppImage) o <b>Nekoray</b>.\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL.\n3. En la app, añade una suscripción y pega la URL.\n4. Actualiza la suscripción, elige un servidor y conéctate."
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Difusión",
       "attachInbound": "Adjuntar entrada ({{ .Count }})",
-      "attachDone": "✅ Listo"
+      "attachDone": "✅ Listo",
+      "getOneConfig": "🎯 Obtener uno",
+      "setupGuide": "📖 Guía de instalación",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Guía de instalación"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Reiniciar servicio Xray",
     "restartXraySuccess": "El servicio Xray se ha reiniciado con éxito",
     "settings": "Configuración"
+  },
+  "wechat": {
+    "test": {
+      "title": "Prueba de notificación de WeChat de 3x-ui",
+      "body": "Esta es una notificación de prueba de 3x-ui. No incluye archivos de base de datos ni de configuración."
+    },
+    "report": {
+      "title": "Informe de estado de 3x-ui",
+      "counts": "Total: {{ .Total }} | Deshabilitados: {{ .Disabled }} | Caducados: {{ .Expired }} | Agotados: {{ .Depleted }}",
+      "trafficUsed": "Tráfico usado de 3x-ui",
+      "trafficRemaining": "Tráfico restante de 3x-ui",
+      "trafficQuotaUnset": "Cuota no configurada"
+    }
   }
 }

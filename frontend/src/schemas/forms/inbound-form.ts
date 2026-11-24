@@ -76,6 +76,7 @@ export const InboundDbFieldsSchema = z.object({
   total: z.number().int().min(0).default(0),
   trafficReset: TrafficResetSchema.default('never'),
   trafficResetDay: z.number().int().min(1).max(31).default(1),
+  preserveClientTraffic: z.boolean().default(false),
   lastTrafficResetTime: z.number().int().default(0),
   nodeId: z.number().int().nullable().optional(),
   shareAddrStrategy: ShareAddrStrategySchema.default('node'),
@@ -108,8 +109,51 @@ export type InboundFormBase = z.infer<typeof InboundFormBaseSchema>;
 
 // Full form values = base + db fields + protocol-discriminated settings.
 // Consumers narrow on `.protocol` to access the matching settings branch.
-export const InboundFormSchema =
-  InboundFormBaseSchema.and(InboundDbFieldsSchema).and(InboundSettingsSchema);
+export const InboundFormSchema = InboundFormBaseSchema.and(InboundDbFieldsSchema)
+  .and(InboundSettingsSchema)
+  .superRefine((form, ctx) => {
+    const stream = form.streamSettings;
+    if (stream?.network !== 'xhttp') return;
+    const xhttp = stream.xhttpSettings;
+    const down = xhttp?.downloadSettings;
+    if (!down) return;
+    const issue = (field: string[], message: string) =>
+      ctx.addIssue({
+        code: 'custom',
+        path: ['streamSettings', 'xhttpSettings', 'downloadSettings', ...field],
+        message,
+      });
+    if (xhttp.mode === 'stream-one')
+      issue([], 'Separate download is incompatible with stream-one.');
+    if (!['xhttp', 'splithttp'].includes(String(down.method ?? down.network).toLowerCase()))
+      issue(['network'], 'Select XHTTP for the download transport.');
+    if (typeof down.address !== 'string' || !down.address.trim())
+      issue(['address'], 'Enter a download address.');
+    if (
+      typeof down.port !== 'number' ||
+      !Number.isInteger(down.port) ||
+      down.port < 1 ||
+      down.port > 65535
+    )
+      issue(['port'], 'Enter a port from 1 to 65535.');
+    const security = String(down.security ?? '').toLowerCase();
+    if (!['', 'none', 'tls', 'reality'].includes(security))
+      issue(['security'], 'Select none, TLS or REALITY.');
+    if (security === 'reality') {
+      const r = down.realitySettings as Record<string, unknown> | undefined;
+      const key = r?.password || r?.publicKey;
+      if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(key))
+        issue(
+          ['realitySettings', r?.password || !r?.publicKey ? 'password' : 'publicKey'],
+          'Enter a 32-byte unpadded base64url REALITY public key.',
+        );
+      if (
+        r?.shortId != null &&
+        (typeof r.shortId !== 'string' || !/^(?:[0-9a-fA-F]{2}){0,8}$/.test(r.shortId))
+      )
+        issue(['realitySettings', 'shortId'], 'Enter up to 8 hexadecimal bytes.');
+    }
+  });
 export type InboundFormValues = z.infer<typeof InboundFormSchema>;
 
 export const FallbackRowSchema = z.object({

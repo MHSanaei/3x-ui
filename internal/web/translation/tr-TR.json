@@ -128,7 +128,11 @@
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
     "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
-    "subFormats": "Abonelik Formatları"
+    "subFormats": "Abonelik Formatları",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeUltraDark": "Ultra koyu",
+    "themeSystem": "Sistem"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Bu makinenin ayarlarını koru",
-      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur.",
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur. Ağ trafiği arayüzü seçimi de korunur.",
       "logLines": "Satır sayısı",
       "timeRange": "Zaman aralığı"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Gelen Bağlantı İçe Aktar",
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDay": "Aylık sıfırlama günü",
+      "preserveClientTraffic": "İstemci kullanımını koru",
+      "preserveClientTrafficHelp": "Seçenek açıkken zamanlanmış sıfırlama yalnızca bu gelen bağlantının trafik sayaçlarını sıfırlar. Her istemcinin tüm düğümlerdeki toplam kullanımı, kendi sıfırlama zamanı gelene kadar korunur.\n\nSeçenek kapalıyken bu gelen bağlantının zamanlanmış sıfırlaması, bağlantıyla ilişkili istemcilerin tüm düğümlerdeki toplam kullanımını da sıfırlar.",
       "periodicTrafficReset": {
         "never": "Asla",
         "daily": "Günlük",
@@ -553,6 +559,7 @@
         "streamUpServer": "Stream-Up Sunucusu",
         "serverMaxHeaderBytes": "Sunucu Maks. Başlık Byte'ı",
         "paddingBytes": "Dolgu (Padding) Byte'ı",
+        "separateDownload": "Ayrı indirme kanalı kullan",
         "uplinkHttpMethod": "Uplink HTTP Yöntemi",
         "paddingObfsMode": "Dolgu (Padding) Obfs Modu",
         "paddingKey": "Dolgu (Padding) Anahtarı",
@@ -809,6 +816,17 @@
       "tabBasics": "Temel",
       "tabCredentials": "Kimlik Bilgileri",
       "tabLinks": "Bağlantılar",
+      "wgDevices": {
+        "title": "WireGuard cihazları",
+        "limit": "Cihaz sınırı",
+        "primary": "Ana cihaz",
+        "enabled": "Etkin",
+        "subscription": "Aboneliği kopyala",
+        "deleteConfirm": "Bu cihaz silinsin ve adresi serbest bırakılsın mı?",
+        "remove": "Sil",
+        "name": "Cihaz adı",
+        "add": "Cihaz ekle"
+      },
       "wireguardConfig": "WireGuard yapılandırması",
       "config": "Yapılandırma",
       "linksHint": "Bu istemcinin aboneliğine dahil etmek için üçüncü taraf paylaşım bağlantıları ve uzak abonelik URL'leri ekleyin.",
@@ -856,6 +874,7 @@
       "has": "Var",
       "hasNot": "Yok",
       "actions": "İşlemler",
+      "columns": "Sütunlar",
       "totalGB": "Trafik Limiti (GB)",
       "totalGBDesc": "Bu kullanıcı için veri kotası. 0 = sınırsız.",
       "expiryTime": "Son Kullanma",
@@ -873,7 +892,13 @@
       "deleteHwid": "Cihazı kaldır",
       "deleteHwidConfirm": "Bu cihaz kaldırılsın mı? Bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "hwidDeleted": "Cihaz kaldırıldı.",
-      "clearHwidsConfirm": "Kayıtlı tüm cihazlar kaldırılsın mı? Her cihazın bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
+      "blockHwid": "Engelle",
+      "unblockHwid": "Engeli kaldır",
+      "hwidBlocked": "Engellendi",
+      "blockHwidConfirm": "Bu cihazın bu aboneliği alması engellensin mi?",
+      "unblockHwidConfirm": "Bu cihazın bu aboneliği tekrar almasına izin verilsin mi?",
+      "hwidBlockHint": "Cihaz engelleri, HWID sınırı 0 olsa bile bu abonelik için geçerlidir. Listeyi temizlemek engelleri kaldırmaz.",
+      "clearHwidsConfirm": "Engellenmemiş tüm cihazlar kaldırılsın mı? Sonraki abonelik alımında yeniden kaydolurlar. Engellenen cihazlar engelli kalır.",
       "limitIpFail2banMissing": "Fail2ban yüklü değil, bu nedenle IP sınırı uygulanamaz. Bu seçeneği etkinleştirmek için x-ui bash menüsünden Fail2ban'ı yükleyin.",
       "limitIpFail2banWindows": "Fail2ban Windows'ta kullanılamadığından IP sınırı uygulanamaz.",
       "limitIpDisabled": "IP sınırı özelliği bu sunucuda devre dışı.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "{count} tükenmiş kullanıcı silindi",
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
-        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı",
+        "bulkLinksAppended": "{clients} istemci güncellendi: {added} eklendi, {skipped} tekrar atlandı, {errors} istemci bulunamadı."
       },
       "renewMax": "En fazla yenileme",
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Kullanılan yenileme",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
       "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
-      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "bulkAdjustSettings": "Sınırlar ve ayarlar",
+      "bulkAppendLinks": "Harici bağlantılar ekle",
+      "bulkAppendLinksHint": "Seçilen tüm istemcilere eklenir. Mevcut girdiler ve ayarları korunur; aynı tür ve değere sahip tekrarlar atlanır. Diğer ayarlamaları ayrı uygulayın.",
+      "bulkAppendLinksRequired": "En az bir harici bağlantı veya abonelik ekleyin.",
+      "externalLinkInvalid": "Desteklenen bir paylaşım bağlantısı girin.",
+      "externalSubscriptionInvalid": "Bir http(s) abonelik URL’si girin."
     },
     "groups": {
       "name": "İsim",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
     },
     "nodes": {
+      "restartXray": "Xray yeniden başlat",
+      "restartPanel": "Paneli yeniden başlat",
+      "restartConfirmTitle": "{name} yeniden başlatılsın mı?",
+      "restartXrayContent": "Bu düğümdeki etkin Xray bağlantıları kesilecektir.",
+      "restartPanelContent": "Düğüm paneli ve abonelik hizmetleri yeniden başlatılacak ve geçici olarak kullanılamayabilir. Düğümde node-admin veya admin API belirteci gerekir.",
       "addNode": "Düğüm Ekle",
       "editNode": "Düğümü Düzenle",
       "totalNodes": "Toplam Düğüm",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "Durduruldu"
       },
       "toasts": {
+        "xrayRestarted": "Düğümde Xray yeniden başlatıldı.",
+        "panelRestartAccepted": "Panel yeniden başlatma isteği kabul edildi. Düğüm geçici olarak kullanılamayabilir.",
         "list": "Düğümler yüklenemedi",
         "obtain": "Düğüm yüklenemedi",
         "add": "Düğüm ekle",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "Varsayılan abonelik yolu \"/sub/\" yaygın olarak bilinmektedir — değiştirin.",
       "warnDefaultJsonPath": "Varsayılan JSON abonelik yolu \"/json/\" yaygın olarak bilinmektedir — değiştirin.",
       "TGBotSettings": "Telegram Botu",
+      "networkTrafficInterfaceTitle": "Ağ trafiği arayüzü",
+      "networkTrafficMode": "Ağ trafiği izleme modu",
+      "networkTrafficDescription": "Sistem trafik toplamları ve hızı için kullanılacak arayüzü seçin. Eski toplama modu, katmanlı arayüzlerde aynı trafiği iki kez sayabilir. Docker içinde yalnızca kapsayıcının ağ ad alanındaki arayüzler kullanılabilir.",
+      "networkTrafficLegacy": "Tüm arayüzler (Eski)",
+      "networkTrafficAutomatic": "Otomatik",
+      "networkTrafficManual": "Manuel",
+      "networkTrafficUnavailable": "Seçilen ağ arayüzü kullanılamıyor. Kullanılabilir bir arayüz veya başka bir izleme modu seçin.",
+      "networkTrafficAutoResolved": "Varsayılan rota arayüzü: {interface}",
+      "networkTrafficLoadError": "Ağ arayüzleri yüklenemedi.",
+      "networkTrafficEmpty": "Kullanılabilir ağ arayüzü yok.",
+      "networkTrafficAutoUnavailable": "Varsayılan rota arayüzü yok. Algılama düzelene veya mod değiştirilene kadar trafik ölçümleri kullanılamaz.",
       "panelListeningIP": "Dinleme IP",
       "panelListeningIPDesc": "Web paneli için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "panelListeningDomain": "Dinleme Alan Adı",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "Birisi web panelinize giriş yapmaya çalıştığında kullanıcı adı, IP adresi ve zaman hakkında bildirim almanızı sağlar.",
       "sessionMaxAge": "Oturum Süresi",
       "sessionMaxAgeDesc": "Giriş yaptıktan sonra oturum süresi. (birim: dakika)",
+      "publicIpRefresh": "Genel IP Yenileme",
+      "publicIpRefreshDesc": "Panelin genel IP'sini harici hizmetlerle ne sıklıkla yeniden tespit edeceği. 0 bir kez tespit eder ve bir daha yenilemez. (birim: dakika)",
+      "publicIpv6Detect": "Genel IPv6'yı Tespit Et",
+      "publicIpv6DetectDesc": "Yalnızca IPv4 olan sunucularda tüm IPv6 sorgularını atlamak için kapatın.",
+      "publicIpv4Override": "Genel IPv4 Elle Girişi",
+      "publicIpv6Override": "Genel IPv6 Elle Girişi",
+      "publicIpOverrideDesc": "Tespit etmek yerine bu adres kullanılır; bunun için harici sorgu yapılmaz. Otomatik tespit için boş bırakın.",
       "expireTimeDiff": "Son Kullanma Tarihi Bildirimi",
       "expireTimeDiffDesc": "Bu eşik seviyesine ulaşıldığında son kullanma tarihi hakkında bildirim almanızı sağlar. (birim: gün)",
       "trafficDiff": "Trafik Sınırı Bildirimi",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "Abonelik hizmeti için alan adı. (tüm alan adlarını ve IP'leri dinlemek için boş bırakın). Ayrıca, \"Ters Proxy URI\" boşsa gösterilen abonelik bağlantısı için yedek alan adı olarak da kullanılır — panel ve abonelik farklı alan adları üzerinden erişiliyorsa (örneğin bir ters proxy arkasında) \"Ters Proxy URI\"yi ayarlayın.",
       "subUpdates": "Güncelleme Aralıkları",
       "subUpdatesDesc": "İstemci uygulamalarındaki abonelik URL'sinin güncellenme aralığı. (birim: saat)",
+      "subRateLimitEnable": "Abonelik hız sınırı",
+      "subRateLimitEnableDesc": "Her istemci IP'sinin abonelik URL'lerini ne sıklıkla çekebileceğini sınırlar. Limiti aşan istekler Retry-After ipucuyla HTTP 429 alır. Güvenilir proxy CIDR'leri (genel ayarlar) bir istemcinin hangi adresle sayılacağını belirler.",
+      "subRateLimit": "Dakika başına istek",
+      "subRateLimitDesc": "Hız sınırı açıkken istemci IP başına dakikada izin verilen maksimum abonelik çekme sayısı.",
       "externalSubUserAgent": "Harici abonelik User-Agent",
       "externalSubUserAgentDesc": "Panel istemci harici abonelik URL’sini çekerken gönderilen User-Agent. Boş bırakılırsa varsayılan (v2rayNG/1.8.5) kullanılır. Bazı sağlayıcılar bilinmeyen istemcileri reddeder.",
       "subEncrypt": "Kodla",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "HWID reddedildiğinde yapılandırmaları değiştir",
+      "subHwidRejectWithConfigDesc": "HWID eksikse veya cihaz sınırına ulaşılmışsa 404 yerine çalışmayan bir düğümle HTTP 200 döndürür. Uyumlu uygulamalar güncellemede kayıtlı düğümleri değiştirebilir; kopyalanan yapılandırmalar geçerli kalır. Cihazı silmek yer açar ancak cihazı kalıcı olarak engellemez.",
       "subInfoNodeEnable": "Ayrı Bilgi Yapılandırması / Sahte Düğüm",
       "subInfoNodeEnableDesc": "Etkinleştirildiğinde, notlar ve kalan trafik/günler en üstte ayrı bir sahte SOCKS yapılandırması olarak sunulur; süresi dolmuş veya kotası bitmiş abonelikler yalnızca durum yapılandırmasını alır.",
       "subExpiredTemplate": "Süresi Dolmuş Şablonu",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "Abonelik düğümü sıralaması",
       "subHostSortInbound": "Gelen bağlantı sırası (varsayılan)",
       "subHostSortHosts": "Ana bilgisayar sırası",
-      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir."
+      "subHostSortModeDesc": "Farklı gelen bağlantılarda Ana Bilgisayarlar sayfasının sırasını izler. Sunucunun çıktı sırasını belirler; istemci uygulamaları kendi sıralamalarını uygulayabilir.",
+      "wechatSettings": "WeChat bildirimleri",
+      "wechatEnable": "WeChat bildirimlerini etkinleştir",
+      "wechatEnableDesc": "WeCom grup robotu veya uyumlu webhook ağ geçidi üzerinden uyarı gönderin.",
+      "wechatMode": "Gönderim modu",
+      "wechatModeDesc": "Hedefin desteklediği mesaj biçimini seçin.",
+      "wechatModeWecom": "WeCom grup robotu",
+      "wechatModeWebhook": "Özel webhook ağ geçidi",
+      "wechatPersonalGateway": "Kişisel WeChat uyumlu bir ağ geçidi gerektirir. WeCom robotu, kişisel WeChat yerine WeCom gruplarına gönderir.",
+      "wechatWebhookURL": "Webhook URL’si",
+      "wechatWebhookURLConfigured": "Bir URL kaydedildi. Korumak için boş bırakın.",
+      "wechatWebhookURLDesc": "HTTPS hedefi kullanın. URL gizli bilgi içerebilir; panel kayıtlı değeri geri döndürmez.",
+      "wechatSecretPlaceholder": "Kayıtlı değeri korumak için boş bırakın",
+      "wechatToken": "Bearer belirteci",
+      "wechatTokenConfigured": "Bir belirteç kaydedildi. Korumak için boş bırakın.",
+      "wechatTokenDesc": "Ağ geçidi için isteğe bağlı kimlik doğrulama. Gerekmiyorsa boş bırakın.",
+      "wechatLanguage": "Mesaj dili",
+      "wechatSaveBeforeTest": "Testten önce değişiklikleri kaydedin. Test kayıtlı yapılandırmayı kullanır.",
+      "wechatTest": "Test bildirimi gönder",
+      "wechatTestSuccess": "Test bildirimi başarıyla gönderildi",
+      "wechatTestFailed": "Test bildirimi gönderilemedi",
+      "wechatReportEnable": "Zamanlanmış raporlar",
+      "wechatReportEnableDesc": "Olay uyarılarından bağımsız düzenli metin özetleri gönderin. Veritabanı ve yapılandırma dosyaları eklenmez.",
+      "wechatReportTime": "Rapor zamanlaması",
+      "wechatReportTimeDesc": "Cron ifadesi veya @daily gibi bir ön ayar kullanın.",
+      "wechatEvents": "Olay uyarıları",
+      "wechatEventsDesc": "Bildirim gönderecek olayları seçin ve uyarı eşiklerini ayarlayın."
     },
     "xray": {
       "save": "Kaydet",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "yerel IP",
         "dialerProxyPlaceholder": "Zincirlemek için bir giden bağlantı seçin",
         "dialerProxyHint": "Bir proxy zinciri oluşturmak için bu giden bağlantıyı başka bir giden bağlantı (etikete göre) üzerinden bağlayın. Doğrudan bağlanmak için boş bırakın.",
+        "dialerProxyMissing": "Bu etikete sahip, zincirleme kullanılabilecek bir giden bağlantı yok.",
         "targetStrategyHint": "Bağlanmadan önce hedef alan adının nasıl çözümleneceği: AsIs (varsayılan) olduğu gibi gönderir, UseIP… çözümler ve başarısızsa geri döner, ForceIP… çözümleme zorunludur.",
         "addressRequired": "Adres zorunludur",
         "portRequired": "Port zorunludur",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON abonelik",
       "qrLegendLink": "{{ .Code }}. Uygulama bağlantısı {{ .App }}",
       "backupFailed": "Veritabanı okunamadı; yedek gönderilmedi.",
-      "privateOnly": "🤖 Bu bot yalnızca özel sohbette çalışır. Lütfen doğrudan mesajda açın."
+      "privateOnly": "🤖 Bu bot yalnızca özel sohbette çalışır. Lütfen doğrudan mesajda açın.",
+      "chooseOneConfig": "👇 Hangi yapılandırmayı istiyorsunuz?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Kurulum rehberi</b>\nKurmak istediğiniz cihazı seçin.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. App Store'dan <b>Streisand</b> veya <b>V2Box</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada <b>+</b> → <b>Add from clipboard</b> dokunun.\n4. Güncellemek için aşağı çekin, sonra bağlanın.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Google Play'den <b>v2rayNG</b> veya <b>Hiddify</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada <b>+</b> → <b>Import from clipboard</b> dokunun.\n4. Aboneliği yenileyin, bir sunucu seçip bağlanın.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. <b>Hiddify</b> veya <b>v2rayN</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın.",
+      "guideMacos": "💻 <b>macOS</b>\n1. <b>Hiddify</b> veya <b>V2Box</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. <b>Hiddify</b> (AppImage) veya <b>Nekoray</b> kurun.\n2. Bu botta Abonelik bağlantıları sayfasını açıp abonelik adresinizi kopyalayın.\n3. Uygulamada bir abonelik ekleyip adresi yapıştırın.\n4. Aboneliği güncelleyin, bir sunucu seçip bağlanın."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Yayın",
       "attachInbound": "Inbound ekle ({{ .Count }})",
-      "attachDone": "✅ Tamam"
+      "attachDone": "✅ Tamam",
+      "getOneConfig": "🎯 Birini al",
+      "setupGuide": "📖 Kurulum rehberi",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Toplu gönderim başladı.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Kurulum rehberi"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Xray Hizmetini Yeniden Başlat",
     "restartXraySuccess": "Xray hizmeti başarıyla yeniden başlatıldı",
     "settings": "Ayarlar"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui WeChat Bildirim Testi",
+      "body": "Bu, 3x-ui tarafından gönderilen bir test bildirimidir. Veritabanı veya yapılandırma dosyası içermez."
+    },
+    "report": {
+      "title": "3x-ui Durum Raporu",
+      "counts": "Toplam: {{ .Total }} | Devre dışı: {{ .Disabled }} | Süresi dolan: {{ .Expired }} | Kotası tükenen: {{ .Depleted }}",
+      "trafficUsed": "3x-ui kullanılan trafik",
+      "trafficRemaining": "3x-ui kalan trafik",
+      "trafficQuotaUnset": "Kota yapılandırılmamış"
+    }
   }
 }

@@ -128,7 +128,11 @@
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
     "unpinSidebar": "Odopnúť bočné menu",
-    "subFormats": "Formáty odberu"
+    "subFormats": "Formáty odberu",
+    "themeLight": "Svetlá",
+    "themeDark": "Tmavá",
+    "themeUltraDark": "Ultra tmavá",
+    "themeSystem": "Systém"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOKOVANÉ",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Ponechať nastavenia tohto servera",
-      "importKeepHostSettingsDesc": "Ponechajú sa adresy počúvania, porty, základná cesta, certifikáty a identita tohto servera namiesto nastavení z nahraného súboru.",
+      "importKeepHostSettingsDesc": "Ponechajú sa adresy počúvania, porty, základná cesta, certifikáty a identita tohto servera namiesto nastavení z nahraného súboru. Zachová sa aj výber rozhrania sieťovej prevádzky.",
       "logLines": "Počet riadkov",
       "timeRange": "Časový rozsah"
     },
@@ -443,6 +447,8 @@
       "importInbound": "Importovať vstup",
       "periodicTrafficResetTitle": "Nulovanie spotreby",
       "periodicTrafficResetDay": "Deň mesačného nulovania",
+      "preserveClientTraffic": "Zachovať spotrebu klientov",
+      "preserveClientTrafficHelp": "Keď je táto možnosť zapnutá, podľa plánu sa vynulujú iba počítadlá prenosu tohto vstupu. Celková spotreba každého klienta na všetkých serveroch sa zachová až do vynulovania podľa jeho vlastného plánu.\n\nAk je možnosť vypnutá, pri plánovanom vynulovaní tohto vstupu sa vynuluje aj celková spotreba jeho klientov na všetkých serveroch.",
       "periodicTrafficReset": {
         "never": "Nikdy",
         "daily": "Denne",
@@ -555,6 +561,7 @@
         "streamUpServer": "Server na odosielanie dát",
         "serverMaxHeaderBytes": "Najväčšia veľkosť hlavičiek servera",
         "paddingBytes": "Počet bajtov výplne",
+        "separateDownload": "Použiť samostatný kanál na sťahovanie",
         "uplinkHttpMethod": "Metóda HTTP pri odosielaní",
         "paddingObfsMode": "Režim maskovania výplne",
         "paddingKey": "Kľúč výplne",
@@ -809,6 +816,17 @@
       "tabBasics": "Základné údaje",
       "tabCredentials": "Prihlasovacie údaje",
       "tabLinks": "Odkazy",
+      "wgDevices": {
+        "title": "Zariadenia WireGuard",
+        "limit": "Limit zariadení",
+        "primary": "Hlavné zariadenie",
+        "enabled": "Zapnuté",
+        "subscription": "Kopírovať odber",
+        "deleteConfirm": "Odstrániť toto zariadenie a uvoľniť jeho adresu?",
+        "remove": "Odstrániť",
+        "name": "Názov zariadenia",
+        "add": "Pridať zariadenie"
+      },
       "wireguardConfig": "Konfigurácia WireGuard",
       "config": "Konfigurácia",
       "linksHint": "Pridajte externé odkazy na pripojenie a vzdialené odbery konfigurácií, ktoré sa majú zahrnúť do odberu tohto klienta.",
@@ -856,6 +874,7 @@
       "has": "Obsahuje",
       "hasNot": "Neobsahuje",
       "actions": "Akcie",
+      "columns": "Stĺpce",
       "totalGB": "Dátový limit (GB)",
       "totalGBDesc": "Dátový limit tohto klienta. Hodnota 0 znamená bez obmedzenia.",
       "expiryTime": "Platnosť do",
@@ -873,7 +892,13 @@
       "deleteHwid": "Odstrániť zariadenie",
       "deleteHwidConfirm": "Odstrániť toto zariadenie? Pri ďalšom načítaní odberu sa bude musieť znova zaregistrovať.",
       "hwidDeleted": "Zariadenie bolo odstránené.",
-      "clearHwidsConfirm": "Odstrániť všetky registrované zariadenia? Pri ďalšom načítaní odberu sa bude každé zariadenie musieť znova zaregistrovať.",
+      "blockHwid": "Zablokovať",
+      "unblockHwid": "Odblokovať",
+      "hwidBlocked": "Zablokované",
+      "blockHwidConfirm": "Zablokovať tomuto zariadeniu získanie tohto odberu?",
+      "unblockHwidConfirm": "Znova povoliť tomuto zariadeniu získanie tohto odberu?",
+      "hwidBlockHint": "Blokovanie zariadení platí pre tento odber aj pri limite HWID 0. Vymazanie zoznamu blokovanie zachová.",
+      "clearHwidsConfirm": "Odstrániť všetky neblokované zariadenia? Pri ďalšom načítaní odberu sa znova zaregistrujú. Blokované zariadenia zostanú blokované.",
       "limitIpFail2banMissing": "Fail2ban nie je nainštalovaný, preto nemožno vynútiť limit IP adries. Na zapnutie tejto možnosti nainštalujte Fail2ban z ponuky príkazu x-ui.",
       "limitIpFail2banWindows": "Fail2ban nie je vo Windows dostupný, preto nemožno vynútiť limit IP adries.",
       "limitIpDisabled": "Funkcia limitu IP adries je na tomto serveri vypnutá.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "Odstránení ukončení klienti: {count}",
         "delOrphans": "Odstránení nepriradení klienti: {count}",
         "imported": "Importovaní klienti: {count}",
-        "importedMixed": "Importované: {ok}, preskočené: {failed}"
+        "importedMixed": "Importované: {ok}, preskočené: {failed}",
+        "bulkLinksAppended": "Aktualizovaní klienti: {clients}; pridané: {added}, preskočené duplicity: {skipped}, nenájdení klienti: {errors}."
       },
       "renewMax": "Najviac obnovení",
       "renewMaxDesc": "Koľkokrát sa môže platnosť automaticky obnoviť, než účet zostane neplatný. Hodnota 0 znamená bez obmedzenia. Pri dobiehaní zmeškaných období sa každé obdobie počíta ako jedno obnovenie.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Použité obnovenia",
       "bulkAdTagHint": "Zadajte 32-znakovú hexadecimálnu značku alebo 'none' na odstránenie sponzorovaného kanála zo vstupov MTProto.",
       "renewIntervalDesc": "Po skončení platnosti pridá nastavený počet 24-hodinových dní k predchádzajúcemu koncu platnosti a vynuluje spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
-      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše."
+      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
+      "bulkAdjustSettings": "Limity a nastavenia",
+      "bulkAppendLinks": "Pridať externé odkazy",
+      "bulkAppendLinksHint": "Pridá všetkým vybraným klientom. Existujúce záznamy a nastavenia sa zachovajú; duplicitné dvojice typu a hodnoty sa preskočia. Ostatné úpravy použite samostatne.",
+      "bulkAppendLinksRequired": "Pridajte aspoň jeden externý odkaz alebo odber.",
+      "externalLinkInvalid": "Zadajte podporovaný odkaz na zdieľanie.",
+      "externalSubscriptionInvalid": "Zadajte URL odberu http(s)."
     },
     "groups": {
       "name": "Názov",
@@ -1230,6 +1262,11 @@
       "dragToReorder": "Presunutím zmeníte poradie {name}"
     },
     "nodes": {
+      "restartXray": "Reštartovať Xray",
+      "restartPanel": "Reštartovať panel",
+      "restartConfirmTitle": "Reštartovať {name}?",
+      "restartXrayContent": "Aktívne spojenia Xray na tomto uzle sa prerušia.",
+      "restartPanelContent": "Panel uzla a služby odberov sa reštartujú a môžu byť dočasne nedostupné. Vyžaduje sa API token node-admin alebo admin na uzle.",
       "addNode": "Pridať server",
       "editNode": "Upraviť server",
       "totalNodes": "Počet serverov",
@@ -1299,6 +1336,8 @@
         "xrayStopped": "Zastavený"
       },
       "toasts": {
+        "xrayRestarted": "Xray na uzle bol reštartovaný.",
+        "panelRestartAccepted": "Žiadosť o reštart panela bola prijatá. Uzol môže byť dočasne nedostupný.",
         "list": "Nepodarilo sa načítať servery",
         "obtain": "Nepodarilo sa načítať server",
         "add": "Pridať server",
@@ -1362,6 +1401,17 @@
       "warnDefaultSubPath": "Predvolená cesta odberu „/sub/“ je všeobecne známa. Zmeňte ju.",
       "warnDefaultJsonPath": "Predvolená cesta odberu JSON „/json/“ je všeobecne známa. Zmeňte ju.",
       "TGBotSettings": "Telegram bot",
+      "networkTrafficInterfaceTitle": "Rozhranie sieťovej prevádzky",
+      "networkTrafficMode": "Režim sieťovej prevádzky",
+      "networkTrafficDescription": "Vyberte rozhranie pre celkovú prevádzku a rýchlosť systému. Pôvodné sčítanie môže započítať prevádzku vrstvených rozhraní dvakrát. V Dockeri sú dostupné iba rozhrania v sieťovom mennom priestore kontajnera.",
+      "networkTrafficLegacy": "Všetky rozhrania (pôvodné)",
+      "networkTrafficAutomatic": "Automaticky",
+      "networkTrafficManual": "Manuálne",
+      "networkTrafficUnavailable": "Vybrané sieťové rozhranie nie je dostupné. Vyberte dostupné rozhranie alebo iný režim monitorovania.",
+      "networkTrafficAutoResolved": "Rozhranie predvolenej trasy: {interface}",
+      "networkTrafficLoadError": "Sieťové rozhrania sa nepodarilo načítať.",
+      "networkTrafficEmpty": "Nie sú dostupné žiadne sieťové rozhrania.",
+      "networkTrafficAutoUnavailable": "Rozhranie predvolenej trasy nie je dostupné. Údaje o prevádzke zostanú nedostupné, kým sa detekcia neobnoví alebo nezmeníte režim.",
       "panelListeningIP": "IP adresa na počúvanie",
       "panelListeningIPDesc": "IP adresa webového panelu. Prázdne pole znamená počúvanie na všetkých IP adresách.",
       "panelListeningDomain": "Doména panelu",
@@ -1421,6 +1471,13 @@
       "tgNotifyLoginDesc": "Pri každom pokuse o prihlásenie do panelu poslať používateľské meno, IP adresu a čas.",
       "sessionMaxAge": "Platnosť prihlásenia",
       "sessionMaxAgeDesc": "Ako dlho môžete zostať prihlásení (jednotka: minúta).",
+      "publicIpRefresh": "Obnovenie verejnej IP",
+      "publicIpRefreshDesc": "Ako často panel znova zisťuje svoju verejnú IP cez externé služby. 0 zistí raz a už neobnovuje. (jednotka: minúta)",
+      "publicIpv6Detect": "Zisťovať verejnú IPv6",
+      "publicIpv6DetectDesc": "Vypnite na serveroch len s IPv4, aby sa preskočili všetky dotazy IPv6.",
+      "publicIpv4Override": "Ručná verejná IPv4",
+      "publicIpv6Override": "Ručná verejná IPv6",
+      "publicIpOverrideDesc": "Použije sa táto adresa namiesto zisťovania; nevykonajú sa pre ňu žiadne externé dotazy. Ak chcete automatické zisťovanie, nechajte prázdne.",
       "expireTimeDiff": "Upozornenie na koniec platnosti",
       "expireTimeDiffDesc": "Upozorniť na koniec platnosti pri dosiahnutí tohto prahu (jednotka: deň).",
       "trafficDiff": "Upozornenie na dátový limit",
@@ -1501,6 +1558,10 @@
       "subDomainDesc": "Doména služby odberu. Prázdne pole umožní všetky domény a IP adresy. Ak je pole „URI reverzného proxy“ prázdne, použije sa aj ako náhradná doména zobrazeného odkazu na odber. Ak sú panel a odber dostupné cez odlišné domény, napr. za reverzným proxy, nastavte „URI reverzného proxy“.",
       "subUpdates": "Interval aktualizácií",
       "subUpdatesDesc": "Interval aktualizácie odberu v klientskych aplikáciách (jednotka: hodina).",
+      "subRateLimitEnable": "Rýchlostný limit predplatných",
+      "subRateLimitEnableDesc": "Obmedzuje, ako často môže každá IP adresa klienta sťahovať URL adresy predplatných. Požiadavky nad limit dostanú HTTP 429 s hintom Retry-After. Dôveryhodné proxy CIDR (všeobecné nastavenia) určujú, podľa ktorej adresy sa klient počíta.",
+      "subRateLimit": "Požiadaviek za minútu",
+      "subRateLimitDesc": "Maximálny počet stiahnutí predplatného na IP adresu klienta a minútu, kým je rýchlostný limit zapnutý.",
       "externalSubUserAgent": "User-Agent externého odberu",
       "externalSubUserAgentDesc": "Hlavička User-Agent odosielaná pri načítaní externého odberu klienta. Prázdne pole použije predvolenú hodnotu v2rayNG/1.8.5. Niektorí poskytovatelia neznámych klientov odmietajú.",
       "subEncrypt": "Kódovanie",
@@ -1768,6 +1829,8 @@
       },
       "subCalendarExpireInclusive": "Zobrazenie konca mesačnej platnosti v odbere",
       "subCalendarExpireInclusiveDesc": "Predvolene vypnuté. Pri obnove v 1. deň mesiaca o polnoci v pásme panelu hlási hlavička odberu ako koniec platnosti poslednú sekundu predchádzajúceho mesiaca. Skutočné ukončenie a obnovovanie sa nemení. Klienti používajú vlastné časové pásmo a môžu odber považovať za neplatný o sekundu skôr.",
+      "subHwidRejectWithConfig": "Nahradiť konfigurácie pri odmietnutí HWID",
+      "subHwidRejectWithConfigDesc": "Pri chýbajúcom HWID alebo dosiahnutí limitu zariadení vrátiť HTTP 200 s nefunkčným uzlom namiesto 404. Kompatibilné aplikácie môžu pri aktualizácii nahradiť uložené uzly; skopírované konfigurácie zostávajú platné. Odstránenie zariadenia uvoľní miesto, ale nezablokuje ho natrvalo.",
       "subInfoNodeEnable": "Samostatný informačný profil",
       "subInfoNodeEnableDesc": "Názov a zostávajúce dáta/dni sa zobrazia hore ako samostatný nefunkčný profil SOCKS. Odbery so skončenou platnosťou alebo vyčerpaným limitom potom vrátia iba stavový profil.",
       "subExpiredTemplate": "Šablóna skončenej platnosti",
@@ -1980,7 +2043,33 @@
       "subHostSortMode": "Poradie uzlov v predplatnom",
       "subHostSortInbound": "Poradie inboundov (predvolené)",
       "subHostSortHosts": "Poradie hostiteľov",
-      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie."
+      "subHostSortModeDesc": "Poradie hostiteľov sa riadi stránkou Hostitelia naprieč inboundmi. Určuje poradie, ktoré odosiela server; klientske aplikácie môžu použiť vlastné triedenie.",
+      "wechatSettings": "Oznámenia WeChat",
+      "wechatEnable": "Zapnúť oznámenia WeChat",
+      "wechatEnableDesc": "Posielať upozornenia cez robota skupiny WeCom alebo kompatibilnú webhook bránu.",
+      "wechatMode": "Spôsob doručenia",
+      "wechatModeDesc": "Vyberte formát správ podporovaný cieľom.",
+      "wechatModeWecom": "Robot skupiny WeCom",
+      "wechatModeWebhook": "Vlastná webhook brána",
+      "wechatPersonalGateway": "Osobný WeChat vyžaduje kompatibilnú bránu. Robot WeCom posiela do skupín WeCom, nie priamo do osobného WeChatu.",
+      "wechatWebhookURL": "URL webhooku",
+      "wechatWebhookURLConfigured": "URL je uložená. Prázdne pole ju zachová.",
+      "wechatWebhookURLDesc": "Použite HTTPS. URL môže obsahovať tajný údaj a panel uloženú hodnotu nevracia.",
+      "wechatSecretPlaceholder": "Prázdne pole zachová uloženú hodnotu",
+      "wechatToken": "Bearer token",
+      "wechatTokenConfigured": "Token je uložený. Prázdne pole ho zachová.",
+      "wechatTokenDesc": "Voliteľné overenie brány. Ak nie je potrebné, nechajte prázdne.",
+      "wechatLanguage": "Jazyk správ",
+      "wechatSaveBeforeTest": "Pred testom uložte zmeny. Test používa uloženú konfiguráciu.",
+      "wechatTest": "Odoslať testovacie oznámenie",
+      "wechatTestSuccess": "Skúšobné oznámenie bolo úspešne odoslané",
+      "wechatTestFailed": "Skúšobné oznámenie sa nepodarilo odoslať",
+      "wechatReportEnable": "Plánované prehľady",
+      "wechatReportEnableDesc": "Pravidelné textové prehľady nezávislé od upozornení. Databázy ani konfiguračné súbory sa neprikladajú.",
+      "wechatReportTime": "Plán prehľadov",
+      "wechatReportTimeDesc": "Použite výraz cron alebo predvoľbu ako @daily.",
+      "wechatEvents": "Upozornenia na udalosti",
+      "wechatEventsDesc": "Vyberte udalosti pre oznámenia a nastavte prahy upozornení."
     },
     "xray": {
       "save": "Uložiť",
@@ -2129,6 +2218,7 @@
         "localIpPlaceholder": "miestna IP",
         "dialerProxyPlaceholder": "Vyberte výstup na zreťazenie",
         "dialerProxyHint": "Pripojí tento výstup cez iný výstup určený značkou a vytvorí reťaz proxy. Prázdne pole znamená priame pripojenie.",
+        "dialerProxyMissing": "Nie je dostupný žiadny výstup s touto značkou, cez ktorý by sa dalo reťaziť.",
         "targetStrategyHint": "Ako sa pred pripojením preloží cieľová doména: AsIs (predvolené) ju pošle nepreloženú, UseIP… ju preloží s náhradným postupom, ForceIP… vyžaduje úspešný preklad.",
         "addressRequired": "Zadajte adresu",
         "portRequired": "Zadajte port",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. Predplatné JSON",
       "qrLegendLink": "{{ .Code }}. Odkaz pre aplikáciu {{ .App }}",
       "backupFailed": "Databázu sa nepodarilo prečítať; záloha nebola odoslaná.",
-      "privateOnly": "🤖 Tento bot funguje len v súkromnom chate. Otvorte ho, prosím, v priamej správe."
+      "privateOnly": "🤖 Tento bot funguje len v súkromnom chate. Otvorte ho, prosím, v priamej správe.",
+      "chooseOneConfig": "👇 Ktorú konfiguráciu chcete?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Návod na nastavenie</b>\nVyberte zariadenie, ktoré chcete nastaviť.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Z App Store si nainštalujte <b>Streisand</b> alebo <b>V2Box</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii ťuknite na <b>+</b> → <b>Add from clipboard</b>.\n4. Potiahnutím nadol aktualizujte a pripojte sa.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Z Google Play si nainštalujte <b>v2rayNG</b> alebo <b>Hiddify</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii ťuknite na <b>+</b> → <b>Import from clipboard</b>.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Nainštalujte si <b>Hiddify</b> alebo <b>v2rayN</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Nainštalujte si <b>Hiddify</b> alebo <b>V2Box</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Nainštalujte si <b>Hiddify</b> (AppImage) alebo <b>Nekoray</b>.\n2. Otvorte v tomto bote stránku s odkazmi na predplatné a skopírujte URL svojho predplatného.\n3. V aplikácii pridajte predplatné a vložte URL.\n4. Aktualizujte predplatné, vyberte server a pripojte sa."
     },
     "buttons": {
       "closeKeyboard": "❌ Zavrieť klávesnicu",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR kód",
       "broadcast": "📢 Hromadná správa",
       "attachInbound": "Pripojiť inbound ({{ .Count }})",
-      "attachDone": "✅ Hotovo"
+      "attachDone": "✅ Hotovo",
+      "getOneConfig": "🎯 Získať jeden",
+      "setupGuide": "📖 Návod na nastavenie",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Hromadné odosielanie sa začalo.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Dochádza",
       "commands": "Príkazy",
-      "broadcast": "Hromadná správa"
+      "broadcast": "Hromadná správa",
+      "guide": "Návod na nastavenie"
     },
     "inline": {
       "noneTitle": "Nič sa nenašlo",
@@ -2874,5 +2980,18 @@
     "restartXray": "Reštartovať službu Xray",
     "restartXraySuccess": "Xray bol úspešne reštartovaný",
     "settings": "Nastavenia"
+  },
+  "wechat": {
+    "test": {
+      "title": "Test oznámení WeChat z 3x-ui",
+      "body": "Toto je skúšobné oznámenie z 3x-ui. Neobsahuje súbory databázy ani konfigurácie."
+    },
+    "report": {
+      "title": "Správa o stave 3x-ui",
+      "counts": "Celkom: {{ .Total }} | Zakázané: {{ .Disabled }} | Platnosť skončila: {{ .Expired }} | Vyčerpané: {{ .Depleted }}",
+      "trafficUsed": "Použitý prenos 3x-ui",
+      "trafficRemaining": "Zostávajúci prenos 3x-ui",
+      "trafficQuotaUnset": "Limit nie je nastavený"
+    }
   }
 }

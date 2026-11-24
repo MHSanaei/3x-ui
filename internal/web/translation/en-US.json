@@ -128,7 +128,11 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeUltraDark": "Ultra Dark",
+    "themeSystem": "System"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file.",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file. Network traffic interface selection is also preserved.",
       "logLines": "Number of lines",
       "timeRange": "Time range"
     },
@@ -443,6 +447,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
@@ -555,6 +561,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Server Max Header Bytes",
         "paddingBytes": "Padding Bytes",
+        "separateDownload": "Use separate download",
         "uplinkHttpMethod": "Uplink HTTP Method",
         "paddingObfsMode": "Padding Obfs Mode",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "Basics",
       "tabCredentials": "Credentials",
       "tabLinks": "Links",
+      "wgDevices": {
+        "title": "WireGuard devices",
+        "limit": "Device limit",
+        "primary": "Primary device",
+        "enabled": "Enabled",
+        "subscription": "Copy subscription",
+        "deleteConfirm": "Delete this device and release its address?",
+        "remove": "Delete",
+        "name": "Device name",
+        "add": "Add device"
+      },
       "wireguardConfig": "WireGuard config",
       "config": "Config",
       "linksHint": "Add third-party share links and remote subscription URLs to include in this client's subscription.",
@@ -856,6 +874,7 @@
       "has": "Has",
       "hasNot": "Doesn't have",
       "actions": "Actions",
+      "columns": "Columns",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
       "expiryTime": "Expiry",
@@ -873,7 +892,13 @@
       "deleteHwid": "Remove device",
       "deleteHwidConfirm": "Remove this device? It will need to re-register on its next subscription fetch.",
       "hwidDeleted": "Device removed.",
-      "clearHwidsConfirm": "Remove all registered devices? Every device will need to re-register on its next subscription fetch.",
+      "blockHwid": "Block",
+      "unblockHwid": "Unblock",
+      "hwidBlocked": "Blocked",
+      "blockHwidConfirm": "Block this device from fetching this subscription?",
+      "unblockHwidConfirm": "Allow this device to fetch this subscription again?",
+      "hwidBlockHint": "Device bans apply to this subscription even when the HWID limit is 0. Clearing the list keeps bans.",
+      "clearHwidsConfirm": "Remove all unblocked devices? They will re-register on their next subscription fetch. Blocked devices will stay blocked.",
       "limitIpFail2banMissing": "Fail2ban is not installed, so the IP limit cannot be enforced. Install Fail2ban from the x-ui bash menu to enable this option.",
       "limitIpFail2banWindows": "Fail2ban is not available on Windows, so the IP limit cannot be enforced.",
       "limitIpDisabled": "The IP limit feature is disabled on this server.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "{count} depleted clients deleted",
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
-        "importedMixed": "{ok} imported, {failed} skipped"
+        "importedMixed": "{ok} imported, {failed} skipped",
+        "bulkLinksAppended": "{clients} clients updated: {added} added, {skipped} duplicates skipped, {errors} clients not found."
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Renewals used",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds.",
       "renewIntervalDesc": "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
-      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended."
+      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
+      "bulkAdjustSettings": "Limits and settings",
+      "bulkAppendLinks": "Append external links",
+      "bulkAppendLinksHint": "Append to every selected client. Existing entries and their settings stay unchanged; duplicate kind and value pairs are skipped. Apply other adjustments separately.",
+      "bulkAppendLinksRequired": "Add at least one external link or subscription.",
+      "externalLinkInvalid": "Enter a supported share link.",
+      "externalSubscriptionInvalid": "Enter an http(s) subscription URL."
     },
     "groups": {
       "name": "Name",
@@ -1230,6 +1262,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1299,6 +1336,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",
@@ -1362,6 +1401,17 @@
       "warnDefaultSubPath": "Default subscription path \"/sub/\" is well-known — change it.",
       "warnDefaultJsonPath": "Default JSON subscription path \"/json/\" is well-known — change it.",
       "TGBotSettings": "Telegram Bot",
+      "networkTrafficInterfaceTitle": "Network Traffic Interface",
+      "networkTrafficMode": "Network traffic mode",
+      "networkTrafficDescription": "Select the interface used for system traffic totals and speed. Legacy aggregation can double-count stacked interfaces. In Docker, only interfaces in the container network namespace are available.",
+      "networkTrafficLegacy": "All interfaces (Legacy)",
+      "networkTrafficAutomatic": "Automatic",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "The selected network interface is unavailable. Choose an available interface or another monitoring mode.",
+      "networkTrafficAutoResolved": "Default-route interface: {interface}",
+      "networkTrafficLoadError": "Could not load network interfaces.",
+      "networkTrafficEmpty": "No network interfaces are available.",
+      "networkTrafficAutoUnavailable": "No default-route interface is available. Traffic metrics remain unavailable until detection recovers or the mode changes.",
       "panelListeningIP": "Listen IP",
       "panelListeningIPDesc": "The IP address for the web panel. (leave blank to listen on all IPs)",
       "panelListeningDomain": "Listen Domain",
@@ -1421,6 +1471,13 @@
       "tgNotifyLoginDesc": "Get notified about the username, IP address, and time whenever someone attempts to log into your web panel.",
       "sessionMaxAge": "Session Duration",
       "sessionMaxAgeDesc": "The duration for which you can stay logged in. (unit: minute)",
+      "publicIpRefresh": "Public IP Refresh",
+      "publicIpRefreshDesc": "How often the panel re-detects its public IP through external services. 0 detects once and never refreshes. (unit: minute)",
+      "publicIpv6Detect": "Detect Public IPv6",
+      "publicIpv6DetectDesc": "Turn off on IPv4-only servers to skip all IPv6 lookups.",
+      "publicIpv4Override": "Public IPv4 Override",
+      "publicIpv6Override": "Public IPv6 Override",
+      "publicIpOverrideDesc": "Use this address instead of detecting it; no external lookups are made for it. Leave empty to detect.",
       "expireTimeDiff": "Expiration Date Notification",
       "expireTimeDiffDesc": "Get notified about expiration date when reaching this threshold. (unit: day)",
       "trafficDiff": "Traffic Cap Notification",
@@ -1501,6 +1558,10 @@
       "subDomainDesc": "The domain name for the subscription service. (leave blank to listen on all domains and IPs). Also used as the fallback domain for the displayed subscription link when \"Reverse Proxy URI\" is empty — set \"Reverse Proxy URI\" if the panel and the subscription are reached through different domains (e.g. behind a reverse proxy).",
       "subUpdates": "Update Intervals",
       "subUpdatesDesc": "The update intervals of the subscription URL in the client apps. (unit: hour)",
+      "subRateLimitEnable": "Subscription rate limit",
+      "subRateLimitEnableDesc": "Limit how often each client IP may fetch subscription URLs. Requests over the limit get HTTP 429 with a Retry-After hint. Trusted proxy CIDRs (General settings) decide which address a client is counted by.",
+      "subRateLimit": "Requests per minute",
+      "subRateLimitDesc": "The maximum number of subscription fetches per client IP and minute while the rate limit is on.",
       "externalSubUserAgent": "External subscription User-Agent",
       "externalSubUserAgentDesc": "User-Agent header sent when the panel fetches a client external subscription URL. Leave blank to use the default (v2rayNG/1.8.5). Some providers reject unknown clients.",
       "subEncrypt": "Encode",
@@ -1768,6 +1829,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Replace configs when HWID is rejected",
+      "subHwidRejectWithConfigDesc": "Return HTTP 200 with a non-working node instead of 404 when HWID is missing or the device limit is reached. Compatible apps can replace saved nodes on update; copied configs remain valid. Deleting a device frees a slot and does not permanently ban it.",
       "subInfoNodeEnable": "Separate Info Config / Dummy Node",
       "subInfoNodeEnableDesc": "When enabled, remarks and remaining traffic/days are served as a separate dummy SOCKS config at the top, and expired/depleted subscriptions return only the status config.",
       "subExpiredTemplate": "Expired Template",
@@ -1980,7 +2043,33 @@
       "subHostSortMode": "Subscription Node Ordering",
       "subHostSortInbound": "Inbound order (default)",
       "subHostSortHosts": "Hosts order",
-      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
+      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting.",
+      "wechatSettings": "WeChat notifications",
+      "wechatEnable": "Enable WeChat notifications",
+      "wechatEnableDesc": "Deliver panel alerts through a WeCom group robot or compatible webhook gateway.",
+      "wechatMode": "Delivery mode",
+      "wechatModeDesc": "Choose the message format accepted by your destination.",
+      "wechatModeWecom": "WeCom group robot",
+      "wechatModeWebhook": "Custom webhook gateway",
+      "wechatPersonalGateway": "Personal WeChat requires a compatible gateway. A WeCom robot posts to a WeCom group, not directly to personal WeChat.",
+      "wechatWebhookURL": "Webhook URL",
+      "wechatWebhookURLConfigured": "A webhook URL is saved. Leave this field blank to keep it.",
+      "wechatWebhookURLDesc": "Use an HTTPS destination. The URL may contain a secret and is never returned by the panel.",
+      "wechatSecretPlaceholder": "Leave blank to keep the saved value",
+      "wechatToken": "Bearer token",
+      "wechatTokenConfigured": "A bearer token is saved. Leave this field blank to keep it.",
+      "wechatTokenDesc": "Optional authentication for the custom gateway. Leave blank if the destination does not require it.",
+      "wechatLanguage": "Message language",
+      "wechatSaveBeforeTest": "Save changes before testing. The test uses the saved configuration.",
+      "wechatTest": "Send test notification",
+      "wechatTestSuccess": "Test notification sent successfully",
+      "wechatTestFailed": "Failed to send test notification",
+      "wechatReportEnable": "Scheduled reports",
+      "wechatReportEnableDesc": "Send a periodic text summary independently of event alerts. Database and configuration files are not attached.",
+      "wechatReportTime": "Report schedule",
+      "wechatReportTimeDesc": "Use a cron expression or a preset such as @daily.",
+      "wechatEvents": "Event alerts",
+      "wechatEventsDesc": "Choose which panel events send WeChat notifications and set the alert thresholds."
     },
     "xray": {
       "save": "Save",
@@ -2129,6 +2218,7 @@
         "localIpPlaceholder": "local IP",
         "dialerProxyPlaceholder": "Select an outbound to chain through",
         "dialerProxyHint": "Dial this outbound through another outbound (by tag) to build a proxy chain. Leave empty to connect directly.",
+        "dialerProxyMissing": "No outbound with this tag is available to chain through.",
         "targetStrategyHint": "How the destination domain is resolved before connecting: AsIs (default) sends it unresolved, UseIP… resolves with fallback, ForceIP… requires successful resolution.",
         "addressRequired": "Address is required",
         "portRequired": "Port is required",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON subscription",
       "qrLegendLink": "{{ .Code }}. App link {{ .App }}",
       "backupFailed": "Could not read the database; no backup was sent.",
-      "privateOnly": "🤖 This bot works in private chat only. Please open it in a direct message."
+      "privateOnly": "🤖 This bot works in private chat only. Please open it in a direct message.",
+      "chooseOneConfig": "👇 Which config do you want?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Setup guide</b>\nPick the device you want to set up.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Install <b>Streisand</b> or <b>V2Box</b> from the App Store.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, tap <b>+</b> → <b>Add from clipboard</b>.\n4. Pull down to update, then connect.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Install <b>v2rayNG</b> or <b>Hiddify</b> from Google Play.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, tap <b>+</b> → <b>Import from clipboard</b>.\n4. Refresh the subscription, pick a server and connect.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Install <b>Hiddify</b> or <b>v2rayN</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Install <b>Hiddify</b> or <b>V2Box</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Install <b>Hiddify</b> (AppImage) or <b>Nekoray</b>.\n2. Open the Subscription links page in this bot and copy your subscription URL.\n3. In the app, add a subscription and paste the URL.\n4. Update the subscription, pick a server and connect."
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Broadcast",
       "attachInbound": "Attach inbound ({{ .Count }})",
-      "attachDone": "✅ Done"
+      "attachDone": "✅ Done",
+      "getOneConfig": "🎯 Get one",
+      "setupGuide": "📖 Setup guide",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Broadcast started.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Setup guide"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Restart Xray Service",
     "restartXraySuccess": "Xray has been successfully relaunched",
     "settings": "Settings"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui WeChat Notification Test",
+      "body": "This is a test notification from 3x-ui. No database or configuration files are included."
+    },
+    "report": {
+      "title": "3x-ui Status Report",
+      "counts": "Total: {{ .Total }} | Disabled: {{ .Disabled }} | Expired: {{ .Expired }} | Depleted: {{ .Depleted }}",
+      "trafficUsed": "3x-ui used traffic",
+      "trafficRemaining": "3x-ui remaining traffic",
+      "trafficQuotaUnset": "Quota not configured"
+    }
   }
 }

@@ -128,7 +128,11 @@
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
     "unpinSidebar": "Bỏ ghim thanh bên",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeUltraDark": "Siêu tối",
+    "themeSystem": "Hệ thống"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Giữ cài đặt của máy này",
-      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên.",
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên. Lựa chọn giao diện lưu lượng mạng cũng được giữ lại.",
       "logLines": "Số dòng",
       "timeRange": "Khoảng thời gian"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Nhập inbound",
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
+      "preserveClientTraffic": "Giữ mức sử dụng của máy khách",
+      "preserveClientTrafficHelp": "Khi bật, thao tác đặt lại theo lịch chỉ đưa bộ đếm lưu lượng của inbound này về 0. Tổng lưu lượng của mỗi máy khách trên tất cả các node được giữ lại cho đến lần đặt lại theo lịch riêng của máy khách đó.\n\nKhi tắt, mỗi lần inbound này được đặt lại theo lịch, tổng lưu lượng mà mỗi máy khách liên kết với inbound đã sử dụng trên tất cả các node cũng trở về 0.",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
         "daily": "Hàng ngày",
@@ -604,6 +610,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Byte header máy chủ tối đa",
         "paddingBytes": "Byte Padding",
+        "separateDownload": "Dùng kênh tải xuống riêng",
         "uplinkHttpMethod": "Uplink HTTP method",
         "paddingObfsMode": "Chế độ obfs Padding",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "Cơ bản",
       "tabCredentials": "Thông tin xác thực",
       "tabLinks": "Liên kết",
+      "wgDevices": {
+        "title": "Thiết bị WireGuard",
+        "limit": "Giới hạn thiết bị",
+        "primary": "Thiết bị chính",
+        "enabled": "Đã bật",
+        "subscription": "Sao chép liên kết đăng ký",
+        "deleteConfirm": "Xóa thiết bị này và giải phóng địa chỉ của thiết bị?",
+        "remove": "Xóa",
+        "name": "Tên thiết bị",
+        "add": "Thêm thiết bị"
+      },
       "wireguardConfig": "Cấu hình WireGuard",
       "config": "Cấu hình",
       "linksHint": "Thêm liên kết chia sẻ của bên thứ ba và URL đăng ký từ xa để đưa vào đăng ký của khách hàng này.",
@@ -856,6 +874,7 @@
       "has": "Có",
       "hasNot": "Không có",
       "actions": "Hành động",
+      "columns": "Cột",
       "totalGB": "Giới hạn lưu lượng (GB)",
       "totalGBDesc": "Hạn mức dữ liệu cho khách hàng này. 0 = không giới hạn.",
       "expiryTime": "Hết hạn",
@@ -873,7 +892,13 @@
       "deleteHwid": "Xóa thiết bị",
       "deleteHwidConfirm": "Xóa thiết bị này? Thiết bị sẽ cần đăng ký lại vào lần lấy gói đăng ký tiếp theo.",
       "hwidDeleted": "Đã xóa thiết bị.",
-      "clearHwidsConfirm": "Xóa tất cả thiết bị đã đăng ký? Mỗi thiết bị sẽ cần đăng ký lại vào lần lấy gói đăng ký tiếp theo.",
+      "blockHwid": "Chặn",
+      "unblockHwid": "Bỏ chặn",
+      "hwidBlocked": "Đã chặn",
+      "blockHwidConfirm": "Chặn thiết bị này lấy gói đăng ký này?",
+      "unblockHwidConfirm": "Cho phép thiết bị này lấy lại gói đăng ký này?",
+      "hwidBlockHint": "Lệnh chặn thiết bị áp dụng cho gói đăng ký này ngay cả khi giới hạn HWID là 0. Xóa danh sách không bỏ chặn.",
+      "clearHwidsConfirm": "Xóa tất cả thiết bị không bị chặn? Chúng sẽ đăng ký lại khi lấy gói đăng ký lần tới. Thiết bị bị chặn vẫn bị chặn.",
       "limitIpFail2banMissing": "Fail2ban chưa được cài đặt nên không thể áp dụng giới hạn IP. Hãy cài đặt Fail2ban từ menu bash x-ui để bật tùy chọn này.",
       "limitIpFail2banWindows": "Fail2ban không khả dụng trên Windows nên không thể áp dụng giới hạn IP.",
       "limitIpDisabled": "Tính năng giới hạn IP đã bị tắt trên máy chủ này.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "Đã xóa {count} khách hàng hết hạn mức",
         "delOrphans": "Đã xóa {count} khách hàng không gắn inbound",
         "imported": "Đã nhập {count} khách hàng",
-        "importedMixed": "Đã nhập {ok}, bỏ qua {failed}"
+        "importedMixed": "Đã nhập {ok}, bỏ qua {failed}",
+        "bulkLinksAppended": "Đã cập nhật {clients} máy khách: thêm {added}, bỏ qua {skipped} mục trùng, không tìm thấy {errors} máy khách."
       },
       "renewMax": "Số lần gia hạn tối đa",
       "renewMaxDesc": "Gia hạn tự động được phép chạy bao nhiêu lần trước khi để khách hàng hết hạn. 0 nghĩa là không giới hạn. Bù lại nhiều kỳ đã bỏ lỡ sẽ tiêu tốn một lần gia hạn cho mỗi kỳ.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Số lần gia hạn đã dùng",
       "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto.",
       "renewIntervalDesc": "Sau khi hết hạn, cộng số ngày đã đặt (mỗi ngày 24 giờ) vào thời điểm hết hạn trước đó và đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm.",
-      "renewWeeklyDesc": "Gia hạn theo lịch diễn ra lúc nửa đêm theo múi giờ của bảng điều khiển và cũng đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm."
+      "renewWeeklyDesc": "Gia hạn theo lịch diễn ra lúc nửa đêm theo múi giờ của bảng điều khiển và cũng đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm.",
+      "bulkAdjustSettings": "Giới hạn và cài đặt",
+      "bulkAppendLinks": "Thêm liên kết ngoài",
+      "bulkAppendLinksHint": "Thêm vào mọi máy khách đã chọn. Giữ nguyên mục và cài đặt hiện có; bỏ qua các cặp loại và giá trị trùng lặp. Áp dụng các điều chỉnh khác riêng biệt.",
+      "bulkAppendLinksRequired": "Thêm ít nhất một liên kết hoặc đăng ký ngoài.",
+      "externalLinkInvalid": "Nhập liên kết chia sẻ được hỗ trợ.",
+      "externalSubscriptionInvalid": "Nhập URL đăng ký http(s)."
     },
     "groups": {
       "name": "Tên",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "Đã xóa {count} client khỏi {name}."
     },
     "nodes": {
+      "restartXray": "Khởi động lại Xray",
+      "restartPanel": "Khởi động lại bảng điều khiển",
+      "restartConfirmTitle": "Khởi động lại {name}?",
+      "restartXrayContent": "Các kết nối Xray đang hoạt động trên nút này sẽ bị ngắt.",
+      "restartPanelContent": "Bảng điều khiển và dịch vụ đăng ký của nút sẽ khởi động lại và có thể tạm thời không khả dụng. Yêu cầu mã API node-admin hoặc admin trên nút.",
       "addNode": "Thêm nút",
       "editNode": "Sửa node",
       "totalNodes": "Tổng số nút",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "Đã dừng"
       },
       "toasts": {
+        "xrayRestarted": "Đã khởi động lại Xray trên nút.",
+        "panelRestartAccepted": "Đã chấp nhận yêu cầu khởi động lại bảng điều khiển. Nút có thể tạm thời không khả dụng.",
         "list": "Không tải được danh sách nút",
         "obtain": "Không tải được nút",
         "add": "Thêm nút",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "Đường dẫn đăng ký mặc định \"/sub/\" đã quá phổ biến — đổi nó.",
       "warnDefaultJsonPath": "Đường dẫn đăng ký JSON mặc định \"/json/\" đã quá phổ biến — đổi nó.",
       "TGBotSettings": "Bot Telegram",
+      "networkTrafficInterfaceTitle": "Giao diện lưu lượng mạng",
+      "networkTrafficMode": "Chế độ lưu lượng mạng",
+      "networkTrafficDescription": "Chọn giao diện dùng cho tổng lưu lượng và tốc độ của hệ thống. Chế độ cộng gộp cũ có thể đếm hai lần lưu lượng của các giao diện xếp chồng. Trong Docker, chỉ các giao diện thuộc không gian tên mạng của container mới khả dụng.",
+      "networkTrafficLegacy": "Tất cả giao diện (Cũ)",
+      "networkTrafficAutomatic": "Tự động",
+      "networkTrafficManual": "Thủ công",
+      "networkTrafficUnavailable": "Giao diện mạng đã chọn không khả dụng. Hãy chọn giao diện khả dụng hoặc chế độ giám sát khác.",
+      "networkTrafficAutoResolved": "Giao diện tuyến mặc định: {interface}",
+      "networkTrafficLoadError": "Không thể tải danh sách giao diện mạng.",
+      "networkTrafficEmpty": "Không có giao diện mạng khả dụng.",
+      "networkTrafficAutoUnavailable": "Không có giao diện tuyến mặc định khả dụng. Các chỉ số lưu lượng sẽ không khả dụng cho đến khi việc phát hiện phục hồi hoặc chế độ được thay đổi.",
       "panelListeningIP": "IP Nghe của bảng điều khiển",
       "panelListeningIPDesc": "Mặc định để trống để nghe tất cả các IP.",
       "panelListeningDomain": "Tên miền của nghe bảng điều khiển",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "Hiển thị tên người dùng, địa chỉ IP và thời gian khi ai đó cố gắng đăng nhập vào bảng điều khiển của bạn.",
       "sessionMaxAge": "Thời gian tối đa của phiên",
       "sessionMaxAgeDesc": "Thời gian của phiên đăng nhập (đơn vị: phút)",
+      "publicIpRefresh": "Làm mới IP công khai",
+      "publicIpRefreshDesc": "Tần suất bảng điều khiển phát hiện lại IP công khai qua dịch vụ bên ngoài. 0 là phát hiện một lần và không làm mới. (đơn vị: phút)",
+      "publicIpv6Detect": "Phát hiện IPv6 công khai",
+      "publicIpv6DetectDesc": "Tắt trên máy chủ chỉ có IPv4 để bỏ qua mọi truy vấn IPv6.",
+      "publicIpv4Override": "IPv4 công khai thủ công",
+      "publicIpv6Override": "IPv6 công khai thủ công",
+      "publicIpOverrideDesc": "Dùng địa chỉ này thay vì phát hiện; không có truy vấn bên ngoài nào cho nó. Để trống để tự phát hiện.",
       "expireTimeDiff": "Ngưỡng hết hạn cho thông báo",
       "expireTimeDiffDesc": "Nhận thông báo về việc hết hạn tài khoản trước ngưỡng này (đơn vị: ngày)",
       "trafficDiff": "Ngưỡng lưu lượng cho thông báo",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "Mặc định để trống để nghe tất cả các tên miền và IP. Cũng được dùng làm tên miền dự phòng cho liên kết đăng ký hiển thị khi \"URI proxy trung gian\" để trống — hãy đặt \"URI proxy trung gian\" nếu bảng điều khiển và đăng ký được truy cập qua các tên miền khác nhau (ví dụ: đứng sau proxy trung gian).",
       "subUpdates": "Khoảng thời gian cập nhật gói đăng ký",
       "subUpdatesDesc": "Số giờ giữa các cập nhật trong ứng dụng khách",
+      "subRateLimitEnable": "Giới hạn tốc độ gói đăng ký",
+      "subRateLimitEnableDesc": "Giới hạn tần suất mỗi IP khách hàng có thể tải các URL gói đăng ký. Các yêu cầu vượt giới hạn nhận HTTP 429 kèm gợi ý Retry-After. Các CIDR proxy đáng tin (cài đặt chung) quyết định địa chỉ nào được dùng để đếm khách hàng.",
+      "subRateLimit": "Yêu cầu mỗi phút",
+      "subRateLimitDesc": "Số lần tải gói đăng ký tối đa cho mỗi IP khách hàng mỗi phút khi giới hạn tốc độ đang bật.",
       "externalSubUserAgent": "User-Agent đăng ký bên ngoài",
       "externalSubUserAgentDesc": "Header User-Agent khi panel tải URL đăng ký bên ngoài của client. Để trống để dùng mặc định (v2rayNG/1.8.5). Một số nhà cung cấp từ chối client lạ.",
       "subEncrypt": "Mã hóa",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Thay cấu hình khi HWID bị từ chối",
+      "subHwidRejectWithConfigDesc": "Trả về HTTP 200 với nút không hoạt động thay vì 404 khi thiếu HWID hoặc đạt giới hạn thiết bị. Ứng dụng tương thích có thể thay các nút đã lưu khi cập nhật; cấu hình đã sao chép vẫn còn hiệu lực. Xóa thiết bị giải phóng một chỗ nhưng không chặn thiết bị vĩnh viễn.",
       "subInfoNodeEnable": "Cấu hình thông tin riêng / Nút ảo",
       "subInfoNodeEnableDesc": "Khi bật, ghi chú và lưu lượng/ngày còn lại sẽ hiển thị dưới dạng cấu hình SOCKS ảo riêng ở trên cùng, và đăng ký hết hạn/hết dung lượng chỉ trả về cấu hình trạng thái.",
       "subExpiredTemplate": "Mẫu hết hạn",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "Thứ tự nút đăng ký",
       "subHostSortInbound": "Thứ tự kết nối vào (mặc định)",
       "subHostSortHosts": "Thứ tự máy chủ",
-      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại."
+      "subHostSortModeDesc": "Theo thứ tự trên trang Máy chủ giữa các kết nối vào. Thiết lập này quyết định thứ tự do máy chủ xuất ra; ứng dụng khách có thể tự sắp xếp lại.",
+      "wechatSettings": "Thông báo WeChat",
+      "wechatEnable": "Bật thông báo WeChat",
+      "wechatEnableDesc": "Gửi cảnh báo qua robot nhóm WeCom hoặc cổng webhook tương thích.",
+      "wechatMode": "Phương thức gửi",
+      "wechatModeDesc": "Chọn định dạng tin nhắn mà đích hỗ trợ.",
+      "wechatModeWecom": "Robot nhóm WeCom",
+      "wechatModeWebhook": "Cổng webhook tùy chỉnh",
+      "wechatPersonalGateway": "WeChat cá nhân cần cổng tương thích. Robot WeCom gửi tới nhóm WeCom, không gửi trực tiếp tới WeChat cá nhân.",
+      "wechatWebhookURL": "URL webhook",
+      "wechatWebhookURLConfigured": "URL đã được lưu. Để trống để giữ giá trị cũ.",
+      "wechatWebhookURLDesc": "Dùng địa chỉ HTTPS. URL có thể chứa bí mật và bảng điều khiển không trả lại giá trị đã lưu.",
+      "wechatSecretPlaceholder": "Để trống để giữ giá trị đã lưu",
+      "wechatToken": "Mã Bearer",
+      "wechatTokenConfigured": "Mã đã được lưu. Để trống để giữ lại.",
+      "wechatTokenDesc": "Xác thực tùy chọn cho cổng. Để trống nếu không cần.",
+      "wechatLanguage": "Ngôn ngữ tin nhắn",
+      "wechatSaveBeforeTest": "Lưu thay đổi trước khi thử. Phép thử dùng cấu hình đã lưu.",
+      "wechatTest": "Gửi thông báo thử",
+      "wechatTestSuccess": "Đã gửi thông báo thử nghiệm",
+      "wechatTestFailed": "Không thể gửi thông báo thử nghiệm",
+      "wechatReportEnable": "Báo cáo định kỳ",
+      "wechatReportEnableDesc": "Gửi tóm tắt văn bản định kỳ độc lập với cảnh báo. Không đính kèm cơ sở dữ liệu hay tệp cấu hình.",
+      "wechatReportTime": "Lịch báo cáo",
+      "wechatReportTimeDesc": "Dùng biểu thức cron hoặc giá trị như @daily.",
+      "wechatEvents": "Cảnh báo sự kiện",
+      "wechatEventsDesc": "Chọn sự kiện gửi thông báo và đặt ngưỡng cảnh báo."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "IP nội bộ",
         "dialerProxyPlaceholder": "Chọn một outbound để nối chuỗi",
         "dialerProxyHint": "Kết nối outbound này qua một outbound khác (theo tag) để tạo chuỗi proxy. Để trống để kết nối trực tiếp.",
+        "dialerProxyMissing": "Không có outbound nào có tag này để tạo chuỗi.",
         "targetStrategyHint": "Cách phân giải tên miền đích trước khi kết nối: AsIs (mặc định) gửi nguyên trạng, UseIP… phân giải kèm dự phòng, ForceIP… bắt buộc phân giải thành công.",
         "addressRequired": "Địa chỉ là bắt buộc",
         "portRequired": "Cổng là bắt buộc",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. Gói đăng ký JSON",
       "qrLegendLink": "{{ .Code }}. Liên kết ứng dụng {{ .App }}",
       "backupFailed": "Không đọc được cơ sở dữ liệu; không có bản sao lưu nào được gửi.",
-      "privateOnly": "🤖 Bot này chỉ hoạt động trong trò chuyện riêng. Hãy mở nó trong tin nhắn trực tiếp."
+      "privateOnly": "🤖 Bot này chỉ hoạt động trong trò chuyện riêng. Hãy mở nó trong tin nhắn trực tiếp.",
+      "chooseOneConfig": "👇 Bạn muốn cấu hình nào?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Hướng dẫn cài đặt</b>\nChọn thiết bị bạn muốn cài.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Cài <b>Streisand</b> hoặc <b>V2Box</b> từ App Store.\n2. Mở trang link đăng ký trong bot này và sao chép URL của bạn.\n3. Trong ứng dụng, nhấn <b>+</b> → <b>Add from clipboard</b>.\n4. Kéo xuống để cập nhật rồi kết nối.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Cài <b>v2rayNG</b> hoặc <b>Hiddify</b> từ Google Play.\n2. Mở trang link đăng ký trong bot này và sao chép URL của bạn.\n3. Trong ứng dụng, nhấn <b>+</b> → <b>Import from clipboard</b>.\n4. Làm mới đăng ký, chọn máy chủ rồi kết nối.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Cài <b>Hiddify</b> hoặc <b>v2rayN</b>.\n2. Mở trang link đăng ký trong bot này và sao chép URL của bạn.\n3. Trong ứng dụng, thêm một đăng ký và dán URL vào.\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Cài <b>Hiddify</b> hoặc <b>V2Box</b>.\n2. Mở trang link đăng ký trong bot này và sao chép URL của bạn.\n3. Trong ứng dụng, thêm một đăng ký và dán URL vào.\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Cài <b>Hiddify</b> (AppImage) hoặc <b>Nekoray</b>.\n2. Mở trang link đăng ký trong bot này và sao chép URL của bạn.\n3. Trong ứng dụng, thêm một đăng ký và dán URL vào.\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối."
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Phát tin",
       "attachInbound": "Đính kèm inbound ({{ .Count }})",
-      "attachDone": "✅ Xong"
+      "attachDone": "✅ Xong",
+      "getOneConfig": "🎯 Lấy một",
+      "setupGuide": "📖 Hướng dẫn cài đặt",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Đã bắt đầu phát tin.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Hướng dẫn cài đặt"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Khởi động lại dịch vụ Xray",
     "restartXraySuccess": "Dịch vụ Xray đã được khởi động lại thành công",
     "settings": "Cài đặt"
+  },
+  "wechat": {
+    "test": {
+      "title": "Kiểm tra thông báo WeChat của 3x-ui",
+      "body": "Đây là thông báo thử nghiệm từ 3x-ui. Không bao gồm tệp cơ sở dữ liệu hoặc cấu hình."
+    },
+    "report": {
+      "title": "Báo cáo trạng thái 3x-ui",
+      "counts": "Tổng: {{ .Total }} | Đã tắt: {{ .Disabled }} | Hết hạn: {{ .Expired }} | Hết lưu lượng: {{ .Depleted }}",
+      "trafficUsed": "Lưu lượng 3x-ui đã dùng",
+      "trafficRemaining": "Lưu lượng 3x-ui còn lại",
+      "trafficQuotaUnset": "Chưa đặt hạn mức"
+    }
   }
 }

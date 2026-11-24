@@ -126,6 +126,19 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "networkTrafficInterface": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "networkTrafficMode": {
+        "enum": [
+          "legacy",
+          "auto",
+          "manual"
+        ],
+        "example": "legacy",
+        "type": "string"
+      },
       "nodeDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -142,6 +155,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "panelOutbound": {
+        "type": "string"
+      },
+      "publicIpRefreshMinutes": {
+        "description": "0 stops refreshing the detected public IP after the first success.",
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "publicIpv4Override": {
+        "type": "string"
+      },
+      "publicIpv6Detect": {
+        "type": "boolean"
+      },
+      "publicIpv6Override": {
         "type": "string"
       },
       "realityScanCandidates": {
@@ -328,6 +356,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "inbound-first",
         "type": "string"
       },
+      "subHwidRejectWithConfig": {
+        "type": "boolean"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -478,6 +509,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "subProfileUrl": {
         "type": "string"
       },
+      "subRateLimit": {
+        "maximum": 1000,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "subRateLimitEnable": {
+        "type": "boolean"
+      },
       "subRoutingRules": {
         "type": "string"
       },
@@ -581,6 +620,40 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "wechatCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatEnable": {
+        "type": "boolean"
+      },
+      "wechatEnabledEvents": {
+        "type": "string"
+      },
+      "wechatLang": {
+        "type": "string"
+      },
+      "wechatMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatMode": {
+        "type": "string"
+      },
+      "wechatReportEnable": {
+        "type": "boolean"
+      },
+      "wechatRunTime": {
+        "type": "string"
+      },
+      "wechatToken": {
+        "type": "string"
+      },
+      "wechatWebhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -622,10 +695,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "networkTrafficInterface",
+      "networkTrafficMode",
       "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
+      "publicIpRefreshMinutes",
+      "publicIpv4Override",
+      "publicIpv6Detect",
+      "publicIpv6Override",
       "realityScanCandidates",
       "remarkTemplate",
       "restartXrayOnClientDisable",
@@ -684,6 +763,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunType",
       "subHideSettings",
       "subHostSortMode",
+      "subHwidRejectWithConfig",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -733,6 +813,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileMode",
       "subProfileUrl",
+      "subRateLimit",
+      "subRateLimitEnable",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",
       "subSupportUrl",
@@ -763,7 +845,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "wechatCpu",
+      "wechatEnable",
+      "wechatEnabledEvents",
+      "wechatLang",
+      "wechatMemory",
+      "wechatMode",
+      "wechatReportEnable",
+      "wechatRunTime",
+      "wechatToken",
+      "wechatWebhookURL"
     ],
     "type": "object"
   },
@@ -846,6 +938,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasWarpSecret": {
         "type": "boolean"
       },
+      "hasWechatToken": {
+        "type": "boolean"
+      },
+      "hasWechatWebhookURL": {
+        "type": "boolean"
+      },
       "ipLimitAllowlist": {
         "type": "string"
       },
@@ -917,6 +1015,19 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "networkTrafficInterface": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "networkTrafficMode": {
+        "enum": [
+          "legacy",
+          "auto",
+          "manual"
+        ],
+        "example": "legacy",
+        "type": "string"
+      },
       "nodeDownThreshold": {
         "maximum": 100,
         "minimum": 1,
@@ -933,6 +1044,21 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "panelOutbound": {
+        "type": "string"
+      },
+      "publicIpRefreshMinutes": {
+        "description": "0 stops refreshing the detected public IP after the first success.",
+        "maximum": 10080,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "publicIpv4Override": {
+        "type": "string"
+      },
+      "publicIpv6Detect": {
+        "type": "boolean"
+      },
+      "publicIpv6Override": {
         "type": "string"
       },
       "realityScanCandidates": {
@@ -1119,6 +1245,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "inbound-first",
         "type": "string"
       },
+      "subHwidRejectWithConfig": {
+        "type": "boolean"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -1269,6 +1398,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "subProfileUrl": {
         "type": "string"
       },
+      "subRateLimit": {
+        "maximum": 1000,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "subRateLimitEnable": {
+        "type": "boolean"
+      },
       "subRoutingRules": {
         "type": "string"
       },
@@ -1372,6 +1509,40 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "wechatCpu": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatEnable": {
+        "type": "boolean"
+      },
+      "wechatEnabledEvents": {
+        "type": "string"
+      },
+      "wechatLang": {
+        "type": "string"
+      },
+      "wechatMemory": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "wechatMode": {
+        "type": "string"
+      },
+      "wechatReportEnable": {
+        "type": "boolean"
+      },
+      "wechatRunTime": {
+        "type": "string"
+      },
+      "wechatToken": {
+        "type": "string"
+      },
+      "wechatWebhookURL": {
+        "type": "string"
       }
     },
     "required": [
@@ -1399,6 +1570,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasTgBotToken",
       "hasTwoFactorToken",
       "hasWarpSecret",
+      "hasWechatToken",
+      "hasWechatWebhookURL",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -1421,10 +1594,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "networkTrafficInterface",
+      "networkTrafficMode",
       "nodeDownThreshold",
       "outboundDownThreshold",
       "pageSize",
       "panelOutbound",
+      "publicIpRefreshMinutes",
+      "publicIpv4Override",
+      "publicIpv6Detect",
+      "publicIpv6Override",
       "realityScanCandidates",
       "remarkTemplate",
       "restartXrayOnClientDisable",
@@ -1483,6 +1662,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunType",
       "subHideSettings",
       "subHostSortMode",
+      "subHwidRejectWithConfig",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -1532,6 +1712,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subPort",
       "subProfileMode",
       "subProfileUrl",
+      "subRateLimit",
+      "subRateLimitEnable",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",
       "subSupportUrl",
@@ -1562,7 +1744,17 @@ export const SCHEMAS: Record<string, unknown> = {
       "webDomain",
       "webKeyFile",
       "webListen",
-      "webPort"
+      "webPort",
+      "wechatCpu",
+      "wechatEnable",
+      "wechatEnabledEvents",
+      "wechatLang",
+      "wechatMemory",
+      "wechatMode",
+      "wechatReportEnable",
+      "wechatRunTime",
+      "wechatToken",
+      "wechatWebhookURL"
     ],
     "type": "object"
   },
@@ -1691,6 +1883,73 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "code"
+    ],
+    "type": "object"
+  },
+  "BulkAdjustReport": {
+    "properties": {
+      "email": {
+        "example": "carol",
+        "type": "string"
+      },
+      "reason": {
+        "example": "client not found",
+        "type": "string"
+      }
+    },
+    "required": [
+      "email",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "BulkAdjustResult": {
+    "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+    "properties": {
+      "adjusted": {
+        "example": 2,
+        "type": "integer"
+      },
+      "externalLinks": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BulkExternalLinksResult"
+          }
+        ],
+        "nullable": true
+      },
+      "skipped": {
+        "example": [],
+        "items": {
+          "$ref": "#/components/schemas/BulkAdjustReport"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "adjusted"
+    ],
+    "type": "object"
+  },
+  "BulkExternalLinksResult": {
+    "properties": {
+      "added": {
+        "example": 4,
+        "type": "integer"
+      },
+      "errors": {
+        "example": 0,
+        "type": "integer"
+      },
+      "skipped": {
+        "example": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "added",
+      "errors",
+      "skipped"
     ],
     "type": "object"
   },
@@ -1866,6 +2125,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Last update timestamp",
         "format": "int64",
         "type": "integer"
+      },
+      "wgDeviceLimit": {
+        "type": "integer"
+      },
+      "wireguardDevices": {
+        "items": {
+          "$ref": "#/components/schemas/WireguardDevice"
+        },
+        "type": "array"
       }
     },
     "required": [
@@ -2080,6 +2348,15 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "uuid": {
         "type": "string"
+      },
+      "wgDeviceLimit": {
+        "type": "integer"
+      },
+      "wireguardDevices": {
+        "items": {
+          "$ref": "#/components/schemas/WireguardDevice"
+        },
+        "type": "array"
       }
     },
     "required": [
@@ -2115,7 +2392,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "trafficReset",
       "trafficResetDay",
       "updatedAt",
-      "uuid"
+      "uuid",
+      "wgDeviceLimit",
+      "wireguardDevices"
     ],
     "type": "object"
   },
@@ -2499,6 +2778,40 @@ export const SCHEMAS: Record<string, unknown> = {
       "online",
       "onlineCount",
       "total"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkInput": {
+    "description": "ExternalLinkInput is one row from the client form's Links tab.",
+    "properties": {
+      "enable": {
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "kind": {
+        "example": "link",
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "example": "Backup",
+        "type": "string"
+      },
+      "value": {
+        "example": "vless://uuid@example.com:443",
+        "type": "string"
+      }
+    },
+    "required": [
+      "value"
     ],
     "type": "object"
   },
@@ -3190,6 +3503,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "preserveClientTraffic": {
+        "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+        "nullable": true,
+        "type": "boolean"
+      },
       "protocol": {
         "enum": [
           "vmess",
@@ -3580,6 +3898,72 @@ export const SCHEMAS: Record<string, unknown> = {
       "msg",
       "obj",
       "success"
+    ],
+    "type": "object"
+  },
+  "NetworkInterfaceOption": {
+    "properties": {
+      "name": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "up": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "name",
+      "up"
+    ],
+    "type": "object"
+  },
+  "NetworkInterfacesResponse": {
+    "properties": {
+      "automatic": {
+        "example": "eth0",
+        "type": "string"
+      },
+      "automaticError": {
+        "type": "string"
+      },
+      "interfaces": {
+        "items": {
+          "$ref": "#/components/schemas/NetworkInterfaceOption"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "automatic",
+      "automaticError",
+      "interfaces"
+    ],
+    "type": "object"
+  },
+  "NetworkTrafficSelection": {
+    "properties": {
+      "available": {
+        "example": true,
+        "type": "boolean"
+      },
+      "error": {
+        "type": "string"
+      },
+      "mode": {
+        "example": "manual",
+        "type": "string"
+      },
+      "name": {
+        "example": "eth0",
+        "type": "string"
+      }
+    },
+    "required": [
+      "available",
+      "error",
+      "mode",
+      "name"
     ],
     "type": "object"
   },
@@ -4722,6 +5106,99 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "Status": {
+    "description": "Status represents comprehensive system and application status information.\nIt includes CPU, memory, disk, network statistics, and Xray process status.",
+    "properties": {
+      "amneziawg": {
+        "description": "AmneziaWG gates the overview's AmneziaWG log view: Configured stays true\nwhile an inbound exists but its embedded interface isn't up yet, which\nis exactly when that view's event lines are worth reading."
+      },
+      "appStats": {},
+      "cpu": {
+        "type": "number"
+      },
+      "cpuCores": {
+        "type": "integer"
+      },
+      "cpuSpeedMhz": {
+        "type": "number"
+      },
+      "disk": {},
+      "diskIO": {},
+      "diskTraffic": {},
+      "loads": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "logicalPro": {
+        "type": "integer"
+      },
+      "mem": {},
+      "netIO": {},
+      "netTraffic": {},
+      "networkInterface": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NetworkTrafficSelection"
+          }
+        ],
+        "nullable": true
+      },
+      "panelGuid": {
+        "type": "string"
+      },
+      "panelVersion": {
+        "type": "string"
+      },
+      "publicIP": {},
+      "resourceScope": {
+        "type": "string"
+      },
+      "swap": {},
+      "tcpCount": {
+        "type": "integer"
+      },
+      "udpCount": {
+        "type": "integer"
+      },
+      "unavailableMetrics": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "uptime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "xray": {}
+    },
+    "required": [
+      "amneziawg",
+      "appStats",
+      "cpu",
+      "cpuCores",
+      "cpuSpeedMhz",
+      "disk",
+      "diskIO",
+      "diskTraffic",
+      "loads",
+      "logicalPro",
+      "mem",
+      "netIO",
+      "netTraffic",
+      "panelGuid",
+      "panelVersion",
+      "publicIP",
+      "swap",
+      "tcpCount",
+      "udpCount",
+      "uptime",
+      "xray"
+    ],
+    "type": "object"
+  },
   "SubBalancer": {
     "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
     "properties": {
@@ -4947,6 +5424,44 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "password",
       "username"
+    ],
+    "type": "object"
+  },
+  "WireguardDevice": {
+    "description": "WireguardDevice is an additional peer sharing its client's quota and lifecycle.\nThe original client credentials remain the primary device for compatibility.",
+    "properties": {
+      "allowedIPs": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "enable": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "preSharedKey": {
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "enable",
+      "id",
+      "name",
+      "privateKey",
+      "publicKey"
     ],
     "type": "object"
   }

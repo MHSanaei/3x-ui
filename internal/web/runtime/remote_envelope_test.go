@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 )
 
@@ -88,6 +89,73 @@ func TestRemoteSendsPlainWhenNoCap(t *testing.T) {
 	}
 	if len(capturedHash) != 64 {
 		t.Fatalf("integrity hash should always be sent, got %q", capturedHash)
+	}
+}
+
+func TestRemoteRequiresSupportForInboundOnlyScheduledReset(t *testing.T) {
+	for _, caps := range []string{wirecodec.CapZstd, wirecodec.NodeCaps} {
+		t.Run(caps, func(t *testing.T) {
+			var pushed bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(wirecodec.CapsHeader, caps)
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodPost {
+					pushed = true
+				}
+				_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
+			}))
+			defer srv.Close()
+
+			r := NewRemote(nodeForPlainServer(t, srv, "verify", "tok"), nil)
+			ib := &model.Inbound{TrafficReset: "monthly", PreserveClientTraffic: new(true)}
+			err := r.AddInbound(context.Background(), ib)
+			if caps == wirecodec.NodeCaps {
+				if err != nil || !pushed {
+					t.Fatalf("capable node: pushed = %v, error = %v", pushed, err)
+				}
+			} else if pushed || err == nil || !strings.Contains(err.Error(), "does not support inbound-only scheduled traffic resets") {
+				t.Fatalf("older node: pushed = %v, error = %v", pushed, err)
+			}
+		})
+	}
+}
+
+// An older node ignores wireguardDevices and serves only each client's first peer, so
+// the master must not push device configs that node would never back.
+func TestRemoteRequiresSupportForWireguardDevices(t *testing.T) {
+	const older = wirecodec.CapZstd + "," + wirecodec.CapAmneziaWGKernel + "," + wirecodec.CapPreserveClientTraffic
+	const withDevices = `{"clients":[{"email":"a","wireguardDevices":[{"id":"d1"}]}]}`
+	cases := []struct {
+		name, caps, settings string
+		wantPushed           bool
+	}{
+		{"capable node", wirecodec.NodeCaps, withDevices, true},
+		{"older node, client with devices", older, withDevices, false},
+		{"older node, no devices", older, `{"clients":[{"email":"a","wireguardDevices":[]}]}`, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var pushed bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(wirecodec.CapsHeader, tc.caps)
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodPost {
+					pushed = true
+				}
+				_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
+			}))
+			defer srv.Close()
+
+			r := NewRemote(nodeForPlainServer(t, srv, "verify", "tok"), nil)
+			err := r.AddInbound(context.Background(), &model.Inbound{Protocol: model.WireGuard, Settings: tc.settings})
+			if tc.wantPushed {
+				if err != nil || !pushed {
+					t.Fatalf("pushed = %v, error = %v", pushed, err)
+				}
+			} else if pushed || err == nil || !strings.Contains(err.Error(), "does not support WireGuard client devices") {
+				t.Fatalf("pushed = %v, error = %v", pushed, err)
+			}
+		})
 	}
 }
 

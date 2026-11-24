@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+
+	"github.com/shirou/gopsutil/v4/load"
 )
 
 // A box with no IPv6 route spends 3s per lookup service, and a status sample
@@ -68,11 +70,16 @@ func (f publicIPTestTransport) RoundTrip(r *http.Request) (*http.Response, error
 
 func stubPublicIPServices(t *testing.T, respond publicIPTestTransport) {
 	t.Helper()
-	oldTransport, old4, old6 := http.DefaultTransport, publicIPv4Services, publicIPv6Services
+	oldTransport, old4, old6, oldSettings := http.DefaultTransport, publicIPv4Services, publicIPv6Services, publicIPSettingsSource
+	publicIPSettingsSource = func(*ServerService) publicIPSettings {
+		return publicIPSettings{refresh: publicIPRefreshInterval, ipv6: true}
+	}
 	http.DefaultTransport = respond
 	publicIPv4Services = []string{"https://ipv4.example.test/primary", "https://ipv4.example.test/fallback"}
 	publicIPv6Services = []string{"https://ipv6.example.test/primary", "https://ipv6.example.test/fallback"}
-	t.Cleanup(func() { http.DefaultTransport, publicIPv4Services, publicIPv6Services = oldTransport, old4, old6 })
+	t.Cleanup(func() {
+		http.DefaultTransport, publicIPv4Services, publicIPv6Services, publicIPSettingsSource = oldTransport, old4, old6, oldSettings
+	})
 }
 
 func publicIPResponse(status int, body string) (*http.Response, error) {
@@ -284,6 +291,8 @@ func TestPublicIPRefreshIsSingleFlightAndKeepsCachedReadsAvailable(t *testing.T)
 }
 
 func TestPublicIPStatusUsesRefreshedAddressWithoutBlocking(t *testing.T) {
+	// Windows starts a process-wide sampler; it must outlive the virtual clock.
+	_, _ = load.Avg()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
@@ -589,5 +598,150 @@ func TestGetPublicIPAcceptsOnlyAnAddress(t *testing.T) {
 				t.Fatalf("getPublicIP = %.40q (%d bytes), want %q", got, len(got), tt.want)
 			}
 		})
+	}
+}
+
+func setPublicIPSettings(t *testing.T, p *publicIPSettings) {
+	t.Helper()
+	publicIPSettingsSource = func(*ServerService) publicIPSettings { return *p }
+}
+
+// A static-IP VPS asked for no periodic lookups; refresh 0 must hold the first
+// answer for good while a failed first lookup is still retried.
+func TestPublicIPRefreshZeroKeepsFirstSuccessAndRetriesFailure(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var calls atomic.Int32
+		fail4 := true
+		stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			if r.URL.Hostname() == "ipv4.example.test" {
+				if fail4 {
+					return publicIPResponse(500, "")
+				}
+				return publicIPResponse(200, "192.0.2.10")
+			}
+			return publicIPResponse(200, "2001:db8::10")
+		})
+		setPublicIPSettings(t, &publicIPSettings{refresh: 0, ipv6: true})
+		svc := &ServerService{}
+		svc.resolvePublicIPs()
+		assertCachedPublicIPs(t, svc, "N/A", "2001:db8::10")
+
+		fail4 = false
+		time.Sleep(publicIPRetryInterval)
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		assertCachedPublicIPs(t, svc, "192.0.2.10", "2001:db8::10")
+
+		before := calls.Load()
+		time.Sleep(48 * time.Hour)
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		if got := calls.Load(); got != before {
+			t.Fatalf("lookups after the first success: %d new requests, want 0", got-before)
+		}
+	})
+}
+
+// Raising refresh from "never" back to an interval must apply to an address
+// already looked up, not wait out the old deadline.
+func TestPublicIPIntervalChangeRetimesLastSuccess(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var calls atomic.Int32
+		stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return publicIPResponse(200, "192.0.2.10")
+		})
+		p := &publicIPSettings{refresh: 0, ipv6: false}
+		setPublicIPSettings(t, p)
+		svc := &ServerService{}
+		svc.resolvePublicIPs()
+		synctest.Wait()
+		before := calls.Load()
+
+		p.refresh = time.Hour
+		time.Sleep(time.Hour)
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		if got := calls.Load(); got != before+1 {
+			t.Fatalf("requests after interval change = %d, want %d", got, before+1)
+		}
+	})
+}
+
+// IPv4-only hosts must not contact any IPv6 echo service, and IPv6 detection
+// must resume once re-enabled.
+func TestPublicIPv6DisabledSkipsLookupsAndResumesWhenEnabled(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var v6Calls atomic.Int32
+		stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+			if r.URL.Hostname() == "ipv6.example.test" {
+				v6Calls.Add(1)
+				return publicIPResponse(200, "2001:db8::10")
+			}
+			return publicIPResponse(200, "192.0.2.10")
+		})
+		p := &publicIPSettings{refresh: publicIPRefreshInterval, ipv6: false}
+		setPublicIPSettings(t, p)
+		svc := &ServerService{}
+		svc.resolvePublicIPs()
+		time.Sleep(time.Hour)
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		if got := v6Calls.Load(); got != 0 {
+			t.Fatalf("IPv6 services contacted %d times while disabled", got)
+		}
+		assertCachedPublicIPs(t, svc, "192.0.2.10", "N/A")
+
+		p.ipv6 = true
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		assertCachedPublicIPs(t, svc, "192.0.2.10", "2001:db8::10")
+	})
+}
+
+// An override replaces lookup for its family only, and clearing it resumes lookup.
+func TestPublicIPOverridePinsOneFamilyAndClearingResumesLookup(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var v4Calls atomic.Int32
+		stubPublicIPServices(t, func(r *http.Request) (*http.Response, error) {
+			if r.URL.Hostname() == "ipv4.example.test" {
+				v4Calls.Add(1)
+				return publicIPResponse(200, "192.0.2.10")
+			}
+			return publicIPResponse(200, "2001:db8::10")
+		})
+		p := &publicIPSettings{refresh: publicIPRefreshInterval, ipv6: true, override4: "198.51.100.7"}
+		setPublicIPSettings(t, p)
+		svc := &ServerService{}
+		svc.resolvePublicIPs()
+		time.Sleep(time.Hour)
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		if got := v4Calls.Load(); got != 0 {
+			t.Fatalf("IPv4 services contacted %d times despite an override", got)
+		}
+		assertCachedPublicIPs(t, svc, "198.51.100.7", "2001:db8::10")
+
+		p.override4 = ""
+		svc.resolvePublicIPsInBackground()
+		synctest.Wait()
+		assertCachedPublicIPs(t, svc, "192.0.2.10", "2001:db8::10")
+	})
+}
+
+// A success from before the override must not re-time the family once the
+// override is cleared, or refresh 0 would leave it blank until restart.
+func TestSettlePublicIPClearedOverrideForgetsOldSuccess(t *testing.T) {
+	var (
+		pinned     bool
+		cached     string
+		next, okAt = time.Time{}, time.Now()
+	)
+	settlePublicIP("198.51.100.7", &pinned, &cached, &next, &okAt, 0)
+	settlePublicIP("", &pinned, &cached, &next, &okAt, 0)
+	settlePublicIP("", &pinned, &cached, &next, &okAt, 0)
+	if !next.IsZero() || cached != "" {
+		t.Fatalf("after clearing override next=%v cached=%q, want immediate lookup", next, cached)
 	}
 }

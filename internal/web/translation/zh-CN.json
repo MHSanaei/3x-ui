@@ -128,7 +128,11 @@
     "openMenu": "打开菜单",
     "pinSidebar": "固定侧边栏",
     "unpinSidebar": "取消固定侧边栏",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeUltraDark": "极致深色",
+    "themeSystem": "跟随系统"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本机设置",
-      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。",
+      "importKeepHostSettingsDesc": "保留本面板的监听地址、端口、基础路径、证书和节点身份，而不是使用上传文件中的值。 也会保留网络流量接口选择。",
       "logLines": "行数",
       "timeRange": "时间范围"
     },
@@ -442,6 +446,8 @@
       "importInbound": "导入入站规则",
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
+      "preserveClientTraffic": "保留客户端用量",
+      "preserveClientTrafficHelp": "开启后，入站定时重置只清零本入站的流量。用户在所有节点上的累计用量会保留，按用户自己的周期重置。\n\n关闭后，本入站定时重置时，也会清零关联用户在所有节点上的累计用量。",
       "periodicTrafficReset": {
         "never": "从不",
         "daily": "每日",
@@ -603,6 +609,7 @@
         "streamUpServer": "Stream-Up 服务器",
         "serverMaxHeaderBytes": "服务器最大头字节",
         "paddingBytes": "Padding 字节",
+        "separateDownload": "使用独立下载通道",
         "uplinkHttpMethod": "Uplink HTTP 方法",
         "paddingObfsMode": "Padding 混淆模式",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "基本",
       "tabCredentials": "凭据",
       "tabLinks": "链接",
+      "wgDevices": {
+        "title": "WireGuard 设备",
+        "limit": "设备数量上限",
+        "primary": "主设备",
+        "enabled": "已启用",
+        "subscription": "复制订阅",
+        "deleteConfirm": "删除此设备并释放其地址？",
+        "remove": "删除",
+        "name": "设备名称",
+        "add": "添加设备"
+      },
       "wireguardConfig": "WireGuard 配置",
       "config": "配置",
       "linksHint": "添加第三方分享链接和远程订阅地址，将其包含在该客户端的订阅中。",
@@ -856,6 +874,7 @@
       "has": "拥有",
       "hasNot": "不拥有",
       "actions": "操作",
+      "columns": "列",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "该客户端的流量配额。0 = 不限制。",
       "expiryTime": "过期时间",
@@ -873,7 +892,13 @@
       "deleteHwid": "移除设备",
       "deleteHwidConfirm": "移除此设备？下次获取订阅时它将需要重新注册。",
       "hwidDeleted": "设备已移除。",
-      "clearHwidsConfirm": "移除所有已注册的设备？每台设备在下次获取订阅时都需要重新注册。",
+      "blockHwid": "封禁",
+      "unblockHwid": "解封",
+      "hwidBlocked": "已封禁",
+      "blockHwidConfirm": "禁止此设备获取此订阅？",
+      "unblockHwidConfirm": "重新允许此设备获取此订阅？",
+      "hwidBlockHint": "即使 HWID 限制为 0，设备封禁仍对此订阅生效。清空列表不会解除封禁。",
+      "clearHwidsConfirm": "移除所有未封禁的设备？它们将在下次获取订阅时重新注册。已封禁的设备将保持封禁。",
       "limitIpFail2banMissing": "未安装 Fail2ban，无法实施 IP 限制。请从 x-ui 命令行菜单安装 Fail2ban 以启用此选项。",
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
@@ -1037,7 +1062,8 @@
         "delDepleted": "已删除 {count} 个已耗尽的客户端",
         "delOrphans": "已删除 {count} 个未关联的客户端",
         "imported": "已导入 {count} 个客户端",
-        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个"
+        "importedMixed": "已导入 {ok} 个，跳过 {failed} 个",
+        "bulkLinksAppended": "已更新 {clients} 个客户端：新增 {added} 条，跳过 {skipped} 条重复项，{errors} 个客户端未找到。"
       },
       "renewMax": "最大续期次数",
       "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "已用续期次数",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。",
       "renewIntervalDesc": "到期后从上次截止时间增加指定天数（每天 24 小时），并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
-      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。"
+      "renewWeeklyDesc": "日历续期按面板时区的午夜执行，并重置客户端流量。若不需要额外重置，请关闭独立的流量重置。",
+      "bulkAdjustSettings": "限额与设置",
+      "bulkAppendLinks": "追加外部链接",
+      "bulkAppendLinksHint": "追加到所有选中的客户端。保留现有条目及其设置，跳过类型和值相同的重复条目。其他调整请单独应用。",
+      "bulkAppendLinksRequired": "请至少添加一个外部链接或订阅。",
+      "externalLinkInvalid": "请输入支持的分享链接。",
+      "externalSubscriptionInvalid": "请输入 http(s) 订阅地址。"
     },
     "groups": {
       "name": "名称",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "已从 {name} 移除 {count} 个客户端。"
     },
     "nodes": {
+      "restartXray": "重启 Xray",
+      "restartPanel": "重启面板",
+      "restartConfirmTitle": "重启 {name}？",
+      "restartXrayContent": "此节点上活跃的 Xray 连接将会中断。",
+      "restartPanelContent": "节点面板和订阅服务将重启，并可能暂时不可用。需要节点上的 node-admin 或 admin API 令牌。",
       "addNode": "添加节点",
       "editNode": "编辑节点",
       "totalNodes": "节点总数",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "已停止"
       },
       "toasts": {
+        "xrayRestarted": "已重启节点上的 Xray。",
+        "panelRestartAccepted": "已接受面板重启请求。节点可能暂时不可用。",
         "list": "加载节点失败",
         "obtain": "加载节点失败",
         "add": "添加节点",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "默认订阅路径 \"/sub/\" 众所周知 — 请更改。",
       "warnDefaultJsonPath": "默认 JSON 订阅路径 \"/json/\" 众所周知 — 请更改。",
       "TGBotSettings": "Telegram 机器人",
+      "networkTrafficInterfaceTitle": "网络流量接口",
+      "networkTrafficMode": "网络流量监控模式",
+      "networkTrafficDescription": "选择用于统计系统流量总量和速度的接口。旧版汇总模式可能对叠加接口的流量重复计数。在 Docker 中，仅能访问容器网络命名空间内的接口。",
+      "networkTrafficLegacy": "所有接口（旧版）",
+      "networkTrafficAutomatic": "自动",
+      "networkTrafficManual": "手动",
+      "networkTrafficUnavailable": "所选网络接口不可用。请选择可用接口或其他监控模式。",
+      "networkTrafficAutoResolved": "默认路由接口：{interface}",
+      "networkTrafficLoadError": "无法加载网络接口。",
+      "networkTrafficEmpty": "没有可用的网络接口。",
+      "networkTrafficAutoUnavailable": "默认路由接口不可用。在检测恢复或更改模式之前，流量指标将不可用。",
       "panelListeningIP": "面板监听 IP",
       "panelListeningIPDesc": "默认留空监听所有 IP",
       "panelListeningDomain": "面板监听域名",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "当有人试图登录你的面板时显示用户名、IP 地址和时间",
       "sessionMaxAge": "会话时长",
       "sessionMaxAgeDesc": "保持登录状态的时长（单位：分钟）",
+      "publicIpRefresh": "公网 IP 刷新",
+      "publicIpRefreshDesc": "面板通过外部服务重新检测公网 IP 的间隔。0 表示仅检测一次，不再刷新。（单位：分钟）",
+      "publicIpv6Detect": "检测公网 IPv6",
+      "publicIpv6DetectDesc": "仅有 IPv4 的服务器请关闭，以跳过所有 IPv6 查询。",
+      "publicIpv4Override": "手动指定公网 IPv4",
+      "publicIpv6Override": "手动指定公网 IPv6",
+      "publicIpOverrideDesc": "使用此地址而不进行检测，不会为其发起任何外部查询。留空则自动检测。",
       "expireTimeDiff": "到期通知阈值",
       "expireTimeDiffDesc": "达到此阈值时，将收到有关到期时间的通知（单位：天）",
       "trafficDiff": "流量耗尽阈值",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "订阅服务监听的域名（留空表示监听所有域名和 IP）。当「反向代理 URI」为空时，也会作为显示的订阅链接的回退域名——如果面板和订阅通过不同的域名访问(例如位于反向代理之后)，请设置「反向代理 URI」。",
       "subUpdates": "更新间隔",
       "subUpdatesDesc": "客户端应用中订阅 URL 的更新间隔（单位：小时）",
+      "subRateLimitEnable": "订阅请求限速",
+      "subRateLimitEnableDesc": "限制每个客户端 IP 获取订阅 URL 的频率。超过限制的请求会收到带有 Retry-After 提示的 HTTP 429。可信代理 CIDR（常规设置）决定客户端按哪个地址计数。",
+      "subRateLimit": "每分钟请求数",
+      "subRateLimitDesc": "限速开启时，每个客户端 IP 每分钟允许获取订阅的最大次数。",
       "externalSubUserAgent": "外部订阅 User-Agent",
       "externalSubUserAgentDesc": "面板拉取客户端外部订阅 URL 时发送的 User-Agent。留空则使用默认值（v2rayNG/1.8.5）。部分服务商会拒绝未知客户端。",
       "subEncrypt": "编码",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "订阅到期日期显示为月底",
       "subCalendarExpireInclusiveDesc": "默认关闭。对于按每月 1 日续期、且到期时间为面板时区午夜的客户端，订阅到期时间报告为上月最后一秒。真实截止时间和续期不变。客户端使用自身时区，可能提前一秒显示过期。",
+      "subHwidRejectWithConfig": "HWID 被拒绝时替换配置",
+      "subHwidRejectWithConfigDesc": "缺少 HWID 或达到设备上限时，返回 HTTP 200 和不可用节点，而非 404。兼容的应用可在更新时替换已保存的节点；已复制的配置仍然有效。删除设备会释放名额，但不会永久封禁该设备。",
       "subInfoNodeEnable": "独立信息配置 / 提示节点",
       "subInfoNodeEnableDesc": "启用后，备注及剩余流量/天数将作为单独的 SOCKS 提示配置显示在顶部；过期或流量耗尽时仅返回状态提示。",
       "subExpiredTemplate": "过期提示模板",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "订阅节点排序",
       "subHostSortInbound": "入站顺序（默认）",
       "subHostSortHosts": "主机顺序",
-      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。"
+      "subHostSortModeDesc": "跨入站使用主机页面中的排序。此设置决定服务器输出顺序；客户端应用仍可能自行排序。",
+      "wechatSettings": "微信通知",
+      "wechatEnable": "启用微信通知",
+      "wechatEnableDesc": "通过企业微信群机器人或兼容的 Webhook 网关发送面板告警。",
+      "wechatMode": "发送方式",
+      "wechatModeDesc": "选择接收端支持的消息格式。",
+      "wechatModeWecom": "企业微信群机器人",
+      "wechatModeWebhook": "自定义 Webhook 网关",
+      "wechatPersonalGateway": "个人微信需要兼容的网关。企业微信机器人只向企业微信群发送消息，不能直接发送到个人微信。",
+      "wechatWebhookURL": "Webhook 地址",
+      "wechatWebhookURLConfigured": "已保存 Webhook 地址，留空可保留原值。",
+      "wechatWebhookURLDesc": "使用 HTTPS 接收地址。地址可能包含密钥，面板不会返回已保存的原值。",
+      "wechatSecretPlaceholder": "留空可保留已保存的值",
+      "wechatToken": "Bearer 令牌",
+      "wechatTokenConfigured": "已保存 Bearer 令牌，留空可保留原值。",
+      "wechatTokenDesc": "自定义网关的可选身份认证；接收端不需要时请留空。",
+      "wechatLanguage": "消息语言",
+      "wechatSaveBeforeTest": "请先保存修改再测试。测试使用服务器已保存的配置。",
+      "wechatTest": "发送测试通知",
+      "wechatTestSuccess": "测试通知发送成功",
+      "wechatTestFailed": "测试通知发送失败",
+      "wechatReportEnable": "定时报告",
+      "wechatReportEnableDesc": "独立于事件告警发送定期文字摘要，不附带数据库或配置文件。",
+      "wechatReportTime": "报告时间",
+      "wechatReportTimeDesc": "使用 Cron 表达式或 @daily 等预设。",
+      "wechatEvents": "事件告警",
+      "wechatEventsDesc": "选择需要发送微信通知的面板事件，并设置告警阈值。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "本地 IP",
         "dialerProxyPlaceholder": "选择要串联的出站",
         "dialerProxyHint": "让此出站通过另一个出站（按标签）拨号，以建立代理链。留空则直接连接。",
+        "dialerProxyMissing": "没有带此标签的出站可供串联。",
         "targetStrategyHint": "连接前如何解析目标域名：AsIs（默认）原样发送，UseIP… 解析失败时回退，ForceIP… 必须解析成功。",
         "addressRequired": "地址为必填项",
         "portRequired": "端口为必填项",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. JSON 订阅",
       "qrLegendLink": "{{ .Code }}. 应用链接 {{ .App }}",
       "backupFailed": "无法读取数据库，未发送备份。",
-      "privateOnly": "🤖 此机器人仅在私聊中工作。请在私信中打开它。"
+      "privateOnly": "🤖 此机器人仅在私聊中工作。请在私信中打开它。",
+      "chooseOneConfig": "👇 你需要哪个配置？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>使用指南</b>\n请选择您要配置的设备。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. 从 App Store 安装 <b>Streisand</b> 或 <b>V2Box</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中点击 <b>+</b> → <b>Add from clipboard</b>。\n4. 下拉更新，然后连接。",
+      "guideAndroid": "🤖 <b>安卓</b>\n1. 从 Google Play 安装 <b>v2rayNG</b> 或 <b>Hiddify</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中点击 <b>+</b> → <b>Import from clipboard</b>。\n4. 更新订阅，选择服务器并连接。",
+      "guideWindows": "🪟 <b>Windows</b>\n1. 安装 <b>Hiddify</b> 或 <b>v2rayN</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。",
+      "guideMacos": "💻 <b>macOS</b>\n1. 安装 <b>Hiddify</b> 或 <b>V2Box</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。",
+      "guideLinux": "🐧 <b>Linux</b>\n1. 安装 <b>Hiddify</b>（AppImage）或 <b>Nekoray</b>。\n2. 在本机器人中打开订阅链接页面，复制您的订阅地址。\n3. 在应用中添加订阅并粘贴地址。\n4. 更新订阅，选择服务器并连接。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 广播",
       "attachInbound": "关联入站 ({{ .Count }})",
-      "attachDone": "✅ 完成"
+      "attachDone": "✅ 完成",
+      "getOneConfig": "🎯 获取单个",
+      "setupGuide": "📖 使用指南",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 安卓",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 群发已开始。",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "使用指南"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "重启 Xray 服务",
     "restartXraySuccess": "Xray 服务已成功重启",
     "settings": "设置"
+  },
+  "wechat": {
+    "test": {
+      "title": "3x-ui 微信通知测试",
+      "body": "这是一条来自 3x-ui 的测试通知，不包含数据库或配置文件。"
+    },
+    "report": {
+      "title": "3x-ui 状态报告",
+      "counts": "总计：{{ .Total }} | 已禁用：{{ .Disabled }} | 已过期：{{ .Expired }} | 流量耗尽：{{ .Depleted }}",
+      "trafficUsed": "3x-ui 已用流量",
+      "trafficRemaining": "3x-ui 剩余流量",
+      "trafficQuotaUnset": "未配置额度"
+    }
   }
 }

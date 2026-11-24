@@ -128,7 +128,11 @@
     "openMenu": "Buka menu",
     "pinSidebar": "Sematkan bilah sisi",
     "unpinSidebar": "Lepas sematan bilah sisi",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "themeUltraDark": "Gelap Ultra",
+    "themeSystem": "Sistem"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Pertahankan pengaturan mesin ini",
-      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah.",
+      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah. Pilihan antarmuka lalu lintas jaringan juga dipertahankan.",
       "logLines": "Jumlah baris",
       "timeRange": "Rentang waktu"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Impor Masuk",
       "periodicTrafficResetTitle": "Reset Trafik Berkala",
       "periodicTrafficResetDay": "Hari reset bulanan",
+      "preserveClientTraffic": "Pertahankan penggunaan klien",
+      "preserveClientTrafficHelp": "Jika opsi ini aktif, hanya penghitung lalu lintas inbound ini yang direset sesuai jadwal. Total penggunaan setiap klien di semua node tetap tercatat hingga jadwal reset klien tersebut.\n\nJika opsi ini nonaktif, setiap kali inbound ini direset sesuai jadwal, total penggunaan klien yang terkait dengannya di semua node juga kembali ke nol.",
       "periodicTrafficReset": {
         "never": "Tidak Pernah",
         "daily": "Harian",
@@ -553,6 +559,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Maks. byte header server",
         "paddingBytes": "Byte Padding",
+        "separateDownload": "Gunakan jalur unduh terpisah",
         "uplinkHttpMethod": "Metode HTTP Uplink",
         "paddingObfsMode": "Mode obfs Padding",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "Dasar",
       "tabCredentials": "Kredensial",
       "tabLinks": "Tautan",
+      "wgDevices": {
+        "title": "Perangkat WireGuard",
+        "limit": "Batas perangkat",
+        "primary": "Perangkat utama",
+        "enabled": "Aktif",
+        "subscription": "Salin langganan",
+        "deleteConfirm": "Hapus perangkat ini dan bebaskan alamatnya?",
+        "remove": "Hapus",
+        "name": "Nama perangkat",
+        "add": "Tambah perangkat"
+      },
       "wireguardConfig": "Konfigurasi WireGuard",
       "config": "Konfigurasi",
       "linksHint": "Tambahkan tautan berbagi pihak ketiga dan URL langganan jarak jauh untuk disertakan dalam langganan klien ini.",
@@ -856,6 +874,7 @@
       "has": "Memiliki",
       "hasNot": "Tidak memiliki",
       "actions": "Aksi",
+      "columns": "Kolom",
       "totalGB": "Batas Trafik (GB)",
       "totalGBDesc": "Kuota data untuk klien ini. 0 = tidak terbatas.",
       "expiryTime": "Kedaluwarsa",
@@ -873,7 +892,13 @@
       "deleteHwid": "Hapus perangkat",
       "deleteHwidConfirm": "Hapus perangkat ini? Perangkat perlu mendaftar ulang pada pengambilan langganan berikutnya.",
       "hwidDeleted": "Perangkat dihapus.",
-      "clearHwidsConfirm": "Hapus semua perangkat terdaftar? Setiap perangkat perlu mendaftar ulang pada pengambilan langganan berikutnya.",
+      "blockHwid": "Blokir",
+      "unblockHwid": "Buka blokir",
+      "hwidBlocked": "Diblokir",
+      "blockHwidConfirm": "Blokir perangkat ini agar tidak dapat mengambil langganan ini?",
+      "unblockHwidConfirm": "Izinkan perangkat ini mengambil langganan ini lagi?",
+      "hwidBlockHint": "Pemblokiran perangkat berlaku untuk langganan ini meskipun batas HWID 0. Menghapus daftar tidak membuka blokir.",
+      "clearHwidsConfirm": "Hapus semua perangkat yang tidak diblokir? Perangkat akan mendaftar ulang saat mengambil langganan berikutnya. Perangkat yang diblokir tetap diblokir.",
       "limitIpFail2banMissing": "Fail2ban tidak terpasang, sehingga batas IP tidak dapat diterapkan. Pasang Fail2ban dari menu bash x-ui untuk mengaktifkan opsi ini.",
       "limitIpFail2banWindows": "Fail2ban tidak tersedia di Windows, sehingga batas IP tidak dapat diterapkan.",
       "limitIpDisabled": "Fitur batas IP dinonaktifkan di server ini.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "{count} klien habis dihapus",
         "delOrphans": "{count} klien tanpa inbound dihapus",
         "imported": "{count} klien diimpor",
-        "importedMixed": "{ok} diimpor, {failed} dilewati"
+        "importedMixed": "{ok} diimpor, {failed} dilewati",
+        "bulkLinksAppended": "{clients} klien diperbarui: {added} ditambahkan, {skipped} duplikat dilewati, {errors} klien tidak ditemukan."
       },
       "renewMax": "Maksimum perpanjangan",
       "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Perpanjangan terpakai",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto.",
       "renewIntervalDesc": "Setelah kedaluwarsa, menambahkan jumlah hari yang ditentukan (24 jam per hari) ke batas waktu sebelumnya dan mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
-      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan."
+      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
+      "bulkAdjustSettings": "Batas dan pengaturan",
+      "bulkAppendLinks": "Tambahkan tautan eksternal",
+      "bulkAppendLinksHint": "Tambahkan ke semua klien yang dipilih. Entri dan pengaturan yang ada dipertahankan; pasangan jenis dan nilai duplikat dilewati. Terapkan penyesuaian lain secara terpisah.",
+      "bulkAppendLinksRequired": "Tambahkan setidaknya satu tautan atau langganan eksternal.",
+      "externalLinkInvalid": "Masukkan tautan berbagi yang didukung.",
+      "externalSubscriptionInvalid": "Masukkan URL langganan http(s)."
     },
     "groups": {
       "name": "Nama",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "{count} klien dihapus dari {name}."
     },
     "nodes": {
+      "restartXray": "Mulai ulang Xray",
+      "restartPanel": "Mulai ulang panel",
+      "restartConfirmTitle": "Mulai ulang {name}?",
+      "restartXrayContent": "Koneksi Xray aktif pada node ini akan terputus.",
+      "restartPanelContent": "Panel node dan layanan langganan akan dimulai ulang dan mungkin tidak tersedia sementara. Memerlukan token API node-admin atau admin pada node.",
       "addNode": "Tambah Node",
       "editNode": "Edit node",
       "totalNodes": "Total Node",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "Berhenti"
       },
       "toasts": {
+        "xrayRestarted": "Xray pada node telah dimulai ulang.",
+        "panelRestartAccepted": "Permintaan mulai ulang panel diterima. Node mungkin tidak tersedia sementara.",
         "list": "Gagal memuat node",
         "obtain": "Gagal memuat node",
         "add": "Tambah node",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "Path langganan default \"/sub/\" sudah umum diketahui — ubahlah.",
       "warnDefaultJsonPath": "Path langganan JSON default \"/json/\" sudah umum diketahui — ubahlah.",
       "TGBotSettings": "Bot Telegram",
+      "networkTrafficInterfaceTitle": "Antarmuka lalu lintas jaringan",
+      "networkTrafficMode": "Mode lalu lintas jaringan",
+      "networkTrafficDescription": "Pilih antarmuka untuk total dan kecepatan lalu lintas sistem. Agregasi lama dapat menghitung lalu lintas antarmuka bertumpuk dua kali. Di Docker, hanya antarmuka dalam namespace jaringan kontainer yang tersedia.",
+      "networkTrafficLegacy": "Semua antarmuka (Lama)",
+      "networkTrafficAutomatic": "Otomatis",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "Antarmuka jaringan yang dipilih tidak tersedia. Pilih antarmuka yang tersedia atau mode pemantauan lain.",
+      "networkTrafficAutoResolved": "Antarmuka rute default: {interface}",
+      "networkTrafficLoadError": "Tidak dapat memuat antarmuka jaringan.",
+      "networkTrafficEmpty": "Tidak ada antarmuka jaringan yang tersedia.",
+      "networkTrafficAutoUnavailable": "Antarmuka rute default tidak tersedia. Metrik lalu lintas tidak tersedia hingga deteksi pulih atau mode diubah.",
       "panelListeningIP": "IP Pendengar",
       "panelListeningIPDesc": "Alamat IP untuk panel web. (biarkan kosong untuk mendengarkan semua IP)",
       "panelListeningDomain": "Domain Pendengar",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "Dapatkan notifikasi tentang username, alamat IP, dan waktu setiap kali seseorang mencoba masuk ke panel web Anda.",
       "sessionMaxAge": "Durasi Sesi",
       "sessionMaxAgeDesc": "Durasi di mana Anda dapat tetap masuk. (unit: menit)",
+      "publicIpRefresh": "Penyegaran IP Publik",
+      "publicIpRefreshDesc": "Seberapa sering panel mendeteksi ulang IP publiknya melalui layanan eksternal. 0 mendeteksi sekali dan tidak pernah menyegarkan. (satuan: menit)",
+      "publicIpv6Detect": "Deteksi IPv6 Publik",
+      "publicIpv6DetectDesc": "Matikan pada server khusus IPv4 untuk melewati semua pencarian IPv6.",
+      "publicIpv4Override": "Penimpaan IPv4 Publik",
+      "publicIpv6Override": "Penimpaan IPv6 Publik",
+      "publicIpOverrideDesc": "Gunakan alamat ini alih-alih mendeteksinya; tidak ada permintaan eksternal untuknya. Kosongkan untuk mendeteksi.",
       "expireTimeDiff": "Notifikasi Tanggal Kedaluwarsa",
       "expireTimeDiffDesc": "Dapatkan notifikasi tentang tanggal kedaluwarsa saat mencapai ambang batas ini. (unit: hari)",
       "trafficDiff": "Notifikasi Batas Traffic",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "Nama domain untuk layanan langganan. (biarkan kosong untuk mendengarkan semua domain dan IP). Juga digunakan sebagai domain cadangan untuk tautan langganan yang ditampilkan ketika \"URI Proxy Terbalik\" kosong — atur \"URI Proxy Terbalik\" jika panel dan langganan diakses melalui domain yang berbeda (misalnya di belakang reverse proxy).",
       "subUpdates": "Interval Pembaruan",
       "subUpdatesDesc": "Interval pembaruan URL langganan dalam aplikasi klien. (unit: jam)",
+      "subRateLimitEnable": "Batas laju langganan",
+      "subRateLimitEnableDesc": "Membatasi seberapa sering setiap IP klien dapat mengambil URL langganan. Permintaan di atas batas mendapat HTTP 429 dengan petunjuk Retry-After. CIDR proxy tepercaya (pengaturan umum) menentukan alamat yang dipakai menghitung klien.",
+      "subRateLimit": "Permintaan per menit",
+      "subRateLimitDesc": "Jumlah maksimum pengambilan langganan per IP klien per menit selama batas laju aktif.",
       "externalSubUserAgent": "User-Agent langganan eksternal",
       "externalSubUserAgentDesc": "Header User-Agent saat panel mengambil URL langganan eksternal klien. Kosongkan untuk memakai bawaan (v2rayNG/1.8.5). Beberapa penyedia menolak klien yang tidak dikenal.",
       "subEncrypt": "Encode",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Ganti konfigurasi saat HWID ditolak",
+      "subHwidRejectWithConfigDesc": "Kembalikan HTTP 200 dengan node yang tidak berfungsi alih-alih 404 jika HWID tidak ada atau batas perangkat tercapai. Aplikasi yang kompatibel dapat mengganti node tersimpan saat pembaruan; konfigurasi yang disalin tetap berlaku. Menghapus perangkat membebaskan slot, tetapi tidak memblokirnya secara permanen.",
       "subInfoNodeEnable": "Konfigurasi Info Terpisah / Node Dummy",
       "subInfoNodeEnableDesc": "Saat diaktifkan, catatan dan sisa kuota/hari disajikan sebagai konfigurasi SOCKS dummy terpisah di bagian atas, dan langganan kedaluwarsa/habis hanya mengembalikan status.",
       "subExpiredTemplate": "Templat Kedaluwarsa",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "Urutan node langganan",
       "subHostSortInbound": "Urutan inbound (bawaan)",
       "subHostSortHosts": "Urutan host",
-      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri."
+      "subHostSortModeDesc": "Mengikuti urutan di halaman Host untuk semua inbound. Ini menentukan urutan keluaran server; aplikasi klien dapat menerapkan urutan sendiri.",
+      "wechatSettings": "Notifikasi WeChat",
+      "wechatEnable": "Aktifkan notifikasi WeChat",
+      "wechatEnableDesc": "Kirim peringatan melalui robot grup WeCom atau gateway webhook yang kompatibel.",
+      "wechatMode": "Mode pengiriman",
+      "wechatModeDesc": "Pilih format pesan yang didukung tujuan.",
+      "wechatModeWecom": "Robot grup WeCom",
+      "wechatModeWebhook": "Gateway webhook khusus",
+      "wechatPersonalGateway": "WeChat pribadi memerlukan gateway yang kompatibel. Robot WeCom mengirim ke grup WeCom, bukan langsung ke WeChat pribadi.",
+      "wechatWebhookURL": "URL webhook",
+      "wechatWebhookURLConfigured": "URL sudah disimpan. Kosongkan untuk mempertahankannya.",
+      "wechatWebhookURLDesc": "Gunakan tujuan HTTPS. URL mungkin berisi rahasia dan nilai tersimpan tidak dikembalikan oleh panel.",
+      "wechatSecretPlaceholder": "Kosongkan untuk mempertahankan nilai tersimpan",
+      "wechatToken": "Token Bearer",
+      "wechatTokenConfigured": "Token sudah disimpan. Kosongkan untuk mempertahankannya.",
+      "wechatTokenDesc": "Autentikasi gateway opsional. Kosongkan jika tidak diperlukan.",
+      "wechatLanguage": "Bahasa pesan",
+      "wechatSaveBeforeTest": "Simpan perubahan sebelum menguji. Pengujian memakai konfigurasi tersimpan.",
+      "wechatTest": "Kirim notifikasi uji",
+      "wechatTestSuccess": "Notifikasi uji berhasil dikirim",
+      "wechatTestFailed": "Gagal mengirim notifikasi uji",
+      "wechatReportEnable": "Laporan terjadwal",
+      "wechatReportEnableDesc": "Kirim ringkasan teks berkala terpisah dari peringatan. Basis data dan berkas konfigurasi tidak dilampirkan.",
+      "wechatReportTime": "Jadwal laporan",
+      "wechatReportTimeDesc": "Gunakan ekspresi cron atau preset seperti @daily.",
+      "wechatEvents": "Peringatan peristiwa",
+      "wechatEventsDesc": "Pilih peristiwa yang mengirim notifikasi dan atur ambang peringatan."
     },
     "xray": {
       "save": "Simpan",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "IP lokal",
         "dialerProxyPlaceholder": "Pilih outbound untuk dirantai",
         "dialerProxyHint": "Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membuat rantai proxy. Kosongkan untuk terhubung langsung.",
+        "dialerProxyMissing": "Tidak ada outbound dengan tag ini yang tersedia untuk dirantai.",
         "targetStrategyHint": "Cara domain tujuan diresolusi sebelum terhubung: AsIs (default) mengirim apa adanya, UseIP… meresolusi dengan fallback, ForceIP… wajib berhasil diresolusi.",
         "addressRequired": "Alamat wajib diisi",
         "portRequired": "Port wajib diisi",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. Langganan JSON",
       "qrLegendLink": "{{ .Code }}. Tautan aplikasi {{ .App }}",
       "backupFailed": "Tidak dapat membaca basis data; tidak ada cadangan yang dikirim.",
-      "privateOnly": "🤖 Bot ini hanya berfungsi di obrolan pribadi. Silakan buka di pesan langsung."
+      "privateOnly": "🤖 Bot ini hanya berfungsi di obrolan pribadi. Silakan buka di pesan langsung.",
+      "chooseOneConfig": "👇 Konfigurasi mana yang Anda inginkan?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Panduan pemasangan</b>\nPilih perangkat yang ingin Anda atur.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Pasang <b>Streisand</b> atau <b>V2Box</b> dari App Store.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, ketuk <b>+</b> → <b>Add from clipboard</b>.\n4. Tarik ke bawah untuk memperbarui, lalu sambungkan.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Pasang <b>v2rayNG</b> atau <b>Hiddify</b> dari Google Play.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, ketuk <b>+</b> → <b>Import from clipboard</b>.\n4. Segarkan langganan, pilih server, lalu sambungkan.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Pasang <b>Hiddify</b> atau <b>v2rayN</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Pasang <b>Hiddify</b> atau <b>V2Box</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Pasang <b>Hiddify</b> (AppImage) atau <b>Nekoray</b>.\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\n3. Di aplikasi, tambahkan langganan dan tempel URL-nya.\n4. Perbarui langganan, pilih server, lalu sambungkan."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Siaran",
       "attachInbound": "Lampirkan inbound ({{ .Count }})",
-      "attachDone": "✅ Selesai"
+      "attachDone": "✅ Selesai",
+      "getOneConfig": "🎯 Ambil satu",
+      "setupGuide": "📖 Panduan pemasangan",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Panduan pemasangan"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Mulai Ulang Layanan Xray",
     "restartXraySuccess": "Layanan Xray berhasil dimulai ulang",
     "settings": "Pengaturan"
+  },
+  "wechat": {
+    "test": {
+      "title": "Uji Notifikasi WeChat 3x-ui",
+      "body": "Ini adalah notifikasi uji dari 3x-ui. Tidak menyertakan berkas basis data atau konfigurasi."
+    },
+    "report": {
+      "title": "Laporan Status 3x-ui",
+      "counts": "Total: {{ .Total }} | Dinonaktifkan: {{ .Disabled }} | Kedaluwarsa: {{ .Expired }} | Kuota habis: {{ .Depleted }}",
+      "trafficUsed": "Trafik terpakai 3x-ui",
+      "trafficRemaining": "Sisa trafik 3x-ui",
+      "trafficQuotaUnset": "Kuota belum dikonfigurasi"
+    }
   }
 }

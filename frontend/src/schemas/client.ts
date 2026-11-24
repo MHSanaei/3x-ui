@@ -51,6 +51,8 @@ export const ClientRecordSchema = z
     inboundIds: nullableNumberArray.optional(),
     traffic: ClientTrafficSchema.nullable().optional(),
     reverse: z.object({ tag: z.string().optional() }).loose().nullable().optional(),
+    wireguardDevices: z.array(z.unknown()).nullable().optional(),
+    wgDeviceLimit: z.number().int().optional(),
     privateKey: z.string().optional(),
     publicKey: z.string().optional(),
     allowedIPs: z.string().optional(),
@@ -220,6 +222,9 @@ export const ClientHydrateSchema = z.object({
 export const BulkAdjustResultSchema = z.object({
   adjusted: z.number(),
   skipped: z.array(z.object({ email: z.string(), reason: z.string() })).optional(),
+  externalLinks: z
+    .object({ added: z.number().int(), skipped: z.number().int(), errors: z.number().int() })
+    .optional(),
 });
 
 export const BulkDeleteResultSchema = z.object({
@@ -424,3 +429,26 @@ export type ClientBulkAddFormValues = z.infer<typeof ClientBulkAddFormSchema>;
 export type ClientBulkAdjustFormValues = z.infer<typeof ClientBulkAdjustFormSchema>;
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
 export type GroupSummary = z.infer<typeof GroupSummarySchema>;
+
+export const WireguardDeviceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enable: z.boolean(),
+  privateKey: z.string(),
+  publicKey: z.string(),
+  allowedIPs: z.array(z.string()),
+  preSharedKey: z.string().optional().default(''),
+});
+
+export const WireguardDevicesSchema = z.object({
+  limit: z.number().int(),
+  inbounds: z.array(
+    z.object({
+      inboundId: z.number().int(),
+      devices: z.array(WireguardDeviceSchema),
+    }),
+  ),
+});
+
+export type WireguardDevice = z.infer<typeof WireguardDeviceSchema>;
+export type WireguardDevices = z.infer<typeof WireguardDevicesSchema>;

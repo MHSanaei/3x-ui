@@ -46,6 +46,18 @@ func validateClientEmail(email string) error {
 	return nil
 }
 
+func validateClientsNames(clients []model.Client) error {
+	for _, client := range clients {
+		if err := validateClientEmail(client.Email); err != nil {
+			return err
+		}
+		if err := validateClientSubID(client.SubID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func validateClientSubID(subID string) error {
 	if hasForbiddenClientChar(subID) {
 		return common.NewError("client subId contains an invalid character:", subID)
@@ -474,6 +486,13 @@ func (s *ClientService) fillProtocolDefaultsAgainstExisting(c *model.Client, ib 
 		return err
 	}
 	switch ib.Protocol {
+	case model.WireGuard:
+		c.WireguardDevices = model.CloneWireguardDevices(c.WireguardDevices)
+		for i := range c.WireguardDevices {
+			if err := defaultWireguardDeviceIdentity(&c.WireguardDevices[i]); err != nil {
+				return err
+			}
+		}
 	case model.VMESS, model.VLESS:
 		if c.ID == "" {
 			c.ID = uuid.NewString()
@@ -848,6 +867,9 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 			return false, err
 		}
 		clientForInbound := updated
+		if inbound.Protocol == model.WireGuard && tunnelCount > 1 {
+			clientForInbound.WireguardDevices = nil
+		}
 		if keepInboundFlows {
 			clientForInbound.Flow = inboundFlows[ibId]
 		}
@@ -922,6 +944,8 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 				"flow":                 merged.Flow,
 				"security":             merged.Security,
 				"client_host_rule_ids": model.EncodeClientHostRuleIds(merged.ClientHostRuleIds),
+				"wg_devices":           encodeWireguardDevices(merged.WireguardDevices),
+				"wg_device_limit":      merged.WgDeviceLimit,
 				"wg_private_key":       merged.PrivateKey,
 				"wg_public_key":        merged.PublicKey,
 				"wg_allowed_ips":       merged.AllowedIPs,
@@ -942,14 +966,10 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 			}).Error; err != nil {
 			return needRestart, err
 		}
-		// No inbound left, so UpdateClientStat never runs; re-assert the
-		// enforcement row's off switch here or a re-enabled client stays off.
-		if merged.Enable {
-			if err := database.GetDB().Model(xray.ClientTraffic{}).
-				Where("email = ?", existing.Email).
-				UpdateColumn("enable", true).Error; err != nil {
-				return needRestart, err
-			}
+		// No inbound left, so UpdateInboundClient never syncs the enforcement row the
+		// renewal and auto-disable loops read (#7160).
+		if err := inboundSvc.UpdateClientStat(database.GetDB(), existing.Email, merged.ToClient()); err != nil {
+			return needRestart, err
 		}
 	}
 
@@ -1221,6 +1241,10 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	// the same address on both.
 	if !s.hasTunnelAttachment(inboundSvc, currentIds) {
 		clientWire.AllowedIPs = nil
+		clientWire.WireguardDevices = model.CloneWireguardDevices(clientWire.WireguardDevices)
+		for i := range clientWire.WireguardDevices {
+			clientWire.WireguardDevices[i].AllowedIPs = nil
+		}
 	}
 
 	adds := make([]*model.Inbound, 0, len(inboundIds))
@@ -1236,6 +1260,7 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		// A forward is a listener on the target inbound's host, set per inbound: carried over, it
 		// would let a node-reported client choose ports on this host.
 		copyClient.ForwardedPorts = nil
+		prepareWireguardDeviceAddresses(&copyClient, inbound)
 		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
 			copyClient.AllowedIPs = nil
 		}

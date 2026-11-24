@@ -360,6 +360,26 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 	return dbClientTraffics, newExpiryByEmail, nil
 }
 
+// coreUserFromClient is the account map the runtime AddUser expects; WireGuard
+// peers fail it without publicKey/allowedIPs, and a failed add restarts Xray.
+func coreUserFromClient(c *model.Client, cipher string) map[string]any {
+	return map[string]any{
+		"email":            c.Email,
+		"id":               c.ID,
+		"auth":             c.Auth,
+		"security":         c.Security,
+		"flow":             c.Flow,
+		"password":         c.Password,
+		"cipher":           cipher,
+		"publicKey":        c.PublicKey,
+		"allowedIPs":       c.AllowedIPs,
+		"preSharedKey":     c.PreSharedKey,
+		"keepAlive":        keepAliveStr(c.KeepAliveSeconds()),
+		"reverse":          c.Reverse,
+		"wireguardDevices": c.WireguardDevices,
+	}
+}
+
 // apiUserFromClient prepares a stored client object for the runtime AddUser
 // call. The copy matters twice over: the stored object keeps being mutated and
 // marshalled back into the inbound's settings, which must not gain an API-only
@@ -373,6 +393,10 @@ func apiUserFromClient(client map[string]any, cipher string) map[string]any {
 	}
 	if cipher != "" {
 		user["cipher"] = cipher
+	}
+	// Stored JSON holds keepAlive as a number; the core's builder takes a string.
+	if seconds, ok := user["keepAlive"].(float64); ok {
+		user["keepAlive"] = keepAliveStr(int(seconds))
 	}
 	return user
 }
@@ -763,20 +787,10 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 			}
 			cipher, _ = oldSettings["method"].(string)
 		}
-		clientMap := map[string]any{
-			"email":    entry.Email,
-			"id":       entry.ID,
-			"auth":     entry.Auth,
-			"security": entry.Security,
-			"flow":     entry.Flow,
-			"password": entry.Password,
-			"cipher":   cipher,
-			"reverse":  entry.Reverse,
-		}
 		if inbound.NodeID != nil {
 			reenableNodeID = inbound.NodeID
 		} else {
-			reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: clientMap}
+			reenablePlan = &trafficLocalApplyPlan{action: trafficAddUser, inbound: *inbound, client: coreUserFromClient(entry, cipher)}
 		}
 	}
 
@@ -835,15 +849,9 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 	}
 
 	if reenablePlan != nil {
-		rt, err := s.runtimeFor(&reenablePlan.inbound)
-		if err != nil {
-			needRestart = true
-		} else if err := rt.AddUser(context.Background(), &reenablePlan.inbound, reenablePlan.client); err != nil {
-			logger.Debug("Error in enabling client on", rt.Name(), ":", err)
-			needRestart = true
-		} else {
-			logger.Debug("Client enabled on", rt.Name(), "due to reset traffic:", clientEmail)
-		}
+		// The batch routes MTProto/AmneziaWG/TUIC to their own reconcilers; their
+		// AddUser is a no-op, so a quota-disabled peer would never come back.
+		needRestart = s.applyTrafficMutationBatch(&trafficMutationBatch{localPlans: []trafficLocalApplyPlan{*reenablePlan}})
 	}
 
 	return needRestart, inbound.NodeID, nil
@@ -1077,7 +1085,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 			emailExpr,
 		)
 		stillSet := make(map[string]struct{}, len(rowEmails))
-		for _, batch := range chunkStrings(emailSpellings(rowEmails), sqlInChunk) {
+		for _, batch := range chunkStrings(EmailSpellings(rowEmails), sqlInChunk) {
 			var stillReferenced []string
 			if err := tx.Raw(stillQuery, batch, batch).Scan(&stillReferenced).Error; err != nil {
 				return err
@@ -1092,7 +1100,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 				toDelete = append(toDelete, e)
 			}
 		}
-		for _, batch := range chunkStrings(emailSpellings(toDelete), sqlInChunk) {
+		for _, batch := range chunkStrings(EmailSpellings(toDelete), sqlInChunk) {
 			if err := tx.Where("LOWER(email) IN ? OR email IN ?", batch, batch).Delete(xray.ClientTraffic{}).Error; err != nil {
 				return err
 			}

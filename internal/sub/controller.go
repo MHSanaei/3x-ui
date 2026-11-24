@@ -28,6 +28,11 @@ import (
 const (
 	subMihomoPath      = "/mihomo/"
 	subClashLegacyPath = "/clash-legacy/"
+
+	// Which subscription format the route that rendered the page serves.
+	subPageFormatRaw   = "raw"
+	subPageFormatJSON  = "json"
+	subPageFormatClash = "clash"
 )
 
 // writeSubError translates a service-layer result into an HTTP response.
@@ -35,7 +40,7 @@ const (
 // client, never-existed id) and becomes 404. A real error becomes 500. No
 // body — VPN clients only look at the status.
 func writeSubError(c *gin.Context, err error) {
-	if err == nil {
+	if err == nil || errors.Is(err, errWireguardDeviceUnavailable) {
 		c.Status(http.StatusNotFound)
 		return
 	}
@@ -90,6 +95,9 @@ type SUBController struct {
 	subTemplateCache map[string]*cachedSubTemplate
 
 	releaseSettingsCache func()
+
+	rateLimiter       *subRateLimiter
+	trustedProxyCIDRs string
 }
 
 type subControllerConfig struct {
@@ -132,9 +140,21 @@ type subControllerConfig struct {
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
+
+	rateLimiter       *subRateLimiter
+	trustedProxyCIDRs string
 }
 
 type SUBControllerOption func(*subControllerConfig)
+
+// WithSUBRateLimit installs the per-client subscription rate limit guard.
+// A nil limiter keeps the historical unlimited behavior.
+func WithSUBRateLimit(limiter *subRateLimiter, trustedProxyCIDRs string) SUBControllerOption {
+	return func(c *subControllerConfig) {
+		c.rateLimiter = limiter
+		c.trustedProxyCIDRs = trustedProxyCIDRs
+	}
+}
 
 func WithSUBPath(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subPath = value }
@@ -336,6 +356,9 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 
 		subTemplateCache:     map[string]*cachedSubTemplate{},
 		releaseSettingsCache: releaseSettingsCache,
+
+		rateLimiter:       config.rateLimiter,
+		trustedProxyCIDRs: config.trustedProxyCIDRs,
 	}
 	a.initRouter(g)
 	return a
@@ -344,6 +367,8 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 // initRouter registers HTTP routes for subscription links and JSON endpoints
 // on the provided router group.
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
+	// Static assets mount on the engine outside this group: cheap, no DB reads, intentionally unguarded.
+	g.Use(subRateLimitGuard(a.rateLimiter, a.trustedProxyCIDRs))
 	gLink := g.Group(a.subPath, setNoCacheHeaders)
 	gLink.GET(":subid", a.subs)
 	gLink.HEAD(":subid", a.subs)
@@ -400,7 +425,7 @@ func (a *SUBController) configuredSubscriptionPathOwner(candidate string) string
 // info is for the content a client app imports — the raw subscription body. A
 // browser viewing the HTML info page gets clean, name-only remarks (usage is
 // shown in the page summary).
-func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
+func (a *SUBController) maybeServeSubPage(c *gin.Context, format string) bool {
 	accept := c.GetHeader("Accept")
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
 	if !wantsHTML {
@@ -410,6 +435,7 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	if !ok {
 		return true
 	}
+	page.Format = format
 	a.serveSubPage(c, page.BasePath, page)
 	return true
 }
@@ -424,6 +450,7 @@ func (a *SUBController) maybeServeSubInfo(c *gin.Context) bool {
 	}
 	info := a.subPageContext(page)
 	delete(info, "links")
+	delete(info, "subFormat")
 	info["emails"] = dedupeEmails(page.Emails)
 	c.JSON(http.StatusOK, info)
 	return true
@@ -433,6 +460,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subId := c.Param("subid")
 	_, host, _, hostHeader := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
+	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = false
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
@@ -480,14 +508,20 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "info")
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatRaw) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
-	if !a.enforceHwid(c) {
+	format := hwidLinks
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+		format = hwidClash
+	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+		format = hwidJSONArray
+	}
+	if !a.enforceHwid(c, format) {
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false, false) {
+	if format == hwidClash && a.serveClashBody(c, false, false) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
@@ -501,8 +535,10 @@ func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
+	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = true
 	subReq.omitServerDescription = !IsHappClient(userAgent) && !IsIncyClient(userAgent)
+	subReq.ss2022Base64Userinfo = IsShadowrocketClient(userAgent)
 	subs, _, _, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
@@ -704,6 +740,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"subUrl":        page.SubUrl,
 		"subJsonUrl":    page.SubJsonUrl,
 		"subClashUrl":   page.SubClashUrl,
+		"subFormat":     page.Format,
 		"subTitle":      page.SubTitle,
 		"subSupportUrl": page.SubSupportUrl,
 		"subUpdates":    updateHours,
@@ -714,7 +751,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 	}
 }
 
-func (a *SUBController) enforceHwid(c *gin.Context) bool {
+func (a *SUBController) enforceHwid(c *gin.Context, format hwidResponseFormat) bool {
 	result, err := a.clientService.EnforceHwidForSubID(c.Param("subid"), service.HwidRequest{
 		Hwid:        c.GetHeader("X-HWID"),
 		UserAgent:   c.GetHeader("User-Agent"),
@@ -726,17 +763,20 @@ func (a *SUBController) enforceHwid(c *gin.Context) bool {
 		writeSubError(c, err)
 		return false
 	}
-	applyHwidHeaders(c, result)
 	if !result.Allowed {
-		c.Status(http.StatusNotFound)
+		a.writeHwidRejection(c, result, format)
 		return false
 	}
+	applyHwidHeaders(c, result)
 	return true
 }
 
 func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
 	if result.Active {
 		c.Header("X-Hwid-Active", "true")
+	}
+	if result.Blocked {
+		c.Header("X-Hwid-Blocked", "true")
 	}
 	if result.NotSupported {
 		c.Header("X-Hwid-Not-Supported", "true")
@@ -815,7 +855,7 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 // device limit is enforced on every body route, ?view=raw included (#GHSA-7ww3).
 func (a *SUBController) subJsons(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
-		if !a.enforceHwid(c) {
+		if !a.enforceHwid(c, hwidJSON) {
 			return
 		}
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
@@ -824,10 +864,10 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		a.recordSubscriptionFetch(c)
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatJSON) {
 		return
 	}
-	if !a.enforceHwid(c) {
+	if !a.enforceHwid(c, hwidJSON) {
 		return
 	}
 	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
@@ -843,7 +883,7 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray, c.Query("wgDevice"))
 	if err != nil {
 		writeSubError(c, err)
 		return true
@@ -877,7 +917,7 @@ func (a *SUBController) subClashLegacy(c *gin.Context) {
 
 func (a *SUBController) subClash(c *gin.Context, legacy bool) {
 	if strings.EqualFold(c.Query("view"), "raw") {
-		if !a.enforceHwid(c) {
+		if !a.enforceHwid(c, hwidClash) {
 			return
 		}
 		if !a.serveClashBody(c, true, legacy) {
@@ -886,10 +926,10 @@ func (a *SUBController) subClash(c *gin.Context, legacy bool) {
 		a.recordSubscriptionFetch(c)
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatClash) {
 		return
 	}
-	if !a.enforceHwid(c) {
+	if !a.enforceHwid(c, hwidClash) {
 		return
 	}
 	if !a.serveClashBody(c, false, legacy) {
@@ -903,10 +943,12 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	var clashSub, header string
 	var err error
+	clashService := *a.subClashService
+	clashService.SubService = a.subClashService.SubService.ForWireguardDevice(c.Query("wgDevice"))
 	if legacy {
-		clashSub, header, err = a.subClashService.GetClashLegacy(subId, host)
+		clashSub, header, err = clashService.GetClashLegacy(subId, host)
 	} else {
-		clashSub, header, err = a.subClashService.GetClash(subId, host)
+		clashSub, header, err = clashService.GetClash(subId, host)
 	}
 	if err != nil {
 		if errors.Is(err, errNoLegacyClashProxies) {
@@ -939,7 +981,11 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 
 func builtinProfileURL(c *gin.Context, scheme, hostWithPort string) string {
 	// Drop download/format selectors so the opt-in link always opens the HTML page.
-	return fmt.Sprintf("%s://%s%s?html=1", scheme, hostWithPort, c.Request.URL.EscapedPath())
+	profileURL := fmt.Sprintf("%s://%s%s?html=1", scheme, hostWithPort, c.Request.URL.EscapedPath())
+	if device := c.Query("wgDevice"); device != "" {
+		profileURL += "&wgDevice=" + url.QueryEscape(device)
+	}
+	return profileURL
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.

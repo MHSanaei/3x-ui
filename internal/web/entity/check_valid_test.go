@@ -103,3 +103,74 @@ func TestCheckValidSchedules(t *testing.T) {
 		}
 	}
 }
+
+// The middleware only strips the port, so a saved scheme, port or path could
+// never match the Host header and locked the panel behind 403.
+func TestCheckValidNormalizesPanelAndSubDomains(t *testing.T) {
+	tests := []struct {
+		name, in, want, wantErr string
+	}{
+		{"empty", "", "", ""},
+		{"capitals, spaces and root dot", " Panel.Example.COM. ", "panel.example.com", ""},
+		{"IPv6 address", "2001:DB8::1", "2001:db8::1", ""},
+		{"scheme", "https://panel.example.com", "", "must be a bare host name without scheme, port or path: https://panel.example.com"},
+		{"port", "panel.example.com:8443", "", "must be a bare host name without scheme, port or path: panel.example.com:8443"},
+		{"path", "panel.example.com/x", "", "must be a bare host name without scheme, port or path: panel.example.com/x"},
+		{"inner space", "panel example.com", "", "must be a bare host name without scheme, port or path: panel example.com"},
+		{"bracketed IPv6", "[2001:db8::1]", "", "must be a bare host name without scheme, port or path: [2001:db8::1]"},
+	}
+	for _, tc := range tests {
+		for _, field := range []string{"web domain", "subscription domain"} {
+			t.Run(field+"/"+tc.name, func(t *testing.T) {
+				s := &AllSetting{WebPort: 2053, SubPort: 2096}
+				target := &s.WebDomain
+				if field == "subscription domain" {
+					target = &s.SubDomain
+				}
+				*target = tc.in
+				err := s.CheckValid()
+				if tc.wantErr != "" {
+					if err == nil || err.Error() != field+" "+tc.wantErr {
+						t.Fatalf("CheckValid(%q) error = %v, want %q", tc.in, err, field+" "+tc.wantErr)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("CheckValid(%q): unexpected error %v", tc.in, err)
+				}
+				if *target != tc.want {
+					t.Errorf("CheckValid(%q) saved %q, want %q", tc.in, *target, tc.want)
+				}
+			})
+		}
+	}
+}
+
+// The override is displayed on the overview and used in backup filenames, so a
+// hostname, wrong-family or zoned address must be rejected at save time.
+func TestCheckValidPublicIPOverride(t *testing.T) {
+	cases := []struct {
+		v4, v6, want string
+	}{
+		{"", "", ""},
+		{"203.0.113.9", "2001:db8::1", ""},
+		{"example.com", "", "public IPv4 override is not a valid IPv4 address: example.com"},
+		{"2001:db8::1", "", "public IPv4 override is not a valid IPv4 address: 2001:db8::1"},
+		{"", "203.0.113.9", "public IPv6 override is not a valid IPv6 address: 203.0.113.9"},
+		{"", "fe80::1%eth0", "public IPv6 override is not a valid IPv6 address: fe80::1%eth0"},
+		{"", "::ffff:203.0.113.9", "public IPv6 override is not a valid IPv6 address: ::ffff:203.0.113.9"},
+	}
+	for _, c := range cases {
+		s := &AllSetting{WebPort: 2053, SubPort: 2096, PublicIpv4Override: c.v4, PublicIpv6Override: c.v6}
+		err := s.CheckValid()
+		if c.want == "" {
+			if err != nil {
+				t.Errorf("v4=%q v6=%q: unexpected error %v", c.v4, c.v6, err)
+			}
+			continue
+		}
+		if err == nil || err.Error() != c.want {
+			t.Errorf("v4=%q v6=%q: err=%v, want %q", c.v4, c.v6, err, c.want)
+		}
+	}
+}

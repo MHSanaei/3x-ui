@@ -19,22 +19,17 @@ import {
   Typography,
   message,
 } from 'antd';
-import {
-  DeleteOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  RetweetOutlined,
-} from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { Controller, FormProvider, useForm, useWatch, useFieldArray } from 'react-hook-form';
+import { FormProvider, useForm, useWatch, type FieldPath } from 'react-hook-form';
 
 import { HttpUtil, IntlUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
-import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
+import { ExternalLinksFormSchema, type ExternalLinkRow } from '@/schemas/external-link';
+import ClientExternalLinksFields from './ClientExternalLinksFields';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { useRawHostsQuery } from '@/api/queries/useRawHostsQuery';
@@ -76,17 +71,6 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
 const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
-
-interface ExternalLinkRow {
-  kind: 'link' | 'subscription';
-  value: string;
-  remark: string;
-  enable: boolean;
-  expiryTime: number;
-  namePrefix: string;
-  lastFetchAt: number;
-  lastFetchError: string;
-}
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -136,6 +120,7 @@ interface ClientFormModalProps {
 type Values = ClientFormValues & {
   expiryDate: number;
   limitHwid: number;
+  wgDeviceLimit: number;
   externalLinks: ExternalLinkRow[];
   clientHostRuleIds: number[];
   wgPrivateKey: string;
@@ -171,6 +156,7 @@ const EMPTY: Values = {
   trafficResetDay: 1,
   limitIp: 0,
   limitHwid: 0,
+  wgDeviceLimit: 5,
   tgId: 0,
   group: '',
   comment: '',
@@ -267,6 +253,7 @@ export default function ClientFormModal({
   const uid = useId();
   const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
+  const minWireguardDeviceLimit = Math.max(1, (client?.wireguardDevices?.length ?? 0) + 1);
 
   const methods = useForm<Values>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
@@ -286,13 +273,9 @@ export default function ClientFormModal({
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
-  const {
-    fields: externalLinkFields,
-    append: appendExternalLink,
-    remove: removeExternalLink,
-  } = useFieldArray({ control: methods.control, name: 'externalLinks' });
 
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
   const [resetting, setResetting] = useState(false);
   const [clientIps, setClientIps] = useState<ClientIpInfo[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
@@ -303,9 +286,11 @@ export default function ClientFormModal({
     hwidsLoading,
     hwidsClearing,
     deletingHwidId,
+    blockingHwidId,
     loadHwids,
     clearHwids,
     deleteHwid,
+    setHwidBlocked,
   } = useClientHwids(client?.email);
   const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const { datepicker } = useDatepicker();
@@ -335,19 +320,6 @@ export default function ClientFormModal({
     }
     return ids;
   }, [inbounds]);
-
-  function addExternalLinkRow(kind: 'link' | 'subscription') {
-    appendExternalLink({
-      kind,
-      value: '',
-      remark: '',
-      enable: true,
-      expiryTime: 0,
-      namePrefix: '',
-      lastFetchAt: 0,
-      lastFetchError: '',
-    });
-  }
 
   useEffect(() => {
     if (!open) return;
@@ -390,6 +362,7 @@ export default function ClientFormModal({
         trafficResetDay: Number(client.trafficResetDay) || 1,
         limitIp: client.limitIp || 0,
         limitHwid: client.limitHwid || 0,
+        wgDeviceLimit: client.wgDeviceLimit || 5,
         tgId: Number(client.tgId) || 0,
         group: client.group || '',
         comment: client.comment || '',
@@ -646,13 +619,6 @@ export default function ClientFormModal({
     [expiryDate],
   );
 
-  const linkRows = externalLinkFields
-    .map((field, index) => ({ field, index }))
-    .filter((row) => row.field.kind === 'link');
-  const subscriptionRows = externalLinkFields
-    .map((field, index) => ({ field, index }))
-    .filter((row) => row.field.kind === 'subscription');
-
   async function loadIps() {
     if (!isEdit || !client?.email) return;
     setIpsLoading(true);
@@ -713,7 +679,20 @@ export default function ClientFormModal({
   }
 
   async function onSubmit() {
+    await methods.trigger('externalLinks');
     const values = methods.getValues();
+    if (showWireguard && !(await methods.trigger('wgDeviceLimit'))) return;
+    const externalValidation = await ExternalLinksFormSchema.safeParseAsync(values);
+    if (!externalValidation.success) {
+      for (const issue of externalValidation.error.issues) {
+        methods.setError(issue.path.join('.') as FieldPath<Values>, {
+          type: 'validate',
+          message: issue.message,
+        });
+      }
+      setActiveTab('links');
+      return;
+    }
     const unchangedLegacyKeepAlive =
       isEdit &&
       typeof client?.keepAlive === 'number' &&
@@ -798,6 +777,7 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: !!values.enable,
     };
+    if (showWireguard) clientPayload.wgDeviceLimit = values.wgDeviceLimit;
     // Sent even when empty, so clearing the tag never rests on how the server
     // reads an omitted key.
     const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
@@ -906,6 +886,7 @@ export default function ClientFormModal({
           body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' },
         }}
         onCancel={close}
+        afterClose={() => setActiveTab('basic')}
         footer={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isEdit && resetTraffic && (
@@ -939,7 +920,8 @@ export default function ClientFormModal({
         <FormProvider {...methods}>
           <Form layout="vertical">
             <Tabs
-              defaultActiveKey="basic"
+              activeKey={activeTab}
+              onChange={setActiveTab}
               items={[
                 {
                   key: 'basic',
@@ -1057,6 +1039,30 @@ export default function ClientFormModal({
                             </span>
                           </Form.Item>
                         </Col>
+                        {showWireguard && (
+                          <Col xs={24} md={12}>
+                            <FormField
+                              name="wgDeviceLimit"
+                              label={`WireGuard · ${t('pages.clients.wgDevices.limit')}`}
+                              tooltip={t('pages.clients.wgDevices.title')}
+                              transform={{ output: (value) => Number(value) }}
+                              rules={{
+                                validate: (value) =>
+                                  (Number.isInteger(value) &&
+                                    value >= minWireguardDeviceLimit &&
+                                    value <= 32) ||
+                                  `${t('pages.clients.wgDevices.limit')} (${minWireguardDeviceLimit}–32)`,
+                              }}
+                            >
+                              <InputNumber
+                                min={minWireguardDeviceLimit}
+                                max={32}
+                                precision={0}
+                                style={{ width: '100%' }}
+                              />
+                            </FormField>
+                          </Col>
+                        )}
                       </Row>
 
                       <Row gutter={16}>
@@ -1546,165 +1552,7 @@ export default function ClientFormModal({
                         {t('pages.clients.linksHint')}
                       </Typography.Paragraph>
 
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined aria-hidden />}
-                        onClick={() => addExternalLinkRow('link')}
-                      >
-                        {t('pages.clients.addExternalLink')}
-                      </Button>
-                      <div style={{ marginTop: 12, marginBottom: 24 }}>
-                        {linkRows.length === 0 ? (
-                          <Typography.Text type="secondary">
-                            {t('pages.clients.noExternalLinks')}
-                          </Typography.Text>
-                        ) : (
-                          linkRows.map(({ field, index }) => (
-                            <div key={field.id} className="external-link-card">
-                              <div className="external-link-row">
-                                <div className="external-link-enable">
-                                  <FormField
-                                    name={`externalLinks.${index}.enable`}
-                                    valueProp="checked"
-                                    noStyle
-                                  >
-                                    <Switch size="small" aria-label={t('enable')} />
-                                  </FormField>
-                                  <span>{t('enable')}</span>
-                                </div>
-                                <FormField name={`externalLinks.${index}.value`} noStyle>
-                                  <Input
-                                    aria-label="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                                    placeholder="vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://"
-                                  />
-                                </FormField>
-                                <Tooltip title={t('delete')}>
-                                  <Button
-                                    aria-label={t('delete')}
-                                    danger
-                                    icon={<DeleteOutlined aria-hidden />}
-                                    onClick={() => removeExternalLink(index)}
-                                  />
-                                </Tooltip>
-                              </div>
-                              <div className="external-link-details two-cols">
-                                <FormField name={`externalLinks.${index}.remark`} noStyle>
-                                  <Input aria-label={t('remark')} placeholder={t('remark')} />
-                                </FormField>
-                                <Controller
-                                  control={methods.control}
-                                  name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => {
-                                    const displayedExpiry = resolveExternalLinkExpiry(
-                                      expiryField.value,
-                                      expiryDate,
-                                    );
-                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
-                                    return (
-                                      <DateTimePicker
-                                        aria-label={t('pages.clients.expiryTime')}
-                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
-                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                        allowClear={hasSpecificExpiry}
-                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
-                                      />
-                                    );
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined aria-hidden />}
-                        onClick={() => addExternalLinkRow('subscription')}
-                      >
-                        {t('pages.clients.addExternalSubscription')}
-                      </Button>
-                      <div style={{ marginTop: 12 }}>
-                        {subscriptionRows.length === 0 ? (
-                          <Typography.Text type="secondary">
-                            {t('pages.clients.noExternalSubscriptions')}
-                          </Typography.Text>
-                        ) : (
-                          subscriptionRows.map(({ field, index }) => (
-                            <div key={field.id} className="external-link-card">
-                              <div className="external-link-row">
-                                <div className="external-link-enable">
-                                  <FormField
-                                    name={`externalLinks.${index}.enable`}
-                                    valueProp="checked"
-                                    noStyle
-                                  >
-                                    <Switch size="small" aria-label={t('enable')} />
-                                  </FormField>
-                                  <span>{t('enable')}</span>
-                                </div>
-                                <FormField name={`externalLinks.${index}.value`} noStyle>
-                                  <Input
-                                    aria-label="https://provider.example/sub/…"
-                                    placeholder="https://provider.example/sub/…"
-                                  />
-                                </FormField>
-                                <Tooltip title={t('delete')}>
-                                  <Button
-                                    aria-label={t('delete')}
-                                    danger
-                                    icon={<DeleteOutlined aria-hidden />}
-                                    onClick={() => removeExternalLink(index)}
-                                  />
-                                </Tooltip>
-                              </div>
-                              <div className="external-link-details three-cols">
-                                <FormField name={`externalLinks.${index}.remark`} noStyle>
-                                  <Input aria-label={t('remark')} placeholder={t('remark')} />
-                                </FormField>
-                                <FormField name={`externalLinks.${index}.namePrefix`} noStyle>
-                                  <Input
-                                    aria-label={t('pages.clients.namePrefix')}
-                                    placeholder={t('pages.clients.namePrefix')}
-                                  />
-                                </FormField>
-                                <Controller
-                                  control={methods.control}
-                                  name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => {
-                                    const displayedExpiry = resolveExternalLinkExpiry(
-                                      expiryField.value,
-                                      expiryDate,
-                                    );
-                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
-                                    return (
-                                      <DateTimePicker
-                                        aria-label={t('pages.clients.expiryTime')}
-                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
-                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                        allowClear={hasSpecificExpiry}
-                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
-                                      />
-                                    );
-                                  }}
-                                />
-                              </div>
-                              <Typography.Text
-                                type={field.lastFetchError ? 'danger' : 'secondary'}
-                                className="external-link-fetch-status"
-                              >
-                                {field.lastFetchError
-                                  ? `${t('pages.clients.lastFetchError')}: ${field.lastFetchError}`
-                                  : field.lastFetchAt > 0
-                                    ? `${t('pages.clients.lastFetchAt')}: ${dayjs(field.lastFetchAt).format('YYYY-MM-DD HH:mm:ss')}`
-                                    : t('pages.clients.neverFetched')}
-                              </Typography.Text>
-                            </div>
-                          ))
-                        )}
-                      </div>
+                      <ClientExternalLinksFields clientExpiry={expiryDate} />
                     </>
                   ),
                 },
@@ -1781,10 +1629,12 @@ export default function ClientFormModal({
         loading={hwidsLoading}
         clearing={hwidsClearing}
         deletingId={deletingHwidId}
+        blockingId={blockingHwidId}
         formatDate={hwidDateLabel}
         onRefresh={loadHwids}
         onClearAll={clearHwids}
         onDelete={deleteHwid}
+        onSetBlocked={setHwidBlocked}
         onClose={() => setHwidsModalOpen(false)}
       />
     </>

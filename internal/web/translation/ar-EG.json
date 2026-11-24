@@ -128,7 +128,11 @@
     "openMenu": "فتح القائمة",
     "pinSidebar": "تثبيت الشريط الجانبي",
     "unpinSidebar": "إلغاء تثبيت الشريط الجانبي",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeUltraDark": "داكن فائق",
+    "themeSystem": "النظام"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "الاحتفاظ بإعدادات هذا الجهاز",
-      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع.",
+      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع. يُحفظ أيضًا اختيار واجهة مراقبة حركة الشبكة.",
       "logLines": "عدد الأسطر",
       "timeRange": "النطاق الزمني"
     },
@@ -442,6 +446,8 @@
       "importInbound": "استيراد إدخال",
       "periodicTrafficResetTitle": "إعادة تعيين حركة المرور",
       "periodicTrafficResetDay": "يوم إعادة التعيين الشهري",
+      "preserveClientTraffic": "الاحتفاظ باستهلاك العملاء",
+      "preserveClientTrafficHelp": "عند تفعيل الخيار، تصفّر إعادة الضبط المجدولة عدّادات هذا الاتصال الوارد فقط. يحتفظ كل عميل باستهلاكه المتراكم عبر جميع العقد حتى موعد إعادة الضبط الخاص به.\n\nعند تعطيل الخيار، تصفّر إعادة الضبط المجدولة لهذا الاتصال الوارد أيضًا استهلاك العملاء المرتبطين به عبر جميع العقد.",
       "periodicTrafficReset": {
         "never": "أبداً",
         "daily": "يومياً",
@@ -553,6 +559,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "أقصى بايت ترويسة الخادم",
         "paddingBytes": "بايتات Padding",
+        "separateDownload": "استخدام قناة تنزيل منفصلة",
         "uplinkHttpMethod": "Uplink HTTP method",
         "paddingObfsMode": "وضع تشويش Padding",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "أساسي",
       "tabCredentials": "بيانات الاعتماد",
       "tabLinks": "الروابط",
+      "wgDevices": {
+        "title": "أجهزة WireGuard",
+        "limit": "الحد الأقصى للأجهزة",
+        "primary": "الجهاز الأساسي",
+        "enabled": "مفعّل",
+        "subscription": "نسخ رابط الاشتراك",
+        "deleteConfirm": "هل تريد حذف هذا الجهاز وتحرير عنوانه؟",
+        "remove": "حذف",
+        "name": "اسم الجهاز",
+        "add": "إضافة جهاز"
+      },
       "wireguardConfig": "إعدادات WireGuard",
       "config": "الإعداد",
       "linksHint": "أضف روابط مشاركة من جهات خارجية وعناوين اشتراك خارجية لتضمينها في اشتراك هذا العميل.",
@@ -856,6 +874,7 @@
       "has": "يملك",
       "hasNot": "لا يملك",
       "actions": "الإجراءات",
+      "columns": "الأعمدة",
       "totalGB": "حد البيانات (جيجابايت)",
       "totalGBDesc": "حصة البيانات لهذا العميل. 0 = غير محدود.",
       "expiryTime": "انتهاء الصلاحية",
@@ -873,7 +892,13 @@
       "deleteHwid": "إزالة الجهاز",
       "deleteHwidConfirm": "إزالة هذا الجهاز؟ سيحتاج إلى إعادة التسجيل عند جلب الاشتراك التالي.",
       "hwidDeleted": "تمت إزالة الجهاز.",
-      "clearHwidsConfirm": "إزالة جميع الأجهزة المسجلة؟ سيحتاج كل جهاز إلى إعادة التسجيل عند جلب الاشتراك التالي.",
+      "blockHwid": "حظر",
+      "unblockHwid": "إلغاء الحظر",
+      "hwidBlocked": "محظور",
+      "blockHwidConfirm": "حظر هذا الجهاز من جلب هذا الاشتراك؟",
+      "unblockHwidConfirm": "السماح لهذا الجهاز بجلب هذا الاشتراك مرة أخرى؟",
+      "hwidBlockHint": "يسري حظر الأجهزة على هذا الاشتراك حتى لو كان حد HWID هو 0. مسح القائمة لا يلغي الحظر.",
+      "clearHwidsConfirm": "إزالة كل الأجهزة غير المحظورة؟ ستُسجّل مجددًا عند جلب الاشتراك التالي. ستظل الأجهزة المحظورة محظورة.",
       "limitIpFail2banMissing": "Fail2ban غير مثبّت، لذا لا يمكن تطبيق حد عناوين IP. ثبّت Fail2ban من قائمة x-ui النصية لتفعيل هذا الخيار.",
       "limitIpFail2banWindows": "Fail2ban غير متوفّر على نظام Windows، لذا لا يمكن تطبيق حد عناوين IP.",
       "limitIpDisabled": "ميزة حد عناوين IP معطّلة على هذا الخادم.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "تم حذف {count} عميل منتهٍ",
         "delOrphans": "تم حذف {count} عميل غير مرتبط",
         "imported": "تم استيراد {count} عميل",
-        "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم"
+        "importedMixed": "{ok} تم استيرادهم، {failed} تم تخطيهم",
+        "bulkLinksAppended": "تم تحديث {clients} عميل: أُضيف {added}، وتُخطي {skipped} مكرر، ولم يُعثر على {errors} عميل."
       },
       "renewMax": "الحد الأقصى للتجديدات",
       "renewMaxDesc": "عدد المرات التي يمكن أن يعمل فيها التجديد التلقائي قبل ترك العميل ينتهي. القيمة 0 تعني بلا حد. تعويض عدة فترات فائتة يستهلك تجديدًا واحدًا لكل فترة.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "التجديدات المستخدمة",
       "bulkAdTagHint": "أدخل علامة من 32 حرفًا ست عشريًا للتعيين، أو 'none' للمسح في منافذ MTProto.",
       "renewIntervalDesc": "بعد انتهاء الصلاحية، يُضاف عدد الأيام المحدد (24 ساعة لكل يوم) إلى الموعد النهائي السابق ويُعاد تعيين استهلاك العميل. أبقِ إعادة تعيين الاستهلاك المستقلة معطلة ما لم تكن تريد إعادة تعيين إضافية.",
-      "renewWeeklyDesc": "يتم التجديد التقويمي عند منتصف الليل بتوقيت اللوحة ويُعاد أيضًا تعيين استهلاك العميل. أبقِ إعادة تعيين الاستهلاك المستقلة معطلة ما لم تكن تريد إعادة تعيين إضافية."
+      "renewWeeklyDesc": "يتم التجديد التقويمي عند منتصف الليل بتوقيت اللوحة ويُعاد أيضًا تعيين استهلاك العميل. أبقِ إعادة تعيين الاستهلاك المستقلة معطلة ما لم تكن تريد إعادة تعيين إضافية.",
+      "bulkAdjustSettings": "الحدود والإعدادات",
+      "bulkAppendLinks": "إضافة روابط خارجية",
+      "bulkAppendLinksHint": "تُضاف إلى كل العملاء المحددين. تُحفظ الروابط الحالية وإعداداتها وتُتخطى القيم المكررة من النوع نفسه. طبّق التعديلات الأخرى بشكل منفصل.",
+      "bulkAppendLinksRequired": "أضف رابطًا خارجيًا أو اشتراكًا واحدًا على الأقل.",
+      "externalLinkInvalid": "أدخل رابط مشاركة مدعومًا.",
+      "externalSubscriptionInvalid": "أدخل عنوان اشتراك باستخدام http أو https."
     },
     "groups": {
       "name": "الاسم",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "تمت إزالة {count} عميل من {name}."
     },
     "nodes": {
+      "restartXray": "إعادة تشغيل Xray",
+      "restartPanel": "إعادة تشغيل اللوحة",
+      "restartConfirmTitle": "إعادة تشغيل {name}؟",
+      "restartXrayContent": "سيتم قطع اتصالات Xray النشطة على هذه العقدة.",
+      "restartPanelContent": "ستتم إعادة تشغيل لوحة العقدة وخدمات الاشتراك وقد تتوقف مؤقتًا. يتطلب رمز API بصلاحية node-admin أو admin على العقدة.",
       "addNode": "إضافة نود",
       "editNode": "تحرير العقدة",
       "totalNodes": "إجمالي النودز",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "متوقف"
       },
       "toasts": {
+        "xrayRestarted": "تمت إعادة تشغيل Xray على العقدة.",
+        "panelRestartAccepted": "تم قبول طلب إعادة تشغيل اللوحة. قد تتوقف العقدة مؤقتًا.",
         "list": "فشل تحميل النودز",
         "obtain": "فشل تحميل النود",
         "add": "إضافة نود",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "مسار الاشتراك الافتراضي \"/sub/\" معروف — قم بتغييره.",
       "warnDefaultJsonPath": "مسار اشتراك JSON الافتراضي \"/json/\" معروف — قم بتغييره.",
       "TGBotSettings": "بوت تيليجرام",
+      "networkTrafficInterfaceTitle": "واجهة حركة مرور الشبكة",
+      "networkTrafficMode": "وضع مراقبة حركة الشبكة",
+      "networkTrafficDescription": "اختر الواجهة المستخدمة لإجمالي حركة النظام وسرعته. قد يحسب التجميع القديم حركة الواجهات المتراكبة مرتين. في Docker تتوفر فقط واجهات مساحة أسماء شبكة الحاوية.",
+      "networkTrafficLegacy": "كل الواجهات (قديم)",
+      "networkTrafficAutomatic": "تلقائي",
+      "networkTrafficManual": "يدوي",
+      "networkTrafficUnavailable": "واجهة الشبكة المحددة غير متاحة. اختر واجهة متاحة أو وضع مراقبة آخر.",
+      "networkTrafficAutoResolved": "واجهة المسار الافتراضي: {interface}",
+      "networkTrafficLoadError": "تعذر تحميل واجهات الشبكة.",
+      "networkTrafficEmpty": "لا تتوفر واجهات شبكة.",
+      "networkTrafficAutoUnavailable": "لا تتوفر واجهة للمسار الافتراضي. تبقى إحصاءات الحركة غير متاحة حتى استعادة الاكتشاف أو تغيير الوضع.",
       "panelListeningIP": "IP الاستماع",
       "panelListeningIPDesc": "عنوان IP للبانل. (سيبه فاضي عشان يستمع على كل الـ IPs)",
       "panelListeningDomain": "دومين الاستماع",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "استقبل إشعار بكل محاولة تسجيل دخول للبانل مع اسم المستخدم، الـ IP، والوقت.",
       "sessionMaxAge": "مدة الجلسة",
       "sessionMaxAgeDesc": "المدة اللي تفضل فيها مسجل دخول. (الوحدة: دقيقة)",
+      "publicIpRefresh": "تحديث الـ IP العام",
+      "publicIpRefreshDesc": "كل قد إيه اللوحة تعيد اكتشاف الـ IP العام عن طريق خدمات خارجية. 0 يعني تكتشفه مرة واحدة ومايتحدثش. (الوحدة: دقيقة)",
+      "publicIpv6Detect": "اكتشاف IPv6 العام",
+      "publicIpv6DetectDesc": "اقفله على السيرفرات اللي IPv4 بس عشان يتخطى كل عمليات البحث عن IPv6.",
+      "publicIpv4Override": "تجاوز IPv4 العام",
+      "publicIpv6Override": "تجاوز IPv6 العام",
+      "publicIpOverrideDesc": "استخدم العنوان ده بدل اكتشافه؛ مفيش أي طلبات خارجية له. سيبه فاضي للاكتشاف التلقائي.",
       "expireTimeDiff": "تنبيه بتاريخ الانتهاء",
       "expireTimeDiffDesc": "استقبل تنبيه قبل ما توصل لتاريخ الانتهاء بالمدة المحددة. (الوحدة: يوم)",
       "trafficDiff": "تنبيه حد الترافيك",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "اسم الدومين لخدمة الاشتراك. (سيبه فاضي عشان يستمع على كل الدومينات والـ IPs). كمان بيتستخدم كدومين افتراضي لرابط الاشتراك اللي بيظهر لو حقل «مسار البروكسي العكسي» فاضي — املا «مسار البروكسي العكسي» لو اللوحة والاشتراك بيتفتحوا من دومينات مختلفة (زي لما يكونوا ورا بروكسي عكسي).",
       "subUpdates": "فترات التحديث",
       "subUpdatesDesc": "فترات تحديث رابط الاشتراك في تطبيقات العملاء. (الوحدة: ساعة)",
+      "subRateLimitEnable": "تحديد معدل الاشتراكات",
+      "subRateLimitEnableDesc": "يحدد عدد مرات جلب عناوين الاشتراك لكل عنوان IP للعميل. الطلبات التي تتجاوز الحد تحصل على HTTP 429 مع تلميح Retry-After. نطاقات CIDR للبروكسي الموثوقة (الإعدادات العامة) تحدد العنوان الذي يُحتسب به العميل.",
+      "subRateLimit": "طلبات في الدقيقة",
+      "subRateLimitDesc": "الحد الأقصى لعدد عمليات جلب الاشتراك لكل عنوان IP للعميل في الدقيقة أثناء تشغيل التحديد.",
       "externalSubUserAgent": "User-Agent للاشتراك الخارجي",
       "externalSubUserAgentDesc": "ترويسة User-Agent عند جلب رابط الاشتراك الخارجي للعميل. اتركه فارغًا لاستخدام الافتراضي (v2rayNG/1.8.5). بعض المزودين يرفضون العملاء غير المعروفين.",
       "subEncrypt": "تشفير",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "استبدال الإعدادات عند رفض HWID",
+      "subHwidRejectWithConfigDesc": "إرجاع HTTP 200 مع عقدة غير عاملة بدلاً من 404 عند غياب HWID أو بلوغ حد الأجهزة. يمكن للتطبيقات المتوافقة استبدال العقد المحفوظة عند التحديث؛ وتبقى الإعدادات المنسوخة صالحة. حذف جهاز يحرر مكاناً لكنه لا يحظره نهائياً.",
       "subInfoNodeEnable": "تكوين معلومات منفصل / عقدة وهمية",
       "subInfoNodeEnableDesc": "عند التفعيل، يتم عرض الملاحظات وحركة المرور/الأيام المتبقية كتكوين SOCKS منفصل في الأعلى، وعند انتهاء الصلاحية أو نفاد البيانات يتم إرجاع تكوين الحالة فقط.",
       "subExpiredTemplate": "قالب انتهاء الصلاحية",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "ترتيب عقد الاشتراك",
       "subHostSortInbound": "ترتيب الاتصالات الواردة (الافتراضي)",
       "subHostSortHosts": "ترتيب المضيفين",
-      "subHostSortModeDesc": "يتبع ترتيب المضيفين صفحة المضيفين عبر جميع الاتصالات الواردة. يحدد هذا ترتيب مخرجات الخادم؛ وقد تطبق تطبيقات العميل ترتيبًا آخر."
+      "subHostSortModeDesc": "يتبع ترتيب المضيفين صفحة المضيفين عبر جميع الاتصالات الواردة. يحدد هذا ترتيب مخرجات الخادم؛ وقد تطبق تطبيقات العميل ترتيبًا آخر.",
+      "wechatSettings": "إشعارات WeChat",
+      "wechatEnable": "تفعيل إشعارات WeChat",
+      "wechatEnableDesc": "إرسال تنبيهات عبر روبوت مجموعة WeCom أو بوابة webhook متوافقة.",
+      "wechatMode": "طريقة الإرسال",
+      "wechatModeDesc": "اختر تنسيق الرسائل الذي تدعمه الوجهة.",
+      "wechatModeWecom": "روبوت مجموعة WeCom",
+      "wechatModeWebhook": "بوابة webhook مخصصة",
+      "wechatPersonalGateway": "يتطلب WeChat الشخصي بوابة متوافقة. يرسل روبوت WeCom إلى مجموعات WeCom وليس مباشرة إلى WeChat الشخصي.",
+      "wechatWebhookURL": "عنوان webhook",
+      "wechatWebhookURLConfigured": "تم حفظ العنوان. اترك الحقل فارغًا للاحتفاظ به.",
+      "wechatWebhookURLDesc": "استخدم وجهة HTTPS. قد يحتوي العنوان على سر ولا تعيد اللوحة القيمة المحفوظة.",
+      "wechatSecretPlaceholder": "اتركه فارغًا للاحتفاظ بالقيمة المحفوظة",
+      "wechatToken": "رمز Bearer",
+      "wechatTokenConfigured": "تم حفظ الرمز. اترك الحقل فارغًا للاحتفاظ به.",
+      "wechatTokenDesc": "مصادقة اختيارية للبوابة. اتركه فارغًا إذا لم تكن مطلوبة.",
+      "wechatLanguage": "لغة الرسائل",
+      "wechatSaveBeforeTest": "احفظ التغييرات قبل الاختبار. يستخدم الاختبار الإعدادات المحفوظة.",
+      "wechatTest": "إرسال إشعار تجريبي",
+      "wechatTestSuccess": "تم إرسال الإشعار التجريبي بنجاح",
+      "wechatTestFailed": "تعذر إرسال الإشعار التجريبي",
+      "wechatReportEnable": "تقارير مجدولة",
+      "wechatReportEnableDesc": "إرسال ملخصات نصية دورية مستقلة عن التنبيهات. لا تُرفق قواعد البيانات أو ملفات الإعداد.",
+      "wechatReportTime": "جدول التقارير",
+      "wechatReportTimeDesc": "استخدم تعبير cron أو إعدادًا مثل @daily.",
+      "wechatEvents": "تنبيهات الأحداث",
+      "wechatEventsDesc": "اختر الأحداث التي ترسل إشعارات واضبط حدود التنبيه."
     },
     "xray": {
       "save": "احفظ",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "IP محلي",
         "dialerProxyPlaceholder": "اختر مخرجًا لتمرير الاتصال عبره",
         "dialerProxyHint": "وجّه هذا المخرج عبر مخرج آخر (حسب الوسم) لبناء سلسلة بروكسي. اتركه فارغًا للاتصال المباشر.",
+        "dialerProxyMissing": "لا يوجد مخرج بهذا الوسم متاح لربطه في السلسلة.",
         "targetStrategyHint": "كيفية حلّ نطاق الوجهة قبل الاتصال: AsIs (الافتراضي) يرسله كما هو، UseIP… يحلّه مع الرجوع عند الفشل، ForceIP… يشترط نجاح الحلّ.",
         "addressRequired": "العنوان مطلوب",
         "portRequired": "المنفذ مطلوب",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. اشتراك JSON",
       "qrLegendLink": "{{ .Code }}. رابط التطبيق {{ .App }}",
       "backupFailed": "فشل قراءة قاعدة البيانات؛ لم يُرسل أي نسخة احتياطية.",
-      "privateOnly": "🤖 يعمل هذا البوت في المحادثة الخاصة فقط. يرجى فتحه في رسالة مباشرة."
+      "privateOnly": "🤖 يعمل هذا البوت في المحادثة الخاصة فقط. يرجى فتحه في رسالة مباشرة.",
+      "chooseOneConfig": "👇 أي إعداد تريد؟",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>دليل الإعداد</b>\nاختر الجهاز الذي تريد إعداده.",
+      "guideIos": "🍎 <b>آيفون / آيباد</b>\n1. ثبّت <b>Streisand</b> أو <b>V2Box</b> من App Store.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق اضغط <b>+</b> ثم <b>Add from clipboard</b>.\n4. اسحب للأسفل للتحديث ثم اتصل.",
+      "guideAndroid": "🤖 <b>أندرويد</b>\n1. ثبّت <b>v2rayNG</b> أو <b>Hiddify</b> من Google Play.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق اضغط <b>+</b> ثم <b>Import from clipboard</b>.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideWindows": "🪟 <b>ويندوز</b>\n1. ثبّت <b>Hiddify</b> أو <b>v2rayN</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideMacos": "💻 <b>ماك</b>\n1. ثبّت <b>Hiddify</b> أو <b>V2Box</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل.",
+      "guideLinux": "🐧 <b>لينكس</b>\n1. ثبّت <b>Hiddify</b> (AppImage) أو <b>Nekoray</b>.\n2. افتح صفحة روابط الاشتراك في هذا البوت وانسخ رابط اشتراكك.\n3. في التطبيق أضف اشتراكًا والصق الرابط.\n4. حدّث الاشتراك واختر خادمًا ثم اتصل."
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 بث",
       "attachInbound": "إرفاق مدخل ({{ .Count }})",
-      "attachDone": "✅ تم"
+      "attachDone": "✅ تم",
+      "getOneConfig": "🎯 الحصول على واحد",
+      "setupGuide": "📖 دليل الإعداد",
+      "guideIos": "🍎 آيفون / آيباد",
+      "guideAndroid": "🤖 أندرويد",
+      "guideWindows": "🪟 ويندوز",
+      "guideMacos": "💻 ماك",
+      "guideLinux": "🐧 لينكس"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "دليل الإعداد"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "إعادة تشغيل خدمة Xray",
     "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح",
     "settings": "الإعدادات"
+  },
+  "wechat": {
+    "test": {
+      "title": "اختبار إشعارات WeChat من 3x-ui",
+      "body": "هذا إشعار تجريبي من 3x-ui. لا يتضمن أي ملفات لقاعدة البيانات أو الإعدادات."
+    },
+    "report": {
+      "title": "تقرير حالة 3x-ui",
+      "counts": "الإجمالي: {{ .Total }} | معطل: {{ .Disabled }} | منتهي الصلاحية: {{ .Expired }} | مستنفد: {{ .Depleted }}",
+      "trafficUsed": "حركة البيانات المستخدمة في 3x-ui",
+      "trafficRemaining": "حركة البيانات المتبقية في 3x-ui",
+      "trafficQuotaUnset": "لم يتم إعداد الحصة"
+    }
   }
 }

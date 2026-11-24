@@ -128,7 +128,11 @@
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
     "unpinSidebar": "Desafixar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeUltraDark": "Ultra escuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Manter as configurações desta máquina",
-      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado.",
+      "importKeepHostSettingsDesc": "Mantém os endereços de escuta, as portas, o caminho base, os certificados e a identidade de nó deste painel em vez de obtê-los do arquivo enviado. A seleção da interface de tráfego de rede também é preservada.",
       "logLines": "Número de linhas",
       "timeRange": "Intervalo de tempo"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Importar um Inbound",
       "periodicTrafficResetTitle": "Reset de Tráfego",
       "periodicTrafficResetDay": "Dia da redefinição mensal",
+      "preserveClientTraffic": "Manter o consumo dos clientes",
+      "preserveClientTrafficHelp": "Com a opção ativada, a redefinição agendada zera apenas os contadores de tráfego desta entrada. Cada cliente mantém o consumo acumulado em todos os nós até a sua própria redefinição agendada.\n\nCom a opção desativada, a redefinição agendada desta entrada também zera o consumo acumulado em todos os nós pelos clientes vinculados a ela.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -604,6 +610,7 @@
         "streamUpServer": "Stream-Up Server",
         "serverMaxHeaderBytes": "Máx. bytes cabeçalho servidor",
         "paddingBytes": "Bytes de Padding",
+        "separateDownload": "Usar canal de download separado",
         "uplinkHttpMethod": "Método HTTP Uplink",
         "paddingObfsMode": "Modo obfs de Padding",
         "paddingKey": "Padding Key",
@@ -809,6 +816,17 @@
       "tabBasics": "Básico",
       "tabCredentials": "Credenciais",
       "tabLinks": "Links",
+      "wgDevices": {
+        "title": "Dispositivos WireGuard",
+        "limit": "Limite de dispositivos",
+        "primary": "Dispositivo principal",
+        "enabled": "Ativado",
+        "subscription": "Copiar assinatura",
+        "deleteConfirm": "Excluir este dispositivo e liberar seu endereço?",
+        "remove": "Excluir",
+        "name": "Nome do dispositivo",
+        "add": "Adicionar dispositivo"
+      },
       "wireguardConfig": "Configuração do WireGuard",
       "config": "Configuração",
       "linksHint": "Adicione links de terceiros e URLs de assinatura remotas para incluir na assinatura deste cliente.",
@@ -856,6 +874,7 @@
       "has": "Tem",
       "hasNot": "Não tem",
       "actions": "Ações",
+      "columns": "Colunas",
       "totalGB": "Limite de tráfego (GB)",
       "totalGBDesc": "Cota de dados para este cliente. 0 = ilimitado.",
       "expiryTime": "Expiração",
@@ -873,7 +892,13 @@
       "deleteHwid": "Remover dispositivo",
       "deleteHwidConfirm": "Remover este dispositivo? Ele precisará se registrar novamente na próxima busca da assinatura.",
       "hwidDeleted": "Dispositivo removido.",
-      "clearHwidsConfirm": "Remover todos os dispositivos registrados? Cada dispositivo precisará se registrar novamente na próxima busca da assinatura.",
+      "blockHwid": "Bloquear",
+      "unblockHwid": "Desbloquear",
+      "hwidBlocked": "Bloqueado",
+      "blockHwidConfirm": "Impedir este dispositivo de obter esta assinatura?",
+      "unblockHwidConfirm": "Permitir que este dispositivo obtenha esta assinatura novamente?",
+      "hwidBlockHint": "O bloqueio de dispositivos vale para esta assinatura mesmo com limite HWID 0. Limpar a lista mantém os bloqueios.",
+      "clearHwidsConfirm": "Remover todos os dispositivos não bloqueados? Eles se registrarão novamente na próxima busca da assinatura. Dispositivos bloqueados continuarão bloqueados.",
       "limitIpFail2banMissing": "O Fail2ban não está instalado, portanto o limite de IP não pode ser aplicado. Instale o Fail2ban pelo menu bash do x-ui para ativar esta opção.",
       "limitIpFail2banWindows": "O Fail2ban não está disponível no Windows, portanto o limite de IP não pode ser aplicado.",
       "limitIpDisabled": "O recurso de limite de IP está desativado neste servidor.",
@@ -1037,7 +1062,8 @@
         "delDepleted": "{count} clientes esgotados excluídos",
         "delOrphans": "{count} clientes sem inbound excluídos",
         "imported": "{count} clientes importados",
-        "importedMixed": "{ok} importados, {failed} ignorados"
+        "importedMixed": "{ok} importados, {failed} ignorados",
+        "bulkLinksAppended": "{clients} clientes atualizados: {added} adicionados, {skipped} duplicados ignorados, {errors} clientes não encontrados."
       },
       "renewMax": "Renovações máximas",
       "renewMaxDesc": "Quantas vezes a renovação automática pode ocorrer antes de o cliente ser deixado a expirar. 0 significa sem limite. Recuperar vários períodos perdidos consome uma renovação por período.",
@@ -1065,7 +1091,13 @@
       "renewsUsed": "Renovações usadas",
       "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
       "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
-      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
+      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
+      "bulkAdjustSettings": "Limites e configurações",
+      "bulkAppendLinks": "Adicionar links externos",
+      "bulkAppendLinksHint": "Adiciona a todos os clientes selecionados. Preserva as entradas e configurações existentes; ignora pares de tipo e valor duplicados. Aplique outros ajustes separadamente.",
+      "bulkAppendLinksRequired": "Adicione pelo menos um link ou assinatura externa.",
+      "externalLinkInvalid": "Insira um link de compartilhamento compatível.",
+      "externalSubscriptionInvalid": "Insira uma URL de assinatura http(s)."
     },
     "groups": {
       "name": "Nome",
@@ -1109,6 +1141,11 @@
       "removeFromGroupResult": "Removidos {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar painel",
+      "restartConfirmTitle": "Reiniciar {name}?",
+      "restartXrayContent": "As conexões Xray ativas neste nó serão interrompidas.",
+      "restartPanelContent": "O painel e os serviços de assinatura do nó serão reiniciados e poderão ficar indisponíveis temporariamente. Requer um token de API node-admin ou admin no nó.",
       "addNode": "Adicionar nó",
       "editNode": "Editar nó",
       "totalNodes": "Total de nós",
@@ -1178,6 +1215,8 @@
         "xrayStopped": "Parado"
       },
       "toasts": {
+        "xrayRestarted": "Xray reiniciado no nó.",
+        "panelRestartAccepted": "Solicitação de reinício do painel aceita. O nó poderá ficar indisponível temporariamente.",
         "list": "Falha ao carregar os nós",
         "obtain": "Falha ao carregar o nó",
         "add": "Adicionar nó",
@@ -1241,6 +1280,17 @@
       "warnDefaultSubPath": "O caminho de assinatura padrão \"/sub/\" é bem conhecido — altere-o.",
       "warnDefaultJsonPath": "O caminho de assinatura JSON padrão \"/json/\" é bem conhecido — altere-o.",
       "TGBotSettings": "Bot do Telegram",
+      "networkTrafficInterfaceTitle": "Interface de tráfego de rede",
+      "networkTrafficMode": "Modo de tráfego de rede",
+      "networkTrafficDescription": "Selecione a interface usada nos totais e na velocidade do tráfego do sistema. A agregação antiga pode contar duas vezes o tráfego de interfaces sobrepostas. No Docker, apenas interfaces do namespace de rede do contêiner estão disponíveis.",
+      "networkTrafficLegacy": "Todas as interfaces (Legado)",
+      "networkTrafficAutomatic": "Automático",
+      "networkTrafficManual": "Manual",
+      "networkTrafficUnavailable": "A interface de rede selecionada está indisponível. Escolha uma interface disponível ou outro modo de monitoramento.",
+      "networkTrafficAutoResolved": "Interface da rota padrão: {interface}",
+      "networkTrafficLoadError": "Não foi possível carregar as interfaces de rede.",
+      "networkTrafficEmpty": "Nenhuma interface de rede disponível.",
+      "networkTrafficAutoUnavailable": "Nenhuma interface de rota padrão disponível. As métricas de tráfego ficam indisponíveis até a recuperação da detecção ou a mudança do modo.",
       "panelListeningIP": "IP de Escuta",
       "panelListeningIPDesc": "O endereço IP para o painel web. (deixe em branco para escutar em todos os IPs)",
       "panelListeningDomain": "Domínio de Escuta",
@@ -1296,6 +1346,13 @@
       "tgNotifyLoginDesc": "Receba notificações sobre o nome de usuário, endereço IP e horário sempre que alguém tentar fazer login no seu painel web.",
       "sessionMaxAge": "Duração da Sessão",
       "sessionMaxAgeDesc": "A duração pela qual você pode permanecer logado. (unidade: minuto)",
+      "publicIpRefresh": "Atualização do IP público",
+      "publicIpRefreshDesc": "Com que frequência o painel detecta novamente seu IP público por serviços externos. 0 detecta uma vez e nunca atualiza. (unidade: minuto)",
+      "publicIpv6Detect": "Detectar IPv6 público",
+      "publicIpv6DetectDesc": "Desative em servidores apenas IPv4 para ignorar todas as consultas IPv6.",
+      "publicIpv4Override": "IPv4 público manual",
+      "publicIpv6Override": "IPv6 público manual",
+      "publicIpOverrideDesc": "Usa este endereço em vez de detectá-lo; nenhuma consulta externa é feita para ele. Deixe vazio para detectar.",
       "expireTimeDiff": "Notificação de Expiração",
       "expireTimeDiffDesc": "Receba notificações sobre a data de expiração ao atingir esse limite. (unidade: dia)",
       "trafficDiff": "Notificação de Limite de Tráfego",
@@ -1376,6 +1433,10 @@
       "subDomainDesc": "O nome de domínio para o serviço de assinatura. (deixe em branco para escutar em todos os domínios e IPs). Também é usado como domínio de fallback para o link de assinatura exibido quando \"URI de Proxy Reverso\" estiver vazio — configure \"URI de Proxy Reverso\" se o painel e a assinatura forem acessados por domínios diferentes (por exemplo, atrás de um proxy reverso).",
       "subUpdates": "Intervalos de Atualização",
       "subUpdatesDesc": "Os intervalos de atualização da URL de assinatura nos aplicativos de cliente. (unidade: hora)",
+      "subRateLimitEnable": "Limite de taxa de assinaturas",
+      "subRateLimitEnableDesc": "Limita a frequência com que cada IP de cliente pode buscar URLs de assinatura. Solicitações acima do limite recebem HTTP 429 com uma dica Retry-After. Os CIDRs de proxy confiáveis (configurações gerais) definem por qual endereço um cliente é contado.",
+      "subRateLimit": "Solicitações por minuto",
+      "subRateLimitDesc": "O número máximo de buscas de assinatura por IP de cliente e minuto enquanto o limite estiver ativo.",
       "externalSubUserAgent": "User-Agent de assinatura externa",
       "externalSubUserAgentDesc": "Cabeçalho User-Agent ao buscar a URL de assinatura externa do cliente. Deixe em branco para usar o padrão (v2rayNG/1.8.5). Alguns provedores rejeitam clientes desconhecidos.",
       "subEncrypt": "Codificar",
@@ -1647,6 +1708,8 @@
       },
       "subCalendarExpireInclusive": "Month-end subscription expiry display",
       "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
+      "subHwidRejectWithConfig": "Substituir configurações quando o HWID for rejeitado",
+      "subHwidRejectWithConfigDesc": "Retornar HTTP 200 com um nó sem conexão em vez de 404 quando faltar o HWID ou o limite de dispositivos for atingido. Aplicativos compatíveis podem substituir os nós salvos ao atualizar; configurações copiadas continuam válidas. Excluir um dispositivo libera uma vaga, mas não o bloqueia permanentemente.",
       "subInfoNodeEnable": "Configuração de informações separada / Nó fictício",
       "subInfoNodeEnableDesc": "Quando ativado, observações e tráfego/dias restantes são exibidos em uma configuração SOCKS fictícia no topo, e assinaturas expiradas/esgotadas retornam apenas o status.",
       "subExpiredTemplate": "Modelo expirado",
@@ -1859,7 +1922,33 @@
       "subHostSortMode": "Ordem dos nós da assinatura",
       "subHostSortInbound": "Ordem das entradas (padrão)",
       "subHostSortHosts": "Ordem dos hosts",
-      "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação."
+      "subHostSortModeDesc": "Segue a ordem da página de hosts entre diferentes entradas. Define a ordem emitida pelo servidor; os aplicativos clientes podem aplicar sua própria ordenação.",
+      "wechatSettings": "Notificações do WeChat",
+      "wechatEnable": "Ativar notificações do WeChat",
+      "wechatEnableDesc": "Envie alertas por um robô de grupo do WeCom ou gateway webhook compatível.",
+      "wechatMode": "Modo de envio",
+      "wechatModeDesc": "Escolha o formato aceito pelo destino.",
+      "wechatModeWecom": "Robô de grupo do WeCom",
+      "wechatModeWebhook": "Gateway webhook personalizado",
+      "wechatPersonalGateway": "O WeChat pessoal exige um gateway compatível. O robô do WeCom envia para grupos do WeCom, não diretamente ao WeChat pessoal.",
+      "wechatWebhookURL": "URL do webhook",
+      "wechatWebhookURLConfigured": "Uma URL está salva. Deixe em branco para mantê-la.",
+      "wechatWebhookURLDesc": "Use um destino HTTPS. A URL pode conter um segredo e o painel não retorna o valor salvo.",
+      "wechatSecretPlaceholder": "Deixe em branco para manter o valor salvo",
+      "wechatToken": "Token Bearer",
+      "wechatTokenConfigured": "Um token está salvo. Deixe em branco para mantê-lo.",
+      "wechatTokenDesc": "Autenticação opcional do gateway. Deixe em branco se não for necessária.",
+      "wechatLanguage": "Idioma das mensagens",
+      "wechatSaveBeforeTest": "Salve as alterações antes de testar. O teste usa a configuração salva.",
+      "wechatTest": "Enviar notificação de teste",
+      "wechatTestSuccess": "Notificação de teste enviada com sucesso",
+      "wechatTestFailed": "Falha ao enviar notificação de teste",
+      "wechatReportEnable": "Relatórios agendados",
+      "wechatReportEnableDesc": "Envie resumos de texto periódicos separados dos alertas. Não anexa bancos de dados ou arquivos de configuração.",
+      "wechatReportTime": "Agendamento do relatório",
+      "wechatReportTimeDesc": "Use uma expressão cron ou uma opção como @daily.",
+      "wechatEvents": "Alertas de eventos",
+      "wechatEventsDesc": "Escolha os eventos que enviam notificações e os limites de alerta."
     },
     "xray": {
       "importRules": "Importar regras",
@@ -2008,6 +2097,7 @@
         "localIpPlaceholder": "IP local",
         "dialerProxyPlaceholder": "Selecione uma saída para encadear",
         "dialerProxyHint": "Conecte esta saída através de outra saída (por tag) para criar uma cadeia de proxy. Deixe vazio para conectar diretamente.",
+        "dialerProxyMissing": "Nenhuma saída com esta tag está disponível para encadear.",
         "targetStrategyHint": "Como o domínio de destino é resolvido antes de conectar: AsIs (padrão) envia sem resolver, UseIP… resolve com fallback, ForceIP… exige resolução.",
         "addressRequired": "Endereço é obrigatório",
         "portRequired": "Porta é obrigatória",
@@ -2650,7 +2740,15 @@
       "qrLegendJSON": "{{ .Code }}. Assinatura JSON",
       "qrLegendLink": "{{ .Code }}. Link do app {{ .App }}",
       "backupFailed": "Não foi possível ler o banco de dados; nenhum backup foi enviado.",
-      "privateOnly": "🤖 Este bot funciona apenas no chat privado. Abra-o em uma mensagem direta."
+      "privateOnly": "🤖 Este bot funciona apenas no chat privado. Abra-o em uma mensagem direta.",
+      "chooseOneConfig": "👇 Qual config você quer?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\n📅 {{ .Expiry }}\n📊 {{ .Remaining }}",
+      "guideChoose": "📖 <b>Guia de instalação</b>\nEscolha o dispositivo que quer configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\n1. Instale <b>Streisand</b> ou <b>V2Box</b> pela App Store.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, toque em <b>+</b> → <b>Add from clipboard</b>.\n4. Puxe para baixo para atualizar e conecte.",
+      "guideAndroid": "🤖 <b>Android</b>\n1. Instale <b>v2rayNG</b> ou <b>Hiddify</b> pelo Google Play.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, toque em <b>+</b> → <b>Import from clipboard</b>.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideWindows": "🪟 <b>Windows</b>\n1. Instale <b>Hiddify</b> ou <b>v2rayN</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideMacos": "💻 <b>macOS</b>\n1. Instale <b>Hiddify</b> ou <b>V2Box</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideLinux": "🐧 <b>Linux</b>\n1. Instale <b>Hiddify</b> (AppImage) ou <b>Nekoray</b>.\n2. Abra a página de links de assinatura neste bot e copie sua URL.\n3. No app, adicione uma assinatura e cole a URL.\n4. Atualize a assinatura, escolha um servidor e conecte."
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
@@ -2710,7 +2808,14 @@
       "qrCode": "🔳 QR code",
       "broadcast": "📢 Transmissão",
       "attachInbound": "Anexar inbound ({{ .Count }})",
-      "attachDone": "✅ Concluído"
+      "attachDone": "✅ Concluído",
+      "getOneConfig": "🎯 Obter um",
+      "setupGuide": "📖 Guia de instalação",
+      "guideIos": "🍎 iPhone / iPad",
+      "guideAndroid": "🤖 Android",
+      "guideWindows": "🪟 Windows",
+      "guideMacos": "💻 macOS",
+      "guideLinux": "🐧 Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Transmissão iniciada.",
@@ -2754,7 +2859,8 @@
       "onlines": "Online",
       "deplete": "Running out",
       "commands": "Commands",
-      "broadcast": "Broadcast"
+      "broadcast": "Broadcast",
+      "guide": "Guia de instalação"
     },
     "inline": {
       "noneTitle": "Nothing found",
@@ -2874,5 +2980,18 @@
     "restartXray": "Reiniciar serviço Xray",
     "restartXraySuccess": "O serviço Xray foi reiniciado com sucesso",
     "settings": "Configurações"
+  },
+  "wechat": {
+    "test": {
+      "title": "Teste de notificação WeChat do 3x-ui",
+      "body": "Esta é uma notificação de teste do 3x-ui. Nenhum arquivo de banco de dados ou configuração está incluído."
+    },
+    "report": {
+      "title": "Relatório de status do 3x-ui",
+      "counts": "Total: {{ .Total }} | Desativados: {{ .Disabled }} | Expirados: {{ .Expired }} | Esgotados: {{ .Depleted }}",
+      "trafficUsed": "Tráfego usado do 3x-ui",
+      "trafficRemaining": "Tráfego restante do 3x-ui",
+      "trafficQuotaUnset": "Cota não configurada"
+    }
   }
 }
