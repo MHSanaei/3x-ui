@@ -856,6 +856,7 @@
       "has": "擁有",
       "hasNot": "不擁有",
       "actions": "操作",
+      "columns": "欄位",
       "totalGB": "流量上限 (GB)",
       "totalGBDesc": "該客戶端的流量配額。0 = 不限制。",
       "expiryTime": "到期時間",
