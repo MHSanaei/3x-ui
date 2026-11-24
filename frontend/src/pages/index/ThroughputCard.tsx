@@ -7,6 +7,8 @@ import { SizeFormatter } from '@/utils';
 import { Sparkline } from '@/components/viz';
 import type { Status } from '@/models/status';
 import { mean, peak } from './useOverviewHistory';
+import OverviewRangeSelect from './OverviewRangeSelect';
+import type { OverviewRange } from './OverviewRangeSelect';
 
 interface ThroughputCardProps {
   status: Status;
@@ -14,6 +16,8 @@ interface ThroughputCardProps {
   down: number[];
   labels: string[];
   isMobile: boolean;
+  range: OverviewRange;
+  onRangeChange: (range: OverviewRange) => void;
 }
 
 export default function ThroughputCard({
@@ -22,6 +26,8 @@ export default function ThroughputCard({
   down,
   labels,
   isMobile,
+  range,
+  onRangeChange,
 }: ThroughputCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -38,7 +44,7 @@ export default function ThroughputCard({
   );
 
   return (
-    <Card hoverable styles={{ body: { padding: 0 } }}>
+    <Card hoverable className="ov-wide-card" styles={{ body: { padding: 0 } }}>
       {!available && (
         <Alert
           type="warning"
@@ -77,6 +83,9 @@ export default function ThroughputCard({
         </div>
       </div>
 
+      <div className="ov-range-toolbar">
+        <OverviewRangeSelect value={range} onChange={onRangeChange} />
+      </div>
       <div className="ov-wide-chart">
         <Sparkline
           data={available ? up : []}

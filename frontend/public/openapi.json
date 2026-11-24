@@ -7255,7 +7255,7 @@
             "name": "bucket",
             "in": "path",
             "required": true,
-            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
             "schema": {
               "type": "integer"
             }
@@ -7289,14 +7289,14 @@
         "tags": [
           "Server"
         ],
-        "summary": "Aggregated time-series for one metric. Returns an array of {t, v} samples covering the last ~6 hours.",
+        "summary": "Aggregated time-series for one system metric. Returns up to 60 {t, v} samples; supported bucket sizes cover windows from 2 minutes up to 7 days.",
         "operationId": "get_panel_api_server_history_metric_bucket",
         "parameters": [
           {
             "name": "metric",
             "in": "path",
             "required": true,
-            "description": "cpu | mem | netUp | netDown | online | load1 | load5 | load15.",
+            "description": "cpu | mem | swap | netUp | netDown | pktUp | pktDown | diskRead | diskWrite | diskUsage | tcpCount | udpCount | online | load1 | load5 | load15.",
             "schema": {
               "type": "string"
             }
@@ -7305,7 +7305,7 @@
             "name": "bucket",
             "in": "path",
             "required": true,
-            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
             "schema": {
               "type": "integer"
             }
@@ -7340,6 +7340,47 @@
                       "v": 13.1
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/overviewHistory/{bucket}": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Aggregated history for all overview charts in one response: up to 60 {t, v} samples for each of cpu, mem, swap, diskUsage, netUp, netDown, tcpCount and udpCount.",
+        "operationId": "get_panel_api_server_overviewHistory_bucket",
+        "parameters": [
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
                 }
               }
             }
@@ -7382,7 +7423,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Time-series history for one Xray runtime metric over the last ~6 hours. Same {t, v} shape as /history/:metric/:bucket.",
+        "summary": "Aggregated history for one Xray runtime metric. Returns up to 60 {t, v} samples for bucket windows up to 7 days.",
         "operationId": "get_panel_api_server_xrayMetricsHistory_metric_bucket",
         "parameters": [
           {
@@ -7398,7 +7439,7 @@
             "name": "bucket",
             "in": "path",
             "required": true,
-            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
             "schema": {
               "type": "integer"
             }
@@ -7478,7 +7519,7 @@
             "name": "bucket",
             "in": "path",
             "required": true,
-            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
             "schema": {
               "type": "integer"
             }
@@ -13669,7 +13710,7 @@
             "name": "bucket",
             "in": "path",
             "required": true,
-            "description": "Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.",
+            "description": "Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.",
             "schema": {
               "type": "integer"
             }
