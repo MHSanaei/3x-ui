@@ -14,6 +14,7 @@ interface SubPageData {
   subUrl?: string;
   subJsonUrl?: string;
   subClashUrl?: string;
+  subFormat?: 'raw' | 'json' | 'clash';
   subTitle?: string;
   subSupportUrl?: string;
   subUpdates?: number;

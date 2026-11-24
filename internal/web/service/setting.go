@@ -35,7 +35,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo|rabbit-hole)`
 	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
@@ -53,15 +53,17 @@ const (
 )
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig": xrayTemplateConfig,
-	"webListen":          "",
-	"webDomain":          "",
-	"webPort":            "2053",
-	"webCertFile":        "",
-	"webKeyFile":         "",
-	"secret":             random.Seq(32),
-	"panelGuid":          uuid.NewString(),
-	"apiToken":           "",
+	"networkTrafficMode":      "legacy",
+	"networkTrafficInterface": "",
+	"xrayTemplateConfig":      xrayTemplateConfig,
+	"webListen":               "",
+	"webDomain":               "",
+	"webPort":                 "2053",
+	"webCertFile":             "",
+	"webKeyFile":              "",
+	"secret":                  random.Seq(32),
+	"panelGuid":               uuid.NewString(),
+	"apiToken":                "",
 	// Node mTLS material (opt-in). All default empty: the CA + master client
 	// cert are minted lazily on first use, and the node-side trust CA is pasted
 	// in by the operator. Kept out of entity.AllSetting so private keys never
@@ -1706,6 +1708,10 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	preserveTrafficSelection := allSetting.NetworkTrafficMode == ""
+	if err := validateNetworkTrafficSettings(allSetting); err != nil {
+		return err
+	}
 	switch allSetting.SubHostSortMode {
 	case "":
 		allSetting.SubHostSortMode = "inbound-first"
@@ -1755,11 +1761,26 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 			return err
 		}
 		byKey := make(map[string]*model.Setting, len(existing))
+		currentTraffic := networkTrafficConfig{}
 		for _, st := range existing {
 			byKey[st.Key] = st
+			switch st.Key {
+			case "networkTrafficMode":
+				currentTraffic.mode = st.Value
+			case "networkTrafficInterface":
+				currentTraffic.iface = st.Value
+			}
+		}
+		if err := validateNetworkTrafficInterfaceChange(allSetting, currentTraffic); err != nil {
+			return err
 		}
 		for _, field := range fields {
 			key := field.Tag.Get("json")
+			// Older clients omit this pair; skipping its writes also preserves
+			// explicit selections committed concurrently with an unrelated save.
+			if preserveTrafficSelection && (key == "networkTrafficMode" || key == "networkTrafficInterface") {
+				continue
+			}
 			fieldV := v.FieldByName(field.Name)
 			value := fmt.Sprint(fieldV.Interface())
 			if st, ok := byKey[key]; ok {

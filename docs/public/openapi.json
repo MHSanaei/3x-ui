@@ -152,6 +152,19 @@
           "ldapVlessField": {
             "type": "string"
           },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
+            "type": "string"
+          },
           "nodeDownThreshold": {
             "maximum": 100,
             "minimum": 1,
@@ -671,6 +684,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
@@ -970,6 +985,19 @@
             "type": "string"
           },
           "ldapVlessField": {
+            "type": "string"
+          },
+          "networkTrafficInterface": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "networkTrafficMode": {
+            "enum": [
+              "legacy",
+              "auto",
+              "manual"
+            ],
+            "example": "legacy",
             "type": "string"
           },
           "nodeDownThreshold": {
@@ -1499,6 +1527,8 @@
           "ldapUserAttr",
           "ldapUserFilter",
           "ldapVlessField",
+          "networkTrafficInterface",
+          "networkTrafficMode",
           "nodeDownThreshold",
           "outboundDownThreshold",
           "pageSize",
@@ -1775,6 +1805,73 @@
         },
         "required": [
           "code"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustReport": {
+        "properties": {
+          "email": {
+            "example": "carol",
+            "type": "string"
+          },
+          "reason": {
+            "example": "client not found",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "BulkAdjustResult": {
+        "description": "BulkAdjustResult reports changed clients and per-client skip reasons.\nExternalLinks contains row counts only for append requests.",
+        "properties": {
+          "adjusted": {
+            "example": 2,
+            "type": "integer"
+          },
+          "externalLinks": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BulkExternalLinksResult"
+              }
+            ],
+            "nullable": true
+          },
+          "skipped": {
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/BulkAdjustReport"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "adjusted"
+        ],
+        "type": "object"
+      },
+      "BulkExternalLinksResult": {
+        "properties": {
+          "added": {
+            "example": 4,
+            "type": "integer"
+          },
+          "errors": {
+            "example": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "errors",
+          "skipped"
         ],
         "type": "object"
       },
@@ -2586,6 +2683,40 @@
         ],
         "type": "object"
       },
+      "ExternalLinkInput": {
+        "description": "ExternalLinkInput is one row from the client form's Links tab.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "example": "link",
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "example": "Backup",
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
       "FallbackParentInfo": {
         "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
         "properties": {
@@ -3274,6 +3405,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "preserveClientTraffic": {
+            "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+            "nullable": true,
+            "type": "boolean"
+          },
           "protocol": {
             "enum": [
               "vmess",
@@ -3664,6 +3800,72 @@
           "msg",
           "obj",
           "success"
+        ],
+        "type": "object"
+      },
+      "NetworkInterfaceOption": {
+        "properties": {
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "up": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "up"
+        ],
+        "type": "object"
+      },
+      "NetworkInterfacesResponse": {
+        "properties": {
+          "automatic": {
+            "example": "eth0",
+            "type": "string"
+          },
+          "automaticError": {
+            "type": "string"
+          },
+          "interfaces": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterfaceOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "automatic",
+          "automaticError",
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "NetworkTrafficSelection": {
+        "properties": {
+          "available": {
+            "example": true,
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "mode": {
+            "example": "manual",
+            "type": "string"
+          },
+          "name": {
+            "example": "eth0",
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "error",
+          "mode",
+          "name"
         ],
         "type": "object"
       },
@@ -4806,6 +5008,99 @@
         ],
         "type": "object"
       },
+      "Status": {
+        "description": "Status represents comprehensive system and application status information.\nIt includes CPU, memory, disk, network statistics, and Xray process status.",
+        "properties": {
+          "amneziawg": {
+            "description": "AmneziaWG gates the overview's AmneziaWG log view: Configured stays true\nwhile an inbound exists but its embedded interface isn't up yet, which\nis exactly when that view's event lines are worth reading."
+          },
+          "appStats": {},
+          "cpu": {
+            "type": "number"
+          },
+          "cpuCores": {
+            "type": "integer"
+          },
+          "cpuSpeedMhz": {
+            "type": "number"
+          },
+          "disk": {},
+          "diskIO": {},
+          "diskTraffic": {},
+          "loads": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "logicalPro": {
+            "type": "integer"
+          },
+          "mem": {},
+          "netIO": {},
+          "netTraffic": {},
+          "networkInterface": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NetworkTrafficSelection"
+              }
+            ],
+            "nullable": true
+          },
+          "panelGuid": {
+            "type": "string"
+          },
+          "panelVersion": {
+            "type": "string"
+          },
+          "publicIP": {},
+          "resourceScope": {
+            "type": "string"
+          },
+          "swap": {},
+          "tcpCount": {
+            "type": "integer"
+          },
+          "udpCount": {
+            "type": "integer"
+          },
+          "unavailableMetrics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uptime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "xray": {}
+        },
+        "required": [
+          "amneziawg",
+          "appStats",
+          "cpu",
+          "cpuCores",
+          "cpuSpeedMhz",
+          "disk",
+          "diskIO",
+          "diskTraffic",
+          "loads",
+          "logicalPro",
+          "mem",
+          "netIO",
+          "netTraffic",
+          "panelGuid",
+          "panelVersion",
+          "publicIP",
+          "swap",
+          "tcpCount",
+          "udpCount",
+          "uptime",
+          "xray"
+        ],
+        "type": "object"
+      },
       "SubBalancer": {
         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
         "properties": {
@@ -5441,6 +5736,7 @@
                       "nodeId": null,
                       "originNodeGuid": "",
                       "port": 443,
+                      "preserveClientTraffic": null,
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
@@ -6515,39 +6811,42 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/Status"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "cpu": 12.5,
-                    "mem": {
-                      "current": 2147483648,
-                      "total": 8589934592
-                    },
-                    "swap": {
-                      "current": 0,
-                      "total": 4294967296
-                    },
-                    "disk": {
-                      "current": 53687091200,
-                      "total": 268435456000
-                    },
-                    "netIO": {
-                      "up": 1073741824,
-                      "down": 2147483648
-                    },
-                    "xray": {
-                      "state": "running",
-                      "version": "v25.10.31"
-                    },
-                    "tcpCount": 42,
-                    "load": {
-                      "load1": 0.5,
-                      "load5": 0.3,
-                      "load15": 0.2
-                    }
+                    "amneziawg": null,
+                    "appStats": null,
+                    "cpu": 0,
+                    "cpuCores": 0,
+                    "cpuSpeedMhz": 0,
+                    "disk": null,
+                    "diskIO": null,
+                    "diskTraffic": null,
+                    "loads": [
+                      0
+                    ],
+                    "logicalPro": 0,
+                    "mem": null,
+                    "netIO": null,
+                    "netTraffic": null,
+                    "networkInterface": null,
+                    "panelGuid": "",
+                    "panelVersion": "",
+                    "publicIP": null,
+                    "resourceScope": "",
+                    "swap": null,
+                    "tcpCount": 0,
+                    "udpCount": 0,
+                    "unavailableMetrics": [
+                      ""
+                    ],
+                    "uptime": 0,
+                    "xray": null
                   }
                 }
               }
@@ -6587,6 +6886,51 @@
                     "installed": true,
                     "usable": true,
                     "windows": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/networkInterfaces": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.",
+        "operationId": "get_panel_api_server_networkInterfaces",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/NetworkInterfacesResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "automatic": "eth0",
+                    "automaticError": "",
+                    "interfaces": [
+                      {
+                        "name": "eth0",
+                        "up": true
+                      }
+                    ]
                   }
                 }
               }
@@ -7917,7 +8261,7 @@
                   "keepHostSettings": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Keep this machine's addresses, certificates and node identity. Default true."
+                    "description": "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true."
                   }
                 },
                 "required": [
@@ -9795,25 +10139,71 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Alternatively, send externalLinks to append external share links and http(s) subscriptions to each selected client in one transaction. This mode cannot be combined with other adjustments. Existing entries, metadata, and ordering are preserved. Duplicates match (kind, value) per client, including repeated input rows; the first entry wins. Missing clients are not written and appear in skipped. externalLinks.added counts inserted rows, externalLinks.skipped counts duplicate rows across found clients, externalLinks.errors counts missing clients, and adjusted counts clients receiving at least one new row. Validation or database failure aborts the whole append without writes. Repeating an append is idempotent and does not restart Xray.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "emails"
+                ],
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "addDays": {
+                    "type": "integer"
+                  },
+                  "addBytes": {
+                    "type": "integer"
+                  },
+                  "flow": {
+                    "type": "string"
+                  },
+                  "limitHwid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "adTag": {
+                    "type": "string"
+                  },
+                  "externalLinks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/ExternalLinkInput"
+                    }
+                  }
+                }
               },
               "example": {
                 "emails": [
                   "alice",
                   "bob"
                 ],
-                "addDays": 30,
-                "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision",
-                "limitHwid": 2,
-                "adTag": "0123456789abcdef0123456789abcdef"
+                "externalLinks": [
+                  {
+                    "kind": "link",
+                    "value": "vless://uuid@example.com:443",
+                    "remark": "Backup",
+                    "enable": true,
+                    "expiryTime": 0
+                  },
+                  {
+                    "kind": "subscription",
+                    "value": "https://provider.example/sub",
+                    "namePrefix": "[provider] ",
+                    "enable": true,
+                    "expiryTime": 0
+                  }
+                ]
               }
             }
           }
@@ -9832,19 +10222,17 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/BulkAdjustResult"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
                     "adjusted": 2,
-                    "skipped": [
-                      {
-                        "email": "carol",
-                        "reason": "unlimited expiry"
-                      }
-                    ]
+                    "externalLinks": null,
+                    "skipped": []
                   }
                 }
               }
@@ -12232,6 +12620,88 @@
         ],
         "summary": "Probe an existing node, updating its cached health state.",
         "operationId": "post_panel_api_nodes_probe_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartXray/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.",
+        "operationId": "post_panel_api_nodes_restartXray_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartPanel/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.",
+        "operationId": "post_panel_api_nodes_restartPanel_id",
         "parameters": [
           {
             "name": "id",
@@ -17013,6 +17483,7 @@
                   "nodeId": null,
                   "originNodeGuid": "",
                   "port": 443,
+                  "preserveClientTraffic": null,
                   "protocol": "vless",
                   "remark": "VLESS-443",
                   "settings": null,

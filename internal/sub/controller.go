@@ -28,6 +28,11 @@ import (
 const (
 	subMihomoPath      = "/mihomo/"
 	subClashLegacyPath = "/clash-legacy/"
+
+	// Which subscription format the route that rendered the page serves.
+	subPageFormatRaw   = "raw"
+	subPageFormatJSON  = "json"
+	subPageFormatClash = "clash"
 )
 
 // writeSubError translates a service-layer result into an HTTP response.
@@ -420,7 +425,7 @@ func (a *SUBController) configuredSubscriptionPathOwner(candidate string) string
 // info is for the content a client app imports — the raw subscription body. A
 // browser viewing the HTML info page gets clean, name-only remarks (usage is
 // shown in the page summary).
-func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
+func (a *SUBController) maybeServeSubPage(c *gin.Context, format string) bool {
 	accept := c.GetHeader("Accept")
 	wantsHTML := strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html")
 	if !wantsHTML {
@@ -430,6 +435,7 @@ func (a *SUBController) maybeServeSubPage(c *gin.Context) bool {
 	if !ok {
 		return true
 	}
+	page.Format = format
 	a.serveSubPage(c, page.BasePath, page)
 	return true
 }
@@ -444,6 +450,7 @@ func (a *SUBController) maybeServeSubInfo(c *gin.Context) bool {
 	}
 	info := a.subPageContext(page)
 	delete(info, "links")
+	delete(info, "subFormat")
 	info["emails"] = dedupeEmails(page.Emails)
 	c.JSON(http.StatusOK, info)
 	return true
@@ -500,7 +507,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "info")
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatRaw) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
@@ -725,6 +732,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"subUrl":        page.SubUrl,
 		"subJsonUrl":    page.SubJsonUrl,
 		"subClashUrl":   page.SubClashUrl,
+		"subFormat":     page.Format,
 		"subTitle":      page.SubTitle,
 		"subSupportUrl": page.SubSupportUrl,
 		"subUpdates":    updateHours,
@@ -845,7 +853,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		a.recordSubscriptionFetch(c)
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatJSON) {
 		return
 	}
 	if !a.enforceHwid(c) {
@@ -907,7 +915,7 @@ func (a *SUBController) subClash(c *gin.Context, legacy bool) {
 		a.recordSubscriptionFetch(c)
 		return
 	}
-	if a.maybeServeSubPage(c) {
+	if a.maybeServeSubPage(c, subPageFormatClash) {
 		return
 	}
 	if !a.enforceHwid(c) {

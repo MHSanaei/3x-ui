@@ -192,6 +192,7 @@ func TestShouldAutoServeClash(t *testing.T) {
 		{name: "clash case insensitive", autoDetect: true, clashEnabled: true, userAgent: "CLASH-META/1.0", want: true},
 		{name: "flclash covered by clash", autoDetect: true, clashEnabled: true, userAgent: "FlClash/0.8.91", want: true},
 		{name: "clash for windows preserves existing detection", autoDetect: true, clashEnabled: true, userAgent: "ClashforWindows/0.20.39", want: true},
+		{name: "rabbit-hole runs a mihomo core", autoDetect: true, clashEnabled: true, userAgent: "Rabbit-Hole/iOS (1.5.0-207; language en_US)", want: true},
 		{name: "generic client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "GenericClient/1.10.0"},
 		{name: "other client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "OtherClient/2.2"},
 		{name: "unknown raw fallback", autoDetect: true, clashEnabled: true, userAgent: "CustomClient/1.0"},
