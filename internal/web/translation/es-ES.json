@@ -128,7 +128,11 @@
     "openMenu": "Abrir menú",
     "pinSidebar": "Fijar barra lateral",
     "unpinSidebar": "Desfijar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeUltraDark": "Ultra oscuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "Importar un entrante",
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDay": "Día de reinicio mensual",
+      "preserveClientTraffic": "Conservar el consumo de los clientes",
+      "preserveClientTrafficHelp": "Si se activa, el reinicio programado solo pone a cero los contadores de esta entrada. Cada cliente conserva su consumo acumulado en todos los nodos hasta su propio reinicio programado.\n\nSi se desactiva, el reinicio programado de esta entrada también pone a cero el consumo acumulado de sus clientes en todos los nodos.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -856,6 +862,7 @@
       "has": "Tiene",
       "hasNot": "No tiene",
       "actions": "Acciones",
+      "columns": "Columnas",
       "totalGB": "Límite de tráfico (GB)",
       "totalGBDesc": "Cuota de datos para este cliente. 0 = ilimitado.",
       "expiryTime": "Expiración",
@@ -1037,7 +1044,8 @@
         "delDepleted": "{count} clientes agotados eliminados",
         "delOrphans": "{count} clientes sin entrante eliminados",
         "imported": "{count} clientes importados",
-        "importedMixed": "{ok} importados, {failed} omitidos"
+        "importedMixed": "{ok} importados, {failed} omitidos",
+        "bulkLinksAppended": "{clients} clientes actualizados: {added} añadidos, {skipped} duplicados omitidos, {errors} clientes no encontrados."
       },
       "renewMax": "Renovaciones máximas",
       "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
@@ -1065,7 +1073,13 @@
       "renewsUsed": "Renovaciones usadas",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto.",
       "renewIntervalDesc": "Tras expirar, añade el número configurado de días de 24 horas al vencimiento anterior y reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
-      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional."
+      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
+      "bulkAdjustSettings": "Límites y ajustes",
+      "bulkAppendLinks": "Añadir enlaces externos",
+      "bulkAppendLinksHint": "Se añaden a todos los clientes seleccionados. Se conservan las entradas y los ajustes existentes; se omiten los pares de tipo y valor duplicados. Aplica los demás ajustes por separado.",
+      "bulkAppendLinksRequired": "Añade al menos un enlace o una suscripción externa.",
+      "externalLinkInvalid": "Introduce un enlace compartido compatible.",
+      "externalSubscriptionInvalid": "Introduce una URL de suscripción http(s)."
     },
     "groups": {
       "name": "Nombre",
@@ -1113,6 +1127,11 @@
       "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar panel",
+      "restartConfirmTitle": "¿Reiniciar {name}?",
+      "restartXrayContent": "Se interrumpirán las conexiones Xray activas de este nodo.",
+      "restartPanelContent": "El panel y los servicios de suscripción del nodo se reiniciarán y podrían dejar de estar disponibles temporalmente. Requiere un token API node-admin o admin en el nodo.",
       "addNode": "Agregar nodo",
       "editNode": "Editar nodo",
       "totalNodes": "Total de nodos",
@@ -1182,6 +1201,8 @@
         "xrayStopped": "Detenido"
       },
       "toasts": {
+        "xrayRestarted": "Xray se ha reiniciado en el nodo.",
+        "panelRestartAccepted": "Solicitud de reinicio del panel aceptada. El nodo podría no estar disponible temporalmente.",
         "list": "Error al cargar los nodos",
         "obtain": "Error al cargar el nodo",
         "add": "Agregar nodo",
@@ -1300,6 +1321,13 @@
       "tgNotifyLoginDesc": "Muestra el nombre de usuario, dirección IP y hora cuando alguien intenta iniciar sesión en su panel.",
       "sessionMaxAge": "Edad Máxima de Sesión",
       "sessionMaxAgeDesc": "La duración de una sesión de inicio de sesión (unidad: minutos).",
+      "publicIpRefresh": "Actualización de IP pública",
+      "publicIpRefreshDesc": "Con qué frecuencia el panel vuelve a detectar su IP pública mediante servicios externos. 0 la detecta una vez y no la actualiza. (unidad: minuto)",
+      "publicIpv6Detect": "Detectar IPv6 pública",
+      "publicIpv6DetectDesc": "Desactívalo en servidores solo IPv4 para omitir todas las consultas IPv6.",
+      "publicIpv4Override": "IPv4 pública manual",
+      "publicIpv6Override": "IPv6 pública manual",
+      "publicIpOverrideDesc": "Usa esta dirección en lugar de detectarla; no se hacen consultas externas para ella. Déjalo vacío para detectarla.",
       "expireTimeDiff": "Umbral de Expiración para Notificación",
       "expireTimeDiffDesc": "Reciba notificaciones sobre la expiración de la cuenta antes del umbral (unidad: días).",
       "trafficDiff": "Umbral de Tráfico para Notificación",
@@ -2012,6 +2040,7 @@
         "localIpPlaceholder": "IP local",
         "dialerProxyPlaceholder": "Selecciona una salida para encadenar",
         "dialerProxyHint": "Conecta esta salida a través de otra salida (por etiqueta) para crear una cadena de proxy. Déjalo vacío para conectar directamente.",
+        "dialerProxyMissing": "No hay ninguna salida con esta etiqueta disponible para encadenar.",
         "targetStrategyHint": "Cómo se resuelve el dominio de destino antes de conectar: AsIs (predeterminado) lo envía sin resolver, UseIP… resuelve con respaldo, ForceIP… exige resolución.",
         "addressRequired": "La dirección es obligatoria",
         "portRequired": "El puerto es obligatorio",

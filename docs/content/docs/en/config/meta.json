@@ -12,6 +12,7 @@
     "transports",
     "clients",
     "subscription",
+    "routing-profiles",
     "share-links"
   ]
 }

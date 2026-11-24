@@ -43,6 +43,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
+    "publicIpRefreshMinutes": 0,
+    "publicIpv4Override": "",
+    "publicIpv6Detect": false,
+    "publicIpv6Override": "",
     "realityScanCandidates": "",
     "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
@@ -233,6 +237,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
+    "publicIpRefreshMinutes": 0,
+    "publicIpv4Override": "",
+    "publicIpv6Detect": false,
+    "publicIpv6Override": "",
     "realityScanCandidates": "",
     "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
@@ -413,6 +421,20 @@ export const EXAMPLES: Record<string, unknown> = {
   "Blocker": {
     "code": "tools",
     "detail": "awg"
+  },
+  "BulkAdjustReport": {
+    "email": "carol",
+    "reason": "client not found"
+  },
+  "BulkAdjustResult": {
+    "adjusted": 2,
+    "externalLinks": null,
+    "skipped": []
+  },
+  "BulkExternalLinksResult": {
+    "added": 4,
+    "errors": 0,
+    "skipped": 0
   },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
@@ -628,6 +650,14 @@ export const EXAMPLES: Record<string, unknown> = {
     "onlineCount": 1,
     "total": 2000
   },
+  "ExternalLinkInput": {
+    "enable": true,
+    "expiryTime": 0,
+    "kind": "link",
+    "namePrefix": "",
+    "remark": "Backup",
+    "value": "vless://uuid@example.com:443"
+  },
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""
@@ -833,6 +863,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "nodeId": null,
     "originNodeGuid": "",
     "port": 443,
+    "preserveClientTraffic": null,
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,

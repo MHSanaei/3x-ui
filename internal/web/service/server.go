@@ -157,6 +157,10 @@ type ServerService struct {
 	cachedIPv6         string
 	nextIPv4Lookup     time.Time
 	nextIPv6Lookup     time.Time
+	ipv4OKAt           time.Time
+	ipv6OKAt           time.Time
+	ipv4Fixed          bool
+	ipv6Fixed          bool
 	ipv6RetryInterval  time.Duration
 	publicIPLookupDone chan struct{}
 	mu                 sync.Mutex
@@ -467,6 +471,60 @@ const (
 	publicIPRetryInterval   = time.Minute
 )
 
+// publicIPNever is the deadline of a lookup that must not run again.
+var publicIPNever = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+
+type publicIPSettings struct {
+	refresh   time.Duration // 0: keep the first successful answer
+	ipv6      bool
+	override4 string
+	override6 string
+}
+
+// publicIPSettingsSource is a variable so tests can run without a database.
+var publicIPSettingsSource = func(s *ServerService) publicIPSettings {
+	p := publicIPSettings{refresh: publicIPRefreshInterval, ipv6: true}
+	if m, err := s.settingService.GetPublicIpRefreshMinutes(); err != nil {
+		logger.Warning("get public IP refresh interval failed:", err)
+	} else {
+		p.refresh = time.Duration(m) * time.Minute
+	}
+	if v, err := s.settingService.GetPublicIpv6Detect(); err != nil {
+		logger.Warning("get public IPv6 detection failed:", err)
+	} else {
+		p.ipv6 = v
+	}
+	if v, err := s.settingService.GetPublicIpv4Override(); err == nil {
+		p.override4 = strings.TrimSpace(v)
+	}
+	if v, err := s.settingService.GetPublicIpv6Override(); err == nil {
+		p.override6 = strings.TrimSpace(v)
+	}
+	return p
+}
+
+// publicIPDeadline is when a successful answer obtained at okAt goes stale.
+func publicIPDeadline(okAt time.Time, refresh time.Duration) time.Time {
+	if refresh == 0 {
+		return publicIPNever
+	}
+	return okAt.Add(refresh)
+}
+
+// settlePublicIP makes one family follow the settings: a fixed value pins it
+// and stops lookups; a changed interval re-times the last success.
+func settlePublicIP(fixed string, pinned *bool, cached *string, next, okAt *time.Time, refresh time.Duration) {
+	switch {
+	case fixed != "":
+		*cached, *next, *pinned = fixed, publicIPNever, true
+	case *pinned:
+		// okAt is zeroed so a pre-pin success cannot re-time the next tick.
+		*cached, *next, *pinned, *okAt = "", time.Time{}, false, time.Time{}
+	case !okAt.IsZero():
+		*next = publicIPDeadline(*okAt, refresh)
+	}
+}
+
 // resolvePublicIPs waits for the initial lookup so cold backups can use it.
 // Warm callers use cached addresses while a refresh runs in the background.
 func (s *ServerService) resolvePublicIPs() {
@@ -477,9 +535,9 @@ func (s *ServerService) resolvePublicIPs() {
 }
 
 // refreshedPublicIP retains a known address through temporary lookup failures.
-func refreshedPublicIP(cached, fetched string, now time.Time) (string, time.Time) {
+func refreshedPublicIP(cached, fetched string, now time.Time, refresh time.Duration) (string, time.Time) {
 	if fetched != "" && fetched != "N/A" {
-		return fetched, now.Add(publicIPRefreshInterval)
+		return fetched, publicIPDeadline(now, refresh)
 	}
 	if cached == "" {
 		cached = "N/A"
@@ -500,6 +558,14 @@ func nextPublicIPv6RetryInterval(previous time.Duration) time.Duration {
 	}
 }
 
+// lookupOKAt is the zero time for a failed lookup, so only successes re-time.
+func lookupOKAt(fetched string, now time.Time) time.Time {
+	if fetched == "" || fetched == "N/A" {
+		return time.Time{}
+	}
+	return now
+}
+
 // firstPublicIP returns the first service that answers, or "N/A" when every
 // one of them fails.
 func firstPublicIP(services []string) string {
@@ -516,7 +582,14 @@ func firstPublicIP(services []string) string {
 // resolvePublicIPsInBackground shares one lookup without blocking status samples.
 // Each address family has its own deadline; cached values stay readable.
 func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
+	p := publicIPSettingsSource(s)
+	fixed6 := p.override6
+	if fixed6 == "" && !p.ipv6 {
+		fixed6 = "N/A"
+	}
 	s.mu.Lock()
+	settlePublicIP(p.override4, &s.ipv4Fixed, &s.cachedIPv4, &s.nextIPv4Lookup, &s.ipv4OKAt, p.refresh)
+	settlePublicIP(fixed6, &s.ipv6Fixed, &s.cachedIPv6, &s.nextIPv6Lookup, &s.ipv6OKAt, p.refresh)
 	if done := s.publicIPLookupDone; done != nil {
 		s.mu.Unlock()
 		return done
@@ -544,11 +617,13 @@ func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		now := time.Now()
-		if wantIPv4 {
-			s.cachedIPv4, s.nextIPv4Lookup = refreshedPublicIP(s.cachedIPv4, ipv4, now)
+		if wantIPv4 && !s.ipv4Fixed {
+			s.cachedIPv4, s.nextIPv4Lookup = refreshedPublicIP(s.cachedIPv4, ipv4, now, p.refresh)
+			s.ipv4OKAt = lookupOKAt(ipv4, now)
 		}
-		if wantIPv6 {
-			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now)
+		if wantIPv6 && !s.ipv6Fixed {
+			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now, p.refresh)
+			s.ipv6OKAt = lookupOKAt(ipv6, now)
 			if ipv6 != "" && ipv6 != "N/A" {
 				s.ipv6RetryInterval = 0
 			} else {

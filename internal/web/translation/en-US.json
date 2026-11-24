@@ -128,7 +128,11 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeUltraDark": "Ultra Dark",
+    "themeSystem": "System"
   },
   "pages": {
     "login": {
@@ -443,6 +447,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
@@ -856,6 +862,7 @@
       "has": "Has",
       "hasNot": "Doesn't have",
       "actions": "Actions",
+      "columns": "Columns",
       "totalGB": "Traffic Limit (GB)",
       "totalGBDesc": "Data quota for this client. 0 = unlimited.",
       "expiryTime": "Expiry",
@@ -1037,7 +1044,8 @@
         "delDepleted": "{count} depleted clients deleted",
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
-        "importedMixed": "{ok} imported, {failed} skipped"
+        "importedMixed": "{ok} imported, {failed} skipped",
+        "bulkLinksAppended": "{clients} clients updated: {added} added, {skipped} duplicates skipped, {errors} clients not found."
       },
       "renewMax": "Max renewals",
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
@@ -1065,7 +1073,13 @@
       "renewsUsed": "Renewals used",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds.",
       "renewIntervalDesc": "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
-      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended."
+      "renewWeeklyDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended.",
+      "bulkAdjustSettings": "Limits and settings",
+      "bulkAppendLinks": "Append external links",
+      "bulkAppendLinksHint": "Append to every selected client. Existing entries and their settings stay unchanged; duplicate kind and value pairs are skipped. Apply other adjustments separately.",
+      "bulkAppendLinksRequired": "Add at least one external link or subscription.",
+      "externalLinkInvalid": "Enter a supported share link.",
+      "externalSubscriptionInvalid": "Enter an http(s) subscription URL."
     },
     "groups": {
       "name": "Name",
@@ -1234,6 +1248,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1303,6 +1322,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",
@@ -1425,6 +1446,13 @@
       "tgNotifyLoginDesc": "Get notified about the username, IP address, and time whenever someone attempts to log into your web panel.",
       "sessionMaxAge": "Session Duration",
       "sessionMaxAgeDesc": "The duration for which you can stay logged in. (unit: minute)",
+      "publicIpRefresh": "Public IP Refresh",
+      "publicIpRefreshDesc": "How often the panel re-detects its public IP through external services. 0 detects once and never refreshes. (unit: minute)",
+      "publicIpv6Detect": "Detect Public IPv6",
+      "publicIpv6DetectDesc": "Turn off on IPv4-only servers to skip all IPv6 lookups.",
+      "publicIpv4Override": "Public IPv4 Override",
+      "publicIpv6Override": "Public IPv6 Override",
+      "publicIpOverrideDesc": "Use this address instead of detecting it; no external lookups are made for it. Leave empty to detect.",
       "expireTimeDiff": "Expiration Date Notification",
       "expireTimeDiffDesc": "Get notified about expiration date when reaching this threshold. (unit: day)",
       "trafficDiff": "Traffic Cap Notification",
@@ -2133,6 +2161,7 @@
         "localIpPlaceholder": "local IP",
         "dialerProxyPlaceholder": "Select an outbound to chain through",
         "dialerProxyHint": "Dial this outbound through another outbound (by tag) to build a proxy chain. Leave empty to connect directly.",
+        "dialerProxyMissing": "No outbound with this tag is available to chain through.",
         "targetStrategyHint": "How the destination domain is resolved before connecting: AsIs (default) sends it unresolved, UseIP… resolves with fallback, ForceIP… requires successful resolution.",
         "addressRequired": "Address is required",
         "portRequired": "Port is required",
