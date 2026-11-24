@@ -128,7 +128,11 @@
     "openMenu": "Abrir menu",
     "pinSidebar": "Fixar barra lateral",
     "unpinSidebar": "Desafixar barra lateral",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeUltraDark": "Ultra escuro",
+    "themeSystem": "Sistema"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "Importar um Inbound",
       "periodicTrafficResetTitle": "Reset de Tráfego",
       "periodicTrafficResetDay": "Dia da redefinição mensal",
+      "preserveClientTraffic": "Manter o consumo dos clientes",
+      "preserveClientTrafficHelp": "Com a opção ativada, a redefinição agendada zera apenas os contadores de tráfego desta entrada. Cada cliente mantém o consumo acumulado em todos os nós até a sua própria redefinição agendada.\n\nCom a opção desativada, a redefinição agendada desta entrada também zera o consumo acumulado em todos os nós pelos clientes vinculados a ela.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",
@@ -1117,6 +1123,11 @@
       "removeFromGroupResult": "Removidos {count} cliente(s) de {name}."
     },
     "nodes": {
+      "restartXray": "Reiniciar Xray",
+      "restartPanel": "Reiniciar painel",
+      "restartConfirmTitle": "Reiniciar {name}?",
+      "restartXrayContent": "As conexões Xray ativas neste nó serão interrompidas.",
+      "restartPanelContent": "O painel e os serviços de assinatura do nó serão reiniciados e poderão ficar indisponíveis temporariamente. Requer um token de API node-admin ou admin no nó.",
       "addNode": "Adicionar nó",
       "editNode": "Editar nó",
       "totalNodes": "Total de nós",
@@ -1186,6 +1197,8 @@
         "xrayStopped": "Parado"
       },
       "toasts": {
+        "xrayRestarted": "Xray reiniciado no nó.",
+        "panelRestartAccepted": "Solicitação de reinício do painel aceita. O nó poderá ficar indisponível temporariamente.",
         "list": "Falha ao carregar os nós",
         "obtain": "Falha ao carregar o nó",
         "add": "Adicionar nó",

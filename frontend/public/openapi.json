@@ -3355,6 +3355,11 @@
             "minimum": 0,
             "type": "integer"
           },
+          "preserveClientTraffic": {
+            "description": "Older snapshots omit this field.\nKeep client usage during scheduled inbound resets",
+            "nullable": true,
+            "type": "boolean"
+          },
           "protocol": {
             "enum": [
               "vmess",
@@ -5522,6 +5527,7 @@
                       "nodeId": null,
                       "originNodeGuid": "",
                       "port": 443,
+                      "preserveClientTraffic": null,
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
@@ -12391,6 +12397,88 @@
         }
       }
     },
+    "/panel/api/nodes/restartXray/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Restart Xray on one enabled, directly configured node. Active Xray connections are interrupted. Uses the node runtime and accepts admin, node-admin or node-sync credentials on the node. A stale heartbeat does not prevent the request.",
+        "operationId": "post_panel_api_nodes_restartXray_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/restartPanel/{id}": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Request a restart of the panel and subscription services on one enabled, directly configured node. Requires admin or node-admin credentials on the node; mTLS requires an explicit node-admin bearer token. Success acknowledges scheduling, before the three-second restart delay. A stale heartbeat does not prevent the request. Older nodes may reject node-admin access until upgraded.",
+        "operationId": "post_panel_api_nodes_restartPanel_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Node ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/nodes/updatePanel": {
       "post": {
         "tags": [
@@ -17138,6 +17226,7 @@
                   "nodeId": null,
                   "originNodeGuid": "",
                   "port": 443,
+                  "preserveClientTraffic": null,
                   "protocol": "vless",
                   "remark": "VLESS-443",
                   "settings": null,

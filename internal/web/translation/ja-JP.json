@@ -128,7 +128,11 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeUltraDark": "ウルトラダーク",
+    "themeSystem": "システム"
   },
   "pages": {
     "login": {
@@ -442,6 +446,8 @@
       "importInbound": "インバウンドルールをインポート",
       "periodicTrafficResetTitle": "トラフィックリセット",
       "periodicTrafficResetDay": "毎月のリセット日",
+      "preserveClientTraffic": "クライアントの使用量を保持",
+      "preserveClientTrafficHelp": "オンにすると、定期リセットでこのインバウンドの通信量だけがゼロになります。各クライアントの全ノードでの累計使用量は、そのクライアント自身の定期リセットまで保持されます。\n\nオフにすると、このインバウンドの定期リセット時に、紐付けられたクライアントの全ノードでの累計使用量もゼロになります。",
       "periodicTrafficReset": {
         "never": "なし",
         "daily": "毎日",
@@ -1117,6 +1123,11 @@
       "removeFromGroupResult": "{count} クライアントを {name} から外しました。"
     },
     "nodes": {
+      "restartXray": "Xrayを再起動",
+      "restartPanel": "パネルを再起動",
+      "restartConfirmTitle": "{name}を再起動しますか？",
+      "restartXrayContent": "このノードのアクティブなXray接続は切断されます。",
+      "restartPanelContent": "ノードのパネルとサブスクリプションサービスを再起動するため、一時的に利用できなくなる場合があります。ノードのnode-adminまたはadmin APIトークンが必要です。",
       "addNode": "ノードを追加",
       "editNode": "ノード編集",
       "totalNodes": "ノード総数",
@@ -1186,6 +1197,8 @@
         "xrayStopped": "停止"
       },
       "toasts": {
+        "xrayRestarted": "ノードのXrayを再起動しました。",
+        "panelRestartAccepted": "パネルの再起動リクエストを受け付けました。ノードが一時的に利用できなくなる場合があります。",
         "list": "ノードの読み込みに失敗しました",
         "obtain": "ノードの読み込みに失敗しました",
         "add": "ノードを追加",

@@ -128,7 +128,11 @@
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
     "unpinSidebar": "Unpin sidebar",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeUltraDark": "Ultra Dark",
+    "themeSystem": "System"
   },
   "pages": {
     "login": {
@@ -443,6 +447,8 @@
       "importInbound": "Import an Inbound",
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
+      "preserveClientTraffic": "Keep client usage",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",
@@ -1238,6 +1244,11 @@
       "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
+      "restartXray": "Restart Xray",
+      "restartPanel": "Restart Panel",
+      "restartConfirmTitle": "Restart {name}?",
+      "restartXrayContent": "Active Xray connections on this node will be interrupted.",
+      "restartPanelContent": "The node panel and subscription services will restart and may be temporarily unavailable. Requires a node-admin or admin API token on the node.",
       "addNode": "Add Node",
       "editNode": "Edit Node",
       "totalNodes": "Total Nodes",
@@ -1307,6 +1318,8 @@
         "xrayStopped": "Stopped"
       },
       "toasts": {
+        "xrayRestarted": "Xray restarted on the node.",
+        "panelRestartAccepted": "Panel restart request accepted. The node may be temporarily unavailable.",
         "list": "Failed to load nodes",
         "obtain": "Failed to load node",
         "add": "Add node",
