@@ -2,11 +2,13 @@ import { z } from 'zod';
 
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
 
+// Async since vpn:// keys are inflated through a stream: parse these schemas with the
+// *Async methods; a synchronous parse throws rather than passing every link.
 export const ExternalShareLinkValueSchema = z
   .string()
   .trim()
   .refine(
-    (value) => value === '' || parseOutboundLink(value) !== null,
+    async (value) => value === '' || (await parseOutboundLink(value)) !== null,
     'pages.clients.externalLinkInvalid',
   );
 export const ExternalSubscriptionValueSchema = z
@@ -31,10 +33,10 @@ export const ExternalLinkInputSchema = z
     expiryTime: z.number().int().min(0),
     namePrefix: z.string(),
   })
-  .superRefine((row, ctx) => {
+  .superRefine(async (row, ctx) => {
     const schema =
       row.kind === 'subscription' ? ExternalSubscriptionValueSchema : ExternalShareLinkValueSchema;
-    const result = schema.safeParse(row.value);
+    const result = await schema.safeParseAsync(row.value);
     if (!result.success)
       ctx.addIssue({ code: 'custom', path: ['value'], message: result.error.issues[0].message });
   });

@@ -70,7 +70,7 @@ export default function ClientBulkAdjustModal({
     const values = methods.getValues();
     const validated =
       mode === 'links'
-        ? ExternalLinksAppendSchema.safeParse(values)
+        ? await ExternalLinksAppendSchema.safeParseAsync(values)
         : ClientBulkAdjustFormSchema.safeParse({
             addDays: Math.trunc(Number(values.addDays) || 0),
             addGB: Number(values.addGB) || 0,

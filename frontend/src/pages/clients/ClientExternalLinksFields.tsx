@@ -5,7 +5,7 @@ import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import { DateTimePicker } from '@/components/form';
-import { FormField, rhfZodValidate } from '@/components/form/rhf';
+import { FormField, rhfZodValidateAsync } from '@/components/form/rhf';
 import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import {
   ExternalShareLinkValueSchema,
@@ -81,7 +81,7 @@ export default function ClientExternalLinksFields({
                         name={`externalLinks.${index}.value`}
                         style={{ flex: 1, minWidth: 0, marginBottom: 0 }}
                         rules={{
-                          validate: rhfZodValidate(
+                          validate: rhfZodValidateAsync(
                             kind === 'link'
                               ? ExternalShareLinkValueSchema
                               : ExternalSubscriptionValueSchema,

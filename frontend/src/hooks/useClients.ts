@@ -420,7 +420,7 @@ export function useClients(options: UseClientsOptions = {}) {
       adTag?: string;
       externalLinks?: ExternalLinkInput[];
     }): Promise<Msg<BulkAdjustResult>> => {
-      if (payload.externalLinks !== undefined) ExternalLinksAppendSchema.parse(payload);
+      if (payload.externalLinks !== undefined) await ExternalLinksAppendSchema.parseAsync(payload);
       const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
     },

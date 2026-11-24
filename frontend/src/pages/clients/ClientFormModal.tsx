@@ -675,7 +675,7 @@ export default function ClientFormModal({
   async function onSubmit() {
     await methods.trigger('externalLinks');
     const values = methods.getValues();
-    const externalValidation = ExternalLinksFormSchema.safeParse(values);
+    const externalValidation = await ExternalLinksFormSchema.safeParseAsync(values);
     if (!externalValidation.success) {
       for (const issue of externalValidation.error.issues) {
         methods.setError(issue.path.join('.') as FieldPath<Values>, {
