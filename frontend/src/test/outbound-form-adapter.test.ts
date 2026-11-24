@@ -824,19 +824,12 @@ describe('outbound-form-adapter: xhttp xmux toggle', () => {
     },
   };
 
-  it('derives enableXmux from a saved xmux object and backfills missing knobs', () => {
+  it('derives enableXmux from a saved xmux object without filling missing fields', () => {
     const form = rawOutboundToFormValues(xmuxWire);
     const stream = form.streamSettings as Record<string, unknown>;
     const xhttp = stream.xhttpSettings as Record<string, unknown>;
     expect(xhttp.enableXmux).toBe(true);
-    expect(xhttp.xmux).toMatchObject({
-      maxConcurrency: '11',
-      maxConnections: '1',
-      hMaxRequestTimes: '1',
-      hMaxReusableSecs: '1',
-      cMaxReuseTimes: 0,
-      hKeepAlivePeriod: 0,
-    });
+    expect(xhttp.xmux).toEqual(xmuxWire.streamSettings.xhttpSettings.xmux);
   });
 
   it('round-trips xmux on save, strips enableXmux, and enforces xmux exclusivity', () => {
@@ -890,7 +883,7 @@ describe('outbound-form-adapter: xhttp xmux toggle', () => {
     >;
     const xmux = xhttp.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');
-    expect(xmux.maxConnections).toBe(0);
+    expect(xmux).not.toHaveProperty('maxConnections');
 
     const back = formValuesToWirePayload(form);
     const wireXhttp = (back.streamSettings as Record<string, unknown>).xhttpSettings as Record<
