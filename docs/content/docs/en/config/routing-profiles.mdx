@@ -20,7 +20,8 @@ change the rules without opening the panel.
 
 ## How the panel handles a remote URL
 
-A value that is a single `https://...` line is treated as a remote source:
+In the Happ and Clash / Mihomo fields, a value that is a single `https://...`
+line is treated as a remote source that the panel fetches itself:
 
 - the panel downloads it **in the background** and caches it for 10 minutes; a
   subscription request never waits for the source;
@@ -29,7 +30,12 @@ A value that is a single `https://...` line is treated as a remote source:
 - only `https://` is allowed, with no credentials in the URL, and the host must
   be public (local and internal addresses are blocked);
 - redirects are followed (up to 5) but must stay on `https://`;
-- limits: Happ 16 KiB, Clash 2 MiB, 6 second request timeout.
+- limits: Clash 2 MiB; Happ 16 KiB for the download and 8 KiB for the value
+  after Base64 encoding, which is about 6 KiB of JSON; 6 second request timeout.
+
+The Incy field is different: the panel never downloads an Incy URL. It only
+checks that the URL is `https://` without credentials and hands it to the app,
+which fetches and refreshes the profile itself (see the Incy section below).
 
 Use the **raw** link (`gist.githubusercontent.com/.../raw/...`), not the gist
 page.
@@ -307,8 +313,10 @@ stays):
 - every group is a map with non-empty `name` and `type`, and names are **unique**;
 - groups **cannot** use `use:` (proxy providers are not supported);
 - every entry in a group's `proxies:`, every rule target and a provider's
-  `proxy:` must point to an existing node, group or the built-ins `DIRECT`,
-  `REJECT`, `REJECT-DROP`, `REJECT-TINYGIF`, `PASS`, `GLOBAL`;
+  `proxy:` must point to a group declared in the same file, to `PROXY`, or to
+  the built-ins `DIRECT`, `REJECT`, `REJECT-DROP`, `REJECT-TINYGIF`, `PASS`,
+  `GLOBAL`. A remote file is checked on its own, so the name of one of your
+  nodes fails the check;
 - `RULE-SET,<name>,<target>` needs a provider with that name in `rule-providers`;
 - each rule is a non-empty string `TYPE,value,target`; the flags `no-resolve`
   and `src` may follow the target;
@@ -384,10 +392,13 @@ fragmentation, …) and are sent only when **Incy header auto-detection** is on.
 
 ## Common problems
 
-- **Rules not applied, log says "remote source unavailable".** The URL has not
+- **Rules not applied, log says "Remote happ routing refresh from … failed"**
+  (or `clash`; for the JSON-subscription profile it says "remote source
+  unavailable"). The URL has not
   been fetched yet (the first fetch runs in the background; refresh the
   subscription in a minute) or the source returned an invalid file.
-- **File rejected for size.** Happ allows 16 KiB; move long lists into
+- **File rejected for size.** Happ allows 8 KiB after Base64 encoding, about
+  6 KiB of JSON; move long lists into
   `geosite`/`geoip` categories or, for Clash, into `rule-providers`.
 - **`references unknown proxy or group` error.** A rule or group points to a
   name that is not in the profile. Use `PROXY`, `DIRECT`, `REJECT`, or declare
