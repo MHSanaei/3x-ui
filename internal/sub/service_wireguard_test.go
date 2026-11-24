@@ -388,3 +388,44 @@ func TestGetSubs_WireGuardEmptyOptionalTunnelFieldsDoNotInheritShared(t *testing
 		t.Fatalf("link inherited shared tunnel fields: %s", links[0])
 	}
 }
+
+func TestGenWireguardLinkCarriesFinalMask(t *testing.T) {
+	serverPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	clientPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	inbound := &model.Inbound{
+		Listen:         "203.0.113.7",
+		Port:           51820,
+		Protocol:       model.WireGuard,
+		Settings:       `{"secretKey":"` + serverPriv + `","clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.0.0.2/32"]}]}`,
+		StreamSettings: `{"finalmask":{"udp":[{"type":"salamander","settings":{"password":"pw"}}]}}`,
+	}
+	link := (&SubService{}).genWireguardLink(inbound, "user")
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fm := u.Query().Get("fm")
+	if !strings.Contains(fm, `"type":"salamander"`) || !strings.Contains(fm, `"password":"pw"`) {
+		t.Fatalf("fm = %q, want salamander mask", fm)
+	}
+}
+
+func TestGenWireguardLinkMergesHostFinalMask(t *testing.T) {
+	serverPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	clientPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	inbound := &model.Inbound{
+		Listen:         "203.0.113.7",
+		Port:           51820,
+		Protocol:       model.WireGuard,
+		Settings:       `{"secretKey":"` + serverPriv + `","clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.0.0.2/32"]}]}`,
+		StreamSettings: `{"externalProxy":[{"dest":"edge.example.com","port":443,"forceTls":"same","finalMask":"{\"udp\":[{\"type\":\"salamander\",\"settings\":{\"password\":\"host\"}}]}"}]}`,
+	}
+	link := (&SubService{}).genWireguardLink(inbound, "user")
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.Host != "edge.example.com:443" || !strings.Contains(u.Query().Get("fm"), `"password":"host"`) {
+		t.Fatalf("link = %s, want host endpoint with host finalmask", link)
+	}
+}

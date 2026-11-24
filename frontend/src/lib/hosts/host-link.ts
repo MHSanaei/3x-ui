@@ -164,9 +164,28 @@ export function hostEndpointsFor(
   return endpoints;
 }
 
+// allHostsExcluded mirrors the backend's closed case: the inbound has enabled Hosts and every one
+// is excluded from subType, so it renders nothing there instead of its own address.
+export function allHostsExcluded(
+  records: HostRecord[],
+  inboundId: number,
+  subType: 'raw' | 'clash' = 'raw',
+): boolean {
+  const enabled = records.filter((r) => !r.isDisabled && r.inboundIds.includes(inboundId));
+  return enabled.length > 0 && enabled.every((r) => r.excludeFromSubTypes?.includes(subType));
+}
+
 // Panel-built links of these protocols read Hosts; the rest still show the
 // inbound's own address on the inbounds page.
 const HOST_LINK_PROTOCOLS: ReadonlySet<string> = new Set(['mtproto', 'wireguard', 'amneziawg']);
+
+export function hostLinksClosed(
+  inbound: Inbound,
+  inboundId: number,
+  records: HostRecord[],
+): boolean {
+  return HOST_LINK_PROTOCOLS.has(inbound.protocol) && allHostsExcluded(records, inboundId);
+}
 
 export function withHostEndpoints(
   inbound: Inbound,

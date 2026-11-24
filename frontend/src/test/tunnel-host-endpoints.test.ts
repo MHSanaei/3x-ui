@@ -148,12 +148,17 @@ describe('clients page tunnel configs follow Hosts', () => {
         hosts: ['raw.example.com:443'],
         excludeFromSubTypes: ['clash'],
       },
+      {
+        groupId: 'both',
+        inboundIds: [7],
+        hosts: ['both.example.com:443'],
+      },
     ];
     const configs = tunnelConfigEndpoints(inbound, hosts, PANEL, '', 'clash').map((ep) =>
       buildTuicClientConfig(client, inbound, PANEL, '', ep),
     );
     expect(configs).toHaveLength(1);
-    expect(configs[0]).toContain(`server: ${PANEL}`);
+    expect(configs[0]).toContain('server: both.example.com');
   });
 
   it('names two Hosts of one inbound apart', () => {

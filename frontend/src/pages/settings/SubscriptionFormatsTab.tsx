@@ -361,6 +361,7 @@ export default function SubscriptionFormatsTab({
                   <SettingListItem
                     paddings="small"
                     title={t('pages.settings.subFormats.concurrency')}
+                    description={t('pages.settings.subFormats.concurrencyHint')}
                   >
                     <InputNumber
                       value={muxObj.concurrency}

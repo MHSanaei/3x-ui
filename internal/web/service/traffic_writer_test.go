@@ -63,6 +63,55 @@ func TestTrafficWriterSubmitAfterStopRunsInline(t *testing.T) {
 	}
 }
 
+// The inline fallback ran beside other writes, so two resets of one client
+// raced and the second one switched the client back off.
+func TestTrafficWriterInlineFallbackNeverOverlapsAnotherWrite(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		setup func(t *testing.T, first func())
+	}{
+		{"writer never started", func(t *testing.T, first func()) {
+			go func() { _ = submitTrafficWrite(func() error { first(); return nil }) }()
+		}},
+		{"submitted while shutdown drains", func(t *testing.T, first func()) {
+			StartTrafficWriter()
+			go func() { _ = submitTrafficWrite(func() error { first(); return nil }) }()
+			twMu.Lock()
+			ctx := twCtx
+			twMu.Unlock()
+			go StopTrafficWriter()
+			<-ctx.Done()
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resetTrafficWriterForTest(t)
+			entered, secondStarted := make(chan struct{}), make(chan struct{})
+			var inFirst, overlapped atomic.Bool
+			tt.setup(t, func() {
+				inFirst.Store(true)
+				close(entered)
+				select {
+				case <-secondStarted:
+				case <-time.After(300 * time.Millisecond):
+				}
+				inFirst.Store(false)
+			})
+			<-entered
+			err := submitTrafficWrite(func() error {
+				overlapped.Store(inFirst.Load())
+				close(secondStarted)
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("second submitTrafficWrite: %v", err)
+			}
+			if overlapped.Load() {
+				t.Fatal("inline write ran while another write was still applying")
+			}
+		})
+	}
+}
+
 func TestTrafficWriterStopDrainsQueuedWrite(t *testing.T) {
 	resetTrafficWriterForTest(t)
 
