@@ -66,6 +66,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
 	g.GET("/clientIps", a.getClientIps)
 	g.GET("/fail2banStatus", a.getFail2banStatus)
+	g.GET("/networkInterfaces", a.getNetworkInterfaces)
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
@@ -112,6 +113,11 @@ func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.serverService.C
 
 func (a *ServerController) getFail2banStatus(c *gin.Context) {
 	jsonObj(c, a.serverService.GetFail2banStatus(), nil)
+}
+
+func (a *ServerController) getNetworkInterfaces(c *gin.Context) {
+	interfaces, err := a.serverService.GetNetworkInterfaces()
+	jsonObj(c, interfaces, err)
 }
 
 func parseHistoryBucket(c *gin.Context) (int, bool) {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func TestUpdate_PersistsFields_NoInbound(t *testing.T) {
@@ -164,6 +165,66 @@ func TestUpdate_NoInbound_PreservesCredentialsWhenOmitted(t *testing.T) {
 	}
 	if got.Comment != "only comment changed" {
 		t.Fatalf("comment not persisted, got %q", got.Comment)
+	}
+}
+
+// The renewal and auto-disable loops act on client_traffics, which nothing else
+// keeps in step once the client's last inbound is detached (#7160).
+func TestUpdate_NoInbound_SyncsEnforcementRow(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	email := "noib-enforcement@x"
+	rec := &model.ClientRecord{
+		Email:      email,
+		UUID:       "11111111-1111-1111-1111-111111111111",
+		SubID:      email,
+		TotalGB:    5,
+		ExpiryTime: 1000,
+		Reset:      1,
+		Enable:     true,
+	}
+	if err := database.GetDB().Create(rec).Error; err != nil {
+		t.Fatalf("create record: %v", err)
+	}
+	if err := database.GetDB().Create(&xray.ClientTraffic{
+		InboundId:  999,
+		Email:      email,
+		Enable:     true,
+		Up:         123,
+		Down:       456,
+		ExpiryTime: 1000,
+		Total:      5,
+		Reset:      1,
+	}).Error; err != nil {
+		t.Fatalf("create client_traffics row: %v", err)
+	}
+
+	updated := rec.ToClient()
+	updated.Enable = false
+	updated.ExpiryTime = 1700000000
+	updated.TotalGB = 10
+	updated.Reset = 0
+	updated.ResetDay = 15
+	updated.ResetMax = 3
+	if _, err := svc.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	var stat xray.ClientTraffic
+	if err := database.GetDB().Where("email = ?", email).First(&stat).Error; err != nil {
+		t.Fatalf("read client_traffics: %v", err)
+	}
+	type enforcement struct {
+		Enable                      bool
+		ExpiryTime, Total, Up, Down int64
+		Reset, ResetDay, ResetMax   int
+	}
+	got := enforcement{stat.Enable, stat.ExpiryTime, stat.Total, stat.Up, stat.Down, stat.Reset, stat.ResetDay, stat.ResetMax}
+	want := enforcement{false, 1700000000, 10, 123, 456, 0, 15, 3}
+	if got != want {
+		t.Fatalf("client_traffics row = %+v, want %+v", got, want)
 	}
 }
 

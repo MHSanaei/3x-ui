@@ -4,10 +4,6 @@ export type GeoKind = string;
 export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
-export type addrFamily = number;
-export type staticEgressResolver = string;
-export type trafficLocalApplyAction = number;
-export type transportBits = number;
 
 export interface AllSetting {
   datepicker: string;
@@ -48,10 +44,16 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -239,10 +241,16 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -414,6 +422,23 @@ export interface Blocker {
   detail?: string;
 }
 
+export interface BulkAdjustReport {
+  email: string;
+  reason: string;
+}
+
+export interface BulkAdjustResult {
+  adjusted: number;
+  externalLinks?: BulkExternalLinksResult | null;
+  skipped?: BulkAdjustReport[];
+}
+
+export interface BulkExternalLinksResult {
+  added: number;
+  errors: number;
+  skipped: number;
+}
+
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
@@ -582,6 +607,15 @@ export interface ClientsSummary {
   total: number;
 }
 
+export interface ExternalLinkInput {
+  enable?: boolean | null;
+  expiryTime?: number;
+  kind?: string;
+  namePrefix?: string;
+  remark?: string;
+  value: string;
+}
+
 export interface FallbackParentInfo {
   masterId: number;
   path?: string;
@@ -734,6 +768,7 @@ export interface Inbound {
   nodeId?: number | null;
   originNodeGuid?: string;
   port: number;
+  preserveClientTraffic?: boolean | null;
   protocol: Protocol;
   remark: string;
   settings: unknown;
@@ -823,6 +858,24 @@ export interface Msg {
   msg: string;
   obj: unknown;
   success: boolean;
+}
+
+export interface NetworkInterfaceOption {
+  name: string;
+  up: boolean;
+}
+
+export interface NetworkInterfacesResponse {
+  automatic: string;
+  automaticError: string;
+  interfaces: NetworkInterfaceOption[];
+}
+
+export interface NetworkTrafficSelection {
+  available: boolean;
+  error: string;
+  mode: string;
+  name: string;
 }
 
 export interface NewUUIDResponse {
@@ -1072,6 +1125,33 @@ export interface Sponsor {
 export interface SponsorList {
   contact?: string;
   sponsors: Sponsor[];
+}
+
+export interface Status {
+  amneziawg: unknown;
+  appStats: unknown;
+  cpu: number;
+  cpuCores: number;
+  cpuSpeedMhz: number;
+  disk: unknown;
+  diskIO: unknown;
+  diskTraffic: unknown;
+  loads: number[];
+  logicalPro: number;
+  mem: unknown;
+  netIO: unknown;
+  netTraffic: unknown;
+  networkInterface?: NetworkTrafficSelection | null;
+  panelGuid: string;
+  panelVersion: string;
+  publicIP: unknown;
+  resourceScope?: string;
+  swap: unknown;
+  tcpCount: number;
+  udpCount: number;
+  unavailableMetrics?: string[];
+  uptime: number;
+  xray: unknown;
 }
 
 export interface SubBalancer {

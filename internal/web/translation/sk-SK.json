@@ -128,7 +128,11 @@
     "openMenu": "Otvoriť menu",
     "pinSidebar": "Pripnúť bočné menu",
     "unpinSidebar": "Odopnúť bočné menu",
-    "subFormats": "Formáty odberu"
+    "subFormats": "Formáty odberu",
+    "themeLight": "Svetlá",
+    "themeDark": "Tmavá",
+    "themeUltraDark": "Ultra tmavá",
+    "themeSystem": "Systém"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOKOVANÉ",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Ponechať nastavenia tohto servera",
-      "importKeepHostSettingsDesc": "Ponechajú sa adresy počúvania, porty, základná cesta, certifikáty a identita tohto servera namiesto nastavení z nahraného súboru.",
+      "importKeepHostSettingsDesc": "Ponechajú sa adresy počúvania, porty, základná cesta, certifikáty a identita tohto servera namiesto nastavení z nahraného súboru. Zachová sa aj výber rozhrania sieťovej prevádzky.",
       "logLines": "Počet riadkov",
       "timeRange": "Časový rozsah"
     },
@@ -443,6 +447,8 @@
       "importInbound": "Importovať vstup",
       "periodicTrafficResetTitle": "Nulovanie spotreby",
       "periodicTrafficResetDay": "Deň mesačného nulovania",
+      "preserveClientTraffic": "Zachovať spotrebu klientov",
+      "preserveClientTrafficHelp": "Keď je táto možnosť zapnutá, podľa plánu sa vynulujú iba počítadlá prenosu tohto vstupu. Celková spotreba každého klienta na všetkých serveroch sa zachová až do vynulovania podľa jeho vlastného plánu.\n\nAk je možnosť vypnutá, pri plánovanom vynulovaní tohto vstupu sa vynuluje aj celková spotreba jeho klientov na všetkých serveroch.",
       "periodicTrafficReset": {
         "never": "Nikdy",
         "daily": "Denne",
@@ -857,6 +863,7 @@
       "has": "Obsahuje",
       "hasNot": "Neobsahuje",
       "actions": "Akcie",
+      "columns": "Stĺpce",
       "totalGB": "Dátový limit (GB)",
       "totalGBDesc": "Dátový limit tohto klienta. Hodnota 0 znamená bez obmedzenia.",
       "expiryTime": "Platnosť do",
@@ -1038,7 +1045,8 @@
         "delDepleted": "Odstránení ukončení klienti: {count}",
         "delOrphans": "Odstránení nepriradení klienti: {count}",
         "imported": "Importovaní klienti: {count}",
-        "importedMixed": "Importované: {ok}, preskočené: {failed}"
+        "importedMixed": "Importované: {ok}, preskočené: {failed}",
+        "bulkLinksAppended": "Aktualizovaní klienti: {clients}; pridané: {added}, preskočené duplicity: {skipped}, nenájdení klienti: {errors}."
       },
       "renewMax": "Najviac obnovení",
       "renewMaxDesc": "Koľkokrát sa môže platnosť automaticky obnoviť, než účet zostane neplatný. Hodnota 0 znamená bez obmedzenia. Pri dobiehaní zmeškaných období sa každé obdobie počíta ako jedno obnovenie.",
@@ -1066,7 +1074,13 @@
       "renewsUsed": "Použité obnovenia",
       "bulkAdTagHint": "Zadajte 32-znakovú hexadecimálnu značku alebo 'none' na odstránenie sponzorovaného kanála zo vstupov MTProto.",
       "renewIntervalDesc": "Po skončení platnosti pridá nastavený počet 24-hodinových dní k predchádzajúcemu koncu platnosti a vynuluje spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
-      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše."
+      "renewWeeklyDesc": "Kalendárne obnovenie prebieha o polnoci v časovom pásme panelu a vynuluje aj spotrebu klienta. Samostatné nulovanie spotreby nechajte vypnuté, ak nechcete ďalšie nulovanie navyše.",
+      "bulkAdjustSettings": "Limity a nastavenia",
+      "bulkAppendLinks": "Pridať externé odkazy",
+      "bulkAppendLinksHint": "Pridá všetkým vybraným klientom. Existujúce záznamy a nastavenia sa zachovajú; duplicitné dvojice typu a hodnoty sa preskočia. Ostatné úpravy použite samostatne.",
+      "bulkAppendLinksRequired": "Pridajte aspoň jeden externý odkaz alebo odber.",
+      "externalLinkInvalid": "Zadajte podporovaný odkaz na zdieľanie.",
+      "externalSubscriptionInvalid": "Zadajte URL odberu http(s)."
     },
     "groups": {
       "name": "Názov",
@@ -1231,6 +1245,11 @@
       "dragToReorder": "Presunutím zmeníte poradie {name}"
     },
     "nodes": {
+      "restartXray": "Reštartovať Xray",
+      "restartPanel": "Reštartovať panel",
+      "restartConfirmTitle": "Reštartovať {name}?",
+      "restartXrayContent": "Aktívne spojenia Xray na tomto uzle sa prerušia.",
+      "restartPanelContent": "Panel uzla a služby odberov sa reštartujú a môžu byť dočasne nedostupné. Vyžaduje sa API token node-admin alebo admin na uzle.",
       "addNode": "Pridať server",
       "editNode": "Upraviť server",
       "totalNodes": "Počet serverov",
@@ -1300,6 +1319,8 @@
         "xrayStopped": "Zastavený"
       },
       "toasts": {
+        "xrayRestarted": "Xray na uzle bol reštartovaný.",
+        "panelRestartAccepted": "Žiadosť o reštart panela bola prijatá. Uzol môže byť dočasne nedostupný.",
         "list": "Nepodarilo sa načítať servery",
         "obtain": "Nepodarilo sa načítať server",
         "add": "Pridať server",
@@ -1363,6 +1384,17 @@
       "warnDefaultSubPath": "Predvolená cesta odberu „/sub/“ je všeobecne známa. Zmeňte ju.",
       "warnDefaultJsonPath": "Predvolená cesta odberu JSON „/json/“ je všeobecne známa. Zmeňte ju.",
       "TGBotSettings": "Telegram bot",
+      "networkTrafficInterfaceTitle": "Rozhranie sieťovej prevádzky",
+      "networkTrafficMode": "Režim sieťovej prevádzky",
+      "networkTrafficDescription": "Vyberte rozhranie pre celkovú prevádzku a rýchlosť systému. Pôvodné sčítanie môže započítať prevádzku vrstvených rozhraní dvakrát. V Dockeri sú dostupné iba rozhrania v sieťovom mennom priestore kontajnera.",
+      "networkTrafficLegacy": "Všetky rozhrania (pôvodné)",
+      "networkTrafficAutomatic": "Automaticky",
+      "networkTrafficManual": "Manuálne",
+      "networkTrafficUnavailable": "Vybrané sieťové rozhranie nie je dostupné. Vyberte dostupné rozhranie alebo iný režim monitorovania.",
+      "networkTrafficAutoResolved": "Rozhranie predvolenej trasy: {interface}",
+      "networkTrafficLoadError": "Sieťové rozhrania sa nepodarilo načítať.",
+      "networkTrafficEmpty": "Nie sú dostupné žiadne sieťové rozhrania.",
+      "networkTrafficAutoUnavailable": "Rozhranie predvolenej trasy nie je dostupné. Údaje o prevádzke zostanú nedostupné, kým sa detekcia neobnoví alebo nezmeníte režim.",
       "panelListeningIP": "IP adresa na počúvanie",
       "panelListeningIPDesc": "IP adresa webového panelu. Prázdne pole znamená počúvanie na všetkých IP adresách.",
       "panelListeningDomain": "Doména panelu",
@@ -1422,6 +1454,13 @@
       "tgNotifyLoginDesc": "Pri každom pokuse o prihlásenie do panelu poslať používateľské meno, IP adresu a čas.",
       "sessionMaxAge": "Platnosť prihlásenia",
       "sessionMaxAgeDesc": "Ako dlho môžete zostať prihlásení (jednotka: minúta).",
+      "publicIpRefresh": "Obnovenie verejnej IP",
+      "publicIpRefreshDesc": "Ako často panel znova zisťuje svoju verejnú IP cez externé služby. 0 zistí raz a už neobnovuje. (jednotka: minúta)",
+      "publicIpv6Detect": "Zisťovať verejnú IPv6",
+      "publicIpv6DetectDesc": "Vypnite na serveroch len s IPv4, aby sa preskočili všetky dotazy IPv6.",
+      "publicIpv4Override": "Ručná verejná IPv4",
+      "publicIpv6Override": "Ručná verejná IPv6",
+      "publicIpOverrideDesc": "Použije sa táto adresa namiesto zisťovania; nevykonajú sa pre ňu žiadne externé dotazy. Ak chcete automatické zisťovanie, nechajte prázdne.",
       "expireTimeDiff": "Upozornenie na koniec platnosti",
       "expireTimeDiffDesc": "Upozorniť na koniec platnosti pri dosiahnutí tohto prahu (jednotka: deň).",
       "trafficDiff": "Upozornenie na dátový limit",
@@ -2130,6 +2169,7 @@
         "localIpPlaceholder": "miestna IP",
         "dialerProxyPlaceholder": "Vyberte výstup na zreťazenie",
         "dialerProxyHint": "Pripojí tento výstup cez iný výstup určený značkou a vytvorí reťaz proxy. Prázdne pole znamená priame pripojenie.",
+        "dialerProxyMissing": "Nie je dostupný žiadny výstup s touto značkou, cez ktorý by sa dalo reťaziť.",
         "targetStrategyHint": "Ako sa pred pripojením preloží cieľová doména: AsIs (predvolené) ju pošle nepreloženú, UseIP… ju preloží s náhradným postupom, ForceIP… vyžaduje úspešný preklad.",
         "addressRequired": "Zadajte adresu",
         "portRequired": "Zadajte port",

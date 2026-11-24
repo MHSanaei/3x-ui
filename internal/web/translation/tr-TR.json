@@ -128,7 +128,11 @@
     "openMenu": "Menüyü aç",
     "pinSidebar": "Kenar çubuğunu sabitle",
     "unpinSidebar": "Kenar çubuğu sabitlemesini kaldır",
-    "subFormats": "Abonelik Formatları"
+    "subFormats": "Abonelik Formatları",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeUltraDark": "Ultra koyu",
+    "themeSystem": "Sistem"
   },
   "pages": {
     "login": {
@@ -298,7 +302,7 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Bu makinenin ayarlarını koru",
-      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur.",
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur. Ağ trafiği arayüzü seçimi de korunur.",
       "logLines": "Satır sayısı",
       "timeRange": "Zaman aralığı"
     },
@@ -442,6 +446,8 @@
       "importInbound": "Gelen Bağlantı İçe Aktar",
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDay": "Aylık sıfırlama günü",
+      "preserveClientTraffic": "İstemci kullanımını koru",
+      "preserveClientTrafficHelp": "Seçenek açıkken zamanlanmış sıfırlama yalnızca bu gelen bağlantının trafik sayaçlarını sıfırlar. Her istemcinin tüm düğümlerdeki toplam kullanımı, kendi sıfırlama zamanı gelene kadar korunur.\n\nSeçenek kapalıyken bu gelen bağlantının zamanlanmış sıfırlaması, bağlantıyla ilişkili istemcilerin tüm düğümlerdeki toplam kullanımını da sıfırlar.",
       "periodicTrafficReset": {
         "never": "Asla",
         "daily": "Günlük",
@@ -857,6 +863,7 @@
       "has": "Var",
       "hasNot": "Yok",
       "actions": "İşlemler",
+      "columns": "Sütunlar",
       "totalGB": "Trafik Limiti (GB)",
       "totalGBDesc": "Bu kullanıcı için veri kotası. 0 = sınırsız.",
       "expiryTime": "Son Kullanma",
@@ -1038,7 +1045,8 @@
         "delDepleted": "{count} tükenmiş kullanıcı silindi",
         "delOrphans": "{count} bağsız kullanıcı silindi",
         "imported": "{count} kullanıcı içe aktarıldı",
-        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı"
+        "importedMixed": "{ok} içe aktarıldı, {failed} atlandı",
+        "bulkLinksAppended": "{clients} istemci güncellendi: {added} eklendi, {skipped} tekrar atlandı, {errors} istemci bulunamadı."
       },
       "renewMax": "En fazla yenileme",
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
@@ -1066,7 +1074,13 @@
       "renewsUsed": "Kullanılan yenileme",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
       "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
-      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "bulkAdjustSettings": "Sınırlar ve ayarlar",
+      "bulkAppendLinks": "Harici bağlantılar ekle",
+      "bulkAppendLinksHint": "Seçilen tüm istemcilere eklenir. Mevcut girdiler ve ayarları korunur; aynı tür ve değere sahip tekrarlar atlanır. Diğer ayarlamaları ayrı uygulayın.",
+      "bulkAppendLinksRequired": "En az bir harici bağlantı veya abonelik ekleyin.",
+      "externalLinkInvalid": "Desteklenen bir paylaşım bağlantısı girin.",
+      "externalSubscriptionInvalid": "Bir http(s) abonelik URL’si girin."
     },
     "groups": {
       "name": "İsim",
@@ -1110,6 +1124,11 @@
       "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
     },
     "nodes": {
+      "restartXray": "Xray yeniden başlat",
+      "restartPanel": "Paneli yeniden başlat",
+      "restartConfirmTitle": "{name} yeniden başlatılsın mı?",
+      "restartXrayContent": "Bu düğümdeki etkin Xray bağlantıları kesilecektir.",
+      "restartPanelContent": "Düğüm paneli ve abonelik hizmetleri yeniden başlatılacak ve geçici olarak kullanılamayabilir. Düğümde node-admin veya admin API belirteci gerekir.",
       "addNode": "Düğüm Ekle",
       "editNode": "Düğümü Düzenle",
       "totalNodes": "Toplam Düğüm",
@@ -1179,6 +1198,8 @@
         "xrayStopped": "Durduruldu"
       },
       "toasts": {
+        "xrayRestarted": "Düğümde Xray yeniden başlatıldı.",
+        "panelRestartAccepted": "Panel yeniden başlatma isteği kabul edildi. Düğüm geçici olarak kullanılamayabilir.",
         "list": "Düğümler yüklenemedi",
         "obtain": "Düğüm yüklenemedi",
         "add": "Düğüm ekle",
@@ -1242,6 +1263,17 @@
       "warnDefaultSubPath": "Varsayılan abonelik yolu \"/sub/\" yaygın olarak bilinmektedir — değiştirin.",
       "warnDefaultJsonPath": "Varsayılan JSON abonelik yolu \"/json/\" yaygın olarak bilinmektedir — değiştirin.",
       "TGBotSettings": "Telegram Botu",
+      "networkTrafficInterfaceTitle": "Ağ trafiği arayüzü",
+      "networkTrafficMode": "Ağ trafiği izleme modu",
+      "networkTrafficDescription": "Sistem trafik toplamları ve hızı için kullanılacak arayüzü seçin. Eski toplama modu, katmanlı arayüzlerde aynı trafiği iki kez sayabilir. Docker içinde yalnızca kapsayıcının ağ ad alanındaki arayüzler kullanılabilir.",
+      "networkTrafficLegacy": "Tüm arayüzler (Eski)",
+      "networkTrafficAutomatic": "Otomatik",
+      "networkTrafficManual": "Manuel",
+      "networkTrafficUnavailable": "Seçilen ağ arayüzü kullanılamıyor. Kullanılabilir bir arayüz veya başka bir izleme modu seçin.",
+      "networkTrafficAutoResolved": "Varsayılan rota arayüzü: {interface}",
+      "networkTrafficLoadError": "Ağ arayüzleri yüklenemedi.",
+      "networkTrafficEmpty": "Kullanılabilir ağ arayüzü yok.",
+      "networkTrafficAutoUnavailable": "Varsayılan rota arayüzü yok. Algılama düzelene veya mod değiştirilene kadar trafik ölçümleri kullanılamaz.",
       "panelListeningIP": "Dinleme IP",
       "panelListeningIPDesc": "Web paneli için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "panelListeningDomain": "Dinleme Alan Adı",
@@ -1297,6 +1329,13 @@
       "tgNotifyLoginDesc": "Birisi web panelinize giriş yapmaya çalıştığında kullanıcı adı, IP adresi ve zaman hakkında bildirim almanızı sağlar.",
       "sessionMaxAge": "Oturum Süresi",
       "sessionMaxAgeDesc": "Giriş yaptıktan sonra oturum süresi. (birim: dakika)",
+      "publicIpRefresh": "Genel IP Yenileme",
+      "publicIpRefreshDesc": "Panelin genel IP'sini harici hizmetlerle ne sıklıkla yeniden tespit edeceği. 0 bir kez tespit eder ve bir daha yenilemez. (birim: dakika)",
+      "publicIpv6Detect": "Genel IPv6'yı Tespit Et",
+      "publicIpv6DetectDesc": "Yalnızca IPv4 olan sunucularda tüm IPv6 sorgularını atlamak için kapatın.",
+      "publicIpv4Override": "Genel IPv4 Elle Girişi",
+      "publicIpv6Override": "Genel IPv6 Elle Girişi",
+      "publicIpOverrideDesc": "Tespit etmek yerine bu adres kullanılır; bunun için harici sorgu yapılmaz. Otomatik tespit için boş bırakın.",
       "expireTimeDiff": "Son Kullanma Tarihi Bildirimi",
       "expireTimeDiffDesc": "Bu eşik seviyesine ulaşıldığında son kullanma tarihi hakkında bildirim almanızı sağlar. (birim: gün)",
       "trafficDiff": "Trafik Sınırı Bildirimi",
@@ -2009,6 +2048,7 @@
         "localIpPlaceholder": "yerel IP",
         "dialerProxyPlaceholder": "Zincirlemek için bir giden bağlantı seçin",
         "dialerProxyHint": "Bir proxy zinciri oluşturmak için bu giden bağlantıyı başka bir giden bağlantı (etikete göre) üzerinden bağlayın. Doğrudan bağlanmak için boş bırakın.",
+        "dialerProxyMissing": "Bu etikete sahip, zincirleme kullanılabilecek bir giden bağlantı yok.",
         "targetStrategyHint": "Bağlanmadan önce hedef alan adının nasıl çözümleneceği: AsIs (varsayılan) olduğu gibi gönderir, UseIP… çözümler ve başarısızsa geri döner, ForceIP… çözümleme zorunludur.",
         "addressRequired": "Adres zorunludur",
         "portRequired": "Port zorunludur",

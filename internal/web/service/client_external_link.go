@@ -14,12 +14,12 @@ import (
 
 // ExternalLinkInput is one row from the client form's Links tab.
 type ExternalLinkInput struct {
-	Kind       string `json:"kind"`
-	Value      string `json:"value"`
-	Remark     string `json:"remark"`
-	Enable     *bool  `json:"enable"`
-	ExpiryTime int64  `json:"expiryTime"`
-	NamePrefix string `json:"namePrefix"`
+	Kind       string `json:"kind,omitempty" example:"link"`
+	Value      string `json:"value" example:"vless://uuid@example.com:443"`
+	Remark     string `json:"remark,omitempty" example:"Backup"`
+	Enable     *bool  `json:"enable,omitempty" example:"true"`
+	ExpiryTime int64  `json:"expiryTime,omitempty" example:"0"`
+	NamePrefix string `json:"namePrefix,omitempty"`
 }
 
 func (s *ClientService) GetExternalLinksForRecord(id int) ([]model.ClientExternalLink, error) {

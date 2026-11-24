@@ -35,7 +35,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo|rabbit-hole)`
 	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
@@ -53,15 +53,17 @@ const (
 )
 
 var defaultValueMap = map[string]string{
-	"xrayTemplateConfig": xrayTemplateConfig,
-	"webListen":          "",
-	"webDomain":          "",
-	"webPort":            "2053",
-	"webCertFile":        "",
-	"webKeyFile":         "",
-	"secret":             random.Seq(32),
-	"panelGuid":          uuid.NewString(),
-	"apiToken":           "",
+	"networkTrafficMode":      "legacy",
+	"networkTrafficInterface": "",
+	"xrayTemplateConfig":      xrayTemplateConfig,
+	"webListen":               "",
+	"webDomain":               "",
+	"webPort":                 "2053",
+	"webCertFile":             "",
+	"webKeyFile":              "",
+	"secret":                  random.Seq(32),
+	"panelGuid":               uuid.NewString(),
+	"apiToken":                "",
 	// Node mTLS material (opt-in). All default empty: the CA + master client
 	// cert are minted lazily on first use, and the node-side trust CA is pasted
 	// in by the operator. Kept out of entity.AllSetting so private keys never
@@ -74,6 +76,10 @@ var defaultValueMap = map[string]string{
 	"nodeMtlsClientCAPem":         "",
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
+	"publicIpRefreshMinutes":      "5",
+	"publicIpv6Detect":            "true",
+	"publicIpv4Override":          "",
+	"publicIpv6Override":          "",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
@@ -713,6 +719,15 @@ func (s *SettingService) GetPort() (int, error) {
 	return s.getInt("webPort")
 }
 
+// GetListenPort returns the port the panel actually listens on: a valid
+// XUI_PORT overrides the stored webPort.
+func (s *SettingService) GetListenPort() (int, error) {
+	if port, configured, err := config.GetPortOverride(); configured && err == nil {
+		return port, nil
+	}
+	return s.GetPort()
+}
+
 func (s *SettingService) SetPort(port int) error {
 	return s.setInt("webPort", port)
 }
@@ -739,6 +754,22 @@ func (s *SettingService) GetExpireDiff() (int, error) {
 
 func (s *SettingService) GetTrafficDiff() (int, error) {
 	return s.getInt("trafficDiff")
+}
+
+func (s *SettingService) GetPublicIpRefreshMinutes() (int, error) {
+	return s.getInt("publicIpRefreshMinutes")
+}
+
+func (s *SettingService) GetPublicIpv6Detect() (bool, error) {
+	return s.getBool("publicIpv6Detect")
+}
+
+func (s *SettingService) GetPublicIpv4Override() (string, error) {
+	return s.getString("publicIpv4Override")
+}
+
+func (s *SettingService) GetPublicIpv6Override() (string, error) {
+	return s.getString("publicIpv6Override")
 }
 
 func (s *SettingService) GetSessionMaxAge() (int, error) {
@@ -1667,6 +1698,10 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	preserveTrafficSelection := allSetting.NetworkTrafficMode == ""
+	if err := validateNetworkTrafficSettings(allSetting); err != nil {
+		return err
+	}
 	switch allSetting.SubHostSortMode {
 	case "":
 		allSetting.SubHostSortMode = "inbound-first"
@@ -1716,11 +1751,26 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 			return err
 		}
 		byKey := make(map[string]*model.Setting, len(existing))
+		currentTraffic := networkTrafficConfig{}
 		for _, st := range existing {
 			byKey[st.Key] = st
+			switch st.Key {
+			case "networkTrafficMode":
+				currentTraffic.mode = st.Value
+			case "networkTrafficInterface":
+				currentTraffic.iface = st.Value
+			}
+		}
+		if err := validateNetworkTrafficInterfaceChange(allSetting, currentTraffic); err != nil {
+			return err
 		}
 		for _, field := range fields {
 			key := field.Tag.Get("json")
+			// Older clients omit this pair; skipping its writes also preserves
+			// explicit selections committed concurrently with an unrelated save.
+			if preserveTrafficSelection && (key == "networkTrafficMode" || key == "networkTrafficInterface") {
+				continue
+			}
 			fieldV := v.FieldByName(field.Name)
 			value := fmt.Sprint(fieldV.Interface())
 			if st, ok := byKey[key]; ok {

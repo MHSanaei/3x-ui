@@ -439,6 +439,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	subSvc := &OutboundSubscriptionService{}
 	if prepend, appendList, err := subSvc.activeOutboundsSplit(); err == nil && (len(prepend) > 0 || len(appendList) > 0) {
 		mergeSubscriptionOutbounds(xrayConfig, prepend, appendList)
+		if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	// Route opted-in local mtproto inbounds through the core's router. Each one
@@ -1141,10 +1144,24 @@ func mergeSubscriptionOutbounds(cfg *xray.Config, prepend, appendList []any) {
 			return
 		}
 	}
+
+	// Template outbounds take tag priority (must not be altered by injected subscriptions).
+	usedTags := make(map[string]bool)
+	for _, item := range templateOutbounds {
+		if ob, ok := item.(map[string]any); ok {
+			if tag, _ := ob["tag"].(string); tag != "" {
+				usedTags[tag] = true
+			}
+		}
+	}
+
+	prependClean := dedupeSubscriptionOutboundList(prepend, usedTags)
+	appendClean := dedupeSubscriptionOutboundList(appendList, usedTags)
+
 	var merged []any
-	merged = append(merged, prepend...)
+	merged = append(merged, prependClean...)
 	merged = append(merged, templateOutbounds...)
-	merged = append(merged, appendList...)
+	merged = append(merged, appendClean...)
 	combined, err := json.MarshalIndent(merged, "", "  ")
 	if err != nil {
 		return

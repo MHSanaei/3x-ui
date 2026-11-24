@@ -39,7 +39,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
-import { withHostEndpoints } from '@/lib/hosts/host-link';
+import { hostLinksClosed, withHostEndpoints } from '@/lib/hosts/host-link';
 import AppSidebar from '@/layouts/AppSidebar';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 import type { TextModalTab } from '@/components/feedback/TextModal';
@@ -335,9 +335,18 @@ export default function InboundsPage() {
       const projected = checkFallback(dbInbound);
       const hostOverride = hostOverrideFor(dbInbound);
       const fallbackHostname = preferPublicHost(window.location.hostname, subSettings.publicHost);
+      const baseInbound = inboundFromDb(projected);
+      if (hostLinksClosed(baseInbound, dbInbound.id, hosts)) {
+        openText({
+          title: t('pages.inbounds.exportLinksTitle'),
+          content: '',
+          fileName: projected.remark || 'inbound',
+        });
+        return;
+      }
       const genInput = {
         inbound: withHostEndpoints(
-          inboundFromDb(projected),
+          baseInbound,
           dbInbound.id,
           hosts,
           hostOverride,
