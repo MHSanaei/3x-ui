@@ -152,12 +152,13 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 		subReq.projectThroughFallbackMaster(inbound)
 		var baseEps []map[string]any
+		var hostsClosed bool
 		baseStream := inbound.StreamSettings
 		// getConfig rewrites inbound.Listen/Port per endpoint while rendering a client, so bound
 		// endpoints resolve against this pre-loop snapshot.
 		baseInbound := *inbound
 		if !subReq.hostsFirst {
-			if baseEps = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
+			if baseEps, hostsClosed = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}
@@ -168,6 +169,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
+			if hostsClosed {
+				hasBoundClosed = true
+				continue
+			}
 			if subReq.hostsFirst {
 				variants, closed := subReq.clientHostVariants(&baseInbound, client, "json")
 				hasBoundClosed = hasBoundClosed || closed
