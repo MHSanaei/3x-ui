@@ -397,11 +397,19 @@ a.sub-row-title:hover {
   line-height: 0;
 }
 
+.sub-qr-body {
+  min-width: 0;
+}
+
 .sub-qr-title {
   margin-bottom: 4px;
   font-size: 15px;
   font-weight: 600;
   color: var(--ant-color-text);
+}
+
+.sub-qr-segmented {
+  margin-top: 10px;
 }
 
 /* apps */

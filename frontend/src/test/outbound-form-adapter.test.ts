@@ -537,7 +537,14 @@ describe('outbound-form-adapter: round-trip', () => {
         proxyProtocol: 0,
         noises: [],
         finalRules: [
-          { action: 'block', network: '', port: '', ip: ['geoip:private'], blockDelay: '' },
+          {
+            action: 'block',
+            network: '',
+            port: '',
+            ip: ['geoip:private'],
+            delay: '',
+            logLevel: '',
+          },
         ],
       },
     } as unknown as Parameters<typeof formValuesToWirePayload>[0];
@@ -546,6 +553,26 @@ describe('outbound-form-adapter: round-trip', () => {
     const back = formValuesToWirePayload(values);
     expect((back.settings as { fragment?: unknown }).fragment).toBeUndefined();
     expect((back.settings as { finalRules?: unknown[] }).finalRules).toHaveLength(1);
+  });
+
+  it('freedom writes finalRules delay and logLevel on block rules only (xray-core 26.11.9)', () => {
+    const round = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'freedom',
+        settings: {
+          finalRules: [
+            { action: 'block', blockDelay: '5000-10000', delay: '1-2', logLevel: 'none' },
+            { action: 'block', delay: '100-200' },
+            { action: 'allow', delay: '1-2', logLevel: 'debug' },
+          ],
+        },
+      }),
+    );
+    expect((round.settings as { finalRules?: unknown[] }).finalRules).toEqual([
+      { action: 'block', delay: '5000-10000', logLevel: 'none' },
+      { action: 'block', delay: '100-200' },
+      { action: 'allow' },
+    ]);
   });
 
   it('freedom omits proxyProtocol when disabled (0)', () => {

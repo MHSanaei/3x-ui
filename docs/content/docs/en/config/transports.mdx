@@ -137,7 +137,7 @@ enabled. The panel offers XDRIVE only for VLESS, refuses to save an inbound with
 | `secrets`      | —              | Google Drive: ClientID, ClientSecret, RefreshToken — exactly three, in that order. Template: values read as `{secret0}`, `{secret1}`, …. S3: AccessKeyID, SecretAccessKey and an optional SessionToken. |
 | `template`     | —              | Template service only: the storage API's `auth`, `put`, `get`, `list` and `delete` operations. |
 | `s3`           | —              | S3 service only: `endpoint` (an http(s) URL), `region`, `bucket` and `pathStyle` (default `true`; `false` puts the bucket in the host name). `remoteFolder` is the object prefix. |
-| tuning         | core defaults  | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
+| tuning         | core defaults  | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). Google Drive defaults to `flushIntervalMs` 10, `maxPollIntervalMs` 200 and `concurrency` 64 (xray-core 26.11.9). |
 
 The optional **Front address/port** (the stream-level `address`/`port`) is a domain
 front the storage API is dialed through; TLS still names the API host. XDRIVE has
