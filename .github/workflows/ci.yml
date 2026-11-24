@@ -84,6 +84,15 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client traffic lifecycle edits
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientTrafficLifecyclePostgres$' -count=1 -v | tee /tmp/postgres-client-traffic-lifecycle.log
+          if ! grep -q -- '^--- PASS: TestClientTrafficLifecyclePostgres ' /tmp/postgres-client-traffic-lifecycle.log; then
+            echo "expected the PostgreSQL client traffic lifecycle suite to pass" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL batched stats identities
         run: |
           set -o pipefail
