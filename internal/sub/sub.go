@@ -146,7 +146,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 	var subRateLimiterInst *subRateLimiter
-	var subRateResolver *clientIPResolver
+	subRateTrustedCIDRs := service.DefaultTrustedProxyCIDRs
 	if subRateLimitEnable {
 		subRateLimit, err := s.settingService.GetSubRateLimit()
 		if err != nil || subRateLimit < 1 {
@@ -154,7 +154,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		}
 		subRateLimit = min(subRateLimit, subRateLimitMaxPerMinute)
 		subRateLimiterInst = newSubRateLimiter(subRateLimit, subRateLimitWindow)
-		subRateResolver = newClientIPResolver(s.settingService)
+		if value, err := s.settingService.GetTrustedProxyCIDRs(); err == nil && strings.TrimSpace(value) != "" {
+			subRateTrustedCIDRs = value
+		}
 	}
 
 	SubJsonMux, err := s.settingService.GetSubJsonMux()
@@ -396,7 +398,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBIncyConfig(incyCfg),
 		WithSUBIncyEnableRouting(SubIncyEnableRouting),
 		WithSUBIncyRoutingRules(SubIncyRoutingRules),
-		WithSUBRateLimit(subRateLimiterInst, subRateResolver),
+		WithSUBRateLimit(subRateLimiterInst, subRateTrustedCIDRs),
 	)
 
 	return engine, nil
