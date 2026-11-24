@@ -438,7 +438,7 @@
       "periodicTrafficResetTitle": "流量重置",
       "periodicTrafficResetDay": "每月重置日",
       "preserveClientTraffic": "保留客戶端用量",
-      "preserveClientTrafficHelp": "定時重置只會清除此入站的流量，客戶端繼續依自己的週期累計用量。",
+      "preserveClientTrafficHelp": "開啟後，定時重設只會將此入站的流量歸零。每位使用者在所有節點的累計用量都會保留，並依自己的週期重設。\n\n關閉後，此入站定時重設時，也會將關聯使用者在所有節點的累計用量歸零。",
       "periodicTrafficReset": {
         "never": "從不",
         "daily": "每日",

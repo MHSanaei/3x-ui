@@ -438,7 +438,7 @@
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDay": "Aylık sıfırlama günü",
       "preserveClientTraffic": "İstemci kullanımını koru",
-      "preserveClientTrafficHelp": "Zamanlanmış sıfırlama yalnızca bu gelen bağlantının sayaçlarını temizler. İstemciler kendi sıfırlama takvimlerini izler.",
+      "preserveClientTrafficHelp": "Seçenek açıkken zamanlanmış sıfırlama yalnızca bu gelen bağlantının trafik sayaçlarını sıfırlar. Her istemcinin tüm düğümlerdeki toplam kullanımı, kendi sıfırlama zamanı gelene kadar korunur.\n\nSeçenek kapalıyken bu gelen bağlantının zamanlanmış sıfırlaması, bağlantıyla ilişkili istemcilerin tüm düğümlerdeki toplam kullanımını da sıfırlar.",
       "periodicTrafficReset": {
         "never": "Asla",
         "daily": "Günlük",

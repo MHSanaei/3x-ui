@@ -439,7 +439,7 @@
       "periodicTrafficResetTitle": "Traffic Reset",
       "periodicTrafficResetDay": "Monthly reset day",
       "preserveClientTraffic": "Keep client usage",
-      "preserveClientTrafficHelp": "Scheduled resets clear only this inbound’s counters. Clients continue on their own reset schedules.",
+      "preserveClientTrafficHelp": "When enabled, a scheduled reset clears only this inbound’s traffic counters. Each client keeps its total usage across all nodes until its own scheduled reset.\n\nWhen disabled, this inbound’s scheduled reset also clears the usage its clients have accumulated across all nodes.",
       "periodicTrafficReset": {
         "never": "Never",
         "daily": "Daily",

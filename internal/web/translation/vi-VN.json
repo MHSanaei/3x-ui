@@ -438,7 +438,7 @@
       "periodicTrafficResetTitle": "Đặt lại lưu lượng",
       "periodicTrafficResetDay": "Ngày đặt lại hàng tháng",
       "preserveClientTraffic": "Giữ mức sử dụng của máy khách",
-      "preserveClientTrafficHelp": "Lịch đặt lại chỉ xóa bộ đếm của kết nối đến này. Máy khách vẫn theo lịch đặt lại riêng.",
+      "preserveClientTrafficHelp": "Khi bật, thao tác đặt lại theo lịch chỉ đưa bộ đếm lưu lượng của inbound này về 0. Tổng lưu lượng của mỗi máy khách trên tất cả các node được giữ lại cho đến lần đặt lại theo lịch riêng của máy khách đó.\n\nKhi tắt, mỗi lần inbound này được đặt lại theo lịch, tổng lưu lượng mà mỗi máy khách liên kết với inbound đã sử dụng trên tất cả các node cũng trở về 0.",
       "periodicTrafficReset": {
         "never": "Không bao giờ",
         "daily": "Hàng ngày",

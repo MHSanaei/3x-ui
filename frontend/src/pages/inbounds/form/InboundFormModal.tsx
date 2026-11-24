@@ -839,7 +839,11 @@ export default function InboundFormModal({
           name="preserveClientTraffic"
           valueProp="checked"
           label={t('pages.inbounds.preserveClientTraffic')}
-          tooltip={t('pages.inbounds.preserveClientTrafficHelp')}
+          tooltip={
+            <span style={{ whiteSpace: 'pre-line' }}>
+              {t('pages.inbounds.preserveClientTrafficHelp')}
+            </span>
+          }
         >
           <Switch />
         </FormField>

@@ -438,7 +438,7 @@
       "periodicTrafficResetTitle": "Reset de Tráfico",
       "periodicTrafficResetDay": "Día de reinicio mensual",
       "preserveClientTraffic": "Conservar el consumo de los clientes",
-      "preserveClientTrafficHelp": "El reinicio programado solo pone a cero los contadores de esta entrada. Los clientes conservan sus propios ciclos de reinicio.",
+      "preserveClientTrafficHelp": "Si se activa, el reinicio programado solo pone a cero los contadores de esta entrada. Cada cliente conserva su consumo acumulado en todos los nodos hasta su propio reinicio programado.\n\nSi se desactiva, el reinicio programado de esta entrada también pone a cero el consumo acumulado de sus clientes en todos los nodos.",
       "periodicTrafficReset": {
         "never": "Nunca",
         "daily": "Diariamente",

@@ -438,7 +438,7 @@
       "periodicTrafficResetTitle": "Reset Trafik Berkala",
       "periodicTrafficResetDay": "Hari reset bulanan",
       "preserveClientTraffic": "Pertahankan penggunaan klien",
-      "preserveClientTrafficHelp": "Reset terjadwal hanya mengosongkan penghitung inbound ini. Klien tetap mengikuti jadwal reset masing-masing.",
+      "preserveClientTrafficHelp": "Jika opsi ini aktif, hanya penghitung lalu lintas inbound ini yang direset sesuai jadwal. Total penggunaan setiap klien di semua node tetap tercatat hingga jadwal reset klien tersebut.\n\nJika opsi ini nonaktif, setiap kali inbound ini direset sesuai jadwal, total penggunaan klien yang terkait dengannya di semua node juga kembali ke nol.",
       "periodicTrafficReset": {
         "never": "Tidak Pernah",
         "daily": "Harian",

@@ -439,7 +439,7 @@
       "periodicTrafficResetTitle": "Nulovanie spotreby",
       "periodicTrafficResetDay": "Deň mesačného nulovania",
       "preserveClientTraffic": "Zachovať spotrebu klientov",
-      "preserveClientTrafficHelp": "Plánované nulovanie vynuluje iba počítadlá tohto vstupu. Klienti sa naďalej riadia vlastným plánom nulovania.",
+      "preserveClientTrafficHelp": "Keď je táto možnosť zapnutá, podľa plánu sa vynulujú iba počítadlá prenosu tohto vstupu. Celková spotreba každého klienta na všetkých serveroch sa zachová až do vynulovania podľa jeho vlastného plánu.\n\nAk je možnosť vypnutá, pri plánovanom vynulovaní tohto vstupu sa vynuluje aj celková spotreba jeho klientov na všetkých serveroch.",
       "periodicTrafficReset": {
         "never": "Nikdy",
         "daily": "Denne",
