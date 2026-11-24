@@ -511,10 +511,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
-	if !a.enforceHwid(c) {
+	format := hwidLinks
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+		format = hwidClash
+	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+		format = hwidJSONArray
+	}
+	if !a.enforceHwid(c, format) {
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false, false) {
+	if format == hwidClash && a.serveClashBody(c, false, false) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
@@ -743,7 +749,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 	}
 }
 
-func (a *SUBController) enforceHwid(c *gin.Context) bool {
+func (a *SUBController) enforceHwid(c *gin.Context, format hwidResponseFormat) bool {
 	result, err := a.clientService.EnforceHwidForSubID(c.Param("subid"), service.HwidRequest{
 		Hwid:        c.GetHeader("X-HWID"),
 		UserAgent:   c.GetHeader("User-Agent"),
@@ -755,11 +761,11 @@ func (a *SUBController) enforceHwid(c *gin.Context) bool {
 		writeSubError(c, err)
 		return false
 	}
-	applyHwidHeaders(c, result)
 	if !result.Allowed {
-		c.Status(http.StatusNotFound)
+		a.writeHwidRejection(c, result, format)
 		return false
 	}
+	applyHwidHeaders(c, result)
 	return true
 }
 
@@ -844,7 +850,7 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 // device limit is enforced on every body route, ?view=raw included (#GHSA-7ww3).
 func (a *SUBController) subJsons(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
-		if !a.enforceHwid(c) {
+		if !a.enforceHwid(c, hwidJSON) {
 			return
 		}
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
@@ -856,7 +862,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	if a.maybeServeSubPage(c, subPageFormatJSON) {
 		return
 	}
-	if !a.enforceHwid(c) {
+	if !a.enforceHwid(c, hwidJSON) {
 		return
 	}
 	a.serveJson(c, a.jsonAlwaysArray, "text/plain; charset=utf-8")
@@ -906,7 +912,7 @@ func (a *SUBController) subClashLegacy(c *gin.Context) {
 
 func (a *SUBController) subClash(c *gin.Context, legacy bool) {
 	if strings.EqualFold(c.Query("view"), "raw") {
-		if !a.enforceHwid(c) {
+		if !a.enforceHwid(c, hwidClash) {
 			return
 		}
 		if !a.serveClashBody(c, true, legacy) {
@@ -918,7 +924,7 @@ func (a *SUBController) subClash(c *gin.Context, legacy bool) {
 	if a.maybeServeSubPage(c, subPageFormatClash) {
 		return
 	}
-	if !a.enforceHwid(c) {
+	if !a.enforceHwid(c, hwidClash) {
 		return
 	}
 	if !a.serveClashBody(c, false, legacy) {

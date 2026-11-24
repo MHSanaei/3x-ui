@@ -356,6 +356,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "inbound-first",
         "type": "string"
       },
+      "subHwidRejectWithConfig": {
+        "type": "boolean"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -726,6 +729,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunType",
       "subHideSettings",
       "subHostSortMode",
+      "subHwidRejectWithConfig",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -1191,6 +1195,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "inbound-first",
         "type": "string"
       },
+      "subHwidRejectWithConfig": {
+        "type": "boolean"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -1569,6 +1576,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunType",
       "subHideSettings",
       "subHostSortMode",
+      "subHwidRejectWithConfig",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",

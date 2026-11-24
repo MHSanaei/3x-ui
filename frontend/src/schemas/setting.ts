@@ -38,6 +38,7 @@ export const AllSettingFieldsSchema = z
     remarkTemplate: z.string().optional(),
     subShowIdentityOnAllLinks: z.boolean().optional(),
     subInfoNodeEnable: z.boolean().optional(),
+    subHwidRejectWithConfig: z.boolean().optional(),
     subHostSortMode: SubHostSortModeSchema.optional(),
     subCalendarExpireInclusive: z.boolean().optional(),
     subExpiredTemplate: z.string().optional(),

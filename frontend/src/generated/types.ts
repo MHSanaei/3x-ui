@@ -112,6 +112,7 @@ export interface AllSetting {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -311,6 +312,7 @@ export interface AllSettingView {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;

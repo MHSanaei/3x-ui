@@ -97,6 +97,17 @@ export default function SubscriptionGeneralTab({
               )}
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.subHwidRejectWithConfig')}
+                description={t('pages.settings.subHwidRejectWithConfigDesc')}
+              >
+                <Switch
+                  aria-label={t('pages.settings.subHwidRejectWithConfig')}
+                  checked={allSetting.subHwidRejectWithConfig}
+                  onChange={(v) => updateSetting({ subHwidRejectWithConfig: v })}
+                />
+              </SettingListItem>
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.subHostSortMode')}
                 description={t('pages.settings.subHostSortModeDesc')}
               >
