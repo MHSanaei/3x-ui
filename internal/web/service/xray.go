@@ -1842,6 +1842,15 @@ func (s *XrayService) SetToNeedRestart() {
 // SetToNeedReconcile schedules config reconciliation without forcing an unchanged core to restart.
 func (s *XrayService) SetToNeedReconcile() { isNeedXrayReconcile.Store(true) }
 
+// ReconcileNow applies a change at once instead of at the 30 s tick. A core that is
+// down only stays flagged: starting it is the tick's job.
+func (s *XrayService) ReconcileNow() {
+	s.SetToNeedReconcile()
+	if s.IsXrayRunning() {
+		s.ApplyPendingRestart()
+	}
+}
+
 // GetXrayAPIPort returns the port the local xray process is listening on
 // for its gRPC HandlerService, or 0 when xray isn't currently running.
 // Exposed for the runtime package's LocalRuntime adapter without a
