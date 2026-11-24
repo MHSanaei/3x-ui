@@ -1686,6 +1686,8 @@
         "twoFactor": "Two-factor authentication",
         "twoFactorEnable": "Enable 2FA",
         "twoFactorEnableDesc": "Adds an additional layer of authentication to provide more security.",
+        "mcpEnable": "MCP server",
+        "mcpEnableDesc": "Lets AI agents manage this panel through /panel/api/mcp with an API token. An agent can do everything its token allows, so leave it off unless you use one.",
         "twoFactorModalSetTitle": "Enable two-factor authentication",
         "twoFactorModalDeleteTitle": "Disable two-factor authentication",
         "twoFactorModalSteps": "To set up two-factor authentication, perform a few steps:",

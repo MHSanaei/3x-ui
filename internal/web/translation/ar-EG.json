@@ -1561,6 +1561,8 @@
         "twoFactor": "المصادقة الثنائية",
         "twoFactorEnable": "تفعيل المصادقة الثنائية",
         "twoFactorEnableDesc": "يضيف طبقة إضافية من المصادقة لتعزيز الأمان.",
+        "mcpEnable": "خادم MCP",
+        "mcpEnableDesc": "يسمح لوكلاء الذكاء الاصطناعي بإدارة هذه اللوحة عبر ‎/panel/api/mcp‎ باستخدام رمز API. يستطيع الوكيل فعل كل ما يسمح به رمزه، فاتركه معطلاً ما لم تستخدمه.",
         "twoFactorModalSetTitle": "تفعيل المصادقة الثنائية",
         "twoFactorModalDeleteTitle": "تعطيل المصادقة الثنائية",
         "twoFactorModalSteps": "لإعداد المصادقة الثنائية، قم ببعض الخطوات:",

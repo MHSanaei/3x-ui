@@ -88,6 +88,7 @@ export const AllSettingFieldsSchema = z
     externalTrafficInformEnable: z.boolean().optional(),
     externalTrafficInformURI: z.string().optional(),
     restartXrayOnClientDisable: z.boolean().optional(),
+    mcpEnable: z.boolean().optional(),
     subCertFile: z.string().optional(),
     subKeyFile: z.string().optional(),
     externalSubUserAgent: z.string().max(512).optional(),

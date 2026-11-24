@@ -1561,6 +1561,8 @@
         "twoFactor": "Xác thực hai yếu tố",
         "twoFactorEnable": "Bật 2FA",
         "twoFactorEnableDesc": "Thêm một lớp bảo mật bổ sung để tăng cường an toàn.",
+        "mcpEnable": "Máy chủ MCP",
+        "mcpEnableDesc": "Cho phép các tác nhân AI quản lý bảng điều khiển này qua /panel/api/mcp bằng token API. Tác nhân làm được mọi thứ token cho phép; hãy để tắt nếu bạn không dùng.",
         "twoFactorModalSetTitle": "Bật xác thực hai yếu tố",
         "twoFactorModalDeleteTitle": "Tắt xác thực hai yếu tố",
         "twoFactorModalSteps": "Để thiết lập xác thực hai yếu tố, hãy thực hiện các bước sau:",

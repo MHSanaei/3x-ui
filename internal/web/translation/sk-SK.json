@@ -1686,6 +1686,8 @@
         "twoFactor": "Dvojfaktorové overenie",
         "twoFactorEnable": "Zapnúť 2FA",
         "twoFactorEnableDesc": "Pridá ďalší krok overenia a zvýši bezpečnosť prihlásenia.",
+        "mcpEnable": "Server MCP",
+        "mcpEnableDesc": "Umožní agentom AI spravovať tento panel cez /panel/api/mcp pomocou API tokenu. Agent môže všetko, čo dovoľuje jeho token, preto ho nechajte vypnutý, ak ho nepoužívate.",
         "twoFactorModalSetTitle": "Zapnúť dvojfaktorové overenie",
         "twoFactorModalDeleteTitle": "Vypnúť dvojfaktorové overenie",
         "twoFactorModalSteps": "Dvojfaktorové overenie nastavíte takto:",

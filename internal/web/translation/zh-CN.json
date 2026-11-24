@@ -1561,6 +1561,8 @@
         "twoFactor": "双重验证",
         "twoFactorEnable": "启用 2FA",
         "twoFactorEnableDesc": "增加额外的验证层以提高安全性。",
+        "mcpEnable": "MCP 服务器",
+        "mcpEnableDesc": "允许 AI 代理使用 API 令牌通过 /panel/api/mcp 管理此面板。代理可以执行其令牌允许的所有操作，不使用时请保持关闭。",
         "twoFactorModalSetTitle": "启用双重认证",
         "twoFactorModalDeleteTitle": "停用双重认证",
         "twoFactorModalSteps": "要设定双重认证，请执行以下步骤：",

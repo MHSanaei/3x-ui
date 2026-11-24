@@ -1561,6 +1561,8 @@
         "twoFactor": "Autenticação de dois fatores",
         "twoFactorEnable": "Ativar 2FA",
         "twoFactorEnableDesc": "Adiciona uma camada extra de autenticação para mais segurança.",
+        "mcpEnable": "Servidor MCP",
+        "mcpEnableDesc": "Permite que agentes de IA gerenciem este painel por /panel/api/mcp com um token de API. Um agente pode fazer tudo o que o token permite; mantenha desativado se não for usar.",
         "twoFactorModalSetTitle": "Ativar autenticação de dois fatores",
         "twoFactorModalDeleteTitle": "Desativar autenticação de dois fatores",
         "twoFactorModalSteps": "Para configurar a autenticação de dois fatores, siga alguns passos:",

@@ -126,6 +126,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapVlessField": {
         "type": "string"
       },
+      "mcpEnable": {
+        "type": "boolean"
+      },
       "networkTrafficInterface": {
         "example": "eth0",
         "type": "string"
@@ -695,6 +698,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "mcpEnable",
       "networkTrafficInterface",
       "networkTrafficMode",
       "nodeDownThreshold",
@@ -1014,6 +1018,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "ldapVlessField": {
         "type": "string"
+      },
+      "mcpEnable": {
+        "type": "boolean"
       },
       "networkTrafficInterface": {
         "example": "eth0",
@@ -1594,6 +1601,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "ldapUserAttr",
       "ldapUserFilter",
       "ldapVlessField",
+      "mcpEnable",
       "networkTrafficInterface",
       "networkTrafficMode",
       "nodeDownThreshold",

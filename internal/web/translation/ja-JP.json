@@ -1561,6 +1561,8 @@
         "twoFactor": "二段階認証",
         "twoFactorEnable": "2FAを有効化",
         "twoFactorEnableDesc": "セキュリティを強化するために追加の認証層を追加します。",
+        "mcpEnable": "MCP サーバー",
+        "mcpEnableDesc": "AI エージェントが API トークンを使い /panel/api/mcp 経由でこのパネルを管理できるようにします。エージェントはトークンが許可するすべての操作を行えるため、使わない場合はオフのままにしてください。",
         "twoFactorModalSetTitle": "二段階認証を有効にする",
         "twoFactorModalDeleteTitle": "二段階認証を無効にする",
         "twoFactorModalSteps": "二段階認証を設定するには、次の手順を実行してください:",

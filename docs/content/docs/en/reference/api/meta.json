@@ -16,6 +16,7 @@
     "reality-watch",
     "nodes",
     "backup",
+    "mcp",
     "websocket"
   ]
 }
