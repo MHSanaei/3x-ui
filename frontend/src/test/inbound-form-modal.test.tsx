@@ -1,11 +1,12 @@
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { screen, act, render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { screen, act, render, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { AntdRootConfig } from '@/i18n/AntdRootConfig';
 import { HttpUtil } from '@/utils';
-import { Protocols } from '@/schemas/primitives';
+
 import {
   renderWithProviders,
   fieldLabels,
@@ -40,20 +41,8 @@ function renderModal() {
   );
 }
 
-// The protocol dropdown is virtualized, so jsdom renders only its first options; step
-// the active option by keyboard from the current protocol in the options' own order.
-function chooseVirtualizedProtocol(optionText: string) {
-  const input = document.getElementById('protocol') as HTMLElement;
-  const select = input.closest('.ant-select') as HTMLElement;
-  const current = (select.textContent ?? '').trim();
-  const order = Object.values(Protocols) as string[];
-  const steps = order.indexOf(optionText) - order.indexOf(current);
-  if (order.indexOf(optionText) < 0 || order.indexOf(current) < 0 || steps < 0) {
-    throw new Error(`cannot step from '${current}' to '${optionText}'`);
-  }
-  fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-  for (let i = 0; i < steps; i++) fireEvent.keyDown(input, { key: 'ArrowDown', keyCode: 40 });
-  fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+function chooseProtocol(optionText: string) {
+  chooseSelectOption('protocol', optionText);
 }
 
 function primaryButton(): HTMLElement {
@@ -99,7 +88,7 @@ function cloneLikeVlessInbound(target: string) {
   });
 }
 
-function renderCloneLikeEdit(dbInbound: DBInbound) {
+async function renderCloneLikeEdit(dbInbound: DBInbound) {
   renderWithProviders(
     <InboundFormModal
       open
@@ -111,15 +100,10 @@ function renderCloneLikeEdit(dbInbound: DBInbound) {
       onSaved={() => {}}
     />,
   );
+  await act(async () => {});
 }
 
 describe('InboundFormModal', () => {
-  it('renders add mode without crashing', () => {
-    renderModal();
-    expect(document.querySelector('.ant-modal')).toBeTruthy();
-    expect(fieldLabels().length).toBeGreaterThan(0);
-  });
-
   it('field structure differs per protocol (not a vacuous snapshot loop)', async () => {
     renderModal();
     const protocols = listSelectOptions('protocol');
@@ -142,9 +126,8 @@ describe('InboundFormModal', () => {
     expect(distinctShapes.size).toBeGreaterThan(1);
 
     // Spot-check a protocol-distinguishing field that must appear after the switch.
-    if (labelsByProto.shadowsocks) {
-      expect(labelsByProto.shadowsocks).toContain('Encryption method');
-    }
+    expect(labelsByProto.shadowsocks).toContain('Encryption method');
+    expect(labelsByProto.vless).not.toContain('Encryption method');
   }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
   it('preserves custom share address strategy when editing a local inbound', async () => {
@@ -240,27 +223,31 @@ describe('InboundFormModal', () => {
         await new Promise((r) => setTimeout(r, 0));
       });
     };
-    const strategyItem = (title: string) =>
-      document.querySelector(`.ant-select-content[title="${title}"]`);
+    const selectedStrategy = () =>
+      within(screen.getByRole('combobox', { name: 'Share address strategy' })).getByRole('option', {
+        selected: true,
+      }).textContent;
     const modal = (nodes: never[], fetched: boolean) => (
-      <ThemeProvider>
-        <InboundFormModal
-          open
-          mode="edit"
-          dbInbound={buildInbound()}
-          dbInbounds={[]}
-          availableNodes={nodes}
-          availableNodesFetched={fetched}
-          onClose={() => {}}
-          onSaved={() => {}}
-        />
-      </ThemeProvider>
+      <AntdRootConfig>
+        <ThemeProvider>
+          <InboundFormModal
+            open
+            mode="edit"
+            dbInbound={buildInbound()}
+            dbInbounds={[]}
+            availableNodes={nodes}
+            availableNodesFetched={fetched}
+            onClose={() => {}}
+            onSaved={() => {}}
+          />
+        </ThemeProvider>
+      </AntdRootConfig>
     );
 
     // Baseline: nodes already loaded, so the node option is offered and selected.
     render(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
+    expect(selectedStrategy()).toBe('Node address');
     cleanup();
 
     // Race: the modal mounts before /nodes/list resolves (empty placeholder),
@@ -270,15 +257,14 @@ describe('InboundFormModal', () => {
     await flush();
     rerender(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
-    expect(strategyItem('Inbound listen')).toBeFalsy();
+    expect(selectedStrategy()).toBe('Node address');
   });
 
   it('surfaces a Reality validation error and switches to its tab', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();
     messageError.mockClear();
-    renderCloneLikeEdit(cloneLikeVlessInbound('example.com'));
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com'));
 
     fireEvent.click(primaryButton());
 
@@ -323,7 +309,7 @@ describe('InboundFormModal', () => {
   it('submits a valid clone-like Reality inbound', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();
-    renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
 
     fireEvent.click(primaryButton());
 
@@ -340,19 +326,12 @@ describe('InboundFormModal', () => {
   it('switches a REALITY inbound to an XDRIVE stream with security none', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();
-    renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Stream' }));
-    const transmission = Array.from(document.querySelectorAll('.ant-form-item')).find(
-      (el) =>
-        el.querySelector('.ant-form-item-label label')?.textContent?.trim() === 'Transmission',
-    );
-    const select = transmission?.querySelector('.ant-select') as HTMLElement;
-    fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-    const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === 'XDRIVE',
-    ) as HTMLElement;
-    fireEvent.click(option);
+    const transport = screen.getByRole('combobox', { name: 'Transmission' });
+    const option = within(transport).getByRole('option', { name: 'XDRIVE' }) as HTMLOptionElement;
+    fireEvent.change(transport, { target: { value: option.value } });
     for (const [label, value] of [
       ['Remote folder', 'xray-tunnel'],
       ['Client ID', 'id.apps.googleusercontent.com'],
@@ -386,7 +365,7 @@ describe('InboundFormModal', () => {
     post.mockClear();
     renderModal();
 
-    chooseVirtualizedProtocol('masque');
+    chooseProtocol('masque');
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
@@ -448,7 +427,7 @@ describe('InboundFormModal', () => {
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });
-    renderCloneLikeEdit(hysteria);
+    await renderCloneLikeEdit(hysteria);
     // Form watches flush in a macrotask; save only once the hop fields have emitted.
     await screen.findByDisplayValue('20000-30000');
     await act(async () => {
@@ -501,7 +480,7 @@ describe('InboundFormModal', () => {
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });
-    renderCloneLikeEdit(hysteria);
+    await renderCloneLikeEdit(hysteria);
     await screen.findByText('geoip:cn');
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
@@ -541,7 +520,7 @@ describe('InboundFormModal', () => {
       shareAddrStrategy: 'listen',
       shareAddr: '',
     });
-    renderCloneLikeEdit(tun);
+    await renderCloneLikeEdit(tun);
 
     fireEvent.change(document.getElementById('tun-desc')!, { target: { value: 'MyTun' } });
     fireEvent.click(document.getElementById('tun-auto-dns-gateway')!);
@@ -571,7 +550,7 @@ describe('InboundFormModal', () => {
         clients: [{ email: 'legacy', id: '' }],
       },
     });
-    renderCloneLikeEdit(legacy);
+    await renderCloneLikeEdit(legacy);
 
     fireEvent.click(primaryButton());
 
@@ -580,11 +559,132 @@ describe('InboundFormModal', () => {
     expect(JSON.parse(payload.settings)).not.toHaveProperty('clients');
   });
 
-  it('offers the enable switch when adding an inbound but not when editing one', () => {
+  it('offers the enable switch when adding an inbound but not when editing one', async () => {
     renderModal();
     expect(document.getElementById('inbound-enable')).not.toBeNull();
     cleanup();
-    renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
     expect(document.getElementById('inbound-enable')).toBeNull();
+  });
+});
+
+describe('VLESS fallback safety', () => {
+  it('disables adding fallbacks with server decryption and keeps removal available', async () => {
+    vi.mocked(HttpUtil.get).mockResolvedValueOnce({
+      success: true,
+      msg: '',
+      obj: [{ dest: '8080' }],
+    });
+    const inbound = cloneLikeVlessInbound('example.com:443');
+    inbound.settings = {
+      clients: [],
+      decryption: 'mlkem768x25519plus.native.600s.key',
+      encryption: 'none',
+    };
+    await renderCloneLikeEdit(inbound);
+    fireEvent.click(screen.getByRole('tab', { name: 'Protocol' }));
+    await waitFor(() => expect(screen.getByDisplayValue('8080')).toBeTruthy());
+    expect(
+      (screen.getByRole('button', { name: /Add fallback$/i }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
+    expect(
+      screen.getByText(/Remove and save fallback rules before enabling VLESS decryption/),
+    ).toBeTruthy();
+  });
+  it('uses server decryption rather than outbound encryption for eligibility', async () => {
+    const inbound = cloneLikeVlessInbound('example.com:443');
+    inbound.settings = { clients: [], decryption: 'none', encryption: 'link-only-key' };
+    await renderCloneLikeEdit(inbound);
+    fireEvent.click(screen.getByRole('tab', { name: 'Protocol' }));
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: /Add fallback$/i }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+  });
+
+  it('retains unsaved fallback rows when decryption becomes incompatible', async () => {
+    messageError.mockClear();
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Protocol' }));
+    fireEvent.click(screen.getByRole('button', { name: /Add fallback$/i }));
+    fireEvent.change(screen.getByLabelText('Dest'), { target: { value: '8080' } });
+    fireEvent.change(screen.getByLabelText('Decryption'), {
+      target: { value: 'mlkem768x25519plus.native.600s.key' },
+    });
+    fireEvent.click(primaryButton());
+    await waitFor(() =>
+      expect(messageError).toHaveBeenCalledWith(
+        expect.stringContaining('Remove and save fallback rules'),
+      ),
+    );
+    expect(screen.getByDisplayValue('8080')).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('removes legacy managed rules before saving active decryption', async () => {
+    vi.mocked(HttpUtil.get).mockResolvedValueOnce({
+      success: true,
+      msg: '',
+      obj: [{ dest: '8080' }],
+    });
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    const inbound = cloneLikeVlessInbound('example.com:443');
+    inbound.settings = {
+      clients: [],
+      decryption: 'mlkem768x25519plus.native.600s.key',
+      encryption: 'none',
+    };
+    await renderCloneLikeEdit(inbound);
+    fireEvent.click(screen.getByRole('tab', { name: 'Protocol' }));
+    await waitFor(() => expect(screen.getByDisplayValue('8080')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(primaryButton());
+    await waitFor(() =>
+      expect(post.mock.calls.map(([url]) => url)).toEqual([
+        '/panel/api/inbounds/42/fallbacks',
+        '/panel/api/inbounds/update/42',
+      ]),
+    );
+    expect(post.mock.calls[0][1]).toEqual({ fallbacks: [] });
+  });
+
+  it('keeps the draft open when saving fallback rules fails', async () => {
+    messageError.mockClear();
+    const post = vi.mocked(HttpUtil.post);
+    post
+      .mockResolvedValueOnce({ success: true, msg: '', obj: { id: 42 } })
+      .mockResolvedValueOnce({ success: false, msg: 'save failed', obj: null });
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+    const inbound = cloneLikeVlessInbound('example.com:443');
+    renderWithProviders(
+      <InboundFormModal
+        open
+        mode="edit"
+        dbInbound={inbound}
+        dbInbounds={[inbound]}
+        availableNodes={[]}
+        onClose={onClose}
+        onSaved={onSaved}
+      />,
+    );
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('tab', { name: 'Protocol' }));
+    fireEvent.click(screen.getByRole('button', { name: /Add fallback$/i }));
+    fireEvent.change(screen.getByLabelText('Dest'), { target: { value: '8080' } });
+    fireEvent.click(primaryButton());
+    await waitFor(() =>
+      expect(messageError).toHaveBeenCalledWith(
+        expect.stringContaining('Could not load or save fallback rules'),
+      ),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('8080')).toBeTruthy();
   });
 });

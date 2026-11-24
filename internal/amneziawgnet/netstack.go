@@ -72,6 +72,12 @@ func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device,
 	if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt); err != nil {
 		return nil, nil, fmt.Errorf("amneziawgnet: enable TCP SACK: %s", err)
 	}
+	// RACK keeps a tail lost before an RTO counted in flight and resends it 2 segments per RTO
+	// (#7177, google/gvisor#15432, #16081); RFC 6675 SACK recovery does not stall.
+	recoveryOpt := tcpip.TCPRecovery(0)
+	if err := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &recoveryOpt); err != nil {
+		return nil, nil, fmt.Errorf("amneziawgnet: disable TCP RACK: %s", err)
+	}
 	// Connections start at gVisor's 1 MB default and only grow while the
 	// relay drains them faster per RTT, so idle peers cost no more memory.
 	rcvBufOpt := tcpip.TCPReceiveBufferSizeRangeOption{Min: tcp.MinBufferSize, Default: tcp.DefaultReceiveBufferSize, Max: maxReceiveBuffer}

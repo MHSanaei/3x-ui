@@ -56,24 +56,29 @@ case "$1" in
     -getApiToken) echo 'apiToken: test-token'; exit 0 ;;
 esac
 printf 'write\n' >> "$state/writes"
+said_port= said_user= said_path=
 while [[ $# -gt 0 ]]; do
     key=$1 value=$2
     shift 2
     case "$key" in
         -webBasePath)
+            said_path=1
             printf '%s\n' "$value" >> "$state/path-writes"
             [[ "$value" == /* ]] || value="/$value"
             [[ "$value" == */ ]] || value="$value/"
             printf '%s' "$value" > "$state/path" ;;
-        -username) printf '%s' "$value" > "$state/username" ;;
-        -password) printf '%s' "$value" > "$state/password" ;;
-        -port) printf '%s' "$value" > "$state/port" ;;
+        -username) said_user=1; printf '%s' "$value" > "$state/username" ;;
+        -password) said_user=1; printf '%s' "$value" > "$state/password" ;;
+        -port) said_port=$value; printf '%s' "$value" > "$state/port" ;;
         *) echo "unexpected setting: $key" >&2; exit 98 ;;
     esac
 done
 if [[ "$(cat "$state/username")" != admin && "$(cat "$state/password")" != admin ]]; then
     echo false > "$state/default"
 fi
+[[ -z "$said_port" ]] || echo "Port set successfully: $said_port"
+[[ -z "$said_user" ]] || echo 'Username and password updated successfully'
+[[ -z "$said_path" ]] || echo 'Base URI path set successfully'
 `
 
 func runScriptConfig(t *testing.T, script, path string, defaults bool, mode string, runs int, continueSetup bool) (string, string, error) {
@@ -126,6 +131,11 @@ _install_xui_service_unit() { printf 'unit\n' >> "$TEST_SETTINGS_DIR/lifecycle";
 setup_fail2ban() { printf 'fail2ban\n' >> "$TEST_SETTINGS_DIR/lifecycle"; }
 `
 	driver += scriptFunction(t, script, "gen_random_string") + scriptFunction(t, script, function)
+	if script == "install.sh" {
+		for _, helper := range []string{"is_port_in_use", "normalize_panel_port", "select_panel_port"} {
+			driver += scriptFunction(t, script, helper)
+		}
+	}
 	if continueSetup {
 		parent := "update_x-ui"
 		if script == "install.sh" {
