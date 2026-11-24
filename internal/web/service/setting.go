@@ -900,6 +900,10 @@ func (s *SettingService) GetTimeLocation() (*time.Location, error) {
 	if err != nil {
 		return nil, err
 	}
+	return loadSettingTimeLocation(l), nil
+}
+
+func loadSettingTimeLocation(l string) *time.Location {
 	location, err := time.LoadLocation(l)
 	if err != nil {
 		defaultLocation := defaultValueMap["timeLocation"]
@@ -907,11 +911,10 @@ func (s *SettingService) GetTimeLocation() (*time.Location, error) {
 		location, err = time.LoadLocation(defaultLocation)
 		if err != nil {
 			logger.Errorf("failed to load default location, using UTC: %v", err)
-			return time.UTC, nil
+			return time.UTC
 		}
-		return location, nil
 	}
-	return location, nil
+	return location
 }
 
 func (s *SettingService) GetSubEnable() (bool, error) {
