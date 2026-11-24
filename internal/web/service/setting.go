@@ -82,6 +82,7 @@ var defaultValueMap = map[string]string{
 	"publicIpv6Override":          "",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
 	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
+	"realityWatch":                "{}",
 	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
