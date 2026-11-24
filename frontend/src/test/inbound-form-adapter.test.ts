@@ -11,6 +11,10 @@ import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inboun
 import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 
+import { InboundSchema } from '@/schemas/api/inbound';
+import { genVlessLink } from '@/lib/xray/inbound-link';
+import { parseVlessLink } from '@/lib/xray/outbound-link-parser';
+
 // Round-trip: raw DB row → InboundFormValues → wire payload, asserting
 // that the JSON-stringified settings/streamSettings/sniffing in the
 // payload deserialize back to the same data the raw row carried.
@@ -484,7 +488,7 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
     expect(xhttp.enableXmux).toBe(true);
     const xmux = xhttp.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');
-    expect(xmux.maxConnections).toBe(0);
+    expect(xmux).not.toHaveProperty('maxConnections');
   });
 
   it('formValuesToWirePayload keeps maxConcurrency on an unedited re-save', () => {
@@ -495,3 +499,111 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
     expect(xmux.maxConcurrency).toBe('1-2');
   });
 });
+
+describe('XHTTP separate download', () => {
+  const downloadSettings = {
+    address: 'download.example.org',
+    port: 443,
+    network: 'xhttp',
+    security: 'tls',
+    tlsSettings: { serverName: 'download.example.org', alpn: ['h2'] },
+    xhttpSettings: { path: '/down' },
+  };
+
+  it.each([
+    ['stream-one', downloadSettings, 'Separate download is incompatible with stream-one.'],
+    ['auto', { ...downloadSettings, network: 'tcp' }, 'Select XHTTP for the download transport.'],
+    [
+      'auto',
+      { ...downloadSettings, security: 'reality', realitySettings: { password: 'abc' } },
+      'Enter a 32-byte unpadded base64url REALITY public key.',
+    ],
+  ] as const)('rejects invalid separate download settings before save', (mode, download, why) => {
+    const form = rawInboundToFormValues({
+      ...vlessRow,
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: { mode, extra: { downloadSettings: download } },
+      },
+    });
+    const result = InboundFormSchema.safeParse(form);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([why]);
+  });
+
+  it.each([true, false])('retains the entire download stream (wrapped=%s)', (wrapped) => {
+    const tuning = {
+      downloadSettings,
+      noGRPCHeader: true,
+      uplinkChunkSize: '512-1024',
+      scMinPostsIntervalMs: '60',
+      xmux: { maxConnections: 4 },
+    };
+    const advanced = { ...tuning, futureOption: { weights: [1, 2] } };
+    const xhttpSettings = { path: '/up', ...(wrapped ? { extra: advanced } : advanced) };
+    const stream = { network: 'xhttp', security: 'none', xhttpSettings };
+    const form = rawInboundToFormValues({ ...vlessRow, streamSettings: JSON.stringify(stream) });
+    const saved = JSON.parse(formValuesToWirePayload(InboundFormSchema.parse(form)).streamSettings);
+    expect(saved.xhttpSettings).toMatchObject({ path: '/up', ...advanced });
+    const inbound = InboundSchema.parse({ ...vlessRow, streamSettings: saved });
+    const url = genVlessLink({
+      inbound,
+      address: 'up.example.org',
+      clientId: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
+    });
+    expect(parseVlessLink(url)).toMatchObject({ streamSettings: { xhttpSettings: tuning } });
+    const extra = JSON.parse(new URL(url).searchParams.get('extra')!);
+    expect(extra.xmux).not.toHaveProperty('maxConcurrency');
+  });
+});
+
+it.each([true, false])(
+  'saves an unrelated edit with numeric XHTTP ranges (wrapped=%s)',
+  (wrapped) => {
+    const ranges = {
+      xPaddingBytes: 512,
+      scMinPostsIntervalMs: 60,
+      scMaxEachPostBytes: 32768,
+      scStreamUpServerSecs: 25,
+      sessionIDLength: 12,
+      sessionIDTable: 'Base62',
+      xmux: { maxConcurrency: 4, hMaxRequestTimes: 700, hMaxReusableSecs: 2400 },
+    };
+    const form = rawInboundToFormValues({
+      ...vlessRow,
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: wrapped ? { extra: ranges } : ranges,
+      },
+    });
+    const parsed = InboundFormSchema.parse({ ...form, remark: 'edited' });
+    const payload = formValuesToWirePayload(parsed);
+    expect(payload.remark).toBe('edited');
+    expect(JSON.parse(payload.streamSettings).xhttpSettings).toMatchObject({
+      xPaddingBytes: '512',
+      scMinPostsIntervalMs: '60',
+      scMaxEachPostBytes: '32768',
+      scStreamUpServerSecs: '25',
+      sessionIDLength: '12',
+      xmux: { maxConcurrency: 4, hMaxRequestTimes: 700, hMaxReusableSecs: 2400 },
+    });
+  },
+);
+
+it.each([true, false])(
+  'treats explicit null downloadSettings as disabled (wrapped=%s)',
+  (wrapped) => {
+    const tuning = { downloadSettings: null, xPaddingBytes: '200-300' };
+    const stream = {
+      network: 'xhttp',
+      security: 'none',
+      xhttpSettings: wrapped ? { extra: tuning } : tuning,
+    };
+    const form = rawInboundToFormValues({ ...vlessRow, streamSettings: JSON.stringify(stream) });
+    const parsed = InboundFormSchema.parse({ ...form, remark: 'edited' });
+    const saved = JSON.parse(formValuesToWirePayload(parsed).streamSettings);
+    expect(saved.xhttpSettings).not.toHaveProperty('downloadSettings');
+    expect(saved.xhttpSettings.xPaddingBytes).toBe('200-300');
+  },
+);

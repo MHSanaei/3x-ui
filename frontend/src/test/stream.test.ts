@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
+import { xhttpUplinkMethods } from '@/schemas/protocols/stream/xhttp';
 import { NetworkSettingsSchema } from '@/schemas/protocols';
 
 const streamFixtures = import.meta.glob<unknown>('./golden/fixtures/stream/*.json', {
@@ -80,4 +81,12 @@ describe('NetworkSettingsSchema xray-core 26.10.21 keys', () => {
     expect(xdrive.xdriveSettings.xmux).toEqual(xmux);
     expect(masque.masqueSettings.xmux).toEqual(xmux);
   });
+});
+
+it('offers HEAD only for discrete packet uploads', () => {
+  for (const mode of ['packet-up', 'stream-up', 'auto', 'stream-one']) {
+    expect(xhttpUplinkMethods(mode).find(({ value }) => value === 'HEAD')?.disabled).toBe(
+      mode !== 'packet-up',
+    );
+  }
 });

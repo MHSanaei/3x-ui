@@ -97,6 +97,17 @@ export default function SubscriptionGeneralTab({
               )}
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.subHwidRejectWithConfig')}
+                description={t('pages.settings.subHwidRejectWithConfigDesc')}
+              >
+                <Switch
+                  aria-label={t('pages.settings.subHwidRejectWithConfig')}
+                  checked={allSetting.subHwidRejectWithConfig}
+                  onChange={(v) => updateSetting({ subHwidRejectWithConfig: v })}
+                />
+              </SettingListItem>
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.subHostSortMode')}
                 description={t('pages.settings.subHostSortModeDesc')}
               >
@@ -270,6 +281,34 @@ export default function SubscriptionGeneralTab({
                   max={525600}
                   style={{ width: '100%' }}
                   onChange={onNumber((v) => updateSetting({ subUpdates: v }))}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subRateLimitEnable')}
+                description={t('pages.settings.subRateLimitEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.subRateLimitEnable}
+                  onChange={(v) => updateSetting({ subRateLimitEnable: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subRateLimit')}
+                badge={
+                  <DefaultSettingTag settingKey="subRateLimit" value={allSetting.subRateLimit} />
+                }
+                description={t('pages.settings.subRateLimitDesc')}
+              >
+                <InputNumber
+                  value={allSetting.subRateLimit}
+                  min={1}
+                  max={1000}
+                  style={{ width: '100%' }}
+                  onChange={onNumber((v) => updateSetting({ subRateLimit: v }))}
                 />
               </SettingListItem>
 
