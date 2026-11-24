@@ -15,10 +15,8 @@ import (
 
 const globalTrafficHeartbeatInterval = time.Hour
 
-// hasFreshGlobalTraffic preserves the inclusive freshness boundary without
-// counting every fresh row. LIMIT on COUNT(*) only limits the aggregate result;
-// EXISTS stops at the first match. Probe on every call so new pushes and stale
-// masters take effect without a cached freshness decision.
+// hasFreshGlobalTraffic stops at the first fresh row; COUNT with LIMIT still counted them all.
+// It probes on every call so a new push or a stale master takes effect at once.
 func hasFreshGlobalTraffic(db *gorm.DB, freshSince int64) bool {
 	var fresh bool
 	err := db.Raw("SELECT EXISTS (SELECT 1 FROM client_global_traffics WHERE updated_at >= ?)", freshSince).
