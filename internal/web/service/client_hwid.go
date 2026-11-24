@@ -51,6 +51,8 @@ const (
 
 var errClientHwidWriteNotSerialized = errors.New("client HWID write requires the serialized transaction")
 
+var errHwidUnblockNoFreeSlot = errors.New("device limit reached: remove a device or raise the limit before unblocking this one")
+
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
 	Blocked     bool   `json:"blocked"`
@@ -362,6 +364,11 @@ func (s *ClientService) SetClientHwidBlocked(email string, id int, blocked bool)
 		if subID == "" {
 			return errors.New("client has no subscription id")
 		}
+		if !blocked {
+			if err := requireFreeHwidSlotToUnblock(tx, subID, id); err != nil {
+				return err
+			}
+		}
 		res := tx.Model(&model.ClientHwid{}).
 			Where("sub_id = ? AND id = ?", subID, id).
 			Update("blocked", blocked)
@@ -373,6 +380,30 @@ func (s *ClientService) SetClientHwidBlocked(email string, id int, blocked bool)
 		}
 		return nil
 	})
+}
+
+// A banned device holds no slot, so lifting its ban needs one: registered devices
+// must never exceed the limit, and nothing trims after an unblock.
+func requireFreeHwidSlotToUnblock(tx *gorm.DB, subID string, id int) error {
+	limit, err := effectiveHwidLimitForSubID(tx, subID)
+	if err != nil || limit <= 0 {
+		return err
+	}
+	var banned int64
+	if err := tx.Model(&model.ClientHwid{}).Where("sub_id = ? AND id = ? AND blocked = ?", subID, id, true).Count(&banned).Error; err != nil {
+		return err
+	}
+	if banned == 0 {
+		return nil
+	}
+	var registered int64
+	if err := tx.Model(&model.ClientHwid{}).Where("sub_id = ? AND blocked = ?", subID, false).Count(&registered).Error; err != nil {
+		return err
+	}
+	if registered >= int64(limit) {
+		return errHwidUnblockNoFreeSlot
+	}
+	return nil
 }
 
 // Serialize the limit write and trim with SyncInbound and client deletion.

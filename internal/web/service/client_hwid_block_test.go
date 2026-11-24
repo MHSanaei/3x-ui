@@ -97,3 +97,59 @@ func TestClientHwidBanScopeAndSlots(t *testing.T) {
 		t.Fatal("must not unblock a foreign subscription's device")
 	}
 }
+
+// A ban frees its slot, so lifting it while another device holds that slot would
+// leave two devices registered under a limit of one.
+func TestClientHwidUnblockRefusedWhileSlotsAreFull(t *testing.T) {
+	initClientHwidTestDB(t)
+	rec := seedHwidClient(t, 1)
+	svc := &ClientService{}
+	register := func(hwid string) HwidGateResult {
+		t.Helper()
+		r, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: hwid})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	if r := register("device-first"); !r.Allowed {
+		t.Fatalf("first device: %+v", r)
+	}
+	list, err := svc.ListClientHwids(rec.Email)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list: %+v, %v", list, err)
+	}
+	first := list[0].Id
+	if err := svc.SetClientHwidBlocked(rec.Email, first, true); err != nil {
+		t.Fatal(err)
+	}
+	if r := register("device-second"); !r.Allowed {
+		t.Fatalf("second device takes the freed slot: %+v", r)
+	}
+
+	err = svc.SetClientHwidBlocked(rec.Email, first, false)
+	if err == nil || err.Error() != errHwidUnblockNoFreeSlot.Error() {
+		t.Fatalf("unblock with the slot taken: err = %v, want %v", err, errHwidUnblockNoFreeSlot)
+	}
+	if r := register("device-first"); r.Allowed || !r.Blocked {
+		t.Fatalf("refused unblock must leave the ban in place: %+v", r)
+	}
+
+	list, err = svc.ListClientHwids(rec.Email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range list {
+		if device.Id != first {
+			if err := svc.DeleteClientHwid(rec.Email, device.Id); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := svc.SetClientHwidBlocked(rec.Email, first, false); err != nil {
+		t.Fatalf("unblock with a free slot: %v", err)
+	}
+	if r := register("device-first"); !r.Allowed || r.Registered != 1 {
+		t.Fatalf("unblocked device: %+v", r)
+	}
+}

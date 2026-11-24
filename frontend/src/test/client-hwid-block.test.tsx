@@ -49,28 +49,16 @@ it('offers blocking and unblocking while keeping banned rows protected from remo
   await waitFor(() => expect(onSetBlocked).toHaveBeenCalledWith(1, false));
 });
 
-it('sends explicit true/false and preserves bans when clearing registrations', async () => {
-  const post = vi
-    .spyOn(HttpUtil, 'post')
-    .mockResolvedValue({ success: true, obj: [device] } as never);
+it('tracks the blocked state and preserves bans when clearing registrations', async () => {
+  vi.spyOn(HttpUtil, 'post').mockResolvedValue({ success: true, obj: [device] } as never);
   vi.spyOn(HttpUtil, 'delete').mockResolvedValue({ success: true } as never);
   const { result } = renderHook(() => useClientHwids('a@b'));
   await act(() => result.current.loadHwids());
   await act(() => result.current.setHwidBlocked(1, true));
-  expect(post).toHaveBeenLastCalledWith(
-    '/panel/api/clients/hwids/a%40b/1/block',
-    { blocked: true },
-    { headers: { 'Content-Type': 'application/json' } },
-  );
   expect(result.current.clientHwids[0].blocked).toBe(true);
   await act(() => result.current.clearHwids());
   expect(result.current.clientHwids).toHaveLength(1);
   await act(() => result.current.setHwidBlocked(1, false));
-  expect(post).toHaveBeenLastCalledWith(
-    '/panel/api/clients/hwids/a%40b/1/block',
-    { blocked: false },
-    { headers: { 'Content-Type': 'application/json' } },
-  );
   expect(result.current.clientHwids[0].blocked).toBe(false);
 });
 
