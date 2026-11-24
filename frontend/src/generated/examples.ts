@@ -189,7 +189,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "wechatCpu": 0,
+    "wechatEnable": false,
+    "wechatEnabledEvents": "",
+    "wechatLang": "",
+    "wechatMemory": 0,
+    "wechatMode": "",
+    "wechatReportEnable": false,
+    "wechatRunTime": "",
+    "wechatToken": "",
+    "wechatWebhookURL": ""
   },
   "AllSettingView": {
     "datepicker": "",
@@ -216,6 +226,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,
+    "hasWechatToken": false,
+    "hasWechatWebhookURL": false,
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -388,7 +400,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "wechatCpu": 0,
+    "wechatEnable": false,
+    "wechatEnabledEvents": "",
+    "wechatLang": "",
+    "wechatMemory": 0,
+    "wechatMode": "",
+    "wechatReportEnable": false,
+    "wechatRunTime": "",
+    "wechatToken": "",
+    "wechatWebhookURL": ""
   },
   "AmneziaWGLogs": {
     "events": [

@@ -622,7 +622,7 @@ func (s *InboundService) emailSubIDsForClients(clients []model.Client) (map[stri
 	}
 	result := make(map[string]string, len(emails))
 	db := database.GetDB()
-	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
+	for _, batch := range chunkStrings(EmailSpellings(emails), sqlInChunk) {
 		var rows []struct {
 			Email string
 			SubID string `gorm:"column:sub_id"`

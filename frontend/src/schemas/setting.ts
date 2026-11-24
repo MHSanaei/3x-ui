@@ -13,6 +13,9 @@ export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
 export const SubHostSortModeSchema = z.enum(['inbound-first', 'hosts-first']);
 export type SubHostSortMode = z.infer<typeof SubHostSortModeSchema>;
 
+export const WechatModeSchema = z.enum(['wecom', 'webhook']);
+export type WechatMode = z.infer<typeof WechatModeSchema>;
+
 export const AllSettingFieldsSchema = z
   .object({
     webListen: z.string().optional(),
@@ -197,6 +200,20 @@ export const AllSettingFieldsSchema = z
     discordMemory: z.number().int().min(0).max(100).optional(),
     discordLang: z.string().optional(),
     discordEnabledEvents: z.string().optional(),
+    wechatEnable: z.boolean().optional(),
+    wechatMode: WechatModeSchema.optional(),
+    wechatWebhookURL: z.string().optional(),
+    hasWechatWebhookURL: z.boolean().optional(),
+    clearWechatWebhookURL: z.boolean().optional(),
+    wechatToken: z.string().optional(),
+    hasWechatToken: z.boolean().optional(),
+    clearWechatToken: z.boolean().optional(),
+    wechatLang: z.string().optional(),
+    wechatReportEnable: z.boolean().optional(),
+    wechatRunTime: z.string().optional(),
+    wechatEnabledEvents: z.string().optional(),
+    wechatCpu: z.number().int().min(0).max(100).optional(),
+    wechatMemory: z.number().int().min(0).max(100).optional(),
   })
   .loose();
 
