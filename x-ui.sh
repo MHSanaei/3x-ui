@@ -377,9 +377,9 @@ confirm_menu_webbasepath() {
         IFS= read -rp "$1 (y/N): " answer || return 1
         answer="${answer#"${answer%%[![:space:]]*}"}"
         answer="${answer%"${answer##*[![:space:]]}"}"
-        case "${answer,,}" in
-            y | yes) return 0 ;;
-            n | no | '') return 1 ;;
+        case "$answer" in
+            [yY] | [yY][eE][sS]) return 0 ;;
+            [nN] | [nN][oO] | '') return 1 ;;
             *) echo 'Please answer yes or no (Enter defaults to No).' >&2 ;;
         esac
     done
