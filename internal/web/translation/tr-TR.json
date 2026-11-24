@@ -446,6 +446,8 @@
       "importInbound": "Gelen Bağlantı İçe Aktar",
       "periodicTrafficResetTitle": "Trafik Sıfırlama",
       "periodicTrafficResetDay": "Aylık sıfırlama günü",
+      "preserveClientTraffic": "İstemci kullanımını koru",
+      "preserveClientTrafficHelp": "Seçenek açıkken zamanlanmış sıfırlama yalnızca bu gelen bağlantının trafik sayaçlarını sıfırlar. Her istemcinin tüm düğümlerdeki toplam kullanımı, kendi sıfırlama zamanı gelene kadar korunur.\n\nSeçenek kapalıyken bu gelen bağlantının zamanlanmış sıfırlaması, bağlantıyla ilişkili istemcilerin tüm düğümlerdeki toplam kullanımını da sıfırlar.",
       "periodicTrafficReset": {
         "never": "Asla",
         "daily": "Günlük",
