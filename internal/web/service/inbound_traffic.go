@@ -662,8 +662,13 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	if err := validateClientRenewal(*client); err != nil {
 		return err
 	}
-	result := tx.Model(xray.ClientTraffic{}).
+	// Compare the persisted row atomically so an unchanged inbound can still repair drift.
+	return tx.Model(xray.ClientTraffic{}).
 		Where("email = ?", email).
+		Where(`(email, enable, expiry_time, reset, reset_day, reset_max, reset_weekday, total)
+			IS DISTINCT FROM (?, ?, ?, ?, ?, ?, ?, ?)`,
+			client.Email, client.Enable, client.ExpiryTime, client.Reset, client.ResetDay,
+			client.ResetMax, client.ResetWeekday, client.TotalGB).
 		Updates(map[string]any{
 			"enable":        client.Enable,
 			"email":         client.Email,
@@ -673,9 +678,7 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"reset_day":     client.ResetDay,
 			"reset_weekday": client.ResetWeekday,
 			"reset_max":     client.ResetMax,
-		})
-	err := result.Error
-	return err
+		}).Error
 }
 
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {

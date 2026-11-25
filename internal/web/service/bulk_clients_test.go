@@ -11,7 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-func setupBulkDB(t *testing.T) {
+func setupBulkDB(t testing.TB) {
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
