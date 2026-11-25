@@ -49,16 +49,23 @@ func (t *Tgbot) screenClientHome(chatID, userID int64, delivery ...screenDeliver
 	// one row each. Either way this is the client's top level, so no back button.
 	var rows [][]telego.InlineKeyboardButton
 	if len(traffics) == 1 {
-		rows = append(rows, tu.InlineKeyboardRow(
-			t.btn("tgbot.buttons.links", "client_sub_links"),
-			t.btn("tgbot.buttons.qrCode", "client_qr_links"),
-		))
+		rows = append(rows,
+			tu.InlineKeyboardRow(
+				t.btn("tgbot.buttons.links", "client_sub_links"),
+				t.btn("tgbot.buttons.qrCode", "client_qr_links"),
+			),
+			tu.InlineKeyboardRow(
+				t.btn("tgbot.buttons.getOneConfig", "client_one_link"),
+				t.btn("tgbot.buttons.setupGuide", cbClientGuide),
+			),
+		)
 	} else {
 		for _, traffic := range traffics {
 			rows = append(rows, tu.InlineKeyboardRow(
 				t.btn2(traffic.Email, t.encodeQuery("client_sub_links "+traffic.Email)),
 			))
 		}
+		rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.setupGuide", cbClientGuide)))
 	}
 	t.renderScreen(chatID, t.rootScreen("main", body.String(), rows...), delivery...)
 }
@@ -276,11 +283,11 @@ func (t *Tgbot) sendBackupScreen(chatID int64) {
 	// carries the backup and what it is for.
 	body := summary + "\n\n" + t.depleteReport()
 	caption := trimCaption(body, botCaptionLimit)
-	if t.sendDocumentWithCaption(chatID, dbData, t.serverService.BackupFilename(""), caption) {
+	if t.sendBackupFile(chatID, dbData, t.serverService.BackupFilename(""), caption) {
 		// The generated config travels with the DB on both backup paths: an
 		// operator restoring from the file would otherwise lose it silently.
 		if config, err := os.ReadFile(xray.GetConfigPath()); err == nil {
-			t.sendDocumentWithCaption(chatID, config, "config.json", "")
+			t.sendBackupFile(chatID, config, "config.json", "")
 		}
 		if rest := strings.TrimSpace(strings.TrimPrefix(body, caption)); rest != "" {
 			// Rare: the summary outgrew a caption. The file already landed.

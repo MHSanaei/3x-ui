@@ -84,6 +84,15 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client traffic lifecycle edits
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientTrafficLifecyclePostgres$' -count=1 -v | tee /tmp/postgres-client-traffic-lifecycle.log
+          if ! grep -q -- '^--- PASS: TestClientTrafficLifecyclePostgres ' /tmp/postgres-client-traffic-lifecycle.log; then
+            echo "expected the PostgreSQL client traffic lifecycle suite to pass" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL batched stats identities
         run: |
           set -o pipefail
@@ -114,6 +123,26 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client usage history
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientUsageHistoryPostgres$' -count=1 -v | tee /tmp/postgres-usage-history.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-usage-history.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected 1 passing PostgreSQL client usage history test, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL depletion query regressions
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestDepletionQuery(Semantics|FreshnessAndReset|ConcurrentCommit|Renewals)$' -count=1 -v | tee /tmp/postgres-depletion-query.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-depletion-query.log || true)
+          if [ "$passed" -ne 4 ]; then
+            echo "expected 4 passing PostgreSQL depletion tests, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL deferred-commit test
         run: |
           set -o pipefail
@@ -127,12 +156,12 @@ jobs:
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence)$' -count=1 -v | tee /tmp/postgres-schema.log
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence|TestEnsureClientGroupRows_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
           # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
-          if [ "$passed" -lt 6 ]; then
-            echo "expected at least 6 passing PostgreSQL schema tests, got $passed" >&2
+          if [ "$passed" -lt 7 ]; then
+            echo "expected at least 7 passing PostgreSQL schema tests, got $passed" >&2
             exit 1
           fi
 
@@ -272,6 +301,22 @@ jobs:
           make node-e2e 2>&1 | tee /tmp/node-e2e.log
           if grep -q -- '--- SKIP' /tmp/node-e2e.log; then echo "node-e2e skipped"; exit 1; fi
 
+  # The core pinned in go.mod as a real child process, driven over its gRPC API.
+  # A skip naming the binary means it was never handed over, so it fails the job.
+  xray-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Real core end to end
+        run: |
+          set -o pipefail
+          make xray-e2e 2>&1 | tee /tmp/xray-e2e.log
+          if grep -q -- '_test.go:[0-9]*: .*XRAY_E2E_BINARY' /tmp/xray-e2e.log; then echo "a real-core test skipped"; exit 1; fi
+
   # Brief native-fuzz smoke on the security-/parser-critical decoders. Each runs the
   # generated corpus plus 30s of exploration; a crash here is a real input-handling bug.
   fuzz-smoke:
@@ -365,6 +410,15 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
         working-directory: frontend
+      - name: Inbound keyboard and accessibility tree
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/vite preview --outDir storybook-static --host 127.0.0.1 --port 6006 > /tmp/inbound-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 45 -fsS http://127.0.0.1:6006/iframe.html > /dev/null
+          node tools/check-inbound-keyboard.mjs http://127.0.0.1:6006
       - name: Audit
         run: npm run audit
         working-directory: frontend

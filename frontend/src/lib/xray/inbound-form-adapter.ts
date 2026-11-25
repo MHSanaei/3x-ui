@@ -27,10 +27,8 @@ import {
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 import { tlsCertUsesFiles } from '@/schemas/protocols/security/tls';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
-import { XHttpStreamSettingsSchema, XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
 import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
-
-const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
 
 // Plain-data adapter between the panel's stored inbound row shape and
 // the typed InboundFormValues that Form.useForm<T> carries inside
@@ -55,6 +53,7 @@ export interface RawInboundRow {
   expiryTime?: number;
   trafficReset?: string;
   trafficResetDay?: number;
+  preserveClientTraffic?: boolean;
   lastTrafficResetTime?: number;
   nodeId?: number | null;
   shareAddrStrategy?: string;
@@ -77,6 +76,7 @@ export interface WireInboundPayload {
   expiryTime: number;
   trafficReset: TrafficReset;
   trafficResetDay: number;
+  preserveClientTraffic: boolean;
   lastTrafficResetTime: number;
   listen: string;
   port: number;
@@ -195,7 +195,6 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
       const xmux = xhttp.xmux;
       if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
         xhttp.enableXmux = true;
-        xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Record<string, unknown>) };
       }
     }
     const so = streamRecord.sockopt;
@@ -230,6 +229,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     total: row.total ?? 0,
     trafficReset: coerceTrafficReset(row.trafficReset),
     trafficResetDay: Math.min(31, Math.max(1, row.trafficResetDay ?? 1)),
+    preserveClientTraffic: row.preserveClientTraffic ?? false,
     lastTrafficResetTime: row.lastTrafficResetTime ?? 0,
     nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
@@ -386,6 +386,7 @@ export function formValuesToWirePayload(
     expiryTime: values.expiryTime,
     trafficReset: values.trafficReset,
     trafficResetDay: values.trafficResetDay,
+    preserveClientTraffic: values.preserveClientTraffic,
     lastTrafficResetTime: values.lastTrafficResetTime,
     listen: values.listen,
     port: values.port,

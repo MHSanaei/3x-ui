@@ -4,6 +4,8 @@ import { Card, theme } from 'antd';
 
 import { Sparkline } from '@/components/viz';
 import type { Status } from '@/models/status';
+import OverviewRangeSelect from './OverviewRangeSelect';
+import type { OverviewRange } from './OverviewRangeSelect';
 
 interface ConnectionsCardProps {
   status: Status;
@@ -11,6 +13,8 @@ interface ConnectionsCardProps {
   udp: number[];
   labels: string[];
   isMobile: boolean;
+  range: OverviewRange;
+  onRangeChange: (range: OverviewRange) => void;
 }
 
 export default function ConnectionsCard({
@@ -19,6 +23,8 @@ export default function ConnectionsCard({
   udp,
   labels,
   isMobile,
+  range,
+  onRangeChange,
 }: ConnectionsCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -34,7 +40,7 @@ export default function ConnectionsCard({
   );
 
   return (
-    <Card hoverable styles={{ body: { padding: 0 } }}>
+    <Card hoverable className="ov-wide-card" styles={{ body: { padding: 0 } }}>
       <div className="ov-wide-head ov-wide-head-stack">
         <div className="ov-kicker">{t('pages.index.connectionCount')}</div>
         <div className="ov-conn-total">
@@ -43,6 +49,9 @@ export default function ConnectionsCard({
         </div>
       </div>
 
+      <div className="ov-range-toolbar">
+        <OverviewRangeSelect value={range} onChange={onRangeChange} />
+      </div>
       <div className="ov-conn-legend">
         <div className="ov-legend-label">
           <span className="ov-swatch" style={{ background: accent }} />

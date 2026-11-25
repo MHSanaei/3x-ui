@@ -65,6 +65,12 @@ log "Loading the module"
 modprobe amneziawg
 lsmod | grep -q '^amneziawg' || die "module did not load"
 
+# The panel is sandboxed with ProtectKernelModules=yes, so the boot-time load
+# has to come from modules-load.d; modprobe alone only lasts until reboot (#7186).
+log "Loading the module at boot"
+mkdir -p /etc/modules-load.d
+printf 'amneziawg\n' > /etc/modules-load.d/amneziawg.conf
+
 log "Building amneziawg-tools"
 cd "$SRC_DIR/amneziawg-tools/src"
 make
@@ -73,5 +79,6 @@ make install
 log "Done"
 printf '  module: %s\n' "$(dkms status -m amneziawg)"
 printf '  tools:  %s\n' "$(awg --version)"
+printf '  boot:   /etc/modules-load.d/amneziawg.conf\n'
 printf '\nEnable "Kernel mode" on the AmneziaWG inbound in the panel to use it.\n'
 printf 'DKMS rebuilds the module on kernel upgrades; Secure Boot hosts must sign it.\n'

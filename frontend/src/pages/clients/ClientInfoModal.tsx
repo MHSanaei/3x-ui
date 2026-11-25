@@ -1,3 +1,5 @@
+import ClientWireguardDevices from './ClientWireguardDevices';
+import { useClientWireguardDevices } from '@/hooks/useClientWireguardDevices';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
@@ -21,7 +23,7 @@ import { QrPanel } from '@/pages/inbounds/qr';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import {
-  buildWireguardClientConfig,
+  buildWireguardDeviceConfigs,
   findWireguardInbounds,
   isWireguardClient,
 } from './wireguardConfig';
@@ -127,9 +129,11 @@ export default function ClientInfoModal({
     hwidsLoading,
     hwidsClearing,
     deletingHwidId,
+    blockingHwidId,
     loadHwids,
     clearHwids,
     deleteHwid,
+    setHwidBlocked,
     resetHwids,
   } = useClientHwids(client?.email);
   const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
@@ -191,21 +195,20 @@ export default function ClientInfoModal({
     () => findWireguardInbounds(client, inboundsById),
     [client, inboundsById],
   );
+  const wireguardDevices = useClientWireguardDevices(client?.email, open && wgInbounds.length > 0);
   const wgConfigs = useMemo(() => {
     if (!client || !isWireguardClient(client)) return [];
-    const host = window.location.hostname;
-    const publicHost = subSettings?.publicHost ?? '';
-    return wgInbounds
-      .flatMap((ib) => {
-        const address = tunnelAllowedIPs?.[ib.id] ?? '';
-        return tunnelConfigEndpoints(ib, hosts, host, publicHost).map((ep) => ({
-          inbound: ib,
-          endpoint: tunnelEndpointLabel(ep),
-          text: buildWireguardClientConfig(client, ib, host, publicHost, address, ep),
-        }));
-      })
-      .filter((c) => !!c.text);
-  }, [client, wgInbounds, tunnelAllowedIPs, subSettings?.publicHost, hosts]);
+    return buildWireguardDeviceConfigs(
+      client,
+      wgInbounds,
+      wireguardDevices.data,
+      tunnelAllowedIPs,
+      hosts,
+      window.location.hostname,
+      subSettings.publicHost ?? '',
+      true,
+    );
+  }, [client, wgInbounds, wireguardDevices.data, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 
   const awgInbounds = useMemo(
     () => findAmneziaWGInbounds(client, inboundsById),
@@ -214,7 +217,7 @@ export default function ClientInfoModal({
   const awgConfigs = useMemo(() => {
     if (!client || !isAmneziaWGClient(client)) return [];
     const host = window.location.hostname;
-    const publicHost = subSettings?.publicHost ?? '';
+    const publicHost = subSettings.publicHost ?? '';
     return awgInbounds
       .flatMap((ib) => {
         const address = tunnelAllowedIPs?.[ib.id] ?? '';
@@ -225,7 +228,7 @@ export default function ClientInfoModal({
         }));
       })
       .filter((c) => !!c.text);
-  }, [client, awgInbounds, tunnelAllowedIPs, subSettings?.publicHost, hosts]);
+  }, [client, awgInbounds, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -796,28 +799,13 @@ export default function ClientInfoModal({
               </>
             )}
 
-            {wgConfigs.length > 0 && client && (
-              <>
-                <Divider>{t('pages.clients.wireguardConfig')}</Divider>
-                {wgConfigs.map(({ inbound, endpoint, text }) => {
-                  const meta = formatTunnelConfigMeta(
-                    inbound,
-                    client.email,
-                    wgConfigs.length,
-                    endpoint,
-                  );
-                  return (
-                    <ConfigBlock
-                      key={`wg-${inbound.id}-${endpoint}`}
-                      label={meta.label || t('pages.clients.config')}
-                      text={text}
-                      fileName={meta.fileName}
-                      qrRemark={meta.qrRemark}
-                      tagColor="cyan"
-                    />
-                  );
-                })}
-              </>
+            {wgInbounds.length > 0 && client && (
+              <ClientWireguardDevices
+                state={wireguardDevices}
+                subLink={subLink}
+                clientEmail={client.email}
+                configs={wgConfigs}
+              />
             )}
 
             {awgConfigs.length > 0 && client && (
@@ -912,10 +900,12 @@ export default function ClientInfoModal({
         loading={hwidsLoading}
         clearing={hwidsClearing}
         deletingId={deletingHwidId}
+        blockingId={blockingHwidId}
         formatDate={dateLabel}
         onRefresh={loadHwids}
         onClearAll={clearHwids}
         onDelete={deleteHwid}
+        onSetBlocked={setHwidBlocked}
         onClose={() => setHwidsModalOpen(false)}
       />
     </>

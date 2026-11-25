@@ -51,6 +51,7 @@ func migrationModels() []any {
 		&model.ClientHwid{},
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
+		&model.HostGroupClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
 		&model.HostTombstone{},
@@ -61,6 +62,8 @@ func migrationModels() []any {
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
 		&model.TuicTrafficReceipt{},
+		&model.ClientTrafficWindow{},
+		&model.ClientChangeLog{},
 	}
 }
 

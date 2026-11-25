@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,10 @@ type LocalDeps struct {
 	APIPort          func() int
 	SetNeedRestart   func()
 	RequestReconcile func()
+	// InboundApplied and InboundRemoved report what an op changed in the running core,
+	// so the config snapshot a reconcile diffs against stays true.
+	InboundApplied func(*xray.InboundConfig)
+	InboundRemoved func(tag string)
 }
 
 type Local struct {
@@ -99,13 +104,18 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return err
 	}
-	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
+	config := ib.GenXrayInboundConfig()
+	body, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	err = l.withAPI(func(api *xray.XrayAPI) error {
 		return api.AddInbound(body)
 	})
+	if err == nil && l.deps.InboundApplied != nil {
+		l.deps.InboundApplied(config)
+	}
+	return err
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
@@ -130,9 +140,13 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return nil
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	err := l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
+	if err == nil && l.deps.InboundRemoved != nil {
+		l.deps.InboundRemoved(ib.Tag)
+	}
+	return err
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
@@ -284,6 +298,35 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
+		if ib.Protocol == model.WireGuard {
+			if keepAlive, ok := userMap["keepAlive"].(string); ok {
+				userMap = maps.Clone(userMap)
+				delete(userMap, "keepAlive")
+				if keepAlive != "" {
+					value := model.KeepAliveValue(keepAlive)
+					if err := value.Validate(false); err != nil {
+						return err
+					}
+					userMap["keepAlive"] = value.Seconds()
+				}
+			}
+			data, err := json.Marshal(userMap)
+			if err != nil {
+				return err
+			}
+			var client model.Client
+			if err := json.Unmarshal(data, &client); err != nil {
+				return err
+			}
+			for _, peer := range model.WireguardClients(client) {
+				user := model.WireguardPeerFromClient(peer)
+				user["keepAlive"] = wgKeepAlive(peer.KeepAliveSeconds())
+				if err := api.AddUser(string(ib.Protocol), ib.Tag, user); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
 		return api.AddUser(string(ib.Protocol), ib.Tag, userMap)
 	})
 }
@@ -299,6 +342,9 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
+		if ib.Protocol == model.WireGuard {
+			return api.RemoveWireguardUsers(ib.Tag, email)
+		}
 		return api.RemoveUser(ib.Tag, email)
 	})
 }
@@ -316,17 +362,18 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 
 func localClientUser(ib *model.Inbound, client model.Client) (map[string]any, error) {
 	user := map[string]any{
-		"email":        client.Email,
-		"id":           client.ID,
-		"security":     client.Security,
-		"flow":         client.Flow,
-		"reverse":      client.Reverse,
-		"auth":         client.Auth,
-		"password":     client.Password,
-		"publicKey":    client.PublicKey,
-		"allowedIPs":   client.AllowedIPs,
-		"preSharedKey": client.PreSharedKey,
-		"keepAlive":    wgKeepAlive(client.KeepAliveSeconds()),
+		"email":            client.Email,
+		"id":               client.ID,
+		"security":         client.Security,
+		"flow":             client.Flow,
+		"reverse":          client.Reverse,
+		"auth":             client.Auth,
+		"password":         client.Password,
+		"publicKey":        client.PublicKey,
+		"allowedIPs":       client.AllowedIPs,
+		"preSharedKey":     client.PreSharedKey,
+		"keepAlive":        wgKeepAlive(client.KeepAliveSeconds()),
+		"wireguardDevices": client.WireguardDevices,
 	}
 	if ib.Protocol == model.Shadowsocks {
 		var settings struct {

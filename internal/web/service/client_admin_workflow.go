@@ -485,7 +485,7 @@ func (s *ClientService) commitRenewalTx(tx *gorm.DB, op *ClientAdminOperation) e
 		if err := writeBotSetting(tx, clientResetOperationKey(op.RecordID), op.Token); err != nil {
 			return err
 		}
-		if err := resetClientTrafficAccounting(tx, op.Email, p.EnabledAfter); err != nil {
+		if err := resetClientTrafficAccounting(tx, op.Email, p.EnabledAfter, trafficWindowRenew); err != nil {
 			return err
 		}
 		if _, err := queueNodeResets(tx, []string{op.Email}); err != nil {
@@ -523,6 +523,9 @@ func (s *ClientService) commitRenewalTx(tx *gorm.DB, op *ClientAdminOperation) e
 	}
 	after, err := loadClientLifecycle(tx, op.Email)
 	if err != nil {
+		return err
+	}
+	if err := logClientChangesTx(tx, diffClientChanges(snap.record, after.record, clientChangeSourceTgbot)); err != nil {
 		return err
 	}
 	op.Baseline = after.fingerprint

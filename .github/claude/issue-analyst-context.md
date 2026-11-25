@@ -148,6 +148,7 @@ It is paths-filtered, so a docs-only or workflow-only change produces no run.
 | `go-test` | `go test -shuffle=on -count=1` over every package except `frontend/node_modules` |
 | `race` | the same set under `-race -shuffle=on` |
 | `postgres-durable-first` | live PostgreSQL 16: the `PostgresCommitFailure` tests plus `TestHostAutoMigrateCreatesColumns_Postgres` and `TestMigrate_Postgres`. Both steps COUNT passes rather than assert on SKIP, so a renamed or deleted test fails the job |
+| `xray-e2e` | `make xray-e2e`: the `XRAY_E2E_BINARY` tests in `internal/xray/`, `internal/web/service/` and `internal/amneziawgnet/` against the core pinned in `go.mod`, run as a real child process. A skip naming the binary fails the job |
 | `govulncheck` | known vulnerabilities |
 | `golangci` | `golangci-lint` |
 | `fuzz-smoke` | 30s each on `FuzzParseLink` and `FuzzDecodeCertPin` |
@@ -155,13 +156,14 @@ It is paths-filtered, so a docs-only or workflow-only change produces no run.
 | `frontend` | lint, format:check, typecheck, `npm test` (Vitest + headless-Chromium Storybook), build, build-storybook, `npm audit` |
 
 **What CI does NOT prove.** These test families `t.Skip` unless an environment
-variable is set, and CI sets only the PostgreSQL ones above:
+variable is set. CI sets the PostgreSQL ones in `postgres-durable-first` and
+`XRAY_E2E_BINARY` in `xray-e2e` only, so every other job still skips them:
 
 | gate | covers |
 | --- | --- |
 | `XUI_TEST_PG_DSN` | PostgreSQL-specific paths |
 | `XUI_DB_TYPE` + `XUI_DB_DSN` | dialect-dependent behaviour |
-| `XRAY_E2E_BINARY` | the Xray gRPC end-to-end tests in `internal/xray/` |
+| `XRAY_E2E_BINARY` | the real-core tests: Xray gRPC API, hot apply, balancer overrides, the AmneziaWG relay |
 | `XUI_SCALE_TEST` | scale tests in `internal/sub/`, `internal/web/job/`, `internal/web/service/` |
 
 Mutation testing (`mutation.yml`) runs nightly and never on a pull request, so a

@@ -129,9 +129,9 @@ func (t *Tgbot) dropNoticeFor(chatID int64, msgID int) {
 	}
 }
 
-// sendDocumentWithCaption uploads a file with its summary as caption: a document
-// cannot hold a screen, so one message does the work of two.
-func (t *Tgbot) sendDocumentWithCaption(chatID int64, data []byte, name, caption string) bool {
+// sendBackupFile uploads a file with its summary as caption. It has no hide button:
+// that button deletes the message, and this may be the admin's only copy.
+func (t *Tgbot) sendBackupFile(chatID int64, data []byte, name, caption string) bool {
 	if liveBot() == nil || data == nil {
 		return false
 	}
@@ -139,10 +139,9 @@ func (t *Tgbot) sendDocumentWithCaption(chatID int64, data []byte, name, caption
 	defer cancel()
 	_, err := liveBot().SendDocument(ctx, &telego.SendDocumentParams{
 		ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID),
-		Document:    tu.FileFromBytes(data, name),
-		Caption:     caption,
-		ParseMode:   "HTML",
-		ReplyMarkup: t.hideButton(),
+		Document:  tu.FileFromBytes(data, name),
+		Caption:   caption,
+		ParseMode: "HTML",
 	})
 	if err != nil {
 		logger.Warning("Failed to upload a file with a caption:", err)

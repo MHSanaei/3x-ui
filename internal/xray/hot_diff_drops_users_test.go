@@ -111,3 +111,27 @@ func TestHotDiffDropsUsers(t *testing.T) {
 		})
 	}
 }
+
+// Removing a WireGuard peer ends its session in the core, so a dropped device or client
+// must not ask for the restart that strands other protocols' live connections need.
+func TestHotDiffWireguardPeerRemovalDropsNoLiveSession(t *testing.T) {
+	const kept = `{"publicKey":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","allowedIPs":["10.0.0.2/32"],"email":"owner"}`
+	const gone = `{"publicKey":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=","allowedIPs":["10.0.0.3/32"],"email":"owner"}`
+	withPeers := func(peers string) *Config {
+		cfg := makeHotConfig()
+		ib := &cfg.InboundConfigs[1]
+		ib.Protocol = "wireguard"
+		ib.Settings = json_util.RawMessage(`{"secretKey":"s","peers":[` + peers + `]}`)
+		return cfg
+	}
+	diff, ok := ComputeHotDiff(withPeers(kept+","+gone), withPeers(kept))
+	if !ok {
+		t.Fatal("a removed peer must stay API-applicable")
+	}
+	if len(diff.RemovedUsers) != 1 || diff.RemovedUsers[0].User["publicKey"] != "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" || len(diff.AddedUsers) != 0 {
+		t.Fatalf("removed=%+v added=%+v, want the one removed peer and nothing re-added", diff.RemovedUsers, diff.AddedUsers)
+	}
+	if diff.DropsUsers() {
+		t.Fatal("DropsUsers = true for a removed WireGuard peer: the core would be restarted for nothing")
+	}
+}

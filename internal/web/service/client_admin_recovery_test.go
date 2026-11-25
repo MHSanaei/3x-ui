@@ -94,6 +94,22 @@ func TestCommittedAdminRenewalReconcilesCurrentStateAfterLifecycleChanges(t *tes
 			if traffic.Up != 321 || traffic.Total != 30<<30 || traffic.ExpiryTime != wantExpiry {
 				t.Fatalf("retry repeated renewal/reset: %+v", traffic)
 			}
+			history, err := (&ClientService{}).GetUsageHistory("ali")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(history.Windows) != 1 || history.Windows[0].Reason != trafficWindowRenew || history.Windows[0].Up != 2<<30 || history.LifetimeUp != 2<<30+321 {
+				t.Fatalf("expected one archived renewal window and preserved lifetime usage: %+v", history)
+			}
+			var quotaChanges int
+			for _, entry := range history.Changes {
+				if entry.Field == "dataLimit" && entry.Source == clientChangeSourceTgbot {
+					quotaChanges++
+				}
+			}
+			if quotaChanges != 1 {
+				t.Fatalf("expected one Telegram quota change, got %+v", history.Changes)
+			}
 			probe.mu.Lock()
 			defer probe.mu.Unlock()
 			if len(probe.clients) != 2 {

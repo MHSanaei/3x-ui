@@ -20,7 +20,7 @@ icon: Boxes
 | **Scheme**        | `https`（默认）或 `http`。                                            |
 | **Address / Port**| 节点面板的主机和端口。                                                |
 | **Base path**     | 节点的 Web 基础路径。                                                  |
-| **API token**     | 在节点上创建的 Bearer 令牌（mTLS 模式下不需要）。                      |
+| **API token**     | 在节点上创建的 Bearer 令牌（mTLS 模式下可选，但**更新面板**需要 `node-admin` 令牌）。 |
 | **TLS verify**    | `verify`（默认）、`skip`、`pin`（固定证书 SHA-256）或 `mtls`。        |
 | **Inbound sync**  | `all` 入站，或按标签 `selected`。                                     |
 | **Outbound tag**  | 可选地**通过**指定的出站到达节点（出口桥接）。                        |
@@ -53,6 +53,10 @@ icon: Boxes
 ### 将节点切换到 mTLS
 
 将节点的 TLS 验证模式设置为 `mtls`。现在主控将出示客户端证书而非 API 令牌。
+
+<Callout type="warn">
+  通过 mTLS 连接且未提供令牌的节点只具有 `node-sync` 权限范围，无法执行**更新面板**（节点返回 HTTP 403，“this API token is not permitted to access this endpoint”）。要从主控更新此类节点，请在节点上创建具有 `node-admin` 权限范围的 API 令牌，并将其填入主控中该节点的 **API token** 字段。TLS 验证模式保持为 `mtls`。
+</Callout>
 </Step>
 
 </Steps>

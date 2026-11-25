@@ -53,6 +53,8 @@ func TestAdminWorkflowPostgresDurability(t *testing.T) {
 		_ = current.Where("client_id IN (?)", current.Model(&model.ClientRecord{}).Select("id").Where("email = ?", email)).Delete(&model.ClientInbound{}).Error
 		_ = current.Where("email = ?", email).Delete(&xray.ClientTraffic{}).Error
 		_ = current.Where("email = ?", email).Delete(&model.ClientGlobalTraffic{}).Error
+		_ = current.Where("email = ?", email).Delete(&model.ClientTrafficWindow{}).Error
+		_ = current.Where("email = ?", email).Delete(&model.ClientChangeLog{}).Error
 		_ = current.Where("email = ?", email).Delete(&model.ClientRecord{}).Error
 		_ = current.Where("id IN ?", ids).Delete(&model.Inbound{}).Error
 		for _, token := range tokens {

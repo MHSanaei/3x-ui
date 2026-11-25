@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (الترخيص: **MIT**): _إدارة الاتصالات الواردة والعملاء وإعدادات اللوحة وتكوين Xray كرمز باستخدام Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (الترخيص: **MIT**): _عميل أندرويد أصلي لـ 3x-ui — لوحة التحكم، الاتصالات الواردة، العملاء مع مشاركة رمز QR، العقد وإدارة عدة لوحات. متاح على F-Droid._
+- [3x-ui-exporter](https://github.com/nike38rus/3x-ui-exporter) (الترخيص: **MIT**): _مُصدِّر Prometheus خفيف ولوحة Grafana لـ 3x-ui و Xray Core — معدل نقل البيانات في الوقت الفعلي، العملاء النشطون، المقابس المفتوحة، الموازِنات وحالة زمن الاستجابة._
 
 ## دعم المشروع
 

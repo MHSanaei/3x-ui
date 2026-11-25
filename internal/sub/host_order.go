@@ -48,7 +48,11 @@ func orderedSubValues[T any](entries []orderedSubEntry[T]) []T {
 
 func (s *SubService) loadSubscriptionHosts(inbounds []*model.Inbound) error {
 	s.hostsByInbound = make(map[int][]*model.Host, len(inbounds))
+	s.hostsLoaded = make(map[int]bool, len(inbounds))
 	s.hostGroupOrders = make(map[string]hostEntryOrder)
+	for _, inbound := range inbounds {
+		s.hostsLoaded[inbound.Id] = true
+	}
 	ids := make([]int, len(inbounds))
 	for i, inbound := range inbounds {
 		ids[i] = inbound.Id
@@ -84,17 +88,24 @@ func hostOrderGroupID(h *model.Host) string {
 	return fmt.Sprintf("fallback_%d", h.Id)
 }
 
+// subscriptionHostVariants returns one variant per enabled host not excluded from format, a single
+// host-less variant for an inbound with no enabled host, and none when all its hosts are excluded.
 func (s *SubService) subscriptionHostVariants(inbound *model.Inbound, format string) []subscriptionHostVariant {
 	var variants []subscriptionHostVariant
-	for _, h := range s.hostsByInbound[inbound.Id] {
-		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+	enabled := 0
+	for _, h := range s.hostsForInbound(inbound) {
+		if h.IsDisabled {
+			continue
+		}
+		enabled++
+		if slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
 		order := s.hostGroupOrders[hostOrderGroupID(h)]
 		order.inboundSort, order.inboundID, order.hostID = inbound.SubSortIndex, inbound.Id, h.Id
 		variants = append(variants, subscriptionHostVariant{h, &order})
 	}
-	if len(variants) == 0 {
+	if enabled == 0 {
 		return []subscriptionHostVariant{{}}
 	}
 	return variants

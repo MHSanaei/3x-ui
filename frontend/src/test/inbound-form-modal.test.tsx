@@ -1,11 +1,12 @@
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
-import { screen, act, render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { screen, act, render, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
 import { ThemeProvider } from '@/hooks/useTheme';
+import { AntdRootConfig } from '@/i18n/AntdRootConfig';
 import { HttpUtil } from '@/utils';
-import { Protocols } from '@/schemas/primitives';
+
 import {
   renderWithProviders,
   fieldLabels,
@@ -21,7 +22,7 @@ vi.mock('antd', async (importOriginal) => {
     ...actual,
     message: {
       ...actual.message,
-      useMessage: () => [{ error: messageError }, null],
+      useMessage: () => [{ error: messageError, success: vi.fn() }, null],
     },
   };
 });
@@ -40,20 +41,8 @@ function renderModal() {
   );
 }
 
-// The protocol dropdown is virtualized, so jsdom renders only its first options; step
-// the active option by keyboard from the current protocol in the options' own order.
-function chooseVirtualizedProtocol(optionText: string) {
-  const input = document.getElementById('protocol') as HTMLElement;
-  const select = input.closest('.ant-select') as HTMLElement;
-  const current = (select.textContent ?? '').trim();
-  const order = Object.values(Protocols) as string[];
-  const steps = order.indexOf(optionText) - order.indexOf(current);
-  if (order.indexOf(optionText) < 0 || order.indexOf(current) < 0 || steps < 0) {
-    throw new Error(`cannot step from '${current}' to '${optionText}'`);
-  }
-  fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-  for (let i = 0; i < steps; i++) fireEvent.keyDown(input, { key: 'ArrowDown', keyCode: 40 });
-  fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+function chooseProtocol(optionText: string) {
+  chooseSelectOption('protocol', optionText);
 }
 
 function primaryButton(): HTMLElement {
@@ -115,12 +104,6 @@ async function renderCloneLikeEdit(dbInbound: DBInbound) {
 }
 
 describe('InboundFormModal', () => {
-  it('renders add mode without crashing', () => {
-    renderModal();
-    expect(document.querySelector('.ant-modal')).toBeTruthy();
-    expect(fieldLabels().length).toBeGreaterThan(0);
-  });
-
   it('field structure differs per protocol (not a vacuous snapshot loop)', async () => {
     renderModal();
     const protocols = listSelectOptions('protocol');
@@ -143,9 +126,8 @@ describe('InboundFormModal', () => {
     expect(distinctShapes.size).toBeGreaterThan(1);
 
     // Spot-check a protocol-distinguishing field that must appear after the switch.
-    if (labelsByProto.shadowsocks) {
-      expect(labelsByProto.shadowsocks).toContain('Encryption method');
-    }
+    expect(labelsByProto.shadowsocks).toContain('Encryption method');
+    expect(labelsByProto.vless).not.toContain('Encryption method');
   }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
   it('preserves custom share address strategy when editing a local inbound', async () => {
@@ -241,27 +223,31 @@ describe('InboundFormModal', () => {
         await new Promise((r) => setTimeout(r, 0));
       });
     };
-    const strategyItem = (title: string) =>
-      document.querySelector(`.ant-select-content[title="${title}"]`);
+    const selectedStrategy = () =>
+      within(screen.getByRole('combobox', { name: 'Share address strategy' })).getByRole('option', {
+        selected: true,
+      }).textContent;
     const modal = (nodes: never[], fetched: boolean) => (
-      <ThemeProvider>
-        <InboundFormModal
-          open
-          mode="edit"
-          dbInbound={buildInbound()}
-          dbInbounds={[]}
-          availableNodes={nodes}
-          availableNodesFetched={fetched}
-          onClose={() => {}}
-          onSaved={() => {}}
-        />
-      </ThemeProvider>
+      <AntdRootConfig>
+        <ThemeProvider>
+          <InboundFormModal
+            open
+            mode="edit"
+            dbInbound={buildInbound()}
+            dbInbounds={[]}
+            availableNodes={nodes}
+            availableNodesFetched={fetched}
+            onClose={() => {}}
+            onSaved={() => {}}
+          />
+        </ThemeProvider>
+      </AntdRootConfig>
     );
 
     // Baseline: nodes already loaded, so the node option is offered and selected.
     render(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
+    expect(selectedStrategy()).toBe('Node address');
     cleanup();
 
     // Race: the modal mounts before /nodes/list resolves (empty placeholder),
@@ -271,8 +257,7 @@ describe('InboundFormModal', () => {
     await flush();
     rerender(modal([node], true));
     await flush();
-    expect(strategyItem('Node address')).toBeTruthy();
-    expect(strategyItem('Inbound listen')).toBeFalsy();
+    expect(selectedStrategy()).toBe('Node address');
   });
 
   it('surfaces a Reality validation error and switches to its tab', async () => {
@@ -344,16 +329,9 @@ describe('InboundFormModal', () => {
     await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Stream' }));
-    const transmission = Array.from(document.querySelectorAll('.ant-form-item')).find(
-      (el) =>
-        el.querySelector('.ant-form-item-label label')?.textContent?.trim() === 'Transmission',
-    );
-    const select = transmission?.querySelector('.ant-select') as HTMLElement;
-    fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
-    const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
-      (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === 'XDRIVE',
-    ) as HTMLElement;
-    fireEvent.click(option);
+    const transport = screen.getByRole('combobox', { name: 'Transmission' });
+    const option = within(transport).getByRole('option', { name: 'XDRIVE' }) as HTMLOptionElement;
+    fireEvent.change(transport, { target: { value: option.value } });
     for (const [label, value] of [
       ['Remote folder', 'xray-tunnel'],
       ['Client ID', 'id.apps.googleusercontent.com'],
@@ -387,7 +365,7 @@ describe('InboundFormModal', () => {
     post.mockClear();
     renderModal();
 
-    chooseVirtualizedProtocol('masque');
+    chooseProtocol('masque');
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
@@ -561,6 +539,60 @@ describe('InboundFormModal', () => {
 
   // Clients and enable change through their own endpoints; the server keeps the
   // stored ones, so the edit form must neither send nor validate its stale copy.
+  // The editor saves the whole form, so a form left on the old target undid the switch.
+  it('saves the target a REALITY watch switch moved to, not the one it opened with', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    const get = vi.mocked(HttpUtil.get);
+    const realPost = post.getMockImplementation();
+    const realGet = get.getMockImplementation();
+    onTestFinished(() => {
+      post.mockImplementation(realPost!);
+      get.mockImplementation(realGet!);
+    });
+    const status = (target: string, serverNames: string[], spares: string[]) => ({
+      success: true,
+      msg: '',
+      obj: {
+        inboundId: 42,
+        target,
+        serverNames,
+        spares,
+        auto: false,
+        checkedAt: 0,
+        ok: false,
+        fails: 0,
+        reason: '',
+        latencyMs: 0,
+        events: [],
+      },
+    });
+    get.mockImplementation(async (url: string) =>
+      url.startsWith('/panel/api/realityWatch/status/')
+        ? status('example.com:443', ['example.com'], ['spare.example:443'])
+        : realGet!(url),
+    );
+    post.mockImplementation(async (url: string) =>
+      url.startsWith('/panel/api/realityWatch/switch/')
+        ? status('spare.example:443', ['spare.example'], ['example.com:443'])
+        : { success: true, msg: '', obj: {} },
+    );
+    post.mockClear();
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to this now' }));
+    expect(await screen.findByDisplayValue('spare.example:443')).toBeTruthy();
+    fireEvent.click(primaryButton());
+
+    await waitFor(() =>
+      expect(post.mock.calls.some(([url]) => String(url).includes('/inbounds/update/'))).toBe(true),
+    );
+    const update = post.mock.calls.find(([url]) => String(url).includes('/inbounds/update/'))!;
+    const stream = JSON.parse((update[1] as { streamSettings: string }).streamSettings);
+    expect(stream.realitySettings.target).toBe('spare.example:443');
+    expect(stream.realitySettings.serverNames).toEqual(['spare.example']);
+  }, 20_000);
+
   it('edit save neither sends nor validates the clients it loaded', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();

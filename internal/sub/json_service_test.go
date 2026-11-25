@@ -533,7 +533,7 @@ func TestSubJsonServiceWireguard(t *testing.T) {
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 	}
 
-	raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client)
+	raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, nil, client)
 	if raw == nil {
 		t.Fatal("genWireguard returned nil for a valid wireguard client")
 	}
@@ -577,7 +577,7 @@ func TestSubJsonServiceWireguardNoKey(t *testing.T) {
 	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
 	client := model.Client{Email: "user"}
 
-	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, client); raw != nil {
+	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, nil, client); raw != nil {
 		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }
@@ -596,5 +596,27 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 		"sub.example.com",
 	); len(got) != 0 {
 		t.Fatalf("getConfig emitted %d unsupported TUIC Xray config(s)", len(got))
+	}
+}
+
+func TestGenWireguardOutboundCarriesFinalMask(t *testing.T) {
+	serverPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	clientPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{"secretKey":"` + serverPriv + `"}`}
+	client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.0.0.2/32"}}
+	stream := map[string]any{"finalmask": map[string]any{"udp": []any{map[string]any{"type": "salamander"}}}}
+	raw := NewSubJsonService("", "", "", "", nil).genWireguard(&SubService{}, inbound, stream, client)
+	var out struct {
+		StreamSettings struct {
+			Finalmask struct {
+				UDP []struct{ Type string } `json:"udp"`
+			} `json:"finalmask"`
+		} `json:"streamSettings"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.StreamSettings.Finalmask.UDP) != 1 || out.StreamSettings.Finalmask.UDP[0].Type != "salamander" {
+		t.Fatalf("outbound = %s, want salamander finalmask", raw)
 	}
 }

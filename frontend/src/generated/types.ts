@@ -4,10 +4,6 @@ export type GeoKind = string;
 export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
-export type addrFamily = number;
-export type staticEgressResolver = string;
-export type trafficLocalApplyAction = number;
-export type transportBits = number;
 
 export interface AllSetting {
   datepicker: string;
@@ -48,10 +44,17 @@ export interface AllSetting {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  mcpEnable: boolean;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -110,6 +113,7 @@ export interface AllSetting {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -159,6 +163,8 @@ export interface AllSetting {
   subPort: number;
   subProfileMode: string;
   subProfileUrl: string;
+  subRateLimit: number;
+  subRateLimitEnable: boolean;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
@@ -190,6 +196,16 @@ export interface AllSetting {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  wechatCpu: number;
+  wechatEnable: boolean;
+  wechatEnabledEvents: string;
+  wechatLang: string;
+  wechatMemory: number;
+  wechatMode: string;
+  wechatReportEnable: boolean;
+  wechatRunTime: string;
+  wechatToken: string;
+  wechatWebhookURL: string;
 }
 
 export interface AllSettingView {
@@ -217,6 +233,8 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  hasWechatToken: boolean;
+  hasWechatWebhookURL: boolean;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -239,10 +257,17 @@ export interface AllSettingView {
   ldapUserAttr: string;
   ldapUserFilter: string;
   ldapVlessField: string;
+  mcpEnable: boolean;
+  networkTrafficInterface: string;
+  networkTrafficMode: string;
   nodeDownThreshold: number;
   outboundDownThreshold: number;
   pageSize: number;
   panelOutbound: string;
+  publicIpRefreshMinutes: number;
+  publicIpv4Override: string;
+  publicIpv6Detect: boolean;
+  publicIpv6Override: string;
   realityScanCandidates: string;
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
@@ -301,6 +326,7 @@ export interface AllSettingView {
   subHappTunType: string;
   subHideSettings: boolean;
   subHostSortMode: string;
+  subHwidRejectWithConfig: boolean;
   subIncyAnnounceUrl: string;
   subIncyAppAutoDetect: boolean;
   subIncyBannerBgColor: string;
@@ -350,6 +376,8 @@ export interface AllSettingView {
   subPort: number;
   subProfileMode: string;
   subProfileUrl: string;
+  subRateLimit: number;
+  subRateLimitEnable: boolean;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
   subSupportUrl: string;
@@ -381,6 +409,16 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+  wechatCpu: number;
+  wechatEnable: boolean;
+  wechatEnabledEvents: string;
+  wechatLang: string;
+  wechatMemory: number;
+  wechatMode: string;
+  wechatReportEnable: boolean;
+  wechatRunTime: string;
+  wechatToken: string;
+  wechatWebhookURL: string;
 }
 
 export interface AmneziaWGLogs {
@@ -412,6 +450,23 @@ export interface ApiTokenView {
 export interface Blocker {
   code: BlockerCode;
   detail?: string;
+}
+
+export interface BulkAdjustReport {
+  email: string;
+  reason: string;
+}
+
+export interface BulkAdjustResult {
+  adjusted: number;
+  externalLinks?: BulkExternalLinksResult | null;
+  skipped?: BulkAdjustReport[];
+}
+
+export interface BulkExternalLinksResult {
+  added: number;
+  errors: number;
+  skipped: number;
 }
 
 export interface Client {
@@ -448,6 +503,18 @@ export interface Client {
   trafficReset?: string;
   trafficResetDay?: number;
   updated_at?: number;
+  wgDeviceLimit?: number;
+  wireguardDevices?: WireguardDevice[];
+}
+
+export interface ClientChangeLog {
+  at: number;
+  email: string;
+  field: string;
+  id: number;
+  newValue: string;
+  oldValue: string;
+  source: string;
 }
 
 export interface ClientInbound {
@@ -455,6 +522,13 @@ export interface ClientInbound {
   createdAt: number;
   flowOverride: string;
   inboundId: number;
+}
+
+export interface ClientNodeUsage {
+  down: number;
+  nodeId: number;
+  nodeName: string;
+  up: number;
 }
 
 export interface ClientPageResponse {
@@ -502,6 +576,8 @@ export interface ClientRecord {
   trafficResetDay: number;
   updatedAt: number;
   uuid: string;
+  wgDeviceLimit: number;
+  wireguardDevices: WireguardDevice[];
 }
 
 export interface ClientRenewalPreview {
@@ -569,6 +645,26 @@ export interface ClientTraffic {
   uuid: string;
 }
 
+export interface ClientTrafficWindow {
+  at: number;
+  down: number;
+  email: string;
+  id: number;
+  reason: string;
+  up: number;
+}
+
+export interface ClientUsageHistory {
+  changes: ClientChangeLog[];
+  currentDown: number;
+  currentUp: number;
+  email: string;
+  lifetimeDown: number;
+  lifetimeUp: number;
+  nodes: ClientNodeUsage[];
+  windows: ClientTrafficWindow[];
+}
+
 export interface ClientsSummary {
   active: number;
   deactive: string[];
@@ -580,6 +676,15 @@ export interface ClientsSummary {
   online: string[];
   onlineCount: number;
   total: number;
+}
+
+export interface ExternalLinkInput {
+  enable?: boolean | null;
+  expiryTime?: number;
+  kind?: string;
+  namePrefix?: string;
+  remark?: string;
+  value: string;
 }
 
 export interface FallbackParentInfo {
@@ -734,6 +839,7 @@ export interface Inbound {
   nodeId?: number | null;
   originNodeGuid?: string;
   port: number;
+  preserveClientTraffic?: boolean | null;
   protocol: Protocol;
   remark: string;
   settings: unknown;
@@ -823,6 +929,24 @@ export interface Msg {
   msg: string;
   obj: unknown;
   success: boolean;
+}
+
+export interface NetworkInterfaceOption {
+  name: string;
+  up: boolean;
+}
+
+export interface NetworkInterfacesResponse {
+  automatic: string;
+  automaticError: string;
+  interfaces: NetworkInterfaceOption[];
+}
+
+export interface NetworkTrafficSelection {
+  available: boolean;
+  error: string;
+  mode: string;
+  name: string;
 }
 
 export interface NewUUIDResponse {
@@ -1009,6 +1133,32 @@ export interface RealityScanResult {
   x25519: boolean;
 }
 
+export interface RealityWatchEntry {
+  auto: boolean;
+  spares: string[];
+}
+
+export interface RealityWatchEvent {
+  at: number;
+  from: string;
+  reason: string;
+  to: string;
+}
+
+export interface RealityWatchStatus {
+  auto: boolean;
+  checkedAt: number;
+  events: RealityWatchEvent[];
+  fails: number;
+  inboundId: number;
+  latencyMs: number;
+  ok: boolean;
+  reason: string;
+  serverNames: string[];
+  spares: string[];
+  target: string;
+}
+
 export interface ServerSettings {
   contentPaddingAddition?: string;
   disableCookies: boolean;
@@ -1074,6 +1224,33 @@ export interface SponsorList {
   sponsors: Sponsor[];
 }
 
+export interface Status {
+  amneziawg: unknown;
+  appStats: unknown;
+  cpu: number;
+  cpuCores: number;
+  cpuSpeedMhz: number;
+  disk: unknown;
+  diskIO: unknown;
+  diskTraffic: unknown;
+  loads: number[];
+  logicalPro: number;
+  mem: unknown;
+  netIO: unknown;
+  netTraffic: unknown;
+  networkInterface?: NetworkTrafficSelection | null;
+  panelGuid: string;
+  panelVersion: string;
+  publicIP: unknown;
+  resourceScope?: string;
+  swap: unknown;
+  tcpCount: number;
+  udpCount: number;
+  unavailableMetrics?: string[];
+  uptime: number;
+  xray: unknown;
+}
+
 export interface SubBalancer {
   createdAt: number;
   enabled: boolean;
@@ -1125,5 +1302,15 @@ export interface User {
   id: number;
   password: string;
   username: string;
+}
+
+export interface WireguardDevice {
+  allowedIPs: string[];
+  enable: boolean;
+  id: string;
+  name: string;
+  preSharedKey?: string;
+  privateKey: string;
+  publicKey: string;
 }
 

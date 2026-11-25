@@ -1,6 +1,7 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Input, Select, Space, Switch } from 'antd';
+import { Button, Form, Input, Space, Switch } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useFormContext } from 'react-hook-form';
 
@@ -25,7 +26,9 @@ export default function ShadowsocksFields({ isSSWith2022 }: ShadowsocksFieldsPro
           setValue('settings.password', RandomUtil.randomShadowsocksPassword(v as string));
         }}
       >
-        <Select options={SSInboundMethodSchema.options.map((m) => ({ value: m, label: m }))} />
+        <NativeSelect
+          options={SSInboundMethodSchema.options.map((m) => ({ value: m, label: m }))}
+        />
       </FormField>
       {isSSWith2022 && (
         <Form.Item htmlFor={`${uid}-password`} label={t('password')}>
@@ -48,7 +51,7 @@ export default function ShadowsocksFields({ isSSWith2022 }: ShadowsocksFieldsPro
         </Form.Item>
       )}
       <FormField name={['settings', 'network']} label={t('pages.inbounds.network')}>
-        <Select
+        <NativeSelect
           style={{ width: 120 }}
           options={[
             { value: 'tcp,udp', label: 'TCP, UDP' },

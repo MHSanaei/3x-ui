@@ -41,9 +41,8 @@ export function composeRunTime(s: RunTime): string {
   return s.mode;
 }
 
-// Custom is seeded with the six-field ("second minute hour day month weekday")
-// equivalent of the current selection, so the admin edits a real expression.
-export function toCrontab(s: RunTime): string {
+// Keep elapsed-time intervals as descriptors. Crontab steps reset within their field.
+function initialCustomSchedule(s: RunTime): string {
   switch (s.mode) {
     case '@hourly':
       return '0 0 * * * *';
@@ -53,14 +52,8 @@ export function toCrontab(s: RunTime): string {
       return '0 0 0 * * 0';
     case '@monthly':
       return '0 0 0 1 * *';
-    case 'every': {
-      const n = Math.max(1, s.num || 1);
-      if (s.unit === 's') return `*/${n} * * * * *`;
-      if (s.unit === 'm') return `0 */${n} * * * *`;
-      return `0 0 */${n} * * *`;
-    }
     default:
-      return s.custom;
+      return composeRunTime(s);
   }
 }
 
@@ -84,7 +77,7 @@ export function NotifyTimeField({
 
   function onModeChange(mode: Mode) {
     if (mode === 'custom' && !state.custom.trim()) {
-      update({ mode, custom: toCrontab(state) });
+      update({ mode, custom: initialCustomSchedule(state) });
     } else {
       update({ mode });
     }

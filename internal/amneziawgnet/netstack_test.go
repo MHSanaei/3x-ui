@@ -1,15 +1,23 @@
 package amneziawgnet
 
 import (
+	"bytes"
+	"context"
+	"io"
 	"net/netip"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	awgtun "github.com/amnezia-vpn/amneziawg-go/v3/tun"
+	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 	"gvisor.dev/gvisor/pkg/tcpip/checksum"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
+	"gvisor.dev/gvisor/pkg/tcpip/seqnum"
 )
 
 // TestStackTunReadDrainsBufferedBatch is a regression test for a real
@@ -173,4 +181,176 @@ func TestStackTunWriteSurvivesFullOutboundQueue(t *testing.T) {
 	if got := len(tun.(*stackTun).incomingPacket); got != tunQueueDepth {
 		t.Fatalf("incomingPacket holds %d replies, want %d: the queue never filled", got, tunQueueDepth)
 	}
+}
+
+// tailBlackoutTun drops all server data from the hole on, tail probes included, until the
+// sender's RTO resends the hole, as an outage on the way that outlasts the RTO does.
+type tailBlackoutTun struct {
+	awgtun.Device
+	after, passed  int
+	timeouts       func() uint64
+	holeSeq        seqnum.Value
+	started, over  bool
+	timeoutsAtHole uint64
+	dropped        atomic.Int64
+}
+
+func (b *tailBlackoutTun) Read(bufs [][]byte, sizes []int, offset int) (int, error) {
+	for {
+		n, err := b.Device.Read(bufs, sizes, offset)
+		if err != nil {
+			return n, err
+		}
+		kept := 0
+		for i := range n {
+			if b.drop(bufs[i][offset : offset+sizes[i]]) {
+				continue
+			}
+			bufs[kept], bufs[i] = bufs[i], bufs[kept]
+			sizes[kept] = sizes[i]
+			kept++
+		}
+		if kept > 0 {
+			return kept, nil
+		}
+	}
+}
+
+func (b *tailBlackoutTun) drop(pkt []byte) bool {
+	ip := header.IPv4(pkt)
+	if !ip.IsValid(len(pkt)) || ip.TransportProtocol() != header.TCPProtocolNumber {
+		return false
+	}
+	seg := header.TCP(ip.Payload())
+	n, seq := len(seg.Payload()), seqnum.Value(seg.SequenceNumber())
+	switch {
+	case n == 0 || b.over:
+		return false
+	case !b.started:
+		if b.passed < b.after {
+			b.passed += n
+			return false
+		}
+		b.started, b.holeSeq, b.timeoutsAtHole = true, seq, b.timeouts()
+	case seq == b.holeSeq && b.timeouts() > b.timeoutsAtHole:
+		b.over = true
+		return false
+	}
+	b.dropped.Add(1)
+	return true
+}
+
+// delayShuttle forwards src to dst, each packet delay later, so RACK sees a real RTT; the
+// returned channel closes once delivery has stopped for good after stop.
+func delayShuttle(stop <-chan struct{}, src, dst awgtun.Device, delay time.Duration) <-chan struct{} {
+	type queued struct {
+		pkt []byte
+		at  time.Time
+	}
+	line := make(chan queued, tunQueueDepth)
+	delivered := make(chan struct{})
+	go func() {
+		defer close(delivered)
+		for {
+			select {
+			case <-stop:
+				return
+			case q := <-line:
+				select {
+				case <-stop:
+					return
+				case <-time.After(time.Until(q.at)):
+				}
+				if _, err := dst.Write([][]byte{q.pkt}, 0); err != nil {
+					return
+				}
+			}
+		}
+	}()
+	go func() {
+		bufs, sizes := [][]byte{make([]byte, 65536)}, make([]int, 1)
+		for {
+			n, err := src.Read(bufs, sizes, 0)
+			if err != nil {
+				return
+			}
+			for i := range n {
+				select {
+				case line <- queued{pkt: bytes.Clone(bufs[i][:sizes[i]]), at: time.Now().Add(delay)}:
+				case <-stop:
+					return
+				}
+			}
+		}
+	}()
+	return delivered
+}
+
+// After a blackout gVisor's RACK kept the lost tail in pipe and resent it 2 segments per
+// RTO, so downloads through the tunnel froze for seconds.
+func TestTCPDownloadRecoversTailBlackoutWithinOneRTO(t *testing.T) {
+	const (
+		payloadSize   = 2 << 20
+		blackoutAfter = 512 << 10
+		oneWayDelay   = 10 * time.Millisecond
+		minLostTail   = 150
+		deadline      = 30 * time.Second
+	)
+	stun, gstack, err := createNetTUNWithStack([]netip.Addr{netip.MustParseAddr("10.77.0.2")}, 1420)
+	if err != nil {
+		t.Fatalf("createNetTUNWithStack: %v", err)
+	}
+	ctun, cnet, err := netstack.CreateNetTUN([]netip.Addr{netip.MustParseAddr("10.77.0.1")}, nil, 1420)
+	if err != nil {
+		t.Fatalf("client netstack: %v", err)
+	}
+
+	payload := make([]byte, payloadSize)
+	for i := range payload {
+		payload[i] = byte(i % 251)
+	}
+	AttachTCPForwarder(gstack, ownerBySource, func(conn *gonet.TCPConn, _, _ netip.AddrPort) {
+		defer conn.Close()
+		_, _ = conn.Write(payload)
+		_, _ = io.Copy(io.Discard, conn)
+	})
+	timeouts := gstack.Stats().TCP.Timeouts.Value
+	lossy := &tailBlackoutTun{Device: stun, after: blackoutAfter, timeouts: timeouts}
+	stop := make(chan struct{})
+	up := delayShuttle(stop, ctun, stun, oneWayDelay)
+	down := delayShuttle(stop, lossy, ctun, oneWayDelay)
+	defer func() {
+		close(stop)
+		<-up
+		<-down
+		_ = ctun.Close()
+		_ = stun.Close()
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	conn, err := cnet.DialContextTCPAddrPort(ctx, netip.MustParseAddrPort("203.0.113.7:443"))
+	if err != nil {
+		t.Fatalf("dial through the tunnel: %v", err)
+	}
+	defer conn.Close()
+
+	start := time.Now()
+	_ = conn.SetReadDeadline(start.Add(deadline))
+	got := make([]byte, payloadSize)
+	n, err := io.ReadFull(conn, got)
+	if err != nil {
+		t.Fatalf("received %d of %d bytes in %v (%d segments blacked out, %d RTOs): the lost tail is resent an RTO at a time: %v",
+			n, payloadSize, time.Since(start), lossy.dropped.Load(), timeouts(), err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatal("download arrived corrupted or out of order")
+	}
+	if d := lossy.dropped.Load(); d < minLostTail {
+		t.Fatalf("blackout dropped %d data segments, want >= %d: the lost tail no longer exceeds RACK's recovery cwnd", d, minLostTail)
+	}
+	if got := timeouts(); got != 1 {
+		t.Fatalf("recovery took %d RTOs, want 1: after the RTO the tail must be resent without waiting for more", got)
+	}
+	t.Logf("recovered a %d-segment tail in %v", lossy.dropped.Load(), time.Since(start))
 }

@@ -59,6 +59,12 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	if incoming.AllowedIPs != "" {
 		row.AllowedIPs = incoming.AllowedIPs
 	}
+	if incoming.WireguardDevices != nil {
+		row.WireguardDevices = model.CloneWireguardDevices(incoming.WireguardDevices)
+	}
+	if incoming.WgDeviceLimit > 0 {
+		row.WgDeviceLimit = incoming.WgDeviceLimit
+	}
 	row.PreSharedKey = incoming.PreSharedKey
 	if incoming.KeepAlive != "" {
 		row.KeepAlive = incoming.KeepAlive
@@ -117,6 +123,24 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		tx = database.GetDB()
 	}
 
+	groupNames := make(map[string]string)
+	for i := range clients {
+		name := strings.TrimSpace(clients[i].Group)
+		if name == "" {
+			continue
+		}
+		canonical, ok := groupNames[name]
+		if !ok {
+			group, err := database.EnsureClientGroup(tx, name)
+			if err != nil {
+				return err
+			}
+			canonical = group.Name
+			groupNames[name] = canonical
+		}
+		clients[i].Group = canonical
+	}
+
 	var inbound model.Inbound
 	if err := tx.Select("protocol", "node_id").Where("id = ?", inboundId).Take(&inbound).Error; err != nil {
 		return err
@@ -154,15 +178,20 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 	}
 
 	isTunnel := inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG
-	var onLowerTunnel map[int]struct{}
+	var onLowerTunnel, onLowerWireguard map[int]struct{}
 	if isTunnel && len(existing) > 0 {
 		ids := make([]int, 0, len(existing))
 		for _, row := range existing {
 			ids = append(ids, row.Id)
 		}
 		var err error
-		if onLowerTunnel, err = clientsOnLowerTunnel(tx, inboundId, inbound.NodeID, ids); err != nil {
+		if onLowerTunnel, err = clientsOnLowerTunnel(tx, inboundId, inbound.NodeID, ids, []model.Protocol{model.WireGuard, model.AmneziaWG}); err != nil {
 			return err
+		}
+		if inbound.Protocol == model.WireGuard {
+			if onLowerWireguard, err = clientsOnLowerTunnel(tx, inboundId, inbound.NodeID, ids, []model.Protocol{model.WireGuard}); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -192,7 +221,8 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		before := *row
 		applyClientRecordMerge(row, incoming)
 		_, outranked := onLowerTunnel[row.Id]
-		keepLinkOwnedFields(row, &before, isTunnel && !outranked)
+		_, wireguardOutranked := onLowerWireguard[row.Id]
+		keepLinkOwnedFields(row, &before, isTunnel && !outranked, inbound.Protocol == model.WireGuard && !wireguardOutranked)
 		preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
 		row.UpdatedAt = preservedUpdatedAt
 
@@ -413,8 +443,12 @@ func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wanted
 
 // keepLinkOwnedFields undoes the merge of the record fields one inbound cannot decide
 // alone, or syncing a client's inbounds in turn rewrites the record back and forth.
-func keepLinkOwnedFields(row, before *model.ClientRecord, ownsTunnelPeer bool) {
+func keepLinkOwnedFields(row, before *model.ClientRecord, ownsTunnelPeer, ownsWireguardDevices bool) {
 	row.Flow = before.Flow
+	if !ownsWireguardDevices {
+		row.WireguardDevices = model.CloneWireguardDevices(before.WireguardDevices)
+		row.WgDeviceLimit = before.WgDeviceLimit
+	}
 	if ownsTunnelPeer {
 		return
 	}
@@ -427,7 +461,7 @@ func keepLinkOwnedFields(row, before *model.ClientRecord, ownsTunnelPeer bool) {
 
 // clientsOnLowerTunnel returns the clients also attached to a higher-ranked WireGuard/AmneziaWG
 // inbound, which owns their record's peer fields: a master-local one first, then the lowest id.
-func clientsOnLowerTunnel(tx *gorm.DB, inboundId int, nodeID *int, clientIds []int) (map[int]struct{}, error) {
+func clientsOnLowerTunnel(tx *gorm.DB, inboundId int, nodeID *int, clientIds []int, protocols []model.Protocol) (map[int]struct{}, error) {
 	outranks := "inbounds.node_id IS NULL AND client_inbounds.inbound_id < ?"
 	if nodeID != nil {
 		outranks = "(inbounds.node_id IS NULL OR client_inbounds.inbound_id < ?)"
@@ -438,7 +472,7 @@ func clientsOnLowerTunnel(tx *gorm.DB, inboundId int, nodeID *int, clientIds []i
 		if err := tx.Table("client_inbounds").
 			Joins("JOIN inbounds ON inbounds.id = client_inbounds.inbound_id").
 			Where("client_inbounds.client_id IN ? AND inbounds.protocol IN ?",
-				batch, []model.Protocol{model.WireGuard, model.AmneziaWG}).
+				batch, protocols).
 			Where(outranks, inboundId).
 			Distinct().Pluck("client_inbounds.client_id", &ids).Error; err != nil {
 			return nil, err

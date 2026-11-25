@@ -1,12 +1,26 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useEffect, useRef, useState, useId } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import dayjs from 'dayjs';
-import { Alert, Form, Input, InputNumber, Modal, Radio, Select, Switch, Tabs, message } from 'antd';
+import {
+  Alert,
+  ConfigProvider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Radio,
+  Select,
+  Switch,
+  Tabs,
+  message,
+} from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from '@/utils';
-import type { RealityScanResult } from '@/generated/types';
+import type { RealityScanResult, RealityWatchEntry } from '@/generated/types';
 import {
   rawInboundToFormValues,
   formValuesToWirePayload,
@@ -91,6 +105,28 @@ const PROTOCOL_OPTIONS = Object.values(Protocols).map((p) => ({ value: p, label:
 const SHARE_ADDR_STRATEGIES = ['node', 'listen', 'custom'] as const;
 const SHARE_ADDR_HOSTNAME_RE =
   /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/;
+
+function inboundPopupContainer(trigger?: HTMLElement): HTMLElement {
+  return (
+    trigger?.closest<HTMLElement>('.ant-modal-body') ?? trigger?.parentElement ?? document.body
+  );
+}
+
+function loopInboundFocus(event: KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Tab') return;
+  const first = event.currentTarget.querySelector<HTMLButtonElement>(
+    '.ant-modal-close:not(:disabled)',
+  );
+  const last = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>(
+      '.ant-modal-footer button:not(:disabled)',
+    ),
+  ).at(-1);
+  if (first && last && event.target === (event.shiftKey ? first : last)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+}
 
 function isValidShareAddrInput(value: string): boolean {
   const v = value.trim();
@@ -292,6 +328,7 @@ export default function InboundFormModal({
   const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
+  const realityWatchDraft = useRef<RealityWatchEntry | null>(null);
   const currentTagInput = (): InboundTagInput => ({
     port: typeof wPort === 'number' ? wPort : 0,
     nodeId: typeof wNodeId === 'number' ? wNodeId : null,
@@ -444,6 +481,7 @@ export default function InboundFormModal({
         ? withoutClients(rawInboundToFormValues(dbInbound))
         : buildAddModeValues();
     methods.reset(initial);
+    realityWatchDraft.current = null;
     savedInboundId.current = null;
     setScanResult(null);
     setActiveTab('basic');
@@ -613,14 +651,26 @@ export default function InboundFormModal({
         : '/panel/api/inbounds/add';
       const msg = await HttpUtil.post(url, payload);
       if (msg?.success) {
-        if (isFallbackHost) {
-          const obj = msg.obj as { id?: number; Id?: number } | null;
-          const masterId = existingId ?? obj?.id ?? obj?.Id ?? 0;
-          if (masterId) savedInboundId.current = masterId;
-          if (masterId && !(await saveFallbacks(masterId))) {
+        const obj = msg.obj as { id?: number; Id?: number } | null;
+        const masterId = existingId ?? obj?.id ?? obj?.Id ?? 0;
+        if (isFallbackHost && masterId) {
+          savedInboundId.current = masterId;
+          if (!(await saveFallbacks(masterId))) {
             messageApi.error(t('pages.inbounds.fallbacks.saveFailed'));
             return;
           }
+        }
+        const watch = realityWatchDraft.current;
+        if (
+          mode === 'add' &&
+          masterId &&
+          parsed.data.streamSettings?.security === 'reality' &&
+          watch &&
+          (watch.auto || watch.spares.length)
+        ) {
+          await HttpUtil.post(`/panel/api/realityWatch/save/${masterId}`, watch, {
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
         onSaved();
         onClose();
@@ -677,7 +727,7 @@ export default function InboundFormModal({
       )}
 
       <FormField name="protocol" label={t('pages.inbounds.protocol')}>
-        <Select id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
+        <NativeSelect id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
       </FormField>
 
       <FormField
@@ -695,7 +745,7 @@ export default function InboundFormModal({
             label={t('pages.inbounds.form.shareAddrStrategy')}
             tooltip={t('pages.inbounds.form.shareAddrStrategyHelp')}
           >
-            <Select
+            <NativeSelect
               options={SHARE_ADDR_STRATEGIES.filter(
                 (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
               ).map((strategy) => ({
@@ -780,7 +830,7 @@ export default function InboundFormModal({
       </Form.Item>
 
       <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
-        <Select
+        <NativeSelect
           options={TRAFFIC_RESETS.map((r) => ({
             value: r,
             label: t(`pages.inbounds.periodicTrafficReset.${r}`),
@@ -795,6 +845,21 @@ export default function InboundFormModal({
           rules={{ validate: rhfZodValidate(InboundDbFieldsSchema.shape.trafficResetDay) }}
         >
           <InputNumber min={1} max={31} />
+        </FormField>
+      )}
+
+      {trafficReset !== 'never' && (
+        <FormField
+          name="preserveClientTraffic"
+          valueProp="checked"
+          label={t('pages.inbounds.preserveClientTraffic')}
+          tooltip={
+            <span style={{ whiteSpace: 'pre-line' }}>
+              {t('pages.inbounds.preserveClientTrafficHelp')}
+            </span>
+          }
+        >
+          <Switch />
         </FormField>
       )}
 
@@ -958,7 +1023,7 @@ export default function InboundFormModal({
     <>
       {hasSelectableTransport && (
         <Form.Item htmlFor={`${uid}-network`} label={t('transmission')}>
-          <Select
+          <NativeSelect
             id={`${uid}-network`}
             style={{ width: '75%' }}
             value={network}
@@ -1034,8 +1099,11 @@ export default function InboundFormModal({
 
   const securityTab = (
     <>
-      <Form.Item label={t('pages.inbounds.securityTab')}>
+      <Form.Item
+        label={<span id={`${uid}-security-label`}>{t('pages.inbounds.securityTab')}</span>}
+      >
         <Radio.Group
+          aria-labelledby={`${uid}-security-label`}
           value={security}
           buttonStyle="solid"
           disabled={!tlsOk}
@@ -1073,6 +1141,17 @@ export default function InboundFormModal({
           clearRealityKeypair={clearRealityKeypair}
           genMldsa65={genMldsa65}
           clearMldsa65={clearMldsa65}
+          inboundId={mode === 'edit' && dbInbound ? dbInbound.id : null}
+          onNode={typeof dbInbound?.nodeId === 'number'}
+          messageApi={messageApi}
+          onWatchDraftChange={(entry) => {
+            realityWatchDraft.current = entry;
+          }}
+          onWatchSwitched={(target, serverNames) => {
+            methods.setValue('streamSettings.realitySettings.target', target);
+            methods.setValue('streamSettings.realitySettings.serverNames', serverNames);
+            setScanResult(null);
+          }}
         />
       )}
     </>
@@ -1174,7 +1253,7 @@ export default function InboundFormModal({
   const sniffingTab = <SniffingTab />;
 
   return (
-    <>
+    <ConfigProvider virtual={false} getPopupContainer={inboundPopupContainer}>
       {messageContextHolder}
       {modalContextHolder}
       <Modal
@@ -1188,6 +1267,11 @@ export default function InboundFormModal({
         onOk={submit}
         onCancel={onClose}
         destroyOnHidden
+        modalRender={(content) => (
+          <div role="presentation" onKeyDown={loopInboundFocus}>
+            {content}
+          </div>
+        )}
       >
         <FormProvider {...methods}>
           <Form
@@ -1273,6 +1357,6 @@ export default function InboundFormModal({
           </Form>
         </FormProvider>
       </Modal>
-    </>
+    </ConfigProvider>
   );
 }

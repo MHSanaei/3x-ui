@@ -152,7 +152,7 @@ func TestOutboundTCPIPv6ReachesListener(t *testing.T) {
 			svc := &OutboundService{}
 			for _, ob := range items {
 				t.Run(ob.(map[string]any)["tag"].(string), func(t *testing.T) {
-					r, err := svc.TestOutbound(mustJSON(t, ob), "", "", "tcp")
+					r, err := svc.TestOutbound(mustJSON(t, ob), "", "", "tcp", nil)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -160,7 +160,7 @@ func TestOutboundTCPIPv6ReachesListener(t *testing.T) {
 				})
 			}
 			t.Run("batch", func(t *testing.T) {
-				results, err := svc.TestOutbounds(mustJSON(t, items), "", "", "tcp")
+				results, err := svc.TestOutbounds(mustJSON(t, items), "", "", "tcp", nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -197,7 +197,7 @@ func TestOutboundTCPReportsRefusedIPv6Connection(t *testing.T) {
 	for _, host := range []string{"::1", "[::1]"} {
 		t.Run(host, func(t *testing.T) {
 			ob := endpointOutbound("closed", "vless", host, port, false)
-			r, err := (&OutboundService{}).TestOutbound(mustJSON(t, ob), "", "", "tcp")
+			r, err := (&OutboundService{}).TestOutbound(mustJSON(t, ob), "", "", "tcp", nil)
 			if err != nil {
 				t.Fatal(err)
 			}

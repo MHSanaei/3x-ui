@@ -94,6 +94,21 @@ func TestCheckForwardedPortsConflict_CollidesWithPanelPort(t *testing.T) {
 	}
 }
 
+// With XUI_PORT set the panel listens there, not on the stored webPort, so a
+// forward on that port could never bind.
+func TestCheckForwardedPortsConflict_CollidesWithXUIPort(t *testing.T) {
+	setupConflictDB(t)
+	t.Setenv("XUI_PORT", "8443")
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext(database.GetDB(), nil)
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	if hit := svc.checkForwardedPortsConflict(ctx, "8443"); !strings.Contains(hit, "panel") {
+		t.Fatalf("expected a collision naming the port XUI_PORT makes the panel listen on, got %q", hit)
+	}
+}
+
 func TestCheckForwardedPortsConflict_CollidesWithEnabledInboundPort(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "vless-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`)

@@ -29,6 +29,10 @@ _openapi:
         IDs it is attached to.
       url: '#fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to'
     - depth: 2
+      title: Fetch one client by email, including the inbound IDs and external config
+        IDs it is attached to.
+      url: '#fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to-1'
+    - depth: 2
       title: Fetch clients by subscription ID.
       url: '#fetch-clients-by-subscription-id'
     - depth: 2
@@ -44,14 +48,25 @@ _openapi:
       title: Preview client auto-renewal dates without saving or resetting anything.
       url: '#preview-client-auto-renewal-dates-without-saving-or-resetting-anything'
     - depth: 2
-      title: Update an existing client by email. Changes propagate to every attached
-        inbound. Body is the JSON client payload — supply the full set of fields
-        you want to keep (the server replaces the row, it does not patch).
-      url: '#update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch'
+      title: 'Update an existing client by email. Changes propagate to every attached
+        inbound. Body is the JSON client payload: omitted fields keep their
+        current values, and an explicit zero, empty or null value clears a
+        field, except as noted below.'
+      url: '#update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below'
+    - depth: 2
+      title: 'Update an existing client by email. Changes propagate to every attached
+        inbound. Body is the JSON client payload: omitted fields keep their
+        current values, and an explicit zero, empty or null value clears a
+        field, except as noted below.'
+      url: '#update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below-1'
     - depth: 2
       title: Delete a client by email. Removes it from every attached inbound and
         drops its traffic record unless keepTraffic=1 is passed.
       url: '#delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed'
+    - depth: 2
+      title: Delete a client by email. Removes it from every attached inbound and
+        drops its traffic record unless keepTraffic=1 is passed.
+      url: '#delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed-1'
     - depth: 2
       title: Attach an existing client to one or more additional inbounds. Body is
         JSON.
@@ -67,6 +82,21 @@ _openapi:
         emitted on future subscription fetches; credentials already imported by
         an app remain valid until the external provider revokes them.
       url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them'
+    - depth: 2
+      title: List WireGuard devices and their per-inbound addresses.
+      url: '#list-wireguard-devices-and-their-per-inbound-addresses'
+    - depth: 2
+      title: Create a WireGuard device on every attached WireGuard inbound.
+      url: '#create-a-wireguard-device-on-every-attached-wireguard-inbound'
+    - depth: 2
+      title: Set the maximum number of WireGuard devices.
+      url: '#set-the-maximum-number-of-wireguard-devices'
+    - depth: 2
+      title: Rename or enable a WireGuard device.
+      url: '#rename-or-enable-a-wireguard-device'
+    - depth: 2
+      title: Delete an additional WireGuard device and release its address.
+      url: '#delete-an-additional-wireguard-device-and-release-its-address'
     - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
@@ -118,9 +148,19 @@ _openapi:
         "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
         supports it (omit or "" to leave it unchanged). The optional limitHwid
         sets maximum registered devices (0 = unlimited). The optional adTag sets
-        MTProto Telegram sponsor channel ("none" clears). Returns the adjusted
-        count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons'
+        MTProto Telegram sponsor channel ("none" clears). Alternatively, send
+        externalLinks to append external share links and http(s) subscriptions
+        to each selected client in one transaction. This mode cannot be combined
+        with other adjustments. Existing entries, metadata, and ordering are
+        preserved. Duplicates match (kind, value) per client, including repeated
+        input rows; the first entry wins. Missing clients are not written and
+        appear in skipped. externalLinks.added counts inserted rows,
+        externalLinks.skipped counts duplicate rows across found clients,
+        externalLinks.errors counts missing clients, and adjusted counts clients
+        receiving at least one new row. Validation or database failure aborts
+        the whole append without writes. Repeating an append is idempotent and
+        does not restart Xray.'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -188,27 +228,36 @@ _openapi:
         clients.
       url: '#zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients'
     - depth: 2
-      title: List all client groups with their member counts. Merges persisted groups
-        (rows in client_groups, including empty placeholders) with the distinct
-        group_name values currently set on clients. Sorted alphabetically
-        (case-insensitive).
-      url: '#list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive'
+      title: List all client groups with their member counts and the host groups bound
+        to each. Merges persisted groups (rows in client_groups, including empty
+        placeholders) with the distinct group_name values currently set on
+        clients. Sorted alphabetically (case-insensitive).
+      url: '#list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive'
+    - depth: 2
+      title: Replace the host groups attached to a client group. Clients in this group
+        receive the bound host groups instead of the inbound default host pool;
+        other clients are unaffected. An empty array clears the bindings.
+        Returns the saved host group IDs.
+      url: '#replace-the-host-groups-attached-to-a-client-group-clients-in-this-group-receive-the-bound-host-groups-instead-of-the-inbound-default-host-pool-other-clients-are-unaffected-an-empty-array-clears-the-bindings-returns-the-saved-host-group-ids'
     - depth: 2
       title: Return just the email list of clients that currently belong to the given
         group. Useful for fanning a single bulk action over an entire group
         without round-tripping the full client list.
       url: '#return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list'
     - depth: 2
-      title: Create a new empty (placeholder) group. The group becomes selectable in
-        client forms and the filter drawer even before any client is added to
-        it. Errors if a group with the same name already exists.
-      url: '#create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists'
+      title: Create a new group, optionally with host rules bound to it. The group
+        becomes selectable in client forms and the filter drawer even before any
+        client is added to it. Host group IDs are validated before the group is
+        created. Errors if a group with the same name already exists.
+      url: '#create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists'
     - depth: 2
-      title: Rename a group. The new name is applied to the client_groups row AND
-        propagated to every matching client (both clients.group_name and the
-        client entry inside every owning inbound's settings JSON) in a single
-        transaction. Returns the number of clients whose label was updated.
-      url: '#rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated'
+      title: Rename a group and optionally replace its host rules in one transaction.
+        The new name is applied to the client_groups row AND propagated to every
+        matching client (both clients.group_name and the client entry inside
+        every owning inbound's settings JSON). Omit hostGroupIds to leave the
+        bindings unchanged; send an empty array to clear them. Returns the
+        number of clients whose label was updated.
+      url: '#rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated'
     - depth: 2
       title: Remove a group. Deletes the client_groups row and clears the group label
         from every matching client (both clients.group_name and the inbound
@@ -241,17 +290,26 @@ _openapi:
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
     - depth: 2
-      title: List registered HWID devices for a client with a short fingerprint. Full
-        hashes are not exposed.
-      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed'
+      title: List registered HWID devices for a client with a short fingerprint and a
+        blocked flag. Bans are scoped to the subscription ID shared by the
+        client. Full hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed'
     - depth: 2
-      title: Clear all registered HWID devices for a client so new devices can
-        register again.
-      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
+      title: Clear unblocked HWID registrations for a client so devices can register
+        again. Blocked devices and their bans are preserved.
+      url: '#clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved'
     - depth: 2
-      title: Remove a single registered HWID device by its id, freeing one slot under
-        the HWID limit.
-      url: '#remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit'
+      title: Remove a single unblocked HWID device by its id, freeing one slot under
+        the HWID limit. A blocked device must be unblocked before it can be
+        removed.
+      url: '#remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed'
+    - depth: 2
+      title: Block or unblock one device for the client subscription. Send an explicit
+        boolean blocked value. A ban denies subscription bodies for that HWID
+        even with limitHwid=0, does not consume a device slot, and survives
+        clearing devices or changing the limit. It does not revoke copied
+        credentials or identify requests with a different or missing HWID.
+      url: '#block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid'
     - depth: 2
       title: List the emails of currently connected clients (last seen within the
         heartbeat window), deduped across every node.
@@ -281,6 +339,23 @@ _openapi:
     - depth: 2
       title: Traffic counters for a client identified by email.
       url: '#traffic-counters-for-a-client-identified-by-email'
+    - depth: 2
+      title: "Usage and change history for one client, behind the edit modal's history
+        button. lifetimeUp/lifetimeDown are every archived window plus the
+        client's live counters; currentUp/currentDown are the still-open window.
+        windows lists the closed cycles, newest first (reason: reset | renew |
+        earlier): one is archived whenever a traffic reset or an auto-renewal
+        zeroes the client's counters, the newest 100 are kept and older ones are
+        folded into a single earlier row, so the lifetime total does not change.
+        nodes is the per-node upload/download accumulated since the last reset.
+        changes is the metadata change log, newest first, capped at the newest
+        200 rows: one row per changed field (subId, expiry, dataLimit, enable,
+        limitIp, limitHwid, adTag, group, renewalPlan) and a name row for a
+        rename; source is panel | tgbot | auto-renew. A renamed client keeps its
+        history under the new email. The history belongs to the client: once the
+        client is deleted, its history is removed within five minutes. Requires
+        an admin token or a panel login session."
+      url: '#usage-and-change-history-for-one-client-behind-the-edit-modals-history-button-lifetimeuplifetimedown-are-every-archived-window-plus-the-clients-live-counters-currentupcurrentdown-are-the-still-open-window-windows-lists-the-closed-cycles-newest-first-reason-reset--renew--earlier-one-is-archived-whenever-a-traffic-reset-or-an-auto-renewal-zeroes-the-clients-counters-the-newest-100-are-kept-and-older-ones-are-folded-into-a-single-earlier-row-so-the-lifetime-total-does-not-change-nodes-is-the-per-node-uploaddownload-accumulated-since-the-last-reset-changes-is-the-metadata-change-log-newest-first-capped-at-the-newest-200-rows-one-row-per-changed-field-subid-expiry-datalimit-enable-limitip-limithwid-adtag-group-renewalplan-and-a-name-row-for-a-rename-source-is-panel--tgbot--auto-renew-a-renamed-client-keeps-its-history-under-the-new-email-the-history-belongs-to-the-client-once-the-client-is-deleted-its-history-is-removed-within-five-minutes-requires-an-admin-token-or-a-panel-login-session'
     - depth: 2
       title: Return every protocol URL (vless://, vmess://, trojan://, ss://,
         hysteria://, hy2://) for clients matching the subscription ID. Same
@@ -324,6 +399,9 @@ _openapi:
       - content: Fetch one client by email, including the inbound IDs and external
           config IDs it is attached to.
         id: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+      - content: Fetch one client by email, including the inbound IDs and external
+          config IDs it is attached to.
+        id: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to-1
       - content: Fetch clients by subscription ID.
         id: fetch-clients-by-subscription-id
       - content: Fetch clients by Telegram user ID. Returns an array since multiple
@@ -335,14 +413,22 @@ _openapi:
         id: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
       - content: Preview client auto-renewal dates without saving or resetting anything.
         id: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
-      - content: Update an existing client by email. Changes propagate to every attached
-          inbound. Body is the JSON client payload — supply the full set of
-          fields you want to keep (the server replaces the row, it does not
-          patch).
-        id: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+      - content: 'Update an existing client by email. Changes propagate to every
+          attached inbound. Body is the JSON client payload: omitted fields keep
+          their current values, and an explicit zero, empty or null value clears
+          a field, except as noted below.'
+        id: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
+      - content: 'Update an existing client by email. Changes propagate to every
+          attached inbound. Body is the JSON client payload: omitted fields keep
+          their current values, and an explicit zero, empty or null value clears
+          a field, except as noted below.'
+        id: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below-1
       - content: Delete a client by email. Removes it from every attached inbound and
           drops its traffic record unless keepTraffic=1 is passed.
         id: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+      - content: Delete a client by email. Removes it from every attached inbound and
+          drops its traffic record unless keepTraffic=1 is passed.
+        id: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed-1
       - content: Attach an existing client to one or more additional inbounds. Body is
           JSON.
         id: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
@@ -355,6 +441,16 @@ _openapi:
           emitted on future subscription fetches; credentials already imported
           by an app remain valid until the external provider revokes them.
         id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them
+      - content: List WireGuard devices and their per-inbound addresses.
+        id: list-wireguard-devices-and-their-per-inbound-addresses
+      - content: Create a WireGuard device on every attached WireGuard inbound.
+        id: create-a-wireguard-device-on-every-attached-wireguard-inbound
+      - content: Set the maximum number of WireGuard devices.
+        id: set-the-maximum-number-of-wireguard-devices
+      - content: Rename or enable a WireGuard device.
+        id: rename-or-enable-a-wireguard-device
+      - content: Delete an additional WireGuard device and release its address.
+        id: delete-an-additional-wireguard-device-and-release-its-address
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
@@ -402,8 +498,19 @@ _openapi:
           the inbound supports it (omit or "" to leave it unchanged). The
           optional limitHwid sets maximum registered devices (0 = unlimited).
           The optional adTag sets MTProto Telegram sponsor channel ("none"
-          clears). Returns the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons
+          clears). Alternatively, send externalLinks to append external share
+          links and http(s) subscriptions to each selected client in one
+          transaction. This mode cannot be combined with other adjustments.
+          Existing entries, metadata, and ordering are preserved. Duplicates
+          match (kind, value) per client, including repeated input rows; the
+          first entry wins. Missing clients are not written and appear in
+          skipped. externalLinks.added counts inserted rows,
+          externalLinks.skipped counts duplicate rows across found clients,
+          externalLinks.errors counts missing clients, and adjusted counts
+          clients receiving at least one new row. Validation or database failure
+          aborts the whole append without writes. Repeating an append is
+          idempotent and does not restart Xray.'
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-alternatively-send-externallinks-to-append-external-share-links-and-https-subscriptions-to-each-selected-client-in-one-transaction-this-mode-cannot-be-combined-with-other-adjustments-existing-entries-metadata-and-ordering-are-preserved-duplicates-match-kind-value-per-client-including-repeated-input-rows-the-first-entry-wins-missing-clients-are-not-written-and-appear-in-skipped-externallinksadded-counts-inserted-rows-externallinksskipped-counts-duplicate-rows-across-found-clients-externallinkserrors-counts-missing-clients-and-adjusted-counts-clients-receiving-at-least-one-new-row-validation-or-database-failure-aborts-the-whole-append-without-writes-repeating-an-append-is-idempotent-and-does-not-restart-xray
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling
@@ -464,24 +571,32 @@ _openapi:
           disabled by hand stays disabled. Returns the count of successfully
           reset clients.
         id: zero-updown-counters-for-many-clients-in-one-call-loops-the-single-reset-path-so-each-client-its-quota-had-disabled-is-re-enabled-across-its-attached-inbounds-and-pushed-to-xrayremote-nodes-a-client-disabled-by-hand-stays-disabled-returns-the-count-of-successfully-reset-clients
-      - content: List all client groups with their member counts. Merges persisted
-          groups (rows in client_groups, including empty placeholders) with the
-          distinct group_name values currently set on clients. Sorted
-          alphabetically (case-insensitive).
-        id: list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: List all client groups with their member counts and the host groups
+          bound to each. Merges persisted groups (rows in client_groups,
+          including empty placeholders) with the distinct group_name values
+          currently set on clients. Sorted alphabetically (case-insensitive).
+        id: list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+      - content: Replace the host groups attached to a client group. Clients in this
+          group receive the bound host groups instead of the inbound default
+          host pool; other clients are unaffected. An empty array clears the
+          bindings. Returns the saved host group IDs.
+        id: replace-the-host-groups-attached-to-a-client-group-clients-in-this-group-receive-the-bound-host-groups-instead-of-the-inbound-default-host-pool-other-clients-are-unaffected-an-empty-array-clears-the-bindings-returns-the-saved-host-group-ids
       - content: Return just the email list of clients that currently belong to the
           given group. Useful for fanning a single bulk action over an entire
           group without round-tripping the full client list.
         id: return-just-the-email-list-of-clients-that-currently-belong-to-the-given-group-useful-for-fanning-a-single-bulk-action-over-an-entire-group-without-round-tripping-the-full-client-list
-      - content: Create a new empty (placeholder) group. The group becomes selectable in
-          client forms and the filter drawer even before any client is added to
-          it. Errors if a group with the same name already exists.
-        id: create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
-      - content: Rename a group. The new name is applied to the client_groups row AND
+      - content: Create a new group, optionally with host rules bound to it. The group
+          becomes selectable in client forms and the filter drawer even before
+          any client is added to it. Host group IDs are validated before the
+          group is created. Errors if a group with the same name already exists.
+        id: create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
+      - content: Rename a group and optionally replace its host rules in one
+          transaction. The new name is applied to the client_groups row AND
           propagated to every matching client (both clients.group_name and the
-          client entry inside every owning inbound's settings JSON) in a single
-          transaction. Returns the number of clients whose label was updated.
-        id: rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+          client entry inside every owning inbound's settings JSON). Omit
+          hostGroupIds to leave the bindings unchanged; send an empty array to
+          clear them. Returns the number of clients whose label was updated.
+        id: rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
       - content: Remove a group. Deletes the client_groups row and clears the group
           label from every matching client (both clients.group_name and the
           inbound settings JSON). The clients themselves are NOT deleted — use
@@ -508,15 +623,24 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
-      - content: List registered HWID devices for a client with a short fingerprint.
-          Full hashes are not exposed.
-        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed
-      - content: Clear all registered HWID devices for a client so new devices can
-          register again.
-        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
-      - content: Remove a single registered HWID device by its id, freeing one slot
-          under the HWID limit.
-        id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
+      - content: List registered HWID devices for a client with a short fingerprint and
+          a blocked flag. Bans are scoped to the subscription ID shared by the
+          client. Full hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-and-a-blocked-flag-bans-are-scoped-to-the-subscription-id-shared-by-the-client-full-hashes-are-not-exposed
+      - content: Clear unblocked HWID registrations for a client so devices can register
+          again. Blocked devices and their bans are preserved.
+        id: clear-unblocked-hwid-registrations-for-a-client-so-devices-can-register-again-blocked-devices-and-their-bans-are-preserved
+      - content: Remove a single unblocked HWID device by its id, freeing one slot under
+          the HWID limit. A blocked device must be unblocked before it can be
+          removed.
+        id: remove-a-single-unblocked-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit-a-blocked-device-must-be-unblocked-before-it-can-be-removed
+      - content: Block or unblock one device for the client subscription. Send an
+          explicit boolean blocked value. A ban denies subscription bodies for
+          that HWID even with limitHwid=0, does not consume a device slot, and
+          survives clearing devices or changing the limit. It does not revoke
+          copied credentials or identify requests with a different or missing
+          HWID.
+        id: block-or-unblock-one-device-for-the-client-subscription-send-an-explicit-boolean-blocked-value-a-ban-denies-subscription-bodies-for-that-hwid-even-with-limithwid0-does-not-consume-a-device-slot-and-survives-clearing-devices-or-changing-the-limit-it-does-not-revoke-copied-credentials-or-identify-requests-with-a-different-or-missing-hwid
       - content: List the emails of currently connected clients (last seen within the
           heartbeat window), deduped across every node.
         id: list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
@@ -541,6 +665,23 @@ _openapi:
         id: map-of-client-email--last-seen-unix-timestamp
       - content: Traffic counters for a client identified by email.
         id: traffic-counters-for-a-client-identified-by-email
+      - content: "Usage and change history for one client, behind the edit modal's
+          history button. lifetimeUp/lifetimeDown are every archived window plus
+          the client's live counters; currentUp/currentDown are the still-open
+          window. windows lists the closed cycles, newest first (reason: reset |
+          renew | earlier): one is archived whenever a traffic reset or an
+          auto-renewal zeroes the client's counters, the newest 100 are kept and
+          older ones are folded into a single earlier row, so the lifetime total
+          does not change. nodes is the per-node upload/download accumulated
+          since the last reset. changes is the metadata change log, newest
+          first, capped at the newest 200 rows: one row per changed field
+          (subId, expiry, dataLimit, enable, limitIp, limitHwid, adTag, group,
+          renewalPlan) and a name row for a rename; source is panel | tgbot |
+          auto-renew. A renamed client keeps its history under the new email.
+          The history belongs to the client: once the client is deleted, its
+          history is removed within five minutes. Requires an admin token or a
+          panel login session."
+        id: usage-and-change-history-for-one-client-behind-the-edit-modals-history-button-lifetimeuplifetimedown-are-every-archived-window-plus-the-clients-live-counters-currentupcurrentdown-are-the-still-open-window-windows-lists-the-closed-cycles-newest-first-reason-reset--renew--earlier-one-is-archived-whenever-a-traffic-reset-or-an-auto-renewal-zeroes-the-clients-counters-the-newest-100-are-kept-and-older-ones-are-folded-into-a-single-earlier-row-so-the-lifetime-total-does-not-change-nodes-is-the-per-node-uploaddownload-accumulated-since-the-last-reset-changes-is-the-metadata-change-log-newest-first-capped-at-the-newest-200-rows-one-row-per-changed-field-subid-expiry-datalimit-enable-limitip-limithwid-adtag-group-renewalplan-and-a-name-row-for-a-rename-source-is-panel--tgbot--auto-renew-a-renamed-client-keeps-its-history-under-the-new-email-the-history-belongs-to-the-client-once-the-client-is-deleted-its-history-is-removed-within-five-minutes-requires-an-admin-token-or-a-panel-login-session
       - content: Return every protocol URL (vless://, vmess://, trojan://, ss://,
           hysteria://, hy2://) for clients matching the subscription ID. Same
           result set as the configured subPath endpoint, but as a JSON array —
@@ -564,6 +705,9 @@ _openapi:
           tunnel) contribute nothing.'
         id: return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
     contents:
+      - content: Query-parameter alias for the path endpoint. Use email=. or email=.. to
+          manage legacy reserved names without URL dot-segment normalization.
+        heading: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to-1
       - content: Matches the exact subscription ID and orders results by client ID.
           Returns an array of the same payloads as GET /clients/get/:email,
           since multiple clients can share a subscription ID. Includes disabled,
@@ -572,11 +716,14 @@ _openapi:
           email lookup. Requires an admin token or a panel login session.
         heading: fetch-clients-by-subscription-id
       - content: >-
-          Fields the server fills in when they are omitted — a valid value sent
-          by the caller is never overwritten. Re-adding an email that already
-          exists, with its stored `subId`, reuses the stored `id`, `password`,
-          `auth` and `secret` instead of minting new ones, so the identity stays
-          in sync across its inbounds.
+          Client email must not be exactly `.` or `..`. Existing reserved-name
+          clients can be read, renamed to a valid name, or deleted using the
+          query-parameter /get, /update and /del aliases. Fields the server
+          fills in when they are omitted — a valid value sent by the caller is
+          never overwritten. Re-adding an email that already exists, with its
+          stored `subId`, reuses the stored `id`, `password`, `auth` and
+          `secret` instead of minting new ones, so the identity stays in sync
+          across its inbounds.
 
 
           - **VLESS / VMess** — `id`, a fresh UUID
@@ -641,7 +788,11 @@ _openapi:
           preview is informational and does not reserve an allowance or
           guarantee node availability.
         heading: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
-      - content: 'The inbounds are applied concurrently and independently: one that
+      - content: 'An omitted `flow` leaves every attached inbound on its own flow. Send
+          `"reverse": null` to remove the reverse tag. Credentials (`id`,
+          `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG
+          `allowedIPs` are never cleared: an empty value keeps the stored one.
+          The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
           are reported together, one per line. So a `success:false` response can
@@ -649,7 +800,22 @@ _openapi:
           record is written after the inbounds, so a failure there is reported
           without an `inbound <id>:` prefix and leaves the inbound edits in
           place.'
-        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below
+      - content: 'Query-parameter alias for the path endpoint. Use email=. or email=..
+          to manage legacy reserved names without URL dot-segment normalization.
+          An omitted `flow` leaves every attached inbound on its own flow. Send
+          `"reverse": null` to remove the reverse tag. Credentials (`id`,
+          `password`, `auth`, `secret`, `subId`) and WireGuard/AmneziaWG
+          `allowedIPs` are never cleared: an empty value keeps the stored one.
+          The inbounds are applied concurrently and independently: one that
+          fails no longer stops the others. Every inbound error names the
+          inbound it came from (`inbound 7: <message>`), and several failures
+          are reported together, one per line. So a `success:false` response can
+          still have applied the edit to the remaining inbounds. The client
+          record is written after the inbounds, so a failure there is reported
+          without an `inbound <id>:` prefix and leaves the inbound edits in
+          place.'
+        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload-omitted-fields-keep-their-current-values-and-an-explicit-zero-empty-or-null-value-clears-a-field-except-as-noted-below-1
       - content: 'The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
@@ -660,6 +826,18 @@ _openapi:
           inbounds, so a failure there is reported without an `inbound <id>:`
           prefix and leaves the client already removed from every inbound.'
         heading: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
+      - content: 'Query-parameter alias for the path endpoint. Use email=. or email=..
+          to manage legacy reserved names without URL dot-segment normalization.
+          The inbounds are applied concurrently and independently: one that
+          fails no longer stops the others. Every inbound error names the
+          inbound it came from (`inbound 7: <message>`), and several failures
+          are reported together, one per line. So a `success:false` response can
+          still have removed the client from the remaining inbounds; the client
+          record is kept in that case, so re-running the call retries exactly
+          the leftovers. The record and traffic rows are dropped after the
+          inbounds, so a failure there is reported without an `inbound <id>:`
+          prefix and leaves the client already removed from every inbound.'
+        heading: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed-1
       - content: 'A WireGuard client brings its stored `allowedIPs` into the new inbound
           instead of being given a fresh address, so the call fails with
           `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address>
@@ -676,6 +854,26 @@ _openapi:
           still have detached the remaining inbounds. Detach writes nothing
           beyond the inbounds, so every error carries the prefix.'
         heading: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
+      - content: The original credentials remain the primary device. Additional devices
+          share their parent client email, traffic quota, expiry and enable
+          state. Keep each device configuration on one device. Device-specific
+          subscriptions use the existing subscription URL with the wgDevice
+          query parameter set to the device ID.
+        heading: list-wireguard-devices-and-their-per-inbound-addresses
+      - content: Keys are generated once and each inbound allocates an available tunnel
+          address. All inbounds commit together. The default limit is 5 devices
+          including primary.
+        heading: create-a-wireguard-device-on-every-attached-wireguard-inbound
+      - content: The limit includes primary and disabled devices. Choose 1 to 32. Values
+          below the current device count are rejected.
+        heading: set-the-maximum-number-of-wireguard-devices
+      - content: The primary device is managed through the parent client. Disabled
+          additional devices retain their reserved addresses.
+        heading: rename-or-enable-a-wireguard-device
+      - content: The device is removed from every attached WireGuard inbound. Its
+          previously downloaded configuration loses access after the
+          configuration is applied.
+        heading: delete-an-additional-wireguard-device-and-release-its-address
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
@@ -685,7 +883,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/update","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/del","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/wireguardDevices","method":"get"},{"path":"/panel/api/clients/wireguardDevices","method":"post"},{"path":"/panel/api/clients/wireguardDevices/limit","method":"put"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"patch"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"delete"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/hosts","method":"post"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}/block","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/usageHistory/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }
