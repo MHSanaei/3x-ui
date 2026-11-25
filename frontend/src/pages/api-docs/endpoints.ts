@@ -2999,8 +2999,9 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/sub-balancers',
-        summary:
-          'List all subscription balancers in sort order (sort_order asc, id asc), each with a problems[] array of advisories (unknown_inbound, disabled_inbound, json_incapable_protocol, no_members). Advisories are diagnostic: a balancer with no resolvable member is still omitted from the JSON subscription.',
+        summary: 'List all subscription balancers in sort order, with problems[] advisories.',
+        description:
+          'Each balancer carries a problems[] array of diagnostic advisories: unknown_inbound, disabled_inbound, json_incapable_protocol, inbound_without_clients, no_members. Advisories never change the emitted config — a balancer with no resolvable member is still omitted from the JSON subscription. sort_order asc, id asc.',
         responseSchema: 'SubBalancerWithProblems',
         responseSchemaArray: true,
       },
