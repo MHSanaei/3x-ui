@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -26,6 +27,8 @@ func TestClientTrafficLifecyclePostgres(t *testing.T) {
 		run  func(*testing.T)
 	}{
 		{"inbound save", TestInboundEditWritesOnlyDriftedTraffic},
+		{"no update per unchanged client", TestInboundEditSendsNoUpdateForUnchangedClients},
+		{"null lifecycle columns", TestInboundEditRepairsNullLifecycleColumns},
 		{"fields and errors", TestUpdateClientStatPreservesLifecycleAndCounters},
 		{"row locks", checkUpdateClientStatRowLocks},
 		{"one connection", TestUpdateClientTrafficsStaysOnOneConnection},
@@ -263,5 +266,66 @@ func checkUpdateClientStatRowLocks(t *testing.T) {
 				t.Fatalf("committed total = %d, want %d", got, test.total)
 			}
 		})
+	}
+}
+
+// A form save cannot change clients, yet it sent one UPDATE per client it kept: on
+// PostgreSQL a 100k-client inbound spent about a minute on them and the request died.
+func TestInboundEditSendsNoUpdateForUnchangedClients(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	clients := makeScaleClients(sqlInChunk + 1)
+	for i := range clients {
+		clients[i].TotalGB = 1 << 30
+	}
+	ib := seedTrafficLifecycleInbound(t, svc, clients)
+	drifted := clients[len(clients)-1].Email
+	execLifecycleTestSQL(t, "UPDATE client_traffics SET total = 0 WHERE email = '"+drifted+"'")
+
+	var updates atomic.Int64
+	if err := database.GetDB().Callback().Update().After("gorm:update").Register("test:count_lifecycle_updates", func(tx *gorm.DB) {
+		if tx.Statement.Table == "client_traffics" {
+			updates.Add(1)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	form := *ib
+	form.Remark = "edited"
+	if _, _, err := svc.UpdateInbound(&form); err != nil {
+		t.Fatal(err)
+	}
+	if got := updates.Load(); got != 1 {
+		t.Fatalf("save sent %d client_traffics UPDATEs for %d clients, want 1 for the drifted row", got, len(clients))
+	}
+	if got := readClientTraffic(t, drifted).Total; got != 1<<30 {
+		t.Fatalf("drifted total = %d, want it repaired to %d", got, 1<<30)
+	}
+}
+
+// NULL is not the zero the settings hold; the row comparison must still call it drift.
+func TestInboundEditRepairsNullLifecycleColumns(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	columns := []string{"enable", "expiry_time", "total", "reset", "reset_day", "reset_max", "reset_weekday"}
+	clients := makeScaleClients(len(columns))
+	ib := seedTrafficLifecycleInbound(t, svc, clients)
+	for i, column := range columns {
+		execLifecycleTestSQL(t, "UPDATE client_traffics SET "+column+" = NULL WHERE email = '"+clients[i].Email+"'")
+	}
+	form := *ib
+	form.Remark = "edited"
+	if _, _, err := svc.UpdateInbound(&form); err != nil {
+		t.Fatal(err)
+	}
+	for i, column := range columns {
+		var nulls int64
+		if err := database.GetDB().Model(xray.ClientTraffic{}).
+			Where("email = ? AND "+column+" IS NULL", clients[i].Email).Count(&nulls).Error; err != nil {
+			t.Fatal(err)
+		}
+		if nulls != 0 {
+			t.Errorf("a NULL %s survived the save", column)
+		}
 	}
 }

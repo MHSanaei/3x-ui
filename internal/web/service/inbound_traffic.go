@@ -684,6 +684,53 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 		}).Error
 }
 
+// storedClientLifecycle is the part of a client_traffics row its client's settings
+// decide. A nil field is a NULL, which no configured value equals.
+type storedClientLifecycle struct {
+	Email        string
+	Enable       *bool
+	ExpiryTime   *int64
+	Total        *int64
+	Reset        *int
+	ResetDay     *int
+	ResetMax     *int
+	ResetWeekday *int
+}
+
+func (row *storedClientLifecycle) holds(client *model.Client) bool {
+	return row.Enable != nil && *row.Enable == client.Enable &&
+		row.ExpiryTime != nil && *row.ExpiryTime == client.ExpiryTime &&
+		row.Total != nil && *row.Total == client.TotalGB &&
+		row.Reset != nil && *row.Reset == client.Reset &&
+		row.ResetDay != nil && *row.ResetDay == client.ResetDay &&
+		row.ResetMax != nil && *row.ResetMax == client.ResetMax &&
+		row.ResetWeekday != nil && *row.ResetWeekday == client.ResetWeekday
+}
+
+// updateDriftedClientStats reads the rows a chunk at a time and rewrites only those that
+// differ: one statement per kept client made saving a 100k-client inbound take a minute.
+func (s *InboundService) updateDriftedClientStats(tx *gorm.DB, emails []string, clients map[string]*model.Client) error {
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var rows []storedClientLifecycle
+		if err := tx.Model(xray.ClientTraffic{}).
+			Select("email", "enable", "expiry_time", "total", "reset", "reset_day", "reset_max", "reset_weekday").
+			Where("email IN ?", batch).
+			Find(&rows).Error; err != nil {
+			return err
+		}
+		for i := range rows {
+			client := clients[rows[i].Email]
+			if client == nil || rows[i].holds(client) {
+				continue
+			}
+			if err := s.UpdateClientStat(tx, rows[i].Email, client); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{email}); err != nil {
 		return err

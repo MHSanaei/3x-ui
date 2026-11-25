@@ -2655,22 +2655,23 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 			return err
 		}
 	}
+	keptEmails := make([]string, 0, len(newClients))
+	keptClients := make(map[string]*model.Client, len(newClients))
 	for i := range newClients {
 		email := newClients[i].Email
 		if email == "" {
 			continue
 		}
 		if _, existed := oldEmails[email]; existed {
-			if err := s.UpdateClientStat(tx, email, &newClients[i]); err != nil {
-				return err
-			}
+			keptEmails = append(keptEmails, email)
+			keptClients[email] = &newClients[i]
 			continue
 		}
 		if err := s.AddClientStat(tx, oldInbound.Id, &newClients[i]); err != nil {
 			return err
 		}
 	}
-	return nil
+	return s.updateDriftedClientStats(tx, keptEmails, keptClients)
 }
 
 func (s *InboundService) GetInboundTags() (string, error) {
