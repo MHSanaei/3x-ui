@@ -44,23 +44,16 @@ func (t *Tgbot) getInboundUsages() string {
 	return info.String()
 }
 
-// addClientExcludedProtocols are the protocols with no per-client model: Tunnel
-// has no clients, Mixed/HTTP authenticate at the inbound level, not per-client.
-var addClientExcludedProtocols = map[model.Protocol]bool{
-	model.Tunnel: true,
-	model.Mixed:  true,
-	model.HTTP:   true,
-}
-
-// getInboundsAttachPicker builds a toggle picker over multi-client inbounds
-// for the "attach more inbounds to the new client" step. Each row shows the
-// current selection state for the inbound; tapping fires
-// add_client_toggle_attach <id> which flips it and re-renders. A final
-// "Done" button (add_client_attach_done) returns to the field-edit screen.
+// getInboundsAttachPicker shares attachment selection between client drafts
+// and reusable plans; execution revalidates the selected inbounds.
 func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeyboardMarkup, error) {
-	inbounds, err := t.inboundService.GetAllInbounds()
+	inbounds, more, err := t.inboundService.GetClientInboundLabelPage(draft.attachPage)
+	if err == nil && len(inbounds) == 0 && draft.attachPage > 0 {
+		draft.attachPage = 0
+		inbounds, more, err = t.inboundService.GetClientInboundLabelPage(0)
+	}
 	if err != nil {
-		logger.Warning("GetAllInbounds run failed:", err)
+		logger.Warning("GetClientInboundLabelPage failed:", err)
 		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 	if len(inbounds) == 0 {
@@ -72,9 +65,6 @@ func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeybo
 	}
 	var buttons []telego.InlineKeyboardButton
 	for _, ib := range inbounds {
-		if addClientExcludedProtocols[ib.Protocol] {
-			continue
-		}
 		mark := "☐"
 		if selected[ib.Id] {
 			mark = "✅"
@@ -88,6 +78,16 @@ func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeybo
 		cols = 2
 	}
 	rows := tu.InlineKeyboardCols(cols, buttons...)
+	var nav []telego.InlineKeyboardButton
+	if draft.attachPage > 0 {
+		nav = append(nav, t.btn("tgbot.buttons.prev", "add_client_attach_page "+strconv.Itoa(draft.attachPage-1)))
+	}
+	if more {
+		nav = append(nav, t.btn("tgbot.buttons.next", "add_client_attach_page "+strconv.Itoa(draft.attachPage+1)))
+	}
+	if len(nav) > 0 {
+		rows = append(rows, nav)
+	}
 	rows = append(rows, tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.attachDone")).
 			WithCallbackData(t.encodeQuery("add_client_attach_done")),

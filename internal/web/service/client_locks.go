@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ var (
 	inboundMutationLocks   = map[int]*sync.Mutex{}
 )
 
-func lockInbound(inboundId int) *sync.Mutex {
+func inboundMutex(inboundId int) *sync.Mutex {
 	inboundMutationLocksMu.Lock()
 	m, ok := inboundMutationLocks[inboundId]
 	if !ok {
@@ -36,8 +37,34 @@ func lockInbound(inboundId int) *sync.Mutex {
 		inboundMutationLocks[inboundId] = m
 	}
 	inboundMutationLocksMu.Unlock()
+	return m
+}
+
+func lockInbound(inboundId int) *sync.Mutex {
+	m := inboundMutex(inboundId)
 	m.Lock()
 	return m
+}
+
+func lockMutexContext(ctx context.Context, m *sync.Mutex) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if m.TryLock() {
+		return nil
+	}
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if m.TryLock() {
+				return nil
+			}
+		}
+	}
 }
 
 func compactOrphans(db *gorm.DB, clients []any) []any {

@@ -140,3 +140,69 @@ func TestFailedCommandScreenSendKeepsPreviousMenu(t *testing.T) {
 		t.Fatalf("failed send must preserve the previous menu: sends=%d edits=%d deletes=%d keyboardEdits=%d current=%+v", count("sendPhoto"), count("editMessageMedia"), count("deleteMessage"), count("editMessageReplyMarkup"), current)
 	}
 }
+
+func TestTypedAdminLookupKeepsWorkflowAndLegacyActionsOnFreshScreen(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t, adminTgID)
+	seedAdminClient(t, adminCardEmail)
+	tb.renderScreen(adminTgID, tb.newScreen("main", "previous menu", tb.homeRows()...))
+	previous, _ := tb.screens().get(adminTgID)
+	before := len(calls())
+	message := &telego.Message{
+		MessageID: 9000, Chat: telego.Chat{ID: adminTgID, Type: "private"},
+		From: &telego.User{ID: adminTgID}, Text: "/usage " + adminCardEmail,
+	}
+	tb.answerCommand(message, adminTgID, true)
+	got := calls()[before:]
+	if countMethod(got, "sendPhoto") != 1 || countMethod(got, "editMessageMedia")+countMethod(got, "editMessageCaption")+countMethod(got, "editMessageText") != 0 {
+		t.Fatalf("typed lookup must send a new client card: %v", methods(got))
+	}
+	current, ok := tb.screens().get(adminTgID)
+	if !ok || current.msgID == previous.msgID {
+		t.Fatalf("new client card not tracked: previous=%+v current=%+v", previous, current)
+	}
+	for _, action := range []string{"admin_renew", "client_export_menu", "client_sub_links", "client_qr_links"} {
+		if data := cardCallback(t, current, action); data != action+" "+adminCardEmail {
+			t.Fatalf("lookup action %q targets %q", action, data)
+		}
+	}
+	tb.answerCallback(&telego.CallbackQuery{
+		ID: "lookup-export", From: *message.From, Data: cardCallback(t, current, "client_export_menu"),
+		Message: &telego.Message{MessageID: current.msgID, Chat: message.Chat},
+	}, true)
+	export, ok := tb.screens().get(adminTgID)
+	if !ok {
+		t.Fatal("export menu not tracked")
+	}
+	for _, action := range []string{"client_export_summary", "client_export_url", "client_export_txt", "client_export_qr"} {
+		if data := cardCallback(t, export, action); data != action+" "+adminCardEmail {
+			t.Fatalf("export action %q targets %q", action, data)
+		}
+	}
+}
+
+func TestTypedWorkflowCommandsSendFreshScreensWhileCallbacksEdit(t *testing.T) {
+	for _, command := range []string{"/plans", "/add new-client A", "/renew " + adminCardEmail + " A"} {
+		t.Run(command, func(t *testing.T) {
+			tb := adminWorkflowBot(t)
+			tb.renderScreen(adminTgID, tb.newScreen("main", "previous menu", tb.homeRows()...))
+			previous, _ := tb.screens().get(adminTgID)
+			chat := telego.Chat{ID: adminTgID, Type: "private"}
+			user := telego.User{ID: adminTgID}
+			tb.answerCommand(&telego.Message{MessageID: 9000, Chat: chat, From: &user, Text: command}, adminTgID, true)
+			current, ok := tb.screens().get(adminTgID)
+			if !ok || current.msgID == 0 || current.msgID == previous.msgID || current.text == previous.text {
+				t.Fatalf("workflow command must send a new menu: previous=%+v current=%+v", previous, current)
+			}
+			tb.answerCallback(&telego.CallbackQuery{
+				ID: "workflow-home", From: user, Data: "home",
+				Message: &telego.Message{MessageID: current.msgID, Chat: chat},
+			}, true)
+			home, ok := tb.screens().get(adminTgID)
+			if !ok || home.msgID != current.msgID || home.kind != "main" {
+				t.Fatalf("callback must edit the current workflow menu: current=%+v home=%+v", current, home)
+			}
+		})
+	}
+}

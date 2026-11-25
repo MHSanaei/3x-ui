@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -40,6 +41,14 @@ const (
 	TUIC        Protocol = "tuic"
 	MASQUE      Protocol = "masque"
 )
+
+func (p Protocol) SupportsClients() bool {
+	return slices.Contains(ClientProtocols(), p)
+}
+
+func ClientProtocols() []Protocol {
+	return []Protocol{VMESS, VLESS, Trojan, Shadowsocks, WireGuard, Hysteria, MTProto, AmneziaWG, TUIC, MASQUE}
+}
 
 // User represents a user account in the 3x-ui panel.
 type User struct {

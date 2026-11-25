@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -75,6 +76,17 @@ func serveFakeMtgAPI(configPath, logPath string) {
 	appendFakeMtgLog(logPath, "ready")
 	_ = http.Serve(ln, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if name, ok := strings.CutSuffix(strings.TrimPrefix(r.URL.Path, "/secrets/"), "/reset-quota"); ok && r.Method == http.MethodPost {
+			if path := os.Getenv("MTG_FAKE_RESET_STATUS_FILE"); path != "" {
+				data, _ := os.ReadFile(path)
+				if status, _ := strconv.Atoi(strings.TrimSpace(string(data))); status >= 400 {
+					w.WriteHeader(status)
+					return
+				}
+			}
+			if os.Getenv("MTG_FAKE_RESET_UNSUPPORTED") == "1" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 			if unescaped, err := url.PathUnescape(name); err == nil {
 				appendFakeMtgLog(logPath, "reset:"+unescaped)
 			}

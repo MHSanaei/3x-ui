@@ -18,10 +18,15 @@ const globalTrafficHeartbeatInterval = time.Hour
 // hasFreshGlobalTraffic stops at the first fresh row; COUNT with LIMIT still counted them all.
 // It probes on every call so a new push or a stale master takes effect at once.
 func hasFreshGlobalTraffic(db *gorm.DB, freshSince int64) bool {
+	fresh, err := freshGlobalTrafficExists(db, freshSince)
+	return err == nil && fresh
+}
+
+func freshGlobalTrafficExists(db *gorm.DB, freshSince int64) (bool, error) {
 	var fresh bool
 	err := db.Raw("SELECT EXISTS (SELECT 1 FROM client_global_traffics WHERE updated_at >= ?)", freshSince).
 		Scan(&fresh).Error
-	return err == nil && fresh
+	return fresh, err
 }
 
 // AcceptGlobalTraffic overwrites hosted clients' per-master usage, including lower resets.
@@ -118,13 +123,23 @@ func chunkGlobalRows(rows []model.ClientGlobalTraffic, size int) [][]model.Clien
 // overlayGlobalTraffic applies each direction's largest fresh per-master value for display.
 // Stored local counters remain untouched; stale masters cannot inflate usage (#6113).
 func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
+	if err := overlayGlobalTrafficChecked(db, rows); err != nil {
+		logger.Warning("overlayGlobalTraffic:", err)
+	}
+}
+
+func overlayGlobalTrafficChecked(db *gorm.DB, rows []*xray.ClientTraffic) error {
 	if len(rows) == 0 {
-		return
+		return nil
 	}
 	freshSince := globalTrafficFreshSince(db.NowFunc())
 	// Cheap short-circuit for the common case (a panel no master pushes to).
-	if !hasFreshGlobalTraffic(db, freshSince) {
-		return
+	fresh, err := freshGlobalTrafficExists(db, freshSince)
+	if err != nil {
+		return err
+	}
+	if !fresh {
+		return nil
 	}
 
 	emails := make([]string, 0, len(rows))
@@ -142,8 +157,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 	for _, batch := range chunkStrings(emails, sqlInChunk) {
 		var globals []model.ClientGlobalTraffic
 		if err := db.Where("email IN ? AND updated_at >= ?", batch, freshSince).Find(&globals).Error; err != nil {
-			logger.Warning("overlayGlobalTraffic:", err)
-			return
+			return err
 		}
 		for i := range globals {
 			for _, r := range byEmail[strings.ToLower(globals[i].Email)] {
@@ -156,6 +170,7 @@ func overlayGlobalTraffic(db *gorm.DB, rows []*xray.ClientTraffic) {
 			}
 		}
 	}
+	return nil
 }
 
 // overlayGlobalTrafficValues is overlayGlobalTraffic for value slices.
