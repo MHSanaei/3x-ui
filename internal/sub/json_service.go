@@ -477,6 +477,18 @@ func (s *SubJsonService) hiddenMemberConfig(subReq *SubService, inbound *model.I
 	return s.getConfig(subReq, inbound, client, host)
 }
 
+// selectsPresentBalancer reports whether any inbound the balancer selects is among
+// the entries built for this subscriber — the only case where an empty member list
+// signals a real problem rather than a balancer aimed at other clients.
+func selectsPresentBalancer(inboundIds []int, sources []subConfigEntry) bool {
+	for _, entry := range sources {
+		if entry.kind == 0 && slices.Contains(inboundIds, entry.id) {
+			return true
+		}
+	}
+	return false
+}
+
 // appendBalancerEntries appends one entry per balancer that has at least one member outbound
 // among the inbound entries; hidden inbounds' entries are members but never output themselves.
 func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry, balancers []model.SubBalancer) []subConfigEntry {
@@ -500,10 +512,13 @@ func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry,
 	for i := range balancers {
 		config := s.buildBalancerConfig(&balancers[i], sources, entryProxies)
 		if config == nil {
-			// No member survived this subscriber's inbound set: omitting is the
-			// contract, but a silent drop leaves misconfiguration undiagnosable.
-			logger.Warningf("SubJsonService: balancer %q (#%d) omitted, no member among this subscription's inbounds",
-				balancers[i].Remark, balancers[i].Id)
+			// Balancers are global while sources are this subscriber's inbounds,
+			// so an empty intersection is normal. Only a selected inbound that IS
+			// present but still yields no member is worth a warning.
+			if selectsPresentBalancer(balancers[i].InboundIds, sources) {
+				logger.Warningf("SubJsonService: balancer %q (#%d) omitted, its inbounds are in this subscription but produced no member",
+					balancers[i].Remark, balancers[i].Id)
+			}
 			continue
 		}
 		entries = append(entries, subConfigEntry{
