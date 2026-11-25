@@ -85,11 +85,11 @@ func (s *SubService) hostsForInbound(inbound *model.Inbound) []*model.Host {
 // clientGroupHostBinding returns this inbound's rows in host groups bound to the
 // client's group, including disabled rows so the caller can fail closed.
 func (s *SubService) clientGroupHostBinding(inbound *model.Inbound, client model.Client) (hostBinding, []*model.Host) {
-	s.ensureClientGroupIndex()
 	name := strings.ToLower(strings.TrimSpace(client.Group))
 	if name == "" {
 		return hostBindingNone, nil
 	}
+	s.ensureClientGroupIndex()
 	groupID, ok := s.clientGroupIDsByName[name]
 	if !ok {
 		return hostBindingNone, nil

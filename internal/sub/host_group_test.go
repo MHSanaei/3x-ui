@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -391,5 +392,40 @@ func TestSub_ClientGroup_NoBindingKeepsDefaultPool(t *testing.T) {
 	joined := strings.Join(links, "\n")
 	if !strings.Contains(joined, "a.cdn.com:443") || !strings.Contains(joined, "b.cdn.com:443") {
 		t.Fatalf("unbound group must keep the default pool, got: %s", joined)
+	}
+}
+
+// Most subscribers belong to no group: their request must not pay for the
+// client-group index, which is two extra queries on every subscription fetch.
+func TestSub_ClientGroup_UngroupedClientSkipsGroupIndex(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cg", 4514, 1, tcpTLSStream)
+	seedSubClient(t, ib, "s2", "member@e")
+	group := seedClientGroup(t, "VIP")
+	setClientGroup(t, "member@e", group.Name)
+	seedHost(t, &model.Host{GroupId: "ga", InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls"})
+	bindHostGroup(t, "ga", group.Id)
+
+	db := database.GetDB()
+	reads := 0
+	const name = "test:count_client_group_index"
+	if err := db.Callback().Query().After("gorm:query").Register(name, func(tx *gorm.DB) {
+		if tx.Statement.Table == "client_groups" || tx.Statement.Table == "host_group_client_groups" {
+			reads++
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove(name) })
+
+	for subID, want := range map[string]int{"s1": 0, "s2": 2} {
+		reads = 0
+		links, _, _, _, err := NewSubService("").GetSubs(subID, "req.example.com")
+		if err != nil || len(links) != 1 || !strings.Contains(links[0], "a.cdn.com:443") {
+			t.Fatalf("%s: links = %v, err = %v, want the one host link", subID, links, err)
+		}
+		if reads != want {
+			t.Fatalf("%s: client-group index queries = %d, want %d", subID, reads, want)
+		}
 	}
 }
