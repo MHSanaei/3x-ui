@@ -282,6 +282,22 @@ jobs:
           make node-e2e 2>&1 | tee /tmp/node-e2e.log
           if grep -q -- '--- SKIP' /tmp/node-e2e.log; then echo "node-e2e skipped"; exit 1; fi
 
+  # The core pinned in go.mod as a real child process, driven over its gRPC API.
+  # A skip naming the binary means it was never handed over, so it fails the job.
+  xray-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Real core end to end
+        run: |
+          set -o pipefail
+          make xray-e2e 2>&1 | tee /tmp/xray-e2e.log
+          if grep -q -- '_test.go:[0-9]*: .*XRAY_E2E_BINARY' /tmp/xray-e2e.log; then echo "a real-core test skipped"; exit 1; fi
+
   # Brief native-fuzz smoke on the security-/parser-critical decoders. Each runs the
   # generated corpus plus 30s of exploration; a crash here is a real input-handling bug.
   fuzz-smoke:
