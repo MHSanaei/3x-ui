@@ -246,14 +246,16 @@ func TestLogSubBalancerProblemsDeduplicates(t *testing.T) {
 	}
 }
 
-func logLines() []string { return xuilogger.GetLogs(0, "DEBUG") }
+// GetLogs returns newest first and caps at c, so read a large window and take a
+// snapshot before each call instead of trusting absolute indices.
+func logLines() []string { return xuilogger.GetLogs(1_000_000, "DEBUG") }
 
 func logLinesSince(n int) []string {
 	all := logLines()
-	if len(all) < n {
-		return all
+	if len(all) <= n {
+		return nil
 	}
-	return all[n:]
+	return all[:len(all)-n]
 }
 
 func countContaining(lines []string, substr string) int {
