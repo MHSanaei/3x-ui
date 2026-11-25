@@ -35,6 +35,9 @@ func TestSubHosts_Postgres(t *testing.T) {
 		{"base64", TestSub_HostOrderBase64AndInfoNode},
 		{"balancer", TestSub_HostOrderBalancerSlots},
 		{"deleted binding", TestSub_ClientHostRule_DeletedHostClosesOnlyItsInbound},
+		{"render query budget", TestSubscriptionRenderSettingsQueryBudget},
+		{"render setting values", TestSubscriptionRenderSettingsValues},
+		{"partial render read failure", TestSubscriptionRenderSettingsPartialReadFailure},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			cleanup, err := testpg.IsolatePackage("host_order")

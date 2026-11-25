@@ -147,15 +147,11 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 	return observed, true
 }
 
-// hasLimitIp reports whether any client carries an IP limit. It probes the
-// normalized clients table (limit_ip is synced there by SyncInbound and the
-// legacy seeder), replacing the old `settings LIKE '%limitIp%'` scan that
-// loaded and JSON-parsed every inbound's settings blob on each 10s run.
+// hasLimitIp stops at the first positive limit in the normalized clients table.
 func (j *CheckClientIpJob) hasLimitIp() bool {
-	db := database.GetDB()
-	var probe int64
-	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
-	return err == nil && probe > 0
+	var exists bool
+	err := database.GetDB().Raw("SELECT EXISTS (SELECT 1 FROM clients WHERE limit_ip > 0)").Scan(&exists).Error
+	return err == nil && exists
 }
 
 // loadAllowlist reads the operator's trusted addresses once per scan; a bad

@@ -1041,11 +1041,15 @@ func (s *Server) sendUDPPacketFragments(
 			if err != nil {
 				return err
 			}
-			if _, err := stream.Write(frame.Bytes()); err != nil {
-				stream.CancelWrite(0)
-				return err
+			_, err = stream.Write(frame.Bytes())
+			if err == nil {
+				err = stream.Close()
 			}
-			if err := stream.Close(); err != nil {
+			if err != nil {
+				if peerStoppedStream(stream) {
+					return nil
+				}
+				stream.CancelWrite(0)
 				return err
 			}
 			continue
@@ -1055,6 +1059,13 @@ func (s *Server) sendUDPPacketFragments(
 		}
 	}
 	return nil
+}
+
+// peerStoppedStream reports a STOP_SENDING: the peer dropped that one packet, while its
+// association lives on. Close reports it untyped, so the stream's own cause is read.
+func peerStoppedStream(stream *quic.SendStream) bool {
+	var stopped *quic.StreamError
+	return errors.As(context.Cause(stream.Context()), &stopped) && stopped.Remote
 }
 
 // Close gracefully stops the server and releases all network resources.

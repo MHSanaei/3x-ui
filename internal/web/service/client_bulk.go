@@ -366,6 +366,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
+	defer watchClientChanges(clientChangeSourcePanel, cleanEmails...).record()
 
 	db := database.GetDB()
 
@@ -1576,6 +1577,7 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
+	defer watchClientChanges(clientChangeSourcePanel, cleanEmails...).record()
 
 	db := database.GetDB()
 

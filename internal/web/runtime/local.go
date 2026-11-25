@@ -26,6 +26,10 @@ type LocalDeps struct {
 	APIPort          func() int
 	SetNeedRestart   func()
 	RequestReconcile func()
+	// InboundApplied and InboundRemoved report what an op changed in the running core,
+	// so the config snapshot a reconcile diffs against stays true.
+	InboundApplied func(*xray.InboundConfig)
+	InboundRemoved func(tag string)
 }
 
 type Local struct {
@@ -100,13 +104,18 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return err
 	}
-	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
+	config := ib.GenXrayInboundConfig()
+	body, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	err = l.withAPI(func(api *xray.XrayAPI) error {
 		return api.AddInbound(body)
 	})
+	if err == nil && l.deps.InboundApplied != nil {
+		l.deps.InboundApplied(config)
+	}
+	return err
 }
 
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
@@ -131,9 +140,13 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return nil
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	err := l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
+	if err == nil && l.deps.InboundRemoved != nil {
+		l.deps.InboundRemoved(ib.Tag)
+	}
+	return err
 }
 
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {

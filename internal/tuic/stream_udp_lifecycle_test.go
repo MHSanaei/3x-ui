@@ -21,6 +21,11 @@ func startLifecycleTestServer(t *testing.T, relayAddr, email string) (*Server, *
 
 func startLifecycleTestServerWithRelay(t *testing.T, relay *SocksRelay, email string) (*Server, *clientquic.Conn, uuid.UUID, string) {
 	t.Helper()
+	return startLifecycleTestServerWithClient(t, relay, email, &clientquic.Config{EnableDatagrams: true})
+}
+
+func startLifecycleTestServerWithClient(t *testing.T, relay *SocksRelay, email string, clientConfig *clientquic.Config) (*Server, *clientquic.Conn, uuid.UUID, string) {
+	t.Helper()
 	cert, key := generateTestCert(t)
 	clientID := uuid.New()
 	password := "lifecycle-test-password"
@@ -41,8 +46,7 @@ func startLifecycleTestServerWithRelay(t *testing.T, relay *SocksRelay, email st
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	client, err := clientquic.DialAddr(ctx, server.packetConn.LocalAddr().String(),
-		&tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h3"}},
-		&clientquic.Config{EnableDatagrams: true})
+		&tls.Config{InsecureSkipVerify: true, NextProtos: []string{"h3"}}, clientConfig)
 	if err != nil {
 		t.Fatalf("dial TUIC server: %v", err)
 	}

@@ -315,6 +315,9 @@ func handDisabledEmails(tx *gorm.DB, emails []string) ([]string, error) {
 // zeroClientTraffics zeroes the counters of emails (every row when nil) and lifts their traffic
 // gate, except for keepOff: a master pushes that flag to its nodes as the client's state.
 func zeroClientTraffics(tx *gorm.DB, emails, keepOff []string) (int64, error) {
+	if err := archiveClosedWindowsTx(tx, emails, trafficWindowReset); err != nil {
+		return 0, err
+	}
 	var affected int64
 	reset := map[string]any{"enable": true, "up": 0, "down": 0}
 	if emails == nil {

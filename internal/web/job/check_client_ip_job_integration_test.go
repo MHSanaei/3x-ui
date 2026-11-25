@@ -457,29 +457,54 @@ func TestGetInboundByEmailRejectsSubstringFallbackMatch(t *testing.T) {
 	}
 }
 
-// hasLimitIp gates every 10s scan on the normalized clients table: a bare
-// "limitIp":0 in settings JSON (which the old LIKE scan matched and parsed)
-// must not enable enforcement, while a single clients.limit_ip > 0 row must.
 func TestHasLimitIp_ProbesClientRecords(t *testing.T) {
 	setupIntegrationDB(t)
-	j := &CheckClientIpJob{}
+	checkLimitIpProbe(t)
+}
 
-	if j.hasLimitIp() {
-		t.Fatal("hasLimitIp = true on an empty database")
+func checkLimitIpProbe(t *testing.T) {
+	t.Helper()
+	j := &CheckClientIpJob{}
+	db := database.GetDB()
+
+	expect := func(state string, want bool) {
+		t.Helper()
+		if got := j.hasLimitIp(); got != want {
+			t.Fatalf("%s: hasLimitIp = %t, want %t", state, got, want)
+		}
 	}
+	expect("empty clients table", false)
 
 	seedLinkedInboundWithClient(t, "no-limit", "nolimit@example.com", 0)
-	if j.hasLimitIp() {
-		t.Fatal("hasLimitIp = true with only limit_ip=0 clients")
-	}
+	expect("only zero limits", false)
 
-	limited := &model.ClientRecord{Email: "limited@example.com", LimitIP: 2}
-	if err := database.GetDB().Create(limited).Error; err != nil {
-		t.Fatalf("seed limited client: %v", err)
+	const email = "disabled@example.com"
+	if err := db.Model(&model.ClientRecord{}).Create(map[string]any{
+		"email": email, "limit_ip": -1, "enable": false,
+	}).Error; err != nil {
+		t.Fatalf("seed disabled client: %v", err)
 	}
-	if !j.hasLimitIp() {
-		t.Fatal("hasLimitIp = false with a limit_ip=2 client present")
+	expect("zero and negative limits", false)
+
+	setLimit := func(limit any) {
+		t.Helper()
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).Update("limit_ip", limit).Error; err != nil {
+			t.Fatalf("set limit to %v: %v", limit, err)
+		}
 	}
+	setLimit(nil)
+	expect("NULL and zero limits", false)
+	setLimit(2)
+	expect("positive limit for a disabled, unattached client", true)
+	setLimit(0)
+	expect("last positive limit removed", false)
+	setLimit(2)
+	expect("positive limit restored", true)
+
+	if err := database.CloseDB(); err != nil {
+		t.Fatal(err)
+	}
+	expect("database read error after a positive result", false)
 }
 
 // The mirror of TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned: with the
