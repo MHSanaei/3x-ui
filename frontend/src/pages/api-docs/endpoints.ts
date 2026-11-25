@@ -2338,6 +2338,9 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/restartPanel',
         summary:
           'Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.',
+        description:
+          'The answer names the listener that took the call (port, tls) and the one the restarted panel opens (nextPort, nextTls), with XUI_PORT and an unloadable certificate pair already applied. A client reaching the panel through a proxy or a port mapping compares port and tls with the address it used, and follows a change only where they match.',
+        responseSchema: 'PanelRestart',
       },
       {
         method: 'POST',

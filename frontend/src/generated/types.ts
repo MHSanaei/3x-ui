@@ -1069,6 +1069,13 @@ export interface OutboundTraffics {
   up: number;
 }
 
+export interface PanelRestart {
+  nextPort: number;
+  nextTls: boolean;
+  port: number;
+  tls: boolean;
+}
+
 export interface PanelUpdateStatus {
   exitCode: number;
   finishedAt: number;

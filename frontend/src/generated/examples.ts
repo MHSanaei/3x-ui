@@ -1212,6 +1212,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 0,
     "up": 0
   },
+  "PanelRestart": {
+    "nextPort": 2053,
+    "nextTls": false,
+    "port": 2053,
+    "tls": false
+  },
   "PanelUpdateStatus": {
     "exitCode": 0,
     "finishedAt": 1735689612,

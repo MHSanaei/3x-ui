@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/tls"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -757,6 +758,18 @@ func (s *SettingService) SetCertFile(webCertFile string) error {
 
 func (s *SettingService) GetCertFile() (string, error) {
 	return s.getString("webCertFile")
+}
+
+// DirectHTTPSConfigured reports whether the next panel start serves TLS itself:
+// the stored certificate and key must both be set and load as a pair.
+func (s *SettingService) DirectHTTPSConfigured() bool {
+	certFile, certErr := s.GetCertFile()
+	keyFile, keyErr := s.GetKeyFile()
+	if certErr != nil || keyErr != nil || certFile == "" || keyFile == "" {
+		return false
+	}
+	_, err := tls.LoadX509KeyPair(certFile, keyFile)
+	return err == nil
 }
 
 func (s *SettingService) SetKeyFile(webKeyFile string) error {

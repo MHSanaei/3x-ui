@@ -20,6 +20,14 @@ type Msg struct {
 	Obj     any    `json:"obj"`
 }
 
+// PanelRestart describes the listener that took the restart call and the one that follows.
+type PanelRestart struct {
+	Port     int  `json:"port" example:"2053"`
+	TLS      bool `json:"tls" example:"false"`
+	NextPort int  `json:"nextPort" example:"2053"`
+	NextTLS  bool `json:"nextTls" example:"false"`
+}
+
 type AllSetting struct {
 	WebListen     string `json:"webListen" form:"webListen"`
 	WebDomain     string `json:"webDomain" form:"webDomain"`

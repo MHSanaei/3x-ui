@@ -4765,6 +4765,34 @@
         ],
         "type": "object"
       },
+      "PanelRestart": {
+        "description": "PanelRestart describes the listener that took the restart call and the one that follows.",
+        "properties": {
+          "nextPort": {
+            "example": 2053,
+            "type": "integer"
+          },
+          "nextTls": {
+            "example": false,
+            "type": "boolean"
+          },
+          "port": {
+            "example": 2053,
+            "type": "integer"
+          },
+          "tls": {
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nextPort",
+          "nextTls",
+          "port",
+          "tls"
+        ],
+        "type": "object"
+      },
       "PanelUpdateStatus": {
         "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
         "properties": {
@@ -15809,6 +15837,7 @@
         ],
         "summary": "Restart the entire 3x-ui process after a 3-second grace period. The connection drops immediately; the panel comes back online ~5-10 seconds later.",
         "operationId": "post_panel_api_setting_restartPanel",
+        "description": "The answer names the listener that took the call (port, tls) and the one the restarted panel opens (nextPort, nextTls), with XUI_PORT and an unloadable certificate pair already applied. A client reaching the panel through a proxy or a port mapping compares port and tls with the address it used, and follows a change only where they match.",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -15823,7 +15852,18 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/PanelRestart"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "nextPort": 2053,
+                    "nextTls": false,
+                    "port": 2053,
+                    "tls": false
                   }
                 }
               }
