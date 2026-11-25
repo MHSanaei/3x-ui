@@ -114,6 +114,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client usage history
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientUsageHistoryPostgres$' -count=1 -v | tee /tmp/postgres-usage-history.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-usage-history.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected 1 passing PostgreSQL client usage history test, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL depletion query regressions
         run: |
           set -o pipefail
