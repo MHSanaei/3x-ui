@@ -34,6 +34,7 @@ const updateHours = Number(subData.subUpdates || 0);
 const announce = subData.announce || '';
 const links: string[] = Array.isArray(subData.links) ? subData.links : [];
 const linkEmails: string[] = Array.isArray(subData.emails) ? subData.emails : [];
+const linkRemarks: string[] = Array.isArray(subData.linkRemarks) ? subData.linkRemarks : [];
 const totalByte = Number(subData.totalByte || 0);
 const usedByte =
   Number(subData.usedByte || 0) ||
@@ -124,7 +125,7 @@ export default function SubPage() {
             <span className="sub-tab-count">{links.length}</span>
           </>
         ),
-        children: <SubConfigsTab links={links} onCopy={copy} />,
+        children: <SubConfigsTab links={links} linkRemarks={linkRemarks} onCopy={copy} />,
       });
     }
     return items;

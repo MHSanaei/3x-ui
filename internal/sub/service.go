@@ -103,6 +103,9 @@ type SubService struct {
 	// settingsByInbound: one decode per request, not one per link of a subId.
 	tuicByInbound            map[int]*tuicLinkInstance
 	amneziaWGServerByInbound map[int]*amneziawg.ServerSettings
+	// linkRemarks maps a remark-less link (mtproto) to its remark; only the sub page
+	// sets it, so the Configs tab can name the row.
+	linkRemarks map[string]string
 }
 
 // tuicLinkInstance indexes a decoded TUIC inbound's clients by email
@@ -1319,11 +1322,15 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	endpoints := s.advertisedEndpoints(inbound)
 	links := make([]string, 0, len(endpoints))
 	for _, endpoint := range endpoints {
-		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
+		link := buildLinkWithParams("tg://proxy", map[string]string{
 			"server": endpoint.Address,
 			"port":   fmt.Sprintf("%d", endpoint.Port),
 			"secret": resolved.Secret,
-		}, ""))
+		}, "")
+		if s.linkRemarks != nil {
+			s.linkRemarks[link] = s.endpointRemark(inbound, email, endpoint.ep, "")
+		}
+		links = append(links, link)
 	}
 	return strings.Join(links, "\n")
 }
@@ -3406,6 +3413,7 @@ type PageData struct {
 	SubAnnounce   string
 	Result        []string
 	Emails        []string
+	LinkRemarks   []string
 }
 
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
@@ -3554,6 +3562,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 
 	pageLinks := make([]string, 0, len(subs))
 	pageEmails := make([]string, 0, len(subs))
+	pageRemarks := make([]string, 0, len(subs))
 	for i, sub := range subs {
 		email := ""
 		if i < len(emails) {
@@ -3562,6 +3571,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		for _, link := range splitLinkLines(sub) {
 			pageLinks = append(pageLinks, link)
 			pageEmails = append(pageEmails, email)
+			pageRemarks = append(pageRemarks, s.linkRemarks[link])
 		}
 	}
 
@@ -3589,6 +3599,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		SubSupportUrl: subSupportUrl,
 		Result:        pageLinks,
 		Emails:        pageEmails,
+		LinkRemarks:   pageRemarks,
 	}
 }
 
