@@ -365,9 +365,8 @@ func TestClientGroup_StaleBindingAfterInboundDelete(t *testing.T) {
 	}
 }
 
-// The clients table gets the canonical group spelling while inbound settings can
-// still hold a case variant. Rename and delete must follow the client, not the
-// spelling, or a later sync resurrects the old group.
+// Inbound settings can still hold a case variant of the canonical group name, so
+// rename and delete follow the client, or a later sync resurrects the old group.
 func TestClientGroup_RenameAndDeleteFollowCanonicalizedJSONCase(t *testing.T) {
 	setupBulkDB(t)
 	db := database.GetDB()
