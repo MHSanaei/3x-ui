@@ -111,32 +111,38 @@ func TestEveryResetPathArchivesTheWindowItCloses(t *testing.T) {
 }
 
 // Past the cap a client's oldest windows fold into one row: the table stops growing and
-// the lifetime total must not move.
+// the lifetime total must not move. At the cap itself nothing is folded yet.
 func TestWindowsPastTheCapFoldWithoutChangingLifetime(t *testing.T) {
 	const email = "capped@example.test"
 	inbounds, clients := &InboundService{}, &ClientService{}
 	ib := seedUsageHistoryClient(t, inbounds, email, "12121212-1111-4111-8111-111111111111", 100, 200)
 	db := database.GetDB()
-	seeded := make([]model.ClientTrafficWindow, 0, clientTrafficWindowKeep+1)
-	for i := range clientTrafficWindowKeep + 1 {
+	seeded := make([]model.ClientTrafficWindow, 0, clientTrafficWindowKeep)
+	for i := range clientTrafficWindowKeep {
 		seeded = append(seeded, model.ClientTrafficWindow{Email: email, At: int64(1000 + i), Up: 1, Down: 2, Reason: trafficWindowRenew})
 	}
 	if err := db.Create(&seeded).Error; err != nil {
 		t.Fatal(err)
 	}
 
-	for cycle, want := range []struct{ foldedUp, foldedDown, lifetimeUp int64 }{
-		{2, 4, int64(clientTrafficWindowKeep+1) + 100},
-		{3, 6, int64(clientTrafficWindowKeep+1) + 100 + 7},
+	lifetimeUp := int64(clientTrafficWindowKeep)
+	for cycle, tc := range []struct {
+		usedUp, usedDown     int64
+		folded               int
+		foldedUp, foldedDown int64
+	}{
+		{100, 200, 0, 0, 0},
+		{7, 9, 1, 2, 4},
+		{3, 1, 1, 3, 6},
 	} {
-		if cycle == 1 {
-			if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).Updates(map[string]any{"up": 7, "down": 9}).Error; err != nil {
-				t.Fatal(err)
-			}
+		if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).
+			Updates(map[string]any{"up": tc.usedUp, "down": tc.usedDown}).Error; err != nil {
+			t.Fatal(err)
 		}
 		if _, err := inbounds.ResetClientTraffic(ib.Id, email); err != nil {
 			t.Fatal(err)
 		}
+		lifetimeUp += tc.usedUp
 		windows := windowsOf(t, email)
 		var folded []model.ClientTrafficWindow
 		for _, window := range windows {
@@ -144,17 +150,40 @@ func TestWindowsPastTheCapFoldWithoutChangingLifetime(t *testing.T) {
 				folded = append(folded, window)
 			}
 		}
-		if len(windows) != clientTrafficWindowKeep+1 || len(folded) != 1 || folded[0].Up != want.foldedUp || folded[0].Down != want.foldedDown {
-			t.Fatalf("cycle %d: %d windows, folded %+v; want %d windows with one earlier row of %d/%d",
-				cycle, len(windows), folded, clientTrafficWindowKeep+1, want.foldedUp, want.foldedDown)
+		if len(windows) != clientTrafficWindowKeep+1 || len(folded) != tc.folded ||
+			(tc.folded == 1 && (folded[0].Up != tc.foldedUp || folded[0].Down != tc.foldedDown)) {
+			t.Fatalf("cycle %d: %d windows, folded %+v; want %d windows with %d earlier row(s) of %d/%d",
+				cycle, len(windows), folded, clientTrafficWindowKeep+1, tc.folded, tc.foldedUp, tc.foldedDown)
 		}
 		history, err := clients.GetUsageHistory(email)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if history.LifetimeUp != want.lifetimeUp {
-			t.Fatalf("cycle %d: lifetime up = %d, want %d: folding changed the total", cycle, history.LifetimeUp, want.lifetimeUp)
+		if history.LifetimeUp != lifetimeUp {
+			t.Fatalf("cycle %d: lifetime up = %d, want %d: folding changed the total", cycle, history.LifetimeUp, lifetimeUp)
 		}
+	}
+}
+
+// Lifetime is what the client used in total, so the cycle still open counts too.
+func TestLifetimeCountsTheOpenWindow(t *testing.T) {
+	const email = "open-win@example.test"
+	inbounds, clients := &InboundService{}, &ClientService{}
+	ib := seedUsageHistoryClient(t, inbounds, email, "17171717-1111-4111-8111-111111111111", 100, 200)
+	if _, err := inbounds.ResetClientTraffic(ib.Id, email); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"up": 7, "down": 9}).Error; err != nil {
+		t.Fatal(err)
+	}
+	history, err := clients.GetUsageHistory(email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.CurrentUp != 7 || history.CurrentDown != 9 || history.LifetimeUp != 107 || history.LifetimeDown != 209 {
+		t.Fatalf("current %d/%d lifetime %d/%d, want 7/9 and 107/209",
+			history.CurrentUp, history.CurrentDown, history.LifetimeUp, history.LifetimeDown)
 	}
 }
 
@@ -260,6 +289,37 @@ func TestHistoryOfADeletedClientIsReaped(t *testing.T) {
 	}
 }
 
+// The orphan list is read off the writer. A client that takes one of the listed emails
+// before the delete runs owns that history, renamed-in rows included.
+func TestReapSparesAnEmailClaimedAfterItWasListed(t *testing.T) {
+	const claimed, held, orphan = "claimed@example.test", "held@example.test", "orphan@example.test"
+	setupBulkDB(t)
+	db := database.GetDB()
+	if err := db.Create(&model.ClientRecord{Email: held, SubID: held, Enable: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, email := range []string{claimed, held, orphan} {
+		if err := db.Create(&model.ClientTrafficWindow{Email: email, At: 1, Up: 5, Reason: trafficWindowReset}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	listed, err := orphanHistoryEmails(db, "client_traffic_windows")
+	if err != nil || len(listed) != 2 || listed[0] != claimed || listed[1] != orphan {
+		t.Fatalf("listed %v (err %v), want the two client-less emails and not the held one", listed, err)
+	}
+	if err := db.Create(&model.ClientRecord{Email: claimed, SubID: claimed, Enable: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	dropped, err := deleteOrphanHistory(&model.ClientTrafficWindow{}, listed)
+	if err != nil || dropped != 1 {
+		t.Fatalf("dropped %d rows (err %v), want only the orphan's window", dropped, err)
+	}
+	if kept, gone := len(windowsOf(t, claimed)), len(windowsOf(t, orphan)); kept != 1 || gone != 0 {
+		t.Fatalf("claimed email has %d windows and the orphan %d, want 1 and 0", kept, gone)
+	}
+}
+
 // Bulk reset archives only the rows that actually carried usage.
 func TestBulkResetArchivesUsedWindowsOnly(t *testing.T) {
 	inboundSvc := &InboundService{}
@@ -271,6 +331,11 @@ func TestBulkResetArchivesUsedWindowsOnly(t *testing.T) {
 	ib2 := mkInbound(t, 54502, model.VLESS, clientsSettings(t, []model.Client{client2}))
 	if err := svc.SyncInbound(nil, ib2.Id, []model.Client{client2}); err != nil {
 		t.Fatalf("SyncInbound: %v", err)
+	}
+
+	idle := xray.ClientTraffic{InboundId: ib2.Id, Email: "bulk-idle@example.test", Enable: true}
+	if err := database.GetDB().Create(&idle).Error; err != nil {
+		t.Fatalf("seed idle client_traffics: %v", err)
 	}
 
 	if _, err := svc.BulkResetTraffic(inboundSvc, []string{"bulk-used@example.test", "bulk-idle@example.test"}); err != nil {
@@ -409,45 +474,82 @@ func TestBulkSetEnableLogsOnlyFlippedClients(t *testing.T) {
 	}
 }
 
-// Renaming a client carries its windows and change log onto the new email,
-// and records the rename itself once.
+// Renaming a client carries its windows and change log onto the new email and records
+// the rename once, however many inbounds the client is on.
 func TestRenameMigratesClientHistory(t *testing.T) {
+	const oldEmail, newEmail = "old-name@example.test", "new-name@example.test"
 	inboundSvc := &InboundService{}
-	ib := seedUsageHistoryClient(t, inboundSvc, "old-name@example.test", "cccccccc-9999-4999-8999-999999999999", 7, 9)
+	ib := seedUsageHistoryClient(t, inboundSvc, oldEmail, "cccccccc-9999-4999-8999-999999999999", 7, 9)
 	svc := &ClientService{}
+	same := model.Client{Email: oldEmail, ID: "cccccccc-9999-4999-8999-999999999999", SubID: oldEmail, Enable: true}
+	second := mkInbound(t, 54507, model.VLESS, clientsSettings(t, []model.Client{same}))
+	if err := svc.SyncInbound(nil, second.Id, []model.Client{same}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
 
 	// Close one window so there is history to migrate.
-	if _, err := inboundSvc.ResetClientTraffic(ib.Id, "old-name@example.test"); err != nil {
+	if _, err := inboundSvc.ResetClientTraffic(ib.Id, oldEmail); err != nil {
 		t.Fatalf("ResetClientTraffic: %v", err)
 	}
 
-	// Rename through the inbound apply path: the settings now carry the new
-	// email, the old one is gone.
-	rec, err := svc.GetRecordByEmail(nil, "old-name@example.test")
+	rec, err := svc.GetRecordByEmail(nil, oldEmail)
 	if err != nil {
 		t.Fatalf("GetRecordByEmail: %v", err)
 	}
 	renamed := rec.ToClient()
-	renamed.Email = "new-name@example.test"
+	renamed.Email = newEmail
+	renamed.TotalGB = 5 << 30
 	if _, err := svc.Update(inboundSvc, rec.Id, *renamed, rec.LimitHwid); err != nil {
 		t.Fatalf("rename Update: %v", err)
 	}
 
-	if got := len(windowsOf(t, "old-name@example.test")); got != 0 {
-		t.Fatalf("old email still has %d windows, want migrated", got)
+	if w, c := len(windowsOf(t, oldEmail)), len(changesOf(t, oldEmail)); w != 0 || c != 0 {
+		t.Fatalf("old email still has %d windows and %d changes, want all of it under the new one", w, c)
 	}
-	windows := windowsOf(t, "new-name@example.test")
+	windows := windowsOf(t, newEmail)
 	if len(windows) != 1 || windows[0].Reason != trafficWindowReset || windows[0].Up != 7 {
 		t.Fatalf("new email windows = %+v, want the migrated reset window", windows)
 	}
-	names := 0
-	for _, c := range changesOf(t, "new-name@example.test") {
-		if c.Field == "name" && c.OldValue == "old-name@example.test" && c.NewValue == "new-name@example.test" {
+	names, limits := 0, 0
+	for _, c := range changesOf(t, newEmail) {
+		switch {
+		case c.Field == "name" && c.OldValue == oldEmail && c.NewValue == newEmail:
 			names++
+		case c.Field == "dataLimit" && c.NewValue == itoa(5<<30):
+			limits++
 		}
 	}
-	if names != 1 {
-		t.Fatalf("name change rows = %d, want exactly 1", names)
+	if names != 1 || limits != 1 {
+		t.Fatalf("new email has %d name and %d dataLimit rows, want 1 and 1", names, limits)
+	}
+}
+
+// A client attached to no inbound is renamed by the record write alone; its history
+// has to follow there too, or the reaper drops it with the old email.
+func TestRenameOfAnUnattachedClientMigratesItsHistory(t *testing.T) {
+	const oldEmail, newEmail = "loose-old@example.test", "loose-new@example.test"
+	setupBulkDB(t)
+	db := database.GetDB()
+	rec := model.ClientRecord{Email: oldEmail, SubID: oldEmail, Enable: true}
+	if err := db.Create(&rec).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientTrafficWindow{Email: oldEmail, At: 1, Up: 5, Reason: trafficWindowReset}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	renamed := rec.ToClient()
+	renamed.Email = newEmail
+	if _, err := (&ClientService{}).Update(&InboundService{}, rec.Id, *renamed, rec.LimitHwid); err != nil {
+		t.Fatalf("rename Update: %v", err)
+	}
+
+	if old, moved := len(windowsOf(t, oldEmail)), len(windowsOf(t, newEmail)); old != 0 || moved != 1 {
+		t.Fatalf("windows: %d under the old email and %d under the new, want 0 and 1", old, moved)
+	}
+	changes := changesOf(t, newEmail)
+	if len(changes) != 1 || changes[0].Field != "name" || changes[0].OldValue != oldEmail || changes[0].NewValue != newEmail {
+		t.Fatalf("change log = %+v, want the one rename row", changes)
 	}
 }
 

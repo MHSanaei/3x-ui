@@ -319,19 +319,57 @@ func renameClientHistoryTx(tx *gorm.DB, oldEmail, newEmail, source string) error
 	}})
 }
 
+var clientHistoryTables = []struct {
+	model any
+	name  string
+}{
+	{&model.ClientTrafficWindow{}, "client_traffic_windows"},
+	{&model.ClientChangeLog{}, "client_change_logs"},
+}
+
 // ReapOrphanClientHistory drops the history of emails no client holds any more: every
 // path that deletes a client is covered here instead of in each of them.
 func (s *ClientService) ReapOrphanClientHistory() (int64, error) {
 	var reaped int64
-	err := runSerializedTx(func(tx *gorm.DB) error {
-		for _, table := range []any{&model.ClientTrafficWindow{}, &model.ClientChangeLog{}} {
-			res := tx.Where("email NOT IN (?)", tx.Model(&model.ClientRecord{}).Select("email")).Delete(table)
-			if res.Error != nil {
-				return res.Error
-			}
-			reaped += res.RowsAffected
+	for _, history := range clientHistoryTables {
+		emails, err := orphanHistoryEmails(database.GetDB(), history.name)
+		if err != nil {
+			return reaped, err
 		}
-		return nil
-	})
-	return reaped, err
+		dropped, err := deleteOrphanHistory(history.model, emails)
+		reaped += dropped
+		if err != nil {
+			return reaped, err
+		}
+	}
+	return reaped, nil
+}
+
+// orphanHistoryEmails walks the email index one distinct value at a time, so a run that
+// finds nothing costs one seek per client instead of a scan of every history row.
+func orphanHistoryEmails(db *gorm.DB, table string) ([]string, error) {
+	var emails []string
+	err := db.Raw(`WITH RECURSIVE held(email) AS (
+	SELECT MIN(email) FROM ` + table + `
+	UNION ALL
+	SELECT (SELECT MIN(email) FROM ` + table + ` WHERE email > held.email) FROM held WHERE held.email IS NOT NULL
+) SELECT email FROM held WHERE email IS NOT NULL AND email NOT IN (SELECT email FROM clients)`).Scan(&emails).Error
+	return emails, err
+}
+
+func deleteOrphanHistory(table any, emails []string) (int64, error) {
+	var dropped int64
+	for _, listed := range chunkStrings(emails, sqlInChunk) {
+		var res *gorm.DB
+		if err := runSerializedTx(func(tx *gorm.DB) error {
+			// The list was read outside the writer; a client may hold one of the emails by now.
+			res = tx.Where("email IN ?", listed).
+				Where("email NOT IN (?)", tx.Model(&model.ClientRecord{}).Select("email")).Delete(table)
+			return res.Error
+		}); err != nil {
+			return dropped, err
+		}
+		dropped += res.RowsAffected
+	}
+	return dropped, nil
 }

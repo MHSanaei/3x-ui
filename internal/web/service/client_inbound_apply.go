@@ -1129,15 +1129,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				return e
 			}
 			if renameTaken == 0 {
-				renamed := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email)
-				if renamed.Error != nil {
-					return renamed.Error
+				if e := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email).Error; e != nil {
+					return e
 				}
-				// A client on several inbounds is renamed by the first apply only.
-				if renamed.RowsAffected > 0 {
-					if e := renameClientHistoryTx(tx, oldEmail, clients[0].Email, clientChangeSourcePanel); e != nil {
-						return e
-					}
+				if e := renameClientHistoryTx(tx, oldEmail, clients[0].Email, clientChangeSourcePanel); e != nil {
+					return e
 				}
 			}
 		}
