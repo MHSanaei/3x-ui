@@ -500,6 +500,10 @@ func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry,
 	for i := range balancers {
 		config := s.buildBalancerConfig(&balancers[i], sources, entryProxies)
 		if config == nil {
+			// No member survived this subscriber's inbound set: omitting is the
+			// contract, but a silent drop leaves misconfiguration undiagnosable.
+			logger.Warningf("SubJsonService: balancer %q (#%d) omitted, no member among this subscription's inbounds",
+				balancers[i].Remark, balancers[i].Id)
 			continue
 		}
 		entries = append(entries, subConfigEntry{
