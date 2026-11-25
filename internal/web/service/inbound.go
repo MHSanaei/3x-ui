@@ -630,7 +630,7 @@ func (s *InboundService) emailSubIDsForClients(clients []model.Client) (map[stri
 	}
 	result := make(map[string]string, len(emails))
 	db := database.GetDB()
-	for _, batch := range chunkStrings(emailSpellings(emails), sqlInChunk) {
+	for _, batch := range chunkStrings(EmailSpellings(emails), sqlInChunk) {
 		var rows []struct {
 			Email string
 			SubID string `gorm:"column:sub_id"`
@@ -675,6 +675,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 	inbound.StreamSettings = canonicalizeXDriveService(inbound.StreamSettings)
+	inbound.StreamSettings = syncXhttpDownloadRequestShape(inbound.StreamSettings)
 }
 
 // canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
@@ -724,6 +725,9 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 // validateInboundBuildInput refuses what xray-core's in-process build would expand without
 // bound; certificate paths are checked only where this host is the one opening them.
 func validateInboundBuildInput(inbound *model.Inbound) error {
+	if err := validateXhttpDownload(inbound.StreamSettings); err != nil {
+		return err
+	}
 	if err := xray.CheckStreamBuildCost([]byte(inbound.StreamSettings)); err != nil {
 		return err
 	}
@@ -1305,6 +1309,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	defer InvalidateSubData()
 	inbound.Id = 0
+	if err := normalizeVlessFallbacks(inbound); err != nil {
+		return nil, false, err
+	}
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -1358,6 +1365,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return inbound, false, err
 		}
 	}
+	if err := s.validateNodeTrafficReset(inbound, nil); err != nil {
+		return inbound, false, err
+	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
 		return inbound, false, err
@@ -1379,6 +1389,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
 		return inbound, false, err
+	}
+	// The names the client API refuses; a master's push may carry a legacy one.
+	if !s.FromNodeSync {
+		if err := validateClientsNames(clients); err != nil {
+			return inbound, false, err
+		}
 	}
 	for _, traffic := range inbound.ClientStats {
 		if err := validateClientRenewal(model.Client{Reset: traffic.Reset, ResetDay: traffic.ResetDay, ResetWeekday: traffic.ResetWeekday}); err != nil {
@@ -2063,6 +2079,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	// Restore the stored NodeID before any host-scoped check so a node inbound
 	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
 	inbound.NodeID = oldInbound.NodeID
+	if err := s.validateNodeTrafficReset(inbound, oldInbound); err != nil {
+		return inbound, false, err
+	}
+	if err := normalizeVlessFallbacks(inbound); err != nil {
+		return nil, false, err
+	}
 	if err := normalizeTuicSettings(inbound); err != nil {
 		return inbound, false, err
 	}
@@ -2132,6 +2154,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 		// On the clients actually saved: a protocol switch keeps the stored ones.
 		if err := s.validateUpdatedInboundClients(inbound, stored); err != nil {
+			return err
+		}
+		if err := validateVlessManagedFallbacks(tx, inbound); err != nil {
 			return err
 		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)
@@ -2237,6 +2262,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.ExpiryTime = inbound.ExpiryTime
 		oldInbound.TrafficReset = inbound.TrafficReset
 		oldInbound.TrafficResetDay = inbound.TrafficResetDay
+		if inbound.PreserveClientTraffic != nil {
+			oldInbound.PreserveClientTraffic = inbound.PreserveClientTraffic
+		}
+		inbound.PreserveClientTraffic = oldInbound.PreserveClientTraffic
 		oldInbound.Listen = inbound.Listen
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
@@ -2320,7 +2349,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 				}
 				postCommitApply = func() {
 					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
-						logger.Debug("Inbound clients updated in place on", rt.Name(), ":", oldInbound.Tag)
 						return
 					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
@@ -2404,12 +2432,20 @@ func servedOutsideXray(protocol model.Protocol) bool {
 	return protocol == model.MTProto || protocol == model.TUIC || protocol == model.AmneziaWG
 }
 
-// applyInboundUserOps reports whether per-user core ops moved running to next, so
-// its listener and live connections survive; false means rebuild the handler.
+// applyInboundUserOps handles client-only changes in place, or returns false
+// when the handler must be rebuilt.
 func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool {
 	diff, ok := xray.InboundUserOps(running.GenXrayInboundConfig(), next.GenXrayInboundConfig())
 	if !ok {
 		return false
+	}
+	if next.Protocol == model.WireGuard {
+		if !diff.Empty() {
+			// Peers and the config snapshot move together, and now: a peer removed on a
+			// node kept its tunnel until the node's next reconcile tick.
+			(&XrayService{}).ReconcileNow()
+		}
+		return true
 	}
 	ctx := context.Background()
 	for _, u := range diff.RemovedUsers {
@@ -2430,6 +2466,7 @@ func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool 
 			return false
 		}
 	}
+	logger.Debug("Inbound clients updated in place on", rt.Name(), ":", next.Tag)
 	return true
 }
 
@@ -2441,12 +2478,18 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 	}
 
 	built := *inbound
+	if err := normalizeVlessFallbacks(&built); err != nil {
+		return nil, err
+	}
+	if err := validateVlessManagedFallbacks(tx, &built); err != nil {
+		return nil, err
+	}
 	settings := map[string]any{}
-	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
 		return nil, err
 	}
 
-	if !inboundCanHostFallbacks(inbound) {
+	if !inboundCanHostFallbacks(&built) {
 		return &built, nil
 	}
 	fallbacks, err := s.fallbackService.BuildFallbacksJSON(tx, inbound.Id)

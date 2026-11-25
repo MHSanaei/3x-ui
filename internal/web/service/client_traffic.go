@@ -50,17 +50,22 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		needRestart = nr
 	}
 
-	// Enable only a client the quota switched off, once the counters are zero: a
-	// hand-disabled one stays off, and a still-depleted one would be switched off again.
+	// Restore quota-disabled clients after zeroing; preserve an operator
+	// disable, including when no inbound remains.
 	if !rec.Enable && len(quotaDisabled) > 0 {
-		updated := rec.ToClient()
-		updated.Enable = true
-		nr, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid)
-		if uErr != nil {
-			logger.Warning("Failed to auto-enable client during traffic reset:", uErr)
-		}
-		if nr {
-			needRestart = true
+		// Inbound resets already restored hosted clients. Only an unhosted
+		// record still needs the full update.
+		fresh, fErr := s.GetRecordByEmail(nil, email)
+		if fErr == nil && !fresh.Enable {
+			updated := fresh.ToClient()
+			updated.Enable = true
+			nr, uErr := s.Update(inboundSvc, fresh.Id, *updated, fresh.LimitHwid)
+			if uErr != nil {
+				logger.Warning("Failed to auto-enable client during traffic reset:", uErr)
+			}
+			if nr {
+				needRestart = true
+			}
 		}
 	}
 	return needRestart, nil
@@ -247,6 +252,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			if qErr != nil {
 				return qErr
 			}
+			if err := adjustAllGroupBaselinesForRemovedTraffic(tx); err != nil {
+				return err
+			}
 			if affected, qErr = zeroClientTraffics(tx, nil, keepOff); qErr != nil {
 				return qErr
 			}
@@ -307,6 +315,9 @@ func handDisabledEmails(tx *gorm.DB, emails []string) ([]string, error) {
 // zeroClientTraffics zeroes the counters of emails (every row when nil) and lifts their traffic
 // gate, except for keepOff: a master pushes that flag to its nodes as the client's state.
 func zeroClientTraffics(tx *gorm.DB, emails, keepOff []string) (int64, error) {
+	if err := archiveClosedWindowsTx(tx, emails, trafficWindowReset); err != nil {
+		return 0, err
+	}
 	var affected int64
 	reset := map[string]any{"enable": true, "up": 0, "down": 0}
 	if emails == nil {

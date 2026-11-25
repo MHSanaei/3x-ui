@@ -53,21 +53,30 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/list/paged", a.listPaged)
+	g.GET("/get", a.get)
 	g.GET("/get/:email", a.get)
 	g.GET("/get/subId/:subId", a.getBySubId)
 	g.GET("/get/tgId/:tgId", a.getByTgId)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
+	g.GET("/usageHistory/:email", a.getUsageHistory)
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
 	g.POST("/happLink/:id", a.generateHappLink)
 
 	g.POST("/add", a.create)
 	g.POST("/renewalPreview", a.renewalPreview)
+	g.POST("/update", a.update)
 	g.POST("/update/:email", a.update)
+	g.POST("/del", a.delete)
 	g.POST("/del/:email", a.delete)
 	g.POST("/:email/attach", a.attach)
 	g.POST("/:email/detach", a.detach)
 	g.POST("/:email/externalLinks", a.setExternalLinks)
+	g.GET("/wireguardDevices", a.wireguardDevices)
+	g.POST("/wireguardDevices", a.addWireguardDevice)
+	g.PUT("/wireguardDevices/limit", a.setWireguardDeviceLimit)
+	g.PATCH("/wireguardDevices/:deviceId", a.updateWireguardDevice)
+	g.DELETE("/wireguardDevices/:deviceId", a.deleteWireguardDevice)
 	g.GET("/export", a.export)
 	g.POST("/import", a.importClients)
 	g.POST("/delOrphans", a.delOrphans)
@@ -88,6 +97,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/hwids/:email", a.getHwids)
 	g.DELETE("/hwids/:email", a.clearHwids)
 	g.DELETE("/hwids/:email/:id", a.deleteHwid)
+	g.POST("/hwids/:email/:id/block", a.setHwidBlocked)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/clientIpsByGuid", a.clientIpsByGuid)
@@ -159,8 +169,24 @@ func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, e
 	}, nil
 }
 
-func (a *ClientController) get(c *gin.Context) {
+// Query aliases keep legacy dot-segment names addressable without changing path clients.
+func clientEmailParam(c *gin.Context) (string, bool) {
 	email := c.Param("email")
+	if email == "" {
+		email = c.Query("email")
+	}
+	if email == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("client email is required"))
+		return "", false
+	}
+	return email, true
+}
+
+func (a *ClientController) get(c *gin.Context) {
+	email, ok := clientEmailParam(c)
+	if !ok {
+		return
+	}
 	rec, err := a.clientService.GetRecordByEmail(nil, email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -244,17 +270,17 @@ func (a *ClientController) create(c *gin.Context) {
 }
 
 func (a *ClientController) update(c *gin.Context) {
-	email := c.Param("email")
-	var req struct {
-		model.Client
-		LimitHwid int `json:"limitHwid"`
+	email, ok := clientEmailParam(c)
+	if !ok {
+		return
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	body, err := c.GetRawData()
+	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	inboundFilter := parseInboundIdsQuery(c.Query("inboundIds"))
-	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, req.Client, req.LimitHwid, inboundFilter...)
+	needRestart, err := a.clientService.UpdateByEmailJSON(&a.inboundService, email, body, inboundFilter...)
 	// Flagged before the error check: a partly-applied edit leaves the change
 	// committed on the inbounds that succeeded, and those still need the restart.
 	if needRestart {
@@ -273,7 +299,10 @@ func (a *ClientController) update(c *gin.Context) {
 }
 
 func (a *ClientController) delete(c *gin.Context) {
-	email := c.Param("email")
+	email, ok := clientEmailParam(c)
+	if !ok {
+		return
+	}
 	keepTraffic := c.Query("keepTraffic") == "1"
 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
 	// Flagged before the error check: a partly-applied delete already removed
@@ -353,12 +382,13 @@ func (a *ClientController) resetAllTraffics(c *gin.Context) {
 }
 
 type bulkAdjustRequest struct {
-	Emails    []string `json:"emails"`
-	AddDays   int      `json:"addDays"`
-	AddBytes  int64    `json:"addBytes"`
-	Flow      string   `json:"flow"`
-	LimitHwid *int     `json:"limitHwid"`
-	AdTag     string   `json:"adTag"`
+	Emails        []string                    `json:"emails"`
+	AddDays       int                         `json:"addDays"`
+	AddBytes      int64                       `json:"addBytes"`
+	Flow          string                      `json:"flow"`
+	LimitHwid     *int                        `json:"limitHwid"`
+	AdTag         string                      `json:"adTag"`
+	ExternalLinks []service.ExternalLinkInput `json:"externalLinks"`
 }
 
 func (a *ClientController) bulkAdjust(c *gin.Context) {
@@ -367,7 +397,18 @@ func (a *ClientController) bulkAdjust(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	result, needRestart, err := a.clientService.BulkAdjust(&a.inboundService, req.Emails, req.AddDays, req.AddBytes, req.Flow, req.LimitHwid, req.AdTag)
+	var result service.BulkAdjustResult
+	var needRestart bool
+	var err error
+	if req.ExternalLinks != nil {
+		if req.AddDays != 0 || req.AddBytes != 0 || req.Flow != "" || req.LimitHwid != nil || req.AdTag != "" {
+			jsonMsg(c, "append external links separately from other adjustments", errors.New("externalLinks cannot be combined with other adjustments"))
+			return
+		}
+		result, err = a.clientService.BulkAppendExternalLinks(req.Emails, req.ExternalLinks)
+	} else {
+		result, needRestart, err = a.clientService.BulkAdjust(&a.inboundService, req.Emails, req.AddDays, req.AddBytes, req.Flow, req.LimitHwid, req.AdTag)
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -645,6 +686,23 @@ func (a *ClientController) deleteHwid(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.clients.hwidDeleted"), nil)
 }
 
+func (a *ClientController) setHwidBlocked(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("invalid device id"))
+		return
+	}
+	var body struct {
+		Blocked *bool `json:"blocked" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	err = a.clientService.SetClientHwidBlocked(c.Param("email"), id, *body.Blocked)
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+}
+
 func (a *ClientController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
@@ -670,6 +728,16 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 		return
 	}
 	jsonObj(c, traffic, nil)
+}
+
+func (a *ClientController) getUsageHistory(c *gin.Context) {
+	email := c.Param("email")
+	history, err := a.clientService.GetUsageHistory(email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
+		return
+	}
+	jsonObj(c, history, nil)
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {

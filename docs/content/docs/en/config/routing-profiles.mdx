@@ -1,0 +1,408 @@
+---
+title: Routing for Happ, Clash/Mihomo and Incy
+description: How to write the JSON and YAML routing profiles served in subscriptions — the Happ format, Clash/Mihomo rules and the Incy profile — and how the panel accepts and validates them.
+icon: GitBranch
+---
+
+The panel can hand clients a ready routing profile: which sites and IPs go
+direct, which go through the proxy and which are blocked. The profile format
+depends on the app:
+
+| App                | Profile format                      | Where to set it in the panel                |
+| ------------------ | ----------------------------------- | ------------------------------------------- |
+| **Happ**           | JSON (as a `happ://` link)          | Subscription settings → **Happ** tab        |
+| **Clash / Mihomo** | YAML (rules, groups, providers)     | **Clash / Mihomo** tab                      |
+| **Incy**           | JSON (as an `incy://` link)         | **Incy** tab → **Routing**                  |
+
+Each of the three fields accepts **either the profile itself** (inline) **or
+one permanent HTTPS URL** to a file, for example a raw gist. A URL lets you
+change the rules without opening the panel.
+
+## How the panel handles a remote URL
+
+In the Happ and Clash / Mihomo fields, a value that is a single `https://...`
+line is treated as a remote source that the panel fetches itself:
+
+- the panel downloads it **in the background** and caches it for 10 minutes; a
+  subscription request never waits for the source;
+- the file is validated; if it is invalid the panel **keeps serving the last
+  working value** and logs a warning;
+- only `https://` is allowed, with no credentials in the URL, and the host must
+  be public (local and internal addresses are blocked);
+- redirects are followed (up to 5) but must stay on `https://`;
+- limits: Clash 2 MiB; Happ 16 KiB for the download and 8 KiB for the value
+  after Base64 encoding, which is about 6 KiB of JSON; 6 second request timeout.
+
+The Incy field is different: the panel never downloads an Incy URL. It only
+checks that the URL is `https://` without credentials and hands it to the app,
+which fetches and refreshes the profile itself (see the Incy section below).
+
+Use the **raw** link (`gist.githubusercontent.com/.../raw/...`), not the gist
+page.
+
+---
+
+## Happ
+
+### Where to enter it
+
+**Settings → Subscription → Happ → Routing & rules**:
+
+1. turn on **Enable routing** (sends `Routing-Enable: true`);
+2. put one of these in **Routing rules**:
+   - a ready `happ://routing/onadd/<base64>` link;
+   - a permanent HTTPS URL to **JSON** or to a file containing a `happ://` link;
+   - `happ://routing/off` to turn routing off on the client.
+
+The panel sends the value to the client in the `Routing` header. If the HTTPS
+file contains plain JSON, the panel converts it to
+`happ://routing/onadd/<base64>` itself. The source may also answer with a
+redirect to `happ://...`, which is accepted too (this is how services such as
+routing.help publish a profile).
+
+If the field is empty but the **JSON subscription routing profile**
+(`subJsonRoutingRules`) is set, that profile is sent as the `Routing` header
+automatically.
+
+The fastest start is the **routing presets** (Iran Bypass, China Direct,
+Global, LAN bypass, optionally with ad blocking) or the **visual rule
+builder**, which loads the current profile and lets you edit the lists or the
+full JSON.
+
+### JSON format
+
+A profile is one JSON object. Happ writes flag values as strings (`"true"`,
+`"false"`) and lists as arrays of strings.
+
+```json
+{
+  "Name": "My Routing",
+  "GlobalProxy": "true",
+  "RouteOrder": "block-proxy-direct",
+
+  "RemoteDNSType": "DoH",
+  "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
+  "RemoteDNSIP": "1.1.1.1",
+  "DomesticDNSType": "DoH",
+  "DomesticDNSDomain": "https://dns.alidns.com/dns-query",
+  "DomesticDNSIP": "223.5.5.5",
+  "DnsHosts": {
+    "cloudflare-dns.com": "1.1.1.1",
+    "dns.alidns.com": "223.5.5.5"
+  },
+
+  "DirectSites": ["geosite:private", "geosite:cn", "domain:example.cn"],
+  "DirectIp": ["geoip:cn", "geoip:private", "192.168.0.0/16"],
+  "ProxySites": [],
+  "ProxyIp": [],
+  "BlockSites": ["geosite:category-ads-all"],
+  "BlockIp": [],
+
+  "DomainStrategy": "IPIfNonMatch",
+  "FakeDNS": "false",
+  "UseChunkFiles": "true"
+}
+```
+
+| Field | Type | Meaning |
+| ----- | ---- | ------- |
+| `Name` | string | Profile name shown in the app. |
+| `GlobalProxy` | `"true"`/`"false"` | Global mode: anything not matched by a rule goes through the proxy. |
+| `RouteOrder` | string | Group check order joined by dashes: `block-proxy-direct`, `block-direct-proxy`, … The **first** matching group wins. Allowed words: `block`, `proxy`, `direct`; repeats are ignored. |
+| `DirectSites` / `ProxySites` / `BlockSites` | array of strings | Domains: direct / via proxy / blocked. |
+| `DirectIp` / `ProxyIp` / `BlockIp` | array of strings | IPs and subnets, same three groups. |
+| `RemoteDNSDomain`, `RemoteDNSIP`, `RemoteDNSType` | string | DNS for proxied traffic (`DoH` and an `https://.../dns-query` address). |
+| `DomesticDNSDomain`, `DomesticDNSIP`, `DomesticDNSType` | string | DNS for the "direct" domains. |
+| `DnsHosts` | object name → IP | Static records, so DoH hosts do not need DNS to resolve themselves. |
+| `DomainStrategy` | string | Xray strategy: `AsIs`, `IPIfNonMatch`, `IPOnDemand`. |
+| `FakeDNS`, `UseChunkFiles` | `"true"`/`"false"` | Happ extensions; the panel passes them to the client unchanged. |
+
+Unknown fields are **not lost**: the panel and the editor keep them and pass
+them to Happ.
+
+### List entry syntax
+
+Entries use Xray routing syntax:
+
+| Entry | Matches |
+| ----- | ------- |
+| `geosite:category-ads-all` | A category from `geosite.dat`. |
+| `geosite:private`, `geoip:private` | Local/private addresses. |
+| `geoip:ir`, `geoip:cn` | A country from `geoip.dat`. |
+| `domain:example.com` | The domain and all its subdomains. |
+| `full:www.example.com` | Exactly this domain. |
+| `keyword:ads` | Any domain containing the substring. |
+| `regexp:\\.ru$` | A regular expression. |
+| `10.0.0.0/8`, `1.2.3.4` | A CIDR subnet or a single IP. |
+
+An entry without a prefix is a domain substring; write `domain:` for precision.
+`geosite:`/`geoip:` categories must exist in the client's `.dat` files; the
+panel sends them in the `Routing` header so Happ fetches the right geo files.
+
+### Building a `happ://` link by hand
+
+A link is the prefix plus the JSON in Base64 (UTF-8):
+
+```text
+happ://routing/onadd/<base64 of the JSON>
+```
+
+`onadd` adds the profile and activates it; `add` only adds it. The panel
+accepts standard and URL-safe Base64, with or without `=`. From PowerShell:
+
+```powershell
+$json = Get-Content .\routing.json -Raw -Encoding UTF8
+$b64  = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+"happ://routing/onadd/$b64"
+```
+
+The final value must stay under 8 KiB and be a single line.
+
+### What the panel does with this JSON in JSON subscriptions
+
+For clients that read the config from the body of a JSON subscription, the
+profile is **baked into** the `dns` and `routing` sections:
+
+- group order comes from `RouteOrder`, default `block`, `direct`, `proxy`;
+- empty lists are skipped and a final "everything else → `proxy`" rule is
+  always appended;
+- `DomainStrategy` defaults to `IPIfNonMatch`;
+- DNS: a domestic server (`DomesticDNS*`, default `https://77.88.8.8/dns-query`)
+  is added for `DirectSites`, everything else uses `RemoteDNS*` (default
+  `https://8.8.8.8/dns-query`); `DnsHosts` is copied to `dns.hosts`.
+
+Types must be exact: string is a string, a list is an array of strings,
+`DnsHosts` is a string → string object. Otherwise the profile is dropped, the
+subscription is served with default routing and a warning is logged.
+
+---
+
+## Clash / Mihomo
+
+### Where to enter it
+
+**Settings → Subscription → Clash / Mihomo**:
+
+1. turn on **Enable routing**;
+2. fill in **Global routing rules**, either inline or with one HTTPS URL to YAML.
+
+The rules apply to profiles at `subClashPath` and `/mihomo/<sub-id>`. The
+`/clash-legacy/` endpoint (Clash for Windows) always serves a minimal profile
+and **ignores** these settings.
+
+### What the profile already contains
+
+The panel builds the base itself:
+
+```yaml
+proxies:            # all your nodes, named by their remarks
+  - { name: "node-1", type: vless, ... }
+proxy-groups:
+  - name: PROXY     # select: all nodes + DIRECT
+    type: select
+    proxies: [node-1, DIRECT]
+rules:
+  - MATCH,PROXY
+```
+
+Point your rules at the **`PROXY`** group, at `DIRECT`, at `REJECT`, or at any
+group you declare yourself.
+
+### Option 1: inline value
+
+Three accepted forms.
+
+**A) Plain rule lines** (`#` comments allowed):
+
+```text
+# block ads
+GEOSITE,category-ads-all,REJECT
+DOMAIN-SUFFIX,example.com,DIRECT
+GEOIP,RU,DIRECT,no-resolve
+```
+
+**B) A YAML list:**
+
+```yaml
+- GEOSITE,category-ads-all,REJECT
+- DOMAIN-SUFFIX,example.com,DIRECT
+- GEOIP,RU,DIRECT,no-resolve
+```
+
+**C) A YAML map.** The `rules` key is merged with the base rules; any other key
+(`proxy-groups`, `rule-providers`, `dns`, `sniffer`, …) **replaces** the
+profile's key of the same name entirely:
+
+```yaml
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies: [DIRECT]        # careful: replaces the whole PROXY group
+rule-providers:
+  ads:
+    type: http
+    behavior: domain
+    format: yaml
+    url: https://example.com/ads.yaml
+    path: ./ruleset/ads.yaml
+    interval: 86400
+rules:
+  - RULE-SET,ads,REJECT
+  - GEOIP,RU,DIRECT
+```
+
+How rules are combined:
+
+- if your rules contain **no** `MATCH`, they are placed **before** the base
+  `MATCH,PROXY`, so everything else goes through the proxy;
+- if a `MATCH` is present, your list **completely replaces** the base rules.
+
+Inline validation is light: the map contents are copied as-is, so a mistake in
+a group name only shows up in the client.
+
+### Option 2: HTTPS URL to YAML
+
+Here the panel is stricter: it **validates** the file before using it. Only
+three keys are taken from the document:
+
+| Key | Effect |
+| --- | ------ |
+| `rules` | Rules, merged by the same logic as above. |
+| `proxy-groups` | Groups: ones with the same name replace the base ones, other base groups are kept. |
+| `rule-providers` | Rule providers. |
+
+`dns` and `sniffer` are taken **only if** the **DNS from remote rules**
+(`subClashRemoteDNS`) switch is on. Enable it only for a template you trust,
+since it changes the client's DNS. All other keys (`proxies`, `proxy-providers`,
+`port`, …) are ignored; the nodes always stay yours.
+
+A working example file:
+
+```yaml
+proxy-groups:
+  - name: Streaming
+    type: select
+    proxies: [PROXY, DIRECT]
+  - name: Auto
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    proxies: [PROXY]
+
+rule-providers:
+  ru-direct:
+    type: http
+    behavior: domain
+    format: yaml
+    url: https://example.com/ru-direct.yaml
+    path: ./ruleset/ru-direct.yaml
+    interval: 86400
+
+rules:
+  - RULE-SET,ru-direct,DIRECT
+  - DOMAIN-SUFFIX,netflix.com,Streaming
+  - GEOIP,PRIVATE,DIRECT,no-resolve
+  - MATCH,PROXY
+```
+
+What is checked (a failing file is rejected and the previous working version
+stays):
+
+- the document is a YAML map with at least one of `rules`, `proxy-groups`,
+  `rule-providers`;
+- every group is a map with non-empty `name` and `type`, and names are **unique**;
+- groups **cannot** use `use:` (proxy providers are not supported);
+- every entry in a group's `proxies:`, every rule target and a provider's
+  `proxy:` must point to a group declared in the same file, to `PROXY`, or to
+  the built-ins `DIRECT`, `REJECT`, `REJECT-DROP`, `REJECT-TINYGIF`, `PASS`,
+  `GLOBAL`. A remote file is checked on its own, so the name of one of your
+  nodes fails the check;
+- `RULE-SET,<name>,<target>` needs a provider with that name in `rule-providers`;
+- each rule is a non-empty string `TYPE,value,target`; the flags `no-resolve`
+  and `src` may follow the target;
+- size limits: 2 MiB response, plus a bound on nesting and on the size after
+  YAML aliases are expanded.
+
+Node names depend on client remarks, so the most reliable target is the
+**`PROXY`** group, which contains all nodes.
+
+---
+
+## Incy
+
+### Where to enter it
+
+**Settings → Subscription → Incy → Routing**:
+
+1. turn on **Enable routing**;
+2. fill in **Routing rules**:
+   - a ready `incy://routing/onadd/<base64>` link, the same JSON as Happ's,
+     Base64-encoded;
+   - **or one HTTPS URL** to a JSON file. The panel turns it into
+     `incy://autorouting/onadd/<url>` and the app **refreshes the profile
+     itself**.
+
+The Incy profile goes as a line in the **body** of the subscription (only when
+the User-Agent is INCY). In that case the panel does not send the `Routing`
+header to Incy, so it cannot override the profile from the body.
+
+### JSON format
+
+The Incy profile format matches Happ's — use the same fields (`Name`,
+`RouteOrder`, `DirectSites`, `DirectIp`, `ProxySites`, `BlockSites`,
+`DomainStrategy`, …, see the table above):
+
+```json
+{
+  "Name": "RU bypass",
+  "GlobalProxy": "true",
+  "RouteOrder": "block-proxy-direct",
+  "DirectSites": ["geosite:private", "domain:ru", "geosite:category-ru"],
+  "DirectIp": ["geoip:ru", "geoip:private"],
+  "ProxySites": [],
+  "ProxyIp": [],
+  "BlockSites": ["geosite:category-ads-all"],
+  "BlockIp": [],
+  "DomainStrategy": "IPIfNonMatch"
+}
+```
+
+Encoded form: `incy://routing/onadd/<base64 of the JSON>` (encode as in the Happ
+example).
+
+> If the Incy field is empty, Incy receives the shared **JSON subscription**
+> profile (`subJsonRoutingRules`). Incy does not read the Happ field.
+
+### The other Incy tabs
+
+The **App**, **Banners**, **Privacy** and **Network** tabs are not routing: they
+set app-management headers (profile description, banner, hidden URL,
+fragmentation, …) and are sent only when **Incy header auto-detection** is on.
+
+---
+
+## Which format to use
+
+| You need | Do this |
+| -------- | ------- |
+| One rule set for Happ and Incy | One JSON: paste as `happ://...` in Happ and `incy://...` in Incy, or give both the same HTTPS URL to the JSON. |
+| Rules for Clash/Mihomo | A separate YAML; JSON and YAML are not converted into each other. |
+| Change rules without touching the panel | A permanent raw URL (gist, repository) in the relevant field. |
+| Check the result | Request the subscription with a client User-Agent (`curl -A "Happ/1.0"`, `-A "INCY/1.0"`, `-A "clash.meta"`) and inspect the `Routing` header / response body. |
+
+## Common problems
+
+- **Rules not applied, log says "Remote happ routing refresh from … failed"**
+  (or `clash`; for the JSON-subscription profile it says "remote source
+  unavailable"). The URL has not
+  been fetched yet (the first fetch runs in the background; refresh the
+  subscription in a minute) or the source returned an invalid file.
+- **File rejected for size.** Happ allows 8 KiB after Base64 encoding, about
+  6 KiB of JSON; move long lists into
+  `geosite`/`geoip` categories or, for Clash, into `rule-providers`.
+- **`references unknown proxy or group` error.** A rule or group points to a
+  name that is not in the profile. Use `PROXY`, `DIRECT`, `REJECT`, or declare
+  the group in the same file.
+- **A gist page URL does not work.** Use the `raw` URL.
+- **Clash for Windows ignores the rules.** `/clash-legacy/` does not support
+  custom routing; use `/mihomo/`.

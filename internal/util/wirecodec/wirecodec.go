@@ -26,9 +26,15 @@ const (
 	// CapAmneziaWGKernel marks a node that honours an AmneziaWG inbound's
 	// kernelMode; an older node drops the flag and serves it embedded.
 	CapAmneziaWGKernel = "awg-kernel"
-	// NodeCaps is the full CapsHeader value this build advertises.
+	// CapPreserveClientTraffic marks a node that supports inbound-only scheduled resets.
+	CapPreserveClientTraffic = "preserve-client-traffic"
+	// CapWireguardDevices marks a node that serves a WireGuard client's extra devices;
+	// an older node ignores them and keeps only the client's first peer.
+	CapWireguardDevices = "wg-devices"
+	// CapTrafficSnapshot marks a node that serves revisioned traffic snapshots.
 	CapTrafficSnapshot = "traffic-snapshot-v1"
-	NodeCaps           = CapZstd + "," + CapAmneziaWGKernel + "," + CapTrafficSnapshot
+	// NodeCaps is the full CapsHeader value this build advertises.
+	NodeCaps = CapZstd + "," + CapAmneziaWGKernel + "," + CapPreserveClientTraffic + "," + CapWireguardDevices + "," + CapTrafficSnapshot
 
 	// maxDecodeBytes bounds in-memory decompression to defuse a zstd bomb from
 	// an (authenticated) node-API caller.

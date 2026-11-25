@@ -213,14 +213,19 @@
 }
 
 .ov-tile {
+  position: relative;
   overflow: hidden;
+}
+
+.ov-wide-card {
+  position: relative;
 }
 
 .ov-tile-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px var(--ov-pad) 0;
+  padding: 14px calc(var(--ov-pad) + 82px + 12px) 0 var(--ov-pad);
   color: var(--ov-accent);
 }
 
@@ -267,8 +272,28 @@
   color: var(--ov-faint);
 }
 
+.ov-tile-foot > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
 .ov-tile-chart {
   margin-top: 6px;
+}
+
+.ov-range-toolbar {
+  position: absolute;
+  z-index: 1;
+  top: 14px;
+  right: var(--ov-pad);
+  display: flex;
+}
+
+.ov-range-select {
+  width: 82px;
 }
 
 /* — throughput + connections — */
@@ -290,7 +315,7 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
-  padding: var(--ov-pad) var(--ov-pad) 0;
+  padding: var(--ov-pad) calc(var(--ov-pad) + 82px + 12px) 0 var(--ov-pad);
 }
 
 .ov-wide-head-stack {

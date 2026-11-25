@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildWireguardClientConfig } from '@/pages/clients/wireguardConfig';
+import {
+  buildWireguardClientConfig,
+  buildWireguardDeviceConfigs,
+} from '@/pages/clients/wireguardConfig';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 const client: ClientRecord = {
@@ -123,5 +126,143 @@ describe('buildWireguardClientConfig', () => {
     );
     expect(cfg).toContain('Endpoint = wg_gw.corp.lan:51820');
     expect(cfg).not.toContain('Endpoint = :51820');
+  });
+});
+
+describe('buildWireguardDeviceConfigs', () => {
+  it('keeps device keys and per-inbound addresses separate', () => {
+    const devices = {
+      limit: 5,
+      inbounds: [
+        {
+          inboundId: 90,
+          devices: [
+            {
+              id: 'primary',
+              name: 'Primary',
+              enable: true,
+              privateKey: 'primary-key',
+              publicKey: 'pub1',
+              preSharedKey: '',
+              allowedIPs: ['10.0.0.2/32'],
+            },
+            {
+              id: 'phone',
+              name: 'Phone',
+              enable: true,
+              privateKey: 'phone-key',
+              publicKey: 'pub2',
+              preSharedKey: 'phone-psk',
+              allowedIPs: ['10.0.0.3/32'],
+            },
+            {
+              id: 'disabled',
+              name: 'Disabled',
+              enable: false,
+              privateKey: 'disabled-key',
+              publicKey: 'pub3',
+              preSharedKey: '',
+              allowedIPs: ['10.0.0.4/32'],
+            },
+          ],
+        },
+      ],
+    };
+    const configs = buildWireguardDeviceConfigs(
+      client,
+      [inbound],
+      devices,
+      { 90: '10.0.0.99/32' },
+      [],
+      'example.com',
+      '',
+    );
+    expect(configs).toHaveLength(2);
+    expect(configs[0].text).toContain('PrivateKey = primary-key');
+    expect(configs[0].text).toContain('Address = 10.0.0.2/32');
+    expect(configs[1].text).toContain('PrivateKey = phone-key');
+    expect(configs[1].text).toContain('Address = 10.0.0.3/32');
+    expect(configs[1].text).toContain('PresharedKey = phone-psk');
+    expect(configs[1].deviceId).toBe('phone');
+    expect(configs[1].endpoint).toContain('Phone');
+  });
+
+  it('preserves the existing configuration until the device list is available', () => {
+    const configs = buildWireguardDeviceConfigs(
+      client,
+      [inbound],
+      undefined,
+      { 90: '10.0.0.8/32' },
+      [],
+      'example.com',
+      '',
+    );
+    expect(configs).toHaveLength(1);
+    expect(configs[0].deviceId).toBe('primary');
+    expect(configs[0].text).toContain(`PrivateKey = ${client.privateKey}`);
+    expect(configs[0].text).toContain('Address = 10.0.0.8/32');
+  });
+
+  it('does not substitute a primary config for an inbound with no devices', () => {
+    const configs = buildWireguardDeviceConfigs(
+      client,
+      [inbound],
+      { limit: 5, inbounds: [{ inboundId: 90, devices: [] }] },
+      undefined,
+      [],
+      'example.com',
+      '',
+    );
+    expect(configs).toEqual([]);
+  });
+
+  it('includes the primary config of a disabled client when requested', () => {
+    const disabledClient = { ...client, enable: false };
+    const devices = {
+      limit: 5,
+      inbounds: [
+        {
+          inboundId: 90,
+          devices: [
+            {
+              id: 'primary',
+              name: '',
+              enable: false,
+              privateKey: 'disabled-key',
+              publicKey: 'disabled-public-key',
+              preSharedKey: '',
+              allowedIPs: ['10.0.0.4/32'],
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      buildWireguardDeviceConfigs(
+        disabledClient,
+        [inbound],
+        devices,
+        undefined,
+        [],
+        'example.com',
+        '',
+      ),
+    ).toEqual([]);
+
+    const configs = buildWireguardDeviceConfigs(
+      disabledClient,
+      [inbound],
+      devices,
+      undefined,
+      [],
+      'example.com',
+      '',
+      true,
+    );
+    expect(configs).toHaveLength(1);
+    expect(configs[0]).toMatchObject({ deviceId: 'primary', enabled: false });
+    expect(configs[0].text).toContain('PrivateKey = disabled-key');
+    expect(configs[0].text).toContain('Address = 10.0.0.4/32');
   });
 });

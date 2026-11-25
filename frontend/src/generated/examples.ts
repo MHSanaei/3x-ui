@@ -39,10 +39,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserAttr": "",
     "ldapUserFilter": "",
     "ldapVlessField": "",
+    "mcpEnable": false,
+    "networkTrafficInterface": "eth0",
+    "networkTrafficMode": "legacy",
     "nodeDownThreshold": 1,
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
+    "publicIpRefreshMinutes": 0,
+    "publicIpv4Override": "",
+    "publicIpv6Detect": false,
+    "publicIpv6Override": "",
     "realityScanCandidates": "",
     "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
@@ -101,6 +108,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subHappTunType": "",
     "subHideSettings": false,
     "subHostSortMode": "inbound-first",
+    "subHwidRejectWithConfig": false,
     "subIncyAnnounceUrl": "",
     "subIncyAppAutoDetect": false,
     "subIncyBannerBgColor": "",
@@ -150,6 +158,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileMode": "",
     "subProfileUrl": "",
+    "subRateLimit": 1,
+    "subRateLimitEnable": false,
     "subRoutingRules": "",
     "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
@@ -180,7 +190,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "wechatCpu": 0,
+    "wechatEnable": false,
+    "wechatEnabledEvents": "",
+    "wechatLang": "",
+    "wechatMemory": 0,
+    "wechatMode": "",
+    "wechatReportEnable": false,
+    "wechatRunTime": "",
+    "wechatToken": "",
+    "wechatWebhookURL": ""
   },
   "AllSettingView": {
     "datepicker": "",
@@ -207,6 +227,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "hasTgBotToken": false,
     "hasTwoFactorToken": false,
     "hasWarpSecret": false,
+    "hasWechatToken": false,
+    "hasWechatWebhookURL": false,
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -229,10 +251,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "ldapUserAttr": "",
     "ldapUserFilter": "",
     "ldapVlessField": "",
+    "mcpEnable": false,
+    "networkTrafficInterface": "eth0",
+    "networkTrafficMode": "legacy",
     "nodeDownThreshold": 1,
     "outboundDownThreshold": 1,
     "pageSize": 0,
     "panelOutbound": "",
+    "publicIpRefreshMinutes": 0,
+    "publicIpv4Override": "",
+    "publicIpv6Detect": false,
+    "publicIpv6Override": "",
     "realityScanCandidates": "",
     "remarkTemplate": "",
     "restartXrayOnClientDisable": false,
@@ -291,6 +320,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subHappTunType": "",
     "subHideSettings": false,
     "subHostSortMode": "inbound-first",
+    "subHwidRejectWithConfig": false,
     "subIncyAnnounceUrl": "",
     "subIncyAppAutoDetect": false,
     "subIncyBannerBgColor": "",
@@ -340,6 +370,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "subPort": 1,
     "subProfileMode": "",
     "subProfileUrl": "",
+    "subRateLimit": 1,
+    "subRateLimitEnable": false,
     "subRoutingRules": "",
     "subShowIdentityOnAllLinks": false,
     "subSupportUrl": "",
@@ -370,7 +402,17 @@ export const EXAMPLES: Record<string, unknown> = {
     "webDomain": "",
     "webKeyFile": "",
     "webListen": "",
-    "webPort": 1
+    "webPort": 1,
+    "wechatCpu": 0,
+    "wechatEnable": false,
+    "wechatEnabledEvents": "",
+    "wechatLang": "",
+    "wechatMemory": 0,
+    "wechatMode": "",
+    "wechatReportEnable": false,
+    "wechatRunTime": "",
+    "wechatToken": "",
+    "wechatWebhookURL": ""
   },
   "AmneziaWGLogs": {
     "events": [
@@ -414,6 +456,20 @@ export const EXAMPLES: Record<string, unknown> = {
     "code": "tools",
     "detail": "awg"
   },
+  "BulkAdjustReport": {
+    "email": "carol",
+    "reason": "client not found"
+  },
+  "BulkAdjustResult": {
+    "adjusted": 2,
+    "externalLinks": null,
+    "skipped": []
+  },
+  "BulkExternalLinksResult": {
+    "added": 4,
+    "errors": 0,
+    "skipped": 0
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
@@ -452,13 +508,42 @@ export const EXAMPLES: Record<string, unknown> = {
     "totalGB": 0,
     "trafficReset": "never",
     "trafficResetDay": 1,
-    "updated_at": 0
+    "updated_at": 0,
+    "wgDeviceLimit": 0,
+    "wireguardDevices": [
+      {
+        "allowedIPs": [
+          ""
+        ],
+        "enable": false,
+        "id": "",
+        "name": "",
+        "preSharedKey": "",
+        "privateKey": "",
+        "publicKey": ""
+      }
+    ]
+  },
+  "ClientChangeLog": {
+    "at": 1735689600000,
+    "email": "user1@example.com",
+    "field": "dataLimit",
+    "id": 14825,
+    "newValue": "21474836480",
+    "oldValue": "10737418240",
+    "source": "panel"
   },
   "ClientInbound": {
     "clientId": 0,
     "createdAt": 0,
     "flowOverride": "",
     "inboundId": 0
+  },
+  "ClientNodeUsage": {
+    "down": 2097152,
+    "nodeId": 7,
+    "nodeName": "de-fra-1",
+    "up": 1048576
   },
   "ClientPageResponse": {
     "filtered": 47,
@@ -547,7 +632,21 @@ export const EXAMPLES: Record<string, unknown> = {
     "trafficReset": "",
     "trafficResetDay": 0,
     "updatedAt": 0,
-    "uuid": ""
+    "uuid": "",
+    "wgDeviceLimit": 0,
+    "wireguardDevices": [
+      {
+        "allowedIPs": [
+          ""
+        ],
+        "enable": false,
+        "id": "",
+        "name": "",
+        "preSharedKey": "",
+        "privateKey": "",
+        "publicKey": ""
+      }
+    ]
   },
   "ClientRenewalPreview": {
     "canRenew": true,
@@ -612,6 +711,50 @@ export const EXAMPLES: Record<string, unknown> = {
     "up": 1048576,
     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
   },
+  "ClientTrafficWindow": {
+    "at": 1735689600000,
+    "down": 2097152,
+    "email": "user1@example.com",
+    "id": 14825,
+    "reason": "reset",
+    "up": 1048576
+  },
+  "ClientUsageHistory": {
+    "changes": [
+      {
+        "at": 1735689600000,
+        "email": "user1@example.com",
+        "field": "dataLimit",
+        "id": 14825,
+        "newValue": "21474836480",
+        "oldValue": "10737418240",
+        "source": "panel"
+      }
+    ],
+    "currentDown": 2097152,
+    "currentUp": 1048576,
+    "email": "user1@example.com",
+    "lifetimeDown": 21474836480,
+    "lifetimeUp": 10737418240,
+    "nodes": [
+      {
+        "down": 2097152,
+        "nodeId": 7,
+        "nodeName": "de-fra-1",
+        "up": 1048576
+      }
+    ],
+    "windows": [
+      {
+        "at": 1735689600000,
+        "down": 2097152,
+        "email": "user1@example.com",
+        "id": 14825,
+        "reason": "reset",
+        "up": 1048576
+      }
+    ]
+  },
   "ClientsSummary": {
     "active": 1850,
     "deactive": [
@@ -627,6 +770,14 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "onlineCount": 1,
     "total": 2000
+  },
+  "ExternalLinkInput": {
+    "enable": true,
+    "expiryTime": 0,
+    "kind": "link",
+    "namePrefix": "",
+    "remark": "Backup",
+    "value": "vless://uuid@example.com:443"
   },
   "FallbackParentInfo": {
     "masterId": 0,
@@ -833,6 +984,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "nodeId": null,
     "originNodeGuid": "",
     "port": 443,
+    "preserveClientTraffic": null,
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,
@@ -914,6 +1066,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "msg": "",
     "obj": null,
     "success": false
+  },
+  "NetworkInterfaceOption": {
+    "name": "eth0",
+    "up": true
+  },
+  "NetworkInterfacesResponse": {
+    "automatic": "eth0",
+    "automaticError": "",
+    "interfaces": [
+      {
+        "name": "eth0",
+        "up": true
+      }
+    ]
+  },
+  "NetworkTrafficSelection": {
+    "available": true,
+    "error": "",
+    "mode": "manual",
+    "name": "eth0"
   },
   "NewUUIDResponse": {
     "uuid": "550e8400-e29b-41d4-a716-446655440000"
@@ -1180,6 +1352,42 @@ export const EXAMPLES: Record<string, unknown> = {
     "tlsVersion": "1.3",
     "x25519": true
   },
+  "RealityWatchEntry": {
+    "auto": true,
+    "spares": [
+      "www.example.com:443"
+    ]
+  },
+  "RealityWatchEvent": {
+    "at": 1793000000,
+    "from": "old.example.com:443",
+    "reason": "TLS handshake failed: EOF",
+    "to": "www.example.com:443"
+  },
+  "RealityWatchStatus": {
+    "auto": true,
+    "checkedAt": 1793000000,
+    "events": [
+      {
+        "at": 1793000000,
+        "from": "old.example.com:443",
+        "reason": "TLS handshake failed: EOF",
+        "to": "www.example.com:443"
+      }
+    ],
+    "fails": 0,
+    "inboundId": 3,
+    "latencyMs": 180,
+    "ok": true,
+    "reason": "",
+    "serverNames": [
+      "old.example.com"
+    ],
+    "spares": [
+      "www.example.com:443"
+    ],
+    "target": "old.example.com:443"
+  },
   "ServerSettings": {
     "contentPaddingAddition": "",
     "disableCookies": false,
@@ -1258,6 +1466,36 @@ export const EXAMPLES: Record<string, unknown> = {
       }
     ]
   },
+  "Status": {
+    "amneziawg": null,
+    "appStats": null,
+    "cpu": 0,
+    "cpuCores": 0,
+    "cpuSpeedMhz": 0,
+    "disk": null,
+    "diskIO": null,
+    "diskTraffic": null,
+    "loads": [
+      0
+    ],
+    "logicalPro": 0,
+    "mem": null,
+    "netIO": null,
+    "netTraffic": null,
+    "networkInterface": null,
+    "panelGuid": "",
+    "panelVersion": "",
+    "publicIP": null,
+    "resourceScope": "",
+    "swap": null,
+    "tcpCount": 0,
+    "udpCount": 0,
+    "unavailableMetrics": [
+      ""
+    ],
+    "uptime": 0,
+    "xray": null
+  },
   "SubBalancer": {
     "createdAt": 1710000000000,
     "enabled": true,
@@ -1309,5 +1547,16 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "password": "",
     "username": ""
+  },
+  "WireguardDevice": {
+    "allowedIPs": [
+      ""
+    ],
+    "enable": false,
+    "id": "",
+    "name": "",
+    "preSharedKey": "",
+    "privateKey": "",
+    "publicKey": ""
   }
 };

@@ -52,6 +52,9 @@ func TestGenHysteriaLinkAppendsHostServerDescription(t *testing.T) {
 			if !strings.HasSuffix(got, "?serverDescription=V2ktRmk=") {
 				t.Fatalf("host serverDescription missing from fragment.\n got: %s\nwant suffix: ?serverDescription=V2ktRmk=", got)
 			}
+			if got := (&SubService{omitServerDescription: true}).genHysteriaLink(in, "user"); strings.Contains(got, "serverDescription") {
+				t.Fatalf("tail not omitted: %s", got)
+			}
 		})
 	}
 }

@@ -8,7 +8,7 @@ export default function KcpForm() {
   return (
     <>
       <FormField name={['streamSettings', 'kcpSettings', 'mtu']} label="MTU">
-        <InputNumber min={576} max={1460} />
+        <InputNumber min={21} max={1460} />
       </FormField>
       <FormField
         name={['streamSettings', 'kcpSettings', 'tti']}

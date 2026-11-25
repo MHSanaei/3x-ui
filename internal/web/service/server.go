@@ -52,7 +52,6 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
-	"github.com/shirou/gopsutil/v4/net"
 )
 
 // ProcessState represents the current state of a system process.
@@ -68,8 +67,10 @@ const (
 // Status represents comprehensive system and application status information.
 // It includes CPU, memory, disk, network statistics, and Xray process status.
 type Status struct {
-	ResourceScope      string   `json:"resourceScope,omitempty"`
-	UnavailableMetrics []string `json:"unavailableMetrics,omitempty"`
+	NetworkInterface     *NetworkTrafficSelection `json:"networkInterface,omitempty"`
+	networkTrafficSample *networkTrafficSample    `json:"-"`
+	ResourceScope        string                   `json:"resourceScope,omitempty"`
+	UnavailableMetrics   []string                 `json:"unavailableMetrics,omitempty"`
 
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
@@ -148,7 +149,8 @@ type Release struct {
 // ServerService provides business logic for server monitoring and management.
 // It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
-	lxcMetrics sys.LXCReader
+	networkTrafficReader *networkTrafficReader
+	lxcMetrics           sys.LXCReader
 
 	xrayService        XrayService
 	inboundService     InboundService
@@ -157,6 +159,10 @@ type ServerService struct {
 	cachedIPv6         string
 	nextIPv4Lookup     time.Time
 	nextIPv6Lookup     time.Time
+	ipv4OKAt           time.Time
+	ipv6OKAt           time.Time
+	ipv4Fixed          bool
+	ipv6Fixed          bool
 	ipv6RetryInterval  time.Duration
 	publicIPLookupDone chan struct{}
 	mu                 sync.Mutex
@@ -195,6 +201,7 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
 	2:     true, // 2m
+	5:     true, // 5m
 	30:    true, // 30m
 	60:    true, // 1h
 	180:   true, // 3h
@@ -379,6 +386,18 @@ func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, 
 	return systemMetrics.aggregate(s.systemMetricKey(metric), bucketSeconds, maxPoints)
 }
 
+// AggregateOverviewHistory returns the metric series used by the overview in
+// one response. Each series is capped at maxPoints, keeping dashboard refreshes
+// compact even when the selected range spans several hours.
+func (s *ServerService) AggregateOverviewHistory(bucketSeconds int, maxPoints int) map[string][]map[string]any {
+	metrics := []string{"cpu", "mem", "swap", "diskUsage", "netUp", "netDown", "tcpCount", "udpCount"}
+	out := make(map[string][]map[string]any, len(metrics))
+	for _, metric := range metrics {
+		out[metric] = s.AggregateSystemMetric(metric, bucketSeconds, maxPoints)
+	}
+	return out
+}
+
 type LogEntry struct {
 	DateTime    time.Time `json:"DateTime" example:"2025-01-01T12:00:00Z"`
 	FromAddress string    `json:"FromAddress" example:"192.0.2.10:54321"`
@@ -467,6 +486,60 @@ const (
 	publicIPRetryInterval   = time.Minute
 )
 
+// publicIPNever is the deadline of a lookup that must not run again.
+var publicIPNever = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+
+type publicIPSettings struct {
+	refresh   time.Duration // 0: keep the first successful answer
+	ipv6      bool
+	override4 string
+	override6 string
+}
+
+// publicIPSettingsSource is a variable so tests can run without a database.
+var publicIPSettingsSource = func(s *ServerService) publicIPSettings {
+	p := publicIPSettings{refresh: publicIPRefreshInterval, ipv6: true}
+	if m, err := s.settingService.GetPublicIpRefreshMinutes(); err != nil {
+		logger.Warning("get public IP refresh interval failed:", err)
+	} else {
+		p.refresh = time.Duration(m) * time.Minute
+	}
+	if v, err := s.settingService.GetPublicIpv6Detect(); err != nil {
+		logger.Warning("get public IPv6 detection failed:", err)
+	} else {
+		p.ipv6 = v
+	}
+	if v, err := s.settingService.GetPublicIpv4Override(); err == nil {
+		p.override4 = strings.TrimSpace(v)
+	}
+	if v, err := s.settingService.GetPublicIpv6Override(); err == nil {
+		p.override6 = strings.TrimSpace(v)
+	}
+	return p
+}
+
+// publicIPDeadline is when a successful answer obtained at okAt goes stale.
+func publicIPDeadline(okAt time.Time, refresh time.Duration) time.Time {
+	if refresh == 0 {
+		return publicIPNever
+	}
+	return okAt.Add(refresh)
+}
+
+// settlePublicIP makes one family follow the settings: a fixed value pins it
+// and stops lookups; a changed interval re-times the last success.
+func settlePublicIP(fixed string, pinned *bool, cached *string, next, okAt *time.Time, refresh time.Duration) {
+	switch {
+	case fixed != "":
+		*cached, *next, *pinned = fixed, publicIPNever, true
+	case *pinned:
+		// okAt is zeroed so a pre-pin success cannot re-time the next tick.
+		*cached, *next, *pinned, *okAt = "", time.Time{}, false, time.Time{}
+	case !okAt.IsZero():
+		*next = publicIPDeadline(*okAt, refresh)
+	}
+}
+
 // resolvePublicIPs waits for the initial lookup so cold backups can use it.
 // Warm callers use cached addresses while a refresh runs in the background.
 func (s *ServerService) resolvePublicIPs() {
@@ -477,9 +550,9 @@ func (s *ServerService) resolvePublicIPs() {
 }
 
 // refreshedPublicIP retains a known address through temporary lookup failures.
-func refreshedPublicIP(cached, fetched string, now time.Time) (string, time.Time) {
+func refreshedPublicIP(cached, fetched string, now time.Time, refresh time.Duration) (string, time.Time) {
 	if fetched != "" && fetched != "N/A" {
-		return fetched, now.Add(publicIPRefreshInterval)
+		return fetched, publicIPDeadline(now, refresh)
 	}
 	if cached == "" {
 		cached = "N/A"
@@ -500,6 +573,14 @@ func nextPublicIPv6RetryInterval(previous time.Duration) time.Duration {
 	}
 }
 
+// lookupOKAt is the zero time for a failed lookup, so only successes re-time.
+func lookupOKAt(fetched string, now time.Time) time.Time {
+	if fetched == "" || fetched == "N/A" {
+		return time.Time{}
+	}
+	return now
+}
+
 // firstPublicIP returns the first service that answers, or "N/A" when every
 // one of them fails.
 func firstPublicIP(services []string) string {
@@ -516,7 +597,14 @@ func firstPublicIP(services []string) string {
 // resolvePublicIPsInBackground shares one lookup without blocking status samples.
 // Each address family has its own deadline; cached values stay readable.
 func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
+	p := publicIPSettingsSource(s)
+	fixed6 := p.override6
+	if fixed6 == "" && !p.ipv6 {
+		fixed6 = "N/A"
+	}
 	s.mu.Lock()
+	settlePublicIP(p.override4, &s.ipv4Fixed, &s.cachedIPv4, &s.nextIPv4Lookup, &s.ipv4OKAt, p.refresh)
+	settlePublicIP(fixed6, &s.ipv6Fixed, &s.cachedIPv6, &s.nextIPv6Lookup, &s.ipv6OKAt, p.refresh)
 	if done := s.publicIPLookupDone; done != nil {
 		s.mu.Unlock()
 		return done
@@ -544,11 +632,13 @@ func (s *ServerService) resolvePublicIPsInBackground() <-chan struct{} {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		now := time.Now()
-		if wantIPv4 {
-			s.cachedIPv4, s.nextIPv4Lookup = refreshedPublicIP(s.cachedIPv4, ipv4, now)
+		if wantIPv4 && !s.ipv4Fixed {
+			s.cachedIPv4, s.nextIPv4Lookup = refreshedPublicIP(s.cachedIPv4, ipv4, now, p.refresh)
+			s.ipv4OKAt = lookupOKAt(ipv4, now)
 		}
-		if wantIPv6 {
-			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now)
+		if wantIPv6 && !s.ipv6Fixed {
+			s.cachedIPv6, s.nextIPv6Lookup = refreshedPublicIP(s.cachedIPv6, ipv6, now, p.refresh)
+			s.ipv6OKAt = lookupOKAt(ipv6, now)
 			if ipv6 != "" && ipv6 != "N/A" {
 				s.ipv6RetryInterval = 0
 			} else {
@@ -691,42 +781,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Loads = []float64{avgState.Load1, avgState.Load5, avgState.Load15}
 	}
 
-	// Network stats
-	ioStats, err := net.IOCounters(true)
-	if err != nil {
-		logger.Warning("get io counters failed:", err)
-	} else {
-		var totalSent, totalRecv, totalPktSent, totalPktRecv uint64
-		for _, iface := range ioStats {
-			name := strings.ToLower(iface.Name)
-			if isVirtualInterface(name) {
-				continue
-			}
-			totalSent += iface.BytesSent
-			totalRecv += iface.BytesRecv
-			totalPktSent += iface.PacketsSent
-			totalPktRecv += iface.PacketsRecv
-		}
-		status.NetTraffic.Sent = totalSent
-		status.NetTraffic.Recv = totalRecv
-		status.NetTraffic.PktSent = totalPktSent
-		status.NetTraffic.PktRecv = totalPktRecv
-
-		if lastStatus != nil {
-			duration := now.Sub(lastStatus.T)
-			seconds := float64(duration) / float64(time.Second)
-			up := uint64(float64(status.NetTraffic.Sent-lastStatus.NetTraffic.Sent) / seconds)
-			down := uint64(float64(status.NetTraffic.Recv-lastStatus.NetTraffic.Recv) / seconds)
-			status.NetIO.Up = up
-			status.NetIO.Down = down
-			if seconds > 0 && status.NetTraffic.PktSent >= lastStatus.NetTraffic.PktSent {
-				status.NetIO.PktUp = uint64(float64(status.NetTraffic.PktSent-lastStatus.NetTraffic.PktSent) / seconds)
-			}
-			if seconds > 0 && status.NetTraffic.PktRecv >= lastStatus.NetTraffic.PktRecv {
-				status.NetIO.PktDown = uint64(float64(status.NetTraffic.PktRecv-lastStatus.NetTraffic.PktRecv) / seconds)
-			}
-		}
-	}
+	s.collectNetworkTraffic(status, lastStatus)
 
 	// TCP/UDP connections
 	status.TcpCount, err = sys.GetTCPCount()
@@ -814,15 +869,15 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	} else {
 		appendScopedMetric(status, "swap", t, 0)
 	}
-	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
-	systemMetrics.append("netDown", t, float64(status.NetIO.Down))
+	appendScopedMetric(status, "netUp", t, float64(status.NetIO.Up))
+	appendScopedMetric(status, "netDown", t, float64(status.NetIO.Down))
 	systemMetrics.append("diskRead", t, float64(status.DiskIO.Read))
 	systemMetrics.append("diskWrite", t, float64(status.DiskIO.Write))
 	if status.Disk.Total > 0 {
 		systemMetrics.append("diskUsage", t, float64(status.Disk.Current)*100.0/float64(status.Disk.Total))
 	}
-	systemMetrics.append("pktUp", t, float64(status.NetIO.PktUp))
-	systemMetrics.append("pktDown", t, float64(status.NetIO.PktDown))
+	appendScopedMetric(status, "pktUp", t, float64(status.NetIO.PktUp))
+	appendScopedMetric(status, "pktDown", t, float64(status.NetIO.PktDown))
 	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
 	systemMetrics.append("udpCount", t, float64(status.UdpCount))
 	online := 0
@@ -1780,6 +1835,7 @@ var hostBoundSettingKeys = []string{
 	"webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webBasePath",
 	"subListen", "subDomain", "subPort", "subCertFile", "subKeyFile", "subURI", "subJsonURI",
 	"secret", "panelGuid",
+	"networkTrafficMode", "networkTrafficInterface",
 	"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem",
 	"nodeMtlsClientKeyPem", "nodeMtlsClientCertSha256", "nodeMtlsClientCAPem",
 }
@@ -2021,6 +2077,10 @@ func pgConnEnv(dsn string) (env []string, dbname string, err error) {
 	return env, dbname, nil
 }
 
+// pgDumpTimeout bounds one pg_dump run: a server that stops answering would hang the
+// download and, through SkipIfStillRunning, silently skip every later scheduled backup.
+var pgDumpTimeout = time.Hour
+
 func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	bin, err := exec.LookPath("pg_dump")
 	if err != nil {
@@ -2030,12 +2090,19 @@ func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	if err != nil {
 		return nil, common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}
-	cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
+	ctx, cancel := context.WithTimeout(context.Background(), pgDumpTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, "--format=custom", "--no-owner", "--no-privileges", "--dbname", dbname)
 	cmd.Env = env
+	// Stop waiting for the output pipes shortly after pg_dump is killed.
+	cmd.WaitDelay = 10 * time.Second
 	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return nil, common.NewErrorf("pg_dump did not finish within %s; check that the PostgreSQL server is responding", pgDumpTimeout)
+		}
 		return nil, common.NewErrorf("pg_dump failed: %v: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return out.Bytes(), nil

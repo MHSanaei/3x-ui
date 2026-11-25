@@ -140,6 +140,9 @@ func inboundCanHostFallbacks(ib *model.Inbound) bool {
 	if ib.Protocol != model.VLESS && ib.Protocol != model.Trojan {
 		return false
 	}
+	if ib.Protocol == model.VLESS && vlessDecryptionEnabled(ib.Settings) {
+		return false
+	}
 	return streamSupportsFallbacks(ib.StreamSettings)
 }
 

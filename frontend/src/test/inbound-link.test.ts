@@ -1598,3 +1598,34 @@ describe('isPostQuantumLink', () => {
     });
   });
 });
+
+describe('copied XHTTP links from stored inbounds', () => {
+  it.each([
+    undefined,
+    null,
+    {},
+    { hKeepAlivePeriod: 45 },
+    { hKeepAlivePeriod: 0 },
+    { maxConcurrency: '16-32' },
+    { maxConcurrency: 8, hMaxRequestTimes: 700 },
+  ])('exports only explicitly stored XMUX settings (%j)', (xmux) => {
+    const inbound = inboundFromDb({
+      protocol: 'vless',
+      port: 443,
+      listen: '',
+      settings: {},
+      sniffing: {},
+      streamSettings: JSON.stringify({ network: 'xhttp', xhttpSettings: { path: '/up', xmux } }),
+    });
+    const url = genVlessLink({
+      inbound,
+      address: 'up.example',
+      clientId: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
+    });
+    const params = new URL(url).searchParams;
+    expect(params.get('path')).toBe('/up');
+    const extra = JSON.parse(params.get('extra')!);
+    if (xmux && Object.keys(xmux).length) expect(extra.xmux).toEqual(xmux);
+    else expect(extra).not.toHaveProperty('xmux');
+  });
+});

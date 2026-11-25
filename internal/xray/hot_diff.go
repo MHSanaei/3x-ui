@@ -33,7 +33,8 @@ type InboundReplacement struct {
 	Next     *InboundConfig
 }
 
-// UserOp is a per-user AlterInbound operation; User is nil for removals.
+// UserOp is a per-user AlterInbound operation; User is nil for removals, except a
+// WireGuard peer's, which is removed by its public key.
 type UserOp struct {
 	Tag      string
 	Protocol string
@@ -55,6 +56,10 @@ func (d *HotDiff) DropsUsers() bool {
 		readded[u.Tag+"\x00"+u.Email] = struct{}{}
 	}
 	for _, u := range d.RemovedUsers {
+		// A WireGuard session ends with its peer; nothing is left running to drop.
+		if u.Protocol == "wireguard" {
+			continue
+		}
 		if _, ok := readded[u.Tag+"\x00"+u.Email]; !ok {
 			return true
 		}
@@ -252,18 +257,21 @@ func InboundUserOps(oldIb, newIb *InboundConfig) (*HotDiff, bool) {
 
 var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}, "shadowsocks": {}}
 
-// diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
-// differ only in settings.clients, so the handler (and its listener) survives.
+// diffInboundUsers emits AlterInbound ops for changes to users or WireGuard peers
+// while keeping the existing handler and listener.
 func diffInboundUsers(oldIb, newIb *InboundConfig, diff *HotDiff) bool {
 	if oldIb.Port != newIb.Port || oldIb.Protocol != newIb.Protocol || oldIb.Tag != newIb.Tag {
-		return false
-	}
-	if _, ok := userDiffableProtocols[oldIb.Protocol]; !ok {
 		return false
 	}
 	if !rawEqualNormalized(oldIb.Listen, newIb.Listen) ||
 		!rawEqualNormalized(oldIb.StreamSettings, newIb.StreamSettings) ||
 		!rawEqualNormalized(oldIb.Sniffing, newIb.Sniffing) {
+		return false
+	}
+	if oldIb.Protocol == "wireguard" {
+		return diffWireguardPeers(oldIb, newIb, diff)
+	}
+	if _, ok := userDiffableProtocols[oldIb.Protocol]; !ok {
 		return false
 	}
 	oldClients, oldRest, ok := splitSettingsClients(oldIb.Settings)

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -79,7 +81,7 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		return nil, err
 	}
 	r.mu.RLock()
-	supported := r.supportsTrafficSnapshot
+	supported := slices.Contains(r.nodeCaps, wirecodec.CapTrafficSnapshot)
 	capsEpoch := r.snapshotCapsEpoch
 	r.mu.RUnlock()
 	if capsEpoch != r.snapshotSeenCapsEpoch {

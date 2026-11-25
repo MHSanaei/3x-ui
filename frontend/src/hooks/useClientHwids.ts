@@ -14,6 +14,7 @@ export function useClientHwids(email: string | undefined) {
   const [hwidsLoading, setHwidsLoading] = useState(false);
   const [hwidsClearing, setHwidsClearing] = useState(false);
   const [deletingHwidId, setDeletingHwidId] = useState<number | null>(null);
+  const [blockingHwidId, setBlockingHwidId] = useState<number | null>(null);
 
   async function loadHwids() {
     if (!email) return;
@@ -39,7 +40,7 @@ export function useClientHwids(email: string | undefined) {
       const msg = (await HttpUtil.delete(
         `/panel/api/clients/hwids/${encodeURIComponent(email)}`,
       )) as ApiMsg;
-      if (msg?.success) setClientHwids([]);
+      if (msg?.success) setClientHwids((prev) => prev.filter((entry) => entry.blocked));
     } finally {
       setHwidsClearing(false);
     }
@@ -58,6 +59,25 @@ export function useClientHwids(email: string | undefined) {
     }
   }
 
+  async function setHwidBlocked(id: number, blocked: boolean) {
+    if (!email) return;
+    setBlockingHwidId(id);
+    try {
+      const msg = (await HttpUtil.post(
+        `/panel/api/clients/hwids/${encodeURIComponent(email)}/${id}/block`,
+        { blocked },
+        { headers: { 'Content-Type': 'application/json' } },
+      )) as ApiMsg;
+      if (msg?.success) {
+        setClientHwids((prev) =>
+          prev.map((entry) => (entry.id === id ? { ...entry, blocked } : entry)),
+        );
+      }
+    } finally {
+      setBlockingHwidId(null);
+    }
+  }
+
   function resetHwids() {
     setClientHwids([]);
   }
@@ -67,9 +87,11 @@ export function useClientHwids(email: string | undefined) {
     hwidsLoading,
     hwidsClearing,
     deletingHwidId,
+    blockingHwidId,
     loadHwids,
     clearHwids,
     deleteHwid,
+    setHwidBlocked,
     resetHwids,
   };
 }

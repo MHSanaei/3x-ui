@@ -1,5 +1,6 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useTranslation } from 'react-i18next';
-import { Input, Select, Switch } from 'antd';
+import { Input, Switch } from 'antd';
 
 import { FormField } from '@/components/form/rhf';
 import AccountsList from './accounts-list';
@@ -10,7 +11,7 @@ export default function MixedFields({ mixedUdpOn }: { mixedUdpOn: boolean }) {
     <>
       <AccountsList />
       <FormField name={['settings', 'auth']} label={t('pages.inbounds.info.auth')}>
-        <Select
+        <NativeSelect
           options={[
             { value: 'noauth', label: 'noauth' },
             { value: 'password', label: 'password' },

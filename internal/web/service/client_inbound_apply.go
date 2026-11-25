@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ func droppedClientNeedsRestart() bool {
 	return on
 }
 
-func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client) error {
+func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client, previousEmail string) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
 	}
@@ -59,15 +60,47 @@ func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client
 		return nil
 	}
 	inst := amneziawg.Instance{Listen: inbound.Listen, IPv6Enabled: settings.Server.IPv6Enabled}
+	v4Base, _, err := defaultAmneziaWGSubnetBases(inbound.Settings)
+	if err != nil {
+		return err
+	}
+	inst.Address = []string{v4Base}
 	for _, client := range clients {
 		inst.Peers = append(inst.Peers, amneziawg.Peer{
-			AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPortsSpec(),
+			Email: client.Email, AllowedIPs: client.AllowedIPs, ForwardedPorts: client.ForwardedPortsSpec(),
 		})
 	}
 	if err := amneziawgkern.ValidateInstanceFeatures(inst, settings.Server.RouteThroughXray); err != nil {
 		return err
 	}
-	return nil
+	if !inbound.Enable {
+		return nil
+	}
+	inst.Peers = nil
+	for _, client := range clients {
+		if !client.Enable {
+			continue
+		}
+		allowedIPs := client.AllowedIPs
+		for _, old := range settings.Clients {
+			if previousEmail == "" || !strings.EqualFold(old.Email, previousEmail) {
+				continue
+			}
+			if len(allowedIPs) == 0 {
+				allowedIPs = old.AllowedIPs
+			}
+			// Preserve legacy addresses on active peers; validate newly added
+			// addresses, or every address when enabling a disabled peer.
+			if old.Enable {
+				allowedIPs = slices.DeleteFunc(slices.Clone(allowedIPs), func(ip string) bool {
+					return slices.Contains(old.AllowedIPs, ip)
+				})
+			}
+			break
+		}
+		inst.Peers = append(inst.Peers, amneziawg.Peer{Email: client.Email, AllowedIPs: allowedIPs})
+	}
+	return amneziawgkern.ValidatePeerSubnets(inst)
 }
 
 func sameClientConfigExceptUpdatedAt(a, b map[string]any) bool {
@@ -331,7 +364,7 @@ func (s *ClientService) otherTunnelAllowedIPs(db *gorm.DB, inboundSvc *InboundSe
 			if _, self := selfEmails[strings.ToLower(c.Email)]; self {
 				continue
 			}
-			for _, addr := range c.AllowedIPs {
+			for _, addr := range model.WireguardAllowedIPs(c) {
 				used[addr] = label
 			}
 		}
@@ -482,7 +515,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			}
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, ""); err != nil {
 		return false, err
 	}
 
@@ -596,7 +629,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				crossAddrs = append(crossAddrs, addr)
 			}
 			for i := range clients {
-				if entry, taken := wireguardAllowedIPsOverlap(clients[i].AllowedIPs, crossAddrs); taken != "" {
+				if entry, taken := wireguardAllowedIPsOverlap(model.WireguardAllowedIPs(clients[i]), crossAddrs); taken != "" {
 					return common.NewError("allowedIPs entry", entry, "overlaps", taken, "used by a client on", crossUsed[taken])
 				}
 			}
@@ -658,20 +691,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				if oldInbound.Protocol == "shadowsocks" {
 					cipher, _ = oldSettings["method"].(string)
 				}
-				err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-					"email":        client.Email,
-					"id":           client.ID,
-					"auth":         client.Auth,
-					"security":     client.Security,
-					"flow":         client.Flow,
-					"password":     client.Password,
-					"cipher":       cipher,
-					"publicKey":    client.PublicKey,
-					"allowedIPs":   client.AllowedIPs,
-					"preSharedKey": client.PreSharedKey,
-					"keepAlive":    keepAliveStr(client.KeepAliveSeconds()),
-					"reverse":      client.Reverse,
-				})
+				err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&client, cipher))
 				if err1 == nil {
 					logger.Debug("Client added on", rt.Name(), ":", client.Email)
 				} else {
@@ -810,6 +830,12 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	// forward so the settings JSON and the running peer keep the client's identity.
 	if (oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG) && clientIndex >= 0 && clientIndex < len(oldClients) {
 		old := oldClients[clientIndex]
+		if clients[0].WireguardDevices == nil {
+			clients[0].WireguardDevices = model.CloneWireguardDevices(old.WireguardDevices)
+		}
+		if clients[0].WgDeviceLimit == 0 {
+			clients[0].WgDeviceLimit = old.WgDeviceLimit
+		}
 		if clients[0].PrivateKey == "" {
 			clients[0].PrivateKey = old.PrivateKey
 		}
@@ -831,7 +857,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					if i == clientIndex {
 						continue
 					}
-					peers = append(peers, oldClients[i].AllowedIPs...)
+					peers = append(peers, model.WireguardAllowedIPs(oldClients[i])...)
 				}
 				if entry, taken := wireguardAllowedIPsOverlap(withoutKeptDefaultRoutes(normalized, old.AllowedIPs), peers); taken != "" {
 					return false, common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by another client")
@@ -850,7 +876,22 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			clients[0].ForwardedPorts = old.ForwardedPorts
 		}
 	}
-	if err := validateAmneziaWGClientWrite(oldInbound, clients); err != nil {
+	if oldInbound.Protocol == model.WireGuard {
+		crossUsed, err := s.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, oldInbound.Id, map[string]struct{}{strings.ToLower(oldEmail): {}})
+		if err != nil {
+			return false, err
+		}
+		peers := make([]model.Client, 0, len(oldClients))
+		for i := range oldClients {
+			if i != clientIndex {
+				peers = append(peers, oldClients[i])
+			}
+		}
+		if err := validateWireguardDevices(oldInbound.Settings, peers, &clients[0], crossUsed); err != nil {
+			return false, err
+		}
+	}
+	if err := validateAmneziaWGClientWrite(oldInbound, clients, oldEmail); err != nil {
 		return false, err
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
@@ -905,6 +946,10 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				newMap["privateKey"] = clients[0].PrivateKey
 				newMap["publicKey"] = clients[0].PublicKey
 				newMap["allowedIPs"] = clients[0].AllowedIPs
+				if oldInbound.Protocol == model.WireGuard {
+					newMap["wireguardDevices"] = clients[0].WireguardDevices
+					newMap["wgDeviceLimit"] = clients[0].WgDeviceLimit
+				}
 				if clients[0].PreSharedKey != "" {
 					newMap["preSharedKey"] = clients[0].PreSharedKey
 				}
@@ -994,6 +1039,21 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
 		// Same re-check-inside-the-writer rule as AddInboundClient (#6225):
 		// the pre-tx pass can race a concurrent writer on another inbound.
+		if oldInbound.Protocol == model.WireGuard {
+			crossUsed, err := s.otherTunnelAllowedIPs(tx, inboundSvc, oldInbound.Id, map[string]struct{}{strings.ToLower(oldEmail): {}})
+			if err != nil {
+				return err
+			}
+			others := make([]model.Client, 0, len(oldClients))
+			for i := range oldClients {
+				if i != clientIndex {
+					others = append(others, oldClients[i])
+				}
+			}
+			if err := validateWireguardDevices(oldInbound.Settings, others, &clients[0], crossUsed); err != nil {
+				return err
+			}
+		}
 		if oldInbound.Protocol == model.AmneziaWG {
 			txPortCtx, pErr := inboundSvc.loadPortConflictContext(tx, oldInbound.NodeID)
 			if pErr != nil {
@@ -1072,6 +1132,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if e := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email).Error; e != nil {
 					return e
 				}
+				if e := renameClientHistoryTx(tx, oldEmail, clients[0].Email, clientChangeSourcePanel); e != nil {
+					return e
+				}
 			}
 		}
 		// detachEmails covers the rename the guard above refused: the old record
@@ -1121,20 +1184,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					if oldInbound.Protocol == "shadowsocks" {
 						cipher, _ = oldSettings["method"].(string)
 					}
-					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":        clients[0].Email,
-						"id":           clients[0].ID,
-						"security":     clients[0].Security,
-						"flow":         clients[0].Flow,
-						"auth":         clients[0].Auth,
-						"password":     clients[0].Password,
-						"cipher":       cipher,
-						"publicKey":    clients[0].PublicKey,
-						"allowedIPs":   clients[0].AllowedIPs,
-						"preSharedKey": clients[0].PreSharedKey,
-						"keepAlive":    keepAliveStr(clients[0].KeepAliveSeconds()),
-						"reverse":      clients[0].Reverse,
-					})
+					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&clients[0], cipher))
 					if err1 == nil {
 						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
 					} else {
@@ -1427,6 +1477,7 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 // SyncInbound over a stale sibling would revert the edit in the normalized
 // records (#5039).
 func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
+	defer watchClientChanges(clientChangeSourceTgbot, clientEmail).record()
 	inboundIds, err := s.GetInboundIdsForEmail(database.GetDB(), clientEmail)
 	if err != nil {
 		return false, err
@@ -1504,9 +1555,31 @@ func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, cl
 	})
 }
 
+// renewalReenableFor projects the post-renewal limits for a single-field
+// renewal (nil side keeps the stored limit; no row means no quota state).
+func (s *ClientService) renewalReenableFor(email string, setExpiry *int64, setTotal *int64) bool {
+	total, expiry, ok := storedTrafficLimits(email)
+	if !ok {
+		return false
+	}
+	if setExpiry != nil {
+		expiry = *setExpiry
+	}
+	if setTotal != nil {
+		total = *setTotal
+	}
+	return s.renewalReenables(email, total, expiry)
+}
+
 func (s *ClientService) ResetClientExpiryTimeByEmail(inboundSvc *InboundService, clientEmail string, expiry_time int64) (bool, error) {
+	reenable := s.renewalReenableFor(clientEmail, &expiry_time, nil)
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
 		c["expiryTime"] = expiry_time
+		if reenable {
+			// A renewed client that the quota loop had switched off comes back
+			// with the renewal instead of waiting for a manual enable (#5619).
+			c["enable"] = true
+		}
 	})
 }
 
@@ -1514,7 +1587,12 @@ func (s *ClientService) ResetClientTrafficLimitByEmail(inboundSvc *InboundServic
 	if totalGB < 0 {
 		return false, common.NewError("totalGB must be >= 0")
 	}
+	newTotal := int64(totalGB) * 1024 * 1024 * 1024
+	reenable := s.renewalReenableFor(clientEmail, nil, &newTotal)
 	return s.applyClientFieldByEmail(inboundSvc, clientEmail, func(c map[string]any) {
-		c["totalGB"] = totalGB * 1024 * 1024 * 1024
+		c["totalGB"] = newTotal
+		if reenable {
+			c["enable"] = true
+		}
 	})
 }

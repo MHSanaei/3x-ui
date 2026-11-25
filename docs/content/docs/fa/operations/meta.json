@@ -3,6 +3,7 @@
   "icon": "ServerCog",
   "pages": [
     "reverse-proxy",
+    "system-monitoring",
     "multi-node",
     "outbounds-routing",
     "backup-restore",

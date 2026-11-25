@@ -47,6 +47,33 @@ production-style links work without round-tripping through Go.
 CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and
 `build-storybook` on every PR (see `../.github/workflows/ci.yml`).
 
+### Inbound accessibility verification
+
+`npm test` includes the real inbound form and native-select regression fixtures.
+After `npm run build-storybook`, serve the built stories with
+`npx vite preview --outDir storybook-static --host 127.0.0.1 --port 6006` and, in
+another terminal, run `node tools/check-inbound-keyboard.mjs`. CI runs this check
+too. It uses real Chromium Tab/Arrow/Enter input, checks native selected values
+in the accessibility tree, captures create/edit requests, and verifies focus
+containment and return. Its HTTP boundary is stubbed; backend configuration
+generation and server validation are unchanged.
+
+Mobile viewport emulation and accessibility-tree checks do not prove TalkBack
+or NVDA compatibility. On actual Android TalkBack/Chrome and Windows NVDA:
+
+1. Open Add Inbound, explore Protocol, open the native picker, choose Shadowsocks
+   and confirm the control announces its selected value. Cancel another picker
+   and confirm the value and focus stay unchanged.
+2. Visit Protocol, select an encryption method, then Stream; choose RAW,
+   WebSocket, gRPC and XHTTP and verify the dependent fields and their labels.
+3. Check Security's None/TLS/REALITY radios; try certificate/uTLS selections and
+   the ALPN multi-select, searchable node/fallback fields, clearing and custom tags.
+4. Trigger a custom-share-address validation error from another tab. Confirm
+   the form reveals/focuses the field and reads its hint/error. Correct it and save.
+5. Edit the inbound, confirm Protocol remains disabled, save a transport change,
+   and close/reopen with keyboard and touch exploration. Focus must return to
+   the opener and Tab/Shift+Tab must stay inside the open dialog.
+
 ### One-off: scan for deprecated APIs
 
 Run this command to sweep the codebase for usages of APIs marked

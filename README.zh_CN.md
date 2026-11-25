@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (许可证: **MIT**): _3x-ui 的原生 Android 客户端 — 仪表板、入站、带二维码分享的客户端、节点以及多面板管理。可在 F-Droid 获取。_
+- [3x-ui-exporter](https://github.com/nike38rus/3x-ui-exporter) (许可证: **MIT**): _适用于 3x-ui 和 Xray Core 的轻量级 Prometheus 导出器和 Grafana 仪表板 — 实时流量吞吐、活跃客户端、打开的套接字、负载均衡器和延迟健康状况。_
 
 ## 支持项目
 

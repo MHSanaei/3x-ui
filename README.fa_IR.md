@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (مجوز: **MIT**): _مدیریت اینباندها، کلاینت‌ها، تنظیمات پنل و پیکربندی Xray به‌صورت کد با Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (مجوز: **MIT**): _کلاینت بومی اندروید برای 3x-ui — داشبورد، اینباندها، کلاینت‌ها با اشتراک‌گذاری QR، نودها و مدیریت چند پنل. در F-Droid در دسترس است._
+- [3x-ui-exporter](https://github.com/nike38rus/3x-ui-exporter) (مجوز: **MIT**): _اکسپورتر سبک Prometheus و داشبورد Grafana برای 3x-ui و Xray Core — نرخ ترافیک لحظه‌ای، کلاینت‌های فعال، سوکت‌های باز، بالانسرها و وضعیت تأخیر._
 
 ## پشتیبانی از پروژه
 

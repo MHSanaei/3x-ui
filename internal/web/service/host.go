@@ -409,6 +409,39 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	return desired, nil
 }
 
+// MoveInboundSni follows a REALITY inbound to a new SNI: a Host's own SNI overrides serverNames in
+// links. Only this inbound's rows change, because a shared group's other inbounds keep their target.
+func (s *HostService) MoveInboundSni(inboundId int, oldNames []string, newSni string) error {
+	move := func(sni string) string {
+		if slices.Contains(oldNames, sni) {
+			return newSni
+		}
+		return sni
+	}
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var rows []*model.Host
+		if err := tx.Where("inbound_id = ? AND security IN ?", inboundId, []string{"", "same", "reality"}).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, h := range rows {
+			sni := move(h.Sni)
+			pool := make([]string, 0, len(h.Snis))
+			for _, name := range h.Snis {
+				pool = append(pool, move(name))
+			}
+			pool = cleanSnis(pool)
+			if sni == h.Sni && slices.Equal(pool, h.Snis) {
+				continue
+			}
+			h.Sni, h.Snis = sni, pool
+			if err := tx.Save(h).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (s *HostService) DeleteHostGroup(groupId string) error {
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
 		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)

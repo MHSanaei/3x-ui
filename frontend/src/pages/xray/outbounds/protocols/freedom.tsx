@@ -6,6 +6,7 @@ import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
 import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
+import { LOG_LEVELS } from '@/pages/xray/basics/constants';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundDomainStrategies } from '@/schemas/primitives';
 
@@ -220,7 +221,14 @@ export default function FreedomFields() {
           icon={<PlusOutlined aria-hidden />}
           aria-label={t('add')}
           onClick={() =>
-            appendFinalRule({ action: 'allow', network: '', port: '', ip: [], blockDelay: '' })
+            appendFinalRule({
+              action: 'allow',
+              network: '',
+              port: '',
+              ip: [],
+              delay: '',
+              logLevel: '',
+            })
           }
         />
         <span className="ml-8" style={{ opacity: 0.6 }}>
@@ -281,12 +289,24 @@ export default function FreedomFields() {
             />
           </FormField>
           {finalRulesValues[index]?.action === 'block' && (
-            <FormField
-              label={t('pages.xray.outboundForm.blockDelay')}
-              name={['settings', 'finalRules', index, 'blockDelay']}
-            >
-              <Input placeholder="optional: 5000-10000" />
-            </FormField>
+            <>
+              <FormField
+                label={t('pages.xray.outboundForm.blockDelay')}
+                name={['settings', 'finalRules', index, 'delay']}
+              >
+                <Input placeholder="optional: 5000-10000" />
+              </FormField>
+              <FormField
+                label={t('pages.xray.logLevel')}
+                name={['settings', 'finalRules', index, 'logLevel']}
+              >
+                <Select
+                  allowClear
+                  placeholder="info"
+                  options={LOG_LEVELS.map((v) => ({ value: v, label: v }))}
+                />
+              </FormField>
+            </>
           )}
         </div>
       ))}

@@ -282,7 +282,7 @@ func withoutKeptDefaultRoutes(entries, stored []string) []string {
 func defaultWireguardClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	used := make([]string, 0)
 	for i := range existing {
-		used = append(used, existing[i].AllowedIPs...)
+		used = append(used, model.WireguardAllowedIPs(existing[i])...)
 	}
 	base := explicitWireguardSubnetBase(settingsJSON)
 	if base == "" {
@@ -329,13 +329,19 @@ func defaultWireguardClients(settingsJSON string, existing, clients []model.Clie
 			}
 			c.AllowedIPs = normalized
 		}
-		used = append(used, c.AllowedIPs...)
+		others := append(append([]model.Client(nil), existing...), clients[:i]...)
+		if err := validateWireguardDevices(settingsJSON, others, c, crossInboundUsed); err != nil {
+			return err
+		}
+		used = append(used, model.WireguardAllowedIPs(*c)...)
 
 		if i < len(interfaceClients) {
 			if m, ok := interfaceClients[i].(map[string]any); ok {
 				m["privateKey"] = c.PrivateKey
 				m["publicKey"] = c.PublicKey
 				m["allowedIPs"] = c.AllowedIPs
+				m["wireguardDevices"] = c.WireguardDevices
+				m["wgDeviceLimit"] = c.WgDeviceLimit
 				if c.PreSharedKey != "" {
 					m["preSharedKey"] = c.PreSharedKey
 				}

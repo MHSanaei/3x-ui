@@ -63,6 +63,12 @@ file locations when it can answer in one hop.
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.
+  - `mcp/` — MCP server at `POST /panel/api/mcp` (official go-sdk, stateless).
+    Tools never call services: each re-enters the router via `dispatcher.call`
+    with the caller's credentials, so auth, scopes and `runtime.Runtime` apply.
+    One file per toolset (`tools_<set>.go`, `?toolsets=` filter); every tool
+    needs a `toolCase`, or `TestToolsHitDocumentedRoutes` fails. Niche routes
+    stay reachable through `call_api` instead of getting their own tool.
   - `locale/` + `translation/` — i18n, 14 embedded locale JSON files.
 - `frontend/` — React + TS source (see `frontend/CLAUDE.md`).
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
@@ -194,9 +200,11 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
 `make vulncheck`, a live-Postgres job (where a SKIP counts as a failure),
-`make node-e2e` (a real master and node panel, `internal/nodee2e/`) and a
-30s fuzz smoke on `FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when
-you touch DB/dialect, node sync or parser code. Node sync has two layers: every
+`make node-e2e` (a real master and node panel, `internal/nodee2e/`),
+`make xray-e2e` (the `XRAY_E2E_BINARY` tests against the core pinned in `go.mod`,
+run as a real child process) and a 30s fuzz smoke on
+`FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when you touch
+DB/dialect, node sync, the Xray gRPC API or hot apply, or parser code. Node sync has two layers: every
 `runtime.Remote` call gets a cell in `internal/web/node_contract_test.go` (fast,
 in `make test-go`; a method without one fails it), and a multi-tick flow (cron,
 adopt, node down) gets one in `internal/nodee2e/node_sync_test.go`.

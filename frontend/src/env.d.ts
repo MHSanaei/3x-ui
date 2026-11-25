@@ -14,11 +14,13 @@ interface SubPageData {
   subUrl?: string;
   subJsonUrl?: string;
   subClashUrl?: string;
+  subFormat?: 'raw' | 'json' | 'clash';
   subTitle?: string;
   subSupportUrl?: string;
   subUpdates?: number;
   links?: string[];
   emails?: string[];
+  linkRemarks?: string[];
   datepicker?: 'gregorian' | 'jalalian';
   announce?: string;
   downloadByte?: string | number;

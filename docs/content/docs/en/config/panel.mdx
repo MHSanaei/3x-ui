@@ -49,6 +49,87 @@ can obtain a Let's Encrypt certificate for you — or terminate TLS at a
 | `timeLocation`   | `Local`                                          | Time zone for stats and expiry.                               |
 | `datepicker`     | `gregorian`                                      | Calendar for date inputs (Gregorian or Jalali/Persian).       |
 
+## Network traffic interface
+
+In **Settings → General → Panel settings**, use **Network Traffic Interface**
+to select the source of system traffic totals and throughput. It does not change
+Xray client quotas, client billing counters, or inbound traffic accounting.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `networkTrafficMode` | `legacy` | `legacy`, `auto`, or `manual`. |
+| `networkTrafficInterface` | _(empty)_ | Exact interface name used in manual mode, such as `eth0`, `ens3`, or `enP6129s1`. |
+
+- **All interfaces (Legacy)** remains the default on new installations and upgrades.
+  It sums the same interfaces as before, excluding the existing loopback and virtual
+  interface prefixes. Stacked interfaces, such as Azure's synthetic interface and
+  its SR-IOV function, can represent the same traffic and be counted twice.
+- **Automatic** reads Linux's main routing table through netlink without executing
+  shell commands or sending network probes. Among usable default routes, IPv4 is
+  preferred to IPv6. The lowest route metric wins within that family; equal metrics
+  use the interface name as a deterministic tie-breaker. IPv6-only systems use their
+  IPv6 default route. ECMP also selects a single usable next hop.
+  Only the selected interface is counted, including virtual
+  interfaces when the default route uses one. Policy-routing tables and
+  destination-specific route selection are outside this primary-route heuristic.
+- **Manual** lists interfaces dynamically and counts only the exact selected name.
+  Explicit selections bypass the legacy virtual-interface exclusions. The backend
+  validates that a newly selected interface exists when settings are saved.
+  An unchanged saved selection may remain unavailable, so unrelated settings can
+  still be edited while the interface is absent.
+
+![Manual network traffic interface selection](/images/network-traffic-interface.png)
+
+![Automatic default-route interface resolution](/images/network-traffic-automatic.png)
+
+These screenshots render the settings component locally with example interface names.
+
+Automatic detection runs on each status collection, normally every two seconds,
+so route changes take effect on the next sample. If detection fails, a selected
+interface disappears, or counters cannot be read, the network metrics are marked
+unavailable. The dashboard and bot reports show this state, and histories omit
+unavailable samples. No other interface or aggregation mode is substituted.
+When the interface returns, normal collection resumes automatically.
+
+Speed and packet-rate calculations start from a new baseline after a mode change,
+interface change, detected device recreation, counter decrease/reset, or a failed
+sample. The first comparable sample resumes normal rates. Totals remain the
+selected kernel counters, rather than monthly billing totals; existing history
+can contain samples collected under previous interface selections.
+
+Each panel, including a sub-node, selects interfaces in its own network namespace.
+In a Docker bridge network these are container interfaces, not host-wide traffic.
+Host interfaces are visible only when the deployment shares the host network
+namespace. Reading interfaces, routes, and counters requires no `CAP_NET_ADMIN`,
+firewall rules, nftables setup, Python process, or additional daemon. The existing
+Docker capabilities needed by other features are unrelated to this setting.
+
+Legacy and manual modes remain available on supported non-Linux platforms.
+Automatic mode currently requires Linux; other platforms show an explicit
+detection error and should use manual or legacy mode.
+
+Settings persist in the existing key/value settings table; no schema migration is
+needed. Database backups retain the selection. **Keep this machine's settings** on
+import preserves the destination panel's selection, including a missing setting
+that uses the legacy default. An imported manual interface that does not exist
+is reported as unavailable rather than replaced.
+
+Older settings API clients that omit the new fields preserve the current selection.
+Send an explicit `networkTrafficMode: "legacy"` to restore legacy aggregation.
+
+Authenticated administrators can list interfaces with
+`GET /panel/api/server/networkInterfaces`. It uses the existing response envelope
+and returns interface names/up state plus the automatic choice or detection error.
+Status responses retain `netTraffic` and `netIO` and add `networkInterface`
+(`mode`, `name`, `available`, `error`), together with the existing
+`unavailableMetrics` list when collection fails. Older status responses without
+this metadata remain compatible.
+
+The default-route selection approach was inspired by
+[IPv6Monitor](https://github.com/HamedSanaei/ipv6monitor). Its Python daemon,
+database, and nftables accounting are not used. Separate IPv4/IPv6 traffic counters
+are outside this feature's scope: the selected interface's counters include both.
+
 ## Security & authentication
 
 Credentials, two-factor auth, the brute-force limiter, sessions, and LDAP are
