@@ -450,6 +450,7 @@ func (a *SUBController) maybeServeSubInfo(c *gin.Context) bool {
 	}
 	info := a.subPageContext(page)
 	delete(info, "links")
+	delete(info, "linkRemarks")
 	delete(info, "subFormat")
 	info["emails"] = dedupeEmails(page.Emails)
 	c.JSON(http.StatusOK, info)
@@ -462,6 +463,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subReq := a.subService.ForRequest(host)
 	subReq.wireguardDevice = c.Query("wgDevice")
 	subReq.subscriptionBody = false
+	subReq.linkRemarks = map[string]string{}
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
 	if err != nil || subs == nil {
 		writeSubError(c, err)
@@ -746,6 +748,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"subUpdates":    updateHours,
 		"links":         page.Result,
 		"emails":        page.Emails,
+		"linkRemarks":   page.LinkRemarks,
 		"datepicker":    datepicker,
 		"announce":      page.SubAnnounce,
 	}

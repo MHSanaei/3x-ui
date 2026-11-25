@@ -2,6 +2,7 @@ import { fireEvent, render, within } from '@testing-library/react';
 import { QRCode } from 'antd';
 import { describe, expect, it, vi } from 'vitest';
 
+import SubConfigsTab from '@/pages/sub/SubConfigsTab';
 import SubLinksTab from '@/pages/sub/SubLinksTab';
 import { renderWithProviders } from './test-utils';
 
@@ -77,5 +78,23 @@ describe('SubLinksTab inline QR card', () => {
     const card = view.container.querySelector('.sub-qr-card') as HTMLElement;
     expect(card.querySelector('.sub-qr-code svg')?.innerHTML).toBe(expectedQrMarkup(SUB_URL));
     expect(card.querySelector('.ant-segmented')).toBeNull();
+  });
+});
+
+describe('SubConfigsTab row titles (#7198)', () => {
+  it('names a remark-less tg://proxy row from linkRemarks at its own index', () => {
+    const links = [
+      'vless://11111111-1111-4111-8111-111111111111@h.example.com:443?type=tcp#DE-alice',
+      'tg://proxy?server=203.0.113.7&port=8443&secret=ee00',
+      'tg://proxy?server=203.0.113.8&port=8443&secret=ee11',
+    ];
+    const view = renderWithProviders(
+      <SubConfigsTab links={links} linkRemarks={['', 'mt-sub-user', '']} onCopy={vi.fn()} />,
+    );
+
+    const titles = [...view.container.querySelectorAll('.sub-row-title')].map(
+      (el) => el.textContent,
+    );
+    expect(titles).toEqual(['DE-alice', 'mt-sub-user', 'Link 3']);
   });
 });

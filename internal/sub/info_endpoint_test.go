@@ -175,3 +175,68 @@ func TestSubPageDataNamesTheFormatOfTheVisitedRoute(t *testing.T) {
 		})
 	}
 }
+
+// tg://proxy links carry no #remark, so the page data must name the MTProto row
+// at the link's own index and leave self-named links empty (#7198).
+func TestSubPage_MtprotoRowCarriesInboundRemark(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initSubDB(t)
+	seedInfoEndpointSub(t, "mt-page", "user")
+	db := database.GetDB()
+	inbound := &model.Inbound{
+		Listen: "203.0.113.7", Port: 8443, Protocol: model.MTProto, Enable: true,
+		Tag: "mt-page", Remark: "mt-sub",
+		Settings: `{"fakeTlsDomain":"www.cloudflare.com","clients":[{"email":"user","enable":true,"subId":"mt-page","secret":"` + mtprotoTestSecret + `"}]}`,
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	var client model.ClientRecord
+	if err := db.Where("email = ?", "user").First(&client).Error; err != nil {
+		t.Fatalf("load client: %v", err)
+	}
+	if err := db.Model(&client).Update("secret", mtprotoTestSecret).Error; err != nil {
+		t.Fatalf("set secret: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: inbound.Id}).Error; err != nil {
+		t.Fatalf("attach client: %v", err)
+	}
+	oldDistFS := distFS
+	distFS = testDistFS
+	t.Cleanup(func() { distFS = oldDistFS })
+
+	router := gin.New()
+	NewSUBController(router.Group("/"))
+	req := httptest.NewRequest(http.MethodGet, "/sub/mt-page", nil)
+	req.Host = "sub.example.com"
+	req.Header.Set("Accept", "text/html")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	_, rest, found := strings.Cut(w.Body.String(), "window.__SUB_PAGE_DATA__=")
+	raw, _, closed := strings.Cut(rest, ";</script>")
+	if w.Code != http.StatusOK || !found || !closed {
+		t.Fatalf("status = %d, page data not found; body=%s", w.Code, w.Body.String())
+	}
+	var page struct {
+		Links       []string `json:"links"`
+		LinkRemarks []string `json:"linkRemarks"`
+	}
+	if err := json.Unmarshal([]byte(raw), &page); err != nil {
+		t.Fatalf("page data is not valid JSON: %v; data=%s", err, raw)
+	}
+	want := make([]string, len(page.Links))
+	mtproto := 0
+	for i, link := range page.Links {
+		if strings.HasPrefix(link, "tg://proxy") {
+			want[i] = "mt-sub-user"
+			mtproto++
+		}
+	}
+	if mtproto != 1 || len(page.Links) != 2 {
+		t.Fatalf("links = %q, want one tg://proxy link and one external link", page.Links)
+	}
+	if len(page.LinkRemarks) != len(want) || page.LinkRemarks[0] != want[0] || page.LinkRemarks[1] != want[1] {
+		t.Fatalf("linkRemarks = %q, want %q for links %q", page.LinkRemarks, want, page.Links)
+	}
+}
