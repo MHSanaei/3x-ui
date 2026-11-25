@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -319,6 +320,39 @@ func (p *Process) SetConfig(config *Config) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.config = config
+}
+
+// PutInbound records an inbound a runtime op placed in the running core, so the next
+// reconcile compares against it instead of adding the tag a second time.
+func (p *Process) PutInbound(inbound *InboundConfig) {
+	p.editInbounds(func(inbounds []InboundConfig) []InboundConfig {
+		for i := range inbounds {
+			if inbounds[i].Tag == inbound.Tag {
+				inbounds[i] = *inbound
+				return inbounds
+			}
+		}
+		return append(inbounds, *inbound)
+	})
+}
+
+// DropInbound records that a runtime op removed the tag's inbound from the running core.
+func (p *Process) DropInbound(tag string) {
+	p.editInbounds(func(inbounds []InboundConfig) []InboundConfig {
+		return slices.DeleteFunc(inbounds, func(inbound InboundConfig) bool { return inbound.Tag == tag })
+	})
+}
+
+// editInbounds swaps in a copy: readers keep the snapshot GetConfig handed them.
+func (p *Process) editInbounds(edit func([]InboundConfig) []InboundConfig) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.config == nil {
+		return
+	}
+	next := *p.config
+	next.InboundConfigs = edit(slices.Clone(p.config.InboundConfigs))
+	p.config = &next
 }
 
 // PersistConfig writes the current configuration snapshot to the config file,

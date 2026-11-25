@@ -178,7 +178,8 @@ near-certain about and that actually breaks something:
 - "CI passed" is a claim too, and needs the same evidence: say it only of a
   run you actually read. A green one proves less here than it looks — only
   `postgres-durable-first` runs against PostgreSQL, `go-test` and `race` are
-  SQLite, and `XRAY_E2E_BINARY` and `XUI_SCALE_TEST` are set by no job, so
+  SQLite, only `xray-e2e` starts the real core (the gRPC API and hot-apply
+  tests skip in every other job), and `XUI_SCALE_TEST` is set by no job, so
   those tests have never run in CI at all. Where a change touches dialect,
   migration or Xray gRPC code that no job exercised, say it is unverified
   rather than repeating a green tick as proof.
