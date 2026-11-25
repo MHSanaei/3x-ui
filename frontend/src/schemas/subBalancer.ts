@@ -7,6 +7,7 @@ export const SubBalancerProblemCodeSchema = z.enum([
   'unknown_inbound',
   'disabled_inbound',
   'json_incapable_protocol',
+  'inbound_without_clients',
   'no_members',
 ]);
 export type SubBalancerProblemCode = z.infer<typeof SubBalancerProblemCodeSchema>;

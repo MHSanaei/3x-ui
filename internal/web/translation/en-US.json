@@ -1859,7 +1859,8 @@
           "unknown_inbound": "Inbound no longer exists",
           "disabled_inbound": "Inbound is disabled",
           "json_incapable_protocol": "Protocol has no JSON outbound, so it cannot be a member",
-          "no_members": "No usable member: the balancer is omitted from the JSON subscription"
+          "no_members": "No usable member: the balancer is omitted from the JSON subscription",
+          "inbound_without_clients": "Inbound has no clients, so it reaches no subscription"
         },
         "weights": "Member weights",
         "weightsHelp": "Only for LeastLoad: a lower weight is picked more often; members without a value weigh 1.",

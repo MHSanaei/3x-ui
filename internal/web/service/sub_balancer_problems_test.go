@@ -8,11 +8,38 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// seedDiagInbound inserts one inbound with the columns the diagnosis reads.
+// seedDiagInbound inserts one inbound with the columns the diagnosis reads, plus
+// one client on it: an inbound nobody sits on is its own (separately tested)
+// advisory, so tests aimed at other codes must not trip it.
 func seedDiagInbound(t *testing.T, id int, protocol model.Protocol, enable bool) {
 	t.Helper()
 	ib := &model.Inbound{
 		Id: id, UserId: 1, Tag: fmt.Sprintf("diag-%d", id), Enable: enable,
+		Listen: "203.0.113.9", Port: 4000 + id, Protocol: protocol,
+		Remark: fmt.Sprintf("diag-%d", id), Settings: `{}`, StreamSettings: `{}`,
+	}
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound %d: %v", id, err)
+	}
+	client := &model.ClientRecord{
+		Email: fmt.Sprintf("diag-%d@test", id), SubID: fmt.Sprintf("diag%d", id), Enable: true,
+	}
+	if err := database.GetDB().Create(client).Error; err != nil {
+		t.Fatalf("seed client %d: %v", id, err)
+	}
+	if err := database.GetDB().Create(&model.ClientInbound{
+		ClientId: client.Id, InboundId: id,
+	}).Error; err != nil {
+		t.Fatalf("link client %d: %v", id, err)
+	}
+}
+
+// seedDiagInboundWithoutClients inserts only the inbound row, leaving
+// client_inbounds empty for it.
+func seedDiagInboundWithoutClients(t *testing.T, id int, protocol model.Protocol) {
+	t.Helper()
+	ib := &model.Inbound{
+		Id: id, UserId: 1, Tag: fmt.Sprintf("diag-%d", id), Enable: true,
 		Listen: "203.0.113.9", Port: 4000 + id, Protocol: protocol,
 		Remark: fmt.Sprintf("diag-%d", id), Settings: `{}`, StreamSettings: `{}`,
 	}
@@ -135,8 +162,10 @@ func TestDiagnoseSubBalancerOrderAndNoMembers(t *testing.T) {
 		1: {Id: 1, Protocol: model.VLESS, Enable: true},
 		2: {Id: 2, Protocol: model.VLESS, Enable: false},
 	}
+	// Inbound 1 has a client, so it still contributes and no_members stays away.
+	clientCounts := map[int]int{1: 3}
 	bal := &model.SubBalancer{Id: 7, Remark: "pure", InboundIds: []int{42, 2, 1, 41}}
-	problems := diagnoseSubBalancer(bal, byID)
+	problems := diagnoseSubBalancer(bal, byID, clientCounts)
 	if diff := wantCodes(problemCodes(problems), SubBalancerProblemUnknownInbound, SubBalancerProblemDisabledInbound); diff != "" {
 		t.Fatal(diff)
 	}
@@ -145,8 +174,33 @@ func TestDiagnoseSubBalancerOrderAndNoMembers(t *testing.T) {
 	}
 
 	allDisabled := &model.SubBalancer{Id: 8, Remark: "off", InboundIds: []int{2}}
-	problems = diagnoseSubBalancer(allDisabled, byID)
+	problems = diagnoseSubBalancer(allDisabled, byID, clientCounts)
 	if diff := wantCodes(problemCodes(problems), SubBalancerProblemDisabledInbound, SubBalancerProblemNoMembers); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+// An enabled, renderable inbound nobody sits on reaches no subscription at all:
+// the balancer drops out for every client, which is the very silence #7013 is
+// about, so it must be reported instead of counted as contributing.
+func TestSubBalancerProblemsInboundWithoutClients(t *testing.T) {
+	setupSubBalancerDB(t)
+	// Seeding only the inbound leaves client_inbounds empty.
+	seedDiagInboundWithoutClients(t, 1, model.VLESS)
+
+	svc := &SubBalancerService{}
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "empty", Strategy: "random", InboundIds: []int{1}, SortOrder: 1, Enabled: true,
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	list, err := svc.ListWithProblems()
+	if err != nil {
+		t.Fatalf("ListWithProblems: %v", err)
+	}
+	got := problemCodes(list[0].Problems)
+	if diff := wantCodes(got, SubBalancerProblemInboundWithoutClients, SubBalancerProblemNoMembers); diff != "" {
 		t.Fatal(diff)
 	}
 }

@@ -1859,7 +1859,8 @@
           "unknown_inbound": "Inbound už neexistuje",
           "disabled_inbound": "Inbound je vypnutý",
           "json_incapable_protocol": "Protokol nemá JSON outbound, preto nemôže byť členom",
-          "no_members": "Žiadny použiteľný člen: balancer je vynechaný z JSON odberu"
+          "no_members": "Žiadny použiteľný člen: balancer je vynechaný z JSON odberu",
+          "inbound_without_clients": "Inbound nemá žiadnych klientov, preto sa nedostane do žiadneho odberu"
         },
         "weights": "Váhy členov",
         "weightsHelp": "Iba pre LeastLoad: nižšia váha znamená častejší výber. Bez zadanej hodnoty má člen váhu 1.",

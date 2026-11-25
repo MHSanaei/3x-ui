@@ -23,6 +23,9 @@ const (
 	// SubBalancerProblemNoMembers: none of the selected inbounds can contribute
 	// a member, so the balancer is omitted from the JSON subscription.
 	SubBalancerProblemNoMembers = "no_members"
+	// SubBalancerProblemInboundWithoutClients: the inbound is enabled and
+	// renderable but no client sits on it, so it reaches no subscription at all.
+	SubBalancerProblemInboundWithoutClients = "inbound_without_clients"
 )
 
 // SubBalancerProblem reports one reason a balancer cannot emit the members an
@@ -69,22 +72,24 @@ func (s *SubBalancerService) ListWithProblems() ([]*SubBalancerWithProblems, err
 	for _, b := range balancers {
 		ids = append(ids, b.InboundIds...)
 	}
-	byID, err := loadBalancerMemberInbounds(ids)
+	byID, clientCounts, err := loadBalancerMemberInbounds(ids)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*SubBalancerWithProblems, 0, len(balancers))
 	for _, b := range balancers {
-		problems := diagnoseSubBalancer(b, byID)
+		problems := diagnoseSubBalancer(b, byID, clientCounts)
 		out = append(out, &SubBalancerWithProblems{SubBalancer: *b, Problems: problems})
 	}
 	return out, nil
 }
 
 // loadBalancerMemberInbounds fetches only the columns the diagnosis needs;
-// settings blobs would be decoded for nothing.
-func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, error) {
+// settings blobs would be decoded for nothing. clientCounts comes from one
+// grouped query, because an inbound nobody sits on reaches no subscription.
+func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int, error) {
 	byID := map[int]*model.Inbound{}
+	clients := map[int]int{}
 	unique := make([]int, 0, len(ids))
 	for _, id := range ids {
 		if !slices.Contains(unique, id) {
@@ -92,29 +97,45 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, error) {
 		}
 	}
 	if len(unique) == 0 {
-		return byID, nil
+		return byID, clients, nil
 	}
 	var inbounds []*model.Inbound
 	err := database.GetDB().Model(&model.Inbound{}).
 		Select("id", "protocol", "enable").
 		Where("id IN ?", unique).Find(&inbounds).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, ib := range inbounds {
 		byID[ib.Id] = ib
 	}
-	return byID, nil
+
+	var counts []struct {
+		InboundId int
+		Total     int
+	}
+	err = database.GetDB().Model(&model.ClientInbound{}).
+		Select("inbound_id, COUNT(*) AS total").
+		Where("inbound_id IN ?", unique).
+		Group("inbound_id").Scan(&counts).Error
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, c := range counts {
+		clients[c.InboundId] = c.Total
+	}
+	return byID, clients, nil
 }
 
 // diagnoseSubBalancer groups per-inbound problems by code in selection order,
 // then appends no_members when nothing could be emitted. Disabled inbounds the
 // subscription hides entirely still resolve when every client is enabled, so
 // disabling is advisory; a hidden inbound is never advisory on its own.
-func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound) []SubBalancerProblem {
+func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clientCounts map[int]int) []SubBalancerProblem {
 	unknown := []int{}
 	disabled := []int{}
 	incapable := []int{}
+	empty := []int{}
 	incapableDetail := ""
 	contributing := 0
 	for _, id := range b.InboundIds {
@@ -134,9 +155,15 @@ func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound) []Su
 			}
 			continue
 		}
+		if clientCounts[id] == 0 {
+			// Renderable but unreachable: with no client on it the inbound never
+			// enters any subscription, so the balancer drops out for everyone.
+			empty = append(empty, id)
+			continue
+		}
 		contributing++
 	}
-	problems := make([]SubBalancerProblem, 0, 4)
+	problems := make([]SubBalancerProblem, 0, 5)
 	if len(unknown) > 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemUnknownInbound, InboundIds: unknown})
 	}
@@ -145,6 +172,9 @@ func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound) []Su
 	}
 	if len(incapable) > 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemJSONIncapable, InboundIds: incapable, Detail: incapableDetail})
+	}
+	if len(empty) > 0 {
+		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemInboundWithoutClients, InboundIds: empty})
 	}
 	if contributing == 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemNoMembers})

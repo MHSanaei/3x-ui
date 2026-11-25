@@ -1738,7 +1738,8 @@
           "unknown_inbound": "O inbound não existe mais",
           "disabled_inbound": "O inbound está desativado",
           "json_incapable_protocol": "O protocolo não tem outbound JSON, então não pode ser membro",
-          "no_members": "Nenhum membro utilizável: o balanceador é omitido da assinatura JSON"
+          "no_members": "Nenhum membro utilizável: o balanceador é omitido da assinatura JSON",
+          "inbound_without_clients": "O inbound não tem clientes, então não chega a nenhuma assinatura"
         },
         "weights": "Pesos dos membros",
         "weightsHelp": "Apenas para LeastLoad: peso menor é escolhido com mais frequência; membros sem valor têm peso 1.",

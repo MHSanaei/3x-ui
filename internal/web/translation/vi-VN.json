@@ -1738,7 +1738,8 @@
           "unknown_inbound": "Inbound không còn tồn tại",
           "disabled_inbound": "Inbound đang bị tắt",
           "json_incapable_protocol": "Giao thức không có outbound JSON nên không thể là thành viên",
-          "no_members": "Không có thành viên khả dụng: bộ cân bằng bị bỏ khỏi đăng ký JSON"
+          "no_members": "Không có thành viên khả dụng: bộ cân bằng bị bỏ khỏi đăng ký JSON",
+          "inbound_without_clients": "Inbound không có ứng dụng khách nên không xuất hiện trong đăng ký nào"
         },
         "weights": "Trọng số thành viên",
         "weightsHelp": "Chỉ dành cho LeastLoad: trọng số nhỏ hơn được chọn thường xuyên hơn; thành viên không có giá trị mang trọng số 1.",
