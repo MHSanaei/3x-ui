@@ -2,6 +2,7 @@
 // by POST /panel/api/clients/hwids/:email.
 export type ClientHwidInfo = {
   id: number;
+  blocked: boolean;
   firstSeen: number;
   lastSeen: number;
   userAgent: string;

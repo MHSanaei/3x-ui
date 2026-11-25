@@ -58,6 +58,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/get/subId/:subId", a.getBySubId)
 	g.GET("/get/tgId/:tgId", a.getByTgId)
 	g.GET("/traffic/:email", a.getTrafficByEmail)
+	g.GET("/usageHistory/:email", a.getUsageHistory)
 	g.GET("/subLinks/:subId", a.getSubLinks)
 	g.GET("/links/:email", a.getClientLinks)
 	g.POST("/happLink/:id", a.generateHappLink)
@@ -71,6 +72,11 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:email/attach", a.attach)
 	g.POST("/:email/detach", a.detach)
 	g.POST("/:email/externalLinks", a.setExternalLinks)
+	g.GET("/wireguardDevices", a.wireguardDevices)
+	g.POST("/wireguardDevices", a.addWireguardDevice)
+	g.PUT("/wireguardDevices/limit", a.setWireguardDeviceLimit)
+	g.PATCH("/wireguardDevices/:deviceId", a.updateWireguardDevice)
+	g.DELETE("/wireguardDevices/:deviceId", a.deleteWireguardDevice)
 	g.GET("/export", a.export)
 	g.POST("/import", a.importClients)
 	g.POST("/delOrphans", a.delOrphans)
@@ -91,6 +97,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/hwids/:email", a.getHwids)
 	g.DELETE("/hwids/:email", a.clearHwids)
 	g.DELETE("/hwids/:email/:id", a.deleteHwid)
+	g.POST("/hwids/:email/:id/block", a.setHwidBlocked)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/clientIpsByGuid", a.clientIpsByGuid)
@@ -679,6 +686,23 @@ func (a *ClientController) deleteHwid(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.clients.hwidDeleted"), nil)
 }
 
+func (a *ClientController) setHwidBlocked(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), errors.New("invalid device id"))
+		return
+	}
+	var body struct {
+		Blocked *bool `json:"blocked" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	err = a.clientService.SetClientHwidBlocked(c.Param("email"), id, *body.Blocked)
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+}
+
 func (a *ClientController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
@@ -704,6 +728,16 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 		return
 	}
 	jsonObj(c, traffic, nil)
+}
+
+func (a *ClientController) getUsageHistory(c *gin.Context) {
+	email := c.Param("email")
+	history, err := a.clientService.GetUsageHistory(email)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
+		return
+	}
+	jsonObj(c, history, nil)
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {

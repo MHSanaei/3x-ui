@@ -3,9 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { AutoComplete, Input, InputNumber, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { XhttpDownloadForm } from '@/lib/xray/forms/transport/XhttpDownloadForm';
 import { HeaderMapEditor } from '@/components/form';
-import { FormField } from '@/components/form/rhf';
-import { XHTTP_SESSION_ID_TABLES, XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
+import { FormField, rhfZodValidate } from '@/components/form/rhf';
+import {
+  XHttpChunkSizeSchema,
+  xhttpUplinkMethods,
+  XHTTP_SESSION_ID_TABLES,
+  XMUX_FRESH_DEFAULTS,
+} from '@/schemas/protocols/stream/xhttp';
 import { validateSessionIDLength, validateSessionIDTable } from '@/lib/xray/xhttp-session-id';
 import { int32RangeUpper } from '@/lib/xray/stream-wire-normalize';
 
@@ -46,6 +52,11 @@ export default function XhttpForm() {
     control,
     name: 'streamSettings.xhttpSettings.uplinkDataPlacement',
   }) as string | undefined;
+  const method = useWatch({ control, name: 'streamSettings.xhttpSettings.uplinkHTTPMethod' });
+  const hasDownload = !!useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.downloadSettings',
+  });
   const enableXmux = !!useWatch({ control, name: 'streamSettings.xhttpSettings.enableXmux' });
 
   function onXmuxToggle(checked: boolean) {
@@ -87,6 +98,9 @@ export default function XhttpForm() {
           options={(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => ({
             value: m,
             label: m,
+            disabled:
+              (m === 'stream-one' && hasDownload) ||
+              !!xhttpUplinkMethods(m).find((option) => option.value === method)?.disabled,
           }))}
         />
       </FormField>
@@ -150,19 +164,9 @@ export default function XhttpForm() {
         name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
         label={t('pages.inbounds.form.uplinkHttpMethod')}
       >
-        <NativeSelect
-          options={[
-            { value: '', label: 'Default (POST)' },
-            { value: 'POST', label: 'POST' },
-            { value: 'PUT', label: 'PUT' },
-            {
-              value: 'GET',
-              label: 'GET (packet-up only)',
-              disabled: xhttpMode !== 'packet-up',
-            },
-          ]}
-        />
+        <NativeSelect options={xhttpUplinkMethods(xhttpMode)} />
       </FormField>
+      <XhttpDownloadForm mode={xhttpMode} />
       <FormField
         name={['streamSettings', 'xhttpSettings', 'xPaddingObfsMode']}
         label={t('pages.inbounds.form.paddingObfsMode')}
@@ -311,6 +315,24 @@ export default function XhttpForm() {
       >
         <Switch />
       </FormField>
+      {(xhttpMode === 'auto' || xhttpMode === 'stream-up' || xhttpMode === 'stream-one') && (
+        <FormField
+          name={['streamSettings', 'xhttpSettings', 'noGRPCHeader']}
+          label={t('pages.xray.outboundForm.noGrpcHeader')}
+          valueProp="checked"
+        >
+          <Switch />
+        </FormField>
+      )}
+      {xhttpMode === 'packet-up' && xhttpUplinkPlacement && xhttpUplinkPlacement !== 'body' && (
+        <FormField
+          name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
+          rules={{ validate: rhfZodValidate(XHttpChunkSizeSchema) }}
+          label={t('pages.xray.outboundForm.uplinkChunkSize')}
+        >
+          <Input placeholder="512-1024" />
+        </FormField>
+      )}
       {/* XMUX is the connection-multiplexing layer
           xHTTP uses to fan out parallel requests over
           a small pool of upstream connections. UI-only

@@ -375,6 +375,16 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
             label: catTabLabel(<ApiOutlined aria-hidden />, t('pages.nodes.apiToken'), isMobile),
             children: (
               <div className="api-token-section">
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.security.mcpEnable')}
+                  description={t('pages.settings.security.mcpEnableDesc')}
+                >
+                  <Switch
+                    checked={allSetting.mcpEnable}
+                    onChange={(v) => updateSetting({ mcpEnable: v })}
+                  />
+                </SettingListItem>
                 <div className="api-token-header">
                   <p className="api-token-hint">{t('pages.nodes.apiTokenHint')}</p>
                   <Button type="primary" size="small" onClick={openCreateModal}>

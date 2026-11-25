@@ -103,6 +103,11 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 `sessionIDLength`）以及 `scMin/MaxEachPostBytes` 旋钮属于高级项；除非要匹配某个特定的
 上游，否则保持为空。
 
+启用**使用独立下载通道**后，客户端会向另一个端点发送下载请求。填写该端点的地址和端口，
+并按其要求设置 HTTP 主机名、路径和安全参数。上传和下载两条路由必须通往同一个 XHTTP
+监听器。在入站配置中启用此选项后，面板会将这些设置加入客户端订阅。此开关适用于
+`auto`、`packet-up` 和 `stream-up` 模式。
+
 ### Hysteria — `hysteriaSettings`
 
 仅当协议为 **Hysteria2** 时有效。

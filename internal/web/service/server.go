@@ -52,7 +52,6 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
-	"github.com/shirou/gopsutil/v4/net"
 )
 
 // ProcessState represents the current state of a system process.
@@ -68,8 +67,10 @@ const (
 // Status represents comprehensive system and application status information.
 // It includes CPU, memory, disk, network statistics, and Xray process status.
 type Status struct {
-	ResourceScope      string   `json:"resourceScope,omitempty"`
-	UnavailableMetrics []string `json:"unavailableMetrics,omitempty"`
+	NetworkInterface     *NetworkTrafficSelection `json:"networkInterface,omitempty"`
+	networkTrafficSample *networkTrafficSample    `json:"-"`
+	ResourceScope        string                   `json:"resourceScope,omitempty"`
+	UnavailableMetrics   []string                 `json:"unavailableMetrics,omitempty"`
 
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
@@ -148,7 +149,8 @@ type Release struct {
 // ServerService provides business logic for server monitoring and management.
 // It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
-	lxcMetrics sys.LXCReader
+	networkTrafficReader *networkTrafficReader
+	lxcMetrics           sys.LXCReader
 
 	xrayService        XrayService
 	inboundService     InboundService
@@ -199,6 +201,7 @@ const xrayVersionsCacheTTL = 15 * time.Minute
 // frontend's bucket selector self-documenting.
 var allowedHistoryBuckets = map[int]bool{
 	2:     true, // 2m
+	5:     true, // 5m
 	30:    true, // 30m
 	60:    true, // 1h
 	180:   true, // 3h
@@ -381,6 +384,18 @@ func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []
 // {"t": unixSec, "v": value}; the caller decides how to format the value.
 func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, maxPoints int) []map[string]any {
 	return systemMetrics.aggregate(s.systemMetricKey(metric), bucketSeconds, maxPoints)
+}
+
+// AggregateOverviewHistory returns the metric series used by the overview in
+// one response. Each series is capped at maxPoints, keeping dashboard refreshes
+// compact even when the selected range spans several hours.
+func (s *ServerService) AggregateOverviewHistory(bucketSeconds int, maxPoints int) map[string][]map[string]any {
+	metrics := []string{"cpu", "mem", "swap", "diskUsage", "netUp", "netDown", "tcpCount", "udpCount"}
+	out := make(map[string][]map[string]any, len(metrics))
+	for _, metric := range metrics {
+		out[metric] = s.AggregateSystemMetric(metric, bucketSeconds, maxPoints)
+	}
+	return out
 }
 
 type LogEntry struct {
@@ -766,42 +781,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Loads = []float64{avgState.Load1, avgState.Load5, avgState.Load15}
 	}
 
-	// Network stats
-	ioStats, err := net.IOCounters(true)
-	if err != nil {
-		logger.Warning("get io counters failed:", err)
-	} else {
-		var totalSent, totalRecv, totalPktSent, totalPktRecv uint64
-		for _, iface := range ioStats {
-			name := strings.ToLower(iface.Name)
-			if isVirtualInterface(name) {
-				continue
-			}
-			totalSent += iface.BytesSent
-			totalRecv += iface.BytesRecv
-			totalPktSent += iface.PacketsSent
-			totalPktRecv += iface.PacketsRecv
-		}
-		status.NetTraffic.Sent = totalSent
-		status.NetTraffic.Recv = totalRecv
-		status.NetTraffic.PktSent = totalPktSent
-		status.NetTraffic.PktRecv = totalPktRecv
-
-		if lastStatus != nil {
-			duration := now.Sub(lastStatus.T)
-			seconds := float64(duration) / float64(time.Second)
-			up := uint64(float64(status.NetTraffic.Sent-lastStatus.NetTraffic.Sent) / seconds)
-			down := uint64(float64(status.NetTraffic.Recv-lastStatus.NetTraffic.Recv) / seconds)
-			status.NetIO.Up = up
-			status.NetIO.Down = down
-			if seconds > 0 && status.NetTraffic.PktSent >= lastStatus.NetTraffic.PktSent {
-				status.NetIO.PktUp = uint64(float64(status.NetTraffic.PktSent-lastStatus.NetTraffic.PktSent) / seconds)
-			}
-			if seconds > 0 && status.NetTraffic.PktRecv >= lastStatus.NetTraffic.PktRecv {
-				status.NetIO.PktDown = uint64(float64(status.NetTraffic.PktRecv-lastStatus.NetTraffic.PktRecv) / seconds)
-			}
-		}
-	}
+	s.collectNetworkTraffic(status, lastStatus)
 
 	// TCP/UDP connections
 	status.TcpCount, err = sys.GetTCPCount()
@@ -889,15 +869,15 @@ func (s *ServerService) AppendStatusSample(t time.Time, status *Status) {
 	} else {
 		appendScopedMetric(status, "swap", t, 0)
 	}
-	systemMetrics.append("netUp", t, float64(status.NetIO.Up))
-	systemMetrics.append("netDown", t, float64(status.NetIO.Down))
+	appendScopedMetric(status, "netUp", t, float64(status.NetIO.Up))
+	appendScopedMetric(status, "netDown", t, float64(status.NetIO.Down))
 	systemMetrics.append("diskRead", t, float64(status.DiskIO.Read))
 	systemMetrics.append("diskWrite", t, float64(status.DiskIO.Write))
 	if status.Disk.Total > 0 {
 		systemMetrics.append("diskUsage", t, float64(status.Disk.Current)*100.0/float64(status.Disk.Total))
 	}
-	systemMetrics.append("pktUp", t, float64(status.NetIO.PktUp))
-	systemMetrics.append("pktDown", t, float64(status.NetIO.PktDown))
+	appendScopedMetric(status, "pktUp", t, float64(status.NetIO.PktUp))
+	appendScopedMetric(status, "pktDown", t, float64(status.NetIO.PktDown))
 	systemMetrics.append("tcpCount", t, float64(status.TcpCount))
 	systemMetrics.append("udpCount", t, float64(status.UdpCount))
 	online := 0
@@ -1855,6 +1835,7 @@ var hostBoundSettingKeys = []string{
 	"webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webBasePath",
 	"subListen", "subDomain", "subPort", "subCertFile", "subKeyFile", "subURI", "subJsonURI",
 	"secret", "panelGuid",
+	"networkTrafficMode", "networkTrafficInterface",
 	"nodeMtlsCaCertPem", "nodeMtlsCaKeyPem", "nodeMtlsClientCertPem",
 	"nodeMtlsClientKeyPem", "nodeMtlsClientCertSha256", "nodeMtlsClientCAPem",
 }

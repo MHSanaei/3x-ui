@@ -1,5 +1,10 @@
 import { ObjectUtil } from '@/utils';
-import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
+import type {
+  SubProfileMode,
+  SubHostSortMode,
+  NetworkTrafficMode,
+  WechatMode,
+} from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -18,12 +23,15 @@ export class AllSetting {
     'www.cloudflare.com:443,www.microsoft.com:443,www.amazon.com:443,aws.amazon.com:443,www.samsung.com:443,www.nvidia.com:443,www.amd.com:443,www.intel.com:443,www.sony.com:443,dl.google.com:443';
   ipLimitAllowlist = '';
   panelOutbound = '';
+  networkTrafficMode: NetworkTrafficMode = 'legacy';
+  networkTrafficInterface = '';
   pageSize = 25;
   expireDiff = 0;
   trafficDiff = 0;
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
   subInfoNodeEnable = false;
+  subHwidRejectWithConfig = false;
   subHostSortMode: SubHostSortMode = 'inbound-first';
   subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
@@ -69,10 +77,13 @@ export class AllSetting {
   externalTrafficInformEnable = false;
   externalTrafficInformURI = '';
   restartXrayOnClientDisable = true;
+  mcpEnable = false;
   subCertFile = '';
   subKeyFile = '';
   externalSubUserAgent = 'v2rayNG/1.8.5';
   subUpdates = 12;
+  subRateLimitEnable = false;
+  subRateLimit = 60;
   subEncrypt = true;
   subURI = '';
   subJsonURI = '';
@@ -202,6 +213,20 @@ export class AllSetting {
   discordEnabledEvents = 'login.attempt,cpu.high';
   hasDiscordBotToken = false;
   clearDiscordBotToken = false;
+  wechatEnable = false;
+  wechatMode: WechatMode = 'wecom';
+  wechatWebhookURL = '';
+  hasWechatWebhookURL = false;
+  clearWechatWebhookURL = false;
+  wechatToken = '';
+  hasWechatToken = false;
+  clearWechatToken = false;
+  wechatLang = 'en-US';
+  wechatReportEnable = false;
+  wechatRunTime = '@daily';
+  wechatEnabledEvents = 'login.attempt,cpu.high';
+  wechatCpu = 80;
+  wechatMemory = 80;
 
   constructor(data?: unknown) {
     if (data != null) {

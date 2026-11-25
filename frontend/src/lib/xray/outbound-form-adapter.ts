@@ -1,4 +1,4 @@
-import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { flattenXhttpExtra } from '@/schemas/protocols/stream/xhttp';
 import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
@@ -572,8 +572,6 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
-const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
-
 function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   const next = { ...stream };
   if (typeof next.method === 'string' && next.method !== '') {
@@ -583,11 +581,11 @@ function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   liftLegacyXDriveService(next);
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
-    const xhttp = { ...(xh as Raw) };
+    const xhttp = flattenXhttpExtra(xh as Raw);
     const xmux = xhttp.xmux;
     if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
       xhttp.enableXmux = true;
-      xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Raw) };
+      xhttp.xmux = { ...(xmux as Raw) };
     }
     next.xhttpSettings = xhttp;
   }

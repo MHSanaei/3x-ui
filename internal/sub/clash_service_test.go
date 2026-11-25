@@ -659,17 +659,17 @@ func TestBuildXhttpClashOpts_FullFieldMapping(t *testing.T) {
 	if opts["uplink-http-method"] != "POST" {
 		t.Errorf("uplink-http-method = %v", opts["uplink-http-method"])
 	}
-	if opts["session-id-placement"] != "query" {
-		t.Errorf("session-id-placement = %v", opts["session-id-placement"])
+	if opts["session-placement"] != "query" {
+		t.Errorf("session-placement = %v", opts["session-placement"])
 	}
-	if opts["session-id-key"] != "sess" {
-		t.Errorf("session-id-key = %v", opts["session-id-key"])
+	if opts["session-key"] != "sess" {
+		t.Errorf("session-key = %v", opts["session-key"])
 	}
-	if opts["session-id-table"] != "Base62" {
-		t.Errorf("session-id-table = %v", opts["session-id-table"])
+	if opts["session-table"] != "Base62" {
+		t.Errorf("session-table = %v", opts["session-table"])
 	}
-	if opts["session-id-length"] != "16-32" {
-		t.Errorf("session-id-length = %v", opts["session-id-length"])
+	if opts["session-length"] != "16-32" {
+		t.Errorf("session-length = %v", opts["session-length"])
 	}
 	if opts["seq-placement"] != "header" {
 		t.Errorf("seq-placement = %v", opts["seq-placement"])
@@ -1732,5 +1732,26 @@ func TestBuildAmneziaWGProxyForClashProjectsKeepAliveRangeToLowerBound(t *testin
 	proxy = svc.buildProxy(svc.SubService, inbound, client, nil, nil)
 	if _, ok := proxy["persistent-keepalive"]; ok {
 		t.Fatalf("Clash export emitted invalid legacy keepalive: %v", proxy["persistent-keepalive"])
+	}
+}
+
+func TestWrappedXhttpDownloadExports(t *testing.T) {
+	raw := `{"network":"xhttp","xhttpSettings":{"path":"/up","extra":{"path":"/ignored","downloadSettings":{"network":"xhttp","address":"down.test","port":9443,"security":"reality","realitySettings":{"serverName":"download.test","password":"client-key","shortId":"1234"},"xhttpSettings":{"path":"/down","extra":{"xmux":{"maxConnections":2}}}}}}}`
+	stream := unmarshalStreamSettings(raw)
+	xh := stream["xhttpSettings"].(map[string]any)
+	if xh["path"] != "/up" || xh["downloadSettings"] == nil {
+		t.Fatalf("subscription stream: %#v", xh)
+	}
+	ds := buildXhttpClashOpts(xh)["download-settings"].(map[string]any)
+	if ds["server"] != "down.test" || ds["port"] != float64(9443) || ds["path"] != "/down" || ds["tls"] != true || ds["servername"] != "download.test" || ds["reality-opts"].(map[string]any)["public-key"] != "client-key" || ds["reuse-settings"].(map[string]any)["max-connections"] != "2" {
+		t.Fatalf("download-settings: %#v", ds)
+	}
+	listener, _ := model.StripInboundXhttpClientFields(raw)
+	if strings.Contains(listener, "downloadSettings") || strings.Contains(listener, "ignored") {
+		t.Fatal(listener)
+	}
+	null := unmarshalStreamSettings(`{"network":"xhttp","xhttpSettings":{"extra":null,"downloadSettings":{"port":443}}}`)
+	if null["xhttpSettings"].(map[string]any)["downloadSettings"] != nil {
+		t.Fatal(null)
 	}
 }

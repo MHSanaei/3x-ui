@@ -28,6 +28,7 @@ import {
   SettingOutlined,
   SunOutlined,
   TelegramFilled,
+  WechatOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -236,6 +237,11 @@ export default function AppSidebar() {
         key: '/settings#discord',
         icon: <DiscordOutlined aria-hidden />,
         label: t('pages.settings.discordSettings'),
+      },
+      {
+        key: '/settings#wechat',
+        icon: <WechatOutlined aria-hidden />,
+        label: t('pages.settings.wechatSettings'),
       },
       {
         key: '/settings#subscription',

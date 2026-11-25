@@ -115,8 +115,11 @@ func (s *SubJsonService) bakedTemplate() map[string]any {
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
-func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
+func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool, wireguardDevice ...string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
+	if len(wireguardDevice) > 0 {
+		subReq.wireguardDevice = wireguardDevice[0]
+	}
 	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
@@ -144,7 +147,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	var hidden []subConfigEntry
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients := subReq.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -239,6 +242,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			}
 		}
 	}
+	if err := subReq.validateWireguardDevice(); err != nil {
+		return "", "", err
+	}
 	entries = s.appendBalancerEntries(entries, hidden, balancers)
 
 	// Inbounds arrive sorted by (sub_sort_index, id); balancers interleave by
@@ -317,7 +323,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	header = subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(configArray) > 0); mode != infoNodeNone {
-		dummyConfig := s.genDummySocksConfig(remark)
+		dummyConfig := s.genStatusNodeConfig(statusNode{remark: remark})
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			configArray = []json_util.RawMessage{dummyConfig}
 		} else {
@@ -817,8 +823,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 }
 
 func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {
-	var streamSettings map[string]any
-	if err := json.Unmarshal([]byte(stream), &streamSettings); err != nil || streamSettings == nil {
+	streamSettings := unmarshalStreamSettings(stream)
+	if streamSettings == nil {
 		streamSettings = map[string]any{}
 	}
 	security, _ := streamSettings["security"].(string)
@@ -1219,30 +1225,24 @@ func (s *SubJsonService) genWireguard(subReq *SubService, inbound *model.Inbound
 	return result
 }
 
-func (s *SubJsonService) genDummySocksConfig(remark string) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": "socks",
-		"tag":      "proxy",
-		"settings": map[string]any{
-			"servers": []any{
-				map[string]any{
-					"address": "127.0.0.1",
-					"port":    1080,
-				},
-			},
-		},
-	}
-	rawOutbound, _ := json.Marshal(outbound)
-	newOutbounds := []json_util.RawMessage{rawOutbound}
-	newOutbounds = append(newOutbounds, s.defaultOutbounds...)
-
+func (s *SubJsonService) genStatusNodeConfig(node statusNode) json_util.RawMessage {
 	newConfigJson := make(map[string]any)
 	maps.Copy(newConfigJson, s.configJson)
 	if s.dnsBlock != nil {
 		newConfigJson["dns"] = s.dnsBlock
 	}
+	newOutbounds := []json_util.RawMessage{node.outbound()}
+	if node.blocked {
+		// Keep the local template and DNS, but discard routes and probes that
+		// could refer to direct outbounds or real subscription nodes.
+		delete(newConfigJson, "routing")
+		delete(newConfigJson, "observatory")
+		delete(newConfigJson, "burstObservatory")
+	} else {
+		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
+	}
 	newConfigJson["outbounds"] = newOutbounds
-	newConfigJson["remarks"] = remark
+	newConfigJson["remarks"] = node.remark
 
 	newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 	return newConfig

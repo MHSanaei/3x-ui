@@ -90,7 +90,7 @@ func loadNodeClientClaims(tx *gorm.DB, nodeID int, snap *runtime.TrafficSnapshot
 	}
 	// SQLite's LOWER folds ASCII only, so a non-ASCII capital is matched by its spellings too.
 	var records []model.ClientRecord
-	for _, batch := range chunkStrings(emailSpellings(reported), sqlInChunk) {
+	for _, batch := range chunkStrings(EmailSpellings(reported), sqlInChunk) {
 		var rows []model.ClientRecord
 		if err := tx.Where("LOWER(email) IN ? OR email IN ?", batch, batch).Find(&rows).Error; err != nil {
 			return nil, err
@@ -296,7 +296,7 @@ func sharedRecordWouldChange(rec *model.ClientRecord, reported *model.Client) bo
 	incoming.CreatedAt = 0
 	merged := *rec
 	applyClientRecordMerge(&merged, incoming)
-	keepLinkOwnedFields(&merged, rec, false)
+	keepLinkOwnedFields(&merged, rec, false, false)
 	return !reflect.DeepEqual(merged, *rec)
 }
 

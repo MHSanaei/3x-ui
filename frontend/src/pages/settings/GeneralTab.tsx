@@ -19,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath } from './uriPath';
 import SecretInput from './SecretInput';
+import NetworkTrafficSettings from './NetworkTrafficSettings';
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -372,6 +373,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   }
                 />
               </SettingListItem>
+
+              <NetworkTrafficSettings allSetting={allSetting} updateSetting={updateSetting} />
 
               <SettingListItem
                 paddings="small"

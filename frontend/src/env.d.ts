@@ -20,6 +20,7 @@ interface SubPageData {
   subUpdates?: number;
   links?: string[];
   emails?: string[];
+  linkRemarks?: string[];
   datepicker?: 'gregorian' | 'jalalian';
   announce?: string;
   downloadByte?: string | number;

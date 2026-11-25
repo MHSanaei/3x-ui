@@ -242,9 +242,8 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(xmux.maxConnections).toBe('8');
   });
 
-  it('bare schema defaults keep only one exclusive xmux strategy non-zero', () => {
-    expect(XHttpXmuxSchema.parse({}).maxConnections).toBe(0);
-    expect(XHttpXmuxSchema.parse({}).maxConcurrency).toBe('16-32');
+  it('an empty stored XMUX block leaves both connection strategies to core', () => {
+    expect(XHttpXmuxSchema.parse({})).toEqual({});
   });
 
   it('XMUX_FRESH_DEFAULTS seeds the core maxConnections fallback without a competing maxConcurrency', () => {

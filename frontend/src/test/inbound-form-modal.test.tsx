@@ -22,7 +22,7 @@ vi.mock('antd', async (importOriginal) => {
     ...actual,
     message: {
       ...actual.message,
-      useMessage: () => [{ error: messageError }, null],
+      useMessage: () => [{ error: messageError, success: vi.fn() }, null],
     },
   };
 });
@@ -539,6 +539,60 @@ describe('InboundFormModal', () => {
 
   // Clients and enable change through their own endpoints; the server keeps the
   // stored ones, so the edit form must neither send nor validate its stale copy.
+  // The editor saves the whole form, so a form left on the old target undid the switch.
+  it('saves the target a REALITY watch switch moved to, not the one it opened with', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    const get = vi.mocked(HttpUtil.get);
+    const realPost = post.getMockImplementation();
+    const realGet = get.getMockImplementation();
+    onTestFinished(() => {
+      post.mockImplementation(realPost!);
+      get.mockImplementation(realGet!);
+    });
+    const status = (target: string, serverNames: string[], spares: string[]) => ({
+      success: true,
+      msg: '',
+      obj: {
+        inboundId: 42,
+        target,
+        serverNames,
+        spares,
+        auto: false,
+        checkedAt: 0,
+        ok: false,
+        fails: 0,
+        reason: '',
+        latencyMs: 0,
+        events: [],
+      },
+    });
+    get.mockImplementation(async (url: string) =>
+      url.startsWith('/panel/api/realityWatch/status/')
+        ? status('example.com:443', ['example.com'], ['spare.example:443'])
+        : realGet!(url),
+    );
+    post.mockImplementation(async (url: string) =>
+      url.startsWith('/panel/api/realityWatch/switch/')
+        ? status('spare.example:443', ['spare.example'], ['example.com:443'])
+        : { success: true, msg: '', obj: {} },
+    );
+    post.mockClear();
+    await renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to this now' }));
+    expect(await screen.findByDisplayValue('spare.example:443')).toBeTruthy();
+    fireEvent.click(primaryButton());
+
+    await waitFor(() =>
+      expect(post.mock.calls.some(([url]) => String(url).includes('/inbounds/update/'))).toBe(true),
+    );
+    const update = post.mock.calls.find(([url]) => String(url).includes('/inbounds/update/'))!;
+    const stream = JSON.parse((update[1] as { streamSettings: string }).streamSettings);
+    expect(stream.realitySettings.target).toBe('spare.example:443');
+    expect(stream.realitySettings.serverNames).toEqual(['spare.example']);
+  }, 20_000);
+
   it('edit save neither sends nor validates the clients it loaded', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();

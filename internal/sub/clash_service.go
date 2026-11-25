@@ -62,7 +62,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients := subReq.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
@@ -120,6 +120,9 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			proxies = append(proxies, render()...)
 		}
 	}
+	if err := subReq.validateWireguardDevice(); err != nil {
+		return "", "", err
+	}
 	for _, ext := range externalLinks {
 		if ext.Enable {
 			hasEnabledClient = true
@@ -162,12 +165,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	header := subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(proxies) > 0); mode != infoNodeNone {
-		dummyProxy := map[string]any{
-			"name":   remark,
-			"type":   "socks5",
-			"server": "127.0.0.1",
-			"port":   1080,
-		}
+		dummyProxy := (statusNode{remark: remark}).clashProxy()
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			proxies = []map[string]any{dummyProxy}
 		} else {
@@ -179,28 +177,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		return "", header, nil
 	}
 
-	ensureUniqueProxyNames(proxies)
-
-	proxyNames := make([]string, 0, len(proxies)+1)
-	for _, proxy := range proxies {
-		if isDummyProxy(proxy) && len(proxies) > 1 {
-			continue
-		}
-		if name, ok := proxy["name"].(string); ok && name != "" {
-			proxyNames = append(proxyNames, name)
-		}
-	}
-	proxyNames = append(proxyNames, "DIRECT")
-
-	config := map[string]any{
-		"proxies": proxies,
-		"proxy-groups": []map[string]any{{
-			"name":    "PROXY",
-			"type":    "select",
-			"proxies": proxyNames,
-		}},
-		"rules": []string{"MATCH,PROXY"},
-	}
+	config := newClashConfig(proxies, true)
 
 	// Custom Clash routing can inject Mihomo-only groups, rules, providers or a
 	// top-level proxies key — exactly what the legacy filter just removed.
@@ -223,6 +200,37 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	}
 
 	return string(finalYAML), header, nil
+}
+
+func newClashConfig(proxies []map[string]any, allowDirect bool) map[string]any {
+	ensureUniqueProxyNames(proxies)
+	proxyNames := make([]string, 0, len(proxies)+1)
+	for _, proxy := range proxies {
+		if isDummyProxy(proxy) && len(proxies) > 1 {
+			continue
+		}
+		if name, ok := proxy["name"].(string); ok && name != "" {
+			proxyNames = append(proxyNames, name)
+		}
+	}
+	if allowDirect {
+		proxyNames = append(proxyNames, "DIRECT")
+	}
+
+	config := map[string]any{
+		"proxies": proxies,
+		"proxy-groups": []map[string]any{{
+			"name":    "PROXY",
+			"type":    "select",
+			"proxies": proxyNames,
+		}},
+		"rules": []string{"MATCH,PROXY"},
+	}
+
+	if !allowDirect {
+		config["mode"] = "rule"
+	}
+	return config
 }
 
 func legacyClashProxies(proxies []map[string]any) []map[string]any {
@@ -358,7 +366,8 @@ func isDummyProxy(proxy map[string]any) bool {
 	case float64:
 		port = int(p)
 	}
-	return typ == "socks5" && server == "127.0.0.1" && port == 1080
+	dummyAddress, dummyPort := (statusNode{}).endpoint()
+	return typ == "socks5" && server == dummyAddress && port == dummyPort
 }
 
 func fallbackProxyName(proxy map[string]any, idx int) string {
@@ -952,6 +961,67 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 //
 // Returns nil if no non-trivial fields are present.
 func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
+	opts := xhttpClashRequestOpts(xhttp)
+	if down, ok := xhttp["downloadSettings"].(map[string]any); ok {
+		if opts == nil {
+			opts = map[string]any{}
+		}
+		opts["download-settings"] = xhttpClashDownload(down)
+	}
+	return opts
+}
+
+func xhttpClashDownload(down map[string]any) map[string]any {
+	// Mihomo inherits omitted download values from the upload. Xray builds
+	// an independent stream, including certificate verification and REALITY.
+	ds := map[string]any{
+		"server": down["address"], "port": down["port"],
+		"reality-opts": map[string]any{"public-key": ""}, "skip-cert-verify": false,
+		"fingerprint": "", "servername": "", "client-fingerprint": "", "alpn": []string{},
+		"path": "/", "host": "", "headers": map[string]any{}, "reuse-settings": map[string]any{},
+	}
+	nested := maps.Clone(down)
+	model.NormalizeXhttpExtra(nested)
+	xh, _ := nested["xhttpSettings"].(map[string]any)
+	request := xhttpClashRequestOpts(xh)
+	for _, k := range []string{"path", "host", "headers", "reuse-settings"} {
+		if v, ok := request[k]; ok {
+			ds[k] = v
+		}
+	}
+	security, _ := down["security"].(string)
+	security = strings.ToLower(security)
+	ds["tls"] = security == "tls" || security == "reality"
+	sec, _ := down[security+"Settings"].(map[string]any)
+	for src, dst := range map[string]string{"serverName": "servername", "fingerprint": "client-fingerprint"} {
+		if v, ok := sec[src].(string); ok {
+			ds[dst] = v
+		}
+	}
+	if security == "tls" {
+		if v, ok := sec["allowInsecure"].(bool); ok {
+			ds["skip-cert-verify"] = v
+		}
+		ds["fingerprint"] = mihomoCertFingerprint(sec["pinnedPeerCertSha256"])
+		if alpn := clashStringList(sec["alpn"]); len(alpn) > 0 {
+			ds["alpn"] = alpn
+		}
+	}
+	if security == "reality" {
+		if ds["client-fingerprint"] == "" {
+			ds["client-fingerprint"] = "chrome"
+		}
+		key, _ := sec["password"].(string)
+		if key == "" {
+			key, _ = sec["publicKey"].(string)
+		}
+		sid, _ := sec["shortId"].(string)
+		ds["reality-opts"] = map[string]any{"public-key": key, "short-id": sid, "support-x25519mlkem768": true}
+	}
+	return ds
+}
+
+func xhttpClashRequestOpts(xhttp map[string]any) map[string]any {
 	if xhttp == nil {
 		return nil
 	}
@@ -981,10 +1051,10 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 	stringFields := []xhttpStringField{
 		{"xPaddingBytes", "x-padding-bytes", ""},
 		{"uplinkHTTPMethod", "uplink-http-method", ""},
-		{"sessionIDPlacement", "session-id-placement", ""},
-		{"sessionIDKey", "session-id-key", ""},
-		{"sessionIDTable", "session-id-table", ""},
-		{"sessionIDLength", "session-id-length", ""},
+		{"sessionIDPlacement", "session-placement", ""},
+		{"sessionIDKey", "session-key", ""},
+		{"sessionIDTable", "session-table", ""},
+		{"sessionIDLength", "session-length", ""},
 		{"seqPlacement", "seq-placement", ""},
 		{"seqKey", "seq-key", ""},
 		{"uplinkDataPlacement", "uplink-data-placement", ""},
@@ -1003,8 +1073,8 @@ func buildXhttpClashOpts(xhttp map[string]any) map[string]any {
 	// Fall back to them so not-yet-resaved configs still map. Mirrors the
 	// frontend migration.
 	for _, f := range []xhttpStringField{
-		{"sessionPlacement", "session-id-placement", ""},
-		{"sessionKey", "session-id-key", ""},
+		{"sessionPlacement", "session-placement", ""},
+		{"sessionKey", "session-key", ""},
 	} {
 		if _, exists := opts[f.dst]; exists {
 			continue
@@ -1301,8 +1371,7 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 }
 
 func (s *SubClashService) streamData(stream string) map[string]any {
-	var streamSettings map[string]any
-	_ = json.Unmarshal([]byte(stream), &streamSettings)
+	streamSettings := unmarshalStreamSettings(stream)
 	security, _ := streamSettings["security"].(string)
 	switch security {
 	case "tls":

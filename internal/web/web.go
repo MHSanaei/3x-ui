@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
@@ -38,6 +39,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/wechat"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -126,12 +128,19 @@ type Server struct {
 	tgbotService   tgbot.Tgbot
 	discordService *discord.DiscordService
 	discordGateway *discord.GatewayClient
+	wechatService  *wechat.Service
 
 	wsHub *websocket.Hub
 
 	bus                  *eventbus.Bus
 	cron                 *cron.Cron
 	discordNotifyEntryID cron.EntryID
+	wechatNotifyEntryID  cron.EntryID
+	cpuAlarmEntryID      cron.EntryID
+	memoryAlarmEntryID   cron.EntryID
+	wechatScheduleMu     sync.Mutex
+	wechatScheduler      *cron.Cron
+	wechatReportSpec     string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -264,7 +273,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	s.api = controller.NewAPIController(g)
+	s.api = controller.NewAPIController(g, engine)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -301,6 +310,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // counters.
 const (
 	cadenceXrayRunning   = "@every 1s"
+	cadenceRealityWatch  = "@every 10m"
 	cadenceXrayRestart   = "@every 30s"
 	cadenceXrayTraffic   = "@every 5s"
 	cadenceMtproto       = "@every 10s"
@@ -378,6 +388,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
 	_, _ = s.cron.AddJob(cadenceXrayLogPrune, job.NewPruneXrayLogsJob())
 	_, _ = s.cron.AddJob("@hourly", job.NewWarpIpJob())
+	_, _ = s.cron.AddJob(cadenceRealityWatch, job.NewRealityWatchJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour
@@ -419,15 +430,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		s.discordNotifyEntryID = scheduleSettingJob(s.cron, "Discord notify", runtime, "@daily", job.NewDiscordNotifyJob(s.discordService))
 	}
 
-	// CPU monitor publishes cpu.high events; register it whenever any notifier
-	// (Telegram or Email) wants them, independent of the Telegram bot being on.
-	if s.cpuAlarmWanted() {
-		_, _ = s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
-	}
-	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
-	if s.memoryAlarmWanted() {
-		_, _ = s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
-	}
+	s.reloadWechatJobs()
 
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
 		_, _ = s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
@@ -473,6 +476,13 @@ func (s *Server) cpuAlarmWanted() bool {
 			return true
 		}
 	}
+	if on, _ := s.settingService.GetWechatEnable(); on {
+		events, _ := s.settingService.GetWechatEnabledEvents()
+		threshold, _ := s.settingService.GetWechatCpu()
+		if wants(events, threshold) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -507,6 +517,13 @@ func (s *Server) memoryAlarmWanted() bool {
 		events, _ := s.settingService.GetDiscordEnabledEvents()
 		mem, _ := s.settingService.GetDiscordMemory()
 		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetWechatEnable(); on {
+		events, _ := s.settingService.GetWechatEnabledEvents()
+		threshold, _ := s.settingService.GetWechatMemory()
+		if wants(events, threshold) {
 			return true
 		}
 	}
@@ -555,11 +572,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
-	mgr := runtime.NewManager(runtime.LocalDeps{
-		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
-		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
-	})
+	mgr := runtime.NewManager(s.xrayService.LocalRuntimeDeps())
 	runtime.SetManager(mgr)
 	mgr.SetNodeEgressResolver(&s.settingService)
 	// Supply the master client certificate for nodes in mtls mode. Issued lazily
@@ -671,6 +684,12 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	// Wire email service to controller for test endpoint
 	controller.SetEmailService(emailService)
+
+	s.wechatService = wechat.NewService(s.settingService)
+	wechatSub := wechat.NewSubscriber(s.settingService, s.wechatService)
+	s.bus.Subscribe("wechat-notifier", wechatSub.HandleEvent)
+	controller.SetWechatService(s.wechatService)
+	controller.SetReloadWechatFunc(s.reloadWechatJobs)
 
 	// Register discord subscriber (always — it checks discordBotEnable at runtime)
 	s.discordService = discord.NewDiscordService(s.settingService)

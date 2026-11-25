@@ -455,8 +455,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/status',
         summary:
           'Real-time machine snapshot: CPU, memory, swap, disk, network IO, load averages, open connections, Xray state. Cached and refreshed every 2 seconds in the background.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "cpu": 12.5,\n    "mem": { "current": 2147483648, "total": 8589934592 },\n    "swap": { "current": 0, "total": 4294967296 },\n    "disk": { "current": 53687091200, "total": 268435456000 },\n    "netIO": { "up": 1073741824, "down": 2147483648 },\n    "xray": { "state": "running", "version": "v25.10.31" },\n    "tcpCount": 42,\n    "load": { "load1": 0.5, "load5": 0.3, "load15": 0.2 }\n  }\n}',
+        responseSchema: 'Status',
       },
       {
         method: 'GET',
@@ -468,6 +467,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/server/networkInterfaces',
+        summary:
+          'List network interface names and resolve the primary default-route interface in this panel network namespace. Requires an admin session or admin API token. No addresses or hardware identifiers are returned.',
+        responseSchema: 'NetworkInterfacesResponse',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/server/cpuHistory/:bucket',
         summary:
           'Legacy: aggregated CPU history. Use /history/cpu/:bucket instead — same data with a uniform {t, v} shape.',
@@ -476,7 +482,7 @@ export const sections: readonly Section[] = [
             name: 'bucket',
             in: 'path',
             type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
           },
         ],
       },
@@ -484,23 +490,37 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/server/history/:metric/:bucket',
         summary:
-          'Aggregated time-series for one metric. Returns an array of {t, v} samples covering the last ~6 hours.',
+          'Aggregated time-series for one system metric. Returns up to 60 {t, v} samples; supported bucket sizes cover windows from 2 minutes up to 7 days.',
         params: [
           {
             name: 'metric',
             in: 'path',
             type: 'string',
-            desc: 'cpu | mem | netUp | netDown | online | load1 | load5 | load15.',
+            desc: 'cpu | mem | swap | netUp | netDown | pktUp | pktDown | diskRead | diskWrite | diskUsage | tcpCount | udpCount | online | load1 | load5 | load15.',
           },
           {
             name: 'bucket',
             in: 'path',
             type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
           },
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    { "t": 1700000000, "v": 12.5 },\n    { "t": 1700000002, "v": 13.1 }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/overviewHistory/:bucket',
+        summary:
+          'Aggregated history for all overview charts in one response: up to 60 {t, v} samples for each of cpu, mem, swap, diskUsage, netUp, netDown, tcpCount and udpCount.',
+        params: [
+          {
+            name: 'bucket',
+            in: 'path',
+            type: 'number',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
+          },
+        ],
       },
       {
         method: 'GET',
@@ -512,7 +532,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/server/xrayMetricsHistory/:metric/:bucket',
         summary:
-          'Time-series history for one Xray runtime metric over the last ~6 hours. Same {t, v} shape as /history/:metric/:bucket.',
+          'Aggregated history for one Xray runtime metric. Returns up to 60 {t, v} samples for bucket windows up to 7 days.',
         params: [
           {
             name: 'metric',
@@ -524,7 +544,7 @@ export const sections: readonly Section[] = [
             name: 'bucket',
             in: 'path',
             type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
           },
         ],
       },
@@ -550,7 +570,7 @@ export const sections: readonly Section[] = [
             name: 'bucket',
             in: 'path',
             type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
           },
         ],
       },
@@ -822,7 +842,7 @@ export const sections: readonly Section[] = [
             name: 'keepHostSettings',
             in: 'body (multipart)',
             type: 'boolean',
-            desc: "Keep this machine's addresses, certificates and node identity. Default true.",
+            desc: "Keep this machine's addresses, certificates, node identity, and network traffic interface selection. Default true.",
             optional: true,
             defaultValue: true,
           },
@@ -1400,6 +1420,96 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true\n}',
       },
       {
+        method: 'GET',
+        path: '/panel/api/clients/wireguardDevices',
+        summary: 'List WireGuard devices and their per-inbound addresses.',
+        description:
+          'The original credentials remain the primary device. Additional devices share their parent client email, traffic quota, expiry and enable state. Keep each device configuration on one device. Device-specific subscriptions use the existing subscription URL with the wgDevice query parameter set to the device ID.',
+        params: [{ name: 'email', in: 'query', type: 'string', desc: 'Client email.' }],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/wireguardDevices',
+        summary: 'Create a WireGuard device on every attached WireGuard inbound.',
+        description:
+          'Keys are generated once and each inbound allocates an available tunnel address. All inbounds commit together. The default limit is 5 devices including primary.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          {
+            name: 'name',
+            in: 'body (json)',
+            type: 'string',
+            desc: 'Device name with 1 to 64 characters on one line.',
+          },
+        ],
+        body: '{\n  "name": "Phone"\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'PUT',
+        path: '/panel/api/clients/wireguardDevices/limit',
+        summary: 'Set the maximum number of WireGuard devices.',
+        description:
+          'The limit includes primary and disabled devices. Choose 1 to 32. Values below the current device count are rejected.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          {
+            name: 'limit',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Maximum device count including primary.',
+            defaultValue: 5,
+          },
+        ],
+        body: '{\n  "limit": 5\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'PATCH',
+        path: '/panel/api/clients/wireguardDevices/:deviceId',
+        summary: 'Rename or enable a WireGuard device.',
+        description:
+          'The primary device is managed through the parent client. Disabled additional devices retain their reserved addresses.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          { name: 'deviceId', in: 'path', type: 'string', desc: 'Additional device UUID.' },
+          {
+            name: 'name',
+            in: 'body (json)',
+            type: 'string',
+            optional: true,
+            desc: 'New device name.',
+          },
+          {
+            name: 'enable',
+            in: 'body (json)',
+            type: 'boolean',
+            optional: true,
+            desc: 'Whether the device can connect.',
+          },
+        ],
+        body: '{\n  "name": "Work phone",\n  "enable": true\n}',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/clients/wireguardDevices/:deviceId',
+        summary: 'Delete an additional WireGuard device and release its address.',
+        description:
+          'The device is removed from every attached WireGuard inbound. Its previously downloaded configuration loses access after the configuration is applied.',
+        params: [
+          { name: 'email', in: 'query', type: 'string', desc: 'Client email.' },
+          { name: 'deviceId', in: 'path', type: 'string', desc: 'Additional device UUID.' },
+        ],
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "limit": 5,\n    "inbounds": [\n      {\n        "inboundId": 3,\n        "devices": [\n          {\n            "id": "primary",\n            "name": "",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.2/32"\n            ]\n          },\n          {\n            "id": "e3550bd1-0ba0-48b2-8a91-e57263a23d9d",\n            "name": "Phone",\n            "enable": true,\n            "privateKey": "...",\n            "publicKey": "...",\n            "allowedIPs": [\n              "10.0.0.3/32"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/resetAllTraffics',
         summary:
@@ -1679,27 +1789,45 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/hwids/:email',
         summary:
-          'List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.',
+          'List registered HWID devices for a client with a short fingerprint and a blocked flag. Bans are scoped to the subscription ID shared by the client. Full hashes are not exposed.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9",\n      "fingerprint": "6ad17c93e821"\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "blocked": false,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9",\n      "fingerprint": "6ad17c93e821"\n    }\n  ]\n}',
       },
       {
         method: 'DELETE',
         path: '/panel/api/clients/hwids/:email',
         summary:
-          'Clear all registered HWID devices for a client so new devices can register again.',
+          'Clear unblocked HWID registrations for a client so devices can register again. Blocked devices and their bans are preserved.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
       },
       {
         method: 'DELETE',
         path: '/panel/api/clients/hwids/:email/:id',
         summary:
-          'Remove a single registered HWID device by its id, freeing one slot under the HWID limit.',
+          'Remove a single unblocked HWID device by its id, freeing one slot under the HWID limit. A blocked device must be unblocked before it can be removed.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
           { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
         ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/hwids/:email/:id/block',
+        summary:
+          'Block or unblock one device for the client subscription. Send an explicit boolean blocked value. A ban denies subscription bodies for that HWID even with limitHwid=0, does not consume a device slot, and survives clearing devices or changing the limit. It does not revoke copied credentials or identify requests with a different or missing HWID.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+          { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
+          {
+            name: 'blocked',
+            in: 'body (json)',
+            type: 'boolean',
+            desc: 'true to block the device, false to unblock it.',
+          },
+        ],
+        body: '{\n  "blocked": true\n}',
+        response: '{\n  "success": true,\n  "msg": "Updated successfully."\n}',
       },
       {
         method: 'POST',
@@ -1752,6 +1880,21 @@ export const sections: readonly Section[] = [
           },
         ],
         responseSchema: 'ClientTraffic',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/usageHistory/:email',
+        summary:
+          "Usage and change history for one client, behind the edit modal's history button. lifetimeUp/lifetimeDown are every archived window plus the client's live counters; currentUp/currentDown are the still-open window. windows lists the closed cycles, newest first (reason: reset | renew | earlier): one is archived whenever a traffic reset or an auto-renewal zeroes the client's counters, the newest 100 are kept and older ones are folded into a single earlier row, so the lifetime total does not change. nodes is the per-node upload/download accumulated since the last reset. changes is the metadata change log, newest first, capped at the newest 200 rows: one row per changed field (subId, expiry, dataLimit, enable, limitIp, limitHwid, adTag, group, renewalPlan) and a name row for a rename; source is panel | tgbot | auto-renew. A renamed client keeps its history under the new email. The history belongs to the client: once the client is deleted, its history is removed within five minutes. Requires an admin token or a panel login session.",
+        params: [
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique across the panel).',
+          },
+        ],
+        responseSchema: 'ClientUsageHistory',
       },
       {
         method: 'GET',
@@ -1937,7 +2080,7 @@ export const sections: readonly Section[] = [
             name: 'bucket',
             in: 'path',
             type: 'number',
-            desc: 'Bucket size in seconds. Allowed: 2, 30, 60, 120, 180, 300.',
+            desc: 'Bucket size in seconds. Allowed: 2, 5, 30, 60, 180, 360, 720, 1440, 2880, 10080.',
           },
         ],
       },
@@ -2048,6 +2191,56 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'reality-watch',
+    title: 'REALITY watch',
+    description:
+      'Spare targets per REALITY inbound. Every 10 minutes the panel checks each watched target from this server; after 3 failed checks in a row, an inbound with auto switch on moves to the first spare that passes the same check and a real REALITY connection through a throwaway Xray server and client. Inbounds on nodes, and targets on this machine or the LAN (a bare port, a unix socket, a private address), are not checked.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/realityWatch/list',
+        summary:
+          'Status of every watched inbound: current target, spares, last check and the switch history.',
+        responseSchema: 'RealityWatchStatus',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/realityWatch/status/:id',
+        summary: 'Status of one REALITY inbound.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        responseSchema: 'RealityWatchStatus',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/save/:id',
+        summary:
+          'Set the spare targets (host[:port], in order of preference, at most 10; the current target is dropped) and whether a dead target is replaced automatically.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: '{\n  "auto": true,\n  "spares": ["www.example.com:443"]\n}',
+        responseSchema: 'RealityWatchStatus',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/switch/:id',
+        summary:
+          'Move the inbound to this target now and return its new status. Refused for a node inbound, or unless the target passes the server check and a real REALITY connection. Only target and serverNames change, plus any Hosts of this inbound that pin an old server name.',
+        params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: '{\n  "target": "www.example.com:443"\n}',
+        responseSchema: 'RealityWatchStatus',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/realityWatch/test',
+        summary:
+          'Check a target from this server and through a real REALITY connection; feasible is false with a reason when either fails.',
+        body: '{\n  "target": "www.example.com:443"\n}',
+        responseSchema: 'RealityScanResult',
+      },
+    ],
+  },
+
+  {
     id: 'backup',
     title: 'Backup',
     description: 'Operations that interact with the configured Telegram bot.',
@@ -2057,6 +2250,31 @@ export const sections: readonly Section[] = [
         path: '/panel/api/backuptotgbot',
         summary:
           'Send a fresh DB backup to every Telegram chat configured as an admin recipient. No body, no params.',
+      },
+    ],
+  },
+
+  {
+    id: 'mcp',
+    title: 'MCP',
+    description:
+      'Model Context Protocol endpoint for AI agents (Claude, Cursor, VS Code). Point an MCP client at this URL with an admin Bearer token; restricted token scopes are refused.',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/panel/api/mcp',
+        summary:
+          'Stateless streamable-HTTP MCP endpoint (JSON-RPC 2.0). Exposes panel tools for inbounds, clients, server, Xray, nodes, hosts and settings; each tool call runs the matching /panel/api route with the caller’s credentials. Off by default: answers 404 until the MCP server is enabled under Settings → Security → API Token.',
+        params: [
+          {
+            name: 'toolsets',
+            in: 'query',
+            type: 'string',
+            optional: true,
+            desc: 'Comma-separated tool groups to expose: inbounds, clients, server, panel. Omit for all. call_api and get_openapi_spec are always included.',
+          },
+        ],
+        body: '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "method": "tools/list"\n}',
       },
     ],
   },
@@ -2147,6 +2365,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/testDiscord',
         summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
         response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/testWechat',
+        summary:
+          'Send a text test notification using the saved WeChat destination. Supports WeCom group robots and compatible personal WeChat webhook gateways. Requires WeChat notifications to be enabled.',
       },
       {
         method: 'GET',

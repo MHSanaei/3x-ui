@@ -107,6 +107,12 @@ Session-ID fields (`sessionIDPlacement`, `sessionIDKey`, `sessionIDTable`,
 `sessionIDLength`) and the `scMin/MaxEachPostBytes` knobs are advanced; leave them
 empty unless you're matching a specific upstream.
 
+Enable **Use separate download** to send the client's download requests to a
+second endpoint. Enter its address and port, then set the HTTP host, path, and
+security settings to match that endpoint. Both routes must reach the same XHTTP
+listener. On an inbound, the panel includes these settings in client subscriptions.
+The switch is available in `auto`, `packet-up`, and `stream-up` modes.
+
 ### Hysteria — `hysteriaSettings`
 
 Only valid when the protocol is **Hysteria2**.

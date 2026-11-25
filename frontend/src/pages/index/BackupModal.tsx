@@ -61,7 +61,7 @@ export default function BackupModal({
 
       // importDB schedules the panel restart server-side; wait it out, then reload.
       onBusy({ busy: true, tip: `${t('pages.settings.restartPanel')}…` });
-      await PromiseUtil.sleep(5000);
+      await PromiseUtil.waitForPanel(window.location.href);
       window.location.reload();
     });
     fileInput.click();
