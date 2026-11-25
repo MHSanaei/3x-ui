@@ -7,12 +7,14 @@ on:
       - 'docs/**'
       - 'frontend/public/openapi.json'
       - 'frontend/src/pages/api-docs/endpoints.ts'
+      - 'internal/sub/default.json'
       - '.github/workflows/docs-ci.yml'
   pull_request:
     paths:
       - 'docs/**'
       - 'frontend/public/openapi.json'
       - 'frontend/src/pages/api-docs/endpoints.ts'
+      - 'internal/sub/default.json'
       - '.github/workflows/docs-ci.yml'
 
 permissions:
