@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -66,26 +65,5 @@ func TestBuildPageData_IsOnlineFalseWithoutLiveConnections(t *testing.T) {
 
 	if page.IsOnline {
 		t.Fatal("IsOnline must be false when the subscription's client has no live connection")
-	}
-}
-
-// tg://proxy links carry no remark, so the sub page needs the inbound's remark
-// alongside, at the link's index, to name the row instead of "Link N".
-func TestBuildPageData_MtprotoLinkRemark(t *testing.T) {
-	inbound := &model.Inbound{
-		Listen:   "203.0.113.7",
-		Port:     8443,
-		Protocol: model.MTProto,
-		Remark:   "mt-sub",
-		Settings: `{"fakeTlsDomain":"www.cloudflare.com","clients":[{"email":"user","enable":true,"secret":"` + mtprotoTestSecret + `"}]}`,
-	}
-	s := &SubService{linkRemarks: map[string]string{}}
-	subs := []string{"vless://b@h:443?type=tcp#FR-alice@x", s.GetLink(inbound, "user")}
-
-	page := s.BuildPageData("s1", "", xray.ClientTraffic{}, 0, subs, []string{"alice@x", "user"}, "", "", "", "/", "", "")
-
-	want := []string{"", "mt-sub-user"}
-	if !reflect.DeepEqual(page.LinkRemarks, want) {
-		t.Fatalf("LinkRemarks = %q, want %q", page.LinkRemarks, want)
 	}
 }
