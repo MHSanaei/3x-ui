@@ -5609,7 +5609,7 @@
         "type": "object"
       },
       "SubBalancerProblem": {
-        "description": "SubBalancerProblem reports one reason a balancer cannot emit the members an\noperator expects. InboundIds is set for per-inbound codes and empty for\nbalancer-wide ones (no_members). Advisories never change what is emitted —\nthe runtime still omits a balancer with no resolvable intersection.\n\nKnown blind spot by design: a member can also vanish for reasons that belong to\none client, not to the row — a WireGuard client with no private key renders no\noutbound, and the render budget can cut the tail of a large subscription. Those\nare per-subscriber and cannot be attributed to a stored balancer.",
+        "description": "SubBalancerProblem is one reason a balancer cannot emit what an operator expects.\nAdvisories never change the emitted config, and per-client losses are out of scope.",
         "properties": {
           "code": {
             "example": "unknown_inbound",
@@ -5636,7 +5636,7 @@
         "type": "object"
       },
       "SubBalancerWithProblems": {
-        "description": "SubBalancerWithProblems is the list-API shape: the stored row plus the\ncosmetic advisories an operator needs to see. The row is embedded by value so\nit marshals flat (the panel reads the same fields it always did); Problems is\nalways non-nil so the response shape is stable.",
+        "description": "SubBalancerWithProblems embeds the row by value so it marshals flat; Problems is\nalways non-nil so the response shape is stable.",
         "properties": {
           "createdAt": {
             "example": 1710000000000,
