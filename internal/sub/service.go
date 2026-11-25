@@ -171,15 +171,12 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.sharedGroupSni = nil
 	s.rendered = 0
 	s.wireguardDeviceSelected = false
-	mode, _ := s.settingService.GetSubHostSortMode()
-	s.hostsFirst = mode == "hosts-first"
+	settings := s.settingService.GetSubscriptionRenderSettings()
+	s.hostsFirst = settings.HostSortMode == "hosts-first"
 	s.loadNodes()
-	s.loadRemarkSettings()
-	s.subCalendarExpireInclusive, _ = s.settingService.GetSubCalendarExpireInclusive()
-	s.calendarExpireLocation = nil
-	if s.subCalendarExpireInclusive {
-		s.calendarExpireLocation, _ = s.settingService.GetTimeLocation()
-	}
+	s.loadRemarkSettings(settings)
+	s.subCalendarExpireInclusive = settings.CalendarExpireInclusive
+	s.calendarExpireLocation = settings.CalendarExpireLocation
 }
 
 // primeLinkClients caches clients (first occurrence per email, matching the
@@ -339,11 +336,8 @@ func (s *SubService) amneziaWGServerForLink(inbound *model.Inbound) *amneziawg.S
 	return parsed.Server
 }
 
-// loadRemarkSettings populates the per-request remark formatting state so
-// every subscription format — raw, JSON, Clash — renders remarks the same way
-// (the date formatter reads datepicker). Loading it only in getSubs left
-// JSON/Clash with the zero value.
-func (s *SubService) loadRemarkSettings() {
+// loadRemarkSettings keeps the base remark fallbacks when settings are empty or unreadable.
+func (s *SubService) loadRemarkSettings(settings service.SubscriptionRenderSettings) {
 	if s.datepicker == "" {
 		s.datepicker = "gregorian"
 	}
@@ -353,20 +347,20 @@ func (s *SubService) loadRemarkSettings() {
 	if s.subTrafficDepletedTemplate == "" {
 		s.subTrafficDepletedTemplate = service.DefaultSubTrafficDepletedTemplate
 	}
-	if datepicker, err := s.settingService.GetDatepicker(); err == nil && datepicker != "" {
-		s.datepicker = datepicker
+	if settings.Datepicker != "" {
+		s.datepicker = settings.Datepicker
 	}
-	if enabled, err := s.settingService.GetSubShowIdentityOnAllLinks(); err == nil && enabled {
-		s.showIdentityOnAllLinks = enabled
+	if settings.ShowIdentityOnAllLinks {
+		s.showIdentityOnAllLinks = true
 	}
-	if enabled, err := s.settingService.GetSubInfoNodeEnable(); err == nil && enabled {
-		s.subInfoNodeEnable = enabled
+	if settings.InfoNodeEnabled {
+		s.subInfoNodeEnable = true
 	}
-	if tmpl, err := s.settingService.GetSubExpiredTemplate(); err == nil && tmpl != "" {
-		s.subExpiredTemplate = tmpl
+	if settings.ExpiredTemplate != "" {
+		s.subExpiredTemplate = settings.ExpiredTemplate
 	}
-	if tmpl, err := s.settingService.GetSubTrafficDepletedTemplate(); err == nil && tmpl != "" {
-		s.subTrafficDepletedTemplate = tmpl
+	if settings.TrafficDepletedTemplate != "" {
+		s.subTrafficDepletedTemplate = settings.TrafficDepletedTemplate
 	}
 }
 

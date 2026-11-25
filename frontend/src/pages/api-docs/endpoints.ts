@@ -1872,6 +1872,21 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/usageHistory/:email',
+        summary:
+          "Usage and change history for one client, behind the edit modal's history button. lifetimeUp/lifetimeDown are every archived window plus the client's live counters; currentUp/currentDown are the still-open window. windows lists the closed cycles, newest first (reason: reset | renew | earlier): one is archived whenever a traffic reset or an auto-renewal zeroes the client's counters, the newest 100 are kept and older ones are folded into a single earlier row, so the lifetime total does not change. nodes is the per-node upload/download accumulated since the last reset. changes is the metadata change log, newest first, capped at the newest 200 rows: one row per changed field (subId, expiry, dataLimit, enable, limitIp, limitHwid, adTag, group, renewalPlan) and a name row for a rename; source is panel | tgbot | auto-renew. A renamed client keeps its history under the new email. The history belongs to the client: once the client is deleted, its history is removed within five minutes. Requires an admin token or a panel login session.",
+        params: [
+          {
+            name: 'email',
+            in: 'path',
+            type: 'string',
+            desc: 'Client email (unique across the panel).',
+          },
+        ],
+        responseSchema: 'ClientUsageHistory',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/subLinks/:subId',
         summary:
           'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',

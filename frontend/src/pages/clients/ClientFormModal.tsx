@@ -19,7 +19,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
+import { EyeOutlined, HistoryOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { FormProvider, useForm, useWatch, type FieldPath } from 'react-hook-form';
@@ -36,6 +36,7 @@ import { useRawHostsQuery } from '@/api/queries/useRawHostsQuery';
 import { DateTimePicker, SelectAllClearButtons, selectTagRender } from '@/components/form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
+import ClientUsageHistoryModal from '@/components/clients/ClientUsageHistoryModal';
 import { TLS_FLOW_CONTROL, TRAFFIC_RESETS } from '@/schemas/primitives';
 import {
   OptionalAmneziaWGKeepAliveInputSchema,
@@ -293,6 +294,7 @@ export default function ClientFormModal({
     setHwidBlocked,
   } = useClientHwids(client?.email);
   const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
+  const [usageHistoryOpen, setUsageHistoryOpen] = useState(false);
   const { datepicker } = useDatepicker();
   const hwidDateLabel = (ts: number) =>
     !ts || ts <= 0 ? '-' : IntlUtil.formatDate(ts, datepicker);
@@ -907,6 +909,14 @@ export default function ClientFormModal({
                   {t('pages.inbounds.resetTraffic')}
                 </Button>
               </Popconfirm>
+            )}
+            {isEdit && client?.email && (
+              <Button
+                icon={<HistoryOutlined aria-hidden />}
+                onClick={() => setUsageHistoryOpen(true)}
+              >
+                {t('pages.clients.usageHistory')}
+              </Button>
             )}
             <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>
               <Button onClick={close}>{t('cancel')}</Button>
@@ -1636,6 +1646,13 @@ export default function ClientFormModal({
         onDelete={deleteHwid}
         onSetBlocked={setHwidBlocked}
         onClose={() => setHwidsModalOpen(false)}
+      />
+
+      <ClientUsageHistoryModal
+        open={usageHistoryOpen}
+        email={client?.email}
+        zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+        onClose={() => setUsageHistoryOpen(false)}
       />
     </>
   );

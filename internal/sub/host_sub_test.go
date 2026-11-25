@@ -22,7 +22,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func seedSubDB(t *testing.T) {
+func seedSubDB(t testing.TB) {
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
@@ -31,7 +31,7 @@ func seedSubDB(t *testing.T) {
 
 // seedSubInbound creates a VLESS inbound with one client wired into the
 // normalized clients/client_inbounds tables so getInboundsBySubId resolves it.
-func seedSubInbound(t *testing.T, subId, tag string, port, subSortIndex int, stream string) *model.Inbound {
+func seedSubInbound(t testing.TB, subId, tag string, port, subSortIndex int, stream string) *model.Inbound {
 	t.Helper()
 	db := database.GetDB()
 	uuid := "11111111-2222-4333-8444-" + fmt.Sprintf("%012d", port)

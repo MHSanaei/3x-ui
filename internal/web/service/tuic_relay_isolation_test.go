@@ -41,6 +41,12 @@ func isolationConfig(t *testing.T, relays ...xray.InboundConfig) *xray.Config {
 
 func startIsolationCore(t *testing.T, cfg *xray.Config) *xray.XrayAPI {
 	t.Helper()
+	_, api := startIsolationInstance(t, cfg)
+	return api
+}
+
+func startIsolationInstance(t *testing.T, cfg *xray.Config) (*core.Instance, *xray.XrayAPI) {
+	t.Helper()
 	var config conf.Config
 	if err := json.Unmarshal(mustJSON(t, cfg), &config); err != nil {
 		t.Fatal(err)
@@ -62,7 +68,7 @@ func startIsolationCore(t *testing.T, cfg *xray.Config) *xray.XrayAPI {
 		t.Fatal(err)
 	}
 	t.Cleanup(api.Close)
-	return api
+	return instance, api
 }
 
 func assertIsolationRelay(t *testing.T, relay xray.InboundConfig, email string) {
