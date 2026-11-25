@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ClientUsageHistoryModal from '@/components/clients/ClientUsageHistoryModal';
+import { setDatepicker } from '@/hooks/useDatepicker';
 import { HttpUtil } from '@/utils';
 
 const GiB = 1024 ** 3;
@@ -47,6 +48,21 @@ function openModal() {
 }
 
 describe('ClientUsageHistoryModal', () => {
+  afterEach(() => act(() => setDatepicker('gregorian')));
+
+  it('shows its dates in the calendar the panel is set to', async () => {
+    act(() => setDatepicker('jalalian'));
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue({ success: true, msg: '', obj: history });
+
+    openModal();
+
+    await waitFor(() => {
+      expect(screen.getByText('Past cycles')).toBeTruthy();
+    });
+    // 2025-01-01 and 2025-01-02 are in Dey 1403: the cycle's time and the change's time.
+    expect(screen.getAllByText(/۱۴۰۳/)).toHaveLength(2);
+  });
+
   it('shows lifetime totals, per-node usage and the change log', async () => {
     vi.spyOn(HttpUtil, 'get').mockResolvedValue({
       success: true,

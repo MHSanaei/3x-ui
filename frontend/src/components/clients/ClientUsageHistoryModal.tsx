@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Modal, Spin, Table, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
 
 import { useClientUsageHistoryQuery } from '@/api/queries/useClientUsageHistoryQuery';
-import { SizeFormatter } from '@/utils';
+import { useDatepicker } from '@/hooks/useDatepicker';
+import { IntlUtil, SizeFormatter } from '@/utils';
 
 interface ClientUsageHistoryModalProps {
   open: boolean;
@@ -17,8 +17,7 @@ interface ClientUsageHistoryModalProps {
 const REASON_KEYS: Record<string, string> = {
   reset: 'pages.clients.reasonReset',
   renew: 'pages.clients.reasonRenew',
-  deleted: 'pages.clients.reasonDeleted',
-  renamed: 'pages.clients.reasonRenamed',
+  earlier: 'pages.clients.reasonEarlier',
 };
 
 // Human labels for the change-log field names; unknown fields fall back to the
@@ -34,7 +33,6 @@ const FIELD_KEYS: Record<string, string> = {
   limitHwid: 'pages.clients.fieldLimitHwid',
   adTag: 'pages.clients.fieldAdTag',
   group: 'pages.clients.fieldGroup',
-  deleted: 'pages.clients.fieldDeleted',
 };
 
 function fieldLabel(t: (key: string) => string, field: string): string {
@@ -42,11 +40,11 @@ function fieldLabel(t: (key: string) => string, field: string): string {
   return key ? t(key) : field;
 }
 
-function changeValueText(field: string, value: string): string {
+function changeValueText(field: string, value: string, formatDate: (ts: number) => string): string {
   if (value === '') return '—';
   if (field === 'expiry') {
     const n = Number(value);
-    if (Number.isFinite(n) && n > 0) return dayjs(n).format('YYYY-MM-DD HH:mm');
+    if (Number.isFinite(n) && n > 0) return formatDate(n);
   } else if (field === 'dataLimit') {
     const n = Number(value);
     if (Number.isFinite(n)) return SizeFormatter.sizeFormat(n);
@@ -62,6 +60,8 @@ export default function ClientUsageHistoryModal({
 }: ClientUsageHistoryModalProps) {
   const { t } = useTranslation();
   const { data: history, isFetching, isError } = useClientUsageHistoryQuery(email, open);
+  const { datepicker } = useDatepicker();
+  const formatDate = (ts: number) => IntlUtil.formatDate(ts, datepicker);
 
   const bytesCell = (value: number) => SizeFormatter.sizeFormat(value);
 
@@ -96,7 +96,7 @@ export default function ClientUsageHistoryModal({
       dataIndex: 'at',
       key: 'at',
       width: 160,
-      render: (value: number) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+      render: formatDate,
     },
     {
       title: t('pages.clients.upload'),
@@ -129,7 +129,7 @@ export default function ClientUsageHistoryModal({
       dataIndex: 'at',
       key: 'at',
       width: 160,
-      render: (value: number) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+      render: formatDate,
     },
     {
       title: t('pages.clients.field'),
@@ -142,13 +142,15 @@ export default function ClientUsageHistoryModal({
       title: t('pages.clients.oldValue'),
       dataIndex: 'oldValue',
       key: 'oldValue',
-      render: (value: string, row: { field: string }) => changeValueText(row.field, value),
+      render: (value: string, row: { field: string }) =>
+        changeValueText(row.field, value, formatDate),
     },
     {
       title: t('pages.clients.newValue'),
       dataIndex: 'newValue',
       key: 'newValue',
-      render: (value: string, row: { field: string }) => changeValueText(row.field, value),
+      render: (value: string, row: { field: string }) =>
+        changeValueText(row.field, value, formatDate),
     },
     {
       title: t('pages.clients.source'),
