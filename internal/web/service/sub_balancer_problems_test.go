@@ -276,9 +276,10 @@ func TestLogSubBalancerProblemsConcurrent(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			bal := &model.SubBalancer{Id: 9100 + id, Remark: "race", InboundIds: []int{id}}
-			LogSubBalancerProblems(bal, []SubBalancerProblem{{
-				Code: SubBalancerProblemUnknownInbound, InboundIds: []int{id},
-			}})
+			problems := []SubBalancerProblem{
+				{Code: SubBalancerProblemUnknownInbound, InboundIds: []int{id}},
+			}
+			LogSubBalancerProblems(bal, problems)
 		}(i)
 	}
 	wg.Wait()
