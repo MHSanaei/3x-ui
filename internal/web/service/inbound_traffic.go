@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -153,13 +154,15 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// shared row then carried the node inbound's id (AddClientStat used to use
 	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
 	// conflict, but this filter was removed rather than relying on that ordering).
-	err = tx.Model(xray.ClientTraffic{}).
-		Where("email IN (?)", emails).
-		Order("id").
-		Find(&dbClientTraffics).Error
-	if err != nil {
-		return err
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var page []*xray.ClientTraffic
+		if err = tx.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			return err
+		}
+		dbClientTraffics = append(dbClientTraffics, page...)
 	}
+	// One id order across the chunks keeps the row UPDATEs below lock-compatible.
+	slices.SortFunc(dbClientTraffics, func(a, b *xray.ClientTraffic) int { return cmp.Compare(a.Id, b.Id) })
 
 	// Avoid empty slice error
 	if len(dbClientTraffics) == 0 {

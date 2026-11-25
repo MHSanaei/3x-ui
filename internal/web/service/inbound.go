@@ -2551,12 +2551,14 @@ func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inboun
 
 	trafficIDs := make(map[string]int)
 	if inbound.Protocol == model.TUIC {
-		var rows []xray.ClientTraffic
-		if err := tx.Select("id", "email").Where("email IN ?", emails).Find(&rows).Error; err != nil {
-			return nil, err
-		}
-		for _, row := range rows {
-			trafficIDs[row.Email] = row.Id
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var rows []xray.ClientTraffic
+			if err := tx.Select("id", "email").Where("email IN ?", batch).Find(&rows).Error; err != nil {
+				return nil, err
+			}
+			for _, row := range rows {
+				trafficIDs[row.Email] = row.Id
+			}
 		}
 	}
 	finalClients := make([]any, 0, len(clients))
