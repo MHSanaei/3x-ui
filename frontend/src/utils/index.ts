@@ -180,6 +180,35 @@ export class PromiseUtil {
       setTimeout(resolve, timeout);
     });
   }
+
+  // After the restart delay, polls the target until it answers below 500; false on timeout.
+  // https page -> http target is blocked as mixed content: probe this origin, the proxy's.
+  static async waitForPanel(
+    url: string,
+    { delay = 5000, interval = 2000, timeout = 90_000 } = {},
+  ): Promise<boolean> {
+    await PromiseUtil.sleep(delay);
+    const target = new URL(url, window.location.href);
+    const mixed = window.location.protocol === 'https:' && target.protocol === 'http:';
+    const probe = mixed ? new URL(window.location.href) : target;
+    const sameOrigin = probe.origin === window.location.origin;
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(probe, {
+          cache: 'no-store',
+          redirect: 'manual',
+          mode: sameOrigin ? 'same-origin' : 'no-cors',
+          signal: AbortSignal.timeout(Math.max(interval, 1000)),
+        });
+        if (res.type === 'opaque' || res.type === 'opaqueredirect' || res.status < 500) return true;
+      } catch {
+        /* not listening yet */
+      }
+      await PromiseUtil.sleep(interval);
+    }
+    return false;
+  }
 }
 
 export interface RandomSeqOptions {

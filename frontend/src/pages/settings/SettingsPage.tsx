@@ -150,8 +150,9 @@ export default function SettingsPage() {
         try {
           const msg = (await HttpUtil.post('/panel/api/setting/restartPanel')) as ApiMsg;
           if (!msg?.success) return;
-          await PromiseUtil.sleep(5000);
-          window.location.replace(rebuildUrlAfterRestart());
+          const target = rebuildUrlAfterRestart();
+          await PromiseUtil.waitForPanel(target);
+          window.location.replace(target);
         } finally {
           setSpinning(false);
         }
