@@ -5609,7 +5609,7 @@
         "type": "object"
       },
       "SubBalancerProblem": {
-        "description": "SubBalancerProblem reports one reason a balancer cannot emit the members an\noperator expects. InboundIds is set for per-inbound codes and empty for\nbalancer-wide ones (no_members). Advisories never change what is emitted —\nthe runtime still omits a balancer with no resolvable intersection.",
+        "description": "SubBalancerProblem reports one reason a balancer cannot emit the members an\noperator expects. InboundIds is set for per-inbound codes and empty for\nbalancer-wide ones (no_members). Advisories never change what is emitted —\nthe runtime still omits a balancer with no resolvable intersection.\n\nKnown blind spot by design: a member can also vanish for reasons that belong to\none client, not to the row — a WireGuard client with no private key renders no\noutbound, and the render budget can cut the tail of a large subscription. Those\nare per-subscriber and cannot be attributed to a stored balancer.",
         "properties": {
           "code": {
             "example": "unknown_inbound",
