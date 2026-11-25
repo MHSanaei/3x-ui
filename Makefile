@@ -65,6 +65,14 @@ node-e2e: dist-stub ## Master+node sync end to end with two real panel processes
 	go build -o $(NODE_E2E_BIN) .
 	XUI_NODE_E2E_BINARY=$(NODE_E2E_BIN) go test -count=1 -timeout 20m -v ./internal/nodee2e/
 
+.PHONY: xray-e2e
+# The core pinned in go.mod as a real child process; test-go only runs these as skips.
+XRAY_E2E_BIN = $(CURDIR)/.cache/xray-e2e/xray$(shell go env GOEXE)
+XRAY_E2E_PKGS = $(shell grep -rl --include='*_test.go' 'Getenv("XRAY_E2E_BINARY")' internal | xargs -n1 dirname | sort -u | sed 's|^|./|')
+xray-e2e: dist-stub ## Real-core tests against the xray-core pinned in go.mod
+	go build -o $(XRAY_E2E_BIN) github.com/xtls/xray-core/main
+	XRAY_E2E_BINARY=$(XRAY_E2E_BIN) go test -count=1 -timeout 20m -v $(XRAY_E2E_PKGS)
+
 .PHONY: test-fe
 test-fe: ## Frontend tests (vitest)
 	cd $(FRONTEND) && npm test

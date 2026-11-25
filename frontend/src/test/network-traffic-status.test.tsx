@@ -39,6 +39,8 @@ describe('network traffic status', () => {
         down={[200]}
         labels={['12:00']}
         isMobile={false}
+        range={2}
+        onRangeChange={() => undefined}
       />,
     );
     expect(

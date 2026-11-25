@@ -704,6 +704,7 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 	if err != nil {
 		return false, err
 	}
+	defer watchClientChanges(clientChangeSourcePanel, existing.Email).record()
 	inboundIds, err := s.GetInboundIdsForRecord(id)
 	if err != nil {
 		return false, err
@@ -919,9 +920,16 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 	// UpdateInboundClient renames the record atomically with each inbound's
 	// settings JSON; this direct write only covers records with no inbound left.
 	if updated.Email != existing.Email {
-		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("id = ? AND email = ?", id, existing.Email).
-			Update("email", updated.Email).Error; err != nil {
+		// Zero rows when the inbound fan-out above already renamed the record and its history.
+		if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+			renamed := tx.Model(&model.ClientRecord{}).
+				Where("id = ? AND email = ?", id, existing.Email).
+				Update("email", updated.Email)
+			if renamed.Error != nil || renamed.RowsAffected == 0 {
+				return renamed.Error
+			}
+			return renameClientHistoryTx(tx, existing.Email, updated.Email, clientChangeSourcePanel)
+		}); err != nil {
 			return needRestart, err
 		}
 	}
