@@ -10121,7 +10121,7 @@
           {
             "name": "keepTraffic",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Pass 1 to retain the xray_client_traffic row after deletion.",
             "schema": {
               "type": "integer"
@@ -10176,7 +10176,7 @@
           {
             "name": "keepTraffic",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Pass 1 to retain the xray_client_traffic row after deletion.",
             "schema": {
               "type": "integer"
