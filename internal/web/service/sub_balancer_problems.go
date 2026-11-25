@@ -37,9 +37,12 @@ type SubBalancerProblem struct {
 
 // jsonIncapableProtocols mirrors the switch in internal/sub/json_service.go:
 // these protocols fall through to `continue` and never produce an outbound.
+// Keep it in lockstep with that switch — sub/json_capable_parity_test.go fails
+// when the two lists drift.
 var jsonIncapableProtocols = map[string]struct{}{
 	"amneziawg": {},
 	"tuic":      {},
+	"mtproto":   {},
 }
 
 // SubBalancerWithProblems is the list-API shape: the stored row plus the
@@ -88,7 +91,7 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, error) {
 	}
 	var inbounds []*model.Inbound
 	err := database.GetDB().Model(&model.Inbound{}).
-		Select("id", "protocol", "enable", "exclude_from_sub").
+		Select("id", "protocol", "enable").
 		Where("id IN ?", unique).Find(&inbounds).Error
 	if err != nil {
 		return nil, err
