@@ -284,4 +284,3 @@ func TestLogSubBalancerProblemsConcurrent(t *testing.T) {
 	}
 	wg.Wait()
 }
-
