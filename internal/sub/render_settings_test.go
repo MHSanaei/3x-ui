@@ -197,3 +197,51 @@ func TestSubscriptionRenderSettingsPartialReadFailure(t *testing.T) {
 			req.datepicker, req.subExpiredTemplate, req.subTrafficDepletedTemplate, req.subCalendarExpireInclusive, req.calendarExpireLocation)
 	}
 }
+
+// A wildcard-listen inbound resolves its link host from subDomain/webDomain; reading
+// those per link cost two more settings queries for every link in the subscription.
+func TestSubscriptionRequestReadsSettingsOncePerRequest(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	for i := range 3 {
+		ib := seedSubInbound(t, "one-read", fmt.Sprintf("wild-%d", i), 4940+i, i+1, wsTLSStream)
+		if err := db.Model(ib).Update("listen", "").Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	seedRenderSettings(t, model.Setting{Key: "webDomain", Value: "panel.example.com"})
+	gin.SetMode(gin.TestMode)
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
+	var reads atomic.Int64
+	const name = "test:count_settings"
+	if err := db.Callback().Query().After("gorm:query").Register(name, func(tx *gorm.DB) {
+		if tx.Statement.Table == "settings" {
+			reads.Add(1)
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Query().Remove(name) })
+
+	for _, format := range []string{"sub", "json", "clash"} {
+		t.Run(format, func(t *testing.T) {
+			reads.Store(0)
+			res := httptest.NewRecorder()
+			router.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "http://203.0.113.9/"+format+"/one-read", nil))
+			body := res.Body.String()
+			if format == "sub" {
+				raw, err := base64.StdEncoding.DecodeString(body)
+				if err != nil {
+					t.Fatalf("decode subscription: %v", err)
+				}
+				body = string(raw)
+			}
+			if got := strings.Count(body, "panel.example.com"); res.Code != http.StatusOK || got != 3 {
+				t.Fatalf("status=%d, links on the configured host = %d, want 3; body=%q", res.Code, got, body)
+			}
+			if got := reads.Load(); got != 1 {
+				t.Fatalf("settings queries = %d, want 1", got)
+			}
+		})
+	}
+}

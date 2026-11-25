@@ -38,6 +38,7 @@ var salamanderWarningSeen sync.Map
 // SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address                 string
+	configuredPublicHost    string
 	remarkTemplate          string
 	datepicker              string
 	wireguardDevice         string
@@ -156,9 +157,11 @@ func (s *SubService) ForWireguardDevice(id string) *SubService {
 // SubService instance. HTTP handlers should call ForRequest instead so the
 // controller's shared base service is never mutated by concurrent requests.
 func (s *SubService) PrepareForRequest(host string) {
+	settings := s.settingService.GetSubscriptionRenderSettings()
+	s.configuredPublicHost = settings.PublicHost
 	if !isRoutableHost(host) {
-		if d := s.configuredPublicHost(); d != "" {
-			host = d
+		if s.configuredPublicHost != "" {
+			host = s.configuredPublicHost
 		} else if isLoopbackHost(host) {
 			host = "localhost"
 		}
@@ -181,7 +184,6 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.clientGroupIndexLoaded = false
 	s.rendered = 0
 	s.wireguardDeviceSelected = false
-	settings := s.settingService.GetSubscriptionRenderSettings()
 	s.hostsFirst = settings.HostSortMode == "hosts-first"
 	s.loadNodes()
 	s.loadRemarkSettings(settings)
@@ -372,16 +374,6 @@ func (s *SubService) loadRemarkSettings(settings service.SubscriptionRenderSetti
 	if settings.TrafficDepletedTemplate != "" {
 		s.subTrafficDepletedTemplate = settings.TrafficDepletedTemplate
 	}
-}
-
-func (s *SubService) configuredPublicHost() string {
-	if d, err := s.settingService.GetSubDomain(); err == nil && d != "" {
-		return d
-	}
-	if d, err := s.settingService.GetWebDomain(); err == nil && d != "" {
-		return d
-	}
-	return ""
 }
 
 func isRoutableHost(host string) bool {
@@ -1931,8 +1923,8 @@ func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 			return c
 		}
 	}
-	if d := s.configuredPublicHost(); d != "" {
-		return d
+	if s.configuredPublicHost != "" {
+		return s.configuredPublicHost
 	}
 	return s.address
 }

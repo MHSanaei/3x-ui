@@ -17,6 +17,8 @@ type SubscriptionRenderSettings struct {
 	TrafficDepletedTemplate string
 	CalendarExpireInclusive bool
 	CalendarExpireLocation  *time.Location
+	// PublicHost is subDomain, else webDomain: the address links fall back to.
+	PublicHost string
 }
 
 // GetSubscriptionRenderSettings loads the presentation settings for one preparation.
@@ -25,6 +27,7 @@ func (s *SettingService) GetSubscriptionRenderSettings() SubscriptionRenderSetti
 	keys := []string{
 		"subHostSortMode", "datepicker", "subShowIdentityOnAllLinks", "subInfoNodeEnable",
 		"subExpiredTemplate", "subTrafficDepletedTemplate", "subCalendarExpireInclusive", "timeLocation",
+		"subDomain", "webDomain",
 	}
 	get := s.getString
 	var rows []model.Setting
@@ -64,6 +67,10 @@ func (s *SettingService) GetSubscriptionRenderSettings() SubscriptionRenderSetti
 		if value, err := get("timeLocation"); err == nil {
 			settings.CalendarExpireLocation = loadSettingTimeLocation(value)
 		}
+	}
+	settings.PublicHost, _ = get("subDomain")
+	if settings.PublicHost == "" {
+		settings.PublicHost, _ = get("webDomain")
 	}
 	return settings
 }
