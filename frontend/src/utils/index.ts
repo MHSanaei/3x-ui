@@ -181,26 +181,21 @@ export class PromiseUtil {
     });
   }
 
-  /**
-   * Waits for a restarting panel before the page navigates to `url`.
-   * After `delay` (the server schedules the restart a few seconds after the
-   * request) it polls `url` until something answers below 500, so a reverse
-   * proxy's 502 during a slow shutdown is not what the browser loads.
-   * A cross-origin target (new port or protocol) can only be probed with
-   * `no-cors`: any answer there means the listener is up. Resolves false when
-   * `timeout` passes; the caller navigates anyway.
-   */
+  // After the restart delay, polls the target until it answers below 500; false on timeout.
+  // https page -> http target is blocked as mixed content: probe this origin, the proxy's.
   static async waitForPanel(
     url: string,
     { delay = 5000, interval = 2000, timeout = 90_000 } = {},
   ): Promise<boolean> {
     await PromiseUtil.sleep(delay);
     const target = new URL(url, window.location.href);
-    const sameOrigin = target.origin === window.location.origin;
+    const mixed = window.location.protocol === 'https:' && target.protocol === 'http:';
+    const probe = mixed ? new URL(window.location.href) : target;
+    const sameOrigin = probe.origin === window.location.origin;
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       try {
-        const res = await fetch(target, {
+        const res = await fetch(probe, {
           cache: 'no-store',
           redirect: 'manual',
           mode: sameOrigin ? 'same-origin' : 'no-cors',
