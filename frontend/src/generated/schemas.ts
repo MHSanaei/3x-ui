@@ -5582,6 +5582,112 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "SubBalancerProblem": {
+    "description": "SubBalancerProblem reports one reason a balancer cannot emit the members an\noperator expects. InboundIds is set for per-inbound codes and empty for\nbalancer-wide ones (no_members). Advisories never change what is emitted —\nthe runtime still omits a balancer with no resolvable intersection.",
+    "properties": {
+      "code": {
+        "example": "unknown_inbound",
+        "type": "string"
+      },
+      "detail": {
+        "example": "amneziawg",
+        "type": "string"
+      },
+      "inboundIds": {
+        "example": [
+          7,
+          9
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "type": "object"
+  },
+  "SubBalancerWithProblems": {
+    "description": "SubBalancerWithProblems is the list-API shape: the stored row plus the\ncosmetic advisories an operator needs to see. The row is embedded by value so\nit marshals flat (the panel reads the same fields it always did); Problems is\nalways non-nil so the response shape is stable.",
+    "properties": {
+      "createdAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "enabled": {
+        "description": "No gorm default:true — a bool default makes an explicit false at insert\ncollapse back to the column default (zero value is skipped).",
+        "example": true,
+        "type": "boolean"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "inboundIds": {
+        "example": [
+          1,
+          3
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "memberWeights": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "inboundId -\u003e leastLoad weight; absent entries mean 1.0. Only meaningful\nwith Strategy \"leastLoad\" — xray ignores costs on every other strategy.",
+        "type": "object"
+      },
+      "problems": {
+        "items": {
+          "$ref": "#/components/schemas/SubBalancerProblem"
+        },
+        "type": "array"
+      },
+      "remark": {
+        "example": "auto-fastest",
+        "maxLength": 256,
+        "type": "string"
+      },
+      "sortOrder": {
+        "example": 1,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "strategy": {
+        "enum": [
+          "leastLoad",
+          "leastPing",
+          "random",
+          "roundRobin"
+        ],
+        "example": "random",
+        "type": "string"
+      },
+      "updatedAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "createdAt",
+      "enabled",
+      "id",
+      "inboundIds",
+      "problems",
+      "remark",
+      "sortOrder",
+      "strategy",
+      "updatedAt"
+    ],
+    "type": "object"
+  },
   "TgBotCapabilities": {
     "description": "TgBotCapabilities is the browser-safe shape of the bot's own capabilities.",
     "properties": {
