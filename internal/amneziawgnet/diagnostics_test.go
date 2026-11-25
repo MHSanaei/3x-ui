@@ -45,7 +45,7 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 		t.Fatalf("generate idle-peer keypair: %v", err)
 	}
 
-	const listenPort = 58713 // distinct from device_test.go's fixed port
+	listenPort := freeUDPPort(t)
 	const activeEmail = "active@example.com"
 	const idleEmail = "idle@example.com"
 
@@ -77,7 +77,7 @@ func TestDiagnoseDeviceReportsListenPortAndPeerState(t *testing.T) {
 	// Registering the forwarder doesn't require any peer to be configured
 	// yet, so this ordering is free; it's Configure's IpcSet that must
 	// never run before the forwarder is registered.
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, _ netip.AddrPort) {
+	AttachTCPForwarder(dev.Stack, ownerBySource, func(conn *gonet.TCPConn, _, _ netip.AddrPort) {
 		defer conn.Close()
 		io.Copy(io.Discard, conn)
 	})

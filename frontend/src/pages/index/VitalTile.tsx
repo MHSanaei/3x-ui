@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { Card, theme } from 'antd';
 
 import { Sparkline } from '@/components/viz';
 import { mean, peak } from './useOverviewHistory';
+import OverviewRangeSelect from './OverviewRangeSelect';
+import type { OverviewRange } from './OverviewRangeSelect';
 
 interface VitalTileProps {
   available?: boolean;
@@ -12,11 +14,15 @@ interface VitalTileProps {
   percent: number;
   statusColor: string;
   detail: string;
-  footLeft: string;
-  footRight: string;
+  footLeft: ReactNode;
+  footRight: ReactNode;
   data: number[];
   isMobile: boolean;
+  range?: OverviewRange;
+  onRangeChange?: (range: OverviewRange) => void;
 }
+
+const ignoreRangeChange = () => undefined;
 
 export default function VitalTile({
   available = true,
@@ -29,8 +35,11 @@ export default function VitalTile({
   footRight,
   data,
   isMobile,
+  range = 2,
+  onRangeChange = ignoreRangeChange,
 }: VitalTileProps) {
   const { token } = theme.useToken();
+  const labelId = useId();
   const meanColor = token.colorTextTertiary;
 
   const referenceLines = useMemo(
@@ -39,10 +48,18 @@ export default function VitalTile({
   );
 
   return (
-    <Card hoverable className="ov-tile" styles={{ body: { padding: 0 } }}>
+    <Card
+      hoverable
+      className="ov-tile"
+      styles={{ body: { padding: 0 } }}
+      role="group"
+      aria-labelledby={labelId}
+    >
       <div className="ov-tile-head">
         <span className="ov-tile-icon">{icon}</span>
-        <span className="ov-kicker">{label}</span>
+        <span className="ov-kicker" id={labelId}>
+          {label}
+        </span>
       </div>
 
       <div className="ov-tile-value">
@@ -53,10 +70,13 @@ export default function VitalTile({
       <div className="ov-tile-detail">{available ? detail : '—'}</div>
 
       <div className="ov-tile-foot">
-        <span>{available ? footLeft : '—'}</span>
-        <span>{available ? footRight : '—'}</span>
+        <span dir="auto">{available ? footLeft : '—'}</span>
+        <span dir="auto">{available ? footRight : '—'}</span>
       </div>
 
+      <div className="ov-range-toolbar">
+        <OverviewRangeSelect value={range} onChange={onRangeChange} />
+      </div>
       <div className="ov-tile-chart">
         <Sparkline
           data={data}

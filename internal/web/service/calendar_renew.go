@@ -93,12 +93,19 @@ func localCalendarDateStart(date time.Time, loc *time.Location) (time.Time, bool
 	return start, localDate(start).Equal(date)
 }
 
+// maxClientResetDays bounds an interval renewal at a century: a larger one, which a node can
+// report, wraps int64 once turned into milliseconds.
+const maxClientResetDays = 36500
+
 func nextClientRenewal(expiry int64, reset, day, weekday int, loc *time.Location) int64 {
 	if day > 0 {
 		return nextCalendarRenewal(time.UnixMilli(expiry), day, loc).UnixMilli()
 	}
 	if weekday > 0 {
 		return nextWeeklyRenewal(time.UnixMilli(expiry), weekday, loc).UnixMilli()
+	}
+	if reset > maxClientResetDays {
+		return expiry
 	}
 	return expiry + int64(reset)*86400000
 }

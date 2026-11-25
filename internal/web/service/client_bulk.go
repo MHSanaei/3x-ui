@@ -30,6 +30,7 @@ type BulkAttachResult struct {
 // all clients to a target in a single AddInboundClient call, and reports clients already
 // present on a target as skipped.
 func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, inboundIds []int) (*BulkAttachResult, bool, error) {
+	inboundIds = uniqueInts(inboundIds)
 	result := &BulkAttachResult{}
 	if len(emails) == 0 || len(inboundIds) == 0 {
 		return result, false, nil
@@ -111,6 +112,9 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 				continue
 			}
 			client := *rec.ToClient()
+			// Forwards are set per inbound; see Attach.
+			client.ForwardedPorts = nil
+			prepareWireguardDeviceAddresses(&client, inbound)
 			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
 				client.Flow = flow
 			}
@@ -285,17 +289,17 @@ type inboundApplyOutcome struct {
 	err         error
 }
 
-// BulkAdjustResult is returned by BulkAdjust to report how many clients were
-// successfully updated and which were skipped (typically because the field
-// being adjusted was unlimited for that client) or failed.
+// BulkAdjustResult reports changed clients and per-client skip reasons.
+// ExternalLinks contains row counts only for append requests.
 type BulkAdjustResult struct {
-	Adjusted int                `json:"adjusted"`
-	Skipped  []BulkAdjustReport `json:"skipped,omitempty"`
+	Adjusted      int                      `json:"adjusted" example:"2"`
+	Skipped       []BulkAdjustReport       `json:"skipped,omitempty" example:"[]"`
+	ExternalLinks *BulkExternalLinksResult `json:"externalLinks,omitempty"`
 }
 
 type BulkAdjustReport struct {
-	Email  string `json:"email"`
-	Reason string `json:"reason"`
+	Email  string `json:"email" example:"carol"`
+	Reason string `json:"reason" example:"client not found"`
 }
 
 type bulkAdjustEntry struct {
@@ -362,6 +366,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
+	defer watchClientChanges(clientChangeSourcePanel, cleanEmails...).record()
 
 	db := database.GetDB()
 
@@ -818,32 +823,6 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
 			return err
 		}
-		// Log the expiry/total this save actually changed, per client found in
-		// the inbound's JSON; skipped emails were not touched.
-		var adjustChanges []model.ClientChangeLog
-		for email := range foundEmails {
-			entry := plan[email]
-			if entry.record == nil {
-				continue
-			}
-			if entry.applyExpiry && entry.record.ExpiryTime != entry.newExpiry {
-				adjustChanges = append(adjustChanges, model.ClientChangeLog{
-					Email: email, Field: "expiry",
-					OldValue: fmt.Sprintf("%d", entry.record.ExpiryTime), NewValue: fmt.Sprintf("%d", entry.newExpiry),
-					Source: clientChangeSourcePanel,
-				})
-			}
-			if entry.applyTotal && entry.record.TotalGB != entry.newTotal {
-				adjustChanges = append(adjustChanges, model.ClientChangeLog{
-					Email: email, Field: "dataLimit",
-					OldValue: fmt.Sprintf("%d", entry.record.TotalGB), NewValue: fmt.Sprintf("%d", entry.newTotal),
-					Source: clientChangeSourcePanel,
-				})
-			}
-		}
-		if e := logClientChangesTx(tx, adjustChanges); e != nil {
-			return e
-		}
 		if oldInbound.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *oldInbound.NodeID)
 		}
@@ -1026,30 +1005,6 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 				}
 			}
 			if !keepTraffic && len(successEmails) > 0 {
-				// Counters no per-inbound purge handled (shared or detached
-				// emails) survive to here: archive and log them before deleting.
-				if e := recordClosedWindowsTx(tx, successEmails, trafficWindowDelete); e != nil {
-					return e
-				}
-				survivors := make([]string, 0, len(successEmails))
-				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
-					var emails []string
-					if e := tx.Model(&xray.ClientTraffic{}).Where("email IN ?", batch).Pluck("email", &emails).Error; e != nil {
-						return e
-					}
-					survivors = append(survivors, emails...)
-				}
-				if len(survivors) > 0 {
-					changes := make([]model.ClientChangeLog, 0, len(survivors))
-					for _, email := range survivors {
-						changes = append(changes, model.ClientChangeLog{
-							Email: email, Field: "deleted", Source: clientChangeSourcePanel,
-						})
-					}
-					if e := logClientChangesTx(tx, changes); e != nil {
-						return e
-					}
-				}
 				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 					if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
 						return e
@@ -1217,7 +1172,7 @@ func (s *ClientService) bulkDelInboundClients(
 					logger.Error("Error in delete client IPs")
 					return e
 				}
-				if e := inboundSvc.delClientStatsByEmails(tx, purge, trafficWindowDelete); e != nil {
+				if e := inboundSvc.delClientStatsByEmails(tx, purge); e != nil {
 					logger.Error("Delete stats Data Error")
 					return e
 				}
@@ -1405,7 +1360,7 @@ func (s *ClientService) bulkCreate(inboundSvc *InboundService, payloads []Client
 		seenEmail[le] = struct{}{}
 		seenSubID[client.SubID] = le
 
-		prep = append(prep, prepared{client: client, inboundIds: payloads[i].InboundIds, limitHwid: payloads[i].LimitHwid, payloadIdx: i})
+		prep = append(prep, prepared{client: client, inboundIds: uniqueInts(payloads[i].InboundIds), limitHwid: payloads[i].LimitHwid, payloadIdx: i})
 		emails = append(emails, email)
 		subIDs = append(subIDs, client.SubID)
 	}
@@ -1583,8 +1538,9 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 
 	seen := make(map[string]struct{}, len(rows))
 	emails := make([]string, 0, len(rows))
+	// BulkDelete trims each email, so a padded usage row would resolve to the client it resembles.
 	for _, r := range rows {
-		if r.Email == "" {
+		if r.Email == "" || r.Email != strings.TrimSpace(r.Email) {
 			continue
 		}
 		if _, ok := seen[r.Email]; ok {
@@ -1621,6 +1577,7 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
+	defer watchClientChanges(clientChangeSourcePanel, cleanEmails...).record()
 
 	db := database.GetDB()
 
@@ -1695,9 +1652,10 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 		successEmails = append(successEmails, email)
 	}
 
+	var trafficErr error
 	if len(successEmails) > 0 {
 		now := time.Now().UnixMilli()
-		if err := runSerializedTx(func(tx *gorm.DB) error {
+		trafficErr = runSerializedTx(func(tx *gorm.DB) error {
 			for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 				if e := tx.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Update("enable", enable).Error; e != nil {
 					return e
@@ -1707,23 +1665,18 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 					return e
 				}
 			}
-			// Record only the switches that actually flipped, one row each.
-			var enableChanges []model.ClientChangeLog
-			for _, email := range successEmails {
-				rec := recordsByEmail[email]
-				if rec == nil || rec.Enable == enable {
-					continue
-				}
-				enableChanges = append(enableChanges, model.ClientChangeLog{
-					Email: email, Field: "enable",
-					OldValue: fmt.Sprintf("%t", rec.Enable), NewValue: fmt.Sprintf("%t", enable),
-					Source: clientChangeSourcePanel,
-				})
-			}
-			return logClientChangesTx(tx, enableChanges)
-		}); err != nil {
-			return result, needRestart, err
+			return nil
+		})
+	}
+	// Sidecars serve by the traffic rows, so push them only after the rows flip;
+	// a push before it left a bulk-enabled client off until the reconcile job.
+	for i, ibRes := range enableResults {
+		if enablePanics[i] == nil && ibRes.sidecar != "" {
+			applyBulkSidecar(inboundSvc, enableIds[i], ibRes.sidecar)
 		}
+	}
+	if trafficErr != nil {
+		return result, needRestart, trafficErr
 	}
 
 	result.Changed = len(successEmails)
@@ -1736,6 +1689,19 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 type bulkSetEnableInboundResult struct {
 	perEmailSkipped map[string]string
 	needRestart     bool
+	sidecar         model.Protocol // local sidecar inbound to push after the traffic rows
+}
+
+func applyBulkSidecar(inboundSvc *InboundService, inboundId int, protocol model.Protocol) {
+	defer lockInbound(inboundId).Unlock()
+	switch protocol {
+	case model.MTProto:
+		inboundSvc.applyLocalMtproto(inboundId)
+	case model.AmneziaWG:
+		inboundSvc.applyLocalAmneziaWG(inboundId)
+	case model.TUIC:
+		inboundSvc.applyLocalTuic(inboundId)
+	}
 }
 
 func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, inboundId int, emails []string, enable bool) bulkSetEnableInboundResult {
@@ -1866,19 +1832,12 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 	if oldInbound.NodeID == nil {
 		if !push {
 			res.needRestart = true
+		} else if servedOutsideXray(oldInbound.Protocol) {
+			res.sidecar = oldInbound.Protocol
 		} else {
 			for _, ch := range changed {
 				if enable {
-					err1 := rt.AddUser(context.Background(), oldInbound, map[string]any{
-						"email":    ch.client.Email,
-						"id":       ch.client.ID,
-						"security": ch.client.Security,
-						"flow":     ch.client.Flow,
-						"auth":     ch.client.Auth,
-						"password": ch.client.Password,
-						"cipher":   cipher,
-						"reverse":  ch.client.Reverse,
-					})
+					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&ch.client, cipher))
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
 						res.needRestart = true

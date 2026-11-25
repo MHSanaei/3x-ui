@@ -17,7 +17,7 @@ import {
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
-import { withHostEndpoints } from '@/lib/hosts/host-link';
+import { hostLinksClosed, withHostEndpoints } from '@/lib/hosts/host-link';
 
 import {
   buildInboundInfo,
@@ -69,7 +69,9 @@ export default function InboundInfoModal({
     if (!clientStats?.email) return;
     setRefreshing(true);
     try {
-      const msg = await HttpUtil.post(`/panel/api/clients/ips/${clientStats.email}`);
+      const msg = await HttpUtil.post(
+        `/panel/api/clients/ips/${encodeURIComponent(clientStats.email)}`,
+      );
       if (!msg?.success) {
         setClientIpsText((msg?.obj as string) || 'No IP record');
         setClientIpsArray([]);
@@ -101,7 +103,9 @@ export default function InboundInfoModal({
 
   const clearClientIps = useCallback(async () => {
     if (!clientStats?.email) return;
-    const msg = await HttpUtil.post(`/panel/api/clients/clearIps/${clientStats.email}`);
+    const msg = await HttpUtil.post(
+      `/panel/api/clients/clearIps/${encodeURIComponent(clientStats.email)}`,
+    );
     if (msg?.success) {
       setClientIpsArray([]);
       setClientIpsText(t('tgbot.noIpRecord'));
@@ -146,14 +150,21 @@ export default function InboundInfoModal({
       window.location.hostname,
       subSettings?.publicHost ?? '',
     );
+    const baseInbound = inboundFromDb(dbInbound);
     const inboundForLinks = withHostEndpoints(
-      inboundFromDb(dbInbound),
+      baseInbound,
       dbInbound.id,
       hosts,
       nodeAddress,
       fallbackHostname,
     );
-    if (info.protocol === Protocols.WIREGUARD) {
+    if (hostLinksClosed(baseInbound, dbInbound.id, hosts)) {
+      setWireguardConfigs([]);
+      setWireguardLinks([]);
+      setAmneziawgConfigs([]);
+      setAmneziawgLinks([]);
+      setLinks([]);
+    } else if (info.protocol === Protocols.WIREGUARD) {
       setWireguardConfigs(
         genWireguardPeerConfigs({
           inbound: inboundForLinks,
@@ -223,7 +234,8 @@ export default function InboundInfoModal({
     setClientIpsText('');
 
     if (ipLimitEnable && (clientSet?.limitIp ?? 0) > 0 && stats?.email) {
-      void HttpUtil.post(`/panel/api/clients/ips/${stats.email}`).then((msg) => {
+      const email = encodeURIComponent(stats.email);
+      void HttpUtil.post(`/panel/api/clients/ips/${email}`).then((msg) => {
         if (!msg?.success) {
           setClientIpsText((msg?.obj as string) || 'No IP record');
           return;

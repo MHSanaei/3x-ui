@@ -24,7 +24,7 @@ func TestAutoDeleteAllowed(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			j := NewLdapSyncJob()
-			j.lastFlagCount.Store(c.previous)
+			j.lastTrustedFlagCount.Store(c.previous)
 			if got := j.autoDeleteSafeForFetch(c.fetched); got != c.want {
 				t.Fatalf("autoDeleteSafeForFetch(previous=%d, fetched=%d) = %v, want %v",
 					c.previous, c.fetched, got, c.want)

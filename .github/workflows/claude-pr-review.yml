@@ -143,6 +143,9 @@ jobs:
           # Only a fork author lacks write access; an `@claude review` requester passes
           # the action's own check, so the bypass stays off for it.
           allowed_non_write_users: ${{ github.event_name == 'pull_request_target' && '*' || '' }}
+          # Since v1.0.288 the action skips fork pull requests unless told otherwise; the
+          # head is only ever read from pr-head/ at the pinned SHA, with a read-only token.
+          allow_fork_prs: "true"
           # Claude Code loads a CLAUDE.md or .claude/rules/ file the moment a file
           # beside it is read, so a fork's copy under pr-head/ would brief its own review.
           settings: '{"claudeMdExcludes": ["**/pr-head/**"]}'

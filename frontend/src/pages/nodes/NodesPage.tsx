@@ -88,6 +88,7 @@ export default function NodesPage() {
     fetchInbounds,
     probe,
     updatePanels,
+    restart,
   } = useNodeMutations();
 
   const { data: latestVersion = '' } = useQuery({
@@ -103,6 +104,8 @@ export default function NodesPage() {
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formNode, setFormNode] = useState<NodeRecord | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [restartingIds, setRestartingIds] = useState<ReadonlySet<number>>(new Set());
+  const restartLocks = useRef(new Set<number>());
   const [mtlsOpen, setMtlsOpen] = useState(false);
   const [trustCa, setTrustCa] = useState('');
   const [copyingCa, setCopyingCa] = useState(false);
@@ -199,6 +202,52 @@ export default function NodesPage() {
     [probe, t, messageApi, refetch],
   );
 
+  const onRestart = useCallback(
+    (node: NodeRecord, target: 'xray' | 'panel') => {
+      if (!node.enable || node.transitive || node.id <= 0 || restartLocks.current.has(node.id))
+        return;
+      restartLocks.current.add(node.id);
+      const action = target === 'xray' ? 'restartXray' : 'restartPanel';
+      let started = false;
+      modal.confirm({
+        title: t('pages.nodes.restartConfirmTitle', { name: node.name || String(node.id) }),
+        content: t(`pages.nodes.${action}Content`),
+        okText: t(`pages.nodes.${action}`),
+        cancelText: t('cancel'),
+        onCancel: () => {
+          restartLocks.current.delete(node.id);
+        },
+        onOk: async () => {
+          if (started) return;
+          started = true;
+          setRestartingIds((ids) => new Set(ids).add(node.id));
+          try {
+            const msg = await restart(node.id, target);
+            if (msg?.success) {
+              messageApi.success(
+                t(
+                  `pages.nodes.toasts.${target === 'xray' ? 'xrayRestarted' : 'panelRestartAccepted'}`,
+                ),
+              );
+            } else {
+              messageApi.error(msg?.msg || t('somethingWentWrong'));
+            }
+          } catch (error) {
+            messageApi.error(error instanceof Error ? error.message : t('somethingWentWrong'));
+          } finally {
+            restartLocks.current.delete(node.id);
+            setRestartingIds((ids) => {
+              const next = new Set(ids);
+              next.delete(node.id);
+              return next;
+            });
+          }
+        },
+      });
+    },
+    [modal, t, restart, messageApi],
+  );
+
   const onToggleEnable = useCallback(
     async (node: NodeRecord, next: boolean) => {
       await setEnable(node.id, next);
@@ -290,7 +339,13 @@ export default function NodesPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
+            <Spin
+              aria-live="off"
+              spinning={!fetched}
+              delay={200}
+              description={t('loading')}
+              size="large"
+            >
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (
@@ -367,6 +422,8 @@ export default function NodesPage() {
                       onToggleEnable={onToggleEnable}
                       onUpdateNode={onUpdateNode}
                       onUpdateSelected={onUpdateSelected}
+                      onRestart={onRestart}
+                      restartingIds={restartingIds}
                     />
                   </Col>
                 </Row>

@@ -5,13 +5,18 @@
 package link
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"math"
+	"net"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +35,10 @@ type ParseResult struct {
 	Outbound Outbound
 	Identity string
 }
+
+// MaxSubscriptionOutbounds caps the outbounds one document yields: each is held, validated
+// and merged into the core's config, and the byte cap alone allows hundreds of thousands.
+const MaxSubscriptionOutbounds = 2000
 
 // ParseSubscriptionBody accepts the raw body returned by a subscription URL.
 // It handles the common case where the body is a base64-encoded blob of
@@ -51,13 +60,17 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 	var outbounds []Outbound
 	var identities []string
 	seen := map[string]int{}
+	inflateBudget := maxSubscriptionInflatedBytes
 
 	for _, ln := range lines {
+		if len(outbounds) >= MaxSubscriptionOutbounds {
+			break
+		}
 		ln = strings.TrimSpace(ln)
 		if ln == "" || strings.HasPrefix(ln, "#") {
 			continue
 		}
-		res, err := ParseLink(ln)
+		res, err := parseLink(ln, &inflateBudget)
 		if err != nil || res == nil {
 			// Ignore unparseable lines (comments, unsupported protocols, etc.)
 			continue
@@ -117,8 +130,51 @@ func splitLines(s string) []string {
 //   - ss:// (modern and legacy)
 //   - hysteria2:// (also hy2://)
 //   - wireguard:// (also wg://)
+//   - vpn:// (AmneziaWG: 3x-ui plain .conf or AmneziaVPN app key)
 func ParseLink(link string) (*ParseResult, error) {
-	link = strings.TrimSpace(link)
+	return parseLink(link, nil)
+}
+
+// parseLink draws inflated vpn:// bytes from inflateBudget when non-nil, so a whole
+// subscription stays bounded, not just each key.
+func parseLink(link string, inflateBudget *int) (*ParseResult, error) {
+	res, err := parseLinkByScheme(strings.TrimSpace(link), inflateBudget)
+	if err != nil {
+		return nil, err
+	}
+	dropHostLocalKeys(res.Outbound)
+	if !nestsWithin(map[string]any(res.Outbound), maxOutboundDepth) {
+		return nil, fmt.Errorf("link nests JSON deeper than %d levels", maxOutboundDepth)
+	}
+	return res, nil
+}
+
+// maxOutboundDepth bounds the JSON a link can nest into its outbound (the deepest real shape,
+// an xhttp download stream's finalmask, is about 11): pretty-printing costs depth squared.
+const maxOutboundDepth = 16
+
+func nestsWithin(v any, depth int) bool {
+	if depth < 0 {
+		return false
+	}
+	switch v := v.(type) {
+	case map[string]any:
+		for _, child := range v {
+			if !nestsWithin(child, depth-1) {
+				return false
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if !nestsWithin(child, depth-1) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func parseLinkByScheme(link string, inflateBudget *int) (*ParseResult, error) {
 	switch {
 	case strings.HasPrefix(link, "vmess://"):
 		return parseVmess(link)
@@ -132,8 +188,33 @@ func ParseLink(link string) (*ParseResult, error) {
 		return parseHysteria2(link)
 	case strings.HasPrefix(link, "wireguard://"), strings.HasPrefix(link, "wg://"):
 		return parseWireguard(link)
+	case strings.HasPrefix(link, "vpn://"):
+		return parseAmneziaVPN(link, inflateBudget)
 	default:
 		return nil, fmt.Errorf("unsupported link scheme")
+	}
+}
+
+// hostLocalKeys redirect the core's dial or name files on the importing host; extra=, fm= and
+// vmess JSON copy provider keys verbatim, and the core binds keys case-folded.
+var hostLocalKeys = []string{"dialerProxy", "certificateFile", "keyFile", "masterKeyLog"}
+
+func dropHostLocalKeys(v any) {
+	switch v := v.(type) {
+	case map[string]any:
+		for key, child := range v {
+			if slices.ContainsFunc(hostLocalKeys, func(k string) bool { return strings.EqualFold(k, key) }) {
+				delete(v, key)
+				continue
+			}
+			dropHostLocalKeys(child)
+		}
+	case Outbound:
+		dropHostLocalKeys(map[string]any(v))
+	case []any:
+		for _, child := range v {
+			dropHostLocalKeys(child)
+		}
 	}
 }
 
@@ -141,17 +222,13 @@ func ParseLink(link string) (*ParseResult, error) {
 
 func parseVmess(link string) (*ParseResult, error) {
 	b64 := strings.TrimPrefix(link, "vmess://")
-	// vmess:// base64(json)
-	raw, err := base64.StdEncoding.DecodeString(padBase64(b64))
-	if err != nil {
-		// Some providers use raw URL-safe
-		raw, err = base64.RawURLEncoding.DecodeString(b64)
-	}
+	// vmess:// base64(json), standard or URL-safe, padded or not
+	raw, err := base64DecodeFlexible(b64)
 	if err != nil {
 		return nil, fmt.Errorf("vmess decode: %w", err)
 	}
 	var j map[string]any
-	if err := json.Unmarshal(raw, &j); err != nil {
+	if err := json.Unmarshal([]byte(raw), &j); err != nil {
 		return nil, fmt.Errorf("vmess json: %w", err)
 	}
 
@@ -324,7 +401,7 @@ func parseVless(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "vless",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"address":    host,
 			"port":       port,
@@ -366,7 +443,7 @@ func parseTrojan(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "trojan",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": map[string]any{
 			"servers": []any{
 				map[string]any{"address": host, "port": port, "password": pw},
@@ -571,7 +648,7 @@ func parseHysteria2(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol":       "hysteria",
-		"tag":            decodeHash(u.Fragment),
+		"tag":            decodeHash(u.EscapedFragment()),
 		"settings":       map[string]any{"address": host, "port": port, "version": 2},
 		"streamSettings": stream,
 	}
@@ -594,7 +671,7 @@ func parseWireguard(link string) (*ParseResult, error) {
 	portStr := u.Port()
 	endpoint := host
 	if portStr != "" {
-		endpoint = host + ":" + portStr
+		endpoint = net.JoinHostPort(host, portStr)
 	}
 
 	addrRaw := firstParam(params, "address", "ip")
@@ -649,9 +726,166 @@ func parseWireguard(link string) (*ParseResult, error) {
 
 	ob := Outbound{
 		"protocol": "wireguard",
-		"tag":      decodeHash(u.Fragment),
+		"tag":      decodeHash(u.EscapedFragment()),
 		"settings": settings,
 	}
+	return &ParseResult{Outbound: ob, Identity: identity}, nil
+}
+
+// --- amneziawg (vpn://) ---
+
+// maxAmneziaVPNPayload bounds the inflated AmneziaVPN key; a real one is a few KiB.
+const maxAmneziaVPNPayload = 1 << 20
+
+// maxSubscriptionInflatedBytes bounds the vpn:// bytes one subscription inflates: without it
+// 2000 links at the per-key cap would expand an 8 MiB body to 2 GB.
+const maxSubscriptionInflatedBytes = 8 << 20
+
+// parseAmneziaVPN reads a vpn:// link: 3x-ui writes base64url(.conf text), the AmneziaVPN
+// app base64url(qCompress(JSON)) with the .conf in containers[].awg.last_config.
+func parseAmneziaVPN(link string, inflateBudget *int) (*ParseResult, error) {
+	payload, err := base64DecodeFlexible(strings.TrimPrefix(link, "vpn://"))
+	if err != nil {
+		return nil, err
+	}
+	conf, description := payload, ""
+	if len(payload) > 6 && payload[4] == 0x78 {
+		if conf, description, err = amneziaVPNKeyConf([]byte(payload[4:]), inflateBudget); err != nil {
+			return nil, err
+		}
+	}
+	return amneziaWGOutboundFromConf(conf, description)
+}
+
+func amneziaVPNKeyConf(zlibData []byte, inflateBudget *int) (conf, description string, err error) {
+	limit := maxAmneziaVPNPayload
+	if inflateBudget != nil {
+		limit = min(limit, *inflateBudget)
+	}
+	zr, err := zlib.NewReader(bytes.NewReader(zlibData))
+	if err != nil {
+		return "", "", err
+	}
+	defer zr.Close()
+	raw, err := io.ReadAll(io.LimitReader(zr, int64(limit)+1))
+	if err != nil {
+		return "", "", err
+	}
+	if len(raw) > limit {
+		return "", "", fmt.Errorf("amneziavpn key exceeds the %d bytes left to inflate", limit)
+	}
+	if inflateBudget != nil {
+		*inflateBudget -= len(raw)
+	}
+	var key struct {
+		Description string `json:"description"`
+		Containers  []struct {
+			Awg *struct {
+				LastConfig string `json:"last_config"`
+			} `json:"awg"`
+		} `json:"containers"`
+	}
+	if err := json.Unmarshal(raw, &key); err != nil {
+		return "", "", err
+	}
+	for _, c := range key.Containers {
+		if c.Awg == nil || c.Awg.LastConfig == "" {
+			continue
+		}
+		var last struct {
+			Config string `json:"config"`
+		}
+		if err := json.Unmarshal([]byte(c.Awg.LastConfig), &last); err != nil {
+			return "", "", err
+		}
+		if last.Config != "" {
+			return last.Config, key.Description, nil
+		}
+	}
+	return "", "", fmt.Errorf("amneziavpn key has no amneziawg container")
+}
+
+// amneziaWGConfInts are the .conf keys the outbound stores as numbers.
+var amneziaWGConfInts = map[string]string{
+	"mtu": "mtu", "jc": "jc", "jmin": "jmin", "jmax": "jmax",
+	"s1": "s1", "s2": "s2", "s3": "s3", "s4": "s4",
+}
+
+var amneziaWGConfStrings = map[string]string{
+	"h1": "h1", "h2": "h2", "h3": "h3", "h4": "h4",
+	"i1": "i1", "i2": "i2", "i3": "i3", "i4": "i4", "i5": "i5",
+	"headerprotectionkey": "headerProtectionKey", "contentpaddingaddition": "contentPaddingAddition",
+	"rekeyaftertime": "rekeyAfterTime", "rekeytimeout": "rekeyTimeout", "rejectaftertime": "rejectAfterTime",
+	"keepalivetimeout": "keepaliveTimeout", "maxhandshakeattempts": "maxHandshakeAttempts",
+}
+
+// amneziaWGOutboundFromConf keeps only known keys, so wg-quick hooks (PostUp...) never survive.
+func amneziaWGOutboundFromConf(conf, fallbackTag string) (*ParseResult, error) {
+	settings := map[string]any{"randomTrailers": false, "disableCookies": false}
+	peer := map[string]any{"allowedIPs": []string{"0.0.0.0/0", "::/0"}}
+	tag := ""
+	for line := range strings.SplitSeq(conf, "\n") {
+		line = strings.TrimSpace(line)
+		if rest, ok := strings.CutPrefix(line, "#"); ok {
+			if tag == "" {
+				tag = strings.TrimSpace(rest)
+			}
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		key, v := strings.ToLower(strings.TrimSpace(k)), strings.TrimSpace(v)
+		if f, ok := amneziaWGConfInts[key]; ok {
+			if n, err := strconv.Atoi(v); err == nil {
+				settings[f] = n
+			}
+			continue
+		}
+		if f, ok := amneziaWGConfStrings[key]; ok {
+			settings[f] = v
+			continue
+		}
+		switch key {
+		case "privatekey":
+			settings["secretKey"] = v
+		case "address":
+			settings["address"] = splitComma(v)
+		case "dns":
+			if dns := splitComma(v); len(dns) > 0 {
+				settings["dns"] = dns[0]
+			}
+		case "randomtrailers":
+			settings["randomTrailers"] = strings.EqualFold(v, "on")
+		case "disablecookies":
+			settings["disableCookies"] = strings.EqualFold(v, "on")
+		case "publickey":
+			peer["publicKey"] = v
+		case "presharedkey":
+			peer["presharedKey"] = v
+		case "allowedips":
+			peer["allowedIPs"] = splitComma(v)
+		case "endpoint":
+			peer["endpoint"] = v
+		case "persistentkeepalive":
+			// The outbound holds one interval; a ranged "20-30" keeps its lower bound so NAT refresh survives.
+			lo, _, _ := strings.Cut(v, "-")
+			if n, err := strconv.Atoi(strings.TrimSpace(lo)); err == nil {
+				peer["keepAlive"] = n
+			}
+		}
+	}
+	if settings["secretKey"] == nil || peer["publicKey"] == nil || peer["endpoint"] == nil {
+		return nil, fmt.Errorf("amneziawg config lacks PrivateKey, PublicKey or Endpoint")
+	}
+	settings["peers"] = []any{peer}
+	if tag == "" {
+		tag = fallbackTag
+	}
+	ob := Outbound{"protocol": "amneziawg", "tag": tag, "settings": settings}
+	// The private key tells apart clients of one server, as in the WireGuard identity.
+	identity := fmt.Sprintf("amneziawg:%s:%s@%s", settings["secretKey"], peer["publicKey"], peer["endpoint"])
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
 }
 
@@ -1216,6 +1450,8 @@ func base64DecodeFlexible(s string) (string, error) {
 // replacing every other run of characters with a single dash.
 var slugRe = regexp.MustCompile(`[^\p{L}\p{N}]+`)
 
+const maxSlugRunes = 64
+
 func SlugRemark(remark string) string {
 	s := strings.ToLower(strings.TrimSpace(remark))
 	s = slugRe.ReplaceAllString(s, "-")
@@ -1226,6 +1462,10 @@ func SlugRemark(remark string) string {
 	// collapse runs of dashes
 	for strings.Contains(s, "--") {
 		s = strings.ReplaceAll(s, "--", "-")
+	}
+	// The tag names Xray counters, a traffic row and the config; a link author picks the remark.
+	if r := []rune(s); len(r) > maxSlugRunes {
+		s = strings.TrimRight(string(r[:maxSlugRunes]), "-")
 	}
 	return s
 }

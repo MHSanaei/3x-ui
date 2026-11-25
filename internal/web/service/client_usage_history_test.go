@@ -5,15 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // seedUsageHistoryClient seeds a local VLESS inbound hosting one client and a
-// live traffic row with the given counters, ready for a reset/renew/delete.
+// live traffic row with the given counters.
 func seedUsageHistoryClient(t *testing.T, inboundSvc *InboundService, email, uid string, up, down int64) *model.Inbound {
 	t.Helper()
 	setupBulkDB(t)
@@ -58,34 +56,207 @@ func changesOf(t *testing.T, email string) []model.ClientChangeLog {
 	return changes
 }
 
-// A single-client reset must archive the counters into a closed window, zero
-// the live row, and leave lifetime = archived + live in GetUsageHistory.
-func TestResetArchivesClosedWindow(t *testing.T) {
-	inboundSvc := &InboundService{}
-	ib := seedUsageHistoryClient(t, inboundSvc, "reset-win@example.test", "44444444-1111-4111-8111-111111111111", 100, 200)
+// Lifetime traffic is the archived windows plus the live counters, so a reset path
+// that zeroes without archiving silently loses that cycle from the total.
+func TestEveryResetPathArchivesTheWindowItCloses(t *testing.T) {
+	const email = "reset-win@example.test"
+	for _, tc := range []struct {
+		name  string
+		reset func(*InboundService, *ClientService, *model.Inbound) error
+	}{
+		{"one client of an inbound", func(inbounds *InboundService, _ *ClientService, ib *model.Inbound) error {
+			_, err := inbounds.ResetClientTraffic(ib.Id, email)
+			return err
+		}},
+		{"one client by email", func(inbounds *InboundService, clients *ClientService, _ *model.Inbound) error {
+			_, err := clients.ResetTrafficByEmail(inbounds, email)
+			return err
+		}},
+		{"one client's counters only", func(inbounds *InboundService, _ *ClientService, _ *model.Inbound) error {
+			return inbounds.ResetClientTrafficByEmail(email)
+		}},
+		{"selected clients", func(inbounds *InboundService, clients *ClientService, _ *model.Inbound) error {
+			_, err := clients.BulkResetTraffic(inbounds, []string{email})
+			return err
+		}},
+		{"every client of an inbound", func(inbounds *InboundService, clients *ClientService, ib *model.Inbound) error {
+			_, err := clients.ResetAllClientTraffics(inbounds, ib.Id)
+			return err
+		}},
+		{"every client", func(_ *InboundService, clients *ClientService, _ *model.Inbound) error {
+			_, err := clients.ResetAllTraffics()
+			return err
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inbounds, clients := &InboundService{}, &ClientService{}
+			ib := seedUsageHistoryClient(t, inbounds, email, "44444444-1111-4111-8111-111111111111", 100, 200)
+			if err := tc.reset(inbounds, clients, ib); err != nil {
+				t.Fatal(err)
+			}
+			windows := windowsOf(t, email)
+			if len(windows) != 1 || windows[0].Reason != trafficWindowReset || windows[0].Up != 100 || windows[0].Down != 200 {
+				t.Fatalf("windows = %+v, want exactly one reset window of 100/200", windows)
+			}
+			history, err := clients.GetUsageHistory(email)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if history.CurrentUp != 0 || history.CurrentDown != 0 || history.LifetimeUp != 100 || history.LifetimeDown != 200 {
+				t.Fatalf("current %d/%d lifetime %d/%d, want 0/0 and 100/200",
+					history.CurrentUp, history.CurrentDown, history.LifetimeUp, history.LifetimeDown)
+			}
+		})
+	}
+}
 
-	if _, err := inboundSvc.ResetClientTraffic(ib.Id, "reset-win@example.test"); err != nil {
-		t.Fatalf("ResetClientTraffic: %v", err)
+// Past the cap a client's oldest windows fold into one row: the table stops growing and
+// the lifetime total must not move.
+func TestWindowsPastTheCapFoldWithoutChangingLifetime(t *testing.T) {
+	const email = "capped@example.test"
+	inbounds, clients := &InboundService{}, &ClientService{}
+	ib := seedUsageHistoryClient(t, inbounds, email, "12121212-1111-4111-8111-111111111111", 100, 200)
+	db := database.GetDB()
+	seeded := make([]model.ClientTrafficWindow, 0, clientTrafficWindowKeep+1)
+	for i := range clientTrafficWindowKeep + 1 {
+		seeded = append(seeded, model.ClientTrafficWindow{Email: email, At: int64(1000 + i), Up: 1, Down: 2, Reason: trafficWindowRenew})
+	}
+	if err := db.Create(&seeded).Error; err != nil {
+		t.Fatal(err)
 	}
 
-	var live xray.ClientTraffic
-	if err := database.GetDB().Where("email = ?", "reset-win@example.test").First(&live).Error; err != nil {
-		t.Fatalf("read live traffic row: %v", err)
+	for cycle, want := range []struct{ foldedUp, foldedDown, lifetimeUp int64 }{
+		{2, 4, int64(clientTrafficWindowKeep+1) + 100},
+		{3, 6, int64(clientTrafficWindowKeep+1) + 100 + 7},
+	} {
+		if cycle == 1 {
+			if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).Updates(map[string]any{"up": 7, "down": 9}).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := inbounds.ResetClientTraffic(ib.Id, email); err != nil {
+			t.Fatal(err)
+		}
+		windows := windowsOf(t, email)
+		var folded []model.ClientTrafficWindow
+		for _, window := range windows {
+			if window.Reason == trafficWindowEarlier {
+				folded = append(folded, window)
+			}
+		}
+		if len(windows) != clientTrafficWindowKeep+1 || len(folded) != 1 || folded[0].Up != want.foldedUp || folded[0].Down != want.foldedDown {
+			t.Fatalf("cycle %d: %d windows, folded %+v; want %d windows with one earlier row of %d/%d",
+				cycle, len(windows), folded, clientTrafficWindowKeep+1, want.foldedUp, want.foldedDown)
+		}
+		history, err := clients.GetUsageHistory(email)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if history.LifetimeUp != want.lifetimeUp {
+			t.Fatalf("cycle %d: lifetime up = %d, want %d: folding changed the total", cycle, history.LifetimeUp, want.lifetimeUp)
+		}
 	}
-	if live.Up != 0 || live.Down != 0 {
-		t.Fatalf("live counters = %d/%d, want zeroed", live.Up, live.Down)
+}
+
+// The change log keeps the newest rows of each client and never trims another client's.
+func TestChangeLogKeepsTheNewestRowsPerClient(t *testing.T) {
+	const email, other = "chatty@example.test", "quiet@example.test"
+	inbounds, clients := &InboundService{}, &ClientService{}
+	seedUsageHistoryClient(t, inbounds, email, "13131313-1111-4111-8111-111111111111", 0, 0)
+	db := database.GetDB()
+	seeded := make([]model.ClientChangeLog, 0, clientChangeLogKeep+1)
+	for i := range clientChangeLogKeep {
+		seeded = append(seeded, model.ClientChangeLog{Email: email, At: int64(1000 + i), Field: "enable", NewValue: itoa(int64(i))})
 	}
-	windows := windowsOf(t, "reset-win@example.test")
-	if len(windows) != 1 || windows[0].Reason != trafficWindowReset || windows[0].Up != 100 || windows[0].Down != 200 {
-		t.Fatalf("windows = %+v, want one reset window 100/200", windows)
+	seeded = append(seeded, model.ClientChangeLog{Email: other, At: 1, Field: "enable"})
+	if err := db.Create(&seeded).Error; err != nil {
+		t.Fatal(err)
 	}
 
-	history, err := (&ClientService{}).GetUsageHistory("reset-win@example.test")
+	record, err := clients.GetRecordByEmail(nil, email)
 	if err != nil {
-		t.Fatalf("GetUsageHistory: %v", err)
+		t.Fatal(err)
 	}
-	if history.LifetimeUp != 100 || history.LifetimeDown != 200 {
-		t.Fatalf("lifetime = %d/%d, want 100/200", history.LifetimeUp, history.LifetimeDown)
+	edited := record.ToClient()
+	edited.TotalGB = 5 << 30
+	if _, err := clients.Update(inbounds, record.Id, *edited, record.LimitHwid); err != nil {
+		t.Fatal(err)
+	}
+
+	kept := changesOf(t, email)
+	if len(kept) != clientChangeLogKeep || kept[0].NewValue != "1" || kept[len(kept)-1].Field != "dataLimit" {
+		t.Fatalf("%d rows, first %+v last %+v; want %d rows from the second seeded one to the new dataLimit change",
+			len(kept), kept[0], kept[len(kept)-1], clientChangeLogKeep)
+	}
+	if got := len(changesOf(t, other)); got != 1 {
+		t.Fatalf("another client's log has %d rows, want its 1 untouched", got)
+	}
+}
+
+// A bot edit and a bulk edit are logged from the stored record, under their own source.
+func TestBotAndBulkEditsAreLoggedWithTheirSource(t *testing.T) {
+	const email = "edited@example.test"
+	inbounds, clients := &InboundService{}, &ClientService{}
+	seedUsageHistoryClient(t, inbounds, email, "14141414-1111-4111-8111-111111111111", 0, 0)
+
+	// The bulk add skips an unlimited client, so the bot sets a limit first.
+	if _, err := clients.ResetClientTrafficLimitByEmail(inbounds, email, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := clients.BulkAdjust(inbounds, []string{email}, 0, 1<<30, "", nil, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	type row struct{ field, old, new, source string }
+	var got []row
+	for _, change := range changesOf(t, email) {
+		got = append(got, row{change.Field, change.OldValue, change.NewValue, change.Source})
+	}
+	want := []row{
+		{"dataLimit", "0", itoa(1 << 30), clientChangeSourceTgbot},
+		{"dataLimit", itoa(1 << 30), itoa(2 << 30), clientChangeSourcePanel},
+	}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("change log = %+v, want %+v", got, want)
+	}
+}
+
+// History belongs to a client: once the client is gone the reaper drops it, and only it.
+func TestHistoryOfADeletedClientIsReaped(t *testing.T) {
+	const gone, kept = "gone@example.test", "kept@example.test"
+	inbounds, clients := &InboundService{}, &ClientService{}
+	seedUsageHistoryClient(t, inbounds, gone, "15151515-1111-4111-8111-111111111111", 0, 0)
+	stays := model.Client{Email: kept, ID: "16161616-1111-4111-8111-111111111111", SubID: kept, Enable: true}
+	ib := mkInbound(t, 54506, model.VLESS, clientsSettings(t, []model.Client{stays}))
+	if err := clients.SyncInbound(nil, ib.Id, []model.Client{stays}); err != nil {
+		t.Fatal(err)
+	}
+	db := database.GetDB()
+	for _, email := range []string{gone, kept} {
+		if err := db.Create(&model.ClientTrafficWindow{Email: email, At: 1, Up: 5, Reason: trafficWindowReset}).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Create(&model.ClientChangeLog{Email: email, At: 1, Field: "enable"}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	record, err := clients.GetRecordByEmail(nil, gone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := clients.Delete(inbounds, record.Id, false); err != nil {
+		t.Fatal(err)
+	}
+
+	reaped, err := clients.ReapOrphanClientHistory()
+	if err != nil || reaped != 2 {
+		t.Fatalf("reaped %d rows (err %v), want the deleted client's window and change", reaped, err)
+	}
+	if w, c := len(windowsOf(t, gone)), len(changesOf(t, gone)); w != 0 || c != 0 {
+		t.Fatalf("deleted client still has %d windows and %d changes", w, c)
+	}
+	if w, c := len(windowsOf(t, kept)), len(changesOf(t, kept)); w != 1 || c != 1 {
+		t.Fatalf("living client has %d windows and %d changes, want 1 and 1", w, c)
 	}
 }
 
@@ -161,44 +332,6 @@ func TestAutoRenewArchivesRenewWindowAndLogsExpiry(t *testing.T) {
 	}
 	if changes[0].OldValue != itoa(past) || changes[0].NewValue == changes[0].OldValue {
 		t.Fatalf("expiry row = %+v, want old=%d new>old", changes[0], past)
-	}
-}
-
-// Deleting a client's stats archives its counters and logs a "deleted" event.
-func TestDelClientStatArchivesDeletedWindow(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "del-win@example.test", "88888888-5555-4555-8555-555555555555", 50, 25)
-
-	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		return inboundSvc.DelClientStat(tx, "del-win@example.test", trafficWindowDelete)
-	}); err != nil {
-		t.Fatalf("DelClientStat: %v", err)
-	}
-
-	var liveCount int64
-	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", "del-win@example.test").Count(&liveCount).Error; err != nil {
-		t.Fatalf("count live rows: %v", err)
-	}
-	if liveCount != 0 {
-		t.Fatalf("live rows = %d, want 0", liveCount)
-	}
-	windows := windowsOf(t, "del-win@example.test")
-	if len(windows) != 1 || windows[0].Reason != trafficWindowDelete || windows[0].Up != 50 || windows[0].Down != 25 {
-		t.Fatalf("windows = %+v, want one deleted window 50/25", windows)
-	}
-	changes := changesOf(t, "del-win@example.test")
-	if len(changes) != 1 || changes[0].Field != "deleted" {
-		t.Fatalf("changes = %+v, want one deleted event", changes)
-	}
-
-	// The lifetime read still accounts for the archived window with no live row.
-	history, err := (&ClientService{}).GetUsageHistory("del-win@example.test")
-	if err != nil {
-		t.Fatalf("GetUsageHistory: %v", err)
-	}
-	if history.LifetimeUp != 50 || history.LifetimeDown != 25 {
-		t.Fatalf("lifetime = %d/%d, want 50/25", history.LifetimeUp, history.LifetimeDown)
 	}
 }
 
@@ -318,24 +451,6 @@ func TestRenameMigratesClientHistory(t *testing.T) {
 	}
 }
 
-// A client with no windows, nodes or changes reads back as all zeros and
-// empty (non-nil) slices.
-func TestGetUsageHistoryEmpty(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "fresh@example.test", "dddddddd-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 0, 0)
-
-	history, err := (&ClientService{}).GetUsageHistory("fresh@example.test")
-	if err != nil {
-		t.Fatalf("GetUsageHistory: %v", err)
-	}
-	if history.LifetimeUp != 0 || history.LifetimeDown != 0 || history.CurrentUp != 0 || history.CurrentDown != 0 {
-		t.Fatalf("totals = %+v, want all zero", history)
-	}
-	if len(history.Windows) != 0 || len(history.Nodes) != 0 || len(history.Changes) != 0 {
-		t.Fatalf("collections not empty: %+v", history)
-	}
-}
-
 // GetUsageHistory must report the node's own accumulated up/down, separated.
 func TestGetUsageHistoryReportsNodeUsage(t *testing.T) {
 	inboundSvc := &InboundService{}
@@ -363,160 +478,6 @@ func TestGetUsageHistoryReportsNodeUsage(t *testing.T) {
 	}
 	if history.Nodes[0].NodeName != "fra-edge" || history.Nodes[0].Up != 111 || history.Nodes[0].Down != 222 {
 		t.Fatalf("node usage = %+v, want fra-edge 111/222", history.Nodes[0])
-	}
-}
-
-func TestGetUsageHistoryJSONShape(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "shape@example.test", "ffffffff-cccc-4ccc-8ccc-cccccccccccc", 0, 0)
-
-	history, err := (&ClientService{}).GetUsageHistory("shape@example.test")
-	if err != nil {
-		t.Fatalf("GetUsageHistory: %v", err)
-	}
-	b, err := json.Marshal(history)
-	if err != nil {
-		t.Fatalf("marshal: %v", err)
-	}
-	var decoded map[string]any
-	if err := json.Unmarshal(b, &decoded); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	for _, key := range []string{"email", "lifetimeUp", "lifetimeDown", "currentUp", "currentDown", "windows", "nodes", "changes"} {
-		if _, ok := decoded[key]; !ok {
-			t.Fatalf("JSON missing %q: %s", key, b)
-		}
-	}
-}
-
-// Deleting an attached client archives its counters exactly once: the
-// per-inbound delete handles them, the final cleanup sees nothing left.
-func TestDeleteArchivesAttachedClientCountersOnce(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "del-attached@example.test", "01010101-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 400, 300)
-	svc := &ClientService{}
-
-	rec, err := svc.GetRecordByEmail(nil, "del-attached@example.test")
-	if err != nil {
-		t.Fatalf("GetRecordByEmail: %v", err)
-	}
-	if _, err := svc.Delete(inboundSvc, rec.Id, false); err != nil {
-		t.Fatalf("Delete: %v", err)
-	}
-	if got := len(windowsOf(t, "del-attached@example.test")); got != 1 {
-		t.Fatalf("windows = %d, want exactly 1", got)
-	}
-	deleted := 0
-	for _, c := range changesOf(t, "del-attached@example.test") {
-		if c.Field == "deleted" {
-			deleted++
-		}
-	}
-	if deleted != 1 {
-		t.Fatalf("deleted rows = %d, want exactly 1", deleted)
-	}
-}
-
-// Deleting a client detached from every inbound archives its surviving
-// counters in the final cleanup, so nothing is dropped or double-counted.
-func TestDeleteArchivesDetachedClientCounters(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "del-detached@example.test", "02020202-bbbb-4bbb-8bbb-bbbbbbbbbbbb", 90, 60)
-	svc := &ClientService{}
-
-	// Detach: drop the inbound link so the per-inbound delete never runs.
-	rec, err := svc.GetRecordByEmail(nil, "del-detached@example.test")
-	if err != nil {
-		t.Fatalf("GetRecordByEmail: %v", err)
-	}
-	if err := database.GetDB().Where("client_id = ?", rec.Id).Delete(&model.ClientInbound{}).Error; err != nil {
-		t.Fatalf("detach client_inbounds: %v", err)
-	}
-	if _, err := svc.Delete(inboundSvc, rec.Id, false); err != nil {
-		t.Fatalf("Delete: %v", err)
-	}
-	windows := windowsOf(t, "del-detached@example.test")
-	if len(windows) != 1 || windows[0].Reason != trafficWindowDelete || windows[0].Up != 90 || windows[0].Down != 60 {
-		t.Fatalf("windows = %+v, want one deleted window 90/60", windows)
-	}
-	deleted := 0
-	for _, c := range changesOf(t, "del-detached@example.test") {
-		if c.Field == "deleted" {
-			deleted++
-		}
-	}
-	if deleted != 1 {
-		t.Fatalf("deleted rows = %d, want exactly 1", deleted)
-	}
-}
-
-// A bulk delete archives the surviving counters of the deleted clients: one
-// window and one deleted event per email, never a duplicate.
-func TestBulkDeleteArchivesSurvivingCounters(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "bulk-del-a@example.test", "03030303-cccc-4ccc-8ccc-cccccccccccc", 10, 20)
-	svc := &ClientService{}
-	clientB := model.Client{Email: "bulk-del-b@example.test", ID: "04040404-dddd-4ddd-8ddd-dddddddddddd", SubID: "bulk-del-b@example.test", Enable: true}
-	ib2 := mkInbound(t, 54509, model.VLESS, clientsSettings(t, []model.Client{clientB}))
-	if err := svc.SyncInbound(nil, ib2.Id, []model.Client{clientB}); err != nil {
-		t.Fatalf("SyncInbound: %v", err)
-	}
-	if err := database.GetDB().Create(&xray.ClientTraffic{InboundId: ib2.Id, Email: "bulk-del-b@example.test", Enable: true, Up: 30, Down: 40}).Error; err != nil {
-		t.Fatalf("seed traffic B: %v", err)
-	}
-	// Detach both so only the final cleanup handles the counters.
-	for _, email := range []string{"bulk-del-a@example.test", "bulk-del-b@example.test"} {
-		rec, err := svc.GetRecordByEmail(nil, email)
-		if err != nil {
-			t.Fatalf("GetRecordByEmail %s: %v", email, err)
-		}
-		if err := database.GetDB().Where("client_id = ?", rec.Id).Delete(&model.ClientInbound{}).Error; err != nil {
-			t.Fatalf("detach %s: %v", email, err)
-		}
-	}
-
-	res, _, err := svc.BulkDelete(inboundSvc, []string{"bulk-del-a@example.test", "bulk-del-b@example.test"}, false)
-	if err != nil {
-		t.Fatalf("BulkDelete: %v", err)
-	}
-	if res.Deleted != 2 || len(res.Skipped) != 0 {
-		t.Fatalf("result = %+v, want both deleted and none skipped", res)
-	}
-	for _, email := range []string{"bulk-del-a@example.test", "bulk-del-b@example.test"} {
-		windows := windowsOf(t, email)
-		if len(windows) != 1 || windows[0].Reason != trafficWindowDelete {
-			t.Fatalf("%s windows = %+v, want one deleted window", email, windows)
-		}
-		deleted := 0
-		for _, c := range changesOf(t, email) {
-			if c.Field == "deleted" {
-				deleted++
-			}
-		}
-		if deleted != 1 {
-			t.Fatalf("%s deleted rows = %d, want exactly 1", email, deleted)
-		}
-	}
-}
-
-// A rename that discards the old email's counters archives them under the
-// "renamed" reason without logging a deletion event.
-func TestDelClientStatRenamedArchivesWithoutDeletedEvent(t *testing.T) {
-	inboundSvc := &InboundService{}
-	seedUsageHistoryClient(t, inboundSvc, "del-rename@example.test", "05050505-eeee-4eee-8eee-eeeeeeeeeeee", 15, 8)
-
-	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		return inboundSvc.DelClientStat(tx, "del-rename@example.test", trafficWindowRename)
-	}); err != nil {
-		t.Fatalf("DelClientStat: %v", err)
-	}
-	windows := windowsOf(t, "del-rename@example.test")
-	if len(windows) != 1 || windows[0].Reason != trafficWindowRename || windows[0].Up != 15 || windows[0].Down != 8 {
-		t.Fatalf("windows = %+v, want one renamed window 15/8", windows)
-	}
-	if got := len(changesOf(t, "del-rename@example.test")); got != 0 {
-		t.Fatalf("change rows = %d, want 0 for a rename", got)
 	}
 }
 

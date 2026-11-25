@@ -13,30 +13,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// Closed-window reasons, one per way a client's counters leave the live row.
+// Why a closed window exists. "earlier" is the fold of windows past the cap.
 const (
-	trafficWindowReset  = "reset"
-	trafficWindowRenew  = "renew"
-	trafficWindowDelete = "deleted"
-	trafficWindowRename = "renamed"
+	trafficWindowReset   = "reset"
+	trafficWindowRenew   = "renew"
+	trafficWindowEarlier = "earlier"
 )
 
-// Change-log sources.
 const (
 	clientChangeSourcePanel = "panel"
 	clientChangeSourceTgbot = "tgbot"
 	clientChangeSourceRenew = "auto-renew"
 )
 
+// Per-client row caps: both tables stay bounded by the number of clients.
 const (
-	// usageHistoryWindowLimit caps the per-client window list shown in the UI;
-	// the lifetime totals still account for every archived row.
-	usageHistoryWindowLimit = 2000
-	usageHistoryChangeLimit = 500
+	clientTrafficWindowKeep = 100
+	clientChangeLogKeep     = 200
 )
 
-// ClientNodeUsage is one node's accumulated counters for a client since its
-// last reset, with the node's display name resolved for the panel.
+// ClientNodeUsage is one node's counters for a client since its last reset.
 type ClientNodeUsage struct {
 	NodeID   int    `json:"nodeId" example:"7"`
 	NodeName string `json:"nodeName" example:"de-fra-1"`
@@ -44,8 +40,7 @@ type ClientNodeUsage struct {
 	Down     int64  `json:"down" example:"2097152"`
 }
 
-// ClientUsageHistory is the usage + change story behind the edit modal's
-// history button: lifetime totals, closed windows, per-node counters, the log.
+// ClientUsageHistory is what the client editor's history button shows.
 type ClientUsageHistory struct {
 	Email        string                      `json:"email" example:"user1@example.com"`
 	LifetimeUp   int64                       `json:"lifetimeUp" example:"10737418240"`
@@ -76,25 +71,13 @@ func (s *ClientService) GetUsageHistory(email string) (*ClientUsageHistory, erro
 		out.CurrentUp, out.CurrentDown = live.Up, live.Down
 	}
 
-	var sums struct {
-		Up   int64
-		Down int64
-	}
-	if err := db.Model(&model.ClientTrafficWindow{}).
-		Where("email = ?", email).
-		Select("COALESCE(SUM(up), 0) AS up, COALESCE(SUM(down), 0) AS down").
-		Scan(&sums).Error; err != nil {
+	if err := db.Where("email = ?", email).Order("at DESC, id DESC").Find(&out.Windows).Error; err != nil {
 		return nil, err
 	}
-	out.LifetimeUp = sums.Up + out.CurrentUp
-	out.LifetimeDown = sums.Down + out.CurrentDown
-
-	if err := db.Model(&model.ClientTrafficWindow{}).
-		Where("email = ?", email).
-		Order("at DESC, id DESC").
-		Limit(usageHistoryWindowLimit).
-		Find(&out.Windows).Error; err != nil {
-		return nil, err
+	out.LifetimeUp, out.LifetimeDown = out.CurrentUp, out.CurrentDown
+	for _, window := range out.Windows {
+		out.LifetimeUp = clampedTrafficAdd(out.LifetimeUp, window.Up)
+		out.LifetimeDown = clampedTrafficAdd(out.LifetimeDown, window.Down)
 	}
 	if err := db.Model(&model.NodeClientTraffic{}).
 		Joins("JOIN nodes n ON n.id = node_client_traffics.node_id").
@@ -104,147 +87,205 @@ func (s *ClientService) GetUsageHistory(email string) (*ClientUsageHistory, erro
 		Scan(&out.Nodes).Error; err != nil {
 		return nil, err
 	}
-	if err := db.Model(&model.ClientChangeLog{}).
-		Where("email = ?", email).
-		Order("at DESC, id DESC").
-		Limit(usageHistoryChangeLimit).
-		Find(&out.Changes).Error; err != nil {
+	if err := db.Where("email = ?", email).Order("at DESC, id DESC").Find(&out.Changes).Error; err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// recordClosedWindowsTx archives the clients' about-to-be-zeroed counters
-// in the caller's transaction (only rows with real usage), before zeroing.
-func recordClosedWindowsTx(tx *gorm.DB, emails []string, reason string) error {
-	if len(emails) == 0 {
+// archiveClosedWindowsTx is the one place a client's used counters become history. Call it
+// before zeroing them, in the same transaction; nil emails means every client.
+func archiveClosedWindowsTx(tx *gorm.DB, emails []string, reason string) error {
+	if emails != nil && len(emails) == 0 {
 		return nil
 	}
-	for _, batch := range chunkStrings(emails, sqlInChunk) {
-		var seeds []struct {
-			Email string
-			Up    int64
-			Down  int64
-		}
-		if err := tx.Model(xray.ClientTraffic{}).
-			Select("email, up, down").
-			Where("email IN ? AND (up > 0 OR down > 0)", batch).
-			Scan(&seeds).Error; err != nil {
+	used := func() *gorm.DB {
+		return tx.Model(&xray.ClientTraffic{}).Select("email, up, down").Where("up > 0 OR down > 0")
+	}
+	var windows []model.ClientTrafficWindow
+	if emails == nil {
+		if err := used().Scan(&windows).Error; err != nil {
 			return err
 		}
-		if len(seeds) == 0 {
-			continue
+	} else {
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var page []model.ClientTrafficWindow
+			if err := used().Where("email IN ?", batch).Scan(&page).Error; err != nil {
+				return err
+			}
+			windows = append(windows, page...)
 		}
-		windows := make([]model.ClientTrafficWindow, 0, len(seeds))
-		for _, seed := range seeds {
-			windows = append(windows, model.ClientTrafficWindow{
-				Email: seed.Email, Up: seed.Up, Down: seed.Down, Reason: reason,
-			})
+	}
+	if len(windows) == 0 {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	closed := make([]string, 0, len(windows))
+	for i := range windows {
+		windows[i].At, windows[i].Reason = now, reason
+		closed = append(closed, windows[i].Email)
+	}
+	if err := tx.CreateInBatches(&windows, sqlInChunk).Error; err != nil {
+		return err
+	}
+	return foldOldWindowsTx(tx, closed)
+}
+
+// foldOldWindowsTx merges a client's windows past the cap into one "earlier" row, so the
+// table stops growing while the lifetime total it sums to stays the same.
+func foldOldWindowsTx(tx *gorm.DB, emails []string) error {
+	var over []string
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var page []string
+		if err := tx.Model(&model.ClientTrafficWindow{}).Where("email IN ?", batch).
+			Group("email").Having("COUNT(*) > ?", clientTrafficWindowKeep+1).
+			Pluck("email", &page).Error; err != nil {
+			return err
 		}
-		if err := archiveClosedWindowsTx(tx, windows); err != nil {
+		over = append(over, page...)
+	}
+	for _, email := range over {
+		var old []model.ClientTrafficWindow
+		if err := tx.Where("email = ?", email).Order("at DESC, id DESC").
+			Offset(clientTrafficWindowKeep).Find(&old).Error; err != nil {
+			return err
+		}
+		folded := model.ClientTrafficWindow{Email: email, At: old[0].At, Reason: trafficWindowEarlier}
+		ids := make([]int64, 0, len(old))
+		for _, window := range old {
+			folded.Up = clampedTrafficAdd(folded.Up, window.Up)
+			folded.Down = clampedTrafficAdd(folded.Down, window.Down)
+			ids = append(ids, window.Id)
+		}
+		if err := tx.Where("id IN ?", ids).Delete(&model.ClientTrafficWindow{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&folded).Error; err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// archiveClosedWindowsTx persists already-built windows in the caller's
-// transaction, stamping the close time onto any that lack one.
-func archiveClosedWindowsTx(tx *gorm.DB, windows []model.ClientTrafficWindow) error {
-	if len(windows) == 0 {
-		return nil
-	}
-	now := time.Now().UnixMilli()
-	for i := range windows {
-		if windows[i].At == 0 {
-			windows[i].At = now
-		}
-	}
-	return tx.Create(&windows).Error
-}
-
-// logClientChangesTx appends the change-log rows of one commit; entries may
-// leave At zero, in which case the commit time is stamped on all of them.
+// logClientChangesTx appends change rows stamped with the commit time, then drops each
+// client's rows past the cap.
 func logClientChangesTx(tx *gorm.DB, entries []model.ClientChangeLog) error {
 	if len(entries) == 0 {
 		return nil
 	}
 	now := time.Now().UnixMilli()
+	seen := make(map[string]struct{}, len(entries))
+	emails := make([]string, 0, len(entries))
 	for i := range entries {
-		if entries[i].At == 0 {
-			entries[i].At = now
+		entries[i].At = now
+		if _, dup := seen[entries[i].Email]; !dup {
+			seen[entries[i].Email] = struct{}{}
+			emails = append(emails, entries[i].Email)
 		}
 	}
-	return tx.Create(&entries).Error
-}
-
-// recordClosedWindowsAllTx archives every live counter with real usage; run
-// it before a whole-table zeroing, inside the caller's transaction.
-func recordClosedWindowsAllTx(tx *gorm.DB, reason string) error {
-	var seeds []struct {
-		Email string
-		Up    int64
-		Down  int64
-	}
-	if err := tx.Model(xray.ClientTraffic{}).
-		Select("email, up, down").
-		Where("up > 0 OR down > 0").
-		Scan(&seeds).Error; err != nil {
+	if err := tx.CreateInBatches(&entries, sqlInChunk).Error; err != nil {
 		return err
 	}
-	if len(seeds) == 0 {
-		return nil
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var over []string
+		if err := tx.Model(&model.ClientChangeLog{}).Where("email IN ?", batch).
+			Group("email").Having("COUNT(*) > ?", clientChangeLogKeep).
+			Pluck("email", &over).Error; err != nil {
+			return err
+		}
+		for _, email := range over {
+			var oldest model.ClientChangeLog
+			if err := tx.Where("email = ?", email).Order("at DESC, id DESC").
+				Offset(clientChangeLogKeep).Take(&oldest).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("email = ? AND (at < ? OR (at = ? AND id <= ?))", email, oldest.At, oldest.At, oldest.Id).
+				Delete(&model.ClientChangeLog{}).Error; err != nil {
+				return err
+			}
+		}
 	}
-	windows := make([]model.ClientTrafficWindow, 0, len(seeds))
-	for _, seed := range seeds {
-		windows = append(windows, model.ClientTrafficWindow{
-			Email: seed.Email, Up: seed.Up, Down: seed.Down, Reason: reason,
-		})
-	}
-	return archiveClosedWindowsTx(tx, windows)
+	return nil
 }
 
-// logClientChange appends one change-log row for an admin action outside a
-// caller transaction; a no-op when the value did not actually change.
-func logClientChange(email, field, oldValue, newValue, source string) {
-	if oldValue == newValue {
+// clientChangeWatch holds client records as they were before an operation. Diffing them
+// against the stored rows afterwards logs what changed, not what a caller meant to write.
+type clientChangeWatch struct {
+	source string
+	before []model.ClientRecord
+}
+
+func watchClientChanges(source string, emails ...string) *clientChangeWatch {
+	watch := &clientChangeWatch{source: source}
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var page []model.ClientRecord
+		if err := database.GetDB().Where("email IN ?", batch).Find(&page).Error; err != nil {
+			logger.Warning("client change log: read records failed:", err)
+			return &clientChangeWatch{source: source}
+		}
+		watch.before = append(watch.before, page...)
+	}
+	return watch
+}
+
+// record pairs rows by id, so a client renamed meanwhile is logged under its new email.
+func (w *clientChangeWatch) record() {
+	if len(w.before) == 0 {
 		return
 	}
-	entry := model.ClientChangeLog{
-		Email: email, Field: field, OldValue: oldValue, NewValue: newValue,
-		Source: source, At: time.Now().UnixMilli(),
+	db := database.GetDB()
+	ids := make([]int, 0, len(w.before))
+	for i := range w.before {
+		ids = append(ids, w.before[i].Id)
 	}
-	if err := database.GetDB().Create(&entry).Error; err != nil {
-		logger.Warning("log client change failed:", err)
+	after := make(map[int]*model.ClientRecord, len(ids))
+	for _, batch := range chunkInts(ids, sqlInChunk) {
+		var page []model.ClientRecord
+		if err := db.Where("id IN ?", batch).Find(&page).Error; err != nil {
+			logger.Warning("client change log: read records failed:", err)
+			return
+		}
+		for i := range page {
+			after[page[i].Id] = &page[i]
+		}
+	}
+	var entries []model.ClientChangeLog
+	for i := range w.before {
+		if now, kept := after[w.before[i].Id]; kept {
+			entries = append(entries, diffClientChanges(&w.before[i], now, w.source)...)
+		}
+	}
+	if err := db.Transaction(func(tx *gorm.DB) error { return logClientChangesTx(tx, entries) }); err != nil {
+		logger.Warning("client change log: write failed:", err)
 	}
 }
 
-// diffClientChanges returns one row per differing client-info field, keyed
-// by newRec's email; "name" is excluded because the rename sites log it.
-func diffClientChanges(oldRec, newRec *model.ClientRecord) []model.ClientChangeLog {
+// diffClientChanges returns one row per client field that differs. The email is left
+// out: a rename is logged where the record is renamed.
+func diffClientChanges(oldRec, newRec *model.ClientRecord, source string) []model.ClientChangeLog {
 	var entries []model.ClientChangeLog
 	add := func(field, oldVal, newVal string) {
 		entries = append(entries, model.ClientChangeLog{
-			Email: newRec.Email, Field: field, OldValue: oldVal, NewValue: newVal,
+			Email: newRec.Email, Field: field, OldValue: oldVal, NewValue: newVal, Source: source,
 		})
 	}
 	if oldRec.SubID != newRec.SubID {
 		add("subId", oldRec.SubID, newRec.SubID)
 	}
 	if oldRec.ExpiryTime != newRec.ExpiryTime {
-		add("expiry", fmt.Sprintf("%d", oldRec.ExpiryTime), fmt.Sprintf("%d", newRec.ExpiryTime))
+		add("expiry", fmt.Sprint(oldRec.ExpiryTime), fmt.Sprint(newRec.ExpiryTime))
 	}
 	if oldRec.TotalGB != newRec.TotalGB {
-		add("dataLimit", fmt.Sprintf("%d", oldRec.TotalGB), fmt.Sprintf("%d", newRec.TotalGB))
+		add("dataLimit", fmt.Sprint(oldRec.TotalGB), fmt.Sprint(newRec.TotalGB))
 	}
 	if oldRec.Enable != newRec.Enable {
-		add("enable", fmt.Sprintf("%t", oldRec.Enable), fmt.Sprintf("%t", newRec.Enable))
+		add("enable", fmt.Sprint(oldRec.Enable), fmt.Sprint(newRec.Enable))
 	}
 	if oldRec.LimitIP != newRec.LimitIP {
-		add("limitIp", fmt.Sprintf("%d", oldRec.LimitIP), fmt.Sprintf("%d", newRec.LimitIP))
+		add("limitIp", fmt.Sprint(oldRec.LimitIP), fmt.Sprint(newRec.LimitIP))
 	}
 	if oldRec.LimitHwid != newRec.LimitHwid {
-		add("limitHwid", fmt.Sprintf("%d", oldRec.LimitHwid), fmt.Sprintf("%d", newRec.LimitHwid))
+		add("limitHwid", fmt.Sprint(oldRec.LimitHwid), fmt.Sprint(newRec.LimitHwid))
 	}
 	if oldRec.AdTag != newRec.AdTag {
 		add("adTag", oldRec.AdTag, newRec.AdTag)
@@ -252,27 +293,45 @@ func diffClientChanges(oldRec, newRec *model.ClientRecord) []model.ClientChangeL
 	if oldRec.Group != newRec.Group {
 		add("group", oldRec.Group, newRec.Group)
 	}
-	if oldRec.Reset != newRec.Reset || oldRec.ResetDay != newRec.ResetDay ||
-		oldRec.ResetWeekday != newRec.ResetWeekday || oldRec.ResetMax != newRec.ResetMax ||
-		oldRec.TrafficReset != newRec.TrafficReset || oldRec.TrafficResetDay != newRec.TrafficResetDay {
-		plan := func(r *model.ClientRecord) string {
-			return fmt.Sprintf("%d/%d/%d/%d/%s:%d", r.Reset, r.ResetDay, r.ResetWeekday, r.ResetMax, r.TrafficReset, r.TrafficResetDay)
-		}
+	plan := func(r *model.ClientRecord) string {
+		return fmt.Sprintf("%d/%d/%d/%d/%s:%d", r.Reset, r.ResetDay, r.ResetWeekday, r.ResetMax, r.TrafficReset, r.TrafficResetDay)
+	}
+	if plan(oldRec) != plan(newRec) {
 		add("renewalPlan", plan(oldRec), plan(newRec))
 	}
 	return entries
 }
 
-// migrateClientHistoryEmailTx re-keys a renamed client's windows and change
-// log onto the new email, in the caller's transaction, so history follows.
-func migrateClientHistoryEmailTx(tx *gorm.DB, oldEmail, newEmail string) error {
+// renameClientHistoryTx moves a renamed client's history to its new email and logs the
+// rename, so the history follows the client instead of being reaped with the old name.
+func renameClientHistoryTx(tx *gorm.DB, oldEmail, newEmail, source string) error {
 	if oldEmail == "" || oldEmail == newEmail {
 		return nil
 	}
-	if err := tx.Model(&model.ClientChangeLog{}).Where("email = ?", oldEmail).
-		Update("email", newEmail).Error; err != nil {
+	if err := tx.Model(&model.ClientChangeLog{}).Where("email = ?", oldEmail).Update("email", newEmail).Error; err != nil {
 		return err
 	}
-	return tx.Model(&model.ClientTrafficWindow{}).Where("email = ?", oldEmail).
-		Update("email", newEmail).Error
+	if err := tx.Model(&model.ClientTrafficWindow{}).Where("email = ?", oldEmail).Update("email", newEmail).Error; err != nil {
+		return err
+	}
+	return logClientChangesTx(tx, []model.ClientChangeLog{{
+		Email: newEmail, Field: "name", OldValue: oldEmail, NewValue: newEmail, Source: source,
+	}})
+}
+
+// ReapOrphanClientHistory drops the history of emails no client holds any more: every
+// path that deletes a client is covered here instead of in each of them.
+func (s *ClientService) ReapOrphanClientHistory() (int64, error) {
+	var reaped int64
+	err := runSerializedTx(func(tx *gorm.DB) error {
+		for _, table := range []any{&model.ClientTrafficWindow{}, &model.ClientChangeLog{}} {
+			res := tx.Where("email NOT IN (?)", tx.Model(&model.ClientRecord{}).Select("email")).Delete(table)
+			if res.Error != nil {
+				return res.Error
+			}
+			reaped += res.RowsAffected
+		}
+		return nil
+	})
+	return reaped, err
 }

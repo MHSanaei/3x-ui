@@ -1,4 +1,4 @@
-import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
+import { flattenXhttpExtra } from '@/schemas/protocols/stream/xhttp';
 import { liftLegacyXDriveService } from '@/schemas/protocols/stream/xdrive';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
@@ -354,14 +354,23 @@ function freedomFromWire(
       network,
       port: asString(rr.port),
       ip: asArray(rr.ip).map((x) => asString(x)),
-      blockDelay: asString(rr.blockDelay),
+      // The deprecated blockDelay wins over delay, as it does in xray-core 26.11.9.
+      delay: asString(rr.blockDelay) || asString(rr.delay),
+      logLevel: asString(rr.logLevel),
     };
   });
   // Legacy ipsBlocked → finalRule(block) backfill
   if (finalRules.length === 0) {
     const ipsBlocked = asArray(raw.ipsBlocked).map((x) => asString(x));
     if (ipsBlocked.length > 0) {
-      finalRules.push({ action: 'block', network: '', port: '', ip: ipsBlocked, blockDelay: '' });
+      finalRules.push({
+        action: 'block',
+        network: '',
+        port: '',
+        ip: ipsBlocked,
+        delay: '',
+        logLevel: '',
+      });
     }
   }
   // Wire fragment is either missing or a populated object. Mirror the
@@ -563,8 +572,6 @@ export interface RawOutboundRow {
   mux?: unknown;
 }
 
-const XMUX_DEFAULTS = XHttpXmuxSchema.parse({});
-
 function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   const next = { ...stream };
   if (typeof next.method === 'string' && next.method !== '') {
@@ -574,11 +581,11 @@ function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
   liftLegacyXDriveService(next);
   const xh = next.xhttpSettings;
   if (xh && typeof xh === 'object' && !Array.isArray(xh)) {
-    const xhttp = { ...(xh as Raw) };
+    const xhttp = flattenXhttpExtra(xh as Raw);
     const xmux = xhttp.xmux;
     if (xmux && typeof xmux === 'object' && !Array.isArray(xmux)) {
       xhttp.enableXmux = true;
-      xhttp.xmux = { ...XMUX_DEFAULTS, ...(xmux as Raw) };
+      xhttp.xmux = { ...(xmux as Raw) };
     }
     next.xhttpSettings = xhttp;
   }
@@ -828,7 +835,8 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
             network: r.network || undefined,
             port: r.port || undefined,
             ip: r.ip.length > 0 ? r.ip : undefined,
-            blockDelay: r.action === 'block' && r.blockDelay ? r.blockDelay : undefined,
+            delay: r.action === 'block' && r.delay ? r.delay : undefined,
+            logLevel: r.action === 'block' && r.logLevel ? r.logLevel : undefined,
           }))
         : undefined,
   };

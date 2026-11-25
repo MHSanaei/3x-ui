@@ -13,8 +13,10 @@
     "subscription-server",
     "subscription-balancers",
     "hosts",
+    "reality-watch",
     "nodes",
     "backup",
+    "mcp",
     "websocket"
   ]
 }

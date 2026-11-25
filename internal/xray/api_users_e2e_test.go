@@ -1,6 +1,7 @@
 package xray
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,8 +13,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
+
+	"github.com/xtls/xray-core/app/proxyman/command"
+	wireguard "github.com/xtls/xray-core/proxy/wireguard"
+
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 // e2eCore is a real xray-core process plus a connected panel API client.
@@ -453,5 +460,146 @@ func TestXrayAPI_E2E_TestRoutePortRange(t *testing.T) {
 	}
 	if _, err := c.api.TestRoute(RouteTestRequest{Domain: "example.com", Port: 65535}); err != nil {
 		t.Fatalf("TestRoute rejected the valid port 65535: %v", err)
+	}
+}
+
+func e2eInboundEmails(t *testing.T, c *e2eCore, tag string) []string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
+	defer cancel()
+	resp, err := (*c.api.HandlerServiceClient).GetInboundUsers(ctx, &command.GetInboundUserRequest{Tag: tag})
+	if err != nil {
+		t.Fatalf("list users of %s: %v", tag, err)
+	}
+	emails := make([]string, 0, len(resp.GetUsers()))
+	for _, u := range resp.GetUsers() {
+		emails = append(emails, u.GetEmail())
+	}
+	slices.Sort(emails)
+	return emails
+}
+
+// A client's WireGuard devices are peers sharing its email. The core must keep each
+// one, and removing the client must drop all of them and nobody else's.
+func TestXrayAPI_E2E_WireguardDevicesShareAnEmail(t *testing.T) {
+	serverKey, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, otherPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := startE2ECore(t, []any{map[string]any{
+		"listen": "127.0.0.1", "port": freePort(t), "protocol": "wireguard", "tag": "wg-in",
+		"settings": map[string]any{
+			"secretKey": serverKey, "mtu": 1420,
+			"peers": []any{map[string]any{"publicKey": otherPub, "allowedIPs": []string{"10.0.0.2/32"}, "email": "other"}},
+		},
+	}})
+
+	devices := make([]map[string]any, 3)
+	for i := range devices {
+		_, pub, err := wgutil.GenerateWireguardKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		devices[i] = map[string]any{
+			"email": "multi", "publicKey": pub, "keepAlive": "25",
+			"allowedIPs": []string{fmt.Sprintf("10.0.0.%d/32", 10+i)},
+		}
+		if err := c.api.AddUser("wireguard", "wg-in", devices[i]); err != nil || !c.alive() {
+			t.Fatalf("add device %d: err=%v alive=%v", i+1, err, c.alive())
+		}
+	}
+	if got, want := e2eInboundEmails(t, c, "wg-in"), []string{"multi", "multi", "multi", "other"}; !slices.Equal(got, want) {
+		t.Fatalf("peers after adding three devices = %v, want %v", got, want)
+	}
+
+	if err := c.api.RemoveWireguardUsers("wg-in", "multi"); err != nil || !c.alive() {
+		t.Fatalf("remove the client's peers: err=%v alive=%v", err, c.alive())
+	}
+	if got, want := e2eInboundEmails(t, c, "wg-in"), []string{"other"}; !slices.Equal(got, want) {
+		t.Fatalf("peers after removing the client = %v, want %v", got, want)
+	}
+
+	// Re-enabling a device re-adds the peer it had before.
+	if err := c.api.AddUser("wireguard", "wg-in", devices[1]); err != nil || !c.alive() {
+		t.Fatalf("re-add a removed device: err=%v alive=%v", err, c.alive())
+	}
+	if got, want := e2eInboundEmails(t, c, "wg-in"), []string{"multi", "other"}; !slices.Equal(got, want) {
+		t.Fatalf("peers after re-adding one device = %v, want %v", got, want)
+	}
+}
+
+func e2eWireguardPeers(t *testing.T, c *e2eCore, tag string) map[string]string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
+	defer cancel()
+	resp, err := (*c.api.HandlerServiceClient).GetInboundUsers(ctx, &command.GetInboundUserRequest{Tag: tag})
+	if err != nil {
+		t.Fatalf("list peers of %s: %v", tag, err)
+	}
+	peers := make(map[string]string, len(resp.GetUsers()))
+	for _, u := range resp.GetUsers() {
+		account, err := u.GetAccount().GetInstance()
+		if err != nil {
+			t.Fatal(err)
+		}
+		peers[account.(*wireguard.PeerConfig).GetPublicKey()] = u.GetEmail()
+	}
+	return peers
+}
+
+// Disabling one device must take exactly its peer out of the core. The core removes
+// by email, which the client's other devices share, so the removal goes by key.
+func TestXrayAPI_E2E_WireguardPeerRemovedByKey(t *testing.T) {
+	serverKey, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := startE2ECore(t, []any{map[string]any{
+		"listen": "127.0.0.1", "port": freePort(t), "protocol": "wireguard", "tag": "wg-in",
+		"settings": map[string]any{"secretKey": serverKey, "mtu": 1420, "peers": []any{}},
+	}})
+
+	keys := make([]string, 4)
+	want := make(map[string]string, len(keys))
+	for i := range keys {
+		_, pub, err := wgutil.GenerateWireguardKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys[i] = pub
+		email := "multi"
+		if i == 3 {
+			email = "other"
+		}
+		user := map[string]any{"email": email, "publicKey": pub, "allowedIPs": []string{fmt.Sprintf("10.0.0.%d/32", 10+i)}}
+		if err := c.api.AddUser("wireguard", "wg-in", user); err != nil {
+			t.Fatalf("add peer %d: %v", i, err)
+		}
+		hexKey, err := wgutil.KeyToHex(pub)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want[hexKey] = email
+	}
+
+	if err := c.api.RemoveWireguardPeer("wg-in", keys[1]); err != nil || !c.alive() {
+		t.Fatalf("remove one device: err=%v alive=%v", err, c.alive())
+	}
+	gone, _ := wgutil.KeyToHex(keys[1])
+	delete(want, gone)
+	if got := e2eWireguardPeers(t, c, "wg-in"); !maps.Equal(got, want) {
+		t.Fatalf("peers after removing one device = %v, want %v", got, want)
+	}
+
+	// The reconcile repeats the removal once the peer is already gone.
+	if err := c.api.RemoveWireguardPeer("wg-in", keys[1]); err != nil || !c.alive() {
+		t.Fatalf("repeat the removal: err=%v alive=%v", err, c.alive())
+	}
+	if got := e2eWireguardPeers(t, c, "wg-in"); !maps.Equal(got, want) {
+		t.Fatalf("peers after repeating the removal = %v, want %v", got, want)
 	}
 }

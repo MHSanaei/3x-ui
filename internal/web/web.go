@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
@@ -38,6 +39,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/wechat"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -66,16 +68,14 @@ type cronPanicLogger struct{}
 
 func (cronPanicLogger) Printf(format string, args ...any) { logger.Errorf(format, args...) }
 
-// wrapDistFS adapts the embedded `dist/` directory so it can be mounted
-// as the panel's `/assets/` static route. Vite emits its bundled JS/CSS
-// under `dist/assets/`; serving the FS rooted at `dist/assets` makes
-// `/assets/<hash>.js` URLs resolve directly.
+// wrapDistFS serves the embedded `dist/assets` tree (Vite's bundled JS/CSS) as the panel's
+// `/assets/` route; a named field keeps embed.FS's ReadFile, rooted at `dist`, unpromoted.
 type wrapDistFS struct {
-	embed.FS
+	dist embed.FS
 }
 
 func (f *wrapDistFS) Open(name string) (fs.File, error) {
-	file, err := f.FS.Open("dist/assets/" + name)
+	file, err := f.dist.Open("dist/assets/" + name)
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +128,19 @@ type Server struct {
 	tgbotService   tgbot.Tgbot
 	discordService *discord.DiscordService
 	discordGateway *discord.GatewayClient
+	wechatService  *wechat.Service
 
 	wsHub *websocket.Hub
 
 	bus                  *eventbus.Bus
 	cron                 *cron.Cron
 	discordNotifyEntryID cron.EntryID
+	wechatNotifyEntryID  cron.EntryID
+	cpuAlarmEntryID      cron.EntryID
+	memoryAlarmEntryID   cron.EntryID
+	wechatScheduleMu     sync.Mutex
+	wechatScheduler      *cron.Cron
+	wechatReportSpec     string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -205,8 +212,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine.Use(gzip.Gzip(gzip.DefaultCompression))
 	assetsBasePath := basePath + "assets/"
+	// The bundles are served below from a gzip copy made once per file: compressing them
+	// per request lets every stalled download pin its own compressor until WriteTimeout.
+	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{assetsBasePath})))
 
 	store := cookie.NewStore(secret)
 	// Configure default session cookie options, including expiration (MaxAge)
@@ -244,11 +253,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// so the Vite watcher's incremental rebuilds show up without
 	// restarting the binary; in prod we serve the embedded dist FS
 	// rooted at `dist/assets/`.
+	var assetsFS fs.FS = &wrapDistFS{dist: distFS}
 	if config.IsDebug() {
-		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("internal/web/dist/assets")))
-	} else {
-		engine.StaticFS(basePath+"assets", http.FS(&wrapDistFS{FS: distFS}))
+		assetsFS = os.DirFS("internal/web/dist/assets")
 	}
+	engine.Group(basePath+"assets", middleware.GzipStatic(assetsFS)).StaticFS("/", http.FS(assetsFS))
 
 	// Hand the embedded `dist/` filesystem to the controller package
 	// before any HTML-serving controller is constructed. Phase 8
@@ -264,7 +273,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	s.api = controller.NewAPIController(g)
+	s.api = controller.NewAPIController(g, engine)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -301,6 +310,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // counters.
 const (
 	cadenceXrayRunning   = "@every 1s"
+	cadenceRealityWatch  = "@every 10m"
 	cadenceXrayRestart   = "@every 30s"
 	cadenceXrayTraffic   = "@every 5s"
 	cadenceMtproto       = "@every 10s"
@@ -378,6 +388,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
 	_, _ = s.cron.AddJob(cadenceXrayLogPrune, job.NewPruneXrayLogsJob())
 	_, _ = s.cron.AddJob("@hourly", job.NewWarpIpJob())
+	_, _ = s.cron.AddJob(cadenceRealityWatch, job.NewRealityWatchJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour
@@ -419,15 +430,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		s.discordNotifyEntryID = scheduleSettingJob(s.cron, "Discord notify", runtime, "@daily", job.NewDiscordNotifyJob(s.discordService))
 	}
 
-	// CPU monitor publishes cpu.high events; register it whenever any notifier
-	// (Telegram or Email) wants them, independent of the Telegram bot being on.
-	if s.cpuAlarmWanted() {
-		_, _ = s.cron.AddJob(cadenceCPUAlarm, job.NewCheckCpuJob())
-	}
-	// Memory monitor publishes memory.high events; register it whenever any notifier wants them.
-	if s.memoryAlarmWanted() {
-		_, _ = s.cron.AddJob(cadenceMemoryAlarm, job.NewCheckMemJob())
-	}
+	s.reloadWechatJobs()
 
 	if mins := sys.MemoryReleaseIntervalMinutes(); mins > 0 {
 		_, _ = s.cron.AddJob(fmt.Sprintf("@every %dm", mins), job.NewMemoryReleaseJob())
@@ -473,6 +476,13 @@ func (s *Server) cpuAlarmWanted() bool {
 			return true
 		}
 	}
+	if on, _ := s.settingService.GetWechatEnable(); on {
+		events, _ := s.settingService.GetWechatEnabledEvents()
+		threshold, _ := s.settingService.GetWechatCpu()
+		if wants(events, threshold) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -507,6 +517,13 @@ func (s *Server) memoryAlarmWanted() bool {
 		events, _ := s.settingService.GetDiscordEnabledEvents()
 		mem, _ := s.settingService.GetDiscordMemory()
 		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetWechatEnable(); on {
+		events, _ := s.settingService.GetWechatEnabledEvents()
+		threshold, _ := s.settingService.GetWechatMemory()
+		if wants(events, threshold) {
 			return true
 		}
 	}
@@ -589,15 +606,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	if err != nil {
 		return err
 	}
-	port, err := s.settingService.GetPort()
+	port, err := s.settingService.GetListenPort()
 	if err != nil {
 		return err
 	}
-	if envPort, configured, envErr := config.GetPortOverride(); configured {
+	if _, configured, envErr := config.GetPortOverride(); configured {
 		if envErr != nil {
 			logger.Warning("Ignoring invalid XUI_PORT; using configured web port:", port, envErr)
 		} else {
-			port = envPort
 			logger.Info("Using XUI_PORT override for web panel port:", port)
 		}
 	}
@@ -606,6 +622,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	if err != nil {
 		return err
 	}
+	listener = network.NewLimitListener(listener, network.MaxPanelConns, network.MaxPanelConnsPerSource)
 	if certFile != "" || keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err == nil {
@@ -671,6 +688,12 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	// Wire email service to controller for test endpoint
 	controller.SetEmailService(emailService)
+
+	s.wechatService = wechat.NewService(s.settingService)
+	wechatSub := wechat.NewSubscriber(s.settingService, s.wechatService)
+	s.bus.Subscribe("wechat-notifier", wechatSub.HandleEvent)
+	controller.SetWechatService(s.wechatService)
+	controller.SetReloadWechatFunc(s.reloadWechatJobs)
 
 	// Register discord subscriber (always — it checks discordBotEnable at runtime)
 	s.discordService = discord.NewDiscordService(s.settingService)
@@ -813,6 +836,10 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 			err2 = common.Combine(err2, err)
 		}
 	}
+	// Before the bus: its Telegram notifier may sit in a send only StopBot ends.
+	if stopTgBot && s.tgbotService.IsRunning() {
+		s.tgbotService.Stop()
+	}
 	if s.bus != nil {
 		s.bus.Stop()
 	}
@@ -821,9 +848,6 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if stopXray {
 		service.StopTrafficWriter()
-	}
-	if stopTgBot && s.tgbotService.IsRunning() {
-		s.tgbotService.Stop()
 	}
 	if s.discordGateway != nil && s.discordGateway.IsRunning() {
 		s.discordGateway.Stop()

@@ -1,3 +1,4 @@
+import { NativeSelect } from '@/components/form/NativeSelect';
 import { useState, useId } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +18,7 @@ import {
 import { RadarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
+import { selectTagRender } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { UTLS_FINGERPRINT } from '@/schemas/primitives';
 import {
@@ -24,7 +26,9 @@ import {
   validateRealityMaxClientVer,
   validateRealityTarget,
 } from '@/lib/xray/stream-wire-normalize';
-import type { RealityScanResult } from '@/generated/types';
+import type { RealityScanResult, RealityWatchEntry } from '@/generated/types';
+import type { MessageInstance } from 'antd/es/message/interface';
+import RealityWatchSection from './RealityWatchSection';
 import RealityTargetScannerModal, {
   MLDSA65_MIN_CERT_CHAIN_BYTES,
 } from './RealityTargetScannerModal';
@@ -42,6 +46,11 @@ interface RealityFormProps {
   clearRealityKeypair: () => void;
   genMldsa65: () => void;
   clearMldsa65: () => void;
+  inboundId?: number | null;
+  onNode?: boolean;
+  messageApi?: MessageInstance;
+  onWatchDraftChange?: (entry: RealityWatchEntry) => void;
+  onWatchSwitched?: (target: string, serverNames: string[]) => void;
 }
 
 export default function RealityForm({
@@ -57,6 +66,11 @@ export default function RealityForm({
   clearRealityKeypair,
   genMldsa65,
   clearMldsa65,
+  inboundId = null,
+  onNode = false,
+  messageApi,
+  onWatchDraftChange,
+  onWatchSwitched,
 }: RealityFormProps) {
   const { t } = useTranslation();
   const uid = useId();
@@ -111,7 +125,9 @@ export default function RealityForm({
         name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
         label="uTLS"
       >
-        <Select options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))} />
+        <NativeSelect
+          options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))}
+        />
       </FormField>
       <Form.Item
         htmlFor={`${uid}-target`}
@@ -208,7 +224,12 @@ export default function RealityForm({
         </Form.Item>
       )}
       <FormField label="SNI" name={['streamSettings', 'realitySettings', 'serverNames']}>
-        <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
+        <Select
+          mode="tags"
+          tagRender={selectTagRender}
+          tokenSeparators={[',']}
+          style={{ width: '100%' }}
+        />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'maxTimediff']}
@@ -251,6 +272,7 @@ export default function RealityForm({
             <Select
               id={`${uid}-shortIds`}
               mode="tags"
+              tagRender={selectTagRender}
               tokenSeparators={[',']}
               style={{ flex: 1 }}
             />
@@ -376,6 +398,14 @@ export default function RealityForm({
             ),
           },
         ]}
+      />
+      <RealityWatchSection
+        inboundId={inboundId}
+        onNode={onNode}
+        scanRealityCandidates={scanRealityCandidates}
+        message={messageApi}
+        onDraftChange={onWatchDraftChange}
+        onSwitched={onWatchSwitched}
       />
       <RealityTargetScannerModal
         open={scannerOpen}

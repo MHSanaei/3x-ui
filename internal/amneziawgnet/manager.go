@@ -62,12 +62,38 @@ func (m *managed) lookupPeer(addr netip.Addr) (amneziawg.Peer, bool) {
 	return peers.Lookup(addr)
 }
 
+func (m *managed) peerEmail(addr netip.Addr) (string, bool) {
+	peer, ok := m.lookupPeer(addr)
+	return peer.Email, ok
+}
+
 func (m *managed) handleUDP(src, dst netip.AddrPort, payload []byte) {
 	peer, ok := m.lookupPeer(src.Addr())
 	if !ok {
 		return
 	}
 	m.udpRelay.Handle(src, dst, peer.Email, payload)
+}
+
+// dropReassignedFlows aborts every stack flow pinned to a tunnel address its
+// peer in before lost (removed or re-keyed): the next client inherits the address.
+func (m *managed) dropReassignedFlows(before *PeerIndex) {
+	reassigned := func(addr netip.Addr) bool {
+		was, ok := before.Lookup(addr)
+		if !ok {
+			return false
+		}
+		now, ok := m.lookupPeer(addr)
+		return !ok || now.PublicKey != was.PublicKey
+	}
+	// Abort, not Close: a closed endpoint keeps retransmitting unacknowledged
+	// data, and that would reach whoever holds the address next.
+	for _, ep := range m.dev.Stack.RegisteredEndpoints() {
+		if remote, ok := endpointRemoteAddr(ep); ok && reassigned(remote) {
+			ep.Abort()
+		}
+	}
+	m.udpRelay.CloseSessions(reassigned)
 }
 
 func (m *managed) close() {
@@ -90,6 +116,9 @@ func (m *managed) close() {
 type Manager struct {
 	mu     sync.Mutex
 	ifaces map[int]*managed
+	// v6Owned: IPv6 aliases this Manager put on the host, the only ones it
+	// may delete again (see applyV6Aliases).
+	v6Owned map[v6Alias]struct{}
 }
 
 var (
@@ -163,7 +192,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if conf == cur.uapiConfig {
 			cur.peers.Store(NewPeerIndex(inst.Peers))
 			cur.inst = inst
-			applyV6Aliases(diffV6Aliases(oldInst, inst))
+			m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 			// buildUAPIConfig never reads ForwardedPorts (it's a panel-level
 			// concept, not a WireGuard UAPI field), so a ForwardedPorts-only
 			// edit renders byte-identical here and takes this exact no-op
@@ -177,11 +206,12 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if err := cur.dev.IpcSet(conf); err != nil {
 			return fmt.Errorf("amneziawgnet: reconfigure inbound %d: %w", inst.Id, err)
 		}
-		cur.peers.Store(NewPeerIndex(inst.Peers))
+		oldPeers := cur.peers.Swap(NewPeerIndex(inst.Peers))
 		cur.inst = inst
 		cur.uapiConfig = conf
-		applyV6Aliases(diffV6Aliases(oldInst, inst))
+		m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 		cur.portForwards.Reconcile(inst)
+		cur.dropReassignedFlows(oldPeers)
 		return nil
 	}
 
@@ -205,15 +235,10 @@ func (m *Manager) ensureLocked(d Desired) error {
 		structFP:     structFP,
 	}
 	next.peers.Store(NewPeerIndex(inst.Peers))
-	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
-		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
-		if err != nil {
-			conn.Close()
-			return
-		}
+	AttachTCPForwarder(dev.Stack, next.peerEmail, func(conn *gonet.TCPConn, src, dest netip.AddrPort) {
 		// Reload for every connection: in-place reconfiguration swaps the peer
 		// index without reattaching handlers and may hold the lifecycle lock.
-		peer, ok := next.lookupPeer(srcAddrPort.Addr().Unmap())
+		peer, ok := next.lookupPeer(src.Addr().Unmap())
 		if !ok {
 			conn.Close()
 			return
@@ -240,7 +265,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	conf, _ := buildUAPIConfig(inst, opts)
 	next.uapiConfig = conf
 	m.ifaces[inst.Id] = next
-	applyV6Aliases(diffV6Aliases(oldInst, inst))
+	m.applyV6Aliases(diffV6Aliases(oldInst, inst))
 	portForwards.Reconcile(inst)
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
 	return nil
@@ -280,7 +305,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 		if _, ok := want[id]; ok {
 			continue
 		}
-		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+		m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.close()
 		delete(m.ifaces, id)
 		logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -303,7 +328,7 @@ func (m *Manager) Remove(id int) {
 	if !exists {
 		return
 	}
-	applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+	m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 	cur.close()
 	delete(m.ifaces, id)
 	logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
@@ -314,7 +339,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, cur := range m.ifaces {
-		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
+		m.applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
 		cur.close()
 		delete(m.ifaces, id)
 	}

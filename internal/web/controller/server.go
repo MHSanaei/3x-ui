@@ -47,6 +47,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/status", a.status)
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/history/:metric/:bucket", a.getMetricHistoryBucket)
+	g.GET("/overviewHistory/:bucket", a.getOverviewHistoryBucket)
 	g.GET("/xrayMetricsState", a.getXrayMetricsState)
 	g.GET("/xrayMetricsHistory/:metric/:bucket", a.getXrayMetricsHistoryBucket)
 	g.GET("/xrayObservatory", a.getXrayObservatory)
@@ -66,6 +67,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
 	g.GET("/clientIps", a.getClientIps)
 	g.GET("/fail2banStatus", a.getFail2banStatus)
+	g.GET("/networkInterfaces", a.getNetworkInterfaces)
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
@@ -114,6 +116,11 @@ func (a *ServerController) getFail2banStatus(c *gin.Context) {
 	jsonObj(c, a.serverService.GetFail2banStatus(), nil)
 }
 
+func (a *ServerController) getNetworkInterfaces(c *gin.Context) {
+	interfaces, err := a.serverService.GetNetworkInterfaces()
+	jsonObj(c, interfaces, err)
+}
+
 func parseHistoryBucket(c *gin.Context) (int, bool) {
 	bucket, err := strconv.Atoi(c.Param("bucket"))
 	if err != nil || bucket <= 0 || !service.IsAllowedHistoryBucket(bucket) {
@@ -148,6 +155,14 @@ func (a *ServerController) getMetricHistoryBucket(c *gin.Context) {
 		return
 	}
 	jsonObj(c, a.serverService.AggregateSystemMetric(metric, bucket, 60), nil)
+}
+
+func (a *ServerController) getOverviewHistoryBucket(c *gin.Context) {
+	bucket, ok := parseHistoryBucket(c)
+	if !ok {
+		return
+	}
+	jsonObj(c, a.serverService.AggregateOverviewHistory(bucket, 60), nil)
 }
 
 func (a *ServerController) getXrayMetricsState(c *gin.Context) {

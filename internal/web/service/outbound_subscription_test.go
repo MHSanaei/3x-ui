@@ -3,20 +3,27 @@ package service
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func TestOutboundSubscriptionCreatePropagatesAllocationDatabaseFailures(t *testing.T) {
@@ -382,6 +389,35 @@ func TestAssignStableTags(t *testing.T) {
 			t.Fatalf("got[1] = %q, want %q", got[1], base+"-1")
 		}
 	})
+
+	t.Run("regenerates tags with new prefix when tagPrefix changed (#7110)", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "canada-1"}}
+		prev := map[string]string{"id-canada": "gh-canada-1"}
+		prevPos := map[int]string{0: "gh-canada-1"}
+		got := assignStableTags(parsed, []string{"id-canada"}, prev, prevPos, 1, "gh1-")
+		want := "gh1-canada-1"
+		if got[0] != want {
+			t.Fatalf("got %q, want %q (old tag with old prefix must not be preserved)", got[0], want)
+		}
+	})
+
+	t.Run("keeps an identity's tag when its remark shrinks to a suffix of the old one", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "DE"}}
+		prev := map[string]string{"id-1": "gh-premium-de"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, map[int]string{0: "gh-premium-de"}, 1, "gh-")
+		if got[0] != "gh-premium-de" {
+			t.Fatalf("got %q, want gh-premium-de: a renamed remark must not move the tag routing rules name", got[0])
+		}
+	})
+
+	t.Run("a dash-only prefix adds nothing, so stored tags keep matching", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Tokyo-2"}}
+		prev := map[string]string{"id-1": "tokyo"}
+		got := assignStableTags(parsed, []string{"id-1"}, prev, nil, 1, "-")
+		if got[0] != "tokyo" {
+			t.Fatalf("got %q, want tokyo", got[0])
+		}
+	})
 }
 
 // TestOutboundsContainTag covers the guard that ensures the outbound under test
@@ -452,4 +488,436 @@ func outboundsContainTag(outbounds []any, tag string) bool {
 		}
 	}
 	return false
+}
+
+// The core dials a subscription outbound's server itself, so a provider must not point
+// one at Xray's credential-less API, whatever allowPrivate says, nor steer the dial past the check.
+func TestOutboundSubscriptionRefreshDropsLinksIntoXrayListeners(t *testing.T) {
+	setupSettingTestDB(t)
+	const uuid = "00000000-0000-4000-8000-000000000000"
+	srv := url.QueryEscape(`{"downloadSettings":{"address":"8.8.8.8","port":443,"network":"xhttp","sockopt":{"addressPortStrategy":"SrvPortAndAddress"}}}`)
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return "vless://" + uuid + "@127.0.0.1:62789?security=tls&type=tcp#Api\n" +
+			"vless://" + uuid + "@8.8.8.8:443?security=tls&type=tcp#B\n" +
+			"vless://" + uuid + "@8.8.8.8:443?security=tls&type=xhttp&extra=" + srv + "#Srv"
+	})
+	tags, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tags, []string{"p-b"}) {
+		t.Fatalf("stored tags = %v, want only p-b", tags)
+	}
+	sub, err := (&OutboundSubscriptionService{}).Get(subID)
+	if err != nil || !strings.Contains(sub.LastError, "dropped 2 outbound(s)") {
+		t.Fatalf("lastError = %q (%v), want the two refused links reported", sub.LastError, err)
+	}
+}
+
+func TestActiveOutboundsDropStoredPrivateDialTargets(t *testing.T) {
+	setupSettingTestDB(t)
+	stored := `[{"tag":"p-lan","protocol":"vless","settings":{"address":"10.0.0.7","port":443,"id":"00000000-0000-4000-8000-000000000000","encryption":"none"},"streamSettings":{"network":"tcp","security":"tls"}},` +
+		`{"tag":"p-pub","protocol":"vless","settings":{"address":"8.8.8.8","port":443,"id":"00000000-0000-4000-8000-000000000000","encryption":"none"},"streamSettings":{"network":"tcp","security":"tls"}}]`
+	sub := &model.OutboundSubscription{Url: "https://provider.example/sub", TagPrefix: "p-", Enabled: true, LastFetchedOutbounds: stored}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	obs, err := (&OutboundSubscriptionService{}).AllActiveOutbounds()
+	if err != nil {
+		t.Fatalf("AllActiveOutbounds: %v", err)
+	}
+	if outboundsContainTag(obs, "p-lan") || !outboundsContainTag(obs, "p-pub") {
+		t.Fatalf("active outbounds = %v, want the stored LAN target dropped and the public one kept", obs)
+	}
+}
+
+func TestNamesInternalHost(t *testing.T) {
+	for host, want := range map[string]bool{
+		"127.0.0.1": true, " [::1]:62789 ": true, "fe80::1%eth0": true, "10.1.2.3:80": true,
+		"localhost": true, "api.localhost.": true, "intranet": true, "": true, "env:HOME": true,
+		"8.8.8.8": false, "cdn.example.com": false, "[2001:4860:4860::8888]:443": false,
+	} {
+		if got := namesInternalHost(host); got != want {
+			t.Errorf("namesInternalHost(%q) = %v, want %v", host, got, want)
+		}
+	}
+}
+
+// The provider decides when its answer arrives, so an admin's delete or disable in the
+// meantime must survive the refresh that read the row before the download.
+func TestOutboundSubscriptionRefreshKeepsAdminChangesMadeDuringTheFetch(t *testing.T) {
+	setupSettingTestDB(t)
+	const body = "vless://00000000-0000-4000-8000-000000000000@8.8.8.8:443?security=tls&type=tcp#B"
+	var during func(id int)
+	var subID int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		during(subID)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(server.Close)
+	svc := &OutboundSubscriptionService{}
+	create := func() {
+		t.Helper()
+		sub := &model.OutboundSubscription{Url: server.URL, AllowPrivate: true, TagPrefix: "p-", Enabled: true}
+		if err := database.GetDB().Create(sub).Error; err != nil {
+			t.Fatalf("seed subscription: %v", err)
+		}
+		subID = sub.Id
+	}
+
+	create()
+	during = func(id int) { _ = svc.Delete(id) }
+	if _, err := svc.Refresh(subID); err == nil {
+		t.Fatalf("Refresh of a subscription deleted mid-fetch succeeded")
+	}
+	var count int64
+	database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Count(&count)
+	if count != 0 {
+		t.Fatalf("subscription deleted during the fetch was re-created")
+	}
+
+	create()
+	during = func(id int) {
+		database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", id).Update("enabled", false)
+	}
+	if _, err := svc.Refresh(subID); err != nil {
+		t.Fatalf("Refresh: %v", err)
+	}
+	got, err := svc.Get(subID)
+	if err != nil || got.Enabled || !strings.Contains(got.LastFetchedOutbounds, "8.8.8.8") {
+		t.Fatalf("after disable mid-fetch: enabled=%v outbounds=%q (%v), want disabled with the fetch stored", got.Enabled, got.LastFetchedOutbounds, err)
+	}
+}
+
+// A subscription URL is the credential for the provider account; fetch errors are
+// logged and stored, so they may name the host but never the path or query.
+func TestOutboundSubscriptionFetchErrorsKeepTheURLSecret(t *testing.T) {
+	setupSettingTestDB(t)
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+	const token = "s3cr3t-token"
+	sub := &model.OutboundSubscription{Url: closed.URL + "/sub/" + token + "?key=" + token, AllowPrivate: true, TagPrefix: "p-"}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	_, err := (&OutboundSubscriptionService{}).Refresh(sub.Id)
+	if err == nil || strings.Contains(err.Error(), token) {
+		t.Fatalf("Refresh error = %v, want a failure that does not quote the URL", err)
+	}
+	stored, _ := (&OutboundSubscriptionService{}).Get(sub.Id)
+	if stored.LastError == "" || strings.Contains(stored.LastError, token) {
+		t.Fatalf("lastError = %q, want a failure that does not quote the URL", stored.LastError)
+	}
+	_, err = (&OutboundSubscriptionService{}).Create("r", "https://provider.example/sub/"+token+"%zz", "", "", true, 600, false, false, false)
+	if err == nil || strings.Contains(err.Error(), token) {
+		t.Fatalf("Create error = %v, want a parse failure that does not quote the URL", err)
+	}
+}
+
+func TestOutboundSubscriptionPreviewStoresNothing(t *testing.T) {
+	setupSettingTestDB(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("vless://00000000-0000-4000-8000-000000000000@8.8.8.8:443?security=tls&type=tcp#B"))
+	}))
+	t.Cleanup(server.Close)
+	obs, err := (&OutboundSubscriptionService{}).Preview(server.URL, "", true, false)
+	if err != nil || len(obs) != 1 {
+		t.Fatalf("Preview = %v, %v; want the one outbound", obs, err)
+	}
+	var count int64
+	database.GetDB().Model(&model.OutboundSubscription{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Preview left %d subscription row(s) behind", count)
+	}
+}
+
+// Each fetch builds its own transport; whatever it leaves parked would otherwise live
+// for as long as the provider keeps the connection open.
+func TestOutboundSubscriptionRefreshLeavesNoIdleConnection(t *testing.T) {
+	setupSettingTestDB(t)
+	var open atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("vless://00000000-0000-4000-8000-000000000000@8.8.8.8:443?security=tls&type=tcp#B"))
+	}))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		switch state {
+		case http.StateNew:
+			open.Add(1)
+		case http.StateClosed, http.StateHijacked:
+			open.Add(-1)
+		}
+	}
+	server.Start()
+	t.Cleanup(server.Close)
+	sub := &model.OutboundSubscription{Url: server.URL, AllowPrivate: true, TagPrefix: "p-"}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	for range 3 {
+		if _, err := (&OutboundSubscriptionService{}).Refresh(sub.Id); err != nil {
+			t.Fatalf("Refresh: %v", err)
+		}
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for open.Load() != 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if n := open.Load(); n != 0 {
+		t.Fatalf("%d connection(s) to the provider still open after the refreshes", n)
+	}
+}
+
+// One document must not turn into an unbounded number of outbounds: each is held,
+// validated and merged into the core's config.
+func TestOutboundSubscriptionRefreshCapsTheNumberOfLinks(t *testing.T) {
+	setupSettingTestDB(t)
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return strings.Repeat("ss://YWVzLTEyOC1nY206cA@8.8.8.8:8388#s\n", link.MaxSubscriptionOutbounds+5)
+	})
+	obs, err := (&OutboundSubscriptionService{}).Refresh(subID)
+	if err != nil {
+		t.Fatalf("Refresh: %v", err)
+	}
+	if len(obs) != link.MaxSubscriptionOutbounds {
+		t.Fatalf("stored %d outbounds, want the cap of %d", len(obs), link.MaxSubscriptionOutbounds)
+	}
+	sub, _ := (&OutboundSubscriptionService{}).Get(subID)
+	if !strings.Contains(sub.LastError, strconv.Itoa(link.MaxSubscriptionOutbounds)) {
+		t.Fatalf("lastError = %q, want the cut reported", sub.LastError)
+	}
+}
+
+// A provider's wireguard fields must not configure the host: the kernel TUN path
+// installs its addresses and routes, so subscription outbounds stay in userspace.
+func TestOutboundSubscriptionWireguardStaysOffKernelTun(t *testing.T) {
+	setupSettingTestDB(t)
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return "wireguard://JOSLNr3Kk8BViwrrTJ2M19gRBbGttnRfApY3nQ3fdT8%3D@8.8.8.8:51820?publickey=biSnuvUOX2pmtzf249FK8UGSq2PQslGSdoj4UqH4yew%3D&address=10.0.0.2%2F32#wg"
+	})
+	obs, err := (&OutboundSubscriptionService{}).Refresh(subID)
+	if err != nil || len(obs) != 1 {
+		t.Fatalf("Refresh = %v, %v", obs, err)
+	}
+	stored := `[{"tag":"p-old","protocol":"wireguard","settings":{"secretKey":"JOSLNr3Kk8BViwrrTJ2M19gRBbGttnRfApY3nQ3fdT8=","address":["10.0.0.2/32"],"peers":[{"publicKey":"biSnuvUOX2pmtzf249FK8UGSq2PQslGSdoj4UqH4yew=","endpoint":"8.8.8.8:51820"}]}}]`
+	old := &model.OutboundSubscription{Url: "https://provider.example/sub", TagPrefix: "q-", Enabled: true, LastFetchedOutbounds: stored}
+	if err := database.GetDB().Create(old).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Update("enabled", true).Error; err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	active, err := (&OutboundSubscriptionService{}).AllActiveOutbounds()
+	if err != nil || len(active) != 2 {
+		t.Fatalf("AllActiveOutbounds = %v, %v", active, err)
+	}
+	for _, ob := range append(obs, active...) {
+		settings, _ := ob.(map[string]any)["settings"].(map[string]any)
+		if settings["noKernelTun"] != true {
+			t.Fatalf("subscription wireguard outbound without noKernelTun: %v", ob)
+		}
+	}
+}
+
+func TestOutboundSubscriptionCreateKeepsItDisabled(t *testing.T) {
+	setupSettingTestDB(t)
+	sub, err := (&OutboundSubscriptionService{}).Create("r", "https://1.1.1.1/sub", "", "", false, 600, false, false, false)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	stored, err := (&OutboundSubscriptionService{}).Get(sub.Id)
+	if err != nil || stored.Enabled {
+		t.Fatalf("stored enabled = %v (%v), want the subscription created disabled", stored.Enabled, err)
+	}
+}
+
+// The core derives an RSA key per xmc mask on every build, so the masks a document may
+// spread over its links are budgeted per subscription, before anything is built.
+func TestOutboundSubscriptionRefreshCapsXMCMasks(t *testing.T) {
+	setupSettingTestDB(t)
+	const xmc = `{"type":"xmc","settings":{"password":"p","profiles":[{"username":"abc","uuid":"00000000-0000-0000-0000-000000000000","texturesValue":"a","texturesSignature":"a"}]}}`
+	server := func(address string, masks ...string) string {
+		return "vless://00000000-0000-4000-8000-000000000000@" + address + ":443?security=tls&type=tcp&fm=" +
+			url.QueryEscape(`{"tcp":[`+strings.Join(masks, ",")+`]}`) + "#" + address + "\n"
+	}
+	four := []string{xmc, xmc, xmc, xmc}
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return server("1.1.1.1", slices.Repeat([]string{xmc}, 400)...) +
+			strings.Repeat(server("1.1.1.3", four...), maxSubscriptionXMCMasks/4) +
+			server("1.1.1.4", xmc) +
+			server("1.1.1.5", `{"type":"sudoku","settings":{"password":"p"}}`)
+	})
+	tags, byAddress := refreshOutboundTags(t, subID)
+	if _, plain := byAddress["1.1.1.5"]; len(tags) != maxSubscriptionXMCMasks/4+1 || len(byAddress) != 2 || !plain {
+		t.Fatalf("kept %d outbounds, tags by address = %v", len(tags), byAddress)
+	}
+}
+
+// The core's XHTTP dialer panics on a downloadSettings block without an address or on another transport.
+func TestOutboundSubscriptionRefreshDropsXhttpDownloadSettingsTheCorePanicsOn(t *testing.T) {
+	setupSettingTestDB(t)
+	const server = "vless://00000000-0000-4000-8000-000000000000@%s:443?security=tls&type=xhttp&extra=%s#%s\n"
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return fmt.Sprintf(server, "1.1.1.1", url.QueryEscape(`{"downloadSettings":{}}`), "Empty") +
+			fmt.Sprintf(server, "8.8.8.8", url.QueryEscape(`{"downloadSettings":{"address":"8.8.4.4","port":443,"network":"tcp"}}`), "Tcp") +
+			fmt.Sprintf(server, "9.9.9.9", url.QueryEscape(`{"downloadSettings":{"address":"9.9.9.10","port":443,"network":"xhttp"}}`), "Complete")
+	})
+
+	want := map[string]string{"9.9.9.9": "p-complete"}
+	if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, want) {
+		t.Fatalf("tags by address = %v, want %v", got, want)
+	}
+}
+
+func TestOutboundSubscriptionUpdateRewritesShortenedPrefixAndPreservesLegacyBlankPrefix(t *testing.T) {
+	setupSettingTestDB(t)
+	svc := &OutboundSubscriptionService{}
+
+	// 1. Shortening TagPrefix ("eu-de-" -> "eu-") updates stored tags immediately
+	// and keeps the shortened prefix across subsequent refreshes.
+	subID := serveOutboundSubscription(t, "eu-de-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000000@8.8.8.8:443?security=tls&type=tcp#Frankfurt\n"
+	})
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Update("enabled", true).Error; err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	tags, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tags, []string{"eu-de-frankfurt"}) {
+		t.Fatalf("initial tags = %v, want [eu-de-frankfurt]", tags)
+	}
+	subBefore, err := svc.Get(subID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if err := svc.Update(subID, "DE", subBefore.Url, "eu-", "", true, 600, true, false, false); err != nil {
+		t.Fatalf("Update shortened prefix: %v", err)
+	}
+	activeTags, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(activeTags, []string{"eu-frankfurt"}) {
+		t.Fatalf("AllActiveOutboundTags after Update = %v (%v), want [eu-frankfurt]", activeTags, err)
+	}
+	tagsAfterRefresh, _ := refreshOutboundTags(t, subID)
+	if !slices.Equal(tagsAfterRefresh, []string{"eu-frankfurt"}) {
+		t.Fatalf("tags after Refresh with shortened prefix = %v, want [eu-frankfurt]", tagsAfterRefresh)
+	}
+
+	// 2. Editing a legacy blank-prefix subscription (where sub.Id != 1 and sub1- is free)
+	// without touching the blank prefix must keep its sub<id>- tags unchanged.
+	legacyID := serveOutboundSubscription(t, "", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000001@8.8.4.4:443?security=tls&type=tcp#Tokyo\n"
+	})
+	if legacyID == 1 {
+		t.Fatalf("expected legacy subscription id > 1, got %d", legacyID)
+	}
+	wantLegacyTag := fmt.Sprintf("sub%d-tokyo", legacyID)
+	legacyTags, _ := refreshOutboundTags(t, legacyID)
+	if !slices.Equal(legacyTags, []string{wantLegacyTag}) {
+		t.Fatalf("initial legacy tags = %v, want [%s]", legacyTags, wantLegacyTag)
+	}
+	legacySub, err := svc.Get(legacyID)
+	if err != nil {
+		t.Fatalf("Get legacy: %v", err)
+	}
+	if err := svc.Update(legacyID, "edited-remark", legacySub.Url, "", "", true, 900, true, false, false); err != nil {
+		t.Fatalf("Update legacy subscription: %v", err)
+	}
+	legacyAfterUpdate, err := svc.Get(legacyID)
+	if err != nil {
+		t.Fatalf("Get legacy after Update: %v", err)
+	}
+	if legacyAfterUpdate.TagPrefix != "" {
+		t.Fatalf("legacy TagPrefix = %q, want empty string preserved", legacyAfterUpdate.TagPrefix)
+	}
+	legacyTagsAfterRefresh, _ := refreshOutboundTags(t, legacyID)
+	if !slices.Equal(legacyTagsAfterRefresh, []string{wantLegacyTag}) {
+		t.Fatalf("legacy tags after Update+Refresh = %v, want [%s] preserved", legacyTagsAfterRefresh, wantLegacyTag)
+	}
+}
+
+func TestOutboundSubscriptionCrossSubscriptionCollisionPersistsAndMatchesPanelSurfaces(t *testing.T) {
+	setupSettingTestDB(t)
+	svc := &OutboundSubscriptionService{}
+
+	sub1 := serveOutboundSubscription(t, "gh-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000011@1.1.1.1:443?security=tls&type=tcp#canada-1\n"
+	})
+	sub2 := serveOutboundSubscription(t, "gh-", func(int) string {
+		return "vless://00000000-0000-4000-8000-000000000022@8.8.8.8:443?security=tls&type=tcp#canada-1\n"
+	})
+	for idx, id := range []int{sub1, sub2} {
+		if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", id).Updates(map[string]any{
+			"enabled":  true,
+			"priority": idx,
+		}).Error; err != nil {
+			t.Fatalf("enable sub %d: %v", id, err)
+		}
+	}
+
+	tags1, _ := refreshOutboundTags(t, sub1)
+	tags2, _ := refreshOutboundTags(t, sub2)
+	if !slices.Equal(tags1, []string{"gh-canada-1"}) {
+		t.Fatalf("sub1 persisted tags = %v, want [gh-canada-1]", tags1)
+	}
+	if !slices.Equal(tags2, []string{"gh-canada-1-1"}) {
+		t.Fatalf("sub2 persisted tags = %v, want [gh-canada-1-1]", tags2)
+	}
+
+	// Panel surfaces (AllActiveOutboundTags) must list both distinct tags.
+	panelTags, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTags, []string{"gh-canada-1", "gh-canada-1-1"}) {
+		t.Fatalf("AllActiveOutboundTags = %v (%v), want [gh-canada-1 gh-canada-1-1]", panelTags, err)
+	}
+
+	// Reordering subscription priorities or disabling sub1 must not swap sub2's persisted tag.
+	if err := svc.Move(sub2, true); err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+	panelTagsAfterMove, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTagsAfterMove, []string{"gh-canada-1-1", "gh-canada-1"}) {
+		t.Fatalf("AllActiveOutboundTags after Move = %v (%v), want [gh-canada-1-1 gh-canada-1]", panelTagsAfterMove, err)
+	}
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", sub1).Update("enabled", false).Error; err != nil {
+		t.Fatalf("disable sub1: %v", err)
+	}
+	panelTagsAfterDisable, err := svc.AllActiveOutboundTags()
+	if err != nil || !slices.Equal(panelTagsAfterDisable, []string{"gh-canada-1-1"}) {
+		t.Fatalf("AllActiveOutboundTags after disabling sub1 = %v (%v), want [gh-canada-1-1]", panelTagsAfterDisable, err)
+	}
+}
+
+// A vpn:// AmneziaWG link must survive refresh (the core cannot build "amneziawg") and
+// reach the core only as its socks bridge, which the core would otherwise refuse.
+func TestOutboundSubscriptionAmneziaWGLinkReachesConfigAsBridge(t *testing.T) {
+	setupSettingTestDB(t)
+	priv, pub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := "[Interface]\nPrivateKey = " + priv + "\nAddress = 10.8.1.2/32\nJc = 4\nJmin = 10\nJmax = 50\nS1 = 30\nS2 = 40\n" +
+		"H1 = 1\nH2 = 2\nH3 = 3\nH4 = 4\n# awg\n[Peer]\nPublicKey = " + pub + "\nAllowedIPs = 0.0.0.0/0\nEndpoint = 8.8.8.8:51820"
+	subID := serveOutboundSubscription(t, "p-", func(int) string {
+		return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(conf))
+	})
+	obs, err := (&OutboundSubscriptionService{}).Refresh(subID)
+	if err != nil || len(obs) != 1 {
+		sub, _ := (&OutboundSubscriptionService{}).Get(subID)
+		t.Fatalf("Refresh = %v, %v (lastError %q), want the amneziawg outbound kept", obs, err, sub.LastError)
+	}
+	tag, _ := obs[0].(map[string]any)["tag"].(string)
+	if err := database.GetDB().Model(&model.OutboundSubscription{}).Where("id = ?", subID).Update("enabled", true).Error; err != nil {
+		t.Fatalf("enable: %v", err)
+	}
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatalf("GetXrayConfig: %v", err)
+	}
+	var outbounds []map[string]any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatal(err)
+	}
+	for _, ob := range outbounds {
+		if ob["tag"] == tag {
+			if ob["protocol"] != "socks" {
+				t.Fatalf("subscribed amneziawg outbound emitted as %v, want socks", ob["protocol"])
+			}
+			return
+		}
+	}
+	t.Fatalf("outbound %q missing from generated config", tag)
 }

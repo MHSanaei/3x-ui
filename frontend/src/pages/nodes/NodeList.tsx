@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Dropdown, Modal, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { BadgeProps } from 'antd';
@@ -15,6 +15,7 @@ import {
   InfoCircleOutlined,
   MoreOutlined,
   PlusOutlined,
+  ReloadOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
@@ -42,7 +43,11 @@ interface NodeListProps {
   onToggleEnable: (node: NodeRecord, next: boolean) => void;
   onUpdateNode: (node: NodeRecord) => void;
   onUpdateSelected: () => void;
+  onRestart: (node: NodeRecord, target: 'xray' | 'panel') => void;
+  restartingIds?: ReadonlySet<number>;
 }
+
+const noRestarts: ReadonlySet<number> = new Set();
 
 function isUpdateEligible(n: NodeRecord): boolean {
   return !!n.enable && n.status === 'online';
@@ -127,7 +132,14 @@ function StatusLabel({ status, xrayState }: HealthProps) {
       </span>
     );
   }
-  return <span>{t(`pages.nodes.statusValues.${status || 'unknown'}`)}</span>;
+  // A sub-node's status is free text from its parent node: show it as unknown, not as a key.
+  return (
+    <span>
+      {t(`pages.nodes.statusValues.${status || 'unknown'}`, {
+        defaultValue: t('pages.nodes.statusValues.unknown'),
+      })}
+    </span>
+  );
 }
 
 function formatPct(p?: number, available = true): string {
@@ -180,6 +192,8 @@ export default function NodeList({
   onToggleEnable,
   onUpdateNode,
   onUpdateSelected,
+  onRestart,
+  restartingIds = noRestarts,
 }: NodeListProps) {
   const { t } = useTranslation();
   const relativeTime = useRelativeTime();
@@ -188,11 +202,23 @@ export default function NodeList({
   const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  // Map a node GUID to its display name so a transitive sub-node can show which
-  // parent it is reached through (#4983).
+  const restartItems = useCallback(
+    (node: NodeRecord) =>
+      (['xray', 'panel'] as const).map((target) => ({
+        key: `restart-${target}`,
+        icon: <ReloadOutlined aria-hidden />,
+        label: t(`pages.nodes.${target === 'xray' ? 'restartXray' : 'restartPanel'}`),
+        disabled: !node.enable || !!node.transitive || restartingIds.has(node.id),
+        onClick: () => onRestart(node, target),
+      })),
+    [t, onRestart, restartingIds],
+  );
+
+  // Map a direct node's GUID to its display name so a transitive sub-node can show
+  // which parent it is reached through (#4983); the master walks one level only.
   const nameByGuid = useMemo(() => {
     const m = new Map<string, string>();
-    for (const n of nodes) if (n.guid) m.set(n.guid, n.name || n.guid);
+    for (const n of nodes) if (n.guid && !n.transitive) m.set(n.guid, n.name || n.guid);
     return m;
   }, [nodes]);
 
@@ -292,6 +318,14 @@ export default function NodeList({
                   onClick={() => onEdit(record)}
                 />
               </Tooltip>
+              <Dropdown trigger={['click']} menu={{ items: restartItems(record) }}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined aria-hidden />}
+                  aria-label={t('more')}
+                />
+              </Dropdown>
               <Tooltip title={t('delete')}>
                 <Button
                   type="text"
@@ -536,6 +570,7 @@ export default function NodeList({
       onEdit,
       onDelete,
       onUpdateNode,
+      restartItems,
       nameByGuid,
     ],
   );
@@ -666,6 +701,7 @@ export default function NodeList({
                           placement="bottomRight"
                           menu={{
                             items: [
+                              ...restartItems(record),
                               {
                                 key: 'probe',
                                 label: (

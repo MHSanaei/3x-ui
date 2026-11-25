@@ -1,9 +1,11 @@
 package xray
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/xtls/xray-core/infra/conf"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"google.golang.org/protobuf/proto"
@@ -145,5 +147,47 @@ func TestBuildUserAccountShadowsocksMissingPassword(t *testing.T) {
 	user := map[string]any{"email": "a@example.test", "cipher": "aes-256-gcm"}
 	if _, err := buildUserAccount("shadowsocks", user); err == nil {
 		t.Fatal("expected an error for a shadowsocks user without a password")
+	}
+}
+
+// With no client the core builds a single-user Shadowsocks-2022 server keyed by the server
+// key alone, which is the first half of every link handed out; the lock must prevent that.
+func TestLockShadowsocks2022KeepsTheCoreMultiUser(t *testing.T) {
+	const key = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+	const user = `[{"email":"a@x","password":"` + key + `"}]`
+	for name, tc := range map[string]struct {
+		settings string
+		locks    bool
+	}{
+		"empty clients":            {`{"method":"2022-blake3-aes-256-gcm","password":"` + key + `","clients":[]}`, true},
+		"no clients key":           {`{"method":"2022-blake3-aes-256-gcm","password":"` + key + `"}`, true},
+		"upper-case method":        {`{"method":"2022-BLAKE3-AES-256-GCM","password":"` + key + `","clients":[]}`, true},
+		"aes-128":                  {`{"method":"2022-blake3-aes-128-gcm","password":"MDEyMzQ1Njc4OWFiY2RlZg==","clients":[]}`, true},
+		"empty clients hide users": {`{"method":"2022-blake3-aes-256-gcm","password":"` + key + `","clients":[],"users":` + user + `}`, true},
+		"one client":               {`{"method":"2022-blake3-aes-256-gcm","password":"` + key + `","clients":` + user + `}`, false},
+		"users only":               {`{"method":"2022-blake3-aes-256-gcm","password":"` + key + `","users":` + user + `}`, false},
+		"legacy method":            {`{"method":"aes-256-gcm","password":"x","clients":[]}`, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(tc.settings), &settings); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if got := LockShadowsocks2022(settings); got != tc.locks {
+				t.Fatalf("LockShadowsocks2022 = %v, want %v", got, tc.locks)
+			}
+			raw, _ := json.Marshal(settings)
+			var parsed conf.ShadowsocksServerConfig
+			if err := json.Unmarshal(raw, &parsed); err != nil {
+				t.Fatalf("unmarshal locked settings: %v", err)
+			}
+			built, err := parsed.Build()
+			if err != nil {
+				t.Fatalf("core refuses the locked settings: %v", err)
+			}
+			if _, singleUser := built.(*shadowsocks_2022.ServerConfig); singleUser {
+				t.Fatalf("core serves %s to the server key alone", name)
+			}
+		})
 	}
 }

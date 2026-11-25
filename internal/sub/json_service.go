@@ -115,8 +115,11 @@ func (s *SubJsonService) bakedTemplate() map[string]any {
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
-func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
+func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bool, wireguardDevice ...string) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
+	if len(wireguardDevice) > 0 {
+		subReq.wireguardDevice = wireguardDevice[0]
+	}
 	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
 	if err != nil {
@@ -138,26 +141,41 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
 	var ordered []orderedSubEntry[func() subConfigEntry]
+	balancers := getEnabledSubBalancers()
+	balancerInbounds := balancerInboundIds(balancers)
+	// Hidden inbounds that a balancer selects: their configs only feed balancer members.
+	var hidden []subConfigEntry
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
-		clients := subReq.matchingClients(inbound, subId)
+		clients := subReq.matchingWireguardDeviceClients(inbound, subId)
 		if len(clients) == 0 {
 			continue
 		}
+		hiddenMember := false
 		if inbound.ExcludeFromSub {
 			if countHiddenClients(clients, seenEmails) {
 				hasEnabledClient = true
 			}
-			continue
+			if !balancerInbounds[inbound.Id] {
+				continue
+			}
+			hiddenMember = true
+		}
+		renderConfigs := func(inbound *model.Inbound, client model.Client) []json_util.RawMessage {
+			if hiddenMember {
+				return s.hiddenMemberConfig(subReq, inbound, client, host)
+			}
+			return s.budgetedConfig(subReq, inbound, client, host)
 		}
 		subReq.projectThroughFallbackMaster(inbound)
 		var baseEps []map[string]any
+		var hostsClosed bool
 		baseStream := inbound.StreamSettings
 		// getConfig rewrites inbound.Listen/Port per endpoint while rendering a client, so bound
 		// endpoints resolve against this pre-loop snapshot.
 		baseInbound := *inbound
 		if !subReq.hostsFirst {
-			if baseEps = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
+			if baseEps, hostsClosed = subReq.hostEndpoints(inbound, "json"); len(baseEps) > 0 {
 				injectExternalProxy(inbound, baseEps)
 			}
 		}
@@ -168,13 +186,23 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
+			if hostsClosed {
+				hasBoundClosed = true
+				continue
+			}
 			if subReq.hostsFirst {
 				variants, closed := subReq.clientHostVariants(&baseInbound, client, "json")
-				hasBoundClosed = hasBoundClosed || closed
+				hasBoundClosed = hasBoundClosed || (closed && !hiddenMember)
 				for _, variant := range variants {
 					render := func() subConfigEntry {
-						configs := s.getConfig(subReq, variant.inbound(subReq, inbound), client, host)
+						configs := renderConfigs(variant.inbound(subReq, inbound), client)
 						return subConfigEntry{sortIndex: inbound.SubSortIndex, id: inbound.Id, configs: configs, hostOrder: variant.order}
+					}
+					if hiddenMember {
+						if entry := render(); len(entry.configs) > 0 {
+							hidden = append(hidden, entry)
+						}
+						continue
 					}
 					ordered = append(ordered, orderedSubEntry[func() subConfigEntry]{variant.order, render})
 				}
@@ -183,7 +211,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			effective := inbound
 			if effectiveEps, bound := subReq.clientHostEndpoints(&baseInbound, client, "json", baseEps); bound {
 				if len(effectiveEps) == 0 {
-					hasBoundClosed = true
+					hasBoundClosed = hasBoundClosed || !hiddenMember
 					continue
 				}
 				clone := baseInbound
@@ -191,14 +219,19 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
-			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, effective, client, host)...)
+			inboundConfigs = append(inboundConfigs, renderConfigs(effective, client)...)
 		}
 		if len(inboundConfigs) > 0 {
-			entries = append(entries, subConfigEntry{
+			entry := subConfigEntry{
 				sortIndex: inbound.SubSortIndex,
 				id:        inbound.Id,
 				configs:   inboundConfigs,
-			})
+			}
+			if hiddenMember {
+				hidden = append(hidden, entry)
+			} else {
+				entries = append(entries, entry)
+			}
 		}
 	}
 	if subReq.hostsFirst {
@@ -209,7 +242,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			}
 		}
 	}
-	entries = s.appendBalancerEntries(entries)
+	if err := subReq.validateWireguardDevice(); err != nil {
+		return "", "", err
+	}
+	entries = s.appendBalancerEntries(entries, hidden, balancers)
 
 	// Inbounds arrive sorted by (sub_sort_index, id); balancers interleave by
 	// the same key and, on an equal number, follow the inbound group.
@@ -268,7 +304,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			maps.Copy(newConfigJson, s.bakedTemplate())
 			newConfigJson["outbounds"] = newOutbounds
 			newConfigJson["remarks"] = remark
-			newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+			newConfig, _ := json.Marshal(newConfigJson)
 			configArray = append(configArray, newConfig)
 		}
 	}
@@ -287,7 +323,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	header = subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(configArray) > 0); mode != infoNodeNone {
-		dummyConfig := s.genDummySocksConfig(remark)
+		dummyConfig := s.genStatusNodeConfig(statusNode{remark: remark})
 		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			configArray = []json_util.RawMessage{dummyConfig}
 		} else {
@@ -419,17 +455,39 @@ func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
 	}
 }
 
-// appendBalancerEntries appends one entry per enabled balancer that has at
-// least one member outbound among the inbound entries.
-func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
-	balancers := getEnabledSubBalancers()
+// balancerInboundIds is the set of inbound ids any of the balancers selects.
+func balancerInboundIds(balancers []model.SubBalancer) map[int]bool {
+	ids := make(map[int]bool)
+	for _, balancer := range balancers {
+		for _, id := range balancer.InboundIds {
+			ids[id] = true
+		}
+	}
+	return ids
+}
+
+// hiddenMemberConfig renders a hidden inbound's configs for balancer members only: none of it
+// reaches the response, so it neither spends the render budget nor the first-link remark tokens.
+func (s *SubJsonService) hiddenMemberConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
+	if subReq.rendered.spent() {
+		return nil
+	}
+	usageShown := maps.Clone(subReq.usageShown)
+	defer func() { subReq.usageShown = usageShown }()
+	return s.getConfig(subReq, inbound, client, host)
+}
+
+// appendBalancerEntries appends one entry per balancer that has at least one member outbound
+// among the inbound entries; hidden inbounds' entries are members but never output themselves.
+func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry, balancers []model.SubBalancer) []subConfigEntry {
 	if len(balancers) == 0 {
 		return entries
 	}
+	sources := append(slices.Clip(entries), hidden...)
 	// Pre-pass: pull each inbound doc's proxy outbound once so every balancer
 	// reuses it instead of re-unmarshalling the whole document per balancer.
-	entryProxies := make([][]map[string]any, len(entries))
-	for i, entry := range entries {
+	entryProxies := make([][]map[string]any, len(sources))
+	for i, entry := range sources {
 		if entry.kind != 0 {
 			continue
 		}
@@ -440,7 +498,7 @@ func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subCo
 		}
 	}
 	for i := range balancers {
-		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies)
+		config := s.buildBalancerConfig(&balancers[i], sources, entryProxies)
 		if config == nil {
 			continue
 		}
@@ -531,6 +589,9 @@ func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
+	// Next suffix to try per base: tags are only ever added, so every lower one
+	// is taken and resuming there keeps a node-sized member list linear.
+	nextSuffix := make(map[string]int)
 	var proxies []json_util.RawMessage
 	// Members in emission order with their owning inbound, so costs[] can
 	// reference the exact retagged tags assigned here.
@@ -546,9 +607,11 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			protocol, _ := outbound["protocol"].(string)
 			base := prefix + balancerMemberSuffix(protocol)
 			tag := base
-			for suffix := 2; usedTags[tag]; suffix++ {
+			suffix := max(nextSuffix[base], 2)
+			for ; usedTags[tag]; suffix++ {
 				tag = fmt.Sprintf("%s-%d", base, suffix)
 			}
+			nextSuffix[base] = suffix
 			usedTags[tag] = true
 			member := maps.Clone(outbound)
 			member["tag"] = tag
@@ -731,11 +794,11 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+			newOutbounds = append(newOutbounds, s.genHy(subReq, inbound, newStream, client, jsonMux(mux, hostMux)))
 		case "masque":
 			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		case "wireguard":
-			wgOutbound := s.genWireguard(inbound, client)
+			wgOutbound := s.genWireguard(subReq, inbound, newStream, client)
 			if wgOutbound == nil {
 				continue
 			}
@@ -760,8 +823,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 }
 
 func (s *SubJsonService) streamData(stream string, clientKey string) map[string]any {
-	var streamSettings map[string]any
-	if err := json.Unmarshal([]byte(stream), &streamSettings); err != nil || streamSettings == nil {
+	streamSettings := unmarshalStreamSettings(stream)
+	if streamSettings == nil {
 		streamSettings = map[string]any{}
 	}
 	security, _ := streamSettings["security"].(string)
@@ -804,6 +867,7 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 			delete(xhttp, "scMaxBufferedPosts")
 			delete(xhttp, "scStreamUpServerSecs")
 			delete(xhttp, "serverMaxHeaderBytes")
+			delete(xhttp, "h2Params")
 			// Values matching xray-core's own defaults stay off the wire:
 			// old panels seeded them into every stored config and the
 			// literal scMinPostsIntervalMs=30 is a DPI fingerprint (#5141).
@@ -1037,7 +1101,7 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 	return result
 }
 
-func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
+func (s *SubJsonService) genHy(subReq *SubService, inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
 		Protocol: string(inbound.Protocol),
 		Tag:      "proxy",
@@ -1047,9 +1111,8 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		outbound.Mux = json_util.RawMessage(mux)
 	}
 
-	var settings, stream map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
-	version, _ := settings["version"].(float64)
+	var stream map[string]any
+	version, _ := subReq.linkSettings(inbound)["version"].(float64)
 	outbound.Settings = map[string]any{
 		"version": int(version),
 		"address": inbound.Listen,
@@ -1115,13 +1178,12 @@ func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]
 // mirroring genWireguardLink: the peer public key is derived from the inbound
 // secretKey, the client owns the private key / tunnel address / pre-shared key,
 // and the peer routes the full tunnel. Returns nil when the client has no key.
-func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genWireguard(subReq *SubService, inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
 	if client.PrivateKey == "" {
 		return nil
 	}
 
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	inboundSettings := subReq.linkSettings(inbound)
 	secretKey, _ := inboundSettings["secretKey"].(string)
 
 	peer := map[string]any{
@@ -1156,34 +1218,31 @@ func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Clien
 		"tag":      "proxy",
 		"settings": settings,
 	}
+	if finalmask, ok := stream["finalmask"].(map[string]any); ok && hasFinalMaskContent(finalmask) {
+		outbound["streamSettings"] = map[string]any{"finalmask": finalmask}
+	}
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
 }
 
-func (s *SubJsonService) genDummySocksConfig(remark string) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": "socks",
-		"tag":      "proxy",
-		"settings": map[string]any{
-			"servers": []any{
-				map[string]any{
-					"address": "127.0.0.1",
-					"port":    1080,
-				},
-			},
-		},
-	}
-	rawOutbound, _ := json.Marshal(outbound)
-	newOutbounds := []json_util.RawMessage{rawOutbound}
-	newOutbounds = append(newOutbounds, s.defaultOutbounds...)
-
+func (s *SubJsonService) genStatusNodeConfig(node statusNode) json_util.RawMessage {
 	newConfigJson := make(map[string]any)
 	maps.Copy(newConfigJson, s.configJson)
 	if s.dnsBlock != nil {
 		newConfigJson["dns"] = s.dnsBlock
 	}
+	newOutbounds := []json_util.RawMessage{node.outbound()}
+	if node.blocked {
+		// Keep the local template and DNS, but discard routes and probes that
+		// could refer to direct outbounds or real subscription nodes.
+		delete(newConfigJson, "routing")
+		delete(newConfigJson, "observatory")
+		delete(newConfigJson, "burstObservatory")
+	} else {
+		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
+	}
 	newConfigJson["outbounds"] = newOutbounds
-	newConfigJson["remarks"] = remark
+	newConfigJson["remarks"] = node.remark
 
 	newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 	return newConfig

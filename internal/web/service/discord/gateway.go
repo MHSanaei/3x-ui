@@ -504,6 +504,12 @@ func (g *GatewayClient) sendStatus(ctx context.Context) {
 	}
 
 	tr := translator(g.settingService)
+	sentTraffic := common.FormatTraffic(int64(status.NetTraffic.Sent))
+	receivedTraffic := common.FormatTraffic(int64(status.NetTraffic.Recv))
+	if !status.MetricAvailable("netTraffic") {
+		sentTraffic = tr("pages.settings.networkTrafficUnavailable")
+		receivedTraffic = sentTraffic
+	}
 	embed := Embed{
 		Title:       tr("discord.commands.statusTitle"),
 		Description: tr("discord.commands.statusDescription", "Host=="+hostname),
@@ -517,8 +523,8 @@ func (g *GatewayClient) sendStatus(ctx context.Context) {
 			{Name: tr("pages.index.memory"), Value: fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total))), Inline: true},
 			{Name: tr("pages.index.historyTitleOnline"), Value: strconv.Itoa(len(onlines)), Inline: true},
 			{Name: tr("pages.index.historyTabConnections"), Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
-			{Name: tr("pages.index.sent"), Value: common.FormatTraffic(int64(status.NetTraffic.Sent)), Inline: true},
-			{Name: tr("pages.index.received"), Value: common.FormatTraffic(int64(status.NetTraffic.Recv)), Inline: true},
+			{Name: tr("pages.index.sent"), Value: sentTraffic, Inline: true},
+			{Name: tr("pages.index.received"), Value: receivedTraffic, Inline: true},
 		},
 		Footer: &EmbedFooter{Text: tr("discord.footer")},
 	}
@@ -610,8 +616,8 @@ func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
 				}
 
 				embed := Embed{
-					Title:       tr("discord.commands.usageTitle", "Email=="+client.Email),
-					Description: tr("discord.commands.usageDescription", "Remark=="+in.Remark, "Port=="+strconv.Itoa(in.Port)),
+					Title:       tr("discord.commands.usageTitle", "Email=="+escapeMarkdown(client.Email)),
+					Description: tr("discord.commands.usageDescription", "Remark=="+escapeMarkdown(in.Remark), "Port=="+strconv.Itoa(in.Port)),
 					Color:       color,
 					Timestamp:   time.Now().UTC().Format(time.RFC3339),
 					Fields: []EmbedField{
@@ -659,15 +665,17 @@ func (g *GatewayClient) sendInbounds(ctx context.Context) {
 		if !in.Enable {
 			state = tr("disabled")
 		}
+		// The template puts the protocol in a code span, where a backslash escapes
+		// nothing and only a backtick gets out.
 		val := tr("discord.values.inbound",
-			"Protocol=="+string(in.Protocol),
+			"Protocol=="+strings.ReplaceAll(string(in.Protocol), "`", "'"),
 			"Port=="+strconv.Itoa(in.Port),
 			"Clients=="+strconv.Itoa(len(in.ClientStats)),
 			"Up=="+common.FormatTraffic(in.Up),
 			"Down=="+common.FormatTraffic(in.Down),
 			"State=="+state,
 		)
-		fields = append(fields, cleanField(fmt.Sprintf("📍 %s", in.Remark), val, false))
+		fields = append(fields, markupField(fmt.Sprintf("📍 %s", escapeMarkdown(in.Remark)), val, false))
 	}
 
 	title := tr("discord.commands.inboundsTitle")

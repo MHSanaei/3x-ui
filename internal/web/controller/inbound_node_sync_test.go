@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
@@ -102,4 +103,25 @@ func TestNodeSyncPushSkipsOperatorTLSGuard(t *testing.T) {
 			t.Fatalf("stored rows = %d, want 0", got)
 		}
 	})
+}
+
+// Each "{}" of the pushed list decodes into a whole traffic row, so a body under the size
+// cap could still cost the panel close to a gigabyte; the list is capped by entry count.
+func TestPushClientTrafficsCapsTheListByEntryCount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		c.Set("I18n", func(_ locale.I18nType, key string, _ ...string) string { return key })
+		c.Next()
+	})
+	NewInboundController(engine.Group("/panel/api/inbounds"))
+	body := `{"masterGuid":"m","traffics":[` + strings.TrimSuffix(strings.Repeat("{},", maxPushedClientTraffics+1), ",") + `]}`
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/inbounds/pushClientTraffics", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+	if !strings.Contains(w.Body.String(), `"success":false`) {
+		t.Fatalf("an over-long traffic list was accepted: %.200s", w.Body.String())
+	}
 }
