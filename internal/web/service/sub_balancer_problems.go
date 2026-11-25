@@ -129,7 +129,7 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int,
 		ExcludingJSONCount int
 	}
 	err = database.GetDB().Model(&model.Host{}).
-		Select(`inbound_id, COUNT(*) AS enabled, ` +
+		Select(`inbound_id, COUNT(*) AS enabled, `+
 			`SUM(CASE WHEN exclude_from_sub_types LIKE '%"json"%' THEN 1 ELSE 0 END) AS excluding_json_count`).
 		Where("inbound_id IN ? AND is_disabled = ?", unique, false).
 		Group("inbound_id").Scan(&hostRows).Error
