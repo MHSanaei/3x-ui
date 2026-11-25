@@ -31,15 +31,8 @@ const (
 	SubBalancerProblemInboundWithoutClients = "inbound_without_clients"
 )
 
-// SubBalancerProblem reports one reason a balancer cannot emit the members an
-// operator expects. InboundIds is set for per-inbound codes and empty for
-// balancer-wide ones (no_members). Advisories never change what is emitted —
-// the runtime still omits a balancer with no resolvable intersection.
-//
-// Known blind spot by design: a member can also vanish for reasons that belong to
-// one client, not to the row — a WireGuard client with no private key renders no
-// outbound, and the render budget can cut the tail of a large subscription. Those
-// are per-subscriber and cannot be attributed to a stored balancer.
+// SubBalancerProblem is one reason a balancer cannot emit what an operator expects.
+// Advisories never change the emitted config, and per-client losses are out of scope.
 type SubBalancerProblem struct {
 	Code       string `json:"code" example:"unknown_inbound"`
 	InboundIds []int  `json:"inboundIds,omitempty" example:"[7,9]"`
@@ -48,17 +41,14 @@ type SubBalancerProblem struct {
 
 // jsonIncapableProtocols mirrors the switch in internal/sub/json_service.go:
 // these protocols fall through to `continue` and never produce an outbound.
-// Keep it in lockstep with that switch — sub/json_capable_parity_test.go fails
-// when the two lists drift.
+// Kept in lockstep by sub_balancer_problems_parity_test.go.
 var jsonIncapableProtocols = map[string]struct{}{
 	"amneziawg": {},
 	"tuic":      {},
 	"mtproto":   {},
 }
 
-// SubBalancerWithProblems is the list-API shape: the stored row plus the
-// cosmetic advisories an operator needs to see. The row is embedded by value so
-// it marshals flat (the panel reads the same fields it always did); Problems is
+// SubBalancerWithProblems embeds the row by value so it marshals flat; Problems is
 // always non-nil so the response shape is stable.
 type SubBalancerWithProblems struct {
 	model.SubBalancer
@@ -87,9 +77,8 @@ func (s *SubBalancerService) ListWithProblems() ([]*SubBalancerWithProblems, err
 	return out, nil
 }
 
-// loadBalancerMemberInbounds fetches only the columns the diagnosis needs;
-// settings blobs would be decoded for nothing. clientCounts comes from one
-// grouped query, because an inbound nobody sits on reaches no subscription.
+// loadBalancerMemberInbounds reads only the columns the diagnosis needs, plus one
+// grouped client count: an inbound nobody sits on reaches no subscription.
 func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int, error) {
 	byID := map[int]*model.Inbound{}
 	clients := map[int]int{}
@@ -131,9 +120,8 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int,
 }
 
 // diagnoseSubBalancer groups per-inbound problems by code in selection order,
-// then appends no_members when nothing could be emitted. Disabled inbounds the
-// subscription hides entirely still resolve when every client is enabled, so
-// disabling is advisory; a hidden inbound is never advisory on its own.
+// then appends no_members when nothing could be emitted. The subscription query
+// already drops disabled inbounds, so their code is informational only.
 func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clientCounts map[int]int) []SubBalancerProblem {
 	unknown := []int{}
 	disabled := []int{}
@@ -194,7 +182,7 @@ var loggedProblems = struct {
 
 // LogSubBalancerProblems warns about anything an operator would otherwise
 // discover only by diffing a client's config. Repeated identical listings stay
-// silent; a changed problem set, including its resolution, is reported.
+// silent, and a resolution is reported only when a problem was known before.
 func LogSubBalancerProblems(b *model.SubBalancer, problems []SubBalancerProblem) {
 	fingerprint := problemsFingerprint(problems)
 
@@ -207,11 +195,15 @@ func LogSubBalancerProblems(b *model.SubBalancer, problems []SubBalancerProblem)
 	}
 	loggedProblems.Unlock()
 
-	if seen && previous == fingerprint {
+	if fingerprint == "" {
+		// Nothing to report for a balancer that never had a problem; a known one
+		// going quiet is a real transition worth one line.
+		if seen {
+			logger.Noticef("[SubBalancer] balancer %q (#%d) no longer has problems", b.Remark, b.Id)
+		}
 		return
 	}
-	if fingerprint == "" {
-		logger.Noticef("[SubBalancer] balancer %q (#%d) no longer has problems", b.Remark, b.Id)
+	if seen && previous == fingerprint {
 		return
 	}
 	logger.Warningf("[SubBalancer] balancer %q (#%d) has %d problem(s), inboundIds=%v: %+v",

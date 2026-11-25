@@ -13,11 +13,8 @@ import (
 	"testing"
 )
 
-// The diagnosis must agree with the renderer about which protocols can become a
-// balancer member. A protocol the JSON service never turns into an outbound would
-// otherwise be counted as contributing: the balancer looks healthy while emitting
-// nothing. Both lists are derived from the real sources, so either one drifting
-// fails here instead of in production.
+// A protocol the JSON service never renders must not count as a working member.
+// Both sides are parsed from source, so drift fails here rather than in production.
 func TestJSONIncapableProtocolsMatchRenderer(t *testing.T) {
 	_, thisFile, _, ok := runtime.Caller(0)
 	if !ok {

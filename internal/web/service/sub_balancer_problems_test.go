@@ -2,16 +2,19 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
+	"github.com/op/go-logging"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// seedDiagInbound inserts one inbound with the columns the diagnosis reads, plus
-// one client on it: an inbound nobody sits on is its own (separately tested)
-// advisory, so tests aimed at other codes must not trip it.
+// seedDiagInbound also links one client: a client-less inbound is its own advisory,
+// separately tested, and must not leak into tests aimed at other codes.
 func seedDiagInbound(t *testing.T, id int, protocol model.Protocol, enable bool) {
 	t.Helper()
 	ib := &model.Inbound{
@@ -181,9 +184,8 @@ func TestDiagnoseSubBalancerOrderAndNoMembers(t *testing.T) {
 	}
 }
 
-// An enabled, renderable inbound nobody sits on reaches no subscription at all:
-// the balancer drops out for every client, which is the very silence #7013 is
-// about, so it must be reported instead of counted as contributing.
+// A renderable inbound nobody sits on reaches no subscription, so the balancer
+// drops out for everyone — the silence this feature exists to explain.
 func TestSubBalancerProblemsInboundWithoutClients(t *testing.T) {
 	setupSubBalancerDB(t)
 	// Seeding only the inbound leaves client_inbounds empty.
@@ -206,30 +208,62 @@ func TestSubBalancerProblemsInboundWithoutClients(t *testing.T) {
 	}
 }
 
-// Repeated identical listings must not keep warning: the read path is polled by
-// the UI, so an unchanged problem set is remembered by fingerprint. A change and
-// a resolution are both reported once.
+// The log is the contract, not the fingerprint map: assert on what was written.
 func TestLogSubBalancerProblemsDeduplicates(t *testing.T) {
-	bal := &model.SubBalancer{Id: 9001, Remark: "dedup", InboundIds: []int{5}}
+	xuilogger.InitLogger(logging.DEBUG)
+	bal := &model.SubBalancer{Id: 9001, Remark: "dedup-9001", InboundIds: []int{5}}
 	problem := []SubBalancerProblem{{Code: SubBalancerProblemUnknownInbound, InboundIds: []int{5}}}
 
+	before := len(logLines())
 	LogSubBalancerProblems(bal, problem)
-	first := problemsFingerprint(problem)
-	if got := loggedProblemsSnapshot(bal.Id); got != first {
-		t.Fatalf("stored fingerprint = %q, want %q", got, first)
+	if got := logLinesSince(before); countContaining(got, "dedup-9001") != 1 {
+		t.Fatalf("first listing: want exactly one line, got %v", got)
 	}
 
-	// Same problem set again: nothing changes, the entry stays identical.
+	// Same problem set again: the journal must not repeat itself.
+	before = len(logLines())
 	LogSubBalancerProblems(bal, problem)
-	if got := loggedProblemsSnapshot(bal.Id); got != first {
-		t.Fatalf("fingerprint after repeat = %q, want unchanged %q", got, first)
+	if got := logLinesSince(before); countContaining(got, "dedup-9001") != 0 {
+		t.Fatalf("repeat listing: want no line, got %v", got)
 	}
 
-	// Healthy listing clears the entry so a later relapse warns again.
+	// A known problem going quiet is a real transition: exactly one notice.
+	before = len(logLines())
 	LogSubBalancerProblems(bal, nil)
-	if got := loggedProblemsSnapshot(bal.Id); got != "" {
-		t.Fatalf("fingerprint after resolution = %q, want empty", got)
+	lines := logLinesSince(before)
+	if countContaining(lines, "no longer has problems") != 1 {
+		t.Fatalf("resolution: want one notice, got %v", lines)
 	}
+
+	// A balancer that never had a problem must stay silent on every listing.
+	healthy := &model.SubBalancer{Id: 9002, Remark: "healthy-9002", InboundIds: []int{6}}
+	for i := 0; i < 3; i++ {
+		before = len(logLines())
+		LogSubBalancerProblems(healthy, nil)
+		if got := logLinesSince(before); countContaining(got, "healthy-9002") != 0 {
+			t.Fatalf("healthy listing %d: want silence, got %v", i, got)
+		}
+	}
+}
+
+func logLines() []string { return xuilogger.GetLogs(0, "DEBUG") }
+
+func logLinesSince(n int) []string {
+	all := logLines()
+	if len(all) < n {
+		return all
+	}
+	return all[n:]
+}
+
+func countContaining(lines []string, substr string) int {
+	count := 0
+	for _, line := range lines {
+		if strings.Contains(line, substr) {
+			count++
+		}
+	}
+	return count
 }
 
 // The map is shared across concurrent listings (settings tab + refetches).
@@ -248,8 +282,3 @@ func TestLogSubBalancerProblemsConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
-func loggedProblemsSnapshot(id int) string {
-	loggedProblems.Lock()
-	defer loggedProblems.Unlock()
-	return loggedProblems.byID[id]
-}
