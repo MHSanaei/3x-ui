@@ -15,6 +15,9 @@ func TestMigrateInboundPreserveClientTrafficColumn(t *testing.T) {
 	t.Cleanup(func() { tx.Rollback() })
 
 	// Recreate the previous schema in this transaction on SQLite or PostgreSQL.
+	if err := dropSnapshotRevisionTriggers(tx); err != nil {
+		t.Fatal(err)
+	}
 	if err := tx.Exec("ALTER TABLE inbounds DROP COLUMN preserve_client_traffic").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -23,6 +26,9 @@ func TestMigrateInboundPreserveClientTrafficColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := migrateInboundPreserveClientTrafficColumn(tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrateSnapshotRevisions(tx); err != nil {
 		t.Fatal(err)
 	}
 	var stored model.Inbound
@@ -35,6 +41,7 @@ func TestMigrateInboundPreserveClientTrafficColumn(t *testing.T) {
 	if stored.Up != 30 || stored.Down != 50 || stored.TrafficReset != "monthly" || stored.TrafficResetDay != 20 {
 		t.Fatalf("legacy inbound after migration: up=%d down=%d schedule=%s day=%d", stored.Up, stored.Down, stored.TrafficReset, stored.TrafficResetDay)
 	}
+	revision := stored.SnapshotRevision
 	if err := tx.Model(&stored).Update("preserve_client_traffic", true).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -43,5 +50,8 @@ func TestMigrateInboundPreserveClientTrafficColumn(t *testing.T) {
 	}
 	if err := tx.First(&stored, stored.Id).Error; err != nil || !stored.PreservesClientTraffic() {
 		t.Fatalf("repeat migration lost the opt-in: preserve=%t, err=%v", stored.PreservesClientTraffic(), err)
+	}
+	if revision == "" || stored.SnapshotRevision == "" || stored.SnapshotRevision == revision {
+		t.Fatalf("changing preserved traffic must update the snapshot revision: %q -> %q", revision, stored.SnapshotRevision)
 	}
 }

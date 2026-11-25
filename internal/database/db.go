@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -37,6 +38,11 @@ import (
 )
 
 var db *gorm.DB
+
+var connectionGeneration atomic.Uint64
+
+// ConnectionGeneration invalidates read histories when InitDB replaces the database pool.
+func ConnectionGeneration() uint64 { return connectionGeneration.Load() }
 
 var backupSQLiteTimeout = 2 * time.Minute
 
@@ -133,6 +139,9 @@ func migrateClientKeepAliveRangeColumn() error {
 }
 
 func initModels() error {
+	if err := dropSnapshotRevisionTriggers(db); err != nil {
+		return err
+	}
 	if err := migrateClientKeepAliveRangeColumn(); err != nil {
 		return err
 	}
@@ -234,7 +243,7 @@ func initModels() error {
 			return err
 		}
 	}
-	return nil
+	return migrateSnapshotRevisions(db)
 }
 
 func postgresModelSettled(mdl any) bool {
@@ -3550,7 +3559,11 @@ func InitDB(dbPath string) error {
 			return err
 		}
 	}
-	return runSeeders(isUsersEmpty)
+	if err := runSeeders(isUsersEmpty); err != nil {
+		return err
+	}
+	connectionGeneration.Add(1)
+	return nil
 }
 
 func normalizeApiTokenCreatedAtSeconds() error {

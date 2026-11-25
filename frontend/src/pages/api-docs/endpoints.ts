@@ -269,6 +269,22 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/inbounds/trafficSnapshot',
+        summary:
+          'Internal node sync v1: complete raw local counters and online state on every poll. Send the last validated revision to omit unchanged structure. Omitted structure requires a matching cached catalog; a present structure with empty arrays is authoritative. Uses admin, node-admin or node-sync authorization.',
+        params: [
+          {
+            name: 'revision',
+            in: 'query',
+            type: 'string',
+            optional: true,
+            desc: 'Opaque revision of the last validated complete catalog. Omit when no catalog is cached.',
+          },
+        ],
+        responseSchema: 'NodeTrafficSnapshotV1',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/inbounds/list/slim',
         summary:
           'Same shape as /list but with settings.clients[] stripped down to {email, enable, comment} and ClientStats not enriched with UUID/SubId. Use this for list pages; fetch /get/:id when you need the full per-client payload (uuid, password, flow, ...).',

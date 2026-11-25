@@ -73,6 +73,13 @@ type envelope struct {
 	Obj     json.RawMessage `json:"obj"`
 }
 
+type remoteHTTPError struct {
+	code int
+	err  error
+}
+
+func (e *remoteHTTPError) Error() string { return e.err.Error() }
+
 // remoteAPIError is a node-panel envelope failure (HTTP 200, success=false),
 // distinct from transport/HTTP-status errors so callers can trust its message.
 type remoteAPIError struct{ msg string }
@@ -92,7 +99,15 @@ type Remote struct {
 	// supportsZstd is learned from the node's X-3x-Node-Caps response header; once
 	// seen, config pushes to this node are zstd-compressed. Old nodes never set
 	// it, so they keep receiving plain bodies (mixed-version safe).
-	supportsZstd bool
+	supportsZstd             bool
+	snapshotGate             chan struct{}
+	snapshotCapsEpoch        uint64
+	snapshotSeenCapsEpoch    uint64
+	snapshotRevision         string
+	snapshotGeneration       uint64
+	snapshotUnsupportedUntil time.Time
+	snapshotStructure        *NodeSnapshotStructure
+	snapshotClients          map[int]snapshotClientIdentity
 	// nodeCaps is nil until the first response, even if that response advertises no capabilities.
 	nodeCaps []string
 
@@ -117,6 +132,7 @@ type RemoteInboundOption struct {
 func NewRemote(n *model.Node, r NodeEgressResolver) *Remote {
 	return &Remote{
 		node:           n,
+		snapshotGate:   make(chan struct{}, 1),
 		remoteIDByTag:  make(map[string]int),
 		adoptedAliases: make(map[string]string),
 		pushedFP:       make(map[string]string),
@@ -138,6 +154,9 @@ func (r *Remote) recordCaps(h http.Header) {
 	caps := strings.Split(h.Get(wirecodec.CapsHeader), ",")
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if slices.Contains(caps, wirecodec.CapTrafficSnapshot) != slices.Contains(r.nodeCaps, wirecodec.CapTrafficSnapshot) {
+		r.snapshotCapsEpoch++
+	}
 	r.nodeCaps = caps
 	if slices.Contains(caps, wirecodec.CapZstd) {
 		r.supportsZstd = true
@@ -373,7 +392,9 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		return nil, fmt.Errorf("%s %s: %w", method, path, err)
 	}
 	defer resp.Body.Close()
-	r.recordCaps(resp.Header)
+	if resp.StatusCode == http.StatusOK {
+		r.recordCaps(resp.Header)
+	}
 
 	// Validate status before reading a success payload: a non-OK response's
 	// body is never used beyond a short diagnostic, so don't let a node force us
@@ -383,9 +404,9 @@ func (r *Remote) do(ctx context.Context, method, path string, body any) (*envelo
 		if msg := bytes.TrimSpace(snippet); len(msg) > 0 {
 			// %q quotes/escapes the untrusted node body so control characters or
 			// newlines in it can't garble or inject into the error/log output.
-			return nil, fmt.Errorf("%s %s: HTTP %d: %q", method, path, resp.StatusCode, msg)
+			return nil, &remoteHTTPError{code: resp.StatusCode, err: fmt.Errorf("%s %s: HTTP %d: %q", method, path, resp.StatusCode, msg)}
 		}
-		return nil, fmt.Errorf("%s %s: HTTP %d", method, path, resp.StatusCode)
+		return nil, &remoteHTTPError{code: resp.StatusCode, err: fmt.Errorf("%s %s: HTTP %d", method, path, resp.StatusCode)}
 	}
 
 	// Fast-fail on an honestly-declared oversize body; the LimitReader below is
@@ -888,9 +909,10 @@ func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) err
 }
 
 type TrafficSnapshot struct {
-	Inbounds       []*model.Inbound
-	OnlineEmails   []string
-	ManagedAliases []string
+	StructuralRevision string
+	Inbounds           []*model.Inbound
+	OnlineEmails       []string
+	ManagedAliases     []string
 	// OnlineTree is the node's GUID-keyed online subtree (its own clients under
 	// its panelGuid plus every descendant under theirs). Preferred over the flat
 	// OnlineEmails so the master can attribute deeply nested clients to the real
@@ -922,7 +944,7 @@ func (r *Remote) FetchHostGroups(ctx context.Context) ([]*entity.HostGroup, erro
 	return groups, nil
 }
 
-func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, error) {
+func (r *Remote) fetchLegacyTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, error) {
 	snap := &TrafficSnapshot{LastOnlineMap: map[string]int64{}}
 
 	envList, err := r.do(ctx, http.MethodGet, "panel/api/inbounds/list", nil)

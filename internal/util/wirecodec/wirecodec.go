@@ -31,8 +31,10 @@ const (
 	// CapWireguardDevices marks a node that serves a WireGuard client's extra devices;
 	// an older node ignores them and keeps only the client's first peer.
 	CapWireguardDevices = "wg-devices"
+	// CapTrafficSnapshot marks a node that serves revisioned traffic snapshots.
+	CapTrafficSnapshot = "traffic-snapshot-v1"
 	// NodeCaps is the full CapsHeader value this build advertises.
-	NodeCaps = CapZstd + "," + CapAmneziaWGKernel + "," + CapPreserveClientTraffic + "," + CapWireguardDevices
+	NodeCaps = CapZstd + "," + CapAmneziaWGKernel + "," + CapPreserveClientTraffic + "," + CapWireguardDevices + "," + CapTrafficSnapshot
 
 	// maxDecodeBytes bounds in-memory decompression to defuse a zstd bomb from
 	// an (authenticated) node-API caller.
