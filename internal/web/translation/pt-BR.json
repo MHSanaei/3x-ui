@@ -1732,6 +1732,14 @@
         "sortOrderHelp": "Posição na lista da assinatura, intercalada com a ordem dos inbounds; em caso de empate, o balanceador vem depois do inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "problems": "Problemas",
+        "problemsCount": "{count} problema(s)",
+        "problem": {
+          "unknown_inbound": "O inbound não existe mais",
+          "disabled_inbound": "O inbound está desativado",
+          "json_incapable_protocol": "O protocolo não tem outbound JSON, então não pode ser membro",
+          "no_members": "Nenhum membro utilizável: o balanceador é omitido da assinatura JSON"
+        },
         "weights": "Pesos dos membros",
         "weightsHelp": "Apenas para LeastLoad: peso menor é escolhido com mais frequência; membros sem valor têm peso 1.",
         "enabled": "Ativado",

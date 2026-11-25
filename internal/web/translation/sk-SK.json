@@ -1853,6 +1853,14 @@
         "sortOrderHelp": "Pozícia v zozname odberu, spoločne s poradím vstupov. Pri rovnakom čísle nasleduje vyvažovanie po vstupe.",
         "inbounds": "Vstupy",
         "inboundsCount": "Počet vstupov: {count}",
+        "problems": "Problémy",
+        "problemsCount": "{count} problém(ov)",
+        "problem": {
+          "unknown_inbound": "Inbound už neexistuje",
+          "disabled_inbound": "Inbound je vypnutý",
+          "json_incapable_protocol": "Protokol nemá JSON outbound, preto nemôže byť členom",
+          "no_members": "Žiadny použiteľný člen: balancer je vynechaný z JSON odberu"
+        },
         "weights": "Váhy členov",
         "weightsHelp": "Iba pre LeastLoad: nižšia váha znamená častejší výber. Bez zadanej hodnoty má člen váhu 1.",
         "enabled": "Zapnuté",
