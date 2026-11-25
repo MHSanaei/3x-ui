@@ -21,8 +21,8 @@ TOOLS_REPO="https://github.com/amnezia-vpn/amneziawg-tools.git"
 # Pinned to tested releases and verified by commit, since this runs as root.
 # Module and tools must share the 3.x series: 1.0 tools send u32 H1-H4 and
 # `awg setconf` then fails with "Invalid argument".
-MODULE_TAG="v3.1.20260906"
-MODULE_COMMIT="4569c4c67f3a57414969260cafbbd04694fbaae0"
+MODULE_TAG="v3.1.20261113"
+MODULE_COMMIT="6879e270797840b148cd71e7fe04d19f9ddbda96"
 TOOLS_TAG="v3.1.20260812"
 TOOLS_COMMIT="ee0f0a9aa34ff0a0da4b3433b9512781cfe02843"
 
