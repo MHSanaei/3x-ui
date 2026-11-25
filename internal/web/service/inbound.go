@@ -1753,6 +1753,9 @@ func (s *InboundService) deleteInboundRow(tx *gorm.DB, id int) error {
 	if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
 		return err
 	}
+	if err := database.PruneHostGroupClientGroupsTx(tx); err != nil {
+		return err
+	}
 	// Drop the deleted inbound from any sub-balancer that selects it; a
 	// dangling id would emit a member no subscriber can resolve (#5648).
 	var balancers []model.SubBalancer

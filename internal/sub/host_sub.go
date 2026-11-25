@@ -115,16 +115,7 @@ func (s *SubService) clientHostVariants(inbound *model.Inbound, client model.Cli
 // hostEndpoints returns the externalProxy-shaped endpoints of the inbound's enabled hosts for format, nil without any;
 // closed reports that all of them are excluded from format, so the inbound renders nothing there.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) (eps []map[string]any, closed bool) {
-	var hosts []*model.Host
-	if s.hostsByInbound != nil {
-		hosts = s.hostsByInbound[inbound.Id]
-	} else if err := database.GetDB().
-		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
-		Order("sort_order asc, id asc").
-		Find(&hosts).Error; err != nil {
-		logger.Warning("SubService - hostEndpoints:", err)
-		return nil, false
-	}
+	hosts := s.hostsForInbound(inbound)
 	if len(hosts) == 0 {
 		return nil, false
 	}
