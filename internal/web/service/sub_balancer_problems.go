@@ -29,6 +29,11 @@ const (
 // operator expects. InboundIds is set for per-inbound codes and empty for
 // balancer-wide ones (no_members). Advisories never change what is emitted —
 // the runtime still omits a balancer with no resolvable intersection.
+//
+// Known blind spot by design: a member can also vanish for reasons that belong to
+// one client, not to the row — a WireGuard client with no private key renders no
+// outbound, and the render budget can cut the tail of a large subscription. Those
+// are per-subscriber and cannot be attributed to a stored balancer.
 type SubBalancerProblem struct {
 	Code       string `json:"code" example:"unknown_inbound"`
 	InboundIds []int  `json:"inboundIds,omitempty" example:"[7,9]"`
