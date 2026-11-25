@@ -181,27 +181,25 @@ export class PromiseUtil {
     });
   }
 
-  // After the restart delay, polls the target until it answers below 500; false on timeout.
-  // https page -> http target is blocked as mixed content: probe this origin, the proxy's.
+  // After the restart delay, polls a same-origin target until it answers below 500; false on
+  // timeout. connect-src 'self' blocks every other origin, so such a target gets the delay only.
   static async waitForPanel(
     url: string,
     { delay = 5000, interval = 2000, timeout = 90_000 } = {},
   ): Promise<boolean> {
     await PromiseUtil.sleep(delay);
     const target = new URL(url, window.location.href);
-    const mixed = window.location.protocol === 'https:' && target.protocol === 'http:';
-    const probe = mixed ? new URL(window.location.href) : target;
-    const sameOrigin = probe.origin === window.location.origin;
+    if (target.origin !== window.location.origin) return false;
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       try {
-        const res = await fetch(probe, {
+        const res = await fetch(target, {
           cache: 'no-store',
           redirect: 'manual',
-          mode: sameOrigin ? 'same-origin' : 'no-cors',
+          mode: 'same-origin',
           signal: AbortSignal.timeout(Math.max(interval, 1000)),
         });
-        if (res.type === 'opaque' || res.type === 'opaqueredirect' || res.status < 500) return true;
+        if (res.type === 'opaqueredirect' || res.status < 500) return true;
       } catch {
         /* not listening yet */
       }

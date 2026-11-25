@@ -42,37 +42,21 @@ describe('PromiseUtil.waitForPanel (#7190)', () => {
     ).resolves.toBe(false);
   });
 
-  it('probes a new port or protocol with no-cors and accepts the opaque answer', async () => {
+  // connect-src 'self' rejects the probe like a refused connection, so polling another
+  // origin could only run to the timeout: 90 s of spinner before a panel that is already up.
+  it('does not poll a target on another origin, which the page CSP forbids it to reach', async () => {
     vi.stubGlobal('window', {
       location: {
         href: 'http://203.0.113.5:2053/panel/settings',
         origin: 'http://203.0.113.5:2053',
       },
     });
-    const fetchMock = vi.fn().mockResolvedValue(answer(0, 'opaque'));
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      PromiseUtil.waitForPanel('https://203.0.113.5:8443/panel/settings', fast),
-    ).resolves.toBe(true);
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ mode: 'no-cors' });
-  });
-
-  it('probes the current origin when an https page would open an http target (mixed content)', async () => {
-    vi.stubGlobal('window', {
-      location: {
-        href: 'https://panel.test/panel/settings',
-        origin: 'https://panel.test',
-        protocol: 'https:',
-      },
-    });
-    const fetchMock = vi.fn().mockResolvedValue(answer(200));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(PromiseUtil.waitForPanel('http://panel.test/panel/settings', fast)).resolves.toBe(
-      true,
-    );
-    expect(String(fetchMock.mock.calls[0][0])).toBe('https://panel.test/panel/settings');
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ mode: 'same-origin' });
+      PromiseUtil.waitForPanel('https://203.0.113.5:2053/panel/settings', fast),
+    ).resolves.toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
