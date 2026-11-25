@@ -2,6 +2,9 @@ package service
 
 import (
 	"slices"
+	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -182,12 +185,52 @@ func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clie
 	return problems
 }
 
-// LogSubBalancerProblems warns once per balancer about anything an operator
-// would otherwise discover only by diffing a client's config.
+// loggedProblems remembers the last reported fingerprint per balancer, so the
+// read path warns when something changes instead of on every listing.
+var loggedProblems = struct {
+	sync.Mutex
+	byID map[int]string
+}{byID: map[int]string{}}
+
+// LogSubBalancerProblems warns about anything an operator would otherwise
+// discover only by diffing a client's config. Repeated identical listings stay
+// silent; a changed problem set, including its resolution, is reported.
 func LogSubBalancerProblems(b *model.SubBalancer, problems []SubBalancerProblem) {
-	if len(problems) == 0 {
+	fingerprint := problemsFingerprint(problems)
+
+	loggedProblems.Lock()
+	previous, seen := loggedProblems.byID[b.Id]
+	if fingerprint == "" {
+		delete(loggedProblems.byID, b.Id)
+	} else {
+		loggedProblems.byID[b.Id] = fingerprint
+	}
+	loggedProblems.Unlock()
+
+	if seen && previous == fingerprint {
+		return
+	}
+	if fingerprint == "" {
+		logger.Noticef("[SubBalancer] balancer %q (#%d) no longer has problems", b.Remark, b.Id)
 		return
 	}
 	logger.Warningf("[SubBalancer] balancer %q (#%d) has %d problem(s), inboundIds=%v: %+v",
 		b.Remark, b.Id, len(problems), b.InboundIds, problems)
+}
+
+// problemsFingerprint renders the advisories deterministically; empty means
+// healthy, which also clears the stored entry.
+func problemsFingerprint(problems []SubBalancerProblem) string {
+	if len(problems) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(problems))
+	for _, p := range problems {
+		ids := make([]string, 0, len(p.InboundIds))
+		for _, id := range p.InboundIds {
+			ids = append(ids, strconv.Itoa(id))
+		}
+		parts = append(parts, p.Code+"["+strings.Join(ids, ",")+"]"+p.Detail)
+	}
+	return strings.Join(parts, ";")
 }

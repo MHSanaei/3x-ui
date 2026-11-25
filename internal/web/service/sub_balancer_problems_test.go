@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -203,4 +204,52 @@ func TestSubBalancerProblemsInboundWithoutClients(t *testing.T) {
 	if diff := wantCodes(got, SubBalancerProblemInboundWithoutClients, SubBalancerProblemNoMembers); diff != "" {
 		t.Fatal(diff)
 	}
+}
+
+// Repeated identical listings must not keep warning: the read path is polled by
+// the UI, so an unchanged problem set is remembered by fingerprint. A change and
+// a resolution are both reported once.
+func TestLogSubBalancerProblemsDeduplicates(t *testing.T) {
+	bal := &model.SubBalancer{Id: 9001, Remark: "dedup", InboundIds: []int{5}}
+	problem := []SubBalancerProblem{{Code: SubBalancerProblemUnknownInbound, InboundIds: []int{5}}}
+
+	LogSubBalancerProblems(bal, problem)
+	first := problemsFingerprint(problem)
+	if got := loggedProblemsSnapshot(bal.Id); got != first {
+		t.Fatalf("stored fingerprint = %q, want %q", got, first)
+	}
+
+	// Same problem set again: nothing changes, the entry stays identical.
+	LogSubBalancerProblems(bal, problem)
+	if got := loggedProblemsSnapshot(bal.Id); got != first {
+		t.Fatalf("fingerprint after repeat = %q, want unchanged %q", got, first)
+	}
+
+	// Healthy listing clears the entry so a later relapse warns again.
+	LogSubBalancerProblems(bal, nil)
+	if got := loggedProblemsSnapshot(bal.Id); got != "" {
+		t.Fatalf("fingerprint after resolution = %q, want empty", got)
+	}
+}
+
+// The map is shared across concurrent listings (settings tab + refetches).
+func TestLogSubBalancerProblemsConcurrent(t *testing.T) {
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			bal := &model.SubBalancer{Id: 9100 + id, Remark: "race", InboundIds: []int{id}}
+			LogSubBalancerProblems(bal, []SubBalancerProblem{{
+				Code: SubBalancerProblemUnknownInbound, InboundIds: []int{id},
+			}})
+		}(i)
+	}
+	wg.Wait()
+}
+
+func loggedProblemsSnapshot(id int) string {
+	loggedProblems.Lock()
+	defer loggedProblems.Unlock()
+	return loggedProblems.byID[id]
 }
