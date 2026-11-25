@@ -29,6 +29,9 @@ const (
 	// SubBalancerProblemInboundWithoutClients: the inbound is enabled and
 	// renderable but no client sits on it, so it reaches no subscription at all.
 	SubBalancerProblemInboundWithoutClients = "inbound_without_clients"
+	// SubBalancerProblemHostsExcluded: every enabled host of the inbound excludes
+	// the JSON format, so hostEndpoints closes it and no client renders.
+	SubBalancerProblemHostsExcluded = "hosts_excluded_from_json"
 )
 
 // SubBalancerProblem is one reason a balancer cannot emit what an operator expects.
@@ -65,23 +68,24 @@ func (s *SubBalancerService) ListWithProblems() ([]*SubBalancerWithProblems, err
 	for _, b := range balancers {
 		ids = append(ids, b.InboundIds...)
 	}
-	byID, clientCounts, err := loadBalancerMemberInbounds(ids)
+	byID, clientCounts, hostsClosed, err := loadBalancerMemberInbounds(ids)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*SubBalancerWithProblems, 0, len(balancers))
 	for _, b := range balancers {
-		problems := diagnoseSubBalancer(b, byID, clientCounts)
+		problems := diagnoseSubBalancer(b, byID, clientCounts, hostsClosed)
 		out = append(out, &SubBalancerWithProblems{SubBalancer: *b, Problems: problems})
 	}
 	return out, nil
 }
 
-// loadBalancerMemberInbounds reads only the columns the diagnosis needs, plus one
-// grouped client count: an inbound nobody sits on reaches no subscription.
-func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int, error) {
+// loadBalancerMemberInbounds reads only the columns the diagnosis needs, plus
+// grouped client and host counts that decide reachability per inbound.
+func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int, map[int]bool, error) {
 	byID := map[int]*model.Inbound{}
 	clients := map[int]int{}
+	hostsClosed := map[int]bool{}
 	unique := make([]int, 0, len(ids))
 	for _, id := range ids {
 		if !slices.Contains(unique, id) {
@@ -89,14 +93,14 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int,
 		}
 	}
 	if len(unique) == 0 {
-		return byID, clients, nil
+		return byID, clients, hostsClosed, nil
 	}
 	var inbounds []*model.Inbound
 	err := database.GetDB().Model(&model.Inbound{}).
 		Select("id", "protocol", "enable").
 		Where("id IN ?", unique).Find(&inbounds).Error
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	for _, ib := range inbounds {
 		byID[ib.Id] = ib
@@ -111,22 +115,44 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int,
 		Where("inbound_id IN ?", unique).
 		Group("inbound_id").Scan(&counts).Error
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	for _, c := range counts {
 		clients[c.InboundId] = c.Total
 	}
-	return byID, clients, nil
+
+	// An inbound whose enabled hosts all exclude JSON is closed by hostEndpoints,
+	// so its clients never render. The column is a JSON array, hence the quoted match.
+	var hostRows []struct {
+		InboundId          int
+		Enabled            int
+		ExcludingJSONCount int
+	}
+	err = database.GetDB().Model(&model.Host{}).
+		Select(`inbound_id, COUNT(*) AS enabled, ` +
+			`SUM(CASE WHEN exclude_from_sub_types LIKE '%"json"%' THEN 1 ELSE 0 END) AS excluding_json_count`).
+		Where("inbound_id IN ? AND is_disabled = ?", unique, false).
+		Group("inbound_id").Scan(&hostRows).Error
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	for _, h := range hostRows {
+		if h.Enabled > 0 && h.ExcludingJSONCount == h.Enabled {
+			hostsClosed[h.InboundId] = true
+		}
+	}
+	return byID, clients, hostsClosed, nil
 }
 
 // diagnoseSubBalancer groups per-inbound problems by code in selection order,
 // then appends no_members when nothing could be emitted. The subscription query
 // already drops disabled inbounds, so their code is informational only.
-func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clientCounts map[int]int) []SubBalancerProblem {
+func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clientCounts map[int]int, hostsClosed map[int]bool) []SubBalancerProblem {
 	unknown := []int{}
 	disabled := []int{}
 	incapable := []int{}
 	empty := []int{}
+	closedHosts := []int{}
 	incapableDetail := ""
 	contributing := 0
 	for _, id := range b.InboundIds {
@@ -152,9 +178,15 @@ func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clie
 			empty = append(empty, id)
 			continue
 		}
+		if hostsClosed[id] {
+			// Every enabled host excludes the JSON format, so hostEndpoints closes
+			// the inbound and none of its clients render.
+			closedHosts = append(closedHosts, id)
+			continue
+		}
 		contributing++
 	}
-	problems := make([]SubBalancerProblem, 0, 5)
+	problems := make([]SubBalancerProblem, 0, 6)
 	if len(unknown) > 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemUnknownInbound, InboundIds: unknown})
 	}
@@ -166,6 +198,9 @@ func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clie
 	}
 	if len(empty) > 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemInboundWithoutClients, InboundIds: empty})
+	}
+	if len(closedHosts) > 0 {
+		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemHostsExcluded, InboundIds: closedHosts})
 	}
 	if contributing == 0 {
 		problems = append(problems, SubBalancerProblem{Code: SubBalancerProblemNoMembers})

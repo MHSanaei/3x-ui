@@ -477,6 +477,25 @@ func (s *SubJsonService) hiddenMemberConfig(subReq *SubService, inbound *model.I
 	return s.getConfig(subReq, inbound, client, host)
 }
 
+// omittedBalancerWarned remembers which balancers already warned, so a subscription
+// fetched once per client device does not repeat the same line on every request.
+var omittedBalancerWarned = struct {
+	sync.Mutex
+	seen map[int]bool
+}{seen: map[int]bool{}}
+
+func warnOmittedBalancer(balancer *model.SubBalancer) {
+	omittedBalancerWarned.Lock()
+	already := omittedBalancerWarned.seen[balancer.Id]
+	omittedBalancerWarned.seen[balancer.Id] = true
+	omittedBalancerWarned.Unlock()
+	if already {
+		return
+	}
+	logger.Warningf("SubJsonService: balancer %q (#%d) omitted, its inbounds are in this subscription but produced no member",
+		balancer.Remark, balancer.Id)
+}
+
 // selectsPresentBalancer is true when an inbound the balancer selects is among this
 // subscriber's entries: the only case where an empty member list signals a fault.
 func selectsPresentBalancer(inboundIds []int, sources []subConfigEntry) bool {
@@ -514,8 +533,7 @@ func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry,
 			// Balancers are global, sources are this subscriber's: an empty
 			// intersection is normal, only a present-but-memberless one warns.
 			if selectsPresentBalancer(balancers[i].InboundIds, sources) {
-				logger.Warningf("SubJsonService: balancer %q (#%d) omitted, its inbounds are in this subscription but produced no member",
-					balancers[i].Remark, balancers[i].Id)
+				warnOmittedBalancer(&balancers[i])
 			}
 			continue
 		}

@@ -1739,7 +1739,8 @@
           "disabled_inbound": "Inbound devre dışı",
           "json_incapable_protocol": "Protokolün JSON outbound’u yok, bu yüzden üye olamaz",
           "no_members": "Kullanılabilir üye yok: dengeleyici JSON aboneliğinden çıkarıldı",
-          "inbound_without_clients": "Inbound’un istemcisi yok, bu yüzden hiçbir aboneliğe ulaşmıyor"
+          "inbound_without_clients": "Inbound’un istemcisi yok, bu yüzden hiçbir aboneliğe ulaşmıyor",
+          "hosts_excluded_from_json": "Bu inbound’un tüm etkin host’ları JSON biçiminden hariç tutuldu"
         },
         "weights": "Üye ağırlıkları",
         "weightsHelp": "Yalnızca LeastLoad için: daha düşük ağırlık daha sık seçilir; değeri olmayan üyelerin ağırlığı 1’dir.",

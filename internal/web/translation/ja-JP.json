@@ -1739,7 +1739,8 @@
           "disabled_inbound": "インバウンドは無効です",
           "json_incapable_protocol": "プロトコルに JSON アウトバウンドがないため、メンバーにできません",
           "no_members": "使用可能なメンバーがありません: バランサーは JSON サブスクリプションから除外されます",
-          "inbound_without_clients": "インバウンドにクライアントがないため、どのサブスクリプションにも届きません"
+          "inbound_without_clients": "インバウンドにクライアントがないため、どのサブスクリプションにも届きません",
+          "hosts_excluded_from_json": "このインバウンドの有効なホストはすべて JSON 形式から除外されています"
         },
         "weights": "メンバーの重み",
         "weightsHelp": "LeastLoad のみ：値が小さいほど選ばれやすくなります。未指定のメンバーは重み 1 です。",

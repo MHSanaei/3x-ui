@@ -108,3 +108,42 @@ func subscriptionAllowlist(t *testing.T, path string) []string {
 	}
 	return protocols
 }
+
+// The form offers a fixed protocol list; the advisory must agree with it, or the
+// UI hides an inbound the diagnosis calls healthy (or offers one it calls broken).
+func TestJSONIncapableProtocolsMatchFormList(t *testing.T) {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate test file")
+	}
+	formPath := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "frontend", "src",
+		"pages", "settings", "SubBalancerFormModal.tsx")
+	source, err := os.ReadFile(formPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", formPath, err)
+	}
+	block := regexp.MustCompile(`MULTI_CLIENT_PROTOCOLS\s*=\s*new Set\(\[([^\]]*)\]\)`).FindSubmatch(source)
+	if block == nil {
+		t.Fatalf("MULTI_CLIENT_PROTOCOLS not found in %s", formPath)
+	}
+	offered := map[string]bool{}
+	for _, m := range regexp.MustCompile(`'([a-z0-9]+)'`).FindAllSubmatch(block[1], -1) {
+		offered[string(m[1])] = true
+	}
+	if len(offered) == 0 {
+		t.Fatal("parsed no protocols from the form list")
+	}
+
+	allowlist := subscriptionAllowlist(t, filepath.Join(filepath.Dir(thisFile), "..", "..", "sub", "service.go"))
+	for _, protocol := range allowlist {
+		offeredByForm := offered[protocol]
+		listedByUs := false
+		if _, ok := jsonIncapableProtocols[protocol]; ok {
+			listedByUs = true
+		}
+		if offeredByForm == listedByUs {
+			t.Errorf("protocol %q: form offers=%v, advisory lists incapable=%v — they must be opposites",
+				protocol, offeredByForm, listedByUs)
+		}
+	}
+}

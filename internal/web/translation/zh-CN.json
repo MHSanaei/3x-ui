@@ -1739,7 +1739,8 @@
           "disabled_inbound": "入站已禁用",
           "json_incapable_protocol": "协议没有 JSON 出站，因此不能作为成员",
           "no_members": "没有可用的成员：负载均衡器已从 JSON 订阅中省略",
-          "inbound_without_clients": "入站没有客户端，因此不会出现在任何订阅中"
+          "inbound_without_clients": "入站没有客户端，因此不会出现在任何订阅中",
+          "hosts_excluded_from_json": "此入站的所有已启用主机都已从 JSON 格式中排除"
         },
         "weights": "成员权重",
         "weightsHelp": "仅适用于 LeastLoad：权重越小越常被选中；未设置的成员权重为 1。",

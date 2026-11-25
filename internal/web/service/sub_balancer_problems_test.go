@@ -169,7 +169,7 @@ func TestDiagnoseSubBalancerOrderAndNoMembers(t *testing.T) {
 	// Inbound 1 has a client, so it still contributes and no_members stays away.
 	clientCounts := map[int]int{1: 3}
 	bal := &model.SubBalancer{Id: 7, Remark: "pure", InboundIds: []int{42, 2, 1, 41}}
-	problems := diagnoseSubBalancer(bal, byID, clientCounts)
+	problems := diagnoseSubBalancer(bal, byID, clientCounts, nil)
 	if diff := wantCodes(problemCodes(problems), SubBalancerProblemUnknownInbound, SubBalancerProblemDisabledInbound); diff != "" {
 		t.Fatal(diff)
 	}
@@ -178,7 +178,7 @@ func TestDiagnoseSubBalancerOrderAndNoMembers(t *testing.T) {
 	}
 
 	allDisabled := &model.SubBalancer{Id: 8, Remark: "off", InboundIds: []int{2}}
-	problems = diagnoseSubBalancer(allDisabled, byID, clientCounts)
+	problems = diagnoseSubBalancer(allDisabled, byID, clientCounts, nil)
 	if diff := wantCodes(problemCodes(problems), SubBalancerProblemDisabledInbound, SubBalancerProblemNoMembers); diff != "" {
 		t.Fatal(diff)
 	}
@@ -283,4 +283,66 @@ func TestLogSubBalancerProblemsConcurrent(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+// An inbound whose every enabled host excludes the JSON format is closed by
+// hostEndpoints: its clients never render, so the balancer emits nothing.
+func TestSubBalancerProblemsAllHostsExcludedFromJSON(t *testing.T) {
+	setupSubBalancerDB(t)
+	seedDiagInbound(t, 1, model.VLESS, true) // also links one client
+	for i, types := range [][]string{{"json"}, {"json", "clash"}} {
+		host := &model.Host{
+			InboundId: 1, Remark: fmt.Sprintf("host-%d", i),
+			Address: "cdn.example.com", Port: 443, ExcludeFromSubTypes: types,
+		}
+		if err := database.GetDB().Create(host).Error; err != nil {
+			t.Fatalf("seed host %d: %v", i, err)
+		}
+	}
+
+	svc := &SubBalancerService{}
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "closed", Strategy: "random", InboundIds: []int{1}, SortOrder: 1, Enabled: true,
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	list, err := svc.ListWithProblems()
+	if err != nil {
+		t.Fatalf("ListWithProblems: %v", err)
+	}
+	got := problemCodes(list[0].Problems)
+	if diff := wantCodes(got, SubBalancerProblemHostsExcluded, SubBalancerProblemNoMembers); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+// One host still serving JSON keeps the inbound usable, so no advisory appears.
+func TestSubBalancerProblemsPartiallyExcludedHostsAreHealthy(t *testing.T) {
+	setupSubBalancerDB(t)
+	seedDiagInbound(t, 1, model.VLESS, true)
+	hosts := []*model.Host{
+		{InboundId: 1, Remark: "closed", Address: "a.example.com", Port: 443, ExcludeFromSubTypes: []string{"json"}},
+		{InboundId: 1, Remark: "open", Address: "b.example.com", Port: 443},
+	}
+	for _, h := range hosts {
+		if err := database.GetDB().Create(h).Error; err != nil {
+			t.Fatalf("seed host: %v", err)
+		}
+	}
+
+	svc := &SubBalancerService{}
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "partial", Strategy: "random", InboundIds: []int{1}, SortOrder: 1, Enabled: true,
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	list, err := svc.ListWithProblems()
+	if err != nil {
+		t.Fatalf("ListWithProblems: %v", err)
+	}
+	if len(list[0].Problems) != 0 {
+		t.Fatalf("Problems = %v, want none", problemCodes(list[0].Problems))
+	}
 }
