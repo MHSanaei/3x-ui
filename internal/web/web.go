@@ -572,11 +572,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
-	mgr := runtime.NewManager(runtime.LocalDeps{
-		APIPort:          func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart:   func() { s.xrayService.SetToNeedRestart() },
-		RequestReconcile: func() { s.xrayService.SetToNeedReconcile() },
-	})
+	mgr := runtime.NewManager(s.xrayService.LocalRuntimeDeps())
 	runtime.SetManager(mgr)
 	mgr.SetNodeEgressResolver(&s.settingService)
 	// Supply the master client certificate for nodes in mtls mode. Issued lazily

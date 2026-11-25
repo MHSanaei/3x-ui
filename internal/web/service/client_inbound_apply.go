@@ -1132,6 +1132,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if e := tx.Model(&model.ClientRecord{}).Where("email = ?", oldEmail).Update("email", clients[0].Email).Error; e != nil {
 					return e
 				}
+				if e := renameClientHistoryTx(tx, oldEmail, clients[0].Email, clientChangeSourcePanel); e != nil {
+					return e
+				}
 			}
 		}
 		// detachEmails covers the rename the guard above refused: the old record
@@ -1474,6 +1477,7 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 // SyncInbound over a stale sibling would revert the edit in the normalized
 // records (#5039).
 func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
+	defer watchClientChanges(clientChangeSourceTgbot, clientEmail).record()
 	inboundIds, err := s.GetInboundIdsForEmail(database.GetDB(), clientEmail)
 	if err != nil {
 		return false, err

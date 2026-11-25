@@ -84,6 +84,15 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client traffic lifecycle edits
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientTrafficLifecyclePostgres$' -count=1 -v | tee /tmp/postgres-client-traffic-lifecycle.log
+          if ! grep -q -- '^--- PASS: TestClientTrafficLifecyclePostgres ' /tmp/postgres-client-traffic-lifecycle.log; then
+            echo "expected the PostgreSQL client traffic lifecycle suite to pass" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL batched stats identities
         run: |
           set -o pipefail
@@ -111,6 +120,16 @@ jobs:
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-global-traffic-heartbeat.log || true)
           if [ "$passed" -ne 1 ]; then
             echo "expected 1 passing global-traffic heartbeat test, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL client usage history
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientUsageHistoryPostgres$' -count=1 -v | tee /tmp/postgres-usage-history.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-usage-history.log || true)
+          if [ "$passed" -ne 1 ]; then
+            echo "expected 1 passing PostgreSQL client usage history test, got $passed" >&2
             exit 1
           fi
 
@@ -281,6 +300,22 @@ jobs:
           set -o pipefail
           make node-e2e 2>&1 | tee /tmp/node-e2e.log
           if grep -q -- '--- SKIP' /tmp/node-e2e.log; then echo "node-e2e skipped"; exit 1; fi
+
+  # The core pinned in go.mod as a real child process, driven over its gRPC API.
+  # A skip naming the binary means it was never handed over, so it fails the job.
+  xray-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Real core end to end
+        run: |
+          set -o pipefail
+          make xray-e2e 2>&1 | tee /tmp/xray-e2e.log
+          if grep -q -- '_test.go:[0-9]*: .*XRAY_E2E_BINARY' /tmp/xray-e2e.log; then echo "a real-core test skipped"; exit 1; fi
 
   # Brief native-fuzz smoke on the security-/parser-critical decoders. Each runs the
   # generated corpus plus 30s of exploration; a crash here is a real input-handling bug.

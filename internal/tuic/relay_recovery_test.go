@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 	"runtime"
@@ -61,7 +62,7 @@ func audit3RestartableSOCKS(t *testing.T) (string, *net.UDPConn, *net.UDPAddr) {
 
 func audit3StartUDPEcho(u *net.UDPConn, arrived chan<- struct{}) {
 	go func() {
-		buf := make([]byte, 2048)
+		buf := make([]byte, maxSocksUdpDatagramSize)
 		for {
 			n, src, err := u.ReadFromUDP(buf)
 			if err != nil {
@@ -151,14 +152,16 @@ func TestAudit3UDPAssociationMustRecoverAfterBridgeReadFailure(t *testing.T) {
 				t.Fatalf("initial echo %q %v", p, err)
 			}
 
-			s.UpdateRuntimeSettings("recovery-"+name, "bbr", "warn")
+			// The log buffer outlives a run: a tag from an earlier -count pass must not match.
+			tag := fmt.Sprintf("recovery-%s-%d", name, time.Now().UnixNano())
+			s.UpdateRuntimeSettings(tag, "bbr", "warn")
 			_ = u.Close()
 			audit3SendPacket(t, c, mode, 42131, 2, "while-down")
 			deadline := time.Now().Add(2 * time.Second)
 			for {
 				found := false
 				for _, line := range logger.GetLogs(10000, "DEBUG") {
-					if strings.Contains(line, "recovery-"+name) && strings.Contains(line, "UDP relay receive failed") {
+					if strings.Contains(line, tag) && strings.Contains(line, "UDP relay receive failed") {
 						found = true
 						break
 					}
@@ -217,6 +220,27 @@ func TestAudit3FirstTransportReturnsPositiveEchoAfterOppositeModePacket(t *testi
 				t.Fatalf("opposite request response did not keep first transport: %q %v", p, err)
 			}
 		})
+	}
+}
+
+func TestPeerStoppingOneResponseStreamKeepsItsUDPAssociation(t *testing.T) {
+	relayAddr, u, _ := audit3RestartableSOCKS(t)
+	audit3StartUDPEcho(u, nil)
+	// A stream window far below the response holds the server in Write until the stop arrives.
+	_, c, _, _ := startLifecycleTestServerWithClient(t, &SocksRelay{Addr: relayAddr, Password: "lifecycle-socks-password"},
+		"stopped-stream@x", &clientquic.Config{EnableDatagrams: true, InitialStreamReceiveWindow: 16, MaxStreamReceiveWindow: 16})
+	audit3SendPacket(t, c, packetTransportStream, 43301, 1, strings.Repeat("x", 1500))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	response, err := c.AcceptUniStream(ctx)
+	if err != nil {
+		t.Fatalf("no response stream for the first packet: %v", err)
+	}
+	response.CancelRead(0)
+
+	audit3SendPacket(t, c, packetTransportDatagram, 43301, 2, "next")
+	if _, p, err := audit3ReceivePacket(c, packetTransportStream, 2*time.Second); err != nil || string(p) != "next" {
+		t.Fatalf("stopping one response stream ended its whole association: %q %v", p, err)
 	}
 }
 

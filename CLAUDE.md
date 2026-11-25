@@ -200,9 +200,11 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
 `make vulncheck`, a live-Postgres job (where a SKIP counts as a failure),
-`make node-e2e` (a real master and node panel, `internal/nodee2e/`) and a
-30s fuzz smoke on `FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when
-you touch DB/dialect, node sync or parser code. Node sync has two layers: every
+`make node-e2e` (a real master and node panel, `internal/nodee2e/`),
+`make xray-e2e` (the `XRAY_E2E_BINARY` tests against the core pinned in `go.mod`,
+run as a real child process) and a 30s fuzz smoke on
+`FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when you touch
+DB/dialect, node sync, the Xray gRPC API or hot apply, or parser code. Node sync has two layers: every
 `runtime.Remote` call gets a cell in `internal/web/node_contract_test.go` (fast,
 in `make test-go`; a method without one fails it), and a multi-tick flow (cron,
 adopt, node down) gets one in `internal/nodee2e/node_sync_test.go`.
