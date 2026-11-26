@@ -2312,6 +2312,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
 						return
 					}
+					// Removed first, a handler whose replacement the core's API cannot
+					// take would leave the inbound down until the restart.
+					if checker, ok := rt.(interface{ CheckAddInbound(*model.Inbound) error }); ok && runtimeInbound != nil {
+						if err2 := checker.CheckAddInbound(runtimeInbound); err2 != nil {
+							logger.Warning("Inbound", oldInbound.Tag, "cannot be replaced on", rt.Name(), "without a restart:", err2)
+							needRestart = true
+							return
+						}
+					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 						logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
 					}
