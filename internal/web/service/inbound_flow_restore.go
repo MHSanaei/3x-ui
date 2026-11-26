@@ -1,8 +1,6 @@
 package service
 
 import (
-	"encoding/json"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"gorm.io/gorm"
@@ -33,14 +31,12 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 	if !inboundCanEnableTlsFlow(string(protocol), streamSettings, settings) {
 		return settings, false
 	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
-		return settings, false
-	}
-	clients, ok := parsed["clients"].([]any)
-	if !ok || len(clients) == 0 {
-		return settings, false
-	}
+	return rewriteSettingsClients(settings, func(clients []any) bool {
+		return s.restoreVisionFlow(tx, clients)
+	})
+}
+
+func (s *InboundService) restoreVisionFlow(tx *gorm.DB, clients []any) bool {
 	// Collect empty-flow clients, then resolve their intended flow in one query.
 	emails := make([]string, 0, len(clients))
 	for i := range clients {
@@ -56,11 +52,11 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 		}
 	}
 	if len(emails) == 0 {
-		return settings, false
+		return false
 	}
 	intended, err := s.clientService.EffectiveFlowsByEmails(tx, emails)
 	if err != nil {
-		return settings, false
+		return false
 	}
 	changed := false
 	for i := range clients {
@@ -76,28 +72,16 @@ func (s *InboundService) restoreVisionFlowForEligibleInbound(tx *gorm.DB, settin
 			continue
 		}
 		cm["flow"] = visionFlow
-		clients[i] = cm
 		changed = true
 	}
-	if !changed {
-		return settings, false
-	}
-	out, err := json.MarshalIndent(parsed, "", "  ")
-	if err != nil {
-		return settings, false
-	}
-	return string(out), true
+	return changed
 }
 
 func stripClientFlows(settings string) (string, bool) {
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
-		return settings, false
-	}
-	clients, ok := parsed["clients"].([]any)
-	if !ok || len(clients) == 0 {
-		return settings, false
-	}
+	return rewriteSettingsClients(settings, clearClientFlows)
+}
+
+func clearClientFlows(clients []any) bool {
 	changed := false
 	for i := range clients {
 		cm, ok := clients[i].(map[string]any)
@@ -106,16 +90,8 @@ func stripClientFlows(settings string) (string, bool) {
 		}
 		if flow, _ := cm["flow"].(string); flow != "" {
 			cm["flow"] = ""
-			clients[i] = cm
 			changed = true
 		}
 	}
-	if !changed {
-		return settings, false
-	}
-	out, err := json.MarshalIndent(parsed, "", "  ")
-	if err != nil {
-		return settings, false
-	}
-	return string(out), true
+	return changed
 }

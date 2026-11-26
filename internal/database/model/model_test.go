@@ -294,3 +294,40 @@ func TestNormalizeClientHostRuleIds(t *testing.T) {
 		})
 	}
 }
+
+// The panel keeps encryption beside decryption only to build share links; the
+// core's inbound takes decryption alone, and settings without the key pass as stored.
+func TestGenXrayInboundConfigDropsVlessEncryption(t *testing.T) {
+	tests := []struct {
+		name, settings, want string
+	}{
+		{
+			name:     "encryption set",
+			settings: `{"encryption":"none","decryption":"none","clients":[{"id":"u","email":"a@x"}]}`,
+			want:     "{\n  \"clients\": [\n    {\n      \"email\": \"a@x\",\n      \"id\": \"u\"\n    }\n  ],\n  \"decryption\": \"none\"\n}",
+		},
+		{
+			name:     "encryption null",
+			settings: `{"encryption":null,"clients":[]}`,
+			want:     "{\n  \"clients\": []\n}",
+		},
+		{
+			name:     "no encryption",
+			settings: `{"decryption":"none", "clients":[]}`,
+			want:     `{"decryption":"none", "clients":[]}`,
+		},
+		{
+			name:     "not an object",
+			settings: `{"encryption":`,
+			want:     `{"encryption":`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := Inbound{Protocol: VLESS, Port: 443, Settings: tt.settings}
+			if got := string(in.GenXrayInboundConfig().Settings); got != tt.want {
+				t.Fatalf("core settings = %s\nwant %s", got, tt.want)
+			}
+		})
+	}
+}

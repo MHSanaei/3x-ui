@@ -599,11 +599,16 @@ func StripVlessInboundEncryption(settings string) (string, bool) {
 	if settings == "" {
 		return settings, false
 	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+	// Looking for the key at the top level first skips the client list instead of decoding it.
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(settings), &top); err != nil {
 		return settings, false
 	}
-	if _, has := parsed["encryption"]; !has {
+	if _, has := top["encryption"]; !has {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return settings, false
 	}
 	delete(parsed, "encryption")

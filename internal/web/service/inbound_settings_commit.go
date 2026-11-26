@@ -143,24 +143,61 @@ func mergeClientLists(base, ours, current []any) []any {
 
 // keepStoredClients puts the stored client list back into an inbound save's
 // payload: clients change through the client endpoints, never this form.
-func keepStoredClients(payload, stored string) string {
-	var payloadM, storedM map[string]any
-	// A JSON null decodes into a nil map without an error; client validation refuses it next.
-	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil || payloadM == nil {
-		return payload
-	}
-	storedClients, has := storedM["clients"]
-	if reflect.DeepEqual(payloadM["clients"], storedClients) {
-		return payload
+func keepStoredClients(payload, stored map[string]any) bool {
+	storedClients, has := stored["clients"]
+	if reflect.DeepEqual(payload["clients"], storedClients) {
+		return false
 	}
 	if has {
-		payloadM["clients"] = storedClients
+		payload["clients"] = storedClients
 	} else {
-		delete(payloadM, "clients")
+		delete(payload, "clients")
 	}
-	b, err := json.MarshalIndent(payloadM, "", "  ")
-	if err != nil {
-		return payload
+	return true
+}
+
+// stampClientTimestamps fills a missing created_at / updated_at from the stored entry of
+// the same email, or created_at with now: an inbound save never bumps a client's stamps.
+func stampClientTimestamps(clients, stored []any, now int64) bool {
+	storedCreated := make(map[string]int64, len(stored))
+	storedUpdated := make(map[string]int64, len(stored))
+	for _, entry := range stored {
+		m, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		email, ok := m["email"].(string)
+		if !ok {
+			continue
+		}
+		if v, ok := m["created_at"].(float64); ok {
+			storedCreated[email] = int64(v)
+		}
+		if v, ok := m["updated_at"].(float64); ok {
+			storedUpdated[email] = int64(v)
+		}
 	}
-	return string(b)
+	changed := false
+	for _, entry := range clients {
+		m, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		email, _ := m["email"].(string)
+		if _, has := m["created_at"]; !has {
+			if v := storedCreated[email]; v > 0 {
+				m["created_at"] = v
+			} else {
+				m["created_at"] = now
+			}
+			changed = true
+		}
+		if _, has := m["updated_at"]; !has {
+			if v := storedUpdated[email]; v > 0 {
+				m["updated_at"] = v
+				changed = true
+			}
+		}
+	}
+	return changed
 }

@@ -59,33 +59,28 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	// a few protocols carry their L4 choice in settings instead of (or in
 	// addition to) streamSettings: SS / Tunnel via a CSV field that wins
 	// outright, Mixed via an additive udp boolean.
-	if settings != "" {
-		var st map[string]any
-		if json.Unmarshal([]byte(settings), &st) == nil {
-			switch protocol {
-			case model.Shadowsocks, model.Tunnel:
-				key := "network"
-				if protocol == model.Tunnel {
-					key = "allowedNetwork"
-				}
-				if n, ok := st[key].(string); ok && n != "" {
-					bits = 0
-					for part := range strings.SplitSeq(n, ",") {
-						switch strings.TrimSpace(part) {
-						case "tcp":
-							bits |= transportTCP
-						case "udp":
-							bits |= transportUDP
-						}
-					}
-				}
-			case model.Mixed:
-				// socks/http "mixed" inbound: settings.udp=true means it
-				// also relays udp on the same port (socks5 udp associate).
-				if udpOn, _ := st["udp"].(bool); udpOn {
+	switch protocol {
+	case model.Shadowsocks, model.Tunnel:
+		key := "network"
+		if protocol == model.Tunnel {
+			key = "allowedNetwork"
+		}
+		if n, ok := settingsField(settings, key).(string); ok && n != "" {
+			bits = 0
+			for part := range strings.SplitSeq(n, ",") {
+				switch strings.TrimSpace(part) {
+				case "tcp":
+					bits |= transportTCP
+				case "udp":
 					bits |= transportUDP
 				}
 			}
+		}
+	case model.Mixed:
+		// socks/http "mixed" inbound: settings.udp=true means it
+		// also relays udp on the same port (socks5 udp associate).
+		if udpOn, _ := settingsField(settings, "udp").(bool); udpOn {
+			bits |= transportUDP
 		}
 	}
 

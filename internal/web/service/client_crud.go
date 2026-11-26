@@ -558,14 +558,7 @@ func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
 }
 
 func shadowsocksMethodFromSettings(settings string) string {
-	if settings == "" {
-		return ""
-	}
-	var m map[string]any
-	if err := json.Unmarshal([]byte(settings), &m); err != nil {
-		return ""
-	}
-	method, _ := m["method"].(string)
+	method, _ := settingsField(settings, "method").(string)
 	return method
 }
 
@@ -635,13 +628,14 @@ func normalizeShadowsocksClientKeys(settings string) (string, bool) {
 	if shadowsocksKeyBytes(method) == 0 {
 		return settings, false
 	}
-	var m map[string]any
-	if err := json.Unmarshal([]byte(settings), &m); err != nil {
-		return settings, false
-	}
-	clients, ok := m["clients"].([]any)
-	if !ok {
-		return settings, false
+	return rewriteSettingsClients(settings, func(clients []any) bool {
+		return regenerateMismatchedShadowsocksKeys(method, clients)
+	})
+}
+
+func regenerateMismatchedShadowsocksKeys(method string, clients []any) bool {
+	if shadowsocksKeyBytes(method) == 0 {
+		return false
 	}
 	changed := false
 	for i := range clients {
@@ -653,18 +647,9 @@ func normalizeShadowsocksClientKeys(settings string) (string, bool) {
 			continue
 		}
 		c["password"] = randomShadowsocksClientKey(method)
-		clients[i] = c
 		changed = true
 	}
-	if !changed {
-		return settings, false
-	}
-	m["clients"] = clients
-	bs, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return settings, false
-	}
-	return string(bs), true
+	return changed
 }
 
 func applyShadowsocksClientMethod(clients []any, settings map[string]any) {
