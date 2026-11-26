@@ -3742,7 +3742,7 @@ show_menu() {
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-28]: " num
+    echo && read -rp "Please enter your selection [0-29]: " num
 
     case "${num}" in
         0)
@@ -3836,7 +3836,7 @@ show_menu() {
             run_librespeed
             ;;
         *)
-            LOGE "Please enter the correct number [0-28]"
+            LOGE "Please enter the correct number [0-29]"
             ;;
     esac
 }
