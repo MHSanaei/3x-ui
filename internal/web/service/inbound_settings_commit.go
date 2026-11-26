@@ -145,7 +145,8 @@ func mergeClientLists(base, ours, current []any) []any {
 // payload: clients change through the client endpoints, never this form.
 func keepStoredClients(payload, stored string) string {
 	var payloadM, storedM map[string]any
-	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil {
+	// A JSON null decodes into a nil map without an error; client validation refuses it next.
+	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil || payloadM == nil {
 		return payload
 	}
 	storedClients, has := storedM["clients"]
