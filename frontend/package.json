@@ -53,7 +53,7 @@
     "react-hook-form": "^7.92.0",
     "react-i18next": "^18.0.3",
     "react-router": "^8.5.2",
-    "swagger-ui-react": "^5.35.1",
+    "swagger-ui-react": "^5.36.0",
     "uplot": "^1.6.32",
     "zod": "^4.6.7"
   },
