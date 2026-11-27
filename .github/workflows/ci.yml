@@ -113,6 +113,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL Xray traffic retry
+        run: |
+          set -o pipefail
+          go test -p=1 ./internal/web/job ./internal/web/service -run '^TestXrayTraffic(PollRetriesRolledBackSample|BatchSurvivesFullQueueAndWriterRestart)Postgres$' -count=1 -v | tee /tmp/postgres-xray-traffic-retry.log
+          passed=$(grep -c -- '^--- PASS: TestXrayTraffic' /tmp/postgres-xray-traffic-retry.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected both PostgreSQL Xray traffic retry tests to pass, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL global-traffic heartbeat regressions
         run: |
           set -o pipefail
