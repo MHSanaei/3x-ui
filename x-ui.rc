@@ -9,6 +9,9 @@ depend() {
     need net
 }
 start_pre(){
+    if [ "${XUI_ENABLE_FAIL2BAN+x}" ]; then
+        export XUI_ENABLE_FAIL2BAN
+    fi
     cd /usr/local/x-ui
 }
 reload() {
