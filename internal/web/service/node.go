@@ -123,16 +123,25 @@ func decryptToken(n *model.Node) {
 	n.ApiToken = pt
 }
 
-func (s *NodeService) GetAll() ([]*model.Node, error) {
-	db := database.GetDB()
+// ListOperationalNodes loads node configuration for jobs and runtime operations.
+func (s *NodeService) ListOperationalNodes() ([]*model.Node, error) {
 	var nodes []*model.Node
-	err := db.Model(model.Node{}).Order("id asc").Find(&nodes).Error
-	if err != nil || len(nodes) == 0 {
+	err := database.GetDB().Model(model.Node{}).Order("id asc").Find(&nodes).Error
+	if err != nil {
 		return nodes, err
 	}
 	for _, n := range nodes {
 		decryptToken(n)
 	}
+	return nodes, nil
+}
+
+func (s *NodeService) GetAll() ([]*model.Node, error) {
+	nodes, err := s.ListOperationalNodes()
+	if err != nil || len(nodes) == 0 {
+		return nodes, err
+	}
+	db := database.GetDB()
 
 	type inboundRow struct {
 		Id     int
