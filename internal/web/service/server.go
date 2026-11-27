@@ -1890,6 +1890,8 @@ func restoreHostBoundSettings(snap hostBoundSnapshot) {
 			}
 			if err := db.Where("key = ?", key).Delete(&model.Setting{}).Error; err != nil {
 				logger.Warningf("Import: could not drop imported setting %q: %v", key, err)
+			} else {
+				InvalidateSettingKey(key)
 			}
 			continue
 		}

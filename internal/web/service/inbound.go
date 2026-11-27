@@ -1300,6 +1300,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	defer InvalidateSubData()
+	defer InvalidateAllInboundMeta()
 	inbound.Id = 0
 	if err := normalizeVlessFallbacks(inbound); err != nil {
 		return nil, false, err
@@ -1646,6 +1647,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	defer InvalidateSubData()
+	defer InvalidateInboundMeta(id)
 	needRestart, nodePush, err := s.delInbound(id)
 	if nodePush != nil {
 		nodePush()
@@ -1791,6 +1793,7 @@ type BulkDelInboundReport struct {
 // xray at most once.
 func (s *InboundService) DelInbounds(ids []int) (BulkDelInboundResult, bool, error) {
 	defer InvalidateSubData()
+	defer InvalidateAllInboundMeta()
 	result := BulkDelInboundResult{}
 	needRestart := false
 	var pushIDs []int
@@ -1828,6 +1831,27 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
+// GetInboundsByIDs loads the requested inbound rows in chunked IN queries.
+func (s *InboundService) GetInboundsByIDs(tx *gorm.DB, ids []int) (map[int]*model.Inbound, error) {
+	out := make(map[int]*model.Inbound, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	for _, batch := range chunkInts(uniqueInts(ids), sqlInChunk) {
+		var rows []*model.Inbound
+		if err := tx.Model(&model.Inbound{}).Where("id IN ?", batch).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			out[r.Id] = r
+		}
+	}
+	return out, nil
+}
+
 // GetInboundRemarks returns the remarks of the given inbounds keyed by id
 // without loading their settings; ids that do not exist are absent.
 func (s *InboundService) GetInboundRemarks(ids []int) (map[int]string, error) {
@@ -1861,6 +1885,7 @@ func (s *InboundService) GetInboundDetail(id int) (*model.Inbound, error) {
 // reorder cannot carry a stale settings/client payload over another edit.
 func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
 	defer InvalidateSubData()
+	defer InvalidateInboundMeta(id)
 	index = normalizeSubSortIndex(index)
 	inbound, err := s.GetInbound(id)
 	if err != nil {
@@ -1908,6 +1933,7 @@ func (s *InboundService) SetInboundSubSortIndex(id int, index int) error {
 
 func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	defer InvalidateSubData()
+	defer InvalidateInboundMeta(id)
 	inbound, err := s.GetInbound(id)
 	if err != nil {
 		return false, err
@@ -2030,6 +2056,7 @@ func validateUpdatedInboundClients(protocol model.Protocol, clients, existing []
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	defer InvalidateSubData()
+	defer InvalidateInboundMeta(inbound.Id)
 	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol

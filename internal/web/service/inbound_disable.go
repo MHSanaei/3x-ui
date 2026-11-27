@@ -32,6 +32,9 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB, mutationBatch *traf
 		Update("enable", false)
 	err := result.Error
 	count := result.RowsAffected
+	if err == nil && count > 0 {
+		InvalidateAllInboundMeta()
+	}
 	return false, count, err
 }
 

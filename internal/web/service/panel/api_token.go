@@ -2,9 +2,12 @@ package panel
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -13,6 +16,65 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 )
+
+const apiTokenCacheTTL = 15 * time.Second
+
+type apiTokenCacheEntry struct {
+	row       model.ApiToken
+	expiresAt time.Time
+}
+
+type apiTokenCacheStore struct {
+	mu         sync.RWMutex
+	db         *gorm.DB
+	generation uint64
+	entries    map[string]apiTokenCacheEntry
+	group      singleflight.Group
+	hookMu     sync.Mutex
+}
+
+var apiTokenCache = &apiTokenCacheStore{
+	entries: make(map[string]apiTokenCacheEntry),
+}
+
+func invalidateApiTokenCache() {
+	apiTokenCache.mu.Lock()
+	apiTokenCache.generation++
+	clear(apiTokenCache.entries)
+	apiTokenCache.mu.Unlock()
+}
+
+func (c *apiTokenCacheStore) ensureWriteHooks(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	const cbCreate = "panel:api_token_cache_create"
+	c.hookMu.Lock()
+	defer c.hookMu.Unlock()
+	if db.Callback().Create().Get(cbCreate) != nil {
+		return
+	}
+	cb := func(tx *gorm.DB) {
+		if tx != nil && tx.Statement != nil && tx.Statement.Table == "api_tokens" {
+			invalidateApiTokenCache()
+		}
+	}
+	onRaw := func(tx *gorm.DB) {
+		if tx == nil || tx.Statement == nil {
+			return
+		}
+		sqlStr := strings.ToLower(tx.Statement.SQL.String())
+		if strings.Contains(sqlStr, "api_tokens") &&
+			(strings.Contains(sqlStr, "update ") || strings.Contains(sqlStr, "delete ") ||
+				strings.Contains(sqlStr, "insert ") || strings.Contains(sqlStr, "replace ")) {
+			invalidateApiTokenCache()
+		}
+	}
+	_ = db.Callback().Create().After("gorm:create").Register(cbCreate, cb)
+	_ = db.Callback().Update().After("gorm:update").Register("panel:api_token_cache_update", cb)
+	_ = db.Callback().Delete().After("gorm:delete").Register("panel:api_token_cache_delete", cb)
+	_ = db.Callback().Raw().After("gorm:raw").Register("panel:api_token_cache_raw", onRaw)
+}
 
 type ApiTokenService struct{}
 
@@ -113,6 +175,7 @@ func (s *ApiTokenService) Create(name, scope string, expiresAt int64) (*ApiToken
 	if err := db.Create(row).Error; err != nil {
 		return nil, err
 	}
+	invalidateApiTokenCache()
 	view := toView(row)
 	view.Token = plaintext
 	return view, nil
@@ -169,6 +232,7 @@ func (s *ApiTokenService) RecreateByName(name, scope string) (*ApiTokenView, err
 	}); err != nil {
 		return nil, err
 	}
+	invalidateApiTokenCache()
 	view := toView(row)
 	view.Token = plaintext
 	return view, nil
@@ -179,7 +243,11 @@ func (s *ApiTokenService) Delete(id int) error {
 		return common.NewError("invalid token id")
 	}
 	db := database.GetDB()
-	return db.Where("id = ?", id).Delete(model.ApiToken{}).Error
+	if err := db.Where("id = ?", id).Delete(model.ApiToken{}).Error; err != nil {
+		return err
+	}
+	invalidateApiTokenCache()
+	return nil
 }
 
 func (s *ApiTokenService) DeleteExpectedScope(id int, expectedScope string) error {
@@ -197,6 +265,7 @@ func (s *ApiTokenService) DeleteExpectedScope(id int, expectedScope string) erro
 	if res.RowsAffected == 0 {
 		return errors.New("token not found with expected scope")
 	}
+	invalidateApiTokenCache()
 	return nil
 }
 
@@ -212,6 +281,7 @@ func (s *ApiTokenService) SetEnabled(id int, enabled bool) error {
 	if res.RowsAffected == 0 {
 		return errors.New("token not found")
 	}
+	invalidateApiTokenCache()
 	return nil
 }
 
@@ -230,6 +300,7 @@ func (s *ApiTokenService) SetEnabledExpectedScope(id int, expectedScope string, 
 	if res.RowsAffected == 0 {
 		return errors.New("token not found with expected scope")
 	}
+	invalidateApiTokenCache()
 	return nil
 }
 
@@ -255,6 +326,30 @@ func requireExpectedScope(expectedScope string) (string, error) {
 	return scope, nil
 }
 
+func validCachedApiToken(row model.ApiToken) (*model.ApiToken, bool) {
+	if !row.Enabled || !model.IsKnownApiScope(row.Scope) {
+		return nil, false
+	}
+	if row.ExpiresAt != 0 && nowMilli() >= row.ExpiresAt {
+		return nil, false
+	}
+	copyRow := row
+	return &copyRow, true
+}
+
+func (c *apiTokenCacheStore) lookup(db *gorm.DB, hash string, now time.Time) (model.ApiToken, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.db != db {
+		return model.ApiToken{}, false
+	}
+	entry, ok := c.entries[hash]
+	if !ok || !now.Before(entry.expiresAt) {
+		return model.ApiToken{}, false
+	}
+	return entry.row, true
+}
+
 // MatchToken seeks the enabled row by the presented value's SHA-256 (comparing hashes leaks nothing
 // usable), then checks scope and expiry so a corrupt value is never treated as admin.
 func (s *ApiTokenService) MatchToken(presented string) (*model.ApiToken, bool) {
@@ -262,19 +357,52 @@ func (s *ApiTokenService) MatchToken(presented string) (*model.ApiToken, bool) {
 		return nil, false
 	}
 	db := database.GetDB()
-	var row model.ApiToken
-	if err := db.Model(model.ApiToken{}).
-		Where("token = ? AND enabled = ?", crypto.HashTokenSHA256(presented), true).
-		First(&row).Error; err != nil {
+	if db == nil {
 		return nil, false
 	}
-	if !model.IsKnownApiScope(row.Scope) {
+	apiTokenCache.ensureWriteHooks(db)
+	hash := crypto.HashTokenSHA256(presented)
+	if cached, ok := apiTokenCache.lookup(db, hash, time.Now()); ok {
+		return validCachedApiToken(cached)
+	}
+
+	sfKey := fmt.Sprintf("%p:%s", db, hash)
+	v, err, _ := apiTokenCache.group.Do(sfKey, func() (any, error) {
+		if cached, ok := apiTokenCache.lookup(db, hash, time.Now()); ok {
+			return cached, nil
+		}
+		apiTokenCache.mu.RLock()
+		gen := apiTokenCache.generation
+		prevDB := apiTokenCache.db
+		apiTokenCache.mu.RUnlock()
+
+		var row model.ApiToken
+		if err := db.Model(model.ApiToken{}).
+			Where("token = ? AND enabled = ?", hash, true).
+			First(&row).Error; err != nil {
+			return model.ApiToken{}, err
+		}
+		if _, ok := validCachedApiToken(row); !ok {
+			return model.ApiToken{}, gorm.ErrRecordNotFound
+		}
+
+		apiTokenCache.mu.Lock()
+		if apiTokenCache.db != db {
+			apiTokenCache.db = db
+			apiTokenCache.generation++
+			clear(apiTokenCache.entries)
+			apiTokenCache.entries[hash] = apiTokenCacheEntry{row: row, expiresAt: time.Now().Add(apiTokenCacheTTL)}
+		} else if gen == apiTokenCache.generation && prevDB == db {
+			apiTokenCache.entries[hash] = apiTokenCacheEntry{row: row, expiresAt: time.Now().Add(apiTokenCacheTTL)}
+		}
+		apiTokenCache.mu.Unlock()
+		return row, nil
+	})
+	if err != nil {
 		return nil, false
 	}
-	if row.ExpiresAt != 0 && nowMilli() >= row.ExpiresAt {
-		return nil, false
-	}
-	return &row, true
+	row := v.(model.ApiToken)
+	return validCachedApiToken(row)
 }
 
 // Match is the legacy boolean form for callers that do not need scope.

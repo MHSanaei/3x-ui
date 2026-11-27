@@ -3,8 +3,11 @@ package panel
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -15,6 +18,58 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
+
+const firstUserCacheTTL = 15 * time.Second
+
+var firstUserCache struct {
+	mu         sync.RWMutex
+	db         *gorm.DB
+	generation uint64
+	user       *model.User
+	expiresAt  time.Time
+	group      singleflight.Group
+	hookMu     sync.Mutex
+}
+
+func invalidateFirstUserCache() {
+	firstUserCache.mu.Lock()
+	firstUserCache.generation++
+	firstUserCache.user = nil
+	firstUserCache.expiresAt = time.Time{}
+	firstUserCache.mu.Unlock()
+}
+
+func ensureFirstUserWriteHooks(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	const cbCreate = "panel:first_user_cache_create"
+	firstUserCache.hookMu.Lock()
+	defer firstUserCache.hookMu.Unlock()
+	if db.Callback().Create().Get(cbCreate) != nil {
+		return
+	}
+	cb := func(tx *gorm.DB) {
+		if tx != nil && tx.Statement != nil && tx.Statement.Table == "users" {
+			invalidateFirstUserCache()
+		}
+	}
+	onRaw := func(tx *gorm.DB) {
+		if tx == nil || tx.Statement == nil {
+			return
+		}
+		sqlStr := strings.ToLower(tx.Statement.SQL.String())
+		if strings.Contains(sqlStr, "users") &&
+			(strings.Contains(sqlStr, "update ") || strings.Contains(sqlStr, "delete ") ||
+				strings.Contains(sqlStr, "insert ") || strings.Contains(sqlStr, "replace ")) {
+			invalidateFirstUserCache()
+		}
+	}
+	_ = db.Callback().Create().After("gorm:create").Register(cbCreate, cb)
+	_ = db.Callback().Update().After("gorm:update").Register("panel:first_user_cache_update", cb)
+	_ = db.Callback().Delete().After("gorm:delete").Register("panel:first_user_cache_delete", cb)
+	_ = db.Callback().Raw().After("gorm:raw").Register("panel:first_user_cache_raw", onRaw)
+}
 
 // UserService provides business logic for user management and authentication.
 // It handles user creation, login, password management, and 2FA operations.
@@ -35,6 +90,61 @@ func (s *UserService) GetFirstUser() (*model.User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+// GetFirstUserCached returns a shallow copy of the cached first user for API
+// auth middleware, invalidating automatically on writes or DB swap.
+func (s *UserService) GetFirstUserCached() (*model.User, error) {
+	db := database.GetDB()
+	if db == nil {
+		return nil, gorm.ErrInvalidDB
+	}
+	ensureFirstUserWriteHooks(db)
+	now := time.Now()
+	firstUserCache.mu.RLock()
+	if firstUserCache.db == db && firstUserCache.user != nil && now.Before(firstUserCache.expiresAt) {
+		u := *firstUserCache.user
+		firstUserCache.mu.RUnlock()
+		return &u, nil
+	}
+	firstUserCache.mu.RUnlock()
+
+	v, err, _ := firstUserCache.group.Do(fmt.Sprintf("%p:first", db), func() (any, error) {
+		firstUserCache.mu.RLock()
+		if firstUserCache.db == db && firstUserCache.user != nil && time.Now().Before(firstUserCache.expiresAt) {
+			u := *firstUserCache.user
+			firstUserCache.mu.RUnlock()
+			return &u, nil
+		}
+		gen := firstUserCache.generation
+		prevDB := firstUserCache.db
+		firstUserCache.mu.RUnlock()
+
+		var user model.User
+		if err := db.Model(model.User{}).First(&user).Error; err != nil {
+			return nil, err
+		}
+		firstUserCache.mu.Lock()
+		if firstUserCache.db != db {
+			firstUserCache.db = db
+			firstUserCache.generation++
+			stored := user
+			firstUserCache.user = &stored
+			firstUserCache.expiresAt = time.Now().Add(firstUserCacheTTL)
+		} else if gen == firstUserCache.generation && prevDB == db {
+			stored := user
+			firstUserCache.user = &stored
+			firstUserCache.expiresAt = time.Now().Add(firstUserCacheTTL)
+		}
+		firstUserCache.mu.Unlock()
+		ret := user
+		return &ret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	u := *v.(*model.User)
+	return &u, nil
 }
 
 // HasDefaultCredential reports that nobody has chosen the login yet: a database
@@ -122,10 +232,14 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 
 func (s *UserService) BumpLoginEpoch() error {
 	db := database.GetDB()
-	return db.Model(model.User{}).
+	if err := db.Model(model.User{}).
 		Where("1 = 1").
 		Update("login_epoch", gorm.Expr("login_epoch + 1")).
-		Error
+		Error; err != nil {
+		return err
+	}
+	invalidateFirstUserCache()
+	return nil
 }
 
 func (s *UserService) UpdateUser(id int, username string, password string) error {
@@ -148,14 +262,18 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 		_ = s.settingService.SetTwoFactorToken("")
 	}
 
-	return db.Model(model.User{}).
+	if err := db.Model(model.User{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
 			"username":    username,
 			"password":    hashedPassword,
 			"login_epoch": gorm.Expr("login_epoch + 1"),
 		}).
-		Error
+		Error; err != nil {
+		return err
+	}
+	invalidateFirstUserCache()
+	return nil
 }
 
 func (s *UserService) UpdateFirstUser(username string, password string) error {
@@ -167,7 +285,6 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 		return errors.New("password can not be empty")
 	}
 	hashedPassword, er := crypto.HashPasswordAsBcrypt(password)
-
 	if er != nil {
 		return er
 	}
@@ -178,14 +295,22 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	if database.IsNotFound(err) {
 		user.Username = username
 		user.Password = hashedPassword
-		return db.Model(model.User{}).Create(user).Error
+		if err := db.Model(model.User{}).Create(user).Error; err != nil {
+			return err
+		}
+		invalidateFirstUserCache()
+		return nil
 	} else if err != nil {
 		return err
 	}
 	user.Username = username
 	user.Password = hashedPassword
 	user.LoginEpoch++
-	return db.Save(user).Error
+	if err := db.Save(user).Error; err != nil {
+		return err
+	}
+	invalidateFirstUserCache()
+	return nil
 }
 
 // MaxUsernameLength bounds a panel username: the login route refuses longer names before
