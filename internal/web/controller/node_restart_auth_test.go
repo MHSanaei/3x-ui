@@ -111,15 +111,13 @@ func writeLoadableKeyPair(t *testing.T) (certFile, keyFile string) {
 func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 	engine, auth := newAPIAuthTestEngine(t)
 	NewSettingController(engine.Group("/panel/api", auth.checkAPIAuth, auth.enforceTokenScope))
-	global.SetRestartHook(func() {})
-	t.Cleanup(func() { global.SetRestartHook(func() {}) })
 	if err := database.GetDB().Create(&model.ApiToken{Name: "admin", Token: crypto.HashTokenSHA256("admin"), Enabled: true, Scope: model.ApiScopeAdmin}).Error; err != nil {
 		t.Fatal(err)
 	}
 	certFile, keyFile := writeLoadableKeyPair(t)
 	settings := service.SettingService{}
 
-	for _, tc := range []struct {
+	cases := []struct {
 		name         string
 		servingTLS   bool
 		cert, key    string
@@ -132,7 +130,25 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 		{name: "a certificate without its key stays plain", cert: certFile, wantNextPort: 3000},
 		{name: "XUI_PORT outranks the stored port", portOverride: "8443", wantNextPort: 8443},
 		{name: "TLS listener, key pair removed", servingTLS: true, wantNextPort: 3000},
-	} {
+	}
+	restarts := make(chan struct{}, len(cases))
+	global.SetRestartHook(func() { restarts <- struct{}{} })
+	var requests int
+	t.Cleanup(func() {
+		defer global.SetRestartHook(func() {})
+		// Drain this test's scheduled restarts before another test installs its hook.
+		timeout := time.NewTimer(6 * time.Second)
+		defer timeout.Stop()
+		for range requests {
+			select {
+			case <-restarts:
+			case <-timeout.C:
+				t.Error("restart callbacks from listener requests did not finish")
+				return
+			}
+		}
+	})
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("XUI_PORT", tc.portOverride)
 			if err := settings.SetPort(3000); err != nil {
@@ -156,6 +172,7 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 
 			req, _ := http.NewRequest(http.MethodPost, server.URL+"/panel/api/setting/restartPanel", nil)
 			req.Header.Set("Authorization", "Bearer admin")
+			requests++
 			res, err := server.Client().Do(req)
 			if err != nil {
 				t.Fatal(err)
