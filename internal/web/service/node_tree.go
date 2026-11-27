@@ -117,7 +117,7 @@ func cachedDescendants() []model.NodeSummary {
 // it physically hosts (#4983). Direct nodes carry the master's own GUID as
 // ParentGuid; a transitive node carries its parent node's GUID. Transitive
 // nodes are read-only projections (Id == 0). Used by the Nodes page and the
-// heartbeat broadcast — never for probing/syncing, which stay on GetAll.
+// heartbeat broadcast — never for probing/syncing, which stay on ListOperational.
 func (s *NodeService) GetNodeTree() ([]*model.Node, error) {
 	nodes, err := s.ListOperational()
 	if err != nil {

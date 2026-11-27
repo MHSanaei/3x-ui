@@ -123,9 +123,8 @@ func decryptToken(n *model.Node) {
 	n.ApiToken = pt
 }
 
-// ListOperational returns every node ordered by id with decrypted API tokens,
-// without loading dashboard inbound or client statistics. Background jobs and
-// non-UI callers should use this instead of GetAll.
+// ListOperational returns nodes ordered by id with decrypted API tokens,
+// skipping dashboard inbound and client statistics queries.
 func (s *NodeService) ListOperational() ([]*model.Node, error) {
 	db := database.GetDB()
 	var nodes []*model.Node
