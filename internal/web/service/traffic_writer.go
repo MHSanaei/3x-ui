@@ -168,14 +168,16 @@ func drainTrafficWriter(adminQueue, bgQueue chan *trafficWriteRequest) {
 // timeout. Apply runtime changes after this returns.
 func runSerializedTx(fn func(tx *gorm.DB) error) error {
 	return submitTrafficWrite(func() error {
+		db := database.GetDB()
 		state := &serializedTx{}
-		err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		err := db.Transaction(func(tx *gorm.DB) error {
 			ctx := context.WithValue(tx.Statement.Context, serializedTxContextKey{}, state)
 			return fn(tx.WithContext(ctx))
 		})
 		if err == nil {
 			// Still on the writer, so no node merge runs between the commit and the lift.
 			withdrawClientTombstones(state.createdClientEmails...)
+			applySerializedTxSettingsCacheOps(db, state.settingsCacheOps)
 		}
 		return err
 	})
@@ -184,6 +186,27 @@ func runSerializedTx(fn func(tx *gorm.DB) error) error {
 // serializedTx carries what may only take effect once its transaction commits.
 type serializedTx struct {
 	createdClientEmails []string
+	settingsCacheOps    map[int]*fastSettingsIndex
+}
+
+func (s *serializedTx) stageSettingsCache(inboundId int, idx *fastSettingsIndex) {
+	if s == nil {
+		return
+	}
+	if s.settingsCacheOps == nil {
+		s.settingsCacheOps = make(map[int]*fastSettingsIndex)
+	}
+	s.settingsCacheOps[inboundId] = idx
+}
+
+func (s *serializedTx) markSettingsDirty(inboundId int) {
+	if s == nil {
+		return
+	}
+	if s.settingsCacheOps == nil {
+		s.settingsCacheOps = make(map[int]*fastSettingsIndex)
+	}
+	s.settingsCacheOps[inboundId] = nil
 }
 
 func serializedTxOf(tx *gorm.DB) *serializedTx {

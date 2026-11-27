@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -986,12 +987,22 @@ func masqueUserPassword(user map[string]any) (string, error) {
 	return getRequiredUserString(user, "password")
 }
 
+// UserAddOp describes a user addition; Replace=false skips legacy SS pre-remove.
+type UserAddOp struct {
+	User    map[string]any
+	Replace bool
+}
+
 // AddUser adds a user to an inbound in the Xray core using the specified
 // protocol and user data. On a legacy shadowsocks inbound the add first drops
 // any existing holder of the email: that is the one inbound whose validator
 // does not reject a duplicate email, and a later removal would then drop just
 // one of the two registrations, leaving a disabled client able to connect.
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
+	return x.addUserWithReplace(Protocol, inboundTag, user, true)
+}
+
+func (x *XrayAPI) addUserWithReplace(Protocol string, inboundTag string, user map[string]any, replace bool) error {
 	userEmail, err := getRequiredUserString(user, "email")
 	if err != nil {
 		return err
@@ -1010,7 +1021,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 	}
 	client := *x.HandlerServiceClient
 
-	if account.Type == legacyShadowsocksAccountType {
+	if replace && account.Type == legacyShadowsocksAccountType {
 		_ = x.RemoveUser(inboundTag, userEmail)
 	}
 
@@ -1026,6 +1037,49 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		}),
 	})
 	return err
+}
+
+// AddUsers applies a batch of user additions concurrently over HTTP/2 gRPC.
+func (x *XrayAPI) AddUsers(Protocol string, inboundTag string, ops []UserAddOp, concurrency int) []error {
+	errs := make([]error, len(ops))
+	if len(ops) == 0 {
+		return errs
+	}
+	if x.HandlerServiceClient == nil {
+		err := common.NewError("xray HandlerServiceClient is not initialized")
+		for i := range errs {
+			errs[i] = err
+		}
+		return errs
+	}
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+	if len(ops) == 1 || concurrency == 1 {
+		for i, op := range ops {
+			errs[i] = x.addUserWithReplace(Protocol, inboundTag, op.User, op.Replace)
+		}
+		return errs
+	}
+	workers := min(concurrency, len(ops))
+	ch := make(chan int, len(ops))
+	for i := range ops {
+		ch <- i
+	}
+	close(ch)
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for range workers {
+		go func() {
+			defer wg.Done()
+			for idx := range ch {
+				op := ops[idx]
+				errs[idx] = x.addUserWithReplace(Protocol, inboundTag, op.User, op.Replace)
+			}
+		}()
+	}
+	wg.Wait()
+	return errs
 }
 
 // RemoveWireguardUsers removes every peer belonging to an email. WireGuard's
@@ -1119,6 +1173,48 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	}
 
 	return nil
+}
+
+// RemoveUsers removes a batch of users concurrently over HTTP/2 gRPC.
+func (x *XrayAPI) RemoveUsers(inboundTag string, emails []string, concurrency int) []error {
+	errs := make([]error, len(emails))
+	if len(emails) == 0 {
+		return errs
+	}
+	if x.HandlerServiceClient == nil {
+		err := common.NewError("xray HandlerServiceClient is not initialized")
+		for i := range errs {
+			errs[i] = err
+		}
+		return errs
+	}
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+	if len(emails) == 1 || concurrency == 1 {
+		for i, email := range emails {
+			errs[i] = x.RemoveUser(inboundTag, email)
+		}
+		return errs
+	}
+	workers := min(concurrency, len(emails))
+	ch := make(chan int, len(emails))
+	for i := range emails {
+		ch <- i
+	}
+	close(ch)
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for range workers {
+		go func() {
+			defer wg.Done()
+			for idx := range ch {
+				errs[idx] = x.RemoveUser(inboundTag, emails[idx])
+			}
+		}()
+	}
+	wg.Wait()
+	return errs
 }
 
 // GetTraffic queries traffic statistics from the Xray core and reports what

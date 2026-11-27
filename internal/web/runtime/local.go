@@ -34,7 +34,7 @@ type LocalDeps struct {
 
 type Local struct {
 	deps LocalDeps
-	mu   sync.Mutex
+	rwMu sync.RWMutex
 }
 
 func NewLocal(deps LocalDeps) *Local {
@@ -44,8 +44,8 @@ func NewLocal(deps LocalDeps) *Local {
 func (l *Local) Name() string { return "local" }
 
 func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.rwMu.Lock()
+	defer l.rwMu.Unlock()
 
 	port := l.deps.APIPort()
 	if port <= 0 {
@@ -62,6 +62,40 @@ func (l *Local) withAPI(fn func(api *xray.XrayAPI) error) error {
 	// A pooled channel keeps grpc-go's reconnect backoff after a core restart and fails fast for
 	// seconds; drop it and dial again, as a client per call did.
 	evictLocalAPIClient(api)
+	api, err = localAPIForPort(port)
+	if err != nil {
+		return err
+	}
+	return fn(api)
+}
+
+func (l *Local) withAPIRead(fn func(api *xray.XrayAPI) error) error {
+	port := l.deps.APIPort()
+	if port <= 0 {
+		return errors.New("local xray is not running")
+	}
+	l.rwMu.RLock()
+	api, err := localAPIForPort(port)
+	if err != nil {
+		l.rwMu.RUnlock()
+		return err
+	}
+	err = fn(api)
+	l.rwMu.RUnlock()
+	if status.Code(err) != codes.Unavailable {
+		return err
+	}
+
+	l.rwMu.Lock()
+	evictLocalAPIClient(api)
+	l.rwMu.Unlock()
+
+	port = l.deps.APIPort()
+	if port <= 0 {
+		return errors.New("local xray is not running")
+	}
+	l.rwMu.RLock()
+	defer l.rwMu.RUnlock()
 	api, err = localAPIForPort(port)
 	if err != nil {
 		return err
@@ -301,6 +335,68 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 	return tuic.GetManager().Ensure(inst)
 }
 
+const localUserBatchConcurrency = 4
+
+func hasUnavailableErr(errs []error) bool {
+	for _, err := range errs {
+		if status.Code(err) == codes.Unavailable {
+			return true
+		}
+	}
+	return false
+}
+
+func (l *Local) withAPIReadBatch(n int, fn func(api *xray.XrayAPI) []error) []error {
+	errs := make([]error, n)
+	if n == 0 {
+		return errs
+	}
+	port := l.deps.APIPort()
+	if port <= 0 {
+		err := errors.New("local xray is not running")
+		for i := range errs {
+			errs[i] = err
+		}
+		return errs
+	}
+
+	l.rwMu.RLock()
+	api, err := localAPIForPort(port)
+	if err != nil {
+		l.rwMu.RUnlock()
+		for i := range errs {
+			errs[i] = err
+		}
+		return errs
+	}
+	errs = fn(api)
+	l.rwMu.RUnlock()
+	if !hasUnavailableErr(errs) {
+		return errs
+	}
+
+	l.rwMu.Lock()
+	evictLocalAPIClient(api)
+	l.rwMu.Unlock()
+
+	port = l.deps.APIPort()
+	if port <= 0 {
+		return errs
+	}
+	l.rwMu.RLock()
+	defer l.rwMu.RUnlock()
+	api, err = localAPIForPort(port)
+	if err != nil {
+		for i := range errs {
+			if errs[i] == nil || status.Code(errs[i]) == codes.Unavailable {
+				errs[i] = err
+			}
+		}
+		return errs
+	}
+	return fn(api)
+}
+
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
 	if ib.Protocol == model.TUIC {
 		if l.deps.RequestReconcile != nil {
@@ -311,7 +407,7 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	return l.withAPIRead(func(api *xray.XrayAPI) error {
 		if ib.Protocol == model.WireGuard {
 			if keepAlive, ok := userMap["keepAlive"].(string); ok {
 				userMap = maps.Clone(userMap)
@@ -345,6 +441,35 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 	})
 }
 
+func (l *Local) AddUsers(ctx context.Context, ib *model.Inbound, ops []UserAddOp) []error {
+	errs := make([]error, len(ops))
+	if len(ops) == 0 {
+		return errs
+	}
+	if ib.Protocol == model.TUIC {
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
+		}
+		return errs
+	}
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
+		return errs
+	}
+	if ib.Protocol == model.WireGuard {
+		for i, op := range ops {
+			errs[i] = l.AddUser(ctx, ib, op.User)
+		}
+		return errs
+	}
+	xrayOps := make([]xray.UserAddOp, len(ops))
+	for i, op := range ops {
+		xrayOps[i] = xray.UserAddOp{User: op.User, Replace: op.Replace}
+	}
+	return l.withAPIReadBatch(len(ops), func(api *xray.XrayAPI) []error {
+		return api.AddUsers(string(ib.Protocol), ib.Tag, xrayOps, localUserBatchConcurrency)
+	})
+}
+
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
 	if ib.Protocol == model.TUIC {
 		if l.deps.RequestReconcile != nil {
@@ -355,11 +480,36 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
-	return l.withAPI(func(api *xray.XrayAPI) error {
+	return l.withAPIRead(func(api *xray.XrayAPI) error {
 		if ib.Protocol == model.WireGuard {
 			return api.RemoveWireguardUsers(ib.Tag, email)
 		}
 		return api.RemoveUser(ib.Tag, email)
+	})
+}
+
+func (l *Local) RemoveUsers(ctx context.Context, ib *model.Inbound, emails []string) []error {
+	errs := make([]error, len(emails))
+	if len(emails) == 0 {
+		return errs
+	}
+	if ib.Protocol == model.TUIC {
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
+		}
+		return errs
+	}
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
+		return errs
+	}
+	if ib.Protocol == model.WireGuard {
+		for i, email := range emails {
+			errs[i] = l.RemoveUser(ctx, ib, email)
+		}
+		return errs
+	}
+	return l.withAPIReadBatch(len(emails), func(api *xray.XrayAPI) []error {
+		return api.RemoveUsers(ib.Tag, emails, localUserBatchConcurrency)
 	})
 }
 

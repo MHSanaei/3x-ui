@@ -19,6 +19,9 @@ func inboundShadowsocksMethod(protocol, settings string) string {
 	if protocol != string(model.Shadowsocks) || settings == "" {
 		return ""
 	}
+	if method, _, ok := scanTopLevelStringFields(settings, "method", ""); ok {
+		return method
+	}
 	var s struct {
 		Method string `json:"method"`
 	}
@@ -31,6 +34,10 @@ func inboundShadowsocksMethod(protocol, settings string) string {
 // inboundCanEnableTlsFlow mirrors the frontend's canEnableTlsFlow: xray-core runs Vision over
 // TLS/REALITY on raw TCP, or inside VLESS encryption on any transport but XDRIVE (#7182).
 func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
+	return inboundCanEnableTlsFlowIdx(protocol, streamSettings, settings, nil)
+}
+
+func inboundCanEnableTlsFlowIdx(protocol, streamSettings, settings string, idx *fastSettingsIndex) bool {
 	if protocol != string(model.VLESS) {
 		return false
 	}
@@ -44,6 +51,9 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	}
 	if stream.Network == "tcp" && (stream.Security == "tls" || stream.Security == "reality") {
 		return true
+	}
+	if idx != nil {
+		return idx.hasVlessEnc
 	}
 	return vlessEncryptionEnabled(settings)
 }
@@ -111,6 +121,9 @@ func checkNodeCanHostProtocol(db *gorm.DB, nodeID int, protocol model.Protocol) 
 func vlessEncryptionEnabled(settings string) bool {
 	if settings == "" {
 		return false
+	}
+	if enc, dec, ok := scanTopLevelStringFields(settings, "encryption", "decryption"); ok {
+		return vlessEncValueSet(enc) || vlessEncValueSet(dec)
 	}
 	var s struct {
 		Encryption string `json:"encryption"`

@@ -72,17 +72,22 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 }
 
 func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {
+	affected, _, err := s.BulkResetTrafficWithRestart(inboundSvc, emails)
+	return affected, err
+}
+
+func (s *ClientService) BulkResetTrafficWithRestart(inboundSvc *InboundService, emails []string) (int, bool, error) {
 	if len(emails) == 0 {
-		return 0, nil
+		return 0, false, nil
 	}
 	cleanEmails := trimmedUniqueEmails(emails)
 	if len(cleanEmails) == 0 {
-		return 0, nil
+		return 0, false, nil
 	}
 
 	recordsByEmail, err := clientRecordsByEmail(nil, cleanEmails)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	var affected int64
 	var restore []string
@@ -118,10 +123,11 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		})
 	})
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	inboundSvc.resetMtprotoClientQuotas(cleanEmails)
 	inboundSvc.deliverNodeResetsNow(resetNodes)
+	needRestart := false
 	// After the zeroing, as in ResetTrafficByEmail: enabling a still-depleted
 	// client first lets the next traffic tick switch it off again.
 	for _, e := range restore {
@@ -131,11 +137,16 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		}
 		updated := rec.ToClient()
 		updated.Enable = true
-		if _, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); uErr != nil {
+		nr, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid)
+		if uErr != nil {
 			logger.Warning("Failed to auto-enable client during bulk traffic reset:", uErr)
+			continue
+		}
+		if nr {
+			needRestart = true
 		}
 	}
-	return int(affected), nil
+	return int(affected), needRestart, nil
 }
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) (bool, error) {

@@ -2,13 +2,13 @@ package service
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -40,56 +40,36 @@ func lockInbound(inboundId int) *sync.Mutex {
 	return m
 }
 
-func compactOrphans(db *gorm.DB, clients []any) []any {
-	if len(clients) == 0 {
-		return clients
+// lockInboundsSorted locks all unique inbound IDs in ascending order to prevent
+// deadlocks across concurrent multi-inbound operations.
+func lockInboundsSorted(inboundIds []int) func() {
+	if len(inboundIds) == 0 {
+		return func() {}
 	}
-	emails := make([]string, 0, len(clients))
-	for _, c := range clients {
-		cm, ok := c.(map[string]any)
+	ids := uniqueInts(inboundIds)
+	slices.Sort(ids)
+	locks := make([]*sync.Mutex, len(ids))
+	inboundMutationLocksMu.Lock()
+	for i, id := range ids {
+		m, ok := inboundMutationLocks[id]
 		if !ok {
-			continue
+			m = &sync.Mutex{}
+			inboundMutationLocks[id] = m
 		}
-		if e, _ := cm["email"].(string); e != "" {
-			emails = append(emails, e)
-		}
+		locks[i] = m
 	}
-	if len(emails) == 0 {
-		return clients
+	inboundMutationLocksMu.Unlock()
+	for _, m := range locks {
+		m.Lock()
 	}
-	existing := make(map[string]struct{}, len(emails))
-	const orphanChunk = 400
-	for start := 0; start < len(emails); start += orphanChunk {
-		end := min(start+orphanChunk, len(emails))
-		var found []string
-		if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails[start:end]).Pluck("email", &found).Error; err != nil {
-			logger.Warning("compactOrphans pluck:", err)
-			return clients
-		}
-		for _, e := range found {
-			existing[e] = struct{}{}
-		}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			for i := len(locks) - 1; i >= 0; i-- {
+				locks[i].Unlock()
+			}
+		})
 	}
-	if len(existing) == len(emails) {
-		return clients
-	}
-	out := make([]any, 0, len(existing))
-	for _, c := range clients {
-		cm, ok := c.(map[string]any)
-		if !ok {
-			out = append(out, c)
-			continue
-		}
-		e, _ := cm["email"].(string)
-		if e == "" {
-			out = append(out, c)
-			continue
-		}
-		if _, ok := existing[e]; ok {
-			out = append(out, c)
-		}
-	}
-	return out
 }
 
 func tombstoneClientEmail(email string) {

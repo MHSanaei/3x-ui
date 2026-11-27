@@ -32,6 +32,110 @@ func droppedClientNeedsRestart() bool {
 	return on
 }
 
+func clientReverseTag(r *model.ClientReverse) string {
+	if r == nil {
+		return ""
+	}
+	return r.Tag
+}
+
+func wireguardDevicesEqual(a, b []model.WireguardDevice) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Id != b[i].Id ||
+			a[i].Name != b[i].Name ||
+			a[i].Enable != b[i].Enable ||
+			a[i].PrivateKey != b[i].PrivateKey ||
+			a[i].PublicKey != b[i].PublicKey ||
+			a[i].PreSharedKey != b[i].PreSharedKey ||
+			!slices.Equal(a[i].AllowedIPs, b[i].AllowedIPs) {
+			return false
+		}
+	}
+	return true
+}
+
+// clientRuntimeConfigChanged reports whether any field read by coreUserFromClient
+// or the client's enabled state changed between oldClient and newClient.
+func clientRuntimeConfigChanged(oldClient, newClient *model.Client) bool {
+	return oldClient.Enable != newClient.Enable ||
+		oldClient.Email != newClient.Email ||
+		oldClient.ID != newClient.ID ||
+		oldClient.Security != newClient.Security ||
+		oldClient.Flow != newClient.Flow ||
+		oldClient.Auth != newClient.Auth ||
+		oldClient.Password != newClient.Password ||
+		oldClient.PublicKey != newClient.PublicKey ||
+		!slices.Equal(oldClient.AllowedIPs, newClient.AllowedIPs) ||
+		oldClient.PreSharedKey != newClient.PreSharedKey ||
+		oldClient.KeepAliveSeconds() != newClient.KeepAliveSeconds() ||
+		clientReverseTag(oldClient.Reverse) != clientReverseTag(newClient.Reverse) ||
+		!wireguardDevicesEqual(oldClient.WireguardDevices, newClient.WireguardDevices)
+}
+
+func isClientTrafficDisabled(db *gorm.DB, email string) (bool, error) {
+	if email == "" {
+		return false, nil
+	}
+	var enables []bool
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).Limit(1).Pluck("enable", &enables).Error; err != nil {
+		return false, err
+	}
+	return len(enables) > 0 && !enables[0], nil
+}
+
+func localBatchAddUsers(rt runtime.Runtime, ib *model.Inbound, ops []runtime.UserAddOp) bool {
+	if len(ops) == 0 {
+		return false
+	}
+	needRestart := false
+	if batchRt, ok := rt.(runtime.UserBatchRuntime); ok {
+		for _, err1 := range batchRt.AddUsers(context.Background(), ib, ops) {
+			if err1 != nil {
+				logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+				needRestart = true
+			}
+		}
+		return needRestart
+	}
+	for _, op := range ops {
+		if err1 := rt.AddUser(context.Background(), ib, op.User); err1 != nil {
+			logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+			needRestart = true
+		}
+	}
+	return needRestart
+}
+
+func localBatchRemoveUsers(rt runtime.Runtime, ib *model.Inbound, emails []string) (removedAny bool, needRestart bool) {
+	if len(emails) == 0 {
+		return false, false
+	}
+	if batchRt, ok := rt.(runtime.UserBatchRuntime); ok && len(emails) > 1 {
+		for i, err1 := range batchRt.RemoveUsers(context.Background(), ib, emails) {
+			if err1 == nil {
+				removedAny = true
+			} else if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", emails[i])) {
+				logger.Debug("Error in removing client on", rt.Name(), ":", err1)
+				needRestart = true
+			}
+		}
+		return removedAny, needRestart
+	}
+	for _, email := range emails {
+		err1 := rt.RemoveUser(context.Background(), ib, email)
+		if err1 == nil {
+			removedAny = true
+		} else if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+			logger.Debug("Error in removing client on", rt.Name(), ":", err1)
+			needRestart = true
+		}
+	}
+	return removedAny, needRestart
+}
+
 func validateAmneziaWGClientWrite(inbound *model.Inbound, clients []model.Client, previousEmail string) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
@@ -145,11 +249,6 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		return false, err
 	}
 
-	var settings map[string]any
-	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
-		return false, err
-	}
-
 	// Match by email — the client's stable identity (see Delete). Removes every
 	// entry carrying a wanted email, independent of credential drift.
 	wanted := make(map[string]struct{}, len(recs))
@@ -159,48 +258,64 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
-
 	type removedClient struct {
 		email      string
 		needApiDel bool
 	}
-	removed := make([]removedClient, 0, len(wanted))
-	newClients := make([]any, 0, len(interfaceClients))
-	for _, client := range interfaceClients {
-		c, ok := client.(map[string]any)
+	var removed []removedClient
+	var newSettingsStr string
+	if fastRaw, fastRemoved, ok := removeClientsFast(inboundId, oldInbound.Settings, wanted); ok {
+		if len(fastRemoved) == 0 {
+			return false, nil
+		}
+		removed = make([]removedClient, len(fastRemoved))
+		for i, r := range fastRemoved {
+			removed[i] = removedClient{email: r.email, needApiDel: r.enable}
+		}
+		newSettingsStr = fastRaw
+	} else {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+			return false, err
+		}
+		interfaceClients, ok := settings["clients"].([]any)
 		if !ok {
+			return false, common.NewError("invalid clients format in inbound settings")
+		}
+		removed = make([]removedClient, 0, len(wanted))
+		newClients := make([]any, 0, len(interfaceClients))
+		for _, client := range interfaceClients {
+			c, ok := client.(map[string]any)
+			if !ok {
+				newClients = append(newClients, client)
+				continue
+			}
+			email, _ := c["email"].(string)
+			if _, hit := wanted[email]; hit && email != "" {
+				enable, _ := c["enable"].(bool)
+				removed = append(removed, removedClient{email: email, needApiDel: enable})
+				continue
+			}
 			newClients = append(newClients, client)
-			continue
 		}
-		email, _ := c["email"].(string)
-		if _, hit := wanted[email]; hit && email != "" {
-			enable, _ := c["enable"].(bool)
-			removed = append(removed, removedClient{email: email, needApiDel: enable})
-			continue
+		if len(removed) == 0 {
+			return false, nil
 		}
-		newClients = append(newClients, client)
-	}
-
-	if len(removed) == 0 {
-		return false, nil
+		if newClients == nil {
+			newClients = []any{}
+		}
+		settings["clients"] = newClients
+		encoded, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return false, err
+		}
+		newSettingsStr = string(encoded)
 	}
 
 	db := database.GetDB()
-	newClients = compactOrphans(db, newClients)
-	if newClients == nil {
-		newClients = []any{}
-	}
-	settings["clients"] = newClients
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
 	prevSettings := oldInbound.Settings
-	oldInbound.Settings = string(newSettings)
+	oldInbound.Settings = newSettingsStr
+	newSettings := []byte(newSettingsStr)
 
 	var sharedSet map[string]bool
 	if !keepTraffic {
@@ -298,23 +413,30 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 
 	// Apply runtime deletes after commit — outside the serialized writer so a
 	// slow node call can't stall traffic accounting.
-	nodePushFailed := false
-	for _, t := range targets {
-		if len(t.email) == 0 {
-			continue
+	if oldInbound.NodeID == nil {
+		removeEmails := make([]string, 0, len(targets))
+		for _, t := range targets {
+			if len(t.email) > 0 && t.needApiDel && t.notDepleted {
+				removeEmails = append(removeEmails, t.email)
+			}
 		}
-		if oldInbound.NodeID == nil {
-			if t.needApiDel && t.notDepleted {
-				rt, rterr := inboundSvc.runtimeFor(oldInbound)
-				if rterr != nil {
+		if len(removeEmails) > 0 {
+			rt, rterr := inboundSvc.runtimeFor(oldInbound)
+			if rterr != nil {
+				needRestart = true
+			} else {
+				removedAny, nr := localBatchRemoveUsers(rt, oldInbound, removeEmails)
+				if nr || (removedAny && droppedClientNeedsRestart()) {
 					needRestart = true
-				} else if err1 := rt.RemoveUser(context.Background(), oldInbound, t.email); err1 != nil {
-					if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", t.email)) {
-						needRestart = true
-					}
 				}
 			}
-		} else if nodePush && !nodePushFailed {
+		}
+	} else if nodePush {
+		nodePushFailed := false
+		for _, t := range targets {
+			if len(t.email) == 0 {
+				continue
+			}
 			// First failure ends the batch push; the reconcile converges the rest.
 			ctx, cancel := nodePushContext()
 			err1 := nodeRt.DeleteUser(ctx, oldInbound, t.email)
@@ -322,11 +444,12 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 			if err1 != nil {
 				logger.Warning("Error in deleting client on", nodeRt.Name(), ":", err1)
 				nodePushFailed = true
+				break
 			}
 		}
-	}
-	if nodePush && !nodePushFailed {
-		advancePushedInbound(nodeRt, prevSettings, string(newSettings), oldInbound)
+		if !nodePushFailed {
+			advancePushedInbound(nodeRt, prevSettings, string(newSettings), oldInbound)
+		}
 	}
 
 	return needRestart, nil
@@ -587,7 +710,6 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	}
 
 	oldClients, _ := oldSettings["clients"].([]any)
-	oldClients = compactOrphans(database.GetDB(), oldClients)
 	oldClients = append(oldClients, interfaceClients...)
 
 	oldSettings["clients"] = oldClients
@@ -679,25 +801,26 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 		} else if oldInbound.Protocol == model.TUIC {
 			inboundSvc.applyLocalTuic(oldInbound.Id)
 		} else {
-			for _, client := range clients {
-				if len(client.Email) == 0 {
+			cipher := ""
+			if oldInbound.Protocol == model.Shadowsocks {
+				cipher, _ = oldSettings["method"].(string)
+			}
+			addOps := make([]runtime.UserAddOp, 0, len(clients))
+			for i := range clients {
+				if len(clients[i].Email) == 0 {
 					needRestart = true
 					continue
 				}
-				if !client.Enable {
+				if !clients[i].Enable {
 					continue
 				}
-				cipher := ""
-				if oldInbound.Protocol == "shadowsocks" {
-					cipher, _ = oldSettings["method"].(string)
-				}
-				err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&client, cipher))
-				if err1 == nil {
-					logger.Debug("Client added on", rt.Name(), ":", client.Email)
-				} else {
-					logger.Debug("Error in adding client on", rt.Name(), ":", err1)
-					needRestart = true
-				}
+				addOps = append(addOps, runtime.UserAddOp{
+					User:    coreUserFromClient(&clients[i], cipher),
+					Replace: false,
+				})
+			}
+			if localBatchAddUsers(rt, oldInbound, addOps) {
+				needRestart = true
 			}
 		}
 	} else {
@@ -733,6 +856,10 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 }
 
 func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *model.Inbound, oldEmail string) (bool, error) {
+	return s.updateInboundClient(inboundSvc, data, oldEmail, false)
+}
+
+func (s *ClientService) updateInboundClient(inboundSvc *InboundService, data *model.Inbound, oldEmail string, forceRuntimeSync bool) (bool, error) {
 	defer InvalidateSubData()
 	defer lockInbound(data.Id).Unlock()
 
@@ -1034,6 +1161,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 
+	wasTrafficDisabled := false
 	// Persist client stats + inbound atomically, serialized against the traffic
 	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
@@ -1062,6 +1190,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[0].ForwardedPortsSpec()); hit != "" {
 				return common.NewError("amneziawg: forwardedPorts collides with", hit)
 			}
+		}
+		if !forceRuntimeSync && oldInbound.NodeID == nil && len(oldEmail) > 0 && oldClients[clientIndex].Enable && clients[0].Enable {
+			disabled, dErr := isClientTrafficDisabled(tx, oldEmail)
+			if dErr != nil {
+				return dErr
+			}
+			wasTrafficDisabled = disabled
 		}
 		if len(clients[0].Email) > 0 {
 			if len(oldEmail) > 0 {
@@ -1163,33 +1298,41 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			} else if oldInbound.Protocol == model.TUIC {
 				inboundSvc.applyLocalTuic(oldInbound.Id)
 			} else {
-				if oldClients[clientIndex].Enable {
-					err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
-					if err1 == nil {
-						logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
-						// The API removal is enough only while the client is re-added; a
-						// dropped one ends its session only through a restart.
-						if !clients[0].Enable && droppedClientNeedsRestart() {
+				// Skip no-op RemoveUser + AddUser when no Xray-visible field changed and
+				// the client was already enabled in both settings and client_traffics.
+				skipRuntimeReload := oldClients[clientIndex].Enable && clients[0].Enable &&
+					oldClients[clientIndex].Reverse == nil && clients[0].Reverse == nil &&
+					!wasTrafficDisabled && !forceRuntimeSync &&
+					!clientRuntimeConfigChanged(&oldClients[clientIndex], &clients[0])
+				if !skipRuntimeReload {
+					if oldClients[clientIndex].Enable {
+						err1 := rt.RemoveUser(context.Background(), oldInbound, oldEmail)
+						if err1 == nil {
+							logger.Debug("Old client deleted on", rt.Name(), ":", oldEmail)
+							// The API removal is enough only while the client is re-added; a
+							// dropped one ends its session only through a restart.
+							if !clients[0].Enable && droppedClientNeedsRestart() {
+								needRestart = true
+							}
+						} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
+							logger.Debug("User is already deleted. Nothing to do more...")
+						} else {
+							logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
 							needRestart = true
 						}
-					} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", oldEmail)) {
-						logger.Debug("User is already deleted. Nothing to do more...")
-					} else {
-						logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
-						needRestart = true
 					}
-				}
-				if clients[0].Enable {
-					cipher := ""
-					if oldInbound.Protocol == "shadowsocks" {
-						cipher, _ = oldSettings["method"].(string)
-					}
-					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&clients[0], cipher))
-					if err1 == nil {
-						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
-					} else {
-						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
-						needRestart = true
+					if clients[0].Enable {
+						cipher := ""
+						if oldInbound.Protocol == "shadowsocks" {
+							cipher, _ = oldSettings["method"].(string)
+						}
+						err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&clients[0], cipher))
+						if err1 == nil {
+							logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)
+						} else {
+							logger.Debug("Error in adding client on", rt.Name(), ":", err1)
+							needRestart = true
+						}
 					}
 				}
 			}
@@ -1221,49 +1364,59 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	var settings map[string]any
-	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
-		return false, err
-	}
-
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
-
-	var newClients []any
 	needApiDel := false
-	found := false
-
-	for _, client := range interfaceClients {
-		c, ok := client.(map[string]any)
+	var newSettingsStr string
+	if fastRaw, fastRemoved, ok := removeClientsFast(inboundId, oldInbound.Settings, map[string]struct{}{email: {}}); ok {
+		if len(fastRemoved) == 0 {
+			return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
+		}
+		for _, r := range fastRemoved {
+			if r.enable {
+				needApiDel = true
+			}
+		}
+		newSettingsStr = fastRaw
+	} else {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+			return false, err
+		}
+		interfaceClients, ok := settings["clients"].([]any)
 		if !ok {
-			continue
+			return false, common.NewError("invalid clients format in inbound settings")
 		}
-		if cEmail, ok := c["email"].(string); ok && cEmail == email {
-			found = true
-			needApiDel, _ = c["enable"].(bool)
-		} else {
-			newClients = append(newClients, client)
+		var newClients []any
+		found := false
+		for _, client := range interfaceClients {
+			c, ok := client.(map[string]any)
+			if !ok {
+				continue
+			}
+			if cEmail, ok := c["email"].(string); ok && cEmail == email {
+				found = true
+				needApiDel, _ = c["enable"].(bool)
+			} else {
+				newClients = append(newClients, client)
+			}
 		}
+		if !found {
+			return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
+		}
+		if newClients == nil {
+			newClients = []any{}
+		}
+		settings["clients"] = newClients
+		encoded, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return false, err
+		}
+		newSettingsStr = string(encoded)
 	}
 
-	if !found {
-		return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
-	}
 	db := database.GetDB()
-	newClients = compactOrphans(db, newClients)
-	if newClients == nil {
-		newClients = []any{}
-	}
-	settings["clients"] = newClients
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-
 	prevSettings := oldInbound.Settings
-	oldInbound.Settings = string(newSettings)
+	oldInbound.Settings = newSettingsStr
+	newSettings := []byte(newSettingsStr)
 
 	emailShared, err := inboundSvc.emailUsedByOtherInbounds(db, email, inboundId)
 	if err != nil {
@@ -1495,6 +1648,11 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 		inboundIds = []int{inbound.Id}
 	}
 
+	forceRuntimeSync := false
+	if disabled, tErr := isClientTrafficDisabled(database.GetDB(), clientEmail); tErr == nil && disabled {
+		forceRuntimeSync = true
+	}
+
 	needRestart := false
 	found := false
 	// Built before any inbound is written, as in Update: only the applies
@@ -1538,7 +1696,7 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 		inbound.Settings = string(modifiedSettings)
 		data := inbound
 		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
-			return s.UpdateInboundClient(inboundSvc, data, clientEmail)
+			return s.updateInboundClient(inboundSvc, data, clientEmail, forceRuntimeSync)
 		}})
 	}
 
