@@ -36,10 +36,15 @@ func markSyncOrphan(tx *gorm.DB, email string, nodeID int, nowMs int64) error {
 
 // A client that is attached again is not orphaned, whatever an earlier merge
 // concluded — this is what makes a bad merge recoverable instead of fatal.
-func clearSyncOrphanMarks(tx *gorm.DB) error {
-	return tx.Model(&model.ClientRecord{}).
-		Where("sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)").
-		Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error
+func clearSyncOrphanMarks(tx *gorm.DB, ids []int) error {
+	for _, batch := range chunkInts(ids, sqlInChunk) {
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("id IN ? AND sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)", batch).
+			Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func reapableSyncOrphans(tx *gorm.DB, cutoff int64) *gorm.DB {
@@ -54,20 +59,21 @@ func (s *ClientService) ReapSyncOrphans() (int, error) {
 	db := database.GetDB()
 	cutoff := time.Now().Add(-syncOrphanReapGrace).UnixMilli()
 
-	var emails []string
-	if err := reapableSyncOrphans(db, cutoff).Pluck("email", &emails).Error; err != nil {
+	// The maintenance pass also repairs attached marks from legacy databases and imports.
+	var ids []int
+	if err := db.Model(&model.ClientRecord{}).Where("sync_orphaned_at > 0").Pluck("id", &ids).Error; err != nil {
 		return 0, err
-	}
-	if len(emails) == 0 {
-		return 0, nil
 	}
 
 	reaped := 0
-	for _, listed := range chunkStrings(emails, sqlInChunk) {
+	for _, listed := range chunkInts(ids, sqlInChunk) {
 		var batch []string
 		if err := runSerializedTx(func(tx *gorm.DB) error {
 			// The list was read outside the writer; an attach may have committed since.
-			if err := reapableSyncOrphans(tx, cutoff).Where("email IN ?", listed).Pluck("email", &batch).Error; err != nil {
+			if err := clearSyncOrphanMarks(tx, listed); err != nil {
+				return err
+			}
+			if err := reapableSyncOrphans(tx, cutoff).Where("id IN ?", listed).Pluck("email", &batch).Error; err != nil {
 				return err
 			}
 			if len(batch) == 0 {

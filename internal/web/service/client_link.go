@@ -328,7 +328,13 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		}
 	}
 
-	return nil
+	var marked []int
+	for _, row := range existing {
+		if row.SyncOrphanedAt > 0 {
+			marked = append(marked, row.Id)
+		}
+	}
+	return clearSyncOrphanMarks(tx, marked)
 }
 
 // reconcileInboundLinks writes only the client_inbounds rows that differ and returns
