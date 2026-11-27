@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -721,6 +721,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 
 	interfaceClients, _ := settings["clients"].([]any)
 	foundEmails := map[string]bool{}
+	changedEntries := make([]any, 0, len(wantedEmails))
 	flowChanged := false
 	adTagChanged := false
 	hasInboundChanges := false
@@ -777,6 +778,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if clientChanged {
 			c["updated_at"] = nowMs
 			hasInboundChanges = true
+			changedEntries = append(changedEntries, c)
 		}
 		interfaceClients[i] = c
 		foundEmails[targetEmail] = true
@@ -803,6 +805,14 @@ func (s *ClientService) bulkAdjustInboundClients(
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
+	changedClients, err := settingsEntriesToClients(changedEntries)
+	if err != nil {
+		for email := range foundEmails {
+			res.perEmailSkipped[email] = err.Error()
+		}
+		return res
+	}
+
 	// A flow change rewrites the user's xray config, which the lightweight
 	// UpdateUser push below does not carry. Local nodes reload via restart;
 	// remote nodes get a full reconcile (MarkNodeDirty) instead of a per-user push.
@@ -816,11 +826,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if err := commitInboundClientSettings(tx, oldInbound, prevSettings); err != nil {
 			return err
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, changedClients, nil); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -1105,7 +1111,6 @@ func (s *ClientService) bulkDelInboundClients(
 	}
 
 	db := database.GetDB()
-	newClients = compactOrphans(db, newClients)
 	if newClients == nil {
 		newClients = []any{}
 	}
@@ -1186,17 +1191,20 @@ func (s *ClientService) bulkDelInboundClients(
 		}
 	}
 
+	detachList := make([]string, 0, len(wantedEmails))
+	for email := range wantedEmails {
+		if _, skip := res.perEmailSkipped[email]; !skip {
+			detachList = append(detachList, email)
+		}
+	}
+
 	// Serialize against the traffic poll to avoid the cross-transaction
 	// lock-order deadlock on inbounds/client_records (runSerializedTx).
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
 		if err := commitInboundClientSettings(tx, oldInbound, prevSettings); err != nil {
 			return err
 		}
-		finalClients, err := inboundSvc.GetClients(oldInbound)
-		if err != nil {
-			return err
-		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, nil, detachList); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -1211,21 +1219,19 @@ func (s *ClientService) bulkDelInboundClients(
 			}
 		}
 	} else if oldInbound.NodeID == nil {
-		rt, rterr := inboundSvc.runtimeFor(oldInbound)
-		if rterr != nil {
-			res.needRestart = true
-		} else {
-			for email := range foundEmails {
-				if !enableByEmail[email] || !notDepletedByEmail[email] {
-					continue
-				}
-				err1 := rt.RemoveUser(context.Background(), oldInbound, email)
-				if err1 == nil {
-					logger.Debug("Client deleted on", rt.Name(), ":", email)
-				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
-					logger.Debug("User is already deleted. Nothing to do more...")
-				} else {
-					logger.Debug("Error in deleting client on", rt.Name(), ":", err1)
+		removeEmails := make([]string, 0, len(foundEmails))
+		for email := range foundEmails {
+			if enableByEmail[email] && notDepletedByEmail[email] {
+				removeEmails = append(removeEmails, email)
+			}
+		}
+		if len(removeEmails) > 0 {
+			rt, rterr := inboundSvc.runtimeFor(oldInbound)
+			if rterr != nil {
+				res.needRestart = true
+			} else {
+				removedAny, nr := localBatchRemoveUsers(rt, oldInbound, removeEmails)
+				if nr || (removedAny && droppedClientNeedsRestart()) {
 					res.needRestart = true
 				}
 			}
@@ -1806,15 +1812,16 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 		push = false
 	}
 
+	changedClients := make([]model.Client, len(changed))
+	for i := range changed {
+		changedClients[i] = changed[i].client
+	}
+
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
 		if e := commitInboundClientSettings(tx, oldInbound, prevSettings); e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, changedClients, nil); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -1834,24 +1841,27 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 			res.needRestart = true
 		} else if servedOutsideXray(oldInbound.Protocol) {
 			res.sidecar = oldInbound.Protocol
-		} else {
-			for _, ch := range changed {
-				if enable {
-					err1 := rt.AddUser(context.Background(), oldInbound, coreUserFromClient(&ch.client, cipher))
-					if err1 != nil {
-						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
-						res.needRestart = true
-					}
-				} else if ch.wasEnable {
-					err1 := rt.RemoveUser(context.Background(), oldInbound, ch.email)
-					if err1 != nil && !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", ch.email)) {
-						logger.Debug("Error in removing client on", rt.Name(), ":", err1)
-						res.needRestart = true
-					} else if err1 == nil && droppedClientNeedsRestart() {
-						// A removed credential does not end the session it was serving.
-						res.needRestart = true
-					}
+		} else if enable {
+			addOps := make([]runtime.UserAddOp, len(changed))
+			for i := range changed {
+				addOps[i] = runtime.UserAddOp{
+					User:    coreUserFromClient(&changed[i].client, cipher),
+					Replace: true,
 				}
+			}
+			if localBatchAddUsers(rt, oldInbound, addOps) {
+				res.needRestart = true
+			}
+		} else {
+			removeEmails := make([]string, 0, len(changed))
+			for _, ch := range changed {
+				if ch.wasEnable {
+					removeEmails = append(removeEmails, ch.email)
+				}
+			}
+			removedAny, nr := localBatchRemoveUsers(rt, oldInbound, removeEmails)
+			if nr || (removedAny && droppedClientNeedsRestart()) {
+				res.needRestart = true
 			}
 		}
 	} else if push {

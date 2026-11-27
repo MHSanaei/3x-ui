@@ -837,6 +837,15 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 		return false, tcErr
 	}
 
+	// Snapshot traffic-disabled state before fanning out so inbound #1 flipping
+	// client_traffics.enable cannot mask runtime re-add on sibling inbounds.
+	forceRuntimeSync := false
+	if updated.Enable && existing.Email != "" {
+		if disabled, tErr := isClientTrafficDisabled(database.GetDB(), existing.Email); tErr == nil && disabled {
+			forceRuntimeSync = true
+		}
+	}
+
 	// Built before any inbound is written, as in Create: fillProtocolDefaults
 	// mints the shared credentials on the first inbound, later ones reuse them.
 	applies := make([]inboundApply, 0, len(inboundIds))
@@ -896,7 +905,7 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 		}
 		data := &model.Inbound{Id: ibId, Settings: string(settingsPayload)}
 		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
-			return s.UpdateInboundClient(inboundSvc, data, existing.Email)
+			return s.updateInboundClient(inboundSvc, data, existing.Email, forceRuntimeSync)
 		}})
 	}
 	// Each apply marks only its OWN node dirty, so between the first and last
