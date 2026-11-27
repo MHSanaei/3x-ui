@@ -36,3 +36,15 @@ type Runtime interface {
 	ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error
 	ResetAllTraffics(ctx context.Context) error
 }
+
+// UserAddOp describes one user addition; Replace=false skips legacy SS pre-remove.
+type UserAddOp struct {
+	User    map[string]any
+	Replace bool
+}
+
+// UserBatchRuntime is optionally implemented by local runtimes to batch user RPCs.
+type UserBatchRuntime interface {
+	AddUsers(ctx context.Context, ib *model.Inbound, ops []UserAddOp) []error
+	RemoveUsers(ctx context.Context, ib *model.Inbound, emails []string) []error
+}
