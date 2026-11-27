@@ -107,7 +107,7 @@ func (j *XrayTrafficJob) Run() {
 		return
 	}
 	sample, needRestart, clientsDisabled := j.pollTraffic(j.xrayService.GetXrayTraffic)
-	if sample == nil || !j.xrayService.IsXrayRunning() {
+	if sample == nil {
 		return
 	}
 	traffics, clientTraffics := sample.traffics, sample.clients
@@ -117,20 +117,27 @@ func (j *XrayTrafficJob) Run() {
 			logger.Warning("get RestartXrayOnClientDisable failed:", settingErr)
 		}
 		if restartOnDisable {
-			if err := j.xrayService.RestartXray(false); err != nil {
+			if !j.xrayService.IsXrayRunning() {
+				needRestart = true
+			} else if err := j.xrayService.RestartXray(false); err != nil {
 				logger.Warning("reconcile xray after disabling clients failed:", err)
-				j.xrayService.SetToNeedRestart()
+				needRestart = true
 			}
 		}
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+	}
+	if needRestart {
+		j.xrayService.SetToNeedRestart()
 	}
 	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)
 	} else if err != nil {
 		logger.Warning("get ExternalTrafficInformEnable failed:", err)
 	}
-	if needRestart {
-		j.xrayService.SetToNeedRestart()
+
+	// Live online statistics require a running core. The committed sample does not.
+	if !j.xrayService.IsXrayRunning() {
+		return
 	}
 
 	// Derive the local online set from this poll's per-email deltas rather

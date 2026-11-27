@@ -2,14 +2,19 @@ package job
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/valyala/fasthttp"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
@@ -18,6 +23,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -52,6 +59,108 @@ func startTrafficRetryStats(t *testing.T) (*trafficRetryStats, *grpc.Server, int
 
 func TestXrayTrafficPollRetriesRolledBackSample(t *testing.T) {
 	testXrayTrafficPollRetriesRolledBackSample(t)
+}
+
+type trafficRetryWebServer struct {
+	global.WebServer
+	hub *websocket.Hub
+}
+
+func (s trafficRetryWebServer) GetWSHub() any { return s.hub }
+
+func TestXrayTrafficRunFinishesCommittedSampleWhileStopped(t *testing.T) {
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	db := database.GetDB()
+	client := xray.ClientTraffic{Email: "offline@example.test", Enable: true, Total: 10}
+	if err := db.Create(&client).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	type informPayload struct {
+		Clients []*xray.ClientTraffic `json:"clientTraffics"`
+	}
+	informs := make(chan informPayload, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload informPayload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+		}
+		informs <- payload
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	oldClient := externalInformClient
+	externalInformClient = &fasthttp.Client{Dial: func(string) (net.Conn, error) {
+		return net.DialTimeout("tcp", server.Listener.Addr().String(), time.Second)
+	}}
+	t.Cleanup(func() { externalInformClient = oldClient })
+
+	hub := websocket.NewHub()
+	go hub.Run()
+	t.Cleanup(hub.Stop)
+	oldServer := global.GetWebServer()
+	global.SetWebServer(trafficRetryWebServer{hub: hub})
+	t.Cleanup(func() { global.SetWebServer(oldServer) })
+	listener := websocket.NewClient("offline-retry")
+	hub.Register(listener)
+	deadline := time.Now().Add(time.Second)
+	for hub.GetClientCount() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if hub.GetClientCount() != 1 {
+		t.Fatal("WebSocket client did not register")
+	}
+
+	job := NewXrayTrafficJob()
+	if err := job.settingService.SetExternalTrafficInformEnable(true); err != nil {
+		t.Fatal(err)
+	}
+	if err := job.settingService.SetExternalTrafficInformURI("http://192.0.2.1/traffic"); err != nil {
+		t.Fatal(err)
+	}
+	if err := job.settingService.SetRestartXrayOnClientDisable(true); err != nil {
+		t.Fatal(err)
+	}
+	if job.xrayService.IsXrayRunning() {
+		t.Fatal("test requires a stopped Xray")
+	}
+	wasRestartPending := job.xrayService.IsNeedRestartAndSetFalse()
+	t.Cleanup(func() {
+		job.xrayService.IsNeedRestartAndSetFalse()
+		if wasRestartPending {
+			job.xrayService.SetToNeedRestart()
+		}
+	})
+	job.pending = &xrayTrafficSample{id: "offline-sample", clients: []*xray.ClientTraffic{{Email: client.Email, Up: 10}}}
+
+	job.Run()
+	job.Run()
+	if err := db.First(&client, client.Id).Error; err != nil {
+		t.Fatal(err)
+	}
+	if client.Up != 10 || client.Enable {
+		t.Errorf("stored client has up=%d enabled=%t, want up=10 enabled=false", client.Up, client.Enable)
+	}
+	if !job.xrayService.IsNeedRestartAndSetFalse() {
+		t.Error("restart was not queued after disabling a client with Xray stopped")
+	}
+	if len(informs) != 1 {
+		t.Errorf("sent %d external reports, want 1", len(informs))
+	} else if report := <-informs; len(report.Clients) != 1 || report.Clients[0].Email != client.Email || report.Clients[0].Up != 10 {
+		t.Errorf("external report did not include the committed delta: %+v", report)
+	}
+	select {
+	case data := <-listener.Send:
+		var message struct {
+			Type    websocket.MessageType `json:"type"`
+			Payload map[string]string     `json:"payload"`
+		}
+		if err := json.Unmarshal(data, &message); err != nil || message.Type != websocket.MessageTypeInvalidate || message.Payload["type"] != string(websocket.MessageTypeInbounds) {
+			t.Errorf("expected inbounds invalidation, got %s", data)
+		}
+	case <-time.After(time.Second):
+		t.Error("committed disablement did not invalidate inbounds")
+	}
 }
 
 func TestXrayTrafficPollRetriesRolledBackSamplePostgres(t *testing.T) {
