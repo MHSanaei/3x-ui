@@ -24,37 +24,21 @@ type ClientWithAttachments struct {
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
 }
 
-// MarshalJSON is required because model.ClientRecord defines its own
-// MarshalJSON. Go promotes the embedded method to the outer struct, so without
-// this the encoder would call ClientRecord.MarshalJSON for the whole value and
-// silently drop InboundIds and Traffic from the API response.
+// MarshalJSON avoids promoting model.ClientRecord.MarshalJSON, which would
+// drop InboundIds and Traffic, while encoding everything in a single pass.
 func (c ClientWithAttachments) MarshalJSON() ([]byte, error) {
-	rec, err := json.Marshal(c.ClientRecord)
-	if err != nil {
-		return nil, err
-	}
-	extras := struct {
+	type recordAlias model.ClientRecord
+	return json.Marshal(struct {
+		recordAlias
+		Reverse    json.RawMessage     `json:"reverse"`
 		InboundIds []int               `json:"inboundIds"`
 		Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
-	}{InboundIds: c.InboundIds, Traffic: c.Traffic}
-	extra, err := json.Marshal(extras)
-	if err != nil {
-		return nil, err
-	}
-	if len(rec) < 2 || rec[len(rec)-1] != '}' || len(extra) <= 2 {
-		return rec, nil
-	}
-	const maxMarshalSize = 256 << 20
-	if len(rec) > maxMarshalSize || len(extra) > maxMarshalSize {
-		return rec, nil
-	}
-	out := make([]byte, 0, len(rec)+len(extra))
-	out = append(out, rec[:len(rec)-1]...)
-	if len(rec) > 2 {
-		out = append(out, ',')
-	}
-	out = append(out, extra[1:]...)
-	return out, nil
+	}{
+		recordAlias: recordAlias(c.ClientRecord),
+		Reverse:     c.ReverseJSON(),
+		InboundIds:  c.InboundIds,
+		Traffic:     c.Traffic,
+	})
 }
 
 type ClientService struct{}
