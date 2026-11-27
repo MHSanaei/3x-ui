@@ -249,11 +249,6 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		return false, err
 	}
 
-	var settings map[string]any
-	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
-		return false, err
-	}
-
 	// Match by email — the client's stable identity (see Delete). Removes every
 	// entry carrying a wanted email, independent of credential drift.
 	wanted := make(map[string]struct{}, len(recs))
@@ -263,47 +258,64 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		}
 	}
 
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
-
 	type removedClient struct {
 		email      string
 		needApiDel bool
 	}
-	removed := make([]removedClient, 0, len(wanted))
-	newClients := make([]any, 0, len(interfaceClients))
-	for _, client := range interfaceClients {
-		c, ok := client.(map[string]any)
+	var removed []removedClient
+	var newSettingsStr string
+	if fastRaw, fastRemoved, ok := removeClientsFast(inboundId, oldInbound.Settings, wanted); ok {
+		if len(fastRemoved) == 0 {
+			return false, nil
+		}
+		removed = make([]removedClient, len(fastRemoved))
+		for i, r := range fastRemoved {
+			removed[i] = removedClient{email: r.email, needApiDel: r.enable}
+		}
+		newSettingsStr = fastRaw
+	} else {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+			return false, err
+		}
+		interfaceClients, ok := settings["clients"].([]any)
 		if !ok {
+			return false, common.NewError("invalid clients format in inbound settings")
+		}
+		removed = make([]removedClient, 0, len(wanted))
+		newClients := make([]any, 0, len(interfaceClients))
+		for _, client := range interfaceClients {
+			c, ok := client.(map[string]any)
+			if !ok {
+				newClients = append(newClients, client)
+				continue
+			}
+			email, _ := c["email"].(string)
+			if _, hit := wanted[email]; hit && email != "" {
+				enable, _ := c["enable"].(bool)
+				removed = append(removed, removedClient{email: email, needApiDel: enable})
+				continue
+			}
 			newClients = append(newClients, client)
-			continue
 		}
-		email, _ := c["email"].(string)
-		if _, hit := wanted[email]; hit && email != "" {
-			enable, _ := c["enable"].(bool)
-			removed = append(removed, removedClient{email: email, needApiDel: enable})
-			continue
+		if len(removed) == 0 {
+			return false, nil
 		}
-		newClients = append(newClients, client)
-	}
-
-	if len(removed) == 0 {
-		return false, nil
+		if newClients == nil {
+			newClients = []any{}
+		}
+		settings["clients"] = newClients
+		encoded, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return false, err
+		}
+		newSettingsStr = string(encoded)
 	}
 
 	db := database.GetDB()
-	if newClients == nil {
-		newClients = []any{}
-	}
-	settings["clients"] = newClients
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
 	prevSettings := oldInbound.Settings
-	oldInbound.Settings = string(newSettings)
+	oldInbound.Settings = newSettingsStr
+	newSettings := []byte(newSettingsStr)
 
 	var sharedSet map[string]bool
 	if !keepTraffic {
@@ -1289,6 +1301,7 @@ func (s *ClientService) updateInboundClient(inboundSvc *InboundService, data *mo
 				// Skip no-op RemoveUser + AddUser when no Xray-visible field changed and
 				// the client was already enabled in both settings and client_traffics.
 				skipRuntimeReload := oldClients[clientIndex].Enable && clients[0].Enable &&
+					oldClients[clientIndex].Reverse == nil && clients[0].Reverse == nil &&
 					!wasTrafficDisabled && !forceRuntimeSync &&
 					!clientRuntimeConfigChanged(&oldClients[clientIndex], &clients[0])
 				if !skipRuntimeReload {
@@ -1351,48 +1364,59 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		return false, err
 	}
 
-	var settings map[string]any
-	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
-		return false, err
-	}
-
-	interfaceClients, ok := settings["clients"].([]any)
-	if !ok {
-		return false, common.NewError("invalid clients format in inbound settings")
-	}
-
-	var newClients []any
 	needApiDel := false
-	found := false
-
-	for _, client := range interfaceClients {
-		c, ok := client.(map[string]any)
+	var newSettingsStr string
+	if fastRaw, fastRemoved, ok := removeClientsFast(inboundId, oldInbound.Settings, map[string]struct{}{email: {}}); ok {
+		if len(fastRemoved) == 0 {
+			return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
+		}
+		for _, r := range fastRemoved {
+			if r.enable {
+				needApiDel = true
+			}
+		}
+		newSettingsStr = fastRaw
+	} else {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+			return false, err
+		}
+		interfaceClients, ok := settings["clients"].([]any)
 		if !ok {
-			continue
+			return false, common.NewError("invalid clients format in inbound settings")
 		}
-		if cEmail, ok := c["email"].(string); ok && cEmail == email {
-			found = true
-			needApiDel, _ = c["enable"].(bool)
-		} else {
-			newClients = append(newClients, client)
+		var newClients []any
+		found := false
+		for _, client := range interfaceClients {
+			c, ok := client.(map[string]any)
+			if !ok {
+				continue
+			}
+			if cEmail, ok := c["email"].(string); ok && cEmail == email {
+				found = true
+				needApiDel, _ = c["enable"].(bool)
+			} else {
+				newClients = append(newClients, client)
+			}
 		}
+		if !found {
+			return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
+		}
+		if newClients == nil {
+			newClients = []any{}
+		}
+		settings["clients"] = newClients
+		encoded, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return false, err
+		}
+		newSettingsStr = string(encoded)
 	}
 
-	if !found {
-		return false, fmt.Errorf("%w for email: %s", ErrClientNotInInbound, email)
-	}
 	db := database.GetDB()
-	if newClients == nil {
-		newClients = []any{}
-	}
-	settings["clients"] = newClients
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return false, err
-	}
-
 	prevSettings := oldInbound.Settings
-	oldInbound.Settings = string(newSettings)
+	oldInbound.Settings = newSettingsStr
+	newSettings := []byte(newSettingsStr)
 
 	emailShared, err := inboundSvc.emailUsedByOtherInbounds(db, email, inboundId)
 	if err != nil {

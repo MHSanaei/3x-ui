@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,38 @@ func lockInbound(inboundId int) *sync.Mutex {
 	inboundMutationLocksMu.Unlock()
 	m.Lock()
 	return m
+}
+
+// lockInboundsSorted locks all unique inbound IDs in ascending order to prevent
+// deadlocks across concurrent multi-inbound operations.
+func lockInboundsSorted(inboundIds []int) func() {
+	if len(inboundIds) == 0 {
+		return func() {}
+	}
+	ids := uniqueInts(inboundIds)
+	slices.Sort(ids)
+	locks := make([]*sync.Mutex, len(ids))
+	inboundMutationLocksMu.Lock()
+	for i, id := range ids {
+		m, ok := inboundMutationLocks[id]
+		if !ok {
+			m = &sync.Mutex{}
+			inboundMutationLocks[id] = m
+		}
+		locks[i] = m
+	}
+	inboundMutationLocksMu.Unlock()
+	for _, m := range locks {
+		m.Lock()
+	}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			for i := len(locks) - 1; i >= 0; i-- {
+				locks[i].Unlock()
+			}
+		})
+	}
 }
 
 func tombstoneClientEmail(email string) {

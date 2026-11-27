@@ -3,11 +3,18 @@ package service
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"gorm.io/gorm"
 )
+
+type inboundSettingsUpdate struct {
+	inboundId   int
+	newSettings string
+	newIdx      *fastSettingsIndex
+}
 
 // commitInboundClientSettings writes a client op's edit (base → ib.Settings) onto
 // the settings committed now: a traffic tick after the op's read must survive.
@@ -25,6 +32,78 @@ func commitInboundClientSettings(tx *gorm.DB, ib *model.Inbound, base string) er
 		ib.Settings = merged
 	}
 	return tx.Model(&model.Inbound{}).Where("id = ?", ib.Id).Update("settings", ib.Settings).Error
+}
+
+// commitInboundSettingsDirectWithIdx writes settings already patched inside
+// the active serialized transaction and stages the updated index for commit.
+func commitInboundSettingsDirectWithIdx(tx *gorm.DB, inboundId int, newSettings string, newIdx *fastSettingsIndex) error {
+	defer InvalidateSubData()
+	db := tx
+	if state := serializedTxOf(tx); state != nil {
+		db = withSkipSettingsCacheInvalidation(tx)
+		if newIdx != nil {
+			state.stageSettingsCache(inboundId, newIdx)
+		} else {
+			state.markSettingsDirty(inboundId)
+		}
+	}
+	return db.Model(&model.Inbound{}).Where("id = ?", inboundId).Update("settings", newSettings).Error
+}
+
+// commitInboundsSettingsBatch writes updated settings blobs across multiple
+// inbounds in chunked CASE UPDATE statements to avoid per-inbound SQL round-trips.
+func commitInboundsSettingsBatch(tx *gorm.DB, updates []inboundSettingsUpdate) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	if len(updates) == 1 {
+		return commitInboundSettingsDirectWithIdx(tx, updates[0].inboundId, updates[0].newSettings, updates[0].newIdx)
+	}
+	defer InvalidateSubData()
+
+	db := tx
+	state := serializedTxOf(tx)
+	if state != nil {
+		db = withSkipSettingsCacheInvalidation(tx)
+	}
+
+	const batchChunk = 50
+	for start := 0; start < len(updates); start += batchChunk {
+		end := min(start+batchChunk, len(updates))
+		chunk := updates[start:end]
+
+		var sb strings.Builder
+		sb.Grow(64 + len(chunk)*24)
+		args := make([]any, 0, len(chunk)*3)
+		sb.WriteString("UPDATE inbounds SET settings = CASE id")
+		for _, u := range chunk {
+			sb.WriteString(" WHEN ? THEN ?")
+			args = append(args, u.inboundId, u.newSettings)
+		}
+		sb.WriteString(" END WHERE id IN (")
+		for i, u := range chunk {
+			if i > 0 {
+				sb.WriteByte(',')
+			}
+			sb.WriteByte('?')
+			args = append(args, u.inboundId)
+		}
+		sb.WriteByte(')')
+
+		if err := db.Exec(sb.String(), args...).Error; err != nil {
+			return err
+		}
+		if state != nil {
+			for _, u := range chunk {
+				if u.newIdx != nil {
+					state.stageSettingsCache(u.inboundId, u.newIdx)
+				} else {
+					state.markSettingsDirty(u.inboundId)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // rebaseClientSettings three-way merges settings JSON: every key and client field

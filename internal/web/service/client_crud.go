@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -22,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -200,6 +202,8 @@ func quotaDisabledEmails(tx *gorm.DB, within []string) ([]string, error) {
 	return emails, nil
 }
 
+var errFallbackSlowPath = errors.New("fallback to per-inbound path")
+
 // Create applies the client to every requested inbound: one failing inbound no
 // longer aborts the others, so the error can name several and needRestart holds.
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
@@ -220,6 +224,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	}
 	if err := validateClientRenewal(client); err != nil {
 		return false, err
+	}
+	if client.TotalGB < 0 {
+		return false, common.NewError("totalGB must be >= 0")
 	}
 	if err := validateClientResetMax(client.ResetMax); err != nil {
 		return false, err
@@ -247,8 +254,12 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	}
 	client.UpdatedAt = now
 
+	if needRestart, handled, err := s.createBatchedNonTunnel(inboundSvc, client, payload.InboundIds, payload.LimitHwid, now); handled {
+		return needRestart, err
+	}
+
 	existing := &model.ClientRecord{}
-	err := database.GetDB().Where("email = ?", client.Email).First(existing).Error
+	err := database.GetDB().Where("LOWER(email) = LOWER(?)", client.Email).First(existing).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, err
 	}
@@ -257,6 +268,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if existing.SubID == "" || existing.SubID != client.SubID {
 			return false, common.NewError("email already in use:", client.Email)
 		}
+		client.Email = existing.Email
 		// Reuse stored credentials when re-adding an existing identity, or
 		// fillProtocolDefaults mints a fresh UUID that desyncs other inbounds.
 		if client.ID == "" {
@@ -276,7 +288,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID != "" {
 		var subTaken int64
 		if err := database.GetDB().Model(&model.ClientRecord{}).
-			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
+			Where("sub_id = ? AND LOWER(email) <> LOWER(?)", client.SubID, client.Email).
 			Count(&subTaken).Error; err != nil {
 			return false, err
 		}
@@ -300,12 +312,6 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if ips, ok := client.AllowedIPsByInbound[ibId]; ok {
 			clientForInbound.AllowedIPs = ips
 		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
-			// The shared AllowedIPs value (e.g. from a single-field legacy
-			// caller) came from a different subnet than this inbound's own --
-			// clear it so defaultAmneziaWGClients allocates a fresh, correct
-			// address for THIS inbound instead of persisting an unroutable
-			// peer. Same reasoning as addressesFitAmneziaWGInbound's own doc
-			// comment on the Attach path.
 			clientForInbound.AllowedIPs = nil
 		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}, ""); err != nil {
@@ -331,12 +337,319 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 			return needRestart, err
 		}
 	}
-	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
+	if payload.LimitHwid > 0 || (emailTaken && existing.LimitHwid != payload.LimitHwid) {
+		return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
+	}
+	return needRestart, nil
+}
+
+type createWritePlan struct {
+	inbound      *model.Inbound
+	prevSettings string
+	newSettings  string
+	client       model.Client
+	ssMethod     string
+}
+
+func (s *ClientService) createBatchedNonTunnel(inboundSvc *InboundService, client model.Client, uniqueIDs []int, limitHwid int, now int64) (bool, bool, error) {
+	defer InvalidateSubData()
+	unlock := lockInboundsSorted(uniqueIDs)
+	defer unlock()
+
+	var plans []createWritePlan
+	var errs []error
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		existing := &model.ClientRecord{}
+		err := tx.Where("LOWER(email) = LOWER(?)", client.Email).First(existing).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		emailTaken := !errors.Is(err, gorm.ErrRecordNotFound)
+		if emailTaken {
+			if existing.SubID == "" || existing.SubID != client.SubID {
+				return common.NewError("email already in use:", client.Email)
+			}
+			client.Email = existing.Email
+			if client.ID == "" {
+				client.ID = existing.UUID
+			}
+			if client.Password == "" {
+				client.Password = existing.Password
+			}
+			if client.Auth == "" {
+				client.Auth = existing.Auth
+			}
+			if client.Secret == "" {
+				client.Secret = existing.Secret
+			}
+		}
+
+		if client.SubID != "" {
+			var subTaken int64
+			if err := tx.Model(&model.ClientRecord{}).
+				Where("sub_id = ? AND LOWER(email) <> LOWER(?)", client.SubID, client.Email).
+				Count(&subTaken).Error; err != nil {
+				return err
+			}
+			if subTaken > 0 {
+				return common.NewError("subId already in use:", client.SubID)
+			}
+		}
+
+		inboundsByID, idxByID, err := loadInboundsForClientWrite(tx, uniqueIDs)
+		if err != nil {
+			return err
+		}
+		for _, ibId := range uniqueIDs {
+			ib := inboundsByID[ibId]
+			if ib == nil {
+				return fmt.Errorf("inbound %d: %w", ibId, gorm.ErrRecordNotFound)
+			}
+			if ib.Protocol == model.WireGuard || ib.Protocol == model.AmneziaWG {
+				return errFallbackSlowPath
+			}
+		}
+
+		for _, ibId := range uniqueIDs {
+			if err := s.fillProtocolDefaultsWithIdx(&client, inboundsByID[ibId], idxByID[ibId]); err != nil {
+				return fmt.Errorf("inbound %d: %w", ibId, err)
+			}
+		}
+
+		settingsUpdates := make([]inboundSettingsUpdate, 0, len(uniqueIDs))
+		deltas := make([]inboundClientDelta, 0, len(uniqueIDs))
+		for _, ibId := range uniqueIDs {
+			ib := inboundsByID[ibId]
+			idx := idxByID[ibId]
+			if err := validateTuicClientEmails(ib.Protocol, []model.Client{client}); err != nil {
+				return fmt.Errorf("inbound %d: %w", ibId, err)
+			}
+			finalClient := clientWithInboundFlowIdx(client, ib, idx)
+			if err := validateClientRequiredCredentials(ib.Protocol, finalClient); err != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, err))
+				continue
+			}
+
+			if idx != nil && idx.canSplice() {
+				if idx.hasFoldEmail(finalClient.Email) {
+					continue
+				}
+				ssMethod := ""
+				if ib.Protocol == model.Shadowsocks {
+					ssMethod = idx.topMethod
+				}
+				encoded, sp, mErr := marshalClientWire(finalClient, ssMethod, now)
+				if mErr != nil {
+					errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, mErr))
+					continue
+				}
+				newSettings, newIdx := idx.spliceAppend([][]byte{encoded}, []clientSpan{sp})
+				prevSettings := ib.Settings
+				ibCopy := *ib
+				ibCopy.Settings = newSettings
+				plans = append(plans, createWritePlan{
+					inbound:      &ibCopy,
+					prevSettings: prevSettings,
+					newSettings:  newSettings,
+					client:       finalClient,
+					ssMethod:     ssMethod,
+				})
+				settingsUpdates = append(settingsUpdates, inboundSettingsUpdate{
+					inboundId:   ib.Id,
+					newSettings: newSettings,
+					newIdx:      newIdx,
+				})
+				deltas = append(deltas, inboundClientDelta{
+					inboundId: ib.Id,
+					protocol:  ib.Protocol,
+					nodeID:    ib.NodeID,
+					hasMeta:   true,
+					changed:   []model.Client{finalClient},
+				})
+				continue
+			}
+
+			doc, dErr := parseRawSettingsDoc(ib.Settings)
+			if dErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, dErr))
+				continue
+			}
+			dupOnInbound := false
+			for i := range doc.rawClients {
+				if em := doc.clientHeaderAt(i).Email; em != "" && strings.EqualFold(em, finalClient.Email) {
+					dupOnInbound = true
+					break
+				}
+			}
+			if dupOnInbound {
+				continue
+			}
+			ssMethod := ""
+			if ib.Protocol == model.Shadowsocks {
+				ssMethod = doc.topString("method")
+			}
+			encoded, _, mErr := marshalClientWire(finalClient, ssMethod, now)
+			if mErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, mErr))
+				continue
+			}
+			doc.hasClients = true
+			doc.rawClients = append(doc.rawClients, json.RawMessage(encoded))
+			newSettings, eErr := doc.encodeCompact()
+			if eErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, eErr))
+				continue
+			}
+			prevSettings := ib.Settings
+			ibCopy := *ib
+			ibCopy.Settings = newSettings
+			plans = append(plans, createWritePlan{
+				inbound:      &ibCopy,
+				prevSettings: prevSettings,
+				newSettings:  newSettings,
+				client:       finalClient,
+				ssMethod:     ssMethod,
+			})
+			settingsUpdates = append(settingsUpdates, inboundSettingsUpdate{
+				inboundId:   ib.Id,
+				newSettings: newSettings,
+			})
+			deltas = append(deltas, inboundClientDelta{
+				inboundId: ib.Id,
+				protocol:  ib.Protocol,
+				nodeID:    ib.NodeID,
+				hasMeta:   true,
+				changed:   []model.Client{finalClient},
+			})
+		}
+
+		if len(plans) > 0 {
+			if err := inboundSvc.AddClientStat(tx, plans[0].inbound.Id, &plans[0].client); err != nil {
+				return err
+			}
+			if err := commitInboundsSettingsBatch(tx, settingsUpdates); err != nil {
+				return err
+			}
+			if err := s.ApplyMultiInboundClientDelta(tx, deltas); err != nil {
+				return err
+			}
+			dirtyNodes := make(map[int]struct{})
+			for _, wp := range plans {
+				if wp.inbound.NodeID != nil {
+					dirtyNodes[*wp.inbound.NodeID] = struct{}{}
+				}
+			}
+			if len(dirtyNodes) > 0 {
+				nodeSvc := &NodeService{}
+				for nodeID := range dirtyNodes {
+					if err := nodeSvc.MarkNodeDirtyTx(tx, nodeID); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		if len(errs) == 0 {
+			if client.ClientHostRuleIds != nil {
+				if err := tx.Model(&model.ClientRecord{}).
+					Where("email = ?", client.Email).
+					Update("client_host_rule_ids", model.EncodeClientHostRuleIds(client.ClientHostRuleIds)).Error; err != nil {
+					return err
+				}
+			}
+			if limitHwid > 0 || (emailTaken && existing.LimitHwid != limitHwid) {
+				if err := s.setClientLimitHwidByEmailTx(tx, client.Email, limitHwid); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if errors.Is(txErr, errFallbackSlowPath) {
+		return false, false, nil
+	}
+	if txErr != nil {
+		return false, true, txErr
+	}
+	unlock()
+
+	needRestart := false
+	if len(plans) > 0 {
+		hasRemote := false
+		planIDs := make([]int, len(plans))
+		for i := range plans {
+			planIDs[i] = plans[i].inbound.Id
+			if plans[i].inbound.NodeID != nil {
+				hasRemote = true
+			}
+		}
+		outcomes, panics := fanoutInboundResults(planIDs, runtimeFanoutLimit(hasRemote), func(i int) inboundApplyOutcome {
+			wp := plans[i]
+			rt, push, _, perr := inboundSvc.nodePushPlan(wp.inbound)
+			if perr != nil {
+				return inboundApplyOutcome{err: fmt.Errorf("inbound %d: %w", wp.inbound.Id, perr)}
+			}
+			var out inboundApplyOutcome
+			if wp.inbound.NodeID == nil {
+				if !push {
+					out.needRestart = true
+				} else if wp.inbound.Protocol == model.MTProto {
+					inboundSvc.applyLocalMtproto(wp.inbound.Id)
+				} else if wp.inbound.Protocol == model.TUIC {
+					inboundSvc.applyLocalTuic(wp.inbound.Id)
+				} else if wp.client.Enable {
+					op := runtime.UserAddOp{
+						User:    coreUserFromClient(&wp.client, wp.ssMethod),
+						Replace: false,
+					}
+					if localBatchAddUsers(rt, wp.inbound, []runtime.UserAddOp{op}) {
+						out.needRestart = true
+					}
+				}
+				return out
+			}
+			if push && wp.client.Enable {
+				ctx, cancel := nodePushContext()
+				err1 := rt.AddClient(ctx, wp.inbound, wp.client)
+				cancel()
+				if err1 != nil {
+					logger.Warning("Error in adding client on", rt.Name(), ":", err1)
+				} else {
+					advancePushedInbound(rt, wp.prevSettings, wp.newSettings, wp.inbound)
+				}
+			}
+			return out
+		})
+		for i, out := range outcomes {
+			if panics[i] != nil {
+				needRestart = true
+				errs = append(errs, panics[i])
+				continue
+			}
+			if out.needRestart {
+				needRestart = true
+			}
+			if out.err != nil {
+				errs = append(errs, out.err)
+			}
+		}
+	}
+	return needRestart, true, errors.Join(errs...)
 }
 
 // inboundFanoutConcurrency caps how many inbounds one client op applies at
 // once, so a client spanning many of them can't start an unbounded RPC burst.
 const inboundFanoutConcurrency = 4
+
+// localFanoutConcurrency caps concurrent local-only HTTP/2 gRPC pushes across inbounds.
+const localFanoutConcurrency = 16
+
+func runtimeFanoutLimit(hasRemote bool) int {
+	if hasRemote {
+		return inboundFanoutConcurrency
+	}
+	return localFanoutConcurrency
+}
 
 // inboundApply is one inbound's share of a client op, ready to run.
 type inboundApply struct {
@@ -481,6 +794,16 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	return s.fillProtocolDefaultsAgainstExisting(c, ib, nil)
 }
 
+func (s *ClientService) fillProtocolDefaultsWithIdx(c *model.Client, ib *model.Inbound, idx *fastSettingsIndex) error {
+	if idx != nil && ib.Protocol == model.Shadowsocks {
+		if c.Password == "" || !validShadowsocksClientKey(idx.topMethod, c.Password) {
+			c.Password = randomShadowsocksClientKey(idx.topMethod)
+		}
+		return nil
+	}
+	return s.fillProtocolDefaults(c, ib)
+}
+
 func (s *ClientService) fillProtocolDefaultsAgainstExisting(c *model.Client, ib *model.Inbound, existing []model.Client, identityEmail ...string) error {
 	if err := validateClientKeepAliveAgainstExisting(ib.Protocol, *c, existing, identityEmail...); err != nil {
 		return err
@@ -538,9 +861,13 @@ const defaultMtprotoDomain = "www.cloudflare.com"
 func mtprotoDomainFromSettings(settings string) string {
 	domain := ""
 	if settings != "" {
-		var m map[string]any
-		if err := json.Unmarshal([]byte(settings), &m); err == nil {
-			domain, _ = m["fakeTlsDomain"].(string)
+		if v, _, ok := scanTopLevelStringFields(settings, "fakeTlsDomain", ""); ok {
+			domain = v
+		} else {
+			var m map[string]any
+			if err := json.Unmarshal([]byte(settings), &m); err == nil {
+				domain, _ = m["fakeTlsDomain"].(string)
+			}
 		}
 	}
 	domain = strings.TrimSpace(domain)
@@ -558,6 +885,12 @@ func clientWithInboundFlow(c model.Client, ib *model.Inbound) model.Client {
 }
 
 func shadowsocksMethodFromSettings(settings string) string {
+	if settings == "" {
+		return ""
+	}
+	if v, _, ok := scanTopLevelStringFields(settings, "method", ""); ok {
+		return v
+	}
 	method, _ := settingsField(settings, "method").(string)
 	return method
 }
@@ -837,6 +1170,12 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 		return false, tcErr
 	}
 
+	if tunnelCount == 0 && len(inboundIds) > 0 && existing.Email != "" && updated.Email == existing.Email {
+		if nr, handled, bErr := s.updateBatchedNonTunnel(inboundSvc, id, existing, updated, limitHwid, keepInboundFlows, inboundFlows, inboundIds, attachedIds); handled {
+			return nr, bErr
+		}
+	}
+
 	// Snapshot traffic-disabled state before fanning out so inbound #1 flipping
 	// client_traffics.enable cannot mask runtime re-add on sibling inbounds.
 	forceRuntimeSync := false
@@ -885,15 +1224,6 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 			clientForInbound.PublicKey = ""
 			clientForInbound.PreSharedKey = ""
 		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
-			// A single shared AllowedIPs field (the common case for a caller
-			// that never sends AllowedIPsByInbound) must never overwrite an
-			// inbound it doesn't belong to -- e.g. a client attached to both
-			// wg and awg saving its wg-labeled address would otherwise get
-			// that same address silently written into the awg peer config
-			// too. Clearing it here makes UpdateInboundClient's own
-			// empty-AllowedIPs carry-forward (see its WireGuard/AmneziaWG
-			// branch) preserve THIS inbound's existing, correct value
-			// instead.
 			clientForInbound.AllowedIPs = nil
 		}
 		if err := validateAmneziaWGClientWrite(inbound, []model.Client{clientForInbound}, existing.Email); err != nil {
@@ -1052,6 +1382,355 @@ func (s *ClientService) update(inboundSvc *InboundService, id int, updated model
 	return needRestart, nil
 }
 
+type updateWritePlan struct {
+	inbound      *model.Inbound
+	prevSettings string
+	newSettings  string
+	oldClient    model.Client
+	newClient    model.Client
+	ssMethod     string
+	changed      bool
+}
+
+func mapNumToInt64(v any) (int64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	case json.Number:
+		if i, err := n.Int64(); err == nil {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func (s *ClientService) updateBatchedNonTunnel(
+	inboundSvc *InboundService,
+	id int,
+	existing *model.ClientRecord,
+	updated model.Client,
+	limitHwid int,
+	keepInboundFlows bool,
+	inboundFlows map[int]string,
+	inboundIds []int,
+	attachedIds []int,
+) (bool, bool, error) {
+	defer InvalidateSubData()
+	unlock := lockInboundsSorted(inboundIds)
+	defer unlock()
+
+	var plans []updateWritePlan
+	wasTrafficDisabled := false
+	nowMs := time.Now().UnixMilli()
+
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		inboundsByID, idxByID, err := loadInboundsForClientWrite(tx, inboundIds)
+		if err != nil {
+			return err
+		}
+		for _, ibId := range inboundIds {
+			ib := inboundsByID[ibId]
+			idx := idxByID[ibId]
+			if ib == nil || ib.Protocol == model.WireGuard || ib.Protocol == model.AmneziaWG || idx == nil || !idx.canSplice() {
+				return errFallbackSlowPath
+			}
+			if _, found := idx.findFoldIndex(existing.Email); !found {
+				return errFallbackSlowPath
+			}
+		}
+
+		for _, ibId := range inboundIds {
+			if err := s.fillProtocolDefaultsWithIdx(&updated, inboundsByID[ibId], idxByID[ibId]); err != nil {
+				return err
+			}
+		}
+
+		settingsUpdates := make([]inboundSettingsUpdate, 0, len(inboundIds))
+		deltas := make([]inboundClientDelta, 0, len(inboundIds))
+		plans = make([]updateWritePlan, 0, len(inboundIds))
+
+		for _, ibId := range inboundIds {
+			ib := inboundsByID[ibId]
+			idx := idxByID[ibId]
+			pos, _ := idx.findFoldIndex(existing.Email)
+			sp := idx.spans[pos]
+			rawSlice := idx.raw[sp.start:sp.end]
+
+			var oldClient model.Client
+			if err := json.Unmarshal([]byte(rawSlice), &oldClient); err != nil {
+				return errFallbackSlowPath
+			}
+			var oldClientMap map[string]any
+			if err := json.Unmarshal([]byte(rawSlice), &oldClientMap); err != nil {
+				return errFallbackSlowPath
+			}
+
+			clientForInbound := updated
+			if keepInboundFlows {
+				clientForInbound.Flow = inboundFlows[ibId]
+			}
+			clientForInbound = clientWithInboundFlowIdx(clientForInbound, ib, idx)
+			if err := validateTuicClientEmails(ib.Protocol, []model.Client{clientForInbound}); err != nil {
+				return err
+			}
+			if err := validateClientRequiredCredentials(ib.Protocol, clientForInbound); err != nil {
+				return err
+			}
+
+			preservedCreated, hasPreservedCreated := oldClientMap["created_at"]
+			if hasPreservedCreated {
+				if cInt, okNum := mapNumToInt64(preservedCreated); okNum {
+					clientForInbound.CreatedAt = cInt
+				}
+			} else {
+				clientForInbound.CreatedAt = nowMs
+			}
+			if strings.TrimSpace(clientForInbound.SubID) == "" {
+				if prevSub, _ := oldClientMap["subId"].(string); strings.TrimSpace(prevSub) != "" {
+					clientForInbound.SubID = prevSub
+				} else {
+					clientForInbound.SubID = random.NumLower(16)
+				}
+			}
+
+			ssMethod := ""
+			if ib.Protocol == model.Shadowsocks {
+				ssMethod = idx.topMethod
+			}
+			encoded, newSpan, mErr := marshalClientWire(clientForInbound, ssMethod, nowMs)
+			if mErr != nil {
+				return mErr
+			}
+			var newMap map[string]any
+			if err := json.Unmarshal(encoded, &newMap); err != nil {
+				return err
+			}
+			if hasPreservedCreated {
+				newMap["created_at"] = preservedCreated
+			}
+			if sameClientConfigExceptUpdatedAt(oldClientMap, newMap) {
+				ibCopy := *ib
+				plans = append(plans, updateWritePlan{
+					inbound:      &ibCopy,
+					prevSettings: ib.Settings,
+					newSettings:  ib.Settings,
+					oldClient:    oldClient,
+					newClient:    clientForInbound,
+					ssMethod:     ssMethod,
+					changed:      false,
+				})
+				continue
+			}
+
+			clientForInbound.UpdatedAt = nowMs
+			if hasPreservedCreated {
+				if _, okNum := mapNumToInt64(preservedCreated); !okNum {
+					newMap["updated_at"] = nowMs
+					encoded, mErr = json.Marshal(newMap)
+					if mErr != nil {
+						return mErr
+					}
+				}
+			}
+			newSettings, newIdx, okSplice := idx.spliceReplaceOne(pos, encoded, newSpan, ib.Protocol == model.VLESS)
+			if !okSplice {
+				return errFallbackSlowPath
+			}
+			ibCopy := *ib
+			ibCopy.Settings = newSettings
+			plans = append(plans, updateWritePlan{
+				inbound:      &ibCopy,
+				prevSettings: ib.Settings,
+				newSettings:  newSettings,
+				oldClient:    oldClient,
+				newClient:    clientForInbound,
+				ssMethod:     ssMethod,
+				changed:      true,
+			})
+			settingsUpdates = append(settingsUpdates, inboundSettingsUpdate{
+				inboundId:   ib.Id,
+				newSettings: newSettings,
+				newIdx:      newIdx,
+			})
+			deltas = append(deltas, inboundClientDelta{
+				inboundId: ib.Id,
+				protocol:  ib.Protocol,
+				nodeID:    ib.NodeID,
+				hasMeta:   true,
+				changed:   []model.Client{clientForInbound},
+			})
+		}
+
+		disabled, dErr := isClientTrafficDisabled(tx, existing.Email)
+		if dErr != nil {
+			return dErr
+		}
+		wasTrafficDisabled = disabled
+
+		if err := inboundSvc.UpdateClientStat(tx, existing.Email, &updated); err != nil {
+			return err
+		}
+		if err := commitInboundsSettingsBatch(tx, settingsUpdates); err != nil {
+			return err
+		}
+		if err := s.ApplyMultiInboundClientDelta(tx, deltas); err != nil {
+			return err
+		}
+
+		if len(attachedIds) > 0 {
+			var nodeIDs []int
+			for _, batch := range chunkInts(attachedIds, sqlInChunk) {
+				var ids []int
+				if err := tx.Model(&model.Inbound{}).
+					Where("id IN ? AND node_id IS NOT NULL", batch).
+					Distinct().Pluck("node_id", &ids).Error; err != nil {
+					return err
+				}
+				nodeIDs = append(nodeIDs, ids...)
+			}
+			if len(nodeIDs) > 0 {
+				nodeSvc := &NodeService{}
+				for _, nid := range uniqueInts(nodeIDs) {
+					if err := nodeSvc.MarkNodeDirtyTx(tx, nid); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		reverseStr := ""
+		if updated.Reverse != nil && strings.TrimSpace(updated.Reverse.Tag) != "" {
+			if b, mErr := json.Marshal(updated.Reverse); mErr == nil {
+				reverseStr = string(b)
+			}
+		}
+		recCols := map[string]any{
+			"reverse":    reverseStr,
+			"group_name": strings.TrimSpace(updated.Group),
+			"ad_tag":     updated.AdTag,
+			"enable":     updated.Enable,
+			"updated_at": nowMs,
+		}
+		if updated.ForwardedPorts != nil {
+			recCols["wg_forwarded_ports"] = updated.ForwardedPortsSpec()
+		}
+		if updated.ClientHostRuleIds != nil {
+			recCols["client_host_rule_ids"] = model.EncodeClientHostRuleIds(updated.ClientHostRuleIds)
+		}
+		if err := tx.Model(&model.ClientRecord{}).Where("id = ?", id).Updates(recCols).Error; err != nil {
+			return err
+		}
+		if limitHwid > 0 || existing.LimitHwid != limitHwid {
+			if err := s.setClientLimitHwidByEmailTx(tx, updated.Email, limitHwid); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if errors.Is(txErr, errFallbackSlowPath) {
+		return false, false, nil
+	}
+	if txErr != nil {
+		return false, true, txErr
+	}
+	unlock()
+
+	activePlans := make([]updateWritePlan, 0, len(plans))
+	hasRemote := false
+	for i := range plans {
+		wp := plans[i]
+		if !wp.changed && (wp.inbound.NodeID != nil || !wasTrafficDisabled || !wp.newClient.Enable) {
+			continue
+		}
+		if wp.inbound.NodeID == nil &&
+			wp.inbound.Protocol != model.MTProto &&
+			wp.inbound.Protocol != model.TUIC &&
+			wp.oldClient.Enable && wp.newClient.Enable &&
+			wp.oldClient.Reverse == nil && wp.newClient.Reverse == nil &&
+			!wasTrafficDisabled &&
+			!clientRuntimeConfigChanged(&wp.oldClient, &wp.newClient) {
+			continue
+		}
+		if wp.inbound.NodeID != nil {
+			hasRemote = true
+		}
+		activePlans = append(activePlans, wp)
+	}
+	if len(activePlans) == 0 {
+		return false, true, nil
+	}
+
+	planIDs := make([]int, len(activePlans))
+	for i := range activePlans {
+		planIDs[i] = activePlans[i].inbound.Id
+	}
+	needRestart := false
+	var errs []error
+	outcomes, panics := fanoutInboundResults(planIDs, runtimeFanoutLimit(hasRemote), func(i int) inboundApplyOutcome {
+		wp := activePlans[i]
+		rt, push, _, perr := inboundSvc.nodePushPlan(wp.inbound)
+		if perr != nil {
+			return inboundApplyOutcome{err: fmt.Errorf("inbound %d: %w", wp.inbound.Id, perr)}
+		}
+		var out inboundApplyOutcome
+		if wp.inbound.NodeID == nil {
+			if !push {
+				out.needRestart = true
+			} else if wp.inbound.Protocol == model.MTProto {
+				inboundSvc.applyLocalMtproto(wp.inbound.Id)
+			} else if wp.inbound.Protocol == model.TUIC {
+				inboundSvc.applyLocalTuic(wp.inbound.Id)
+			} else {
+				if wp.oldClient.Enable {
+					err1 := rt.RemoveUser(context.Background(), wp.inbound, existing.Email)
+					if err1 == nil {
+						if !wp.newClient.Enable && droppedClientNeedsRestart() {
+							out.needRestart = true
+						}
+					} else if !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", existing.Email)) {
+						out.needRestart = true
+					}
+				}
+				if wp.newClient.Enable {
+					if err1 := rt.AddUser(context.Background(), wp.inbound, coreUserFromClient(&wp.newClient, wp.ssMethod)); err1 != nil {
+						out.needRestart = true
+					}
+				}
+			}
+			return out
+		}
+		if push {
+			ctx, cancel := nodePushContext()
+			err1 := rt.UpdateUser(ctx, wp.inbound, existing.Email, wp.newClient)
+			cancel()
+			if err1 != nil {
+				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+			} else {
+				advancePushedInbound(rt, wp.prevSettings, wp.newSettings, wp.inbound)
+			}
+		}
+		return out
+	})
+	for i, out := range outcomes {
+		if panics[i] != nil {
+			needRestart = true
+			errs = append(errs, panics[i])
+			continue
+		}
+		if out.needRestart {
+			needRestart = true
+		}
+		if out.err != nil {
+			errs = append(errs, out.err)
+		}
+	}
+	return needRestart, true, errors.Join(errs...)
+}
+
 func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic bool) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
@@ -1067,31 +1746,30 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 
 	applies := make([]inboundApply, 0, len(inboundIds))
 	var delErrs []error
-	for _, ibId := range inboundIds {
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
-			if errors.Is(getErr, gorm.ErrRecordNotFound) {
+	if existing.Email != "" && len(inboundIds) > 0 {
+		existingIbIDs := make(map[int]struct{}, len(inboundIds))
+		for _, batch := range chunkInts(uniqueInts(inboundIds), sqlInChunk) {
+			var found []int
+			if qErr := database.GetDB().Model(&model.Inbound{}).Where("id IN ?", batch).Pluck("id", &found).Error; qErr != nil {
+				withdrawClientTombstones(existing.Email)
+				return false, qErr
+			}
+			for _, fid := range found {
+				existingIbIDs[fid] = struct{}{}
+			}
+		}
+		for _, ibId := range inboundIds {
+			if _, ok := existingIbIDs[ibId]; !ok {
 				continue
 			}
-			delErrs = append(delErrs, fmt.Errorf("inbound %d: %w", ibId, getErr))
-			continue
+			applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
+				nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, keepTraffic, true)
+				if errors.Is(delErr, ErrClientNotInInbound) {
+					return nr, nil
+				}
+				return nr, delErr
+			}})
 		}
-
-		// Always delete by email — the client's stable identity. This removes
-		// every matching entry from the inbound's settings even when the stored
-		// credential (UUID/password/auth) drifted from the inbound JSON, or a
-		// duplicate entry with the same email exists.
-		if existing.Email == "" {
-			continue
-		}
-		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
-			nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, keepTraffic, true)
-			// The client is already absent from this inbound (data drift or a
-			// retried delete). Skip it — deletion stays idempotent.
-			if errors.Is(delErr, ErrClientNotInInbound) {
-				return nr, nil
-			}
-			return nr, delErr
-		}})
 	}
 	needRestart, applyErr := fanoutInboundApplies(applies)
 	if applyErr != nil {
@@ -1143,20 +1821,10 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 }
 
 // hasTunnelAttachment reports whether any of inboundIds is a currently
-// existing WireGuard or AmneziaWG inbound. Inbounds that fail to load are
-// skipped rather than treated as an error -- Attach's own loop already
-// surfaces a real error for any inbound it can't load when it gets there.
-func (s *ClientService) hasTunnelAttachment(inboundSvc *InboundService, inboundIds []int) bool {
-	for _, ibId := range inboundIds {
-		inbound, err := inboundSvc.GetInbound(ibId)
-		if err != nil {
-			continue
-		}
-		if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
-			return true
-		}
-	}
-	return false
+// existing WireGuard or AmneziaWG inbound.
+func (s *ClientService) hasTunnelAttachment(_ *InboundService, inboundIds []int) bool {
+	n, err := tunnelInboundCount(inboundIds)
+	return err == nil && n > 0
 }
 
 // tunnelInboundCount reports how many of inboundIds are WireGuard/AmneziaWG,
@@ -1215,6 +1883,21 @@ func addressesFitAmneziaWGInbound(addrs []string, ib *model.Inbound) bool {
 	return true
 }
 
+func propagateMintedCredentials(dst *model.Client, src model.Client) {
+	if dst.ID == "" {
+		dst.ID = src.ID
+	}
+	if dst.Password == "" {
+		dst.Password = src.Password
+	}
+	if dst.Auth == "" {
+		dst.Auth = src.Auth
+	}
+	if dst.Secret == "" {
+		dst.Secret = src.Secret
+	}
+}
+
 // Attach applies the client to every requested inbound: one failing inbound no
 // longer aborts the others, so the error can name several and needRestart holds.
 func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
@@ -1231,6 +1914,15 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	for _, x := range currentIds {
 		have[x] = struct{}{}
 	}
+	targetIDs := make([]int, 0, len(inboundIds))
+	for _, ibId := range inboundIds {
+		if _, attached := have[ibId]; !attached {
+			targetIDs = append(targetIDs, ibId)
+		}
+	}
+	if len(targetIDs) == 0 {
+		return false, nil
+	}
 
 	clientWire := existing.ToClient()
 	flow, ffErr := s.EffectiveFlow(nil, id)
@@ -1239,15 +1931,12 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	}
 	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
+	clientWire.ForwardedPorts = nil
 
-	// If this identity has no CURRENT WireGuard/AmneziaWG attachment,
-	// clientWire.AllowedIPs (from the ClientRecord) is a leftover from
-	// whenever it last had one -- nothing reserves it anymore. Clear it so
-	// attaching to a tunnel inbound now allocates a fresh address instead
-	// of resurrecting the old one, which may no longer even be the lowest
-	// free slot. Left untouched when the identity already has an active
-	// tunnel elsewhere, so extending it to a second protocol still keeps
-	// the same address on both.
+	if nr, handled, bErr := s.attachBatchedNonTunnel(inboundSvc, *clientWire, targetIDs); handled {
+		return nr, bErr
+	}
+
 	if !s.hasTunnelAttachment(inboundSvc, currentIds) {
 		clientWire.AllowedIPs = nil
 		clientWire.WireguardDevices = model.CloneWireguardDevices(clientWire.WireguardDevices)
@@ -1256,18 +1945,14 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		}
 	}
 
-	adds := make([]*model.Inbound, 0, len(inboundIds))
-	for _, ibId := range inboundIds {
-		if _, attached := have[ibId]; attached {
-			continue
-		}
+	trafficDisabled, _ := isClientTrafficDisabled(database.GetDB(), existing.Email)
+	adds := make([]*model.Inbound, 0, len(targetIDs))
+	for _, ibId := range targetIDs {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, getErr)
 		}
 		copyClient := *clientWire
-		// A forward is a listener on the target inbound's host, set per inbound: carried over, it
-		// would let a node-reported client choose ports on this host.
 		copyClient.ForwardedPorts = nil
 		prepareWireguardDeviceAddresses(&copyClient, inbound)
 		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
@@ -1276,6 +1961,10 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
+		propagateMintedCredentials(clientWire, copyClient)
+		if trafficDisabled {
+			copyClient.Enable = false
+		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(copyClient, inbound)}})
 		if mErr != nil {
 			return false, fmt.Errorf("inbound %d: %w", ibId, mErr)
@@ -1283,6 +1972,257 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		adds = append(adds, &model.Inbound{Id: ibId, Settings: string(settingsPayload)})
 	}
 	return s.fanoutInboundClientAdds(inboundSvc, adds)
+}
+
+func (s *ClientService) attachBatchedNonTunnel(inboundSvc *InboundService, client model.Client, targetIDs []int) (bool, bool, error) {
+	defer InvalidateSubData()
+	unlock := lockInboundsSorted(targetIDs)
+	defer unlock()
+
+	var plans []createWritePlan
+	var errs []error
+	trafficEnabled := client.Enable
+	nowMs := client.UpdatedAt
+
+	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		inboundsByID, idxByID, err := loadInboundsForClientWrite(tx, targetIDs)
+		if err != nil {
+			return err
+		}
+		for _, ibId := range targetIDs {
+			ib := inboundsByID[ibId]
+			if ib == nil {
+				return fmt.Errorf("inbound %d: %w", ibId, gorm.ErrRecordNotFound)
+			}
+			if ib.Protocol == model.WireGuard || ib.Protocol == model.AmneziaWG {
+				return errFallbackSlowPath
+			}
+		}
+
+		for _, ibId := range targetIDs {
+			if err := s.fillProtocolDefaultsWithIdx(&client, inboundsByID[ibId], idxByID[ibId]); err != nil {
+				return fmt.Errorf("inbound %d: %w", ibId, err)
+			}
+		}
+
+		hasTrafficRow := false
+		if client.Email != "" {
+			var enables []bool
+			if err := tx.Model(xray.ClientTraffic{}).Where("email = ?", client.Email).Limit(1).Pluck("enable", &enables).Error; err != nil {
+				return err
+			}
+			if len(enables) > 0 {
+				hasTrafficRow = true
+				trafficEnabled = enables[0]
+			}
+		}
+
+		settingsUpdates := make([]inboundSettingsUpdate, 0, len(targetIDs))
+		deltas := make([]inboundClientDelta, 0, len(targetIDs))
+		for _, ibId := range targetIDs {
+			ib := inboundsByID[ibId]
+			idx := idxByID[ibId]
+			if err := validateTuicClientEmails(ib.Protocol, []model.Client{client}); err != nil {
+				return fmt.Errorf("inbound %d: %w", ibId, err)
+			}
+			finalClient := clientWithInboundFlowIdx(client, ib, idx)
+			if err := validateClientRequiredCredentials(ib.Protocol, finalClient); err != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, err))
+				continue
+			}
+
+			if idx != nil && idx.canSplice() {
+				if idx.hasFoldEmail(finalClient.Email) {
+					continue
+				}
+				ssMethod := ""
+				if ib.Protocol == model.Shadowsocks {
+					ssMethod = idx.topMethod
+				}
+				encoded, sp, mErr := marshalClientWire(finalClient, ssMethod, nowMs)
+				if mErr != nil {
+					errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, mErr))
+					continue
+				}
+				newSettings, newIdx := idx.spliceAppend([][]byte{encoded}, []clientSpan{sp})
+				prevSettings := ib.Settings
+				ibCopy := *ib
+				ibCopy.Settings = newSettings
+				plans = append(plans, createWritePlan{
+					inbound:      &ibCopy,
+					prevSettings: prevSettings,
+					newSettings:  newSettings,
+					client:       finalClient,
+					ssMethod:     ssMethod,
+				})
+				settingsUpdates = append(settingsUpdates, inboundSettingsUpdate{
+					inboundId:   ib.Id,
+					newSettings: newSettings,
+					newIdx:      newIdx,
+				})
+				deltas = append(deltas, inboundClientDelta{
+					inboundId: ib.Id,
+					protocol:  ib.Protocol,
+					nodeID:    ib.NodeID,
+					hasMeta:   true,
+					changed:   []model.Client{finalClient},
+				})
+				continue
+			}
+
+			doc, dErr := parseRawSettingsDoc(ib.Settings)
+			if dErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, dErr))
+				continue
+			}
+			dupOnInbound := false
+			for i := range doc.rawClients {
+				if em := doc.clientHeaderAt(i).Email; em != "" && strings.EqualFold(em, finalClient.Email) {
+					dupOnInbound = true
+					break
+				}
+			}
+			if dupOnInbound {
+				continue
+			}
+			ssMethod := ""
+			if ib.Protocol == model.Shadowsocks {
+				ssMethod = doc.topString("method")
+			}
+			encoded, _, mErr := marshalClientWire(finalClient, ssMethod, nowMs)
+			if mErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, mErr))
+				continue
+			}
+			doc.hasClients = true
+			doc.rawClients = append(doc.rawClients, json.RawMessage(encoded))
+			newSettings, eErr := doc.encodeCompact()
+			if eErr != nil {
+				errs = append(errs, fmt.Errorf("inbound %d: %w", ibId, eErr))
+				continue
+			}
+			prevSettings := ib.Settings
+			ibCopy := *ib
+			ibCopy.Settings = newSettings
+			plans = append(plans, createWritePlan{
+				inbound:      &ibCopy,
+				prevSettings: prevSettings,
+				newSettings:  newSettings,
+				client:       finalClient,
+				ssMethod:     ssMethod,
+			})
+			settingsUpdates = append(settingsUpdates, inboundSettingsUpdate{
+				inboundId:   ib.Id,
+				newSettings: newSettings,
+			})
+			deltas = append(deltas, inboundClientDelta{
+				inboundId: ib.Id,
+				protocol:  ib.Protocol,
+				nodeID:    ib.NodeID,
+				hasMeta:   true,
+				changed:   []model.Client{finalClient},
+			})
+		}
+
+		if len(plans) > 0 {
+			if !hasTrafficRow && plans[0].client.Email != "" {
+				if err := inboundSvc.AddClientStat(tx, plans[0].inbound.Id, &plans[0].client); err != nil {
+					return err
+				}
+			}
+			if err := commitInboundsSettingsBatch(tx, settingsUpdates); err != nil {
+				return err
+			}
+			if err := s.ApplyMultiInboundClientDelta(tx, deltas); err != nil {
+				return err
+			}
+			dirtyNodes := make(map[int]struct{})
+			for _, wp := range plans {
+				if wp.inbound.NodeID != nil {
+					dirtyNodes[*wp.inbound.NodeID] = struct{}{}
+				}
+			}
+			if len(dirtyNodes) > 0 {
+				nodeSvc := &NodeService{}
+				for nodeID := range dirtyNodes {
+					if err := nodeSvc.MarkNodeDirtyTx(tx, nodeID); err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if errors.Is(txErr, errFallbackSlowPath) {
+		return false, false, nil
+	}
+	if txErr != nil {
+		return false, true, txErr
+	}
+	unlock()
+
+	needRestart := false
+	if len(plans) > 0 {
+		hasRemote := false
+		planIDs := make([]int, len(plans))
+		for i := range plans {
+			planIDs[i] = plans[i].inbound.Id
+			if plans[i].inbound.NodeID != nil {
+				hasRemote = true
+			}
+		}
+		outcomes, panics := fanoutInboundResults(planIDs, runtimeFanoutLimit(hasRemote), func(i int) inboundApplyOutcome {
+			wp := plans[i]
+			rt, push, _, perr := inboundSvc.nodePushPlan(wp.inbound)
+			if perr != nil {
+				return inboundApplyOutcome{err: fmt.Errorf("inbound %d: %w", wp.inbound.Id, perr)}
+			}
+			var out inboundApplyOutcome
+			if wp.inbound.NodeID == nil {
+				if !push {
+					out.needRestart = true
+				} else if wp.inbound.Protocol == model.MTProto {
+					inboundSvc.applyLocalMtproto(wp.inbound.Id)
+				} else if wp.inbound.Protocol == model.TUIC {
+					inboundSvc.applyLocalTuic(wp.inbound.Id)
+				} else if wp.client.Enable && trafficEnabled {
+					op := runtime.UserAddOp{
+						User:    coreUserFromClient(&wp.client, wp.ssMethod),
+						Replace: false,
+					}
+					if localBatchAddUsers(rt, wp.inbound, []runtime.UserAddOp{op}) {
+						out.needRestart = true
+					}
+				}
+				return out
+			}
+			if push && wp.client.Enable && trafficEnabled {
+				ctx, cancel := nodePushContext()
+				err1 := rt.AddClient(ctx, wp.inbound, wp.client)
+				cancel()
+				if err1 != nil {
+					logger.Warning("Error in adding client on", rt.Name(), ":", err1)
+				} else {
+					advancePushedInbound(rt, wp.prevSettings, wp.newSettings, wp.inbound)
+				}
+			}
+			return out
+		})
+		for i, out := range outcomes {
+			if panics[i] != nil {
+				needRestart = true
+				errs = append(errs, panics[i])
+				continue
+			}
+			if out.needRestart {
+				needRestart = true
+			}
+			if out.err != nil {
+				errs = append(errs, out.err)
+			}
+		}
+	}
+	return needRestart, true, errors.Join(errs...)
 }
 
 func (s *ClientService) CreateOne(inboundSvc *InboundService, inboundId int, client model.Client) (bool, error) {
@@ -1400,18 +2340,34 @@ func (s *ClientService) Detach(inboundSvc *InboundService, id int, inboundIds []
 		have[x] = struct{}{}
 	}
 
-	applies := make([]inboundApply, 0, len(inboundIds))
-	for _, ibId := range inboundIds {
-		if _, attached := have[ibId]; !attached {
-			continue
+	targetIDs := make([]int, 0, len(inboundIds))
+	for _, ibId := range uniqueInts(inboundIds) {
+		if _, attached := have[ibId]; attached {
+			targetIDs = append(targetIDs, ibId)
 		}
-		if _, getErr := inboundSvc.GetInbound(ibId); getErr != nil {
-			return false, getErr
+	}
+	if len(targetIDs) == 0 {
+		return false, nil
+	}
+
+	// Verify existence via ID-only query instead of loading multi-MB settings blobs.
+	var foundIDs []int
+	for _, batch := range chunkInts(targetIDs, sqlInChunk) {
+		var rows []int
+		if err := database.GetDB().Model(&model.Inbound{}).Where("id IN ?", batch).Pluck("id", &rows).Error; err != nil {
+			return false, err
 		}
-		// Detach by email — the client's stable identity (see Delete).
-		if existing.Email == "" {
-			continue
-		}
+		foundIDs = append(foundIDs, rows...)
+	}
+	if len(foundIDs) != len(targetIDs) {
+		return false, gorm.ErrRecordNotFound
+	}
+	if existing.Email == "" {
+		return false, nil
+	}
+
+	applies := make([]inboundApply, 0, len(targetIDs))
+	for _, ibId := range targetIDs {
 		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
 			nr, delErr := s.DelInboundClientByEmail(inboundSvc, ibId, existing.Email, true, false)
 			if errors.Is(delErr, ErrClientNotInInbound) {

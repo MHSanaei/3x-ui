@@ -107,12 +107,498 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 	return s.syncInboundClients(tx, inboundId, clients, nil, true)
 }
 
+type inboundClientDelta struct {
+	inboundId    int
+	protocol     model.Protocol
+	nodeID       *int
+	hasMeta      bool
+	changed      []model.Client
+	detachEmails []string
+}
+
 // ApplyInboundClientDelta persists only the clients an edit actually changed
 // plus the emails it detached, leaving every other link on the inbound alone —
 // the whole point being that a one-client edit must not rewrite the inbound's
 // entire membership set (#6252).
 func (s *ClientService) ApplyInboundClientDelta(tx *gorm.DB, inboundId int, changed []model.Client, detachEmails []string) error {
 	return s.syncInboundClients(tx, inboundId, changed, detachEmails, false)
+}
+
+// ApplyMultiInboundClientDelta applies per-inbound deltas across multiple inbounds
+// in one batched pass over clients, client_inbounds, and flow settlement.
+func (s *ClientService) ApplyMultiInboundClientDelta(tx *gorm.DB, deltas []inboundClientDelta) error {
+	if len(deltas) == 0 {
+		return nil
+	}
+	if len(deltas) == 1 {
+		return s.syncInboundClients(tx, deltas[0].inboundId, deltas[0].changed, deltas[0].detachEmails, false)
+	}
+	if tx == nil {
+		tx = database.GetDB()
+	}
+
+	type inboundMeta struct {
+		protocol model.Protocol
+		nodeID   *int
+	}
+	metaByInbound := make(map[int]inboundMeta, len(deltas))
+	var missingMetaIDs []int
+	groupNames := make(map[string]string)
+	for i := range deltas {
+		if err := validateClientsRenewal(deltas[i].changed); err != nil {
+			return err
+		}
+		for j := range deltas[i].changed {
+			name := strings.TrimSpace(deltas[i].changed[j].Group)
+			if name == "" {
+				continue
+			}
+			canonical, ok := groupNames[name]
+			if !ok {
+				group, err := database.EnsureClientGroup(tx, name)
+				if err != nil {
+					return err
+				}
+				canonical = group.Name
+				groupNames[name] = canonical
+			}
+			deltas[i].changed[j].Group = canonical
+		}
+		if deltas[i].hasMeta {
+			metaByInbound[deltas[i].inboundId] = inboundMeta{
+				protocol: deltas[i].protocol,
+				nodeID:   deltas[i].nodeID,
+			}
+		} else if _, ok := metaByInbound[deltas[i].inboundId]; !ok {
+			missingMetaIDs = append(missingMetaIDs, deltas[i].inboundId)
+		}
+	}
+	if len(missingMetaIDs) > 0 {
+		for _, batch := range chunkInts(uniqueInts(missingMetaIDs), sqlInChunk) {
+			var rows []struct {
+				Id       int
+				Protocol model.Protocol
+				NodeID   *int
+			}
+			if err := tx.Model(&model.Inbound{}).Select("id, protocol, node_id").Where("id IN ?", batch).Find(&rows).Error; err != nil {
+				return err
+			}
+			for _, r := range rows {
+				metaByInbound[r.Id] = inboundMeta{protocol: r.Protocol, nodeID: r.NodeID}
+			}
+		}
+	}
+
+	anyTUIC := false
+	for i := range deltas {
+		meta, ok := metaByInbound[deltas[i].inboundId]
+		if !ok {
+			return gorm.ErrRecordNotFound
+		}
+		if meta.protocol == model.TUIC {
+			anyTUIC = true
+		}
+		if meta.protocol == model.TUIC || meta.protocol == model.MASQUE {
+			if err := s.validateProtocolClients(tx, meta.protocol, deltas[i].inboundId, deltas[i].changed, deltas[i].detachEmails, false); err != nil {
+				return err
+			}
+		}
+	}
+
+	changedEmailSet := make(map[string]struct{})
+	changedEmails := make([]string, 0)
+	detachEmailSet := make(map[string]struct{})
+	detachEmailsAll := make([]string, 0)
+	for i := range deltas {
+		for j := range deltas[i].changed {
+			em := strings.TrimSpace(deltas[i].changed[j].Email)
+			if em == "" {
+				continue
+			}
+			if _, ok := changedEmailSet[em]; !ok {
+				changedEmailSet[em] = struct{}{}
+				changedEmails = append(changedEmails, em)
+			}
+		}
+		for _, rawEm := range deltas[i].detachEmails {
+			em := strings.TrimSpace(rawEm)
+			if em == "" {
+				continue
+			}
+			if _, ok := detachEmailSet[em]; !ok {
+				detachEmailSet[em] = struct{}{}
+				detachEmailsAll = append(detachEmailsAll, em)
+			}
+		}
+	}
+
+	existing := make(map[string]*model.ClientRecord, len(changedEmails))
+	const selectChunk = 400
+	for start := 0; start < len(changedEmails); start += selectChunk {
+		end := min(start+selectChunk, len(changedEmails))
+		var rows []model.ClientRecord
+		if err := tx.Where("email IN ?", changedEmails[start:end]).Find(&rows).Error; err != nil {
+			return err
+		}
+		for i := range rows {
+			r := rows[i]
+			existing[r.Email] = &r
+		}
+	}
+
+	existingIDs := make([]int, 0, len(existing))
+	for _, row := range existing {
+		existingIDs = append(existingIDs, row.Id)
+	}
+	onLowerTunnelByInbound := make(map[int]map[int]struct{})
+	onLowerWgByInbound := make(map[int]map[int]struct{})
+	if len(existingIDs) > 0 {
+		for i := range deltas {
+			meta := metaByInbound[deltas[i].inboundId]
+			if meta.protocol != model.WireGuard && meta.protocol != model.AmneziaWG {
+				continue
+			}
+			if _, done := onLowerTunnelByInbound[deltas[i].inboundId]; done {
+				continue
+			}
+			m, err := clientsOnLowerTunnel(tx, deltas[i].inboundId, meta.nodeID, existingIDs, []model.Protocol{model.WireGuard, model.AmneziaWG})
+			if err != nil {
+				return err
+			}
+			onLowerTunnelByInbound[deltas[i].inboundId] = m
+			if meta.protocol == model.WireGuard {
+				wm, err := clientsOnLowerTunnel(tx, deltas[i].inboundId, meta.nodeID, existingIDs, []model.Protocol{model.WireGuard})
+				if err != nil {
+					return err
+				}
+				onLowerWgByInbound[deltas[i].inboundId] = wm
+			}
+		}
+	}
+
+	beforeByID := make(map[int]model.ClientRecord, len(existing))
+	for _, row := range existing {
+		beforeByID[row.Id] = *row
+	}
+
+	idByEmail := make(map[string]int, len(changedEmails)+len(detachEmailsAll))
+	pending := make(map[string]*model.ClientRecord, len(changedEmails))
+	toCreate := make([]*model.ClientRecord, 0)
+	dirtyRecords := make(map[int]*model.ClientRecord)
+
+	for i := range deltas {
+		meta := metaByInbound[deltas[i].inboundId]
+		isTunnel := meta.protocol == model.WireGuard || meta.protocol == model.AmneziaWG
+		isWG := meta.protocol == model.WireGuard
+		onLowerTunnel := onLowerTunnelByInbound[deltas[i].inboundId]
+		onLowerWG := onLowerWgByInbound[deltas[i].inboundId]
+		for j := range deltas[i].changed {
+			email := strings.TrimSpace(deltas[i].changed[j].Email)
+			if email == "" {
+				continue
+			}
+			incoming := deltas[i].changed[j].ToRecord()
+			incoming.Email = email
+			incoming.ClientHostRuleIds = model.NormalizeClientHostRuleIds(incoming.ClientHostRuleIds)
+			row, ok := existing[email]
+			if !ok {
+				if p, exists := pending[email]; !exists {
+					pending[email] = incoming
+					toCreate = append(toCreate, incoming)
+				} else {
+					pBefore := *p
+					applyClientRecordMerge(p, incoming)
+					keepLinkOwnedFields(p, &pBefore, isTunnel, isWG)
+					p.UpdatedAt = max(incoming.UpdatedAt, p.UpdatedAt)
+				}
+				continue
+			}
+			beforeMerge := *row
+			applyClientRecordMerge(row, incoming)
+			_, outranked := onLowerTunnel[row.Id]
+			_, wgOutranked := onLowerWG[row.Id]
+			keepLinkOwnedFields(row, &beforeMerge, isTunnel && !outranked, isWG && !wgOutranked)
+			preservedUpdatedAt := max(incoming.UpdatedAt, row.UpdatedAt)
+			row.UpdatedAt = preservedUpdatedAt
+			idByEmail[email] = row.Id
+			if !reflect.DeepEqual(*row, beforeByID[row.Id]) {
+				dirtyRecords[row.Id] = row
+			}
+		}
+	}
+
+	for _, row := range dirtyRecords {
+		preservedUpdatedAt := row.UpdatedAt
+		if err := tx.Save(row).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.ClientRecord{}).
+			Where("id = ?", row.Id).
+			UpdateColumn("updated_at", preservedUpdatedAt).Error; err != nil {
+			return err
+		}
+	}
+
+	if len(toCreate) > 0 {
+		wantEnable := make([]bool, len(toCreate))
+		for i, rec := range toCreate {
+			wantEnable[i] = rec.Enable
+		}
+		if err := tx.CreateInBatches(toCreate, 200).Error; err != nil {
+			return err
+		}
+		liftTombstonesOnCommit(tx, toCreate)
+		disabledIDs := make([]int, 0)
+		for i, rec := range toCreate {
+			idByEmail[rec.Email] = rec.Id
+			if !wantEnable[i] {
+				disabledIDs = append(disabledIDs, rec.Id)
+			}
+		}
+		for _, batch := range chunkInts(disabledIDs, sqlInChunk) {
+			if err := tx.Model(&model.ClientRecord{}).Where("id IN ?", batch).
+				UpdateColumn("enable", false).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	var missingDetach []string
+	for _, em := range detachEmailsAll {
+		if _, ok := idByEmail[em]; !ok {
+			missingDetach = append(missingDetach, em)
+		}
+	}
+	for _, batch := range chunkStrings(missingDetach, sqlInChunk) {
+		var rows []struct {
+			Id    int
+			Email string
+		}
+		if err := tx.Model(&model.ClientRecord{}).Select("id, email").Where("email IN ?", batch).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, r := range rows {
+			idByEmail[r.Email] = r.Id
+		}
+	}
+
+	type deltaWanted struct {
+		inboundId  int
+		wantedFlow map[int]string
+		wantedIds  []int
+		detachIds  []int
+	}
+	perDelta := make([]deltaWanted, len(deltas))
+	allInboundIDs := make([]int, 0, len(deltas))
+	allClientIDSet := make(map[int]struct{})
+	allWantedIDs := make([]int, 0)
+	seenWantedGlobal := make(map[int]struct{})
+
+	for i := range deltas {
+		allInboundIDs = append(allInboundIDs, deltas[i].inboundId)
+		wf := make(map[int]string, len(deltas[i].changed))
+		wIds := make([]int, 0, len(deltas[i].changed))
+		for j := range deltas[i].changed {
+			email := strings.TrimSpace(deltas[i].changed[j].Email)
+			if email == "" {
+				continue
+			}
+			id, ok := idByEmail[email]
+			if !ok {
+				continue
+			}
+			if _, dup := wf[id]; dup {
+				continue
+			}
+			wf[id] = deltas[i].changed[j].Flow
+			wIds = append(wIds, id)
+			allClientIDSet[id] = struct{}{}
+			if _, g := seenWantedGlobal[id]; !g {
+				seenWantedGlobal[id] = struct{}{}
+				allWantedIDs = append(allWantedIDs, id)
+			}
+		}
+		var dIds []int
+		for _, rawEm := range deltas[i].detachEmails {
+			em := strings.TrimSpace(rawEm)
+			if em == "" {
+				continue
+			}
+			if id, ok := idByEmail[em]; ok {
+				if _, keep := wf[id]; !keep {
+					dIds = append(dIds, id)
+				}
+			}
+		}
+		perDelta[i] = deltaWanted{
+			inboundId:  deltas[i].inboundId,
+			wantedFlow: wf,
+			wantedIds:  wIds,
+			detachIds:  dIds,
+		}
+	}
+
+	uniqueInboundIDs := uniqueInts(allInboundIDs)
+	allClientIDs := make([]int, 0, len(allClientIDSet))
+	for id := range allClientIDSet {
+		allClientIDs = append(allClientIDs, id)
+	}
+
+	type linkKey struct {
+		inboundId int
+		clientId  int
+	}
+	existingLinks := make(map[linkKey]string, len(allClientIDs)*len(uniqueInboundIDs))
+	if len(allClientIDs) > 0 && len(uniqueInboundIDs) > 0 {
+		for _, ibBatch := range chunkInts(uniqueInboundIDs, sqlInChunk) {
+			clientChunk := max(1, sqlInChunk-len(ibBatch))
+			for _, clBatch := range chunkInts(allClientIDs, clientChunk) {
+				var rows []model.ClientInbound
+				if err := tx.Where("inbound_id IN ? AND client_id IN ?", ibBatch, clBatch).Find(&rows).Error; err != nil {
+					return err
+				}
+				for _, r := range rows {
+					existingLinks[linkKey{inboundId: r.InboundId, clientId: r.ClientId}] = r.FlowOverride
+				}
+			}
+		}
+	}
+
+	var toInsert []model.ClientInbound
+	toUpdateByFlow := make(map[string]map[int][]int)
+	toDeleteByInbound := make(map[int][]int)
+	relinkedSet := make(map[int]struct{})
+
+	for i := range perDelta {
+		dw := &perDelta[i]
+		for _, cid := range dw.detachIds {
+			toDeleteByInbound[dw.inboundId] = append(toDeleteByInbound[dw.inboundId], cid)
+			relinkedSet[cid] = struct{}{}
+		}
+		for _, cid := range dw.wantedIds {
+			flow := dw.wantedFlow[cid]
+			curFlow, exists := existingLinks[linkKey{inboundId: dw.inboundId, clientId: cid}]
+			if !exists {
+				toInsert = append(toInsert, model.ClientInbound{
+					ClientId:     cid,
+					InboundId:    dw.inboundId,
+					FlowOverride: flow,
+				})
+				existingLinks[linkKey{inboundId: dw.inboundId, clientId: cid}] = flow
+				relinkedSet[cid] = struct{}{}
+			} else if curFlow != flow {
+				byIb := toUpdateByFlow[flow]
+				if byIb == nil {
+					byIb = make(map[int][]int)
+					toUpdateByFlow[flow] = byIb
+				}
+				byIb[dw.inboundId] = append(byIb[dw.inboundId], cid)
+				existingLinks[linkKey{inboundId: dw.inboundId, clientId: cid}] = flow
+				relinkedSet[cid] = struct{}{}
+			}
+		}
+	}
+
+	for ibId, cids := range toDeleteByInbound {
+		for _, batch := range chunkInts(uniqueInts(cids), sqlInChunk) {
+			if err := tx.Where("inbound_id = ? AND client_id IN ?", ibId, batch).
+				Delete(&model.ClientInbound{}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	for flow, byIb := range toUpdateByFlow {
+		for ibId, cids := range byIb {
+			for _, batch := range chunkInts(uniqueInts(cids), sqlInChunk) {
+				if err := tx.Model(&model.ClientInbound{}).
+					Where("inbound_id = ? AND client_id IN ?", ibId, batch).
+					Update("flow_override", flow).Error; err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if len(toInsert) > 0 {
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "client_id"}, {Name: "inbound_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"flow_override"}),
+		}).CreateInBatches(toInsert, 200).Error; err != nil {
+			return err
+		}
+		linked := make([]int, 0, len(toInsert))
+		for _, link := range toInsert {
+			linked = append(linked, link.ClientId)
+		}
+		for _, batch := range chunkInts(uniqueInts(linked), sqlInChunk) {
+			if err := tx.Model(&model.ClientRecord{}).Where("id IN ? AND sync_orphaned_at > 0", batch).
+				Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(relinkedSet) > 0 {
+		relinked := make([]int, 0, len(relinkedSet))
+		for cid := range relinkedSet {
+			relinked = append(relinked, cid)
+		}
+		if err := settleRecordFlows(tx, relinked); err != nil {
+			return err
+		}
+	}
+
+	return checkTuicDuplicateUUIDs(tx, uniqueInboundIDs, allWantedIDs, anyTUIC)
+}
+
+func checkTuicDuplicateUUIDs(tx *gorm.DB, inboundIDs []int, clientIDs []int, anyTUIC bool) error {
+	if !anyTUIC && len(clientIDs) == 0 {
+		return nil
+	}
+	if !anyTUIC {
+		var hasTUIC int
+		if err := tx.Model(&model.Inbound{}).Select("1").Where("protocol = ?", model.TUIC).Limit(1).Scan(&hasTUIC).Error; err != nil {
+			return err
+		}
+		if hasTUIC != 1 {
+			return nil
+		}
+	}
+	affected := make(map[int]struct{}, len(inboundIDs))
+	for _, id := range inboundIDs {
+		affected[id] = struct{}{}
+	}
+	for _, ids := range chunkInts(clientIDs, sqlInChunk) {
+		var linkedIDs []int
+		if err := tx.Model(&model.ClientInbound{}).Distinct("inbound_id").Where("client_id IN ?", ids).Pluck("inbound_id", &linkedIDs).Error; err != nil {
+			return err
+		}
+		for _, id := range linkedIDs {
+			affected[id] = struct{}{}
+		}
+	}
+	affectedIDs := make([]int, 0, len(affected))
+	for id := range affected {
+		affectedIDs = append(affectedIDs, id)
+	}
+	for _, ids := range chunkInts(affectedIDs, sqlInChunk) {
+		var duplicates int64
+		err := tx.Raw(`SELECT COUNT(*) FROM (
+            SELECT ci.inbound_id, LOWER(c.uuid) FROM clients c
+            JOIN client_inbounds ci ON ci.client_id = c.id
+            JOIN inbounds i ON i.id = ci.inbound_id
+            WHERE i.protocol = ? AND c.uuid <> '' AND ci.inbound_id IN ?
+            GROUP BY ci.inbound_id, LOWER(c.uuid) HAVING COUNT(*) > 1
+        ) AS duplicate_uuids`, model.TUIC, ids).Scan(&duplicates).Error
+		if err != nil {
+			return err
+		}
+		if duplicates > 0 {
+			return fmt.Errorf("TUIC: duplicate client UUID within inbound")
+		}
+	}
+	return nil
 }
 
 func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients []model.Client, detachEmails []string, prune bool) error {
@@ -297,38 +783,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		return err
 	}
 
-	affected := map[int]struct{}{inboundId: {}}
-	for _, ids := range chunkInts(wantedIds, sqlInChunk) {
-		var inboundIDs []int
-		if err := tx.Model(&model.ClientInbound{}).Distinct("inbound_id").Where("client_id IN ?", ids).Pluck("inbound_id", &inboundIDs).Error; err != nil {
-			return err
-		}
-		for _, id := range inboundIDs {
-			affected[id] = struct{}{}
-		}
-	}
-	affectedIDs := make([]int, 0, len(affected))
-	for id := range affected {
-		affectedIDs = append(affectedIDs, id)
-	}
-	for _, ids := range chunkInts(affectedIDs, sqlInChunk) {
-		var duplicates int64
-		err := tx.Raw(`SELECT COUNT(*) FROM (
-            SELECT ci.inbound_id, LOWER(c.uuid) FROM clients c
-            JOIN client_inbounds ci ON ci.client_id = c.id
-            JOIN inbounds i ON i.id = ci.inbound_id
-            WHERE i.protocol = ? AND c.uuid <> '' AND ci.inbound_id IN ?
-            GROUP BY ci.inbound_id, LOWER(c.uuid) HAVING COUNT(*) > 1
-        ) AS duplicate_uuids`, model.TUIC, ids).Scan(&duplicates).Error
-		if err != nil {
-			return err
-		}
-		if duplicates > 0 {
-			return fmt.Errorf("TUIC: duplicate client UUID within inbound")
-		}
-	}
-
-	return nil
+	return checkTuicDuplicateUUIDs(tx, []int{inboundId}, wantedIds, inbound.Protocol == model.TUIC)
 }
 
 // reconcileInboundLinks writes only the client_inbounds rows that differ and returns
