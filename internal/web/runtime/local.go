@@ -118,6 +118,20 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 	return err
 }
 
+// CheckAddInbound reports why AddInbound could not hand ib to the core, without
+// touching the core: a replace asks it before removing the handler that still serves.
+func (l *Local) CheckAddInbound(ib *model.Inbound) error {
+	switch ib.Protocol {
+	case model.MTProto, model.AmneziaWG, model.TUIC:
+		return nil
+	}
+	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
+	if err != nil {
+		return err
+	}
+	return xray.CheckAddInbound(body)
+}
+
 func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	if ib.Protocol == model.MTProto {
 		mtproto.GetManager().Remove(ib.Id)

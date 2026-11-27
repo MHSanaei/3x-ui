@@ -49,6 +49,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // Compiled once at package load: GetTraffic runs on every traffic-stats tick,
@@ -154,6 +155,43 @@ func (x *XrayAPI) Close() {
 // for example while the process restart lock is held.
 const handlerRPCTimeout = 10 * time.Second
 
+// maxAPIRequestBytes is the largest request xray-core's API server reads: it keeps
+// grpc-go's 4 MiB default, which a VLESS inbound passes at about 46,000 clients.
+const maxAPIRequestBytes = 4 << 20
+
+// ErrAPIRequestTooLarge marks an inbound only a restart can load into the core.
+var ErrAPIRequestTooLarge = errors.New("request exceeds the xray API message limit")
+
+func buildAddInboundRequest(inbound []byte) (*command.AddInboundRequest, error) {
+	conf := new(conf.InboundDetourConfig)
+	err := json.Unmarshal(inbound, conf)
+	if err != nil {
+		logger.Debug("Failed to unmarshal inbound:", err)
+		return nil, err
+	}
+	if err := checkUntrustedBuildInput(conf.StreamSetting, inbound); err != nil {
+		return nil, err
+	}
+	localizeNoiseScripts(conf.StreamSetting)
+	config, err := conf.Build()
+	if err != nil {
+		logger.Debug("Failed to build inbound Detur:", err)
+		return nil, err
+	}
+	request := &command.AddInboundRequest{Inbound: config}
+	if size := proto.Size(request); size > maxAPIRequestBytes {
+		return nil, fmt.Errorf("%w: inbound %q takes %d bytes of the %d the core reads", ErrAPIRequestTooLarge, conf.Tag, size, maxAPIRequestBytes)
+	}
+	return request, nil
+}
+
+// CheckAddInbound reports what would stop AddInbound before the request reaches the
+// core, so a caller replacing a running handler can ask before it removes that one.
+func CheckAddInbound(inbound []byte) error {
+	_, err := buildAddInboundRequest(inbound)
+	return err
+}
+
 // AddInbound adds a new inbound configuration to the Xray core via gRPC.
 func (x *XrayAPI) AddInbound(inbound []byte) error {
 	if x.HandlerServiceClient == nil {
@@ -161,26 +199,14 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 	}
 	client := *x.HandlerServiceClient
 
-	conf := new(conf.InboundDetourConfig)
-	err := json.Unmarshal(inbound, conf)
+	request, err := buildAddInboundRequest(inbound)
 	if err != nil {
-		logger.Debug("Failed to unmarshal inbound:", err)
 		return err
 	}
-	if err := checkUntrustedBuildInput(conf.StreamSetting, inbound); err != nil {
-		return err
-	}
-	localizeNoiseScripts(conf.StreamSetting)
-	config, err := conf.Build()
-	if err != nil {
-		logger.Debug("Failed to build inbound Detur:", err)
-		return err
-	}
-	inboundConfig := command.AddInboundRequest{Inbound: config}
 
 	ctx, cancel := context.WithTimeout(context.Background(), handlerRPCTimeout)
 	defer cancel()
-	_, err = client.AddInbound(ctx, &inboundConfig)
+	_, err = client.AddInbound(ctx, request)
 
 	return err
 }
