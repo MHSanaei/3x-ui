@@ -8,5 +8,5 @@ type ClientGlobalTraffic struct {
 	Email      string `json:"email" gorm:"uniqueIndex:idx_master_email,priority:2;index:idx_client_global_email;not null"`
 	Up         int64  `json:"up"`
 	Down       int64  `json:"down"`
-	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	UpdatedAt  int64  `json:"updatedAt" gorm:"autoUpdateTime:milli;index:idx_client_global_updated_at"`
 }

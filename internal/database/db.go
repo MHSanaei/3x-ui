@@ -229,6 +229,9 @@ func initModels() error {
 	if err := migrateClientEmailLowerIndex(); err != nil {
 		return err
 	}
+	if err := migrateHotPathIndexes(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -432,6 +435,39 @@ func migrateClientEmailLowerIndex() error {
 		return nil
 	}
 	return db.Exec("CREATE INDEX IF NOT EXISTS idx_clients_email_lower ON clients (LOWER(email))").Error
+}
+
+func migrateHotPathIndexes() error {
+	stmts := []struct {
+		model any
+		name  string
+		ddl   string
+	}{
+		{
+			model: &model.ClientInbound{},
+			name:  "idx_client_inbounds_inbound_client",
+			ddl:   "CREATE INDEX IF NOT EXISTS idx_client_inbounds_inbound_client ON client_inbounds (inbound_id, client_id)",
+		},
+		{
+			model: &model.ClientGlobalTraffic{},
+			name:  "idx_client_global_updated_at",
+			ddl:   "CREATE INDEX IF NOT EXISTS idx_client_global_updated_at ON client_global_traffics (updated_at)",
+		},
+		{
+			model: &model.Inbound{},
+			name:  "idx_inbounds_user_id",
+			ddl:   "CREATE INDEX IF NOT EXISTS idx_inbounds_user_id ON inbounds (user_id)",
+		},
+	}
+	for _, s := range stmts {
+		if !db.Migrator().HasTable(s.model) || db.Migrator().HasIndex(s.model, s.name) {
+			continue
+		}
+		if err := db.Exec(s.ddl).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
