@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -233,12 +234,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		if reflect.DeepEqual(*row, before) {
 			continue
 		}
-		if err := tx.Save(row).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(&model.ClientRecord{}).
-			Where("id = ?", row.Id).
-			UpdateColumn("updated_at", preservedUpdatedAt).Error; err != nil {
+		// Keep GORM's save hooks and serializers while writing the agreed timestamp once.
+		save := tx.Session(&gorm.Session{NowFunc: func() time.Time { return time.UnixMilli(preservedUpdatedAt) }})
+		if err := save.Save(row).Error; err != nil {
 			return err
 		}
 	}
