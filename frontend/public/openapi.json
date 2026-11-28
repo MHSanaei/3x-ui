@@ -81,6 +81,10 @@
           "happLinkEnable": {
             "type": "boolean"
           },
+          "inboundListOrder": {
+            "example": "id",
+            "type": "string"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -702,6 +706,7 @@
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "happLinkEnable",
+          "inboundListOrder",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -973,6 +978,10 @@
           },
           "hasWechatWebhookURL": {
             "type": "boolean"
+          },
+          "inboundListOrder": {
+            "example": "id",
+            "type": "string"
           },
           "ipLimitAllowlist": {
             "type": "string"
@@ -1605,6 +1614,7 @@
           "hasWarpSecret",
           "hasWechatToken",
           "hasWechatWebhookURL",
+          "inboundListOrder",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",

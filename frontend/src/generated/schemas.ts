@@ -55,6 +55,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "happLinkEnable": {
         "type": "boolean"
       },
+      "inboundListOrder": {
+        "example": "id",
+        "type": "string"
+      },
       "ipLimitAllowlist": {
         "type": "string"
       },
@@ -676,6 +680,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
       "happLinkEnable",
+      "inboundListOrder",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -947,6 +952,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "hasWechatWebhookURL": {
         "type": "boolean"
+      },
+      "inboundListOrder": {
+        "example": "id",
+        "type": "string"
       },
       "ipLimitAllowlist": {
         "type": "string"
@@ -1579,6 +1588,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "hasWarpSecret",
       "hasWechatToken",
       "hasWechatWebhookURL",
+      "inboundListOrder",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",

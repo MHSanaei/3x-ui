@@ -57,6 +57,7 @@ type AllSetting struct {
 	SubHwidRejectWithConfig    bool   `json:"subHwidRejectWithConfig" form:"subHwidRejectWithConfig"`
 	McpEnable                  bool   `json:"mcpEnable" form:"mcpEnable"`
 	SubHostSortMode            string `json:"subHostSortMode" form:"subHostSortMode" example:"inbound-first"`
+	InboundListOrder           string `json:"inboundListOrder" form:"inboundListOrder" example:"id"`
 	SubCalendarExpireInclusive bool   `json:"subCalendarExpireInclusive" form:"subCalendarExpireInclusive"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
 	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`
