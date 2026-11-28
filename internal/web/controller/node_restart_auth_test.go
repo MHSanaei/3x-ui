@@ -111,15 +111,13 @@ func writeLoadableKeyPair(t *testing.T) (certFile, keyFile string) {
 func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 	engine, auth := newAPIAuthTestEngine(t)
 	NewSettingController(engine.Group("/panel/api", auth.checkAPIAuth, auth.enforceTokenScope))
-	global.SetRestartHook(func() {})
-	t.Cleanup(func() { global.SetRestartHook(func() {}) })
 	if err := database.GetDB().Create(&model.ApiToken{Name: "admin", Token: crypto.HashTokenSHA256("admin"), Enabled: true, Scope: model.ApiScopeAdmin}).Error; err != nil {
 		t.Fatal(err)
 	}
 	certFile, keyFile := writeLoadableKeyPair(t)
 	settings := service.SettingService{}
 
-	for _, tc := range []struct {
+	cases := []struct {
 		name         string
 		servingTLS   bool
 		cert, key    string
@@ -132,7 +130,25 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 		{name: "a certificate without its key stays plain", cert: certFile, wantNextPort: 3000},
 		{name: "XUI_PORT outranks the stored port", portOverride: "8443", wantNextPort: 8443},
 		{name: "TLS listener, key pair removed", servingTLS: true, wantNextPort: 3000},
-	} {
+	}
+	restarts := make(chan struct{}, len(cases))
+	global.SetRestartHook(func() { restarts <- struct{}{} })
+	accepted := 0
+	t.Cleanup(func() {
+		defer global.SetRestartHook(func() {})
+		// Wait for this test's callbacks before another test installs its hook.
+		deadline := time.NewTimer(6 * time.Second)
+		defer deadline.Stop()
+		for range accepted {
+			select {
+			case <-restarts:
+			case <-deadline.C:
+				t.Error("accepted listener probes did not finish their scheduled restarts")
+				return
+			}
+		}
+	})
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("XUI_PORT", tc.portOverride)
 			if err := settings.SetPort(3000); err != nil {
@@ -168,6 +184,7 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 			if err := json.NewDecoder(res.Body).Decode(&answer); err != nil || !answer.Success {
 				t.Fatalf("status %d, success=%v, err=%v", res.StatusCode, answer.Success, err)
 			}
+			accepted++
 			want := entity.PanelRestart{Port: servingPort, TLS: tc.servingTLS, NextPort: tc.wantNextPort, NextTLS: tc.wantNextTLS}
 			if answer.Obj != want {
 				t.Fatalf("restart answer = %+v, want %+v", answer.Obj, want)
