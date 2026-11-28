@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -105,6 +106,24 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 // exactly: links for clients no longer in the set are removed.
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
 	return s.syncInboundClients(tx, inboundId, clients, nil, true)
+}
+
+// withClientSyncSavepoint lets a caller continue only after a failed sync is undone.
+// Savepoint errors are fatal to the outer transaction, including release failures.
+func withClientSyncSavepoint(tx *gorm.DB, sync func() error) (rejected, fatal error) {
+	if err := tx.Exec("SAVEPOINT xui_client_sync").Error; err != nil {
+		return nil, fmt.Errorf("savepoint for client sync: %w", err)
+	}
+	rejected = sync()
+	if rejected != nil {
+		if err := tx.Exec("ROLLBACK TO SAVEPOINT xui_client_sync").Error; err != nil {
+			return nil, errors.Join(rejected, fmt.Errorf("roll back client sync: %w", err))
+		}
+	}
+	if err := tx.Exec("RELEASE SAVEPOINT xui_client_sync").Error; err != nil {
+		return nil, errors.Join(rejected, fmt.Errorf("release client sync savepoint: %w", err))
+	}
+	return rejected, nil
 }
 
 // ApplyInboundClientDelta persists only the clients an edit actually changed
@@ -253,9 +272,6 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		if err := tx.CreateInBatches(toCreate, 200).Error; err != nil {
 			return err
 		}
-		// Whichever API re-created the client, a delete tombstone left standing makes
-		// the next node merge prune it and ReapSyncOrphans delete it.
-		liftTombstonesOnCommit(tx, toCreate)
 		disabledIDs := make([]int, 0)
 		for i, rec := range toCreate {
 			idByEmail[rec.Email] = rec.Id
@@ -328,6 +344,8 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		}
 	}
 
+	// A failed validation can roll back the row while the outer transaction commits.
+	liftTombstonesOnCommit(tx, toCreate)
 	return nil
 }
 
