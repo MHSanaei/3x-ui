@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for 3x-ui-xgqhg on 2026-11-28T00:26:41Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = '3x-ui-xgqhg'
+primary_region = 'ams'
+
+[build]
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
