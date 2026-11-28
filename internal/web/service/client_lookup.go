@@ -1,8 +1,10 @@
 package service
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -145,25 +147,36 @@ func (s *ClientService) GetInboundIdsForRecord(id int) ([]int, error) {
 	return ids, nil
 }
 
-// TunnelAllowedIPsByInbound returns, for each given WireGuard/AmneziaWG
-// inbound id, the real AllowedIPs this email currently has on that specific
-// inbound's own settings JSON -- joined comma-separated, matching the form
-// value shape a single AllowedIPs field already uses. Non-tunnel inbounds
-// and ids the email isn't actually attached to are simply absent from the
-// result (not an error): callers use this to seed a per-protocol display
-// field, and ClientRecord's own single AllowedIPs column can't tell two
-// different protocol addresses apart, which is exactly the gap this closes.
+// TunnelAllowedIPsByInbound returns each WireGuard/AmneziaWG inbound's real
+// AllowedIPs for email without reading settings blobs of non-tunnel inbounds.
 func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, email string, inboundIds []int) (map[int]string, error) {
-	result := make(map[int]string, len(inboundIds))
+	result := make(map[int]string)
+	if len(inboundIds) == 0 {
+		return result, nil
+	}
+	metas, metaErrs := inboundSvc.GetInboundMetaBatch(inboundIds)
+	var tunnelIDs []int
 	for _, ibId := range inboundIds {
-		inbound, err := inboundSvc.GetInbound(ibId)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+		if mErr := metaErrs[ibId]; mErr != nil {
+			if errors.Is(mErr, gorm.ErrRecordNotFound) {
 				continue
 			}
-			return nil, err
+			return nil, mErr
 		}
-		if inbound.Protocol != model.WireGuard && inbound.Protocol != model.AmneziaWG {
+		if m := metas[ibId]; m != nil && (m.Protocol == model.WireGuard || m.Protocol == model.AmneziaWG) {
+			tunnelIDs = append(tunnelIDs, ibId)
+		}
+	}
+	if len(tunnelIDs) == 0 {
+		return result, nil
+	}
+	tunnels, err := inboundSvc.GetInboundsByIDs(nil, tunnelIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, ibId := range tunnelIDs {
+		inbound := tunnels[ibId]
+		if inbound == nil {
 			continue
 		}
 		clients, err := inboundSvc.GetClients(inbound)
@@ -180,33 +193,73 @@ func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, em
 	return result, nil
 }
 
-func (s *ClientService) List() ([]ClientWithAttachments, error) {
-	db := database.GetDB()
-	var rows []model.ClientRecord
-	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
-		return nil, err
-	}
-	if len(rows) == 0 {
-		return []ClientWithAttachments{}, nil
-	}
+// ClientDetailPayload matches the JSON shape returned by /clients/get endpoints.
+type ClientDetailPayload struct {
+	Client           *model.ClientRecord        `json:"client"`
+	InboundIds       []int                      `json:"inboundIds"`
+	ExternalLinks    []model.ClientExternalLink `json:"externalLinks"`
+	UsedTraffic      int64                      `json:"usedTraffic"`
+	TunnelAllowedIPs map[int]string             `json:"tunnelAllowedIPs"`
+}
 
-	clientIds := make([]int, 0, len(rows))
-	emails := make([]string, 0, len(rows))
-	for i := range rows {
-		clientIds = append(clientIds, rows[i].Id)
-		if rows[i].Email != "" {
-			emails = append(emails, rows[i].Email)
+// BuildClientPayloads builds detail payloads for one or more ClientRecords
+// using O(1) batched queries instead of per-client N+1 lookups.
+func (s *ClientService) BuildClientPayloads(inboundSvc *InboundService, records []*model.ClientRecord) ([]ClientDetailPayload, error) {
+	if len(records) == 0 {
+		return []ClientDetailPayload{}, nil
+	}
+	db := database.GetDB()
+	clientIDs := make([]int, 0, len(records))
+	emails := make([]string, 0, len(records))
+	seenEmail := make(map[string]struct{}, len(records))
+	for _, r := range records {
+		if r == nil {
+			continue
+		}
+		clientIDs = append(clientIDs, r.Id)
+		if r.Email != "" {
+			if _, ok := seenEmail[r.Email]; !ok {
+				seenEmail[r.Email] = struct{}{}
+				emails = append(emails, r.Email)
+			}
 		}
 	}
 
-	attachments := make(map[int][]int, len(rows))
-	for _, batch := range chunkInts(clientIds, sqlInChunk) {
-		var links []model.ClientInbound
-		if err := db.Where("client_id IN ?", batch).Find(&links).Error; err != nil {
+	inboundIdsByClient := make(map[int][]int, len(clientIDs))
+	flowByClient := make(map[int]string, len(clientIDs))
+	allInboundSet := make(map[int]struct{})
+	for _, batch := range chunkInts(clientIDs, sqlInChunk) {
+		var links []struct {
+			ClientId     int
+			InboundId    int
+			FlowOverride string
+		}
+		if err := db.Table("client_inbounds").
+			Select("client_id, inbound_id, flow_override").
+			Where("client_id IN ?", batch).
+			Order("inbound_id ASC").
+			Scan(&links).Error; err != nil {
 			return nil, err
 		}
 		for _, l := range links {
-			attachments[l.ClientId] = append(attachments[l.ClientId], l.InboundId)
+			inboundIdsByClient[l.ClientId] = append(inboundIdsByClient[l.ClientId], l.InboundId)
+			allInboundSet[l.InboundId] = struct{}{}
+			if l.FlowOverride != "" && flowByClient[l.ClientId] == "" {
+				flowByClient[l.ClientId] = l.FlowOverride
+			}
+		}
+	}
+
+	extLinksByClient := make(map[int][]model.ClientExternalLink, len(clientIDs))
+	for _, batch := range chunkInts(clientIDs, sqlInChunk) {
+		var rows []model.ClientExternalLink
+		if err := db.Where("client_id IN ?", batch).
+			Order("sort_index ASC, id ASC").
+			Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			extLinksByClient[row.ClientId] = append(extLinksByClient[row.ClientId], row)
 		}
 	}
 
@@ -224,6 +277,152 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		for i := range stats {
 			trafficByEmail[stats[i].Email] = &stats[i]
 		}
+	}
+
+	tunnelAllowedByInbound := make(map[int]map[string]string)
+	if len(allInboundSet) > 0 {
+		allInboundIDs := make([]int, 0, len(allInboundSet))
+		for id := range allInboundSet {
+			allInboundIDs = append(allInboundIDs, id)
+		}
+		metas, metaErrs := inboundSvc.GetInboundMetaBatch(allInboundIDs)
+		var tunnelIDs []int
+		for _, id := range allInboundIDs {
+			if mErr := metaErrs[id]; mErr != nil {
+				if errors.Is(mErr, gorm.ErrRecordNotFound) {
+					continue
+				}
+				return nil, mErr
+			}
+			if m := metas[id]; m != nil && (m.Protocol == model.WireGuard || m.Protocol == model.AmneziaWG) {
+				tunnelIDs = append(tunnelIDs, id)
+			}
+		}
+		if len(tunnelIDs) > 0 {
+			tunnels, err := inboundSvc.GetInboundsByIDs(nil, tunnelIDs)
+			if err != nil {
+				return nil, err
+			}
+			for _, ib := range tunnels {
+				clients, err := inboundSvc.GetClients(ib)
+				if err != nil {
+					return nil, err
+				}
+				byEmail := make(map[string]string, len(clients))
+				for i := range clients {
+					if clients[i].Email != "" {
+						byEmail[strings.ToLower(clients[i].Email)] = strings.Join(clients[i].AllowedIPs, ",")
+					}
+				}
+				tunnelAllowedByInbound[ib.Id] = byEmail
+			}
+		}
+	}
+
+	out := make([]ClientDetailPayload, 0, len(records))
+	for _, r := range records {
+		if r == nil {
+			continue
+		}
+		recCopy := *r
+		recCopy.Flow = flowByClient[r.Id]
+
+		ibIds := inboundIdsByClient[r.Id]
+		if ibIds == nil {
+			ibIds = []int{}
+		}
+		extLinks := extLinksByClient[r.Id]
+		if extLinks == nil {
+			extLinks = []model.ClientExternalLink{}
+		}
+		var usedTraffic int64
+		if t := trafficByEmail[r.Email]; t != nil {
+			usedTraffic = t.Up + t.Down
+		}
+		tunnelAllowedIPs := make(map[int]string)
+		if len(tunnelAllowedByInbound) > 0 && r.Email != "" {
+			emailKey := strings.ToLower(r.Email)
+			for _, ibId := range ibIds {
+				if byEmail, ok := tunnelAllowedByInbound[ibId]; ok {
+					if allowed, exists := byEmail[emailKey]; exists {
+						tunnelAllowedIPs[ibId] = allowed
+					}
+				}
+			}
+		}
+		out = append(out, ClientDetailPayload{
+			Client:           &recCopy,
+			InboundIds:       ibIds,
+			ExternalLinks:    extLinks,
+			UsedTraffic:      usedTraffic,
+			TunnelAllowedIPs: tunnelAllowedIPs,
+		})
+	}
+	return out, nil
+}
+
+func clientInboundAggregationSQL(dialect string) string {
+	if dialect == database.DialectPostgres {
+		return `SELECT ci.client_id, string_agg(ci.inbound_id::text, ',' ORDER BY ci.ctid) AS inbound_ids FROM client_inbounds ci GROUP BY ci.client_id`
+	}
+	return `SELECT client_id, GROUP_CONCAT(inbound_id) AS inbound_ids FROM (SELECT client_id, inbound_id FROM client_inbounds ORDER BY rowid ASC LIMIT -1) GROUP BY client_id`
+}
+
+func loadAllClientInboundAggregated(db *gorm.DB, into map[int][]int) error {
+	rows, err := db.Raw(clientInboundAggregationSQL(db.Name())).Rows()
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var clientID int
+		var csv sql.NullString
+		if err := rows.Scan(&clientID, &csv); err != nil {
+			return err
+		}
+		if !csv.Valid || csv.String == "" {
+			continue
+		}
+		ids := make([]int, 0, strings.Count(csv.String, ",")+1)
+		s := csv.String
+		for {
+			part, rest, found := strings.Cut(s, ",")
+			if id, convErr := strconv.Atoi(part); convErr == nil {
+				ids = append(ids, id)
+			}
+			if !found {
+				break
+			}
+			s = rest
+		}
+		into[clientID] = ids
+	}
+	return rows.Err()
+}
+
+func (s *ClientService) List() ([]ClientWithAttachments, error) {
+	db := database.GetDB()
+	var rows []model.ClientRecord
+	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []ClientWithAttachments{}, nil
+	}
+
+	attachments := make(map[int][]int, len(rows))
+	if err := loadAllClientInboundAggregated(db, attachments); err != nil {
+		return nil, err
+	}
+
+	var stats []xray.ClientTraffic
+	if err := db.Find(&stats).Error; err != nil {
+		return nil, err
+	}
+	overlayGlobalTrafficValues(db, stats)
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(stats))
+	for i := range stats {
+		trafficByEmail[stats[i].Email] = &stats[i]
 	}
 
 	out := make([]ClientWithAttachments, 0, len(rows))

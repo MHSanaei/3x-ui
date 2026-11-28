@@ -52,7 +52,7 @@ type User struct {
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
 	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
-	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
+	UserId               int                  `json:"-" gorm:"index:idx_inbounds_user_id"`                                                                                                                          // Associated user ID
 	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
 	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
 	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
@@ -1143,6 +1143,11 @@ type HostGroupClientGroup struct {
 
 func (HostGroupClientGroup) TableName() string { return "host_group_client_groups" }
 
+// ReverseJSON returns the reverse column encoded as raw JSON (or null).
+func (r ClientRecord) ReverseJSON() json.RawMessage {
+	return jsonStringFieldToRaw(r.Reverse)
+}
+
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its
 // JSON-text columns. Empty storage renders as null.
@@ -1175,8 +1180,8 @@ func (r *ClientRecord) UnmarshalJSON(data []byte) error {
 }
 
 type ClientInbound struct {
-	ClientId     int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
-	InboundId    int    `json:"inboundId" gorm:"primaryKey;column:inbound_id;index"`
+	ClientId     int    `json:"clientId" gorm:"primaryKey;column:client_id;index;index:idx_client_inbounds_inbound_client,priority:2"`
+	InboundId    int    `json:"inboundId" gorm:"primaryKey;column:inbound_id;index;index:idx_client_inbounds_inbound_client,priority:1"`
 	FlowOverride string `json:"flowOverride" gorm:"column:flow_override"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 }

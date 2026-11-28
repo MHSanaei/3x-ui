@@ -147,7 +147,7 @@ func saveMasterClientCredential(client crypto.CertKeyPEM, pin string) error {
 		settingNodeMtlsClientKey:  string(client.KeyPEM),
 		settingNodeMtlsClientPin:  pin,
 	}
-	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		for key, value := range values {
 			result := tx.Model(&model.Setting{}).Where("key = ?", key).Update("value", value)
 			if result.Error != nil {
@@ -160,7 +160,11 @@ func saveMasterClientCredential(client crypto.CertKeyPEM, pin string) error {
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	InvalidateSettingsCache()
+	return nil
 }
 
 // LoadMasterClientCert returns only the already-persisted credential. It never

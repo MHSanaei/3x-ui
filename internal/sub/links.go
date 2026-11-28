@@ -37,6 +37,31 @@ func (p *LinkProvider) SubLinksForSubId(host, subId string) ([]string, error) {
 
 func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email string) []string {
 	svc := p.build(host)
+	return p.linksForClientWithService(svc, inbound, email)
+}
+
+func (p *LinkProvider) LinksForClientInbounds(host string, inbounds []*model.Inbound, rec *model.ClientRecord, flowByInbound map[int]string) []string {
+	if len(inbounds) == 0 || rec == nil {
+		return nil
+	}
+	svc := p.build(host)
+	_ = svc.loadSubscriptionHosts(inbounds)
+	baseClient := rec.ToClient()
+	for _, inbound := range inbounds {
+		if inbound.Protocol != model.WireGuard && inbound.Protocol != model.AmneziaWG {
+			c := *baseClient
+			c.Flow = flowByInbound[inbound.Id]
+			svc.primeLinkClients(inbound.Id, []model.Client{c}, true)
+		}
+	}
+	var out []string
+	for _, inbound := range inbounds {
+		out = append(out, p.linksForClientWithService(svc, inbound, rec.Email)...)
+	}
+	return out
+}
+
+func (p *LinkProvider) linksForClientWithService(svc *SubService, inbound *model.Inbound, email string) []string {
 	svc.projectThroughFallbackMaster(inbound)
 	baseEps, closed := svc.hostEndpoints(inbound, "raw")
 	if closed {

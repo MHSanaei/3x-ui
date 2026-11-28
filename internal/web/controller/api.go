@@ -50,7 +50,7 @@ func (a *APIController) requireMCPEnabled(c *gin.Context) {
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
 	setAuthenticated := func(scope string) {
-		if u, err := a.userService.GetFirstUser(); err == nil {
+		if u, err := a.userService.GetFirstUserCached(); err == nil {
 			session.SetAPIAuthUser(c, u)
 		}
 		c.Set("api_authed", true)

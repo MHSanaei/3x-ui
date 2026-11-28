@@ -1055,11 +1055,26 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if inst == nil {
 		return ""
 	}
-	client := inst.byEmail[email]
-	if client == nil && len(inst.Clients) > 0 && email == "" {
-		client = &inst.Clients[0]
+	var uuidVal, password string
+	if resolved, ok := s.clientForLink(inbound, email); ok {
+		uuidVal = strings.ToLower(strings.TrimSpace(resolved.ID))
+		password = resolved.Password
 	}
-	if client == nil || client.UUID == "" || client.Password == "" {
+	if uuidVal == "" || password == "" {
+		client := inst.byEmail[email]
+		if client == nil && len(inst.Clients) > 0 && email == "" {
+			client = &inst.Clients[0]
+		}
+		if client != nil {
+			if uuidVal == "" {
+				uuidVal = client.UUID
+			}
+			if password == "" {
+				password = client.Password
+			}
+		}
+	}
+	if uuidVal == "" || password == "" {
 		return ""
 	}
 
@@ -1105,14 +1120,14 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 			if ai, ok := ep["allowInsecure"].(bool); ok && ai {
 				epParams["allow_insecure"] = "1"
 			}
-			link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, int(portF)))
+			link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(uuidVal), encodeUserinfo(password), joinHostPort(dest, int(portF)))
 			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "")))
 		}
 		return strings.Join(links, "\n")
 	}
 
 	host := s.resolveInboundAddress(inbound)
-	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(host, inbound.Port))
+	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(uuidVal), encodeUserinfo(password), joinHostPort(host, inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 

@@ -38,6 +38,7 @@ func ExternalSubscriptionHwid() string {
 		logger.Warningf("persisting the external subscription hwid failed: %v", err)
 		return ""
 	}
+	InvalidateSettingKey(externalSubHwidKey)
 	if strings.TrimSpace(row.Value) == "" {
 		return hwid
 	}

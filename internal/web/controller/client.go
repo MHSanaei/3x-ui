@@ -209,14 +209,10 @@ func (a *ClientController) getBySubId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
-	for _, rec := range records {
-		payload, err := a.buildClientPayload(rec)
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
-			return
-		}
-		results = append(results, payload)
+	results, err := a.clientService.BuildClientPayloads(&a.inboundService, records)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
 	}
 	jsonObj(c, results, nil)
 }
@@ -233,14 +229,10 @@ func (a *ClientController) getByTgId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	results := make([]gin.H, 0, len(records))
-	for _, rec := range records {
-		payload, err := a.buildClientPayload(rec)
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "get"), err)
-			return
-		}
-		results = append(results, payload)
+	results, err := a.clientService.BuildClientPayloads(&a.inboundService, records)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
 	}
 	jsonObj(c, results, nil)
 }

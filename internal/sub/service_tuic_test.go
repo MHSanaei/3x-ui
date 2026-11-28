@@ -194,3 +194,39 @@ func TestBuildTuicProxy_ExternalProxyOverrides(t *testing.T) {
 		t.Fatalf("skip-cert-verify = %v, want true", proxy["skip-cert-verify"])
 	}
 }
+
+func TestGenTuicLinkUsesPrimedClientWhenSettingsClientsStripped(t *testing.T) {
+	inbound := &model.Inbound{
+		Id:       9101,
+		Listen:   "198.51.100.1",
+		Port:     8443,
+		Protocol: model.TUIC,
+		Remark:   "tuic-stripped",
+		Settings: `{"server":{"certificate":"/path/cert","private_key":"/path/key","congestion_control":"bbr","udp_relay_mode":"native","sni":"tuic.example.com","alpn":["h3"]}}`,
+	}
+	s := &SubService{}
+	s.primeLinkClients(inbound.Id, []model.Client{{
+		Email:    "tuic@x",
+		ID:       "11111111-2222-3333-4444-555555555555",
+		Password: "primed-password",
+	}}, true)
+
+	link := s.genTuicLink(inbound, "tuic@x")
+	if link == "" {
+		t.Fatal("genTuicLink returned empty string when settings clients stripped and client primed")
+	}
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("invalid tuic URL %q: %v", link, err)
+	}
+	if u.Scheme != "tuic" {
+		t.Fatalf("scheme = %q, want tuic", u.Scheme)
+	}
+	if u.User.Username() != "11111111-2222-3333-4444-555555555555" {
+		t.Fatalf("username = %q, want primed UUID", u.User.Username())
+	}
+	pw, ok := u.User.Password()
+	if !ok || pw != "primed-password" {
+		t.Fatalf("password = (%q, %v), want primed-password", pw, ok)
+	}
+}

@@ -422,7 +422,7 @@ func getEnv(key, fallback string) string {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("1 = 1").Delete(model.Setting{}).Error; err != nil {
 			return err
 		}
@@ -432,7 +432,11 @@ func (s *SettingService) ResetSettings() error {
 			{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
 		}
 		return tx.Create(&paths).Error
-	})
+	}); err != nil {
+		return err
+	}
+	InvalidateSettingsCache()
+	return nil
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -449,30 +453,39 @@ func (s *SettingService) saveSetting(key string, value string) error {
 	setting, err := s.getSetting(key)
 	db := database.GetDB()
 	if database.IsNotFound(err) {
-		return db.Create(&model.Setting{
+		if err := db.Create(&model.Setting{
 			Key:   key,
 			Value: value,
-		}).Error
+		}).Error; err != nil {
+			return err
+		}
+		InvalidateSettingKey(key)
+		return nil
 	} else if err != nil {
 		return err
 	}
 	setting.Key = key
 	setting.Value = value
-	return db.Save(setting).Error
+	if err := db.Save(setting).Error; err != nil {
+		return err
+	}
+	InvalidateSettingKey(key)
+	return nil
 }
 
 func (s *SettingService) getString(key string) (string, error) {
-	setting, err := s.getSetting(key)
-	if database.IsNotFound(err) {
+	val, found, err := settingsCache.get(database.GetDB(), key)
+	if err != nil {
+		return "", err
+	}
+	if !found {
 		value, ok := defaultValueMap[key]
 		if !ok {
 			return "", common.NewErrorf("key <%v> not in defaultValueMap", key)
 		}
 		return value, nil
-	} else if err != nil {
-		return "", err
 	}
-	return setting.Value, nil
+	return val, nil
 }
 
 func (s *SettingService) setString(key string, value string) error {
@@ -1801,7 +1814,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	fields := reflect_util.GetFields(t)
 
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	if err := db.Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Setting
 		if err := tx.Find(&existing).Error; err != nil {
 			return err
@@ -1844,7 +1857,11 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	InvalidateSettingsCache()
+	return nil
 }
 
 func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {
