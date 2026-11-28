@@ -1031,6 +1031,7 @@ export interface NodeView {
   enable: boolean;
   guid: string;
   hasApiToken: boolean;
+  heartbeatAgeMillis?: number | null;
   id: number;
   inboundCount: number;
   inboundSyncMode: string;

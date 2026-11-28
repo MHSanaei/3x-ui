@@ -74,6 +74,7 @@ export function useNodesQuery() {
 
   return {
     nodes,
+    nodesUpdatedAt: query.dataUpdatedAt,
     totals,
     loading: query.isFetching,
     fetched: query.data !== undefined || query.isError,

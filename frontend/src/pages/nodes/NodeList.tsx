@@ -31,6 +31,7 @@ import './NodeList.css';
 
 interface NodeListProps {
   nodes: NodeRecord[];
+  nodesUpdatedAt?: number;
   loading?: boolean;
   isMobile?: boolean;
   latestVersion?: string;
@@ -180,6 +181,7 @@ function useRelativeTime() {
 
 export default function NodeList({
   nodes,
+  nodesUpdatedAt,
   loading = false,
   isMobile = false,
   latestVersion = '',
@@ -461,7 +463,7 @@ export default function NodeList({
         key: 'networkSpeed',
         align: 'center',
         width: 125,
-        render: (_value, record) => <NodeNetworkSpeed node={record} />,
+        render: (_value, record) => <NodeNetworkSpeed node={record} receivedAt={nodesUpdatedAt} />,
       },
       {
         title: t('pages.nodes.xrayVersion'),
@@ -578,6 +580,7 @@ export default function NodeList({
       showAddress,
       relativeTime,
       latestVersion,
+      nodesUpdatedAt,
       onToggleEnable,
       onProbe,
       onEdit,
@@ -855,7 +858,7 @@ export default function NodeList({
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.networkSpeed')}</span>
-                  <NodeNetworkSpeed node={statsNode} />
+                  <NodeNetworkSpeed node={statsNode} receivedAt={nodesUpdatedAt} />
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.xrayVersion')}</span>

@@ -1092,6 +1092,7 @@ export const NodeViewSchema = z.object({
   enable: z.boolean(),
   guid: z.string(),
   hasApiToken: z.boolean(),
+  heartbeatAgeMillis: z.number().int().nullable().optional(),
   id: z.number().int(),
   inboundCount: z.number().int(),
   inboundSyncMode: z.string(),

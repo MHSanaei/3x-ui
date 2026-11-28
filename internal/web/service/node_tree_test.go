@@ -2,6 +2,7 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -78,5 +79,31 @@ func TestGetNodeTree_SurfacesTransitiveNodeNestedUnderParent(t *testing.T) {
 	}
 	if node3.InboundCount != 1 {
 		t.Errorf("transitive Node3 should host its 1 inbound, got %d", node3.InboundCount)
+	}
+}
+
+func TestNodeTreeViewReportsMasterRelativeHeartbeatAge(t *testing.T) {
+	setupConflictDB(t)
+	now := time.Now()
+	for _, node := range []model.Node{
+		{Name: "sampled", Address: "10.0.0.2", Port: 2053, LastHeartbeat: now.Add(-5 * time.Second).Unix()},
+		{Name: "unprobed", Address: "10.0.0.3", Port: 2053},
+	} {
+		if err := database.GetDB().Create(&node).Error; err != nil {
+			t.Fatalf("create node: %v", err)
+		}
+	}
+	views, err := (&NodeService{}).GetNodeTreeView()
+	if err != nil || len(views) != 2 {
+		t.Fatalf("get node views: len=%d err=%v", len(views), err)
+	}
+	sampled, unprobed := views[0], views[1]
+	minAge := now.UnixMilli() - sampled.LastHeartbeat*1000
+	maxAge := time.Now().UnixMilli() - sampled.LastHeartbeat*1000
+	if age := sampled.HeartbeatAgeMillis; age == nil || *age < minAge || *age > maxAge {
+		t.Fatalf("sampled heartbeat age = %v, want a value in [%d, %d]", age, minAge, maxAge)
+	}
+	if unprobed.HeartbeatAgeMillis != nil {
+		t.Fatal("unprobed node has a heartbeat age")
 	}
 }

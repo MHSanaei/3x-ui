@@ -128,7 +128,7 @@ describe('node network speed', () => {
     },
   );
 
-  it('expires throughput without another heartbeat', () => {
+  it.each([-120, 120])('expires throughput with %s seconds of clock skew', (skew) => {
     vi.useFakeTimers();
     try {
       const node = NodeRecordSchema.parse({
@@ -136,11 +136,12 @@ describe('node network speed', () => {
         name: 'edge',
         enable: true,
         status: 'online',
-        lastHeartbeat: Math.floor(Date.now() / 1000),
+        lastHeartbeat: Math.floor(Date.now() / 1000) + skew,
+        heartbeatAgeMillis: 250,
         netDown: 2048,
         netUp: 0,
       });
-      renderWithProviders(<NodeNetworkSpeed node={node} />);
+      renderWithProviders(<NodeNetworkSpeed node={node} receivedAt={Date.now()} />);
       expect(screen.getByLabelText(/^download .*2\.00 KB\/s$/i).textContent).toContain('2.00 KB/s');
       act(() => vi.advanceTimersByTime(30_000));
       expect(screen.getByLabelText(/^download .*—$/i).textContent).toContain('—');

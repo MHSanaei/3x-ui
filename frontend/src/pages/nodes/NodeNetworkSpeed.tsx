@@ -8,10 +8,21 @@ import { SizeFormatter } from '@/utils';
 
 const HEARTBEAT_FRESHNESS_MS = 30_000;
 
-export default function NodeNetworkSpeed({ node }: { node: NodeRecord }) {
+export default function NodeNetworkSpeed({
+  node,
+  receivedAt,
+}: {
+  node: NodeRecord;
+  receivedAt?: number;
+}) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const expiration = node.lastHeartbeat ? node.lastHeartbeat * 1000 + HEARTBEAT_FRESHNESS_MS : 0;
+  const expiration =
+    receivedAt && node.heartbeatAgeMillis != null
+      ? receivedAt + HEARTBEAT_FRESHNESS_MS - node.heartbeatAgeMillis
+      : node.lastHeartbeat
+        ? node.lastHeartbeat * 1000 + HEARTBEAT_FRESHNESS_MS
+        : 0;
   const subscribe = useCallback(
     (onChange: () => void) => {
       const delay = expiration - Date.now();

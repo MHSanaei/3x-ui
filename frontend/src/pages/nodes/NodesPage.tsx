@@ -77,7 +77,7 @@ export default function NodesPage() {
     setMessageInstance(messageApi);
   }, [messageApi]);
 
-  const { nodes, loading, fetched, fetchError, refetch, totals } = useNodesQuery();
+  const { nodes, nodesUpdatedAt, loading, fetched, fetchError, refetch, totals } = useNodesQuery();
   const {
     create,
     update,
@@ -409,6 +409,7 @@ export default function NodesPage() {
                   <Col span={24}>
                     <NodeList
                       nodes={nodes}
+                      nodesUpdatedAt={nodesUpdatedAt}
                       loading={loading}
                       isMobile={isMobile}
                       latestVersion={latestVersion}

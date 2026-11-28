@@ -17,6 +17,7 @@ export const NodeRecordSchema = z
     cpuPct: z.number().optional(),
     memPct: z.number().optional(),
     netDown: z.number().optional(),
+    heartbeatAgeMillis: z.number().nonnegative().optional(),
     netUp: z.number().optional(),
     xrayVersion: z.string().optional(),
     panelVersion: z.string().optional(),

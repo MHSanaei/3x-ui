@@ -28,6 +28,7 @@ type NodeView struct {
 	Guid                string   `json:"guid" example:"node-guid"`
 	Status              string   `json:"status" example:"online"`
 	LastHeartbeat       int64    `json:"lastHeartbeat" example:"1700000000"`
+	HeartbeatAgeMillis  *int64   `json:"heartbeatAgeMillis,omitempty" example:"1250"`
 	LatencyMs           int      `json:"latencyMs" example:"42"`
 	XrayVersion         string   `json:"xrayVersion" example:"25.10.31"`
 	PanelVersion        string   `json:"panelVersion" example:"v3.x.x"`
