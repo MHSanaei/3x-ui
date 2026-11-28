@@ -36,12 +36,6 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		return result, false, nil
 	}
 
-	recordErr := func(format string, args ...any) {
-		msg := fmt.Sprintf(format, args...)
-		result.Errors = append(result.Errors, msg)
-		logger.Warningf("[BulkAttach] %s", msg)
-	}
-
 	records := make([]*model.ClientRecord, 0, len(emails))
 	seenEmail := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
@@ -55,12 +49,22 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		seenEmail[key] = struct{}{}
 		rec, err := s.GetRecordByEmail(nil, email)
 		if err != nil {
-			recordErr("%s: %v", email, err)
+			logAttachError(result, "%s: %v", email, err)
 			continue
 		}
 		records = append(records, rec)
 	}
 
+	return s.bulkAttachRecords(inboundSvc, records, inboundIds, result)
+}
+
+func logAttachError(result *BulkAttachResult, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	result.Errors = append(result.Errors, msg)
+	logger.Warningf("[BulkAttach] %s", msg)
+}
+
+func (s *ClientService) bulkAttachRecords(inboundSvc *InboundService, records []*model.ClientRecord, inboundIds []int, result *BulkAttachResult) (*BulkAttachResult, bool, error) {
 	// Same rule as Attach (#4834): clients.flow is unreliable when a non-flow
 	// inbound synced last, so seed from EffectiveFlow before clientWithInboundFlow.
 	emailsForFlow := make([]string, 0, len(records))
@@ -89,7 +93,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		seenInbound[ibId] = struct{}{}
 		inbound, err := inboundSvc.GetInbound(ibId)
 		if err != nil {
-			recordErr("inbound %d: %v", ibId, err)
+			logAttachError(result, "inbound %d: %v", ibId, err)
 			continue
 		}
 		if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
@@ -97,7 +101,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		}
 		existingClients, err := inboundSvc.GetClients(inbound)
 		if err != nil {
-			recordErr("inbound %d: %v", ibId, err)
+			logAttachError(result, "inbound %d: %v", ibId, err)
 			continue
 		}
 		have := make(map[string]struct{}, len(existingClients))
@@ -120,7 +124,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			}
 			client.UpdatedAt = time.Now().UnixMilli()
 			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
-				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
+				logAttachError(result, "%s -> inbound %d: %v", rec.Email, ibId, err)
 				continue
 			}
 			clientsToAdd = append(clientsToAdd, clientWithInboundFlow(client, inbound))
@@ -132,7 +136,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 
 		payload, err := json.Marshal(map[string][]model.Client{"clients": clientsToAdd})
 		if err != nil {
-			recordErr("inbound %d: %v", ibId, err)
+			logAttachError(result, "inbound %d: %v", ibId, err)
 			continue
 		}
 		attachIds = append(attachIds, ibId)
@@ -153,7 +157,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			err = attachPanics[i]
 		}
 		if err != nil {
-			recordErr("inbound %d: %v", attachIds[i], err)
+			logAttachError(result, "inbound %d: %v", attachIds[i], err)
 			continue
 		}
 		if out.needRestart {

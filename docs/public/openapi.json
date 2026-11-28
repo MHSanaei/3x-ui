@@ -1903,6 +1903,135 @@
         ],
         "type": "object"
       },
+      "AttachCandidate": {
+        "properties": {
+          "alreadyAttached": {
+            "example": false,
+            "type": "boolean"
+          },
+          "comment": {
+            "example": "Example client",
+            "type": "string"
+          },
+          "email": {
+            "example": "alice@example.test",
+            "type": "string"
+          },
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
+          "group": {
+            "example": "staff",
+            "type": "string"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "alreadyAttached",
+          "comment",
+          "email",
+          "enable",
+          "group",
+          "id"
+        ],
+        "type": "object"
+      },
+      "AttachCandidatePage": {
+        "properties": {
+          "eligible": {
+            "example": 118,
+            "format": "int64",
+            "type": "integer"
+          },
+          "groups": {
+            "example": [
+              "staff"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AttachCandidate"
+            },
+            "type": "array"
+          },
+          "maxId": {
+            "type": "integer"
+          },
+          "scopeToken": {
+            "type": "string"
+          },
+          "total": {
+            "example": 120,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eligible",
+          "groups",
+          "items",
+          "total"
+        ],
+        "type": "object"
+      },
+      "AttachJobStatus": {
+        "properties": {
+          "ended": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "result": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AttachSelectionResult"
+              }
+            ],
+            "nullable": true
+          },
+          "running": {
+            "example": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ended",
+          "running"
+        ],
+        "type": "object"
+      },
+      "AttachSelectionResult": {
+        "properties": {
+          "attached": {
+            "example": 9997,
+            "type": "integer"
+          },
+          "errors": {
+            "example": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attached",
+          "errors",
+          "skipped"
+        ],
+        "type": "object"
+      },
       "Blocker": {
         "description": "Blocker is one unmet requirement.",
         "properties": {
@@ -9373,6 +9502,116 @@
         }
       }
     },
+    "/panel/api/clients/attachCandidates": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List up to 100 clients for the inbound attachment picker. Counts distinguish filtered rows and all eligible clients. A freeze request returns only the eligible count, maximum ID and a scope token covering the current eligible IDs for the chosen source and targets.",
+        "operationId": "get_panel_api_clients_attachCandidates",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "query",
+            "required": false,
+            "description": "Restrict candidates to clients on this inbound.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "inboundIds",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated target IDs. Required for freeze and if no source ID is specified.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "1-indexed page, defaults to 1.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Match email and either comment (with a source) or group.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "description": "Filter by exact group when there is no source.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "freeze",
+            "in": "query",
+            "required": false,
+            "description": "Freeze all eligible IDs independently of search, page and group.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/AttachCandidatePage"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "eligible": 118,
+                    "groups": [
+                      "staff"
+                    ],
+                    "items": [
+                      {
+                        "alreadyAttached": false,
+                        "comment": "Example client",
+                        "email": "alice@example.test",
+                        "enable": true,
+                        "group": "staff",
+                        "id": 1
+                      }
+                    ],
+                    "maxId": 0,
+                    "scopeToken": "",
+                    "total": 120
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/list/paged": {
       "get": {
         "tags": [
@@ -11613,7 +11852,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.",
+        "summary": "Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Explicit email requests return per-email lists. Alternatively submit selection with explicit clientIds or a frozen allMatching scopeToken plus excludedClientIds. Scoped requests start a background job and return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection error. Newer IDs stay outside the frozen scope. Changes to the frozen membership are rejected before applying changes. Triggers a single Xray restart if any target inbound was running.",
         "operationId": "post_panel_api_clients_bulkAttach",
         "requestBody": {
           "required": true,
@@ -11627,7 +11866,11 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Emails of existing clients to attach."
+                    "description": "Emails of existing clients to attach. Omit when using selection."
+                  },
+                  "selection": {
+                    "type": "object",
+                    "description": "Either {mode: \"explicit\", clientIds, sourceId?} or {mode: \"allMatching\", scopeToken, excludedClientIds?, sourceId?}."
                   },
                   "inboundIds": {
                     "type": "array",
@@ -11638,7 +11881,6 @@
                   }
                 },
                 "required": [
-                  "emails",
                   "inboundIds"
                 ]
               },
@@ -11683,6 +11925,58 @@
                       "bob"
                     ],
                     "errors": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/bulkAttach/{id}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Poll a scoped attachment job. The result contains counts per target (attached, skipped, errors); an operation failure sets error instead. Completed results are retained for up to 15 minutes in the running panel process.",
+        "operationId": "get_panel_api_clients_bulkAttach_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job ID returned by the scoped bulkAttach request.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/AttachJobStatus"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "ended": "2025-01-01T00:00:00Z",
+                    "error": "",
+                    "result": null,
+                    "running": false
                   }
                 }
               }
