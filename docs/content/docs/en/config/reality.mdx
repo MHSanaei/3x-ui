@@ -139,6 +139,18 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
 
 </Callout>
 
+### Import a REALITY subscription into Loon
+
+Import the raw subscription URL as a Loon remote proxy subscription. The panel
+recognizes Loon's default User-Agent and serves its native format. If a custom
+User-Agent is in use, add `?format=loon` to the URL (or `&format=loon` if it
+already has query parameters). Use `format=raw` to request standard URIs in Loon.
+
+Eligible raw TCP VLESS REALITY nodes with the post-quantum hint use
+`tls-profile=chrome147` and retain their server name, public key, short ID and
+Vision flow. Other entries keep their share URIs. See the
+[Loon node format](https://nsloon.app/en/docs/Node/) for client support.
+
 ## Generate a config
 
 Use the generator below to create a fresh X25519 keypair, UUID, and short ID,

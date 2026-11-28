@@ -506,18 +506,22 @@ func dedupeEmails(emails []string) []string {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
+	requestedFormat := c.Query("format")
+	loon := strings.EqualFold(requestedFormat, "loon") ||
+		requestedFormat == "" && strings.HasPrefix(strings.ToLower(userAgent), "loon/")
+	c.Writer.Header().Add("Vary", "User-Agent")
 	if a.maybeServeSubInfo(c) {
 		logSubscriptionRoute(userAgent, "info")
 		return
 	}
-	if a.maybeServeSubPage(c, subPageFormatRaw) {
+	if !loon && a.maybeServeSubPage(c, subPageFormatRaw) {
 		logSubscriptionRoute(userAgent, "html")
 		return
 	}
 	format := hwidLinks
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
+	if !loon && shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) {
 		format = hwidClash
-	} else if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
+	} else if !loon && shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) {
 		format = hwidJSONArray
 	}
 	if !a.enforceHwid(c, format) {
@@ -528,12 +532,16 @@ func (a *SUBController) subs(c *gin.Context) {
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+	if !loon && shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
 	}
-	logSubscriptionRoute(userAgent, "raw")
+	if loon {
+		logSubscriptionRoute(userAgent, "loon")
+	} else {
+		logSubscriptionRoute(userAgent, "raw")
+	}
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	subReq := a.subService.ForRequest(host)
@@ -546,9 +554,13 @@ func (a *SUBController) subs(c *gin.Context) {
 		writeSubError(c, err)
 	} else {
 		var result strings.Builder
-		for _, sub := range subs {
-			result.WriteString(sub)
-			result.WriteString("\n")
+		if loon {
+			result.WriteString(loonSubscription(subs))
+		} else {
+			for _, sub := range subs {
+				result.WriteString(sub)
+				result.WriteByte('\n')
+			}
 		}
 
 		// Add headers
@@ -557,7 +569,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		// Incy's profile rides the raw body; other clients must not see that line (#6062).
-		if IsIncyClient(userAgent) && a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
+		if !loon && IsIncyClient(userAgent) && a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
 			incyRules, _, err := resolveIncyRoutingSource(a.subIncyRoutingRules)
 			if err == nil && strings.TrimSpace(incyRules) != "" {
 				result.WriteString(incyRules)
