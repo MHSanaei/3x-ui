@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "الذاكرة",
       "netUp": "صعود الشبكة (KB/s)",
+      "networkSpeed": "سرعة الشبكة",
       "netDown": "نزول الشبكة (KB/s)",
       "uptime": "مدة التشغيل",
       "latency": "الكمون",

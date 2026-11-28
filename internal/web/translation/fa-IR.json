@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "حافظه",
       "netUp": "آپلود شبکه (KB/s)",
+      "networkSpeed": "سرعت شبکه",
       "netDown": "دانلود شبکه (KB/s)",
       "uptime": "مدت فعالیت",
       "latency": "تاخیر",

@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "Memoria",
       "netUp": "Subida de red (KB/s)",
+      "networkSpeed": "Velocidad de red",
       "netDown": "Bajada de red (KB/s)",
       "uptime": "Tiempo activo",
       "latency": "Latencia",

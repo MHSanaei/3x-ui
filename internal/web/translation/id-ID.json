@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "Memori",
       "netUp": "Upload Jaringan (KB/s)",
+      "networkSpeed": "Kecepatan jaringan",
       "netDown": "Download Jaringan (KB/s)",
       "uptime": "Uptime",
       "latency": "Latensi",

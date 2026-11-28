@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "Память",
       "netUp": "Отдача (KB/s)",
+      "networkSpeed": "Скорость сети",
       "netDown": "Приём (KB/s)",
       "uptime": "Аптайм",
       "latency": "Задержка",

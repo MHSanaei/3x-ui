@@ -120,8 +120,8 @@ func unavailableMetricsOf(t *testing.T, value any) []string {
 }
 
 const (
-	unavailableStatusBody = `{"success":true,"obj":{"cpu":0,"uptime":0,"unavailableMetrics":["cpu","uptime"],"mem":{"current":1,"total":2},"xray":{"state":"running"}}}`
-	zeroStatusBody        = `{"success":true,"obj":{"cpu":0,"uptime":0,"mem":{"current":1,"total":2},"xray":{"state":"running"}}}`
+	unavailableStatusBody = `{"success":true,"obj":{"cpu":0,"uptime":0,"unavailableMetrics":["cpu","uptime"],"mem":{"current":1,"total":2},"netIO":{"up":0,"down":0},"xray":{"state":"running"}}}`
+	zeroStatusBody        = `{"success":true,"obj":{"cpu":0,"uptime":0,"mem":{"current":1,"total":2},"netIO":{"up":0,"down":0},"xray":{"state":"running"}}}`
 )
 
 func TestProbeKeepsMetricAvailability(t *testing.T) {
@@ -228,5 +228,29 @@ func TestNodeAvailabilityColumnKeepsLegacyRows(t *testing.T) {
 	}
 	if stored.Name != "legacy" || stored.CpuPct != 0 || stored.UptimeSecs != 0 || len(stored.UnavailableMetrics) != 0 {
 		t.Fatalf("legacy row changed: id=%d availability=%v", stored.Id, stored.UnavailableMetrics)
+	}
+}
+
+func TestProbeDistinguishesMissingNetworkMetricsFromZero(t *testing.T) {
+	svc, n, setBody := availabilityNodeFixture(t, `{"success":true,"obj":{"panelGuid":"legacy"}}`)
+	patch, err := svc.Probe(context.Background(), n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(patch.UnavailableMetrics, []string{"netUp", "netDown"}) {
+		t.Fatalf("legacy metric availability = %v, want missing throughput directions", patch.UnavailableMetrics)
+	}
+	setBody(`{"success":true,"obj":{"panelGuid":"legacy","netIO":{"up":0}}}`)
+	patch, err = svc.Probe(context.Background(), n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if patch.NetUp != 0 || !slices.Equal(patch.UnavailableMetrics, []string{"netDown"}) {
+		t.Fatalf("zero upload or missing download was lost: %+v", patch)
+	}
+	setBody(`{"success":true,"obj":{"panelGuid":"legacy","netIO":{"up":-1,"down":250}}}`)
+	patch, err = svc.Probe(context.Background(), n)
+	if err != nil || patch.NetDown != 250 || !slices.Equal(patch.UnavailableMetrics, []string{"netUp"}) {
+		t.Fatalf("one invalid rate should not hide the valid direction: %+v, %v", patch, err)
 	}
 }

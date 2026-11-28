@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "記憶體",
       "netUp": "網路上行 (KB/s)",
+      "networkSpeed": "網路速率",
       "netDown": "網路下行 (KB/s)",
       "uptime": "運行時間",
       "latency": "延遲",

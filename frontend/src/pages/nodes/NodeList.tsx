@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons';
 
 import NodeHistoryPanel from './NodeHistoryPanel';
+import NodeNetworkSpeed from './NodeNetworkSpeed';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { isPanelUpdateAvailable } from '@/lib/panel-version';
 import { activateOnKey } from '@/utils/a11y';
@@ -199,7 +200,7 @@ export default function NodeList({
   const relativeTime = useRelativeTime();
 
   const [showAddress, setShowAddress] = useState(false);
-  const [statsNode, setStatsNode] = useState<NodeRow | null>(null);
+  const [statsNodeId, setStatsNodeId] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   const restartItems = useCallback(
@@ -257,6 +258,11 @@ export default function NodeList({
     }
     return ordered;
   }, [nodes]);
+
+  const statsNode =
+    statsNodeId === null
+      ? undefined
+      : dataSource.find((node) => !node.transitive && node.id === statsNodeId);
 
   function toggleExpanded(id: number) {
     setExpandedIds((prev) => {
@@ -449,6 +455,13 @@ export default function NodeList({
         align: 'center',
         width: 90,
         render: (_value, record) => formatPct(record.memPct),
+      },
+      {
+        title: t('pages.nodes.networkSpeed'),
+        key: 'networkSpeed',
+        align: 'center',
+        width: 125,
+        render: (_value, record) => <NodeNetworkSpeed node={record} />,
       },
       {
         title: t('pages.nodes.xrayVersion'),
@@ -686,8 +699,8 @@ export default function NodeList({
                             role="button"
                             tabIndex={0}
                             aria-label={t('info')}
-                            onClick={() => setStatsNode(record)}
-                            onKeyDown={activateOnKey(() => setStatsNode(record))}
+                            onClick={() => setStatsNodeId(record.id)}
+                            onKeyDown={activateOnKey(() => setStatsNodeId(record.id))}
                           />
                         </Tooltip>
                         <Switch
@@ -775,7 +788,7 @@ export default function NodeList({
             width={360}
             centered
             title={statsNode?.name || ''}
-            onCancel={() => setStatsNode(null)}
+            onCancel={() => setStatsNodeId(null)}
           >
             {statsNode && (
               <div className="card-stats">
@@ -839,6 +852,10 @@ export default function NodeList({
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.mem')}</span>
                   <Tag>{formatPct(statsNode.memPct)}</Tag>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-label">{t('pages.nodes.networkSpeed')}</span>
+                  <NodeNetworkSpeed node={statsNode} />
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.xrayVersion')}</span>
