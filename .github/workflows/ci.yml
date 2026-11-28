@@ -94,6 +94,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL sync orphan recovery
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^Test(SyncOrphanRecoveryScope|LegacySyncOrphanMarksAcrossLinkChanges)Postgres$' -count=1 -v | tee /tmp/postgres-sync-orphans.log
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-sync-orphans.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected both PostgreSQL sync orphan recovery tests to pass, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL client traffic lifecycle edits
         run: |
           set -o pipefail

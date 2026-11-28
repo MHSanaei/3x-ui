@@ -1473,9 +1473,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 	}
 
-	if err := clearSyncOrphanMarks(tx); err != nil {
-		logger.Warning("setRemoteTraffic: clear orphan marks failed:", err)
-	}
+	// Attachment reconciliation clears marks for reattached clients.
 
 	if err := liftActivatedClientRecordExpiries(tx); err != nil {
 		logger.Warning("setRemoteTraffic: lift activated expiries failed:", err)
