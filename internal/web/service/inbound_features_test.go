@@ -25,16 +25,16 @@ func initInboundFeaturesTestDB(t *testing.T) {
 	t.Cleanup(func() { runtime.SetManager(prevMgr) })
 }
 
-// orderFeatureInbound inserts a minimal VLESS inbound the service accepts;
+// orderFeatureInbound inserts a minimal inbound with the given protocol;
 // the tag mirrors the auto-tag so the unique tag column stays valid.
-func orderFeatureInbound(t *testing.T, user int, port int, remark string, subSortIndex int) *model.Inbound {
+func orderFeatureInbound(t *testing.T, user int, port int, remark string, subSortIndex int, protocol model.Protocol) *model.Inbound {
 	t.Helper()
 	ib := &model.Inbound{
 		UserId:         user,
 		Enable:         false,
 		Remark:         remark,
 		Port:           port,
-		Protocol:       model.VLESS,
+		Protocol:       protocol,
 		Tag:            fmt.Sprintf("in-%d-tcp", port),
 		Settings:       `{"clients":[],"decryption":"none"}`,
 		StreamSettings: `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`,
@@ -47,17 +47,17 @@ func orderFeatureInbound(t *testing.T, user int, port int, remark string, subSor
 	return ib
 }
 
-// TestGetInboundsSlimRespectsInboundListOrder checks the configured order
-// reaches the slim endpoint for local and node-adopted inbounds alike.
+// TestGetInboundsSlimRespectsInboundListOrder checks the configured order reaches the slim endpoint.
 func TestGetInboundsSlimRespectsInboundListOrder(t *testing.T) {
 	initInboundFeaturesTestDB(t)
 	svc := &InboundService{}
 	setting := &SettingService{}
 
 	// Each mode's expected order differs from id order and from every other mode.
-	a := orderFeatureInbound(t, 1, 8443, "alpha", 3)
-	b := orderFeatureInbound(t, 1, 9443, "zeta", 1)
-	c := orderFeatureInbound(t, 1, 443, "beta", 2)
+	a := orderFeatureInbound(t, 1, 8443, "alpha", 3, model.VLESS)
+	b := orderFeatureInbound(t, 1, 9443, "zeta", 1, model.VLESS)
+	c := orderFeatureInbound(t, 1, 443, "beta", 2, model.VLESS)
+	d := orderFeatureInbound(t, 1, 10000, "zulu", 4, model.Trojan)
 
 	ids := func(t *testing.T) []int {
 		t.Helper()
@@ -76,10 +76,11 @@ func TestGetInboundsSlimRespectsInboundListOrder(t *testing.T) {
 		name string
 		want []int
 	}{
-		{name: "id", want: []int{a.Id, b.Id, c.Id}},
-		{name: "port", want: []int{c.Id, a.Id, b.Id}},
-		{name: "remark", want: []int{a.Id, c.Id, b.Id}},
-		{name: "subSortIndex", want: []int{b.Id, c.Id, a.Id}},
+		{name: "id", want: []int{a.Id, b.Id, c.Id, d.Id}},
+		{name: "port", want: []int{c.Id, a.Id, b.Id, d.Id}},
+		{name: "remark", want: []int{a.Id, c.Id, b.Id, d.Id}},
+		{name: "subSortIndex", want: []int{b.Id, c.Id, a.Id, d.Id}},
+		{name: "protocol", want: []int{d.Id, a.Id, b.Id, c.Id}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -91,6 +92,52 @@ func TestGetInboundsSlimRespectsInboundListOrder(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGetInboundsAndOptionsRespectInboundListOrder checks the full list and
+// the joined options query use the same order as the slim endpoint.
+func TestGetInboundsAndOptionsRespectInboundListOrder(t *testing.T) {
+	initInboundFeaturesTestDB(t)
+	svc := &InboundService{}
+	setting := &SettingService{}
+
+	a := orderFeatureInbound(t, 1, 8443, "alpha", 3, model.VLESS)
+	b := orderFeatureInbound(t, 1, 9443, "zeta", 1, model.VLESS)
+	c := orderFeatureInbound(t, 1, 443, "beta", 2, model.VLESS)
+	d := orderFeatureInbound(t, 1, 10000, "zulu", 4, model.Trojan)
+
+	if err := setting.setString("inboundListOrder", "port"); err != nil {
+		t.Fatalf("set order: %v", err)
+	}
+	want := []int{c.Id, a.Id, b.Id, d.Id}
+
+	t.Run("inbounds", func(t *testing.T) {
+		list, err := svc.GetInbounds(1)
+		if err != nil {
+			t.Fatalf("GetInbounds: %v", err)
+		}
+		got := make([]int, 0, len(list))
+		for _, ib := range list {
+			got = append(got, ib.Id)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("inbounds order = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("options", func(t *testing.T) {
+		list, err := svc.GetInboundOptions(1)
+		if err != nil {
+			t.Fatalf("GetInboundOptions: %v", err)
+		}
+		got := make([]int, 0, len(list))
+		for _, option := range list {
+			got = append(got, option.Id)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("options order = %v, want %v", got, want)
+		}
+	})
 }
 
 // TestUpdateAllSettingInboundListOrder rejects an invalid order mode at save
