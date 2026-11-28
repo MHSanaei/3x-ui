@@ -133,6 +133,15 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL operational node listing
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestListOperationalPostgres$' -count=1 -v | tee /tmp/postgres-operational-nodes.log
+          if ! grep -q -- '^--- PASS: TestListOperationalPostgres ' /tmp/postgres-operational-nodes.log; then
+            echo "expected the PostgreSQL operational node listing test to pass" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL global-traffic heartbeat regressions
         run: |
           set -o pipefail
