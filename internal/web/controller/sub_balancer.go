@@ -81,10 +81,13 @@ func (a *SubBalancerController) parseID(c *gin.Context) (int, error) {
 }
 
 func (a *SubBalancerController) list(c *gin.Context) {
-	balancers, err := a.SubBalancerService.List()
+	balancers, err := a.SubBalancerService.ListWithProblems()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.list"), err)
 		return
+	}
+	for _, balancer := range balancers {
+		service.LogSubBalancerProblems(&balancer.SubBalancer, balancer.Problems)
 	}
 	jsonObj(c, balancers, nil)
 }

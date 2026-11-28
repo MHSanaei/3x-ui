@@ -1736,6 +1736,16 @@
         "sortOrderHelp": "在訂閱列表中的位置，與入站順序交錯排列；序號相同時排在入站之後。",
         "inbounds": "入站",
         "inboundsCount": "{count} 入站",
+        "problems": "問題",
+        "problemsCount": "{count} 個問題",
+        "problem": {
+          "unknown_inbound": "入站已不存在",
+          "disabled_inbound": "入站已停用",
+          "json_incapable_protocol": "協定沒有 JSON 出站，因此不能作為成員",
+          "no_members": "沒有可用的成員：負載平衡器已從 JSON 訂閱中省略",
+          "inbound_without_clients": "入站沒有用戶端，因此不會出現在任何訂閱中",
+          "hosts_excluded_from_json": "此入站的所有已啟用主機都已從 JSON 格式中排除"
+        },
         "weights": "成員權重",
         "weightsHelp": "僅適用於 LeastLoad：權重越小越常被選中；未設定的成員權重為 1。",
         "enabled": "啟用",

@@ -1444,6 +1444,38 @@ export const EXAMPLES: Record<string, unknown> = {
     "strategy": "random",
     "updatedAt": 1710000000000
   },
+  "SubBalancerProblem": {
+    "code": "unknown_inbound",
+    "detail": "amneziawg",
+    "inboundIds": [
+      7,
+      9
+    ]
+  },
+  "SubBalancerWithProblems": {
+    "createdAt": 1710000000000,
+    "enabled": true,
+    "id": 1,
+    "inboundIds": [
+      1,
+      3
+    ],
+    "memberWeights": {},
+    "problems": [
+      {
+        "code": "unknown_inbound",
+        "detail": "amneziawg",
+        "inboundIds": [
+          7,
+          9
+        ]
+      }
+    ],
+    "remark": "auto-fastest",
+    "sortOrder": 1,
+    "strategy": "random",
+    "updatedAt": 1710000000000
+  },
   "TgBotCapabilities": {
     "groupPrivacy": false,
     "inlineEnabled": true,

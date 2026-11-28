@@ -1857,6 +1857,16 @@
         "sortOrderHelp": "Position in the subscription list, interleaved with the inbounds' own order; on equal numbers the balancer comes after the inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "problems": "Problems",
+        "problemsCount": "{count} problem(s)",
+        "problem": {
+          "unknown_inbound": "Inbound no longer exists",
+          "disabled_inbound": "Inbound is disabled",
+          "json_incapable_protocol": "Protocol has no JSON outbound, so it cannot be a member",
+          "no_members": "No usable member: the balancer is omitted from the JSON subscription",
+          "inbound_without_clients": "Inbound has no clients, so it reaches no subscription",
+          "hosts_excluded_from_json": "All enabled hosts of this inbound are excluded from the JSON format"
+        },
         "weights": "Member weights",
         "weightsHelp": "Only for LeastLoad: a lower weight is picked more often; members without a value weigh 1.",
         "enabled": "Enabled",

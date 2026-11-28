@@ -30,7 +30,7 @@ import type { AllSetting } from '@/models/setting';
 import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import type { SubBalancer, SubBalancerFormValues } from '@/schemas/subBalancer';
+import type { SubBalancer, SubBalancerFormValues, SubBalancerProblem } from '@/schemas/subBalancer';
 import { PingConfigSchema, type PingConfigObject } from '@/schemas/observatory';
 import { DEFAULT_BURST_OBSERVATORY } from '@/pages/xray/balancers/balancer-helpers';
 import SubBalancerFormModal from './SubBalancerFormModal';
@@ -54,6 +54,25 @@ function parsePingConfig(raw: string): PingConfigObject {
   } catch {
     return DEFAULT_PING_CONFIG;
   }
+}
+
+function ProblemTooltip({
+  problems,
+  inboundLabels,
+}: {
+  problems: SubBalancerProblem[];
+  inboundLabels: Map<number, string>;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div>
+      {problems.map((p) => {
+        const ids = (p.inboundIds ?? []).map((id) => inboundLabels.get(id) ?? `#${id}`).join(', ');
+        const base = t(`pages.settings.subBalancers.problem.${p.code}`);
+        return <div key={p.code}>{ids ? `${base}: ${ids}` : base}</div>;
+      })}
+    </div>
+  );
 }
 
 interface SubscriptionBalancersTabProps {
@@ -145,6 +164,22 @@ export default function SubscriptionBalancersTab({
         return (
           <Tooltip title={labels.join(', ')}>
             <span>{t('pages.settings.subBalancers.inboundsCount', { count: labels.length })}</span>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: t('pages.settings.subBalancers.problems'),
+      key: 'problems',
+      width: 150,
+      render: (_: unknown, r: SubBalancer) => {
+        const problems = r.problems ?? [];
+        if (problems.length === 0) return null;
+        return (
+          <Tooltip title={<ProblemTooltip problems={problems} inboundLabels={inboundLabels} />}>
+            <Tag color="warning">
+              {t('pages.settings.subBalancers.problemsCount', { count: problems.length })}
+            </Tag>
           </Tooltip>
         );
       },
