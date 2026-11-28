@@ -216,9 +216,10 @@ _openapi:
         selection with explicit clientIds or a frozen allMatching scopeToken
         plus excludedClientIds. Scoped requests start a background job and
         return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection
-        error. Stale selections are rejected before applying changes. Triggers a
-        single Xray restart if any target inbound was running.
-      url: '#attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-stale-selections-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running'
+        error. Newer IDs stay outside the frozen scope. Changes to the frozen
+        membership are rejected before applying changes. Triggers a single Xray
+        restart if any target inbound was running.
+      url: '#attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-newer-ids-stay-outside-the-frozen-scope-changes-to-the-frozen-membership-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running'
     - depth: 2
       title: Poll a scoped attachment job. The result contains counts per target
         (attached, skipped, errors); an operation failure sets error instead.
@@ -576,10 +577,11 @@ _openapi:
           lists. Alternatively submit selection with explicit clientIds or a
           frozen allMatching scopeToken plus excludedClientIds. Scoped requests
           start a background job and return {jobId}. Poll GET /bulkAttach/:id
-          for counts or a stale-selection error. Stale selections are rejected
-          before applying changes. Triggers a single Xray restart if any target
-          inbound was running.
-        id: attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-stale-selections-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+          for counts or a stale-selection error. Newer IDs stay outside the
+          frozen scope. Changes to the frozen membership are rejected before
+          applying changes. Triggers a single Xray restart if any target inbound
+          was running.
+        id: attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-newer-ids-stay-outside-the-frozen-scope-changes-to-the-frozen-membership-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running
       - content: Poll a scoped attachment job. The result contains counts per target
           (attached, skipped, errors); an operation failure sets error instead.
           Completed results are retained for up to 15 minutes in the running
