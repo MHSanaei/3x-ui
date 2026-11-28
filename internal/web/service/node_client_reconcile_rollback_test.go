@@ -132,3 +132,84 @@ func testNodeClientReconcileRollback(t *testing.T) {
 		t.Error("valid follow-up snapshot did not detach and orphan-mark the removed client")
 	}
 }
+
+func TestNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
+	testNodeRejectedFirstAdoptionLeavesNoInbound(t)
+}
+
+func TestNodeRejectedFirstAdoptionLeavesNoInboundPostgres(t *testing.T) {
+	if os.Getenv("XUI_DB_TYPE") != "postgres" || os.Getenv("XUI_DB_DSN") == "" {
+		t.Skip("requires a disposable PostgreSQL database")
+	}
+	testNodeRejectedFirstAdoptionLeavesNoInbound(t)
+}
+
+func testNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
+	t.Helper()
+	db := initTrafficTestDB(t)
+	node := &model.Node{Name: "first-adoption-7219", Address: "127.0.0.1", Port: 2096, ApiToken: "test", Enable: true}
+	seedNodeRow(t, db, node)
+	svc := &InboundService{}
+
+	newClient := func(email string) model.Client {
+		return model.Client{ID: uuid.NewString(), Email: email, SubID: email, Password: email, Enable: true}
+	}
+	shared := newClient("shared@first-adoption")
+	otherTuic := newClient("other-tuic@first-adoption")
+	attempted := newClient("attempted@first-adoption")
+	healthy := newClient("healthy@first-adoption")
+
+	nodeInbound := func(tag string, port int, protocol model.Protocol, clients ...model.Client) *model.Inbound {
+		return &model.Inbound{Tag: tag, Port: port, Protocol: protocol, Enable: true, Settings: clientsSettings(t, clients)}
+	}
+	merge := func(up int64, extra ...*model.Inbound) {
+		t.Helper()
+		sibling := nodeInbound("first-healthy", 45113, model.VLESS, healthy)
+		sibling.Up = up
+		sibling.ClientStats = []xray.ClientTraffic{{Email: healthy.Email, Up: up, Enable: true}}
+		inbounds := []*model.Inbound{nodeInbound("first-tuic", 45111, model.TUIC, shared, otherTuic)}
+		inbounds = append(append(inbounds, extra...), sibling)
+		if _, err := svc.SetRemoteTraffic(node.Id, &runtime.TrafficSnapshot{Inbounds: inbounds}, false, false); err != nil {
+			t.Fatalf("merge snapshot: %v", err)
+		}
+	}
+	storedFor := func(tag string) []model.Inbound {
+		t.Helper()
+		var rows []model.Inbound
+		if err := db.Where("node_id = ? AND tag = ?", node.Id, tag).Find(&rows).Error; err != nil {
+			t.Fatal(err)
+		}
+		return rows
+	}
+
+	merge(0)
+	const tag = "first-vless"
+	collision := shared
+	collision.ID = otherTuic.ID
+	merge(11, nodeInbound(tag, 45112, model.VLESS, collision, attempted))
+
+	if rows := storedFor(tag); len(rows) != 0 {
+		t.Errorf("rejected first adoption stored inbound %q with settings %q, want no row", tag, rows[0].Settings)
+	}
+	if got, _ := countClientRows(t, db, attempted.Email); got != 0 {
+		t.Errorf("rejected first adoption persisted %d client rows, want 0", got)
+	}
+	var sibling model.Inbound
+	if err := db.Where("node_id = ? AND tag = ?", node.Id, "first-healthy").Take(&sibling).Error; err != nil {
+		t.Fatal(err)
+	}
+	var usage xray.ClientTraffic
+	if err := db.Where("email = ?", healthy.Email).Take(&usage).Error; err != nil {
+		t.Fatal(err)
+	}
+	if sibling.Up != 11 || usage.Up != 11 {
+		t.Errorf("healthy sibling up=%d client up=%d, want 11/11", sibling.Up, usage.Up)
+	}
+
+	corrected := nodeInbound(tag, 45112, model.VLESS, shared, attempted)
+	merge(11, corrected)
+	rows := storedFor(tag)
+	if len(rows) != 1 || rows[0].Settings != corrected.Settings || linkCount(t, db, attempted.Email) != 1 {
+		t.Fatalf("corrected snapshot stored %d rows for %q, want one adopted inbound with its client linked", len(rows), tag)
+	}
+}
