@@ -14,23 +14,16 @@ import (
 // SubBalancerProblem codes. They are part of the API contract (the panel UI
 // maps them to i18n keys), so treat them as stable identifiers.
 const (
-	// SubBalancerProblemUnknownInbound: InboundIds names an inbound that no
-	// longer exists. Deletes clean these up, but an import or a restored
-	// backup can bring the dangling id back.
-	SubBalancerProblemUnknownInbound = "unknown_inbound"
-	// SubBalancerProblemDisabledInbound: the inbound exists but is disabled.
+	// An import or a restored backup can bring back the id of a deleted inbound.
+	SubBalancerProblemUnknownInbound  = "unknown_inbound"
 	SubBalancerProblemDisabledInbound = "disabled_inbound"
-	// SubBalancerProblemJSONIncapable: the protocol renders share links and
-	// Clash proxies but has no JSON outbound, so it can never be a member.
+	// The protocol renders share links and Clash proxies but has no JSON outbound.
 	SubBalancerProblemJSONIncapable = "json_incapable_protocol"
-	// SubBalancerProblemNoMembers: none of the selected inbounds can contribute
-	// a member, so the balancer is omitted from the JSON subscription.
+	// No selected inbound can contribute, so the JSON subscription omits the balancer.
 	SubBalancerProblemNoMembers = "no_members"
-	// SubBalancerProblemInboundWithoutClients: the inbound is enabled and
-	// renderable but no client sits on it, so it reaches no subscription at all.
+	// Enabled and renderable, but with no client it reaches no subscription.
 	SubBalancerProblemInboundWithoutClients = "inbound_without_clients"
-	// SubBalancerProblemHostsExcluded: every enabled host of the inbound excludes
-	// the JSON format, so hostEndpoints closes it and no client renders.
+	// Every enabled host excludes the JSON format, so hostEndpoints closes the inbound.
 	SubBalancerProblemHostsExcluded = "hosts_excluded_from_json"
 )
 
@@ -42,9 +35,8 @@ type SubBalancerProblem struct {
 	Detail     string `json:"detail,omitempty" example:"amneziawg"`
 }
 
-// jsonIncapableProtocols mirrors the switch in internal/sub/json_service.go:
-// these protocols fall through to `continue` and never produce an outbound.
-// Kept in lockstep by sub_balancer_problems_parity_test.go.
+// jsonIncapableProtocols mirrors the Protocol switch in internal/sub/json_service.go;
+// sub_balancer_problems_parity_test.go fails when the two drift.
 var jsonIncapableProtocols = map[string]struct{}{
 	"amneziawg": {},
 	"tuic":      {},
@@ -145,8 +137,7 @@ func loadBalancerMemberInbounds(ids []int) (map[int]*model.Inbound, map[int]int,
 }
 
 // diagnoseSubBalancer groups per-inbound problems by code in selection order,
-// then appends no_members when nothing could be emitted. The subscription query
-// already drops disabled inbounds, so their code is informational only.
+// then appends no_members when nothing could be emitted.
 func diagnoseSubBalancer(b *model.SubBalancer, byID map[int]*model.Inbound, clientCounts map[int]int, hostsClosed map[int]bool) []SubBalancerProblem {
 	unknown := []int{}
 	disabled := []int{}
@@ -215,9 +206,8 @@ var loggedProblems = struct {
 	byID map[int]string
 }{byID: map[int]string{}}
 
-// LogSubBalancerProblems warns about anything an operator would otherwise
-// discover only by diffing a client's config. Repeated identical listings stay
-// silent, and a resolution is reported only when a problem was known before.
+// LogSubBalancerProblems warns when a balancer's problems change. Identical listings
+// stay silent, and a resolution is reported only when a problem was known before.
 func LogSubBalancerProblems(b *model.SubBalancer, problems []SubBalancerProblem) {
 	fingerprint := problemsFingerprint(problems)
 

@@ -73,9 +73,8 @@ func wantCodes(got []string, want ...string) string {
 	return ""
 }
 
-// A balancer selecting a mix of healthy, dangling, disabled and JSON-incapable
-// inbounds reports one problem per class, in a stable order, and is not
-// flagged no_members because one member survives.
+// Mixed healthy, dangling, disabled and JSON-incapable inbounds report one problem
+// per class in a stable order, and no no_members while one member survives.
 func TestSubBalancerProblemsMixedClasses(t *testing.T) {
 	setupSubBalancerDB(t)
 	seedDiagInbound(t, 1, model.VLESS, true)
