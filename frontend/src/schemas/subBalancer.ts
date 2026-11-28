@@ -3,6 +3,23 @@ import { z } from 'zod';
 export const SubBalancerStrategySchema = z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']);
 export type SubBalancerStrategy = z.infer<typeof SubBalancerStrategySchema>;
 
+export const SubBalancerProblemCodeSchema = z.enum([
+  'unknown_inbound',
+  'disabled_inbound',
+  'json_incapable_protocol',
+  'inbound_without_clients',
+  'hosts_excluded_from_json',
+  'no_members',
+]);
+export type SubBalancerProblemCode = z.infer<typeof SubBalancerProblemCodeSchema>;
+
+export const SubBalancerProblemSchema = z.object({
+  code: SubBalancerProblemCodeSchema,
+  inboundIds: z.array(z.number()).optional(),
+  detail: z.string().optional(),
+});
+export type SubBalancerProblem = z.infer<typeof SubBalancerProblemSchema>;
+
 export const SubBalancerSchema = z.object({
   id: z.number(),
   remark: z.string(),
@@ -11,6 +28,8 @@ export const SubBalancerSchema = z.object({
   memberWeights: z.record(z.string(), z.number()).nullish(),
   sortOrder: z.number(),
   enabled: z.boolean(),
+  // Advisories from the list API; create/update responses omit them.
+  problems: z.array(SubBalancerProblemSchema).optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
 });

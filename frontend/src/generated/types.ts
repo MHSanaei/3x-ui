@@ -1270,6 +1270,25 @@ export interface SubBalancer {
   updatedAt: number;
 }
 
+export interface SubBalancerProblem {
+  code: string;
+  detail?: string;
+  inboundIds?: number[];
+}
+
+export interface SubBalancerWithProblems {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  inboundIds: number[];
+  memberWeights?: Record<number, number>;
+  problems: SubBalancerProblem[];
+  remark: string;
+  sortOrder: number;
+  strategy: string;
+  updatedAt: number;
+}
+
 export interface TgBotCapabilities {
   groupPrivacy: boolean;
   inlineEnabled: boolean;

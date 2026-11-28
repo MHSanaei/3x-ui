@@ -477,6 +477,36 @@ func (s *SubJsonService) hiddenMemberConfig(subReq *SubService, inbound *model.I
 	return s.getConfig(subReq, inbound, client, host)
 }
 
+// omittedBalancerWarned remembers which balancers already warned, so a subscription
+// fetched once per client device does not repeat the same line on every request.
+var omittedBalancerWarned = struct {
+	sync.Mutex
+	seen map[int]bool
+}{seen: map[int]bool{}}
+
+func warnOmittedBalancer(balancer *model.SubBalancer) {
+	omittedBalancerWarned.Lock()
+	already := omittedBalancerWarned.seen[balancer.Id]
+	omittedBalancerWarned.seen[balancer.Id] = true
+	omittedBalancerWarned.Unlock()
+	if already {
+		return
+	}
+	logger.Warningf("SubJsonService: balancer %q (#%d) omitted, its inbounds are in this subscription but produced no member",
+		balancer.Remark, balancer.Id)
+}
+
+// selectsPresentBalancer is true when an inbound the balancer selects is among this
+// subscriber's entries: the only case where an empty member list signals a fault.
+func selectsPresentBalancer(inboundIds []int, sources []subConfigEntry) bool {
+	for _, entry := range sources {
+		if entry.kind == 0 && slices.Contains(inboundIds, entry.id) {
+			return true
+		}
+	}
+	return false
+}
+
 // appendBalancerEntries appends one entry per balancer that has at least one member outbound
 // among the inbound entries; hidden inbounds' entries are members but never output themselves.
 func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry, balancers []model.SubBalancer) []subConfigEntry {
@@ -500,6 +530,11 @@ func (s *SubJsonService) appendBalancerEntries(entries, hidden []subConfigEntry,
 	for i := range balancers {
 		config := s.buildBalancerConfig(&balancers[i], sources, entryProxies)
 		if config == nil {
+			// Balancers are global, sources are this subscriber's: an empty
+			// intersection is normal, only a present-but-memberless one warns.
+			if selectsPresentBalancer(balancers[i].InboundIds, sources) {
+				warnOmittedBalancer(&balancers[i])
+			}
 			continue
 		}
 		entries = append(entries, subConfigEntry{

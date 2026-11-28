@@ -1348,6 +1348,27 @@ export const SubBalancerSchema = z.object({
 });
 export type SubBalancer = z.infer<typeof SubBalancerSchema>;
 
+export const SubBalancerProblemSchema = z.object({
+  code: z.string(),
+  detail: z.string().optional(),
+  inboundIds: z.array(z.number().int()).optional(),
+});
+export type SubBalancerProblem = z.infer<typeof SubBalancerProblemSchema>;
+
+export const SubBalancerWithProblemsSchema = z.object({
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  id: z.number().int(),
+  inboundIds: z.array(z.number().int()),
+  memberWeights: z.record(z.number().int(), z.number()).optional(),
+  problems: z.array(z.lazy(() => SubBalancerProblemSchema)),
+  remark: z.string().max(256),
+  sortOrder: z.number().int().min(1),
+  strategy: z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']),
+  updatedAt: z.number().int(),
+});
+export type SubBalancerWithProblems = z.infer<typeof SubBalancerWithProblemsSchema>;
+
 export const TgBotCapabilitiesSchema = z.object({
   groupPrivacy: z.boolean(),
   inlineEnabled: z.boolean(),

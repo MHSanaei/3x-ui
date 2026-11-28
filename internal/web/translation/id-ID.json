@@ -1736,6 +1736,16 @@
         "sortOrderHelp": "Posisi dalam daftar langganan, berselang-seling dengan urutan inbound; jika sama, penyeimbang berada setelah inbound.",
         "inbounds": "Inbound",
         "inboundsCount": "{count} Inbound",
+        "problems": "Masalah",
+        "problemsCount": "{count} masalah",
+        "problem": {
+          "unknown_inbound": "Inbound tidak ada lagi",
+          "disabled_inbound": "Inbound dinonaktifkan",
+          "json_incapable_protocol": "Protokol tidak memiliki outbound JSON, jadi tidak bisa menjadi anggota",
+          "no_members": "Tidak ada anggota yang dapat digunakan: penyeimbang dihilangkan dari langganan JSON",
+          "inbound_without_clients": "Inbound tidak memiliki klien, sehingga tidak masuk ke langganan mana pun",
+          "hosts_excluded_from_json": "Semua host yang aktif pada inbound ini dikecualikan dari format JSON"
+        },
         "weights": "Bobot anggota",
         "weightsHelp": "Hanya untuk LeastLoad: bobot lebih rendah lebih sering dipilih; anggota tanpa nilai berbobot 1.",
         "enabled": "Aktif",

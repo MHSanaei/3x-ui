@@ -1736,6 +1736,16 @@
         "sortOrderHelp": "Vị trí trong danh sách đăng ký, xen kẽ với thứ tự inbound; khi cùng số, bộ cân bằng đứng sau inbound.",
         "inbounds": "Inbound",
         "inboundsCount": "{count} Inbound",
+        "problems": "Vấn đề",
+        "problemsCount": "{count} vấn đề",
+        "problem": {
+          "unknown_inbound": "Inbound không còn tồn tại",
+          "disabled_inbound": "Inbound đang bị tắt",
+          "json_incapable_protocol": "Giao thức không có outbound JSON nên không thể là thành viên",
+          "no_members": "Không có thành viên khả dụng: bộ cân bằng bị bỏ khỏi đăng ký JSON",
+          "inbound_without_clients": "Inbound không có ứng dụng khách nên không xuất hiện trong đăng ký nào",
+          "hosts_excluded_from_json": "Tất cả máy chủ được bật của inbound này đều bị loại khỏi định dạng JSON"
+        },
         "weights": "Trọng số thành viên",
         "weightsHelp": "Chỉ dành cho LeastLoad: trọng số nhỏ hơn được chọn thường xuyên hơn; thành viên không có giá trị mang trọng số 1.",
         "enabled": "Đã bật",

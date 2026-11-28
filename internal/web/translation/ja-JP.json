@@ -1736,6 +1736,16 @@
         "sortOrderHelp": "サブスクリプション一覧内の位置。インバウンドの順序と交互に並び、同番号の場合はインバウンドの後ろになります。",
         "inbounds": "インバウンド",
         "inboundsCount": "{count} インバウンド",
+        "problems": "問題",
+        "problemsCount": "{count} 件の問題",
+        "problem": {
+          "unknown_inbound": "インバウンドは存在しません",
+          "disabled_inbound": "インバウンドは無効です",
+          "json_incapable_protocol": "プロトコルに JSON アウトバウンドがないため、メンバーにできません",
+          "no_members": "使用可能なメンバーがありません: バランサーは JSON サブスクリプションから除外されます",
+          "inbound_without_clients": "インバウンドにクライアントがないため、どのサブスクリプションにも届きません",
+          "hosts_excluded_from_json": "このインバウンドの有効なホストはすべて JSON 形式から除外されています"
+        },
         "weights": "メンバーの重み",
         "weightsHelp": "LeastLoad のみ：値が小さいほど選ばれやすくなります。未指定のメンバーは重み 1 です。",
         "enabled": "有効",
