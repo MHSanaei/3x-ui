@@ -138,15 +138,6 @@ func (s *NodeService) ListOperational() ([]*model.Node, error) {
 	return nodes, nil
 }
 
-func (s *NodeService) GetAll() ([]*model.Node, error) {
-	nodes, err := s.ListOperational()
-	if err != nil || len(nodes) == 0 {
-		return nodes, err
-	}
-	s.enrichDashboardStats(database.GetDB(), nodes)
-	return nodes, nil
-}
-
 func (s *NodeService) populateClientCounts(db *gorm.DB, nodes []*model.Node) {
 	type clientCountRow struct {
 		NodeID int `gorm:"column:node_id"`

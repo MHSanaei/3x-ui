@@ -51,8 +51,7 @@ func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *test
 			t.Fatalf("create node %d: %v", n.Id, err)
 		}
 	}
-	// Create a third node with undecryptable ciphertext to confirm
-	// decryption error semantics match GetAll without dropping the node row.
+	// An undecryptable token must keep its node row and surface as LastError.
 	n3 := &model.Node{Id: 3, Name: "broken", Address: "10.0.0.3", Port: 2053, ApiToken: "secret-three", Guid: "guid-3"}
 	if err := svc.Create(n3); err != nil {
 		t.Fatalf("create broken token node: %v", err)
@@ -111,14 +110,12 @@ func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *test
 		}
 	}
 
-	// Retain full dashboard enrichment on GetAll.
-	*queries = nil
-	enriched, err := svc.GetAll()
+	enriched, err := svc.GetNodeTree()
 	if err != nil {
-		t.Fatalf("GetAll: %v", err)
+		t.Fatalf("GetNodeTree: %v", err)
 	}
 	if enriched[0].InboundCount != 1 || enriched[0].ClientCount != 1 || enriched[0].ActiveCount != 1 {
-		t.Errorf("GetAll enriched stats = (inbound=%d, client=%d, active=%d), want (1, 1, 1)",
+		t.Errorf("GetNodeTree stats = (inbound=%d, client=%d, active=%d), want (1, 1, 1)",
 			enriched[0].InboundCount, enriched[0].ClientCount, enriched[0].ActiveCount)
 	}
 }
