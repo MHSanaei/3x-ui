@@ -452,6 +452,44 @@ export const EXAMPLES: Record<string, unknown> = {
     "scope": "admin",
     "token": "new-token-string"
   },
+  "AttachCandidate": {
+    "alreadyAttached": false,
+    "comment": "Example client",
+    "email": "alice@example.test",
+    "enable": true,
+    "group": "staff",
+    "id": 1
+  },
+  "AttachCandidatePage": {
+    "eligible": 118,
+    "groups": [
+      "staff"
+    ],
+    "items": [
+      {
+        "alreadyAttached": false,
+        "comment": "Example client",
+        "email": "alice@example.test",
+        "enable": true,
+        "group": "staff",
+        "id": 1
+      }
+    ],
+    "maxId": 0,
+    "scopeToken": "",
+    "total": 120
+  },
+  "AttachJobStatus": {
+    "ended": "2025-01-01T00:00:00Z",
+    "error": "",
+    "result": null,
+    "running": false
+  },
+  "AttachSelectionResult": {
+    "attached": 9997,
+    "errors": 0,
+    "skipped": 0
+  },
   "Blocker": {
     "code": "tools",
     "detail": "awg"

@@ -1022,6 +1022,57 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/attachCandidates',
+        summary:
+          'List up to 100 clients for the inbound attachment picker. Counts distinguish filtered rows and all eligible clients. A freeze request returns only the eligible count, maximum ID and a scope token covering the current eligible IDs for the chosen source and targets.',
+        params: [
+          {
+            name: 'sourceId',
+            in: 'query',
+            type: 'number',
+            desc: 'Restrict candidates to clients on this inbound.',
+            optional: true,
+          },
+          {
+            name: 'inboundIds',
+            in: 'query',
+            type: 'string',
+            desc: 'Comma-separated target IDs. Required for freeze and if no source ID is specified.',
+            optional: true,
+          },
+          {
+            name: 'page',
+            in: 'query',
+            type: 'number',
+            desc: '1-indexed page, defaults to 1.',
+            optional: true,
+          },
+          {
+            name: 'search',
+            in: 'query',
+            type: 'string',
+            desc: 'Match email and either comment (with a source) or group.',
+            optional: true,
+          },
+          {
+            name: 'group',
+            in: 'query',
+            type: 'string',
+            desc: 'Filter by exact group when there is no source.',
+            optional: true,
+          },
+          {
+            name: 'freeze',
+            in: 'query',
+            type: 'boolean',
+            desc: 'Freeze all eligible IDs independently of search, page and group.',
+            optional: true,
+          },
+        ],
+        responseSchema: 'AttachCandidatePage',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/list/paged',
         summary:
           'Filter, sort, and paginate clients on the server. Each item is a slim row (no uuid/password/auth/flow/security/reverse/tgId) so the clients page can ship 25-ish rows in a few KB instead of the full table. The response also includes a summary computed across the full DB row set so dashboard counters stay stable as the user paginates or filters: the *Count fields are exact, while the email arrays beside them stop at 200 entries so the payload does not grow with the panel. Page size capped at 200; fetch /get/:email to obtain the full per-client payload for an edit/info modal.',
@@ -1650,13 +1701,21 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkAttach',
         summary:
-          'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+          'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Explicit email requests return per-email lists. Alternatively submit selection with explicit clientIds or a frozen allMatching scopeToken plus excludedClientIds. Scoped requests start a background job and return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection error. Stale selections are rejected before applying changes. Triggers a single Xray restart if any target inbound was running.',
         params: [
           {
             name: 'emails',
             in: 'body (json)',
             type: 'string[]',
-            desc: 'Emails of existing clients to attach.',
+            desc: 'Emails of existing clients to attach. Omit when using selection.',
+            optional: true,
+          },
+          {
+            name: 'selection',
+            in: 'body (json)',
+            type: 'object',
+            desc: 'Either {mode: "explicit", clientIds, sourceId?} or {mode: "allMatching", scopeToken, excludedClientIds?, sourceId?}.',
+            optional: true,
           },
           {
             name: 'inboundIds',
@@ -1668,6 +1727,21 @@ export const sections: readonly Section[] = [
         body: '{\n  "emails": ["alice", "bob"],\n  "inboundIds": [7, 9]\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "attached": ["alice", "bob"],\n    "skipped": ["bob"],\n    "errors": []\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/bulkAttach/:id',
+        summary:
+          'Poll a scoped attachment job. The result contains counts per target (attached, skipped, errors); an operation failure sets error instead. Completed results are retained for up to 15 minutes in the running panel process.',
+        params: [
+          {
+            name: 'id',
+            in: 'path',
+            type: 'string',
+            desc: 'Job ID returned by the scoped bulkAttach request.',
+          },
+        ],
+        responseSchema: 'AttachJobStatus',
       },
       {
         method: 'POST',

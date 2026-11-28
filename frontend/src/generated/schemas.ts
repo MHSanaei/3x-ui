@@ -1877,6 +1877,135 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "AttachCandidate": {
+    "properties": {
+      "alreadyAttached": {
+        "example": false,
+        "type": "boolean"
+      },
+      "comment": {
+        "example": "Example client",
+        "type": "string"
+      },
+      "email": {
+        "example": "alice@example.test",
+        "type": "string"
+      },
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "group": {
+        "example": "staff",
+        "type": "string"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "alreadyAttached",
+      "comment",
+      "email",
+      "enable",
+      "group",
+      "id"
+    ],
+    "type": "object"
+  },
+  "AttachCandidatePage": {
+    "properties": {
+      "eligible": {
+        "example": 118,
+        "format": "int64",
+        "type": "integer"
+      },
+      "groups": {
+        "example": [
+          "staff"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AttachCandidate"
+        },
+        "type": "array"
+      },
+      "maxId": {
+        "type": "integer"
+      },
+      "scopeToken": {
+        "type": "string"
+      },
+      "total": {
+        "example": 120,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "eligible",
+      "groups",
+      "items",
+      "total"
+    ],
+    "type": "object"
+  },
+  "AttachJobStatus": {
+    "properties": {
+      "ended": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "error": {
+        "type": "string"
+      },
+      "result": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AttachSelectionResult"
+          }
+        ],
+        "nullable": true
+      },
+      "running": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "ended",
+      "running"
+    ],
+    "type": "object"
+  },
+  "AttachSelectionResult": {
+    "properties": {
+      "attached": {
+        "example": 9997,
+        "type": "integer"
+      },
+      "errors": {
+        "example": 0,
+        "type": "integer"
+      },
+      "skipped": {
+        "example": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "attached",
+      "errors",
+      "skipped"
+    ],
+    "type": "object"
+  },
   "Blocker": {
     "description": "Blocker is one unmet requirement.",
     "properties": {

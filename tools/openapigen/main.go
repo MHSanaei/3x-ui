@@ -108,6 +108,9 @@ func run(root, outDir string) error {
 				"ClientRenewalPreviewRequest",
 				"ClientRenewalPreview",
 				"ClientPageResponse",
+				"AttachCandidate",
+				"AttachCandidatePage",
+				"AttachSelectionResult",
 				"BulkAdjustResult",
 				"BulkAdjustReport",
 				"BulkExternalLinksResult",
@@ -140,7 +143,7 @@ func run(root, outDir string) error {
 		},
 		{
 			Path:        resolveRel(root, "internal/web/controller"),
-			StructAllow: setOf("TgBotCapabilities"),
+			StructAllow: setOf("TgBotCapabilities", "AttachJobStatus"),
 		},
 		{
 			Path:        resolveRel(root, "internal/amneziawg"),

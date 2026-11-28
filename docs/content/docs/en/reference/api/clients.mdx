@@ -14,6 +14,12 @@ _openapi:
         JSON-encoded-string form is still accepted on write).
       url: '#list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write'
     - depth: 2
+      title: List up to 100 clients for the inbound attachment picker. Counts
+        distinguish filtered rows and all eligible clients. A freeze request
+        returns only the eligible count, maximum ID and a scope token covering
+        the current eligible IDs for the chosen source and targets.
+      url: '#list-up-to-100-clients-for-the-inbound-attachment-picker-counts-distinguish-filtered-rows-and-all-eligible-clients-a-freeze-request-returns-only-the-eligible-count-maximum-id-and-a-scope-token-covering-the-current-eligible-ids-for-the-chosen-source-and-targets'
+    - depth: 2
       title: 'Filter, sort, and paginate clients on the server. Each item is a slim
         row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
         page can ship 25-ish rows in a few KB instead of the full table. The
@@ -206,9 +212,19 @@ _openapi:
         keeps its identity (email/UUID/password/subId) and a shared traffic row;
         all clients are added to a target inbound in a single AddInboundClient
         call. Clients already present on a target are reported under skipped.
-        Returns per-email attached/skipped/errors lists and triggers a single
-        Xray restart if any target inbound was running.
-      url: '#attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running'
+        Explicit email requests return per-email lists. Alternatively submit
+        selection with explicit clientIds or a frozen allMatching scopeToken
+        plus excludedClientIds. Scoped requests start a background job and
+        return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection
+        error. Stale selections are rejected before applying changes. Triggers a
+        single Xray restart if any target inbound was running.
+      url: '#attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-stale-selections-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running'
+    - depth: 2
+      title: Poll a scoped attachment job. The result contains counts per target
+        (attached, skipped, errors); an operation failure sets error instead.
+        Completed results are retained for up to 15 minutes in the running panel
+        process.
+      url: '#poll-a-scoped-attachment-job-the-result-contains-counts-per-target-attached-skipped-errors-an-operation-failure-sets-error-instead-completed-results-are-retained-for-up-to-15-minutes-in-the-running-panel-process'
     - depth: 2
       title: "Mirror of bulkAttach: detach many existing clients from many inbounds in
         one call. For each email, intersects the client's current inbounds with
@@ -386,6 +402,11 @@ _openapi:
           reverse field, if set, is returned as a nested JSON object (legacy
           JSON-encoded-string form is still accepted on write).
         id: list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
+      - content: List up to 100 clients for the inbound attachment picker. Counts
+          distinguish filtered rows and all eligible clients. A freeze request
+          returns only the eligible count, maximum ID and a scope token covering
+          the current eligible IDs for the chosen source and targets.
+        id: list-up-to-100-clients-for-the-inbound-attachment-picker-counts-distinguish-filtered-rows-and-all-eligible-clients-a-freeze-request-returns-only-the-eligible-count-maximum-id-and-a-scope-token-covering-the-current-eligible-ids-for-the-chosen-source-and-targets
       - content: 'Filter, sort, and paginate clients on the server. Each item is a slim
           row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
           page can ship 25-ish rows in a few KB instead of the full table. The
@@ -551,10 +572,19 @@ _openapi:
           keeps its identity (email/UUID/password/subId) and a shared traffic
           row; all clients are added to a target inbound in a single
           AddInboundClient call. Clients already present on a target are
-          reported under skipped. Returns per-email attached/skipped/errors
-          lists and triggers a single Xray restart if any target inbound was
-          running.
-        id: attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-returns-per-email-attachedskippederrors-lists-and-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+          reported under skipped. Explicit email requests return per-email
+          lists. Alternatively submit selection with explicit clientIds or a
+          frozen allMatching scopeToken plus excludedClientIds. Scoped requests
+          start a background job and return {jobId}. Poll GET /bulkAttach/:id
+          for counts or a stale-selection error. Stale selections are rejected
+          before applying changes. Triggers a single Xray restart if any target
+          inbound was running.
+        id: attach-many-existing-clients-to-many-inbounds-in-one-call-each-client-keeps-its-identity-emailuuidpasswordsubid-and-a-shared-traffic-row-all-clients-are-added-to-a-target-inbound-in-a-single-addinboundclient-call-clients-already-present-on-a-target-are-reported-under-skipped-explicit-email-requests-return-per-email-lists-alternatively-submit-selection-with-explicit-clientids-or-a-frozen-allmatching-scopetoken-plus-excludedclientids-scoped-requests-start-a-background-job-and-return-jobid-poll-get-bulkattachid-for-counts-or-a-stale-selection-error-stale-selections-are-rejected-before-applying-changes-triggers-a-single-xray-restart-if-any-target-inbound-was-running
+      - content: Poll a scoped attachment job. The result contains counts per target
+          (attached, skipped, errors); an operation failure sets error instead.
+          Completed results are retained for up to 15 minutes in the running
+          panel process.
+        id: poll-a-scoped-attachment-job-the-result-contains-counts-per-target-attached-skipped-errors-an-operation-failure-sets-error-instead-completed-results-are-retained-for-up-to-15-minutes-in-the-running-panel-process
       - content: "Mirror of bulkAttach: detach many existing clients from many inbounds
           in one call. For each email, intersects the client's current inbounds
           with the requested set and detaches from those only; (email, inbound)
@@ -883,7 +913,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/update","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/del","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/wireguardDevices","method":"get"},{"path":"/panel/api/clients/wireguardDevices","method":"post"},{"path":"/panel/api/clients/wireguardDevices/limit","method":"put"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"patch"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"delete"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/hosts","method":"post"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}/block","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/usageHistory/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <OpenAPIPage document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/attachCandidates","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get","method":"get"},{"path":"/panel/api/clients/get/subId/{subId}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/update","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/del","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/wireguardDevices","method":"get"},{"path":"/panel/api/clients/wireguardDevices","method":"post"},{"path":"/panel/api/clients/wireguardDevices/limit","method":"put"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"patch"},{"path":"/panel/api/clients/wireguardDevices/{deviceId}","method":"delete"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkAttach/{id}","method":"get"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/hosts","method":"post"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}/block","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/usageHistory/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

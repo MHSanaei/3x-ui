@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,6 +54,7 @@ func NewClientController(g *gin.RouterGroup) *ClientController {
 func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.GET("/list", a.list)
 	g.GET("/list/paged", a.listPaged)
+	g.GET("/attachCandidates", a.attachCandidates)
 	g.GET("/get", a.get)
 	g.GET("/get/:email", a.get)
 	g.GET("/get/subId/:subId", a.getBySubId)
@@ -88,6 +90,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/bulkDel", a.bulkDelete)
 	g.POST("/bulkCreate", a.bulkCreate)
 	g.POST("/bulkAttach", a.bulkAttach)
+	g.GET("/bulkAttach/:id", a.attachStatus)
 	g.POST("/bulkDetach", a.bulkDetach)
 	g.POST("/bulkResetTraffic", a.bulkResetTraffic)
 	g.POST("/resetTraffic/:email", a.resetTrafficByEmail)
@@ -136,6 +139,20 @@ func (a *ClientController) listPaged(c *gin.Context) {
 		return
 	}
 	jsonObj(c, resp, nil)
+}
+
+func (a *ClientController) attachCandidates(c *gin.Context) {
+	var params service.AttachCandidateParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	result, err := a.clientService.ListAttachCandidates(c.Request.Context(), params)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, result, nil)
 }
 
 func (a *ClientController) buildClientPayload(rec *model.ClientRecord) (gin.H, error) {
@@ -426,14 +443,23 @@ type bulkDeleteRequest struct {
 }
 
 type bulkAttachRequest struct {
-	Emails     []string `json:"emails"`
-	InboundIds []int    `json:"inboundIds"`
+	Emails     []string                 `json:"emails"`
+	InboundIds []int                    `json:"inboundIds"`
+	Selection  *service.AttachSelection `json:"selection,omitempty"`
 }
 
 func (a *ClientController) bulkAttach(c *gin.Context) {
 	var req bulkAttachRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if req.Selection != nil {
+		if len(req.Emails) > 0 {
+			jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("use either emails or an attachment selection"))
+			return
+		}
+		a.beginBulkAttach(c, req.InboundIds, *req.Selection)
 		return
 	}
 	result, needRestart, err := a.clientService.BulkAttach(&a.inboundService, req.Emails, req.InboundIds)

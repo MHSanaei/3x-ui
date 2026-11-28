@@ -462,6 +462,41 @@ export const ApiTokenViewSchema = z.object({
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
+export const AttachCandidateSchema = z.object({
+  alreadyAttached: z.boolean(),
+  comment: z.string(),
+  email: z.string(),
+  enable: z.boolean(),
+  group: z.string(),
+  id: z.number().int(),
+});
+export type AttachCandidate = z.infer<typeof AttachCandidateSchema>;
+
+export const AttachCandidatePageSchema = z.object({
+  eligible: z.number().int(),
+  groups: z.array(z.string()),
+  items: z.array(z.lazy(() => AttachCandidateSchema)),
+  maxId: z.number().int().optional(),
+  scopeToken: z.string().optional(),
+  total: z.number().int(),
+});
+export type AttachCandidatePage = z.infer<typeof AttachCandidatePageSchema>;
+
+export const AttachJobStatusSchema = z.object({
+  ended: z.string(),
+  error: z.string().optional(),
+  result: z.lazy(() => AttachSelectionResultSchema).nullable().optional(),
+  running: z.boolean(),
+});
+export type AttachJobStatus = z.infer<typeof AttachJobStatusSchema>;
+
+export const AttachSelectionResultSchema = z.object({
+  attached: z.number().int(),
+  errors: z.number().int(),
+  skipped: z.number().int(),
+});
+export type AttachSelectionResult = z.infer<typeof AttachSelectionResultSchema>;
+
 export const BlockerSchema = z.object({
   code: z.lazy(() => BlockerCodeSchema),
   detail: z.string().optional(),
