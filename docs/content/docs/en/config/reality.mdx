@@ -137,6 +137,16 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
   Clash proxy gets `support-x25519mlkem768: false` and its `vless://` link drops
   the hint. Clearing the version limit alone does not fix the handshake.
 
+### Import a REALITY subscription into Loon
+
+Append `?format=loon` to the raw subscription URL and import that URL as a Loon
+remote proxy subscription. Use `&format=loon` when the URL already has query
+parameters. For supported raw TCP VLESS REALITY links with the post-quantum
+hint, this format sets Loon's `tls-profile=chrome147` and keeps the server name,
+public key, short ID and Vision flow. Other links remain URI entries. See the
+[Loon node format](https://nsloon.app/en/docs/Node/) for client support.
+
+
 </Callout>
 
 ## Generate a config
