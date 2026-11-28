@@ -2,6 +2,7 @@ import { ObjectUtil } from '@/utils';
 import type {
   SubProfileMode,
   SubHostSortMode,
+  InboundListOrder,
   NetworkTrafficMode,
   WechatMode,
 } from '@/schemas/setting';
@@ -33,6 +34,7 @@ export class AllSetting {
   subInfoNodeEnable = false;
   subHwidRejectWithConfig = false;
   subHostSortMode: SubHostSortMode = 'inbound-first';
+  inboundListOrder: InboundListOrder = 'id';
   subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
   subTrafficDepletedTemplate =

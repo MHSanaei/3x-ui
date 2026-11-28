@@ -13,6 +13,9 @@ export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
 export const SubHostSortModeSchema = z.enum(['inbound-first', 'hosts-first']);
 export type SubHostSortMode = z.infer<typeof SubHostSortModeSchema>;
 
+export const InboundListOrderSchema = z.enum(['id', 'remark', 'port', 'protocol', 'subSortIndex']);
+export type InboundListOrder = z.infer<typeof InboundListOrderSchema>;
+
 export const WechatModeSchema = z.enum(['wecom', 'webhook']);
 export type WechatMode = z.infer<typeof WechatModeSchema>;
 
@@ -43,6 +46,7 @@ export const AllSettingFieldsSchema = z
     subInfoNodeEnable: z.boolean().optional(),
     subHwidRejectWithConfig: z.boolean().optional(),
     subHostSortMode: SubHostSortModeSchema.optional(),
+    inboundListOrder: InboundListOrderSchema.optional(),
     subCalendarExpireInclusive: z.boolean().optional(),
     subExpiredTemplate: z.string().optional(),
     subTrafficDepletedTemplate: z.string().optional(),

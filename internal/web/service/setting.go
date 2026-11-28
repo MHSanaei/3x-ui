@@ -94,6 +94,7 @@ var defaultValueMap = map[string]string{
 	"subHwidRejectWithConfig":     "false",
 	"mcpEnable":                   "false",
 	"subHostSortMode":             "inbound-first",
+	"inboundListOrder":            "id",
 	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
@@ -844,6 +845,21 @@ func (s *SettingService) GetMcpEnable() (bool, error) {
 
 func (s *SettingService) GetSubHostSortMode() (string, error) {
 	return s.getString("subHostSortMode")
+}
+
+// GetInboundListOrder reads the panel's default inbound order, falling back
+// to id for unknown values so a stale setting cannot break the list.
+func (s *SettingService) GetInboundListOrder() (string, error) {
+	mode, err := s.getString("inboundListOrder")
+	if err != nil {
+		return "id", err
+	}
+	switch mode {
+	case "id", "remark", "port", "protocol", "subSortIndex":
+		return mode, nil
+	default:
+		return "id", nil
+	}
 }
 
 func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
@@ -1761,6 +1777,13 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	case "inbound-first", "hosts-first":
 	default:
 		return errors.New("subscription host sort mode must be inbound-first or hosts-first")
+	}
+	switch allSetting.InboundListOrder {
+	case "":
+		allSetting.InboundListOrder = "id"
+	case "id", "remark", "port", "protocol", "subSortIndex":
+	default:
+		return errors.New("inbound list order must be id, remark, port, protocol, or subSortIndex")
 	}
 	switch allSetting.SubProfileMode {
 	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:

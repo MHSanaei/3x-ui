@@ -22,6 +22,7 @@ export interface AllSetting {
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
+  inboundListOrder: string;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -235,6 +236,7 @@ export interface AllSettingView {
   hasWarpSecret: boolean;
   hasWechatToken: boolean;
   hasWechatWebhookURL: boolean;
+  inboundListOrder: string;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
