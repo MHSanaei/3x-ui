@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -372,13 +373,23 @@ func nodeClientRenewed(existing *xray.ClientTraffic, cs xray.ClientTraffic, cano
 
 // liftActivatedClientRecordExpiries copies a node-activated deadline from
 // client_traffics onto client records still holding the negative duration (#5714).
-func liftActivatedClientRecordExpiries(tx *gorm.DB) error {
-	return tx.Exec(
-		`UPDATE clients
-		 SET expiry_time = (SELECT ct.expiry_time FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0 LIMIT 1)
-		 WHERE clients.expiry_time < 0
-		   AND EXISTS (SELECT 1 FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0)`,
-	).Error
+func liftActivatedClientRecordExpiries(scope *gorm.DB) error {
+	const deadline = "SELECT ct.expiry_time FROM client_traffics ct WHERE ct.email = clients.email AND ct.expiry_time > 0 LIMIT 1"
+	return scope.Where("clients.expiry_time < 0 AND EXISTS ("+deadline+")").
+		UpdateColumn("expiry_time", gorm.Expr("("+deadline+")")).Error
+}
+
+// RepairClientActivationExpiries visits a bounded primary-key window for legacy drift.
+func (s *ClientService) RepairClientActivationExpiries(afterID int) (int, error) {
+	var upperID int
+	err := runSerializedTx(func(tx *gorm.DB) error {
+		window := tx.Model(&model.ClientRecord{}).Select("id").Where("id > ?", afterID).Order("id").Limit(4000)
+		if err := tx.Table("(?) AS window_ids", window).Select("COALESCE(MAX(id), 0)").Scan(&upperID).Error; err != nil || upperID == 0 {
+			return err
+		}
+		return liftActivatedClientRecordExpiries(tx.Model(&model.ClientRecord{}).Where("id > ? AND id <= ?", afterID, upperID))
+	})
+	return upperID, err
 }
 
 // SnapshotHasUnadoptedInbounds reports whether the snapshot carries a tag with
@@ -731,6 +742,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 
 	structuralChange := false
+	activatedEmails := make(map[string]struct{})
 	lifecycleLifted := false
 	var sweptTags []string
 
@@ -1170,6 +1182,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				centralCS[csKey{c.Id, cs.Email}] = row
 				centralCSByEmail[cs.Email] = row
 				statByEmail[cs.Email] = row
+				if row.ExpiryTime > 0 {
+					activatedEmails[row.Email] = struct{}{}
+				}
 				structuralChange = true
 				if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
 					return false, err
@@ -1227,6 +1242,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.Enable = cs.Enable
 				existing.Total = cs.Total
 				existing.ExpiryTime = cs.ExpiryTime
+				activatedEmails[cs.Email] = struct{}{}
 				existing.Reset = cs.Reset
 				existing.ResetDay = cs.ResetDay
 				existing.ResetWeekday = cs.ResetWeekday
@@ -1254,6 +1270,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if next != *row {
 					if err := s.mergeNodeClientTraffic(tx, cs, canon, clientFrozen, deltaUp, deltaDown, now); err != nil {
 						return false, err
+					}
+					if row.ExpiryTime <= 0 && next.ExpiryTime > 0 {
+						activatedEmails[cs.Email] = struct{}{}
 					}
 					*row = next
 				}
@@ -1477,8 +1496,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		logger.Warning("setRemoteTraffic: clear orphan marks failed:", err)
 	}
 
-	if err := liftActivatedClientRecordExpiries(tx); err != nil {
-		logger.Warning("setRemoteTraffic: lift activated expiries failed:", err)
+	for _, emails := range chunkStrings(slices.Sorted(maps.Keys(activatedEmails)), sqlInChunk) {
+		if err := liftActivatedClientRecordExpiries(tx.Model(&model.ClientRecord{}).Where("email IN ?", emails)); err != nil {
+			return false, err
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
