@@ -52,6 +52,8 @@ const errBodyDiagBytes = 8 << 10 // 8 KiB
 // errRemoteResponseTooLarge is returned when a node response exceeds the cap.
 var errRemoteResponseTooLarge = errors.New("remote response exceeds size limit")
 
+var errRemoteInboundNotFound = errors.New("remote inbound not found")
+
 // readCappedBody reads all of r but rejects bodies larger than limit, returning
 // errRemoteResponseTooLarge. It reads at most limit+1 bytes so a body of exactly
 // limit is accepted and the first oversize byte is detected without buffering
@@ -424,7 +426,7 @@ func (r *Remote) resolveRemoteID(ctx context.Context, tag string) (int, error) {
 	if id, ok := r.cacheGetTag(tag); ok {
 		return id, nil
 	}
-	return 0, fmt.Errorf("remote inbound with tag %q not found on node %s", tag, r.node.Name)
+	return 0, fmt.Errorf("%w: tag %q on node %s", errRemoteInboundNotFound, tag, r.node.Name)
 }
 
 // nodeInboundTagPrefix is the central-panel alias for an inbound on nodeID.
@@ -572,9 +574,11 @@ func (r *Remote) AddInbound(ctx context.Context, ib *model.Inbound) error {
 
 func (r *Remote) DelInbound(ctx context.Context, ib *model.Inbound) error {
 	id, err := r.resolveRemoteID(ctx, ib.Tag)
-	if err != nil {
-		logger.Warning("remote DelInbound: tag", ib.Tag, "not found on", r.node.Name)
+	if errors.Is(err, errRemoteInboundNotFound) {
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 	if _, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/del/"+strconv.Itoa(id), nil); err != nil {
 		return err
@@ -585,8 +589,11 @@ func (r *Remote) DelInbound(ctx context.Context, ib *model.Inbound) error {
 
 func (r *Remote) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	id, err := r.resolveRemoteID(ctx, oldIb.Tag)
-	if err != nil {
+	if errors.Is(err, errRemoteInboundNotFound) {
 		return r.AddInbound(ctx, newIb)
+	}
+	if err != nil {
+		return err
 	}
 	if err := r.checkInboundCapabilities(ctx, newIb); err != nil {
 		return err

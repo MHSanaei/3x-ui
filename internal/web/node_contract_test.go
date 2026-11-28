@@ -369,6 +369,18 @@ func TestMasterNodeContract(t *testing.T) {
 						t.Fatal("node still has the inbound")
 					}
 				}},
+				{"DelInbound is idempotent after confirmed absence", []string{"DelInbound"}, func() error {
+					return master.DelInbound(ctx, masterInbound("already missing", false))
+				}, nil},
+				{"UpdateInbound reseeds an inbound confirmed missing", []string{"UpdateInbound"}, func() error {
+					inbound := masterInbound("reseeded", false)
+					return master.UpdateInbound(ctx, inbound, inbound)
+				}, func(t *testing.T) {
+					inbound, ok := nodeRow(t, contractTag)
+					if !ok || inbound.Remark != "reseeded" {
+						t.Fatalf("reseeded inbound = %+v", inbound)
+					}
+				}},
 			}
 			covered := map[string]bool{}
 			for _, c := range cells {
