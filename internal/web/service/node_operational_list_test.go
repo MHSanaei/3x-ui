@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -39,8 +41,21 @@ func recordExecutedSQL(t *testing.T, db *gorm.DB) *[]string {
 
 func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *testing.T) {
 	setupConflictDB(t)
+	testListOperational(t, database.GetDB())
+}
+
+func TestListOperationalPostgres(t *testing.T) {
+	cleanup, err := testpg.IsolatePackage("operational_nodes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cleanup)
+	testListOperational(t, durablePostgresDB(t))
+}
+
+func testListOperational(t *testing.T, db *gorm.DB) {
+	t.Helper()
 	enableNodeTokenEncryption(t)
-	db := database.GetDB()
 	svc := NodeService{}
 
 	// Insert higher id before lower id so ordering by id asc is verified.
@@ -50,6 +65,9 @@ func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *test
 		if err := svc.Create(n); err != nil {
 			t.Fatalf("create node %d: %v", n.Id, err)
 		}
+	}
+	if err := db.Model(n2).Update("enable", false).Error; err != nil {
+		t.Fatal(err)
 	}
 	// An undecryptable token must keep its node row and surface as LastError.
 	n3 := &model.Node{Id: 3, Name: "broken", Address: "10.0.0.3", Port: 2053, ApiToken: "secret-three", Guid: "guid-3"}
@@ -97,6 +115,9 @@ func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *test
 	if nodes[0].ApiToken != "secret-one" || nodes[1].ApiToken != "secret-two" {
 		t.Errorf("decrypted tokens = [%q, %q], want [secret-one, secret-two]", nodes[0].ApiToken, nodes[1].ApiToken)
 	}
+	if nodes[1].Enable {
+		t.Error("operational listing changed the disabled node's configuration")
+	}
 	if nodes[2].ApiToken != "" || !strings.Contains(nodes[2].LastError, "token decrypt failed") {
 		t.Errorf("broken token node = (token=%q, lastError=%q), want empty token and decrypt error", nodes[2].ApiToken, nodes[2].LastError)
 	}
@@ -117,6 +138,37 @@ func TestListOperational_SkipsDashboardQueriesAndPreservesOrderAndTokens(t *test
 	if enriched[0].InboundCount != 1 || enriched[0].ClientCount != 1 || enriched[0].ActiveCount != 1 {
 		t.Errorf("GetNodeTree stats = (inbound=%d, client=%d, active=%d), want (1, 1, 1)",
 			enriched[0].InboundCount, enriched[0].ClientCount, enriched[0].ActiveCount)
+	}
+}
+
+func BenchmarkOperationalNodes(b *testing.B) {
+	for _, count := range []int{1000, 10000, 50000} {
+		b.Run(fmt.Sprint(count), func(b *testing.B) {
+			setupScaleDB(b)
+			ds := seedScaleDataset(b, count, 4)
+			db := database.GetDB()
+			node := &model.Node{Name: "bench-operational", Address: "127.0.0.1", Port: 2096}
+			if err := db.Create(node).Error; err != nil {
+				b.Fatal(err)
+			}
+			if err := db.Model(&model.Inbound{}).Where("id IN ?", ds.inboundIds).Update("node_id", node.Id).Error; err != nil {
+				b.Fatal(err)
+			}
+			svc := &NodeService{}
+			for _, tc := range []struct {
+				name string
+				list func() ([]*model.Node, error)
+			}{{"dashboard", svc.GetNodeTree}, {"operational", svc.ListOperational}} {
+				b.Run(tc.name, func(b *testing.B) {
+					b.ReportAllocs()
+					for b.Loop() {
+						if _, err := tc.list(); err != nil {
+							b.Fatal(err)
+						}
+					}
+				})
+			}
+		})
 	}
 }
 
