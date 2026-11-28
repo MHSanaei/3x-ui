@@ -123,6 +123,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL Xray traffic retry
+        run: |
+          set -o pipefail
+          go test -p=1 ./internal/web/job ./internal/web/service -run '^TestXrayTraffic(PollRetriesRolledBackSample|BatchSurvivesFullQueueAndWriterRestart|BatchRetriesDeferredCommitFailure)Postgres$' -count=1 -v | tee /tmp/postgres-xray-traffic-retry.log
+          passed=$(grep -c -- '^--- PASS: TestXrayTraffic' /tmp/postgres-xray-traffic-retry.log || true)
+          if [ "$passed" -ne 3 ]; then
+            echo "expected 3 passing PostgreSQL Xray traffic retry tests, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL global-traffic heartbeat regressions
         run: |
           set -o pipefail
@@ -150,16 +160,6 @@ jobs:
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-depletion-query.log || true)
           if [ "$passed" -ne 4 ]; then
             echo "expected 4 passing PostgreSQL depletion tests, got $passed" >&2
-            exit 1
-          fi
-
-      - name: PostgreSQL deferred-commit test
-        run: |
-          set -o pipefail
-          go test ./internal/web/service/outbound -run '^TestAddTrafficReturnsDeferredCommitFailure$' -count=1 -v | tee /tmp/postgres-outbound.log
-          passed=$(grep -c -- '^--- PASS' /tmp/postgres-outbound.log || true)
-          if [ "$passed" -lt 1 ]; then
-            echo "expected at least 1 passing deferred-commit test, got $passed" >&2
             exit 1
           fi
 
