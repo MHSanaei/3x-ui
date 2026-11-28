@@ -133,17 +133,17 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 	}
 	restarts := make(chan struct{}, len(cases))
 	global.SetRestartHook(func() { restarts <- struct{}{} })
-	accepted := 0
+	var requests int
 	t.Cleanup(func() {
 		defer global.SetRestartHook(func() {})
-		// Wait for this test's callbacks before another test installs its hook.
-		deadline := time.NewTimer(6 * time.Second)
-		defer deadline.Stop()
-		for range accepted {
+		// Drain this test's scheduled restarts before another test installs its hook.
+		timeout := time.NewTimer(6 * time.Second)
+		defer timeout.Stop()
+		for range requests {
 			select {
 			case <-restarts:
-			case <-deadline.C:
-				t.Error("accepted listener probes did not finish their scheduled restarts")
+			case <-timeout.C:
+				t.Error("restart callbacks from listener requests did not finish")
 				return
 			}
 		}
@@ -172,6 +172,7 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 
 			req, _ := http.NewRequest(http.MethodPost, server.URL+"/panel/api/setting/restartPanel", nil)
 			req.Header.Set("Authorization", "Bearer admin")
+			requests++
 			res, err := server.Client().Do(req)
 			if err != nil {
 				t.Fatal(err)
@@ -184,7 +185,6 @@ func TestPanelRestartReportsServingAndNextListener(t *testing.T) {
 			if err := json.NewDecoder(res.Body).Decode(&answer); err != nil || !answer.Success {
 				t.Fatalf("status %d, success=%v, err=%v", res.StatusCode, answer.Success, err)
 			}
-			accepted++
 			want := entity.PanelRestart{Port: servingPort, TLS: tc.servingTLS, NextPort: tc.wantNextPort, NextTLS: tc.wantNextTLS}
 			if answer.Obj != want {
 				t.Fatalf("restart answer = %+v, want %+v", answer.Obj, want)
