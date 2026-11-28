@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,19 +26,68 @@ const deleteTombstoneTTL = 90 * time.Second
 
 var (
 	inboundMutationLocksMu sync.Mutex
-	inboundMutationLocks   = map[int]*sync.Mutex{}
+	inboundMutationLocks   = map[int]*inboundMutationLock{}
 )
 
-func lockInbound(inboundId int) *sync.Mutex {
+type inboundMutationLock struct {
+	sync.Mutex
+	orphanOffset int
+}
+
+func lockInbound(inboundId int) *inboundMutationLock {
 	inboundMutationLocksMu.Lock()
 	m, ok := inboundMutationLocks[inboundId]
 	if !ok {
-		m = &sync.Mutex{}
+		m = &inboundMutationLock{}
 		inboundMutationLocks[inboundId] = m
 	}
 	inboundMutationLocksMu.Unlock()
 	m.Lock()
 	return m
+}
+
+// compactAddOrphans checks one rotating window of old settings entries per add.
+// The caller holds the inbound lock and runs the check on the serialized writer.
+func compactAddOrphans(tx *gorm.DB, clients []any, offset int) ([]any, int, error) {
+	const budget = 400
+	if offset >= len(clients) {
+		offset = 0
+	}
+	end := min(offset+budget, len(clients))
+	window := clients[offset:end]
+	emails := make([]string, 0, len(window))
+	missing := make(map[string]struct{}, len(window))
+	for _, entry := range window {
+		_, email := clientEntryEmail(entry)
+		if _, seen := missing[email]; email != "" && !seen {
+			emails = append(emails, email)
+			missing[email] = struct{}{}
+		}
+	}
+	if len(emails) > 0 {
+		var found []string
+		if err := tx.Model(&model.ClientRecord{}).Where("email IN ?", emails).Pluck("email", &found).Error; err != nil {
+			return clients, offset, err
+		}
+		for _, email := range found {
+			delete(missing, email)
+		}
+	}
+	next := end
+	if len(missing) > 0 {
+		kept := slices.DeleteFunc(window, func(entry any) bool {
+			_, email := clientEntryEmail(entry)
+			_, orphan := missing[email]
+			return orphan
+		})
+		next = offset + len(kept)
+	}
+	wrapped := end == len(clients)
+	clients = slices.Delete(clients, next, end)
+	if wrapped {
+		next = 0
+	}
+	return clients, next, nil
 }
 
 func compactOrphans(db *gorm.DB, clients []any) []any {

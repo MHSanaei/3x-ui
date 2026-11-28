@@ -2,7 +2,10 @@ package job
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -19,6 +22,14 @@ type XrayTrafficJob struct {
 	xrayService     service.XrayService
 	inboundService  service.InboundService
 	outboundService outbound.OutboundService
+	runMu           sync.Mutex
+	pending         *xrayTrafficSample
+}
+
+type xrayTrafficSample struct {
+	id       string
+	traffics []*xray.Traffic
+	clients  []*xray.ClientTraffic
 }
 
 // clientStatsSnapshotMaxClients caps how many client_traffics rows the job
@@ -68,45 +79,65 @@ func NewXrayTrafficJob() *XrayTrafficJob {
 	return new(XrayTrafficJob)
 }
 
+func (j *XrayTrafficJob) pollTraffic(collect func() ([]*xray.Traffic, []*xray.ClientTraffic, error)) (sample *xrayTrafficSample, needRestart, clientsDisabled bool) {
+	if j.pending == nil {
+		traffics, clients, err := collect()
+		if err != nil {
+			return nil, false, false
+		}
+		j.pending = &xrayTrafficSample{id: uuid.NewString(), traffics: traffics, clients: clients}
+	}
+	sample = j.pending
+	needRestart, clientsDisabled, err := j.inboundService.AddXrayTrafficBatch(sample.id, sample.traffics, sample.clients)
+	if err != nil {
+		logger.Warning("Xray traffic commit not confirmed, retaining sample for retry:", err)
+		return nil, false, false
+	}
+	j.pending = nil
+	return sample, needRestart, clientsDisabled
+}
+
 // Run collects traffic statistics from Xray, updates the database, and pushes
 // real-time updates over WebSocket using compact delta payloads — no REST
 // fallback, scales to 10k–20k+ clients per inbound.
 func (j *XrayTrafficJob) Run() {
-	if !j.xrayService.IsXrayRunning() {
+	j.runMu.Lock()
+	defer j.runMu.Unlock()
+	if j.pending == nil && !j.xrayService.IsXrayRunning() {
 		return
 	}
-	traffics, clientTraffics, err := j.xrayService.GetXrayTraffic()
-	if err != nil {
+	sample, needRestart, clientsDisabled := j.pollTraffic(j.xrayService.GetXrayTraffic)
+	if sample == nil {
 		return
 	}
-	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
-	if err != nil {
-		logger.Warning("add inbound traffic failed:", err)
-	}
-	err, needRestart1 := j.outboundService.AddTraffic(traffics, clientTraffics)
-	if err != nil {
-		logger.Warning("add outbound traffic failed:", err)
-	}
+	traffics, clientTraffics := sample.traffics, sample.clients
 	if clientsDisabled {
 		restartOnDisable, settingErr := j.settingService.GetRestartXrayOnClientDisable()
 		if settingErr != nil {
 			logger.Warning("get RestartXrayOnClientDisable failed:", settingErr)
 		}
 		if restartOnDisable {
-			if err := j.xrayService.RestartXray(false); err != nil {
+			if !j.xrayService.IsXrayRunning() {
+				needRestart = true
+			} else if err := j.xrayService.RestartXray(false); err != nil {
 				logger.Warning("reconcile xray after disabling clients failed:", err)
-				j.xrayService.SetToNeedRestart()
+				needRestart = true
 			}
 		}
 		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+	}
+	if needRestart {
+		j.xrayService.SetToNeedRestart()
 	}
 	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)
 	} else if err != nil {
 		logger.Warning("get ExternalTrafficInformEnable failed:", err)
 	}
-	if needRestart0 || needRestart1 {
-		j.xrayService.SetToNeedRestart()
+
+	// Live online statistics require a running core. The committed sample does not.
+	if !j.xrayService.IsXrayRunning() {
+		return
 	}
 
 	// Derive the local online set from this poll's per-email deltas rather
@@ -177,6 +208,7 @@ func (j *XrayTrafficJob) Run() {
 
 	var lastOnlineMap map[string]int64
 	if snapshot {
+		var err error
 		if lastOnlineMap, err = j.inboundService.GetClientsLastOnline(); err != nil {
 			logger.Warning("get clients last online failed:", err)
 		}

@@ -24,13 +24,6 @@ import (
 // It handles outbound traffic monitoring and statistics.
 type OutboundService struct{}
 
-func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
-	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
-		return s.addOutboundTraffic(tx, traffics)
-	})
-	return err, false
-}
-
 // saturatingAdd caps counters at database.TrafficMax: unlike the SQL paths,
 // this read-modify-write add happens in Go, where an int64 overflow silently
 // wraps negative instead of erroring (#5762).
@@ -41,7 +34,8 @@ func saturatingAdd(a, b int64) int64 {
 	return a + b
 }
 
-func (s *OutboundService) addOutboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
+// AddTrafficTx writes outbound deltas in the caller's accounting transaction.
+func (s *OutboundService) AddTrafficTx(tx *gorm.DB, traffics []*xray.Traffic) error {
 	if len(traffics) == 0 {
 		return nil
 	}

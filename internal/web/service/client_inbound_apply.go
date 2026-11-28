@@ -401,7 +401,8 @@ func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, c
 
 func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
 	defer InvalidateSubData()
-	defer lockInbound(data.Id).Unlock()
+	lock := lockInbound(data.Id)
+	defer lock.Unlock()
 
 	clients, err := inboundSvc.GetClients(data)
 	if err != nil {
@@ -587,10 +588,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	}
 
 	oldClients, _ := oldSettings["clients"].([]any)
-	oldClients = compactOrphans(database.GetDB(), oldClients)
-	oldClients = append(oldClients, interfaceClients...)
-
-	oldSettings["clients"] = oldClients
+	oldSettings["clients"] = append(oldClients, interfaceClients...)
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
@@ -608,6 +606,8 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	}
 
 	needRestart := false
+	nextOrphanOffset := lock.orphanOffset
+	prunedOrphans := false
 
 	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 	if perr != nil {
@@ -645,6 +645,21 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				}
 			}
 		}
+		// Confirm absence in the writer so an earlier committed re-add survives.
+		compacted, next, err := compactAddOrphans(tx, oldClients, lock.orphanOffset)
+		if err != nil {
+			return err
+		}
+		nextOrphanOffset = next
+		if len(compacted) != len(oldClients) {
+			oldSettings["clients"] = append(compacted, interfaceClients...)
+			repaired, err := json.MarshalIndent(oldSettings, "", "  ")
+			if err != nil {
+				return err
+			}
+			oldInbound.Settings = string(repaired)
+			prunedOrphans = true
+		}
 		for i := range clients {
 			if len(clients[i].Email) == 0 {
 				continue
@@ -666,6 +681,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	}); txErr != nil {
 		return false, txErr
 	}
+	lock.orphanOffset = nextOrphanOffset
 
 	// Apply to the running runtime after commit — outside the serialized writer
 	// so a slow node call can't stall traffic accounting.
@@ -724,7 +740,8 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				}
 			}
 		}
-		if push {
+		// AddClient only pushed the new clients. Reconcile any orphan removals.
+		if push && !prunedOrphans {
 			advancePushedInbound(rt, prevSettings, string(newSettings), oldInbound)
 		}
 	}
