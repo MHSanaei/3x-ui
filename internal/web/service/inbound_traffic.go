@@ -25,18 +25,34 @@ import (
 // depleted — otherwise the operator's purge deletes it between cycles (#6239).
 const depletedClientsClause = "reset = 0 and reset_day = 0 and reset_weekday = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
 
-func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
+func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
+	return s.addTraffic(func(tx *gorm.DB) error {
+		return s.accountInboundTraffic(tx, inboundTraffics, clientTraffics)
+	})
+}
+
+func (s *InboundService) addTraffic(account func(*gorm.DB) error) (needRestart bool, clientsDisabled bool, err error) {
 	var disabledNodeIDs []int
 	var remotePlans []trafficInboundUpdatePlan
 	var renewed []string
+	committed := false
 	// The periodic poll takes the background lane: an operator's save or reset
 	// queued while a poll runs must not sit behind the next merge batch.
 	err = submitTrafficWriteBackground(func() error {
+		if err := database.GetDB().Transaction(account); err != nil {
+			return err
+		}
+		// safeApply can recover a panic during maintenance after accounting committed.
+		committed = true
 		var inner error
-		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, renewed, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
+		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, renewed, inner = s.maintainTrafficLocked()
 		return inner
 	})
 	if err != nil {
+		if committed {
+			logger.Warning("traffic lifecycle maintenance failed after traffic commit:", err)
+			err = nil
+		}
 		return
 	}
 	s.resetMtprotoClientQuotas(renewed)
@@ -48,19 +64,14 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	return
 }
 
-func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, []trafficInboundUpdatePlan, []string, error) {
-	db := database.GetDB()
-	// Commit durable traffic before best-effort lifecycle maintenance so helper
-	// failures cannot discard usage already reported by Xray.
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
-			return err
-		}
-		return s.addClientTraffic(tx, clientTraffics)
-	}); err != nil {
-		return false, false, nil, nil, nil, err
+func (s *InboundService) accountInboundTraffic(tx *gorm.DB, inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) error {
+	if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
+		return err
 	}
+	return s.addClientTraffic(tx, clientTraffics)
+}
 
+func (s *InboundService) maintainTrafficLocked() (bool, bool, []int, []trafficInboundUpdatePlan, []string, error) {
 	var (
 		needRestart          bool
 		clientsDisabled      bool
@@ -68,7 +79,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		disabledClientsCount int64
 	)
 	batch := newTrafficMutationBatch()
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		needRestart0, count, err := s.autoRenewClients(tx, batch)
 		if err != nil {
 			return fmt.Errorf("renew clients: %w", err)
@@ -102,8 +113,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		return nil
 	})
 	if err != nil {
-		logger.Warning("traffic lifecycle maintenance failed after traffic commit:", err)
-		return false, false, nil, nil, nil, nil
+		return false, false, nil, nil, nil, err
 	}
 	needRestart = needRestart || s.applyTrafficMutationBatch(batch)
 	return needRestart, clientsDisabled, disabledNodeIDs, batch.remotePlans, batch.renewedEmails, nil
@@ -972,7 +982,7 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 // remoteHTTPTimeout, and holding the single serial writer across N such calls
 // stalls traffic accounting and drops the deltas of every concurrent poll.
 func (s *InboundService) propagateResetAllTrafficsToNodes() {
-	nodes, err := (&NodeService{}).GetAll()
+	nodes, err := (&NodeService{}).ListOperational()
 	if err != nil {
 		return
 	}

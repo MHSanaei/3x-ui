@@ -97,7 +97,7 @@ func (j *NodeTrafficSyncJob) Run() {
 		return
 	}
 
-	nodes, err := j.nodeService.GetAll()
+	nodes, err := j.nodeService.ListOperational()
 	if err != nil {
 		logger.Warning("node traffic sync: load nodes failed:", err)
 		return

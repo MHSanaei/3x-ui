@@ -123,7 +123,9 @@ func decryptToken(n *model.Node) {
 	n.ApiToken = pt
 }
 
-func (s *NodeService) GetAll() ([]*model.Node, error) {
+// ListOperational returns nodes ordered by id with decrypted API tokens,
+// skipping dashboard inbound and client statistics queries.
+func (s *NodeService) ListOperational() ([]*model.Node, error) {
 	db := database.GetDB()
 	var nodes []*model.Node
 	err := db.Model(model.Node{}).Order("id asc").Find(&nodes).Error
@@ -133,26 +135,10 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	for _, n := range nodes {
 		decryptToken(n)
 	}
+	return nodes, nil
+}
 
-	type inboundRow struct {
-		Id     int
-		NodeID int `gorm:"column:node_id"`
-	}
-	var inboundRows []inboundRow
-	if err := db.Table("inbounds").
-		Select("id, node_id").
-		Where("node_id IS NOT NULL").
-		Scan(&inboundRows).Error; err != nil {
-		return nodes, nil
-	}
-	if len(inboundRows) == 0 {
-		return nodes, nil
-	}
-	inboundsByNode := make(map[int][]int, len(nodes))
-	for _, row := range inboundRows {
-		inboundsByNode[row.NodeID] = append(inboundsByNode[row.NodeID], row.Id)
-	}
-
+func (s *NodeService) populateClientCounts(db *gorm.DB, nodes []*model.Node) {
 	type clientCountRow struct {
 		NodeID int `gorm:"column:node_id"`
 		Count  int `gorm:"column:count"`
@@ -174,6 +160,29 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 			}
 		}
 	}
+}
+
+func (s *NodeService) enrichDashboardStats(db *gorm.DB, nodes []*model.Node) {
+	type inboundRow struct {
+		Id     int
+		NodeID int `gorm:"column:node_id"`
+	}
+	var inboundRows []inboundRow
+	if err := db.Table("inbounds").
+		Select("id, node_id").
+		Where("node_id IS NOT NULL").
+		Scan(&inboundRows).Error; err != nil {
+		return
+	}
+	if len(inboundRows) == 0 {
+		return
+	}
+	inboundsByNode := make(map[int][]int, len(nodes))
+	for _, row := range inboundRows {
+		inboundsByNode[row.NodeID] = append(inboundsByNode[row.NodeID], row.Id)
+	}
+
+	s.populateClientCounts(db, nodes)
 
 	depletedByNode := make(map[int]int)
 	disabledByNode := make(map[int]int)
@@ -214,8 +223,6 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		// the intermediate node it syncs through (#4983).
 		n.OnlineCount = len(onlineByGuid[effectiveNodeGuid(n, ambiguous)])
 	}
-
-	return nodes, nil
 }
 
 // nodeClientStatus is one node-hosted client's classification, carrying enough
