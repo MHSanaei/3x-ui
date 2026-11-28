@@ -4739,6 +4739,34 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PanelRestart": {
+    "description": "PanelRestart describes the listener that took the restart call and the one that follows.",
+    "properties": {
+      "nextPort": {
+        "example": 2053,
+        "type": "integer"
+      },
+      "nextTls": {
+        "example": false,
+        "type": "boolean"
+      },
+      "port": {
+        "example": 2053,
+        "type": "integer"
+      },
+      "tls": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "nextPort",
+      "nextTls",
+      "port",
+      "tls"
+    ],
+    "type": "object"
+  },
   "PanelUpdateStatus": {
     "description": "PanelUpdateStatus reports the outcome of the most recently launched panel\nself-update. RunID lets the caller confirm this status belongs to the\nupdate it started rather than a stale result left over from an earlier\nrun; State is one of \"pending\", \"success\", or \"failed\". RunID is a decimal\nstring, not a JSON number: it's a formatted UnixNano timestamp, and\nJavaScript's number type can't represent that precisely (it exceeds\nNumber.MAX_SAFE_INTEGER), which would let two different runs round to the\nsame value on the wire and defeat the whole point of this field.",
     "properties": {

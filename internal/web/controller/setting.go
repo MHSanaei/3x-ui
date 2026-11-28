@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -234,8 +235,13 @@ func (a *SettingController) updateUser(c *gin.Context) {
 
 // restartPanel restarts the panel service after a delay.
 func (a *SettingController) restartPanel(c *gin.Context) {
+	answer := entity.PanelRestart{TLS: c.Request.TLS != nil, NextTLS: a.settingService.DirectHTTPSConfigured()}
+	if addr, ok := c.Request.Context().Value(http.LocalAddrContextKey).(*net.TCPAddr); ok {
+		answer.Port = addr.Port
+	}
+	answer.NextPort, _ = a.settingService.GetListenPort()
 	err := a.panelService.RestartPanel(time.Second * 3)
-	jsonMsg(c, I18nWeb(c, "pages.settings.restartPanelSuccess"), err)
+	jsonMsgObj(c, I18nWeb(c, "pages.settings.restartPanelSuccess"), answer, err)
 }
 
 // getDefaultXrayConfig retrieves the default Xray configuration.

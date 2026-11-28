@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -24,18 +25,34 @@ import (
 // depleted — otherwise the operator's purge deletes it between cycles (#6239).
 const depletedClientsClause = "reset = 0 and reset_day = 0 and reset_weekday = 0 and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))"
 
-func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
+func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
+	return s.addTraffic(func(tx *gorm.DB) error {
+		return s.accountInboundTraffic(tx, inboundTraffics, clientTraffics)
+	})
+}
+
+func (s *InboundService) addTraffic(account func(*gorm.DB) error) (needRestart bool, clientsDisabled bool, err error) {
 	var disabledNodeIDs []int
 	var remotePlans []trafficInboundUpdatePlan
 	var renewed []string
+	committed := false
 	// The periodic poll takes the background lane: an operator's save or reset
 	// queued while a poll runs must not sit behind the next merge batch.
 	err = submitTrafficWriteBackground(func() error {
+		if err := database.GetDB().Transaction(account); err != nil {
+			return err
+		}
+		// safeApply can recover a panic during maintenance after accounting committed.
+		committed = true
 		var inner error
-		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, renewed, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
+		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, renewed, inner = s.maintainTrafficLocked()
 		return inner
 	})
 	if err != nil {
+		if committed {
+			logger.Warning("traffic lifecycle maintenance failed after traffic commit:", err)
+			err = nil
+		}
 		return
 	}
 	s.resetMtprotoClientQuotas(renewed)
@@ -47,19 +64,14 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	return
 }
 
-func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, []trafficInboundUpdatePlan, []string, error) {
-	db := database.GetDB()
-	// Commit durable traffic before best-effort lifecycle maintenance so helper
-	// failures cannot discard usage already reported by Xray.
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
-			return err
-		}
-		return s.addClientTraffic(tx, clientTraffics)
-	}); err != nil {
-		return false, false, nil, nil, nil, err
+func (s *InboundService) accountInboundTraffic(tx *gorm.DB, inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) error {
+	if err := s.addInboundTraffic(tx, inboundTraffics); err != nil {
+		return err
 	}
+	return s.addClientTraffic(tx, clientTraffics)
+}
 
+func (s *InboundService) maintainTrafficLocked() (bool, bool, []int, []trafficInboundUpdatePlan, []string, error) {
 	var (
 		needRestart          bool
 		clientsDisabled      bool
@@ -67,7 +79,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		disabledClientsCount int64
 	)
 	batch := newTrafficMutationBatch()
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		needRestart0, count, err := s.autoRenewClients(tx, batch)
 		if err != nil {
 			return fmt.Errorf("renew clients: %w", err)
@@ -101,8 +113,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		return nil
 	})
 	if err != nil {
-		logger.Warning("traffic lifecycle maintenance failed after traffic commit:", err)
-		return false, false, nil, nil, nil, nil
+		return false, false, nil, nil, nil, err
 	}
 	needRestart = needRestart || s.applyTrafficMutationBatch(batch)
 	return needRestart, clientsDisabled, disabledNodeIDs, batch.remotePlans, batch.renewedEmails, nil
@@ -153,13 +164,15 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// shared row then carried the node inbound's id (AddClientStat used to use
 	// OnConflict DoNothing and never refreshed it; it now refreshes inbound_id on
 	// conflict, but this filter was removed rather than relying on that ordering).
-	err = tx.Model(xray.ClientTraffic{}).
-		Where("email IN (?)", emails).
-		Order("id").
-		Find(&dbClientTraffics).Error
-	if err != nil {
-		return err
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var page []*xray.ClientTraffic
+		if err = tx.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			return err
+		}
+		dbClientTraffics = append(dbClientTraffics, page...)
 	}
+	// One id order across the chunks keeps the row UPDATEs below lock-compatible.
+	slices.SortFunc(dbClientTraffics, func(a, b *xray.ClientTraffic) int { return cmp.Compare(a.Id, b.Id) })
 
 	// Avoid empty slice error
 	if len(dbClientTraffics) == 0 {
@@ -662,8 +675,13 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	if err := validateClientRenewal(*client); err != nil {
 		return err
 	}
-	result := tx.Model(xray.ClientTraffic{}).
+	// Compare the persisted row atomically so an unchanged inbound can still repair drift.
+	return tx.Model(xray.ClientTraffic{}).
 		Where("email = ?", email).
+		Where(`(email, enable, expiry_time, reset, reset_day, reset_max, reset_weekday, total)
+			IS DISTINCT FROM (?, ?, ?, ?, ?, ?, ?, ?)`,
+			client.Email, client.Enable, client.ExpiryTime, client.Reset, client.ResetDay,
+			client.ResetMax, client.ResetWeekday, client.TotalGB).
 		Updates(map[string]any{
 			"enable":        client.Enable,
 			"email":         client.Email,
@@ -673,9 +691,54 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"reset_day":     client.ResetDay,
 			"reset_weekday": client.ResetWeekday,
 			"reset_max":     client.ResetMax,
-		})
-	err := result.Error
-	return err
+		}).Error
+}
+
+// storedClientLifecycle is the part of a client_traffics row its client's settings
+// decide. A nil field is a NULL, which no configured value equals.
+type storedClientLifecycle struct {
+	Email        string
+	Enable       *bool
+	ExpiryTime   *int64
+	Total        *int64
+	Reset        *int
+	ResetDay     *int
+	ResetMax     *int
+	ResetWeekday *int
+}
+
+func (row *storedClientLifecycle) holds(client *model.Client) bool {
+	return row.Enable != nil && *row.Enable == client.Enable &&
+		row.ExpiryTime != nil && *row.ExpiryTime == client.ExpiryTime &&
+		row.Total != nil && *row.Total == client.TotalGB &&
+		row.Reset != nil && *row.Reset == client.Reset &&
+		row.ResetDay != nil && *row.ResetDay == client.ResetDay &&
+		row.ResetMax != nil && *row.ResetMax == client.ResetMax &&
+		row.ResetWeekday != nil && *row.ResetWeekday == client.ResetWeekday
+}
+
+// updateDriftedClientStats reads the rows a chunk at a time and rewrites only those that
+// differ: one statement per kept client made saving a 100k-client inbound take a minute.
+func (s *InboundService) updateDriftedClientStats(tx *gorm.DB, emails []string, clients map[string]*model.Client) error {
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var rows []storedClientLifecycle
+		if err := tx.Model(xray.ClientTraffic{}).
+			Select("email", "enable", "expiry_time", "total", "reset", "reset_day", "reset_max", "reset_weekday").
+			Where("email IN ?", batch).
+			Find(&rows).Error; err != nil {
+			return err
+		}
+		for i := range rows {
+			client := clients[rows[i].Email]
+			if client == nil || rows[i].holds(client) {
+				continue
+			}
+			if err := s.UpdateClientStat(tx, rows[i].Email, client); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
@@ -919,7 +982,7 @@ func (s *InboundService) resetAllTrafficsLocked() error {
 // remoteHTTPTimeout, and holding the single serial writer across N such calls
 // stalls traffic accounting and drops the deltas of every concurrent poll.
 func (s *InboundService) propagateResetAllTrafficsToNodes() {
-	nodes, err := (&NodeService{}).GetAll()
+	nodes, err := (&NodeService{}).ListOperational()
 	if err != nil {
 		return
 	}

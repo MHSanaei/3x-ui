@@ -599,11 +599,16 @@ func StripVlessInboundEncryption(settings string) (string, bool) {
 	if settings == "" {
 		return settings, false
 	}
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+	// Looking for the key at the top level first skips the client list instead of decoding it.
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(settings), &top); err != nil {
 		return settings, false
 	}
-	if _, has := parsed["encryption"]; !has {
+	if _, has := top["encryption"]; !has {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return settings, false
 	}
 	delete(parsed, "encryption")
@@ -1128,6 +1133,15 @@ type ClientGroup struct {
 }
 
 func (ClientGroup) TableName() string { return "client_groups" }
+
+// HostGroupClientGroup binds a host group (hosts.group_id) to a client group.
+// Rows added later to the host group inherit the binding; no FK cascade.
+type HostGroupClientGroup struct {
+	HostGroupId   string `json:"hostGroupId" gorm:"column:host_group_id;primaryKey"`
+	ClientGroupId int    `json:"clientGroupId" gorm:"column:client_group_id;primaryKey;index"`
+}
+
+func (HostGroupClientGroup) TableName() string { return "host_group_client_groups" }
 
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its

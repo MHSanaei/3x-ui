@@ -77,6 +77,7 @@ func allModels() []any {
 		&model.ClientHwid{},
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
+		&model.HostGroupClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
 		&model.HostTombstone{},
@@ -87,6 +88,7 @@ func allModels() []any {
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
 		&model.TuicTrafficReceipt{},
+		&model.XrayTrafficReceipt{},
 		&model.ClientTrafficWindow{},
 		&model.ClientChangeLog{},
 	}
@@ -1767,6 +1769,13 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if err := backfillEmptyHostGroupIds(); err != nil {
+		return err
+	}
+
+	if err := EnsureClientGroupRows(); err != nil {
+		return err
+	}
+	if err := PruneHostGroupClientGroups(); err != nil {
 		return err
 	}
 

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	corelog "github.com/xtls/xray-core/common/log"
+	"github.com/xtls/xray-core/infra/conf"
 )
 
 // xray-core moves freedom settings.domainStrategy to sockopt with a warning on
@@ -35,5 +38,43 @@ func TestDefaultJSON_FreedomOutboundHasNoLegacyDomainStrategy(t *testing.T) {
 	}
 	if !sawFreedom {
 		t.Fatal("embedded default.json has no freedom outbound to check")
+	}
+}
+
+type coreWarnings struct{ msgs []string }
+
+func (c *coreWarnings) Handle(msg corelog.Message) { c.msgs = append(c.msgs, msg.String()) }
+
+type discardCoreLog struct{}
+
+func (discardCoreLog) Handle(corelog.Message) {}
+
+// A deprecated key in the document is a warning in every subscriber's client on every
+// load, and a hard failure once the core drops the key.
+func TestJSONSubscriptionLoadsInCoreWithoutDeprecationWarning(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "core-load", "core-link", 4933, 1, tcpTLSStream)
+	body, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("core-load", "sub.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var config conf.Config
+	if err := json.Unmarshal([]byte(body), &config); err != nil {
+		t.Fatalf("core cannot parse the document: %v\n%s", err, body)
+	}
+	if len(config.OutboundConfigs) != 3 {
+		t.Fatalf("outbounds = %d, want proxy, direct and block\n%s", len(config.OutboundConfigs), body)
+	}
+
+	warnings := new(coreWarnings)
+	corelog.RegisterHandler(warnings)
+	t.Cleanup(func() { corelog.RegisterHandler(discardCoreLog{}) })
+	if _, err := config.Build(); err != nil {
+		t.Fatalf("core rejected the document: %v\n%s", err, body)
+	}
+	for _, msg := range warnings.msgs {
+		if strings.Contains(msg, "deprecated") {
+			t.Errorf("core warning: %s", msg)
+		}
 	}
 }

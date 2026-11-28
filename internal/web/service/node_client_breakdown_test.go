@@ -8,12 +8,9 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// The node-page client breakdown must classify by EMAIL, not by
-// client_traffics.inbound_id — that column goes stale after an inbound is
-// delete+recreated, so filtering by it drops almost every row and undercounts
-// active/disabled/ended. Here the traffic rows carry a bogus inbound_id (999)
-// yet must still be matched to the node's clients by email.
-func TestGetAll_ClientBreakdownMatchesByEmailNotStaleInboundId(t *testing.T) {
+// client_traffics.inbound_id goes stale after an inbound is deleted and recreated,
+// so the node-page breakdown must match a node's clients by email.
+func TestGetNodeTree_ClientBreakdownMatchesByEmailNotStaleInboundId(t *testing.T) {
 	setupConflictDB(t)
 	db := database.GetDB()
 	svc := NodeService{}
@@ -59,9 +56,9 @@ func TestGetAll_ClientBreakdownMatchesByEmailNotStaleInboundId(t *testing.T) {
 		}
 	}
 
-	nodes, err := svc.GetAll()
+	nodes, err := svc.GetNodeTree()
 	if err != nil {
-		t.Fatalf("GetAll: %v", err)
+		t.Fatalf("GetNodeTree: %v", err)
 	}
 	var n *model.Node
 	for _, x := range nodes {

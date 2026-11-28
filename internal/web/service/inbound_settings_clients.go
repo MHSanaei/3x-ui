@@ -32,6 +32,51 @@ func ParseInboundSettingsClients(settings string) ([]model.Client, error) {
 	return clients, nil
 }
 
+// settingsField reads one top-level settings key. The client list beside it is skipped
+// rather than decoded, so reading a cipher or a network costs no per-client allocation.
+func settingsField(settings, key string) any {
+	var top map[string]json.RawMessage
+	if json.Unmarshal([]byte(settings), &top) != nil {
+		return nil
+	}
+	var value any
+	_ = json.Unmarshal(top[key], &value)
+	return value
+}
+
+// settingsObject decodes a settings blob; ok is false when it is not valid JSON
+// for an object, and a JSON null decodes to a nil map.
+func settingsObject(settings string) (map[string]any, bool) {
+	var fields map[string]any
+	if json.Unmarshal([]byte(settings), &fields) != nil {
+		return nil, false
+	}
+	return fields, true
+}
+
+func encodeSettings(fields map[string]any) (string, error) {
+	out, err := json.MarshalIndent(fields, "", "  ")
+	return string(out), err
+}
+
+// rewriteSettingsClients runs edit over the decoded client objects and re-encodes the
+// settings only when edit reports a change.
+func rewriteSettingsClients(settings string, edit func(clients []any) bool) (string, bool) {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, ok := parsed["clients"].([]any)
+	if !ok || !edit(clients) {
+		return settings, false
+	}
+	out, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(out), true
+}
+
 // settingsEntriesToClients decodes the wire entries a caller has already
 // stamped, so a delta carries the persisted created_at / updated_at / subId
 // rather than the pre-stamp values the request was parsed into.

@@ -62,6 +62,9 @@ var distFS embed.FS
 
 var startTime = time.Now()
 
+// A scheduler reload must retain the unacknowledged sample and its collector baselines.
+var xrayTrafficJob = job.NewXrayTrafficJob()
+
 // cronPanicLogger adapts the package logger to cron's Printf-style logger so a
 // panicking scheduled job is recovered and logged instead of crashing the panel.
 type cronPanicLogger struct{}
@@ -159,16 +162,6 @@ func NewServer(subLinkProvider service.SubLinkProvider) *Server {
 	}
 }
 
-func (s *Server) isDirectHTTPSConfigured() bool {
-	certFile, certErr := s.settingService.GetCertFile()
-	keyFile, keyErr := s.settingService.GetKeyFile()
-	if certErr != nil || keyErr != nil || certFile == "" || keyFile == "" {
-		return false
-	}
-	_, err := tls.LoadX509KeyPair(certFile, keyFile)
-	return err == nil
-}
-
 // initRouter initializes Gin, registers middleware, templates, static
 // assets, controllers and returns the configured engine.
 func (s *Server) initRouter() (*gin.Engine, error) {
@@ -181,7 +174,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
-	directHTTPS := s.isDirectHTTPSConfigured()
+	directHTTPS := s.settingService.DirectHTTPSConfigured()
 	sendHSTS := directHTTPS && !config.IsSkipHSTS()
 	engine.Use(middleware.SecurityHeadersMiddleware(sendHSTS))
 
@@ -349,7 +342,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+		_, _ = s.cron.AddJob(cadenceXrayTraffic, xrayTrafficJob)
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic

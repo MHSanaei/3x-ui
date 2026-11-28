@@ -401,7 +401,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 				return err
 			}
 		}
-		return nil
+		return database.PruneHostGroupClientGroupsTx(tx)
 	})
 	if err != nil {
 		return nil, err
@@ -444,6 +444,10 @@ func (s *HostService) MoveInboundSni(inboundId int, oldNames []string, newSni st
 
 func (s *HostService) DeleteHostGroup(groupId string) error {
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("host_group_id = ?", groupId).
+			Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id = ?", groupId)
 		return err
 	})
@@ -465,6 +469,10 @@ func (s *HostService) DeleteHostsGroup(groupIds []string) error {
 		return nil
 	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("host_group_id IN ?", groupIds).
+			Delete(&model.HostGroupClientGroup{}).Error; err != nil {
+			return err
+		}
 		_, err := database.DeleteHosts(tx, "group_id IN ?", groupIds)
 		return err
 	})

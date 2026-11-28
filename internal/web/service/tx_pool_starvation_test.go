@@ -130,13 +130,11 @@ func TestUpdateClientTrafficsStaysOnOneConnection(t *testing.T) {
 	if err := database.GetDB().Create(&xray.ClientTraffic{InboundId: oldIb.Id, Email: "gone@x", Enable: true}).Error; err != nil {
 		t.Fatalf("seed traffic: %v", err)
 	}
-	newIb := *oldIb
-	newIb.Settings = `{"clients": []}`
 
 	capPoolAtOneConn(t)
 	err := runWithoutSecondConn(t, "inbound edit dropping a client", func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
-			return svc.updateClientTraffics(tx, oldIb, &newIb)
+			return svc.updateClientTraffics(tx, oldIb.Id, clients, nil)
 		})
 	})
 	if err != nil {

@@ -1753,6 +1753,9 @@ func (s *InboundService) deleteInboundRow(tx *gorm.DB, id int) error {
 	if _, err := database.DeleteHosts(tx, "inbound_id = ?", id); err != nil {
 		return err
 	}
+	if err := database.PruneHostGroupClientGroupsTx(tx); err != nil {
+		return err
+	}
 	// Drop the deleted inbound from any sub-balancer that selects it; a
 	// dangling id would emit a member no subscriber can resolve (#5648).
 	var balancers []model.SubBalancer
@@ -1988,26 +1991,16 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	return needRestart, nil
 }
 
-func (s *InboundService) validateUpdatedInboundClients(inbound, existing *model.Inbound) error {
-	clients, err := s.GetClients(inbound)
-	if err != nil {
-		return err
-	}
+// existing holds the stored clients, or none across a protocol switch.
+func validateUpdatedInboundClients(protocol model.Protocol, clients, existing []model.Client) error {
 	if err := validateClientsRenewal(clients); err != nil {
 		return err
 	}
-	var existingClients []model.Client
-	if inbound.Protocol == existing.Protocol {
-		existingClients, err = s.GetClients(existing)
-		if err != nil {
-			return err
-		}
-	}
-	if err := validateClientsKeepAliveAgainstExisting(inbound.Protocol, clients, existingClients); err != nil {
+	if err := validateClientsKeepAliveAgainstExisting(protocol, clients, existing); err != nil {
 		return err
 	}
 	for _, client := range clients {
-		switch inbound.Protocol {
+		switch protocol {
 		case model.Hysteria:
 			if client.Auth == "" {
 				return common.NewError("empty client ID")
@@ -2032,7 +2025,7 @@ func (s *InboundService) validateUpdatedInboundClients(inbound, existing *model.
 			}
 		}
 	}
-	return validateTuicClientEmails(inbound.Protocol, clients)
+	return validateTuicClientEmails(protocol, clients)
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
@@ -2138,14 +2131,37 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 		running := *stored
 		oldInbound = stored
+		storedFields, storedOK := settingsObject(stored.Settings)
+		fields, fieldsOK := settingsObject(inbound.Settings)
+		// encoded: inbound.Settings is fields' own encoding, so the steps below
+		// re-encode only what they change.
+		encoded := false
 		// The form posts back the clients and enable it loaded; both have their
 		// own endpoints, so only a master's push may change them here.
 		if !s.FromNodeSync {
-			inbound.Settings = keepStoredClients(inbound.Settings, stored.Settings)
+			if storedOK && fieldsOK && fields != nil && keepStoredClients(fields, storedFields) {
+				kept, err := encodeSettings(fields)
+				if err != nil {
+					return err
+				}
+				inbound.Settings, encoded = kept, true
+			}
 			inbound.Enable = stored.Enable
 		}
+		newClients, err := ParseInboundSettingsClients(inbound.Settings)
+		if err != nil {
+			return err
+		}
+		storedClients, err := ParseInboundSettingsClients(stored.Settings)
+		if err != nil {
+			return err
+		}
 		// On the clients actually saved: a protocol switch keeps the stored ones.
-		if err := s.validateUpdatedInboundClients(inbound, stored); err != nil {
+		var sameProtocolClients []model.Client
+		if inbound.Protocol == stored.Protocol {
+			sameProtocolClients = storedClients
+		}
+		if err := validateUpdatedInboundClients(inbound.Protocol, newClients, sameProtocolClients); err != nil {
 			return err
 		}
 		if err := validateVlessManagedFallbacks(tx, inbound); err != nil {
@@ -2158,91 +2174,44 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if conflict != nil {
 			return common.NewError(conflict.String())
 		}
-		if err := s.updateClientTraffics(tx, oldInbound, inbound); err != nil {
+		if err := s.updateClientTraffics(tx, inbound.Id, storedClients, newClients); err != nil {
 			return err
 		}
 		if err := database.SyncHostsFromExternalProxy(tx, inbound.Id, running.StreamSettings, inbound.StreamSettings); err != nil {
 			return err
 		}
 
-		// Ensure created_at and updated_at exist in inbound.Settings clients
-		{
-			var oldSettings map[string]any
-			_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
-			emailToCreated := map[string]int64{}
-			emailToUpdated := map[string]int64{}
-			if oldSettings != nil {
-				if oc, ok := oldSettings["clients"].([]any); ok {
-					for _, it := range oc {
-						if m, ok2 := it.(map[string]any); ok2 {
-							if email, ok3 := m["email"].(string); ok3 {
-								switch v := m["created_at"].(type) {
-								case float64:
-									emailToCreated[email] = int64(v)
-								case int64:
-									emailToCreated[email] = v
-								}
-								switch v := m["updated_at"].(type) {
-								case float64:
-									emailToUpdated[email] = int64(v)
-								case int64:
-									emailToUpdated[email] = v
-								}
-							}
-						}
-					}
-				}
-			}
-			var newSettings map[string]any
-			if err2 := json.Unmarshal([]byte(inbound.Settings), &newSettings); err2 == nil && newSettings != nil {
-				now := time.Now().Unix() * 1000
-				if nSlice, ok := newSettings["clients"].([]any); ok {
-					for i := range nSlice {
-						if m, ok2 := nSlice[i].(map[string]any); ok2 {
-							email, _ := m["email"].(string)
-							if _, ok3 := m["created_at"]; !ok3 {
-								if v, ok4 := emailToCreated[email]; ok4 && v > 0 {
-									m["created_at"] = v
-								} else {
-									m["created_at"] = now
-								}
-							}
-							// Preserve client's updated_at if present; do not bump on parent inbound update
-							if _, hasUpdated := m["updated_at"]; !hasUpdated {
-								if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
-									m["updated_at"] = v
-								}
-							}
-							nSlice[i] = m
-						}
-					}
-					newSettings["clients"] = nSlice
-					if bs, err3 := json.MarshalIndent(newSettings, "", "  "); err3 == nil {
-						inbound.Settings = string(bs)
-					}
-				}
-			}
-		}
+		if clients, ok := fields["clients"].([]any); ok {
+			// After a form save both lists are the same objects: nothing may read
+			// storedFields once the steps below start writing.
+			storedList, _ := storedFields["clients"].([]any)
+			changed := stampClientTimestamps(clients, storedList, time.Now().Unix()*1000)
 
-		// A Shadowsocks-2022 method change resizes the key, but existing client PSKs
-		// keep their old length and would be rejected by xray. Regenerate mismatched
-		// client keys so the inbound stays connectable.
-		if normalized, changed := normalizeShadowsocksClientKeys(inbound.Settings); changed {
-			inbound.Settings = normalized
-			logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
-		}
-
-		// Re-gate Vision flow now that the new stream/encryption is known: if this
-		// VLESS inbound just became flow-eligible (e.g. vlessenc was enabled on an
-		// XHTTP inbound), restore Vision for clients whose intended flow is Vision
-		// but was stripped while the inbound was ineligible.
-		if !inbound.DisableFlow {
-			if restored, changed := s.restoreVisionFlowForEligibleInbound(tx, inbound.Settings, inbound.StreamSettings, inbound.Protocol); changed {
-				inbound.Settings = restored
+			// A Shadowsocks-2022 method change resizes the key, but existing client PSKs
+			// keep their old length and would be rejected by xray.
+			method, _ := fields["method"].(string)
+			if regenerateMismatchedShadowsocksKeys(method, clients) {
+				changed = true
+				logger.Warning("Shadowsocks inbound", inbound.Id, "method change resized keys; regenerated mismatched client PSK(s)")
 			}
-		} else {
-			if stripped, changed := stripClientFlows(inbound.Settings); changed {
-				inbound.Settings = stripped
+
+			// Re-gate Vision now that the new stream/encryption is known. inbound.Settings
+			// still names the saved top-level keys: the steps above edit clients only.
+			if !inbound.DisableFlow {
+				if inboundCanEnableTlsFlow(string(inbound.Protocol), inbound.StreamSettings, inbound.Settings) && s.restoreVisionFlow(tx, clients) {
+					changed = true
+				}
+			} else if clearClientFlows(clients) {
+				changed = true
+			}
+
+			if changed || !encoded {
+				if inbound.Settings, err = encodeSettings(fields); err != nil {
+					return err
+				}
+				if newClients, err = ParseInboundSettingsClients(inbound.Settings); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -2343,6 +2312,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
 						return
 					}
+					// Removed first, a handler whose replacement the core's API cannot
+					// take would leave the inbound down until the restart.
+					if checker, ok := rt.(interface{ CheckAddInbound(*model.Inbound) error }); ok && runtimeInbound != nil {
+						if err2 := checker.CheckAddInbound(runtimeInbound); err2 != nil {
+							logger.Warning("Inbound", oldInbound.Tag, "cannot be replaced on", rt.Name(), "without a restart:", err2)
+							needRestart = true
+							return
+						}
+					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 						logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
 					}
@@ -2377,10 +2355,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			if linked {
 				needRestart = true
 			}
-		}
-		newClients, gcErr := s.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
 		}
 		if err := s.clientService.SyncInbound(tx, oldInbound.Id, newClients); err != nil {
 			return err
@@ -2476,11 +2450,6 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 	if err := validateVlessManagedFallbacks(tx, &built); err != nil {
 		return nil, err
 	}
-	settings := map[string]any{}
-	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
-		return nil, err
-	}
-
 	if !inboundCanHostFallbacks(&built) {
 		return &built, nil
 	}
@@ -2490,6 +2459,10 @@ func (s *InboundService) buildInboundForNodePush(tx *gorm.DB, inbound *model.Inb
 	}
 	if len(fallbacks) == 0 {
 		return &built, nil
+	}
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(built.Settings), &settings); err != nil {
+		return nil, err
 	}
 	generic := make([]any, 0, len(fallbacks))
 	for _, f := range fallbacks {
@@ -2548,12 +2521,14 @@ func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inboun
 
 	trafficIDs := make(map[string]int)
 	if inbound.Protocol == model.TUIC {
-		var rows []xray.ClientTraffic
-		if err := tx.Select("id", "email").Where("email IN ?", emails).Find(&rows).Error; err != nil {
-			return nil, err
-		}
-		for _, row := range rows {
-			trafficIDs[row.Email] = row.Id
+		for _, batch := range chunkStrings(emails, sqlInChunk) {
+			var rows []xray.ClientTraffic
+			if err := tx.Select("id", "email").Where("email IN ?", batch).Find(&rows).Error; err != nil {
+				return nil, err
+			}
+			for _, row := range rows {
+				trafficIDs[row.Email] = row.Id
+			}
 		}
 	}
 	finalClients := make([]any, 0, len(clients))
@@ -2578,8 +2553,13 @@ func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inboun
 		finalClients = append(finalClients, c)
 	}
 	settings["clients"] = finalClients
-	if inbound.Protocol == model.Shadowsocks {
+	switch inbound.Protocol {
+	case model.Shadowsocks:
 		xray.LockShadowsocks2022(settings)
+	case model.VLESS:
+		// The core config never carries it. Dropped while decoded, the config
+		// generator need not decode and re-encode every client to drop it itself.
+		delete(settings, "encryption")
 	}
 
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
@@ -2596,16 +2576,7 @@ func (s *InboundService) stripDisabledClients(tx *gorm.DB, inbound *model.Inboun
 // emails. Uses sets for O(N) lookup — the previous nested-loop implementation
 // was O(N²) and degraded into multi-second pauses on inbounds with thousands
 // of clients (toggling, saving, or deleting any such inbound felt frozen).
-func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
-	oldClients, err := s.GetClients(oldInbound)
-	if err != nil {
-		return err
-	}
-	newClients, err := s.GetClients(newInbound)
-	if err != nil {
-		return err
-	}
-
+func (s *InboundService) updateClientTraffics(tx *gorm.DB, inboundId int, oldClients, newClients []model.Client) error {
 	// Email is the unique key for ClientTraffic rows. Clients without an
 	// email have no stats row to sync — skip them on both sides instead of
 	// risking a unique-constraint hit or accidental delete of an unrelated row.
@@ -2634,7 +2605,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if _, kept := newEmails[email]; kept {
 			continue
 		}
-		stillUsed, err := s.emailUsedByOtherInbounds(tx, email, oldInbound.Id)
+		stillUsed, err := s.emailUsedByOtherInbounds(tx, email, inboundId)
 		if err != nil {
 			return err
 		}
@@ -2650,22 +2621,23 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 			return err
 		}
 	}
+	keptEmails := make([]string, 0, len(newClients))
+	keptClients := make(map[string]*model.Client, len(newClients))
 	for i := range newClients {
 		email := newClients[i].Email
 		if email == "" {
 			continue
 		}
 		if _, existed := oldEmails[email]; existed {
-			if err := s.UpdateClientStat(tx, email, &newClients[i]); err != nil {
-				return err
-			}
+			keptEmails = append(keptEmails, email)
+			keptClients[email] = &newClients[i]
 			continue
 		}
-		if err := s.AddClientStat(tx, oldInbound.Id, &newClients[i]); err != nil {
+		if err := s.AddClientStat(tx, inboundId, &newClients[i]); err != nil {
 			return err
 		}
 	}
-	return nil
+	return s.updateDriftedClientStats(tx, keptEmails, keptClients)
 }
 
 func (s *InboundService) GetInboundTags() (string, error) {

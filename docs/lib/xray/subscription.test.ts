@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
   buildSubscriptionUrls,
@@ -119,6 +120,16 @@ describe('buildJsonSubscription', () => {
     // sockopt is stripped from JSON-sub streamSettings
     expect(JSON.stringify(proxy.streamSettings)).not.toContain('sockopt');
     expect(cfg.remarks).toBe('HK-01');
+  });
+
+  // A key the panel drops from its template stays behind in this copy, deprecation warning and all.
+  it("carries the panel's embedded template around the proxy outbound", () => {
+    const template = JSON.parse(
+      readFileSync(new URL('../../../internal/sub/default.json', import.meta.url), 'utf8'),
+    );
+    const cfg = JSON.parse(buildJsonSubscription([vlessClient]));
+    expect(cfg.outbounds.slice(1)).toEqual(template.outbounds);
+    expect({ ...cfg, remarks: '', outbounds: template.outbounds }).toEqual(template);
   });
 
   it('keeps the Mihomo-only ML-KEM hint out of the Xray realitySettings', () => {

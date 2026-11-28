@@ -1132,6 +1132,14 @@ export const OutboundTrafficsSchema = z.object({
 });
 export type OutboundTraffics = z.infer<typeof OutboundTrafficsSchema>;
 
+export const PanelRestartSchema = z.object({
+  nextPort: z.number().int(),
+  nextTls: z.boolean(),
+  port: z.number().int(),
+  tls: z.boolean(),
+});
+export type PanelRestart = z.infer<typeof PanelRestartSchema>;
+
 export const PanelUpdateStatusSchema = z.object({
   exitCode: z.number().int(),
   finishedAt: z.number().int(),

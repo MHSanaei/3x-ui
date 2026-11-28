@@ -182,7 +182,7 @@ function skeletonOutbounds(): Record<string, unknown>[] {
     {
       tag: 'direct',
       protocol: 'freedom',
-      settings: { domainStrategy: 'AsIs', redirect: '', noises: [] },
+      settings: { redirect: '' },
     },
     { tag: 'block', protocol: 'blackhole', settings: { response: { type: 'http' } } },
   ];

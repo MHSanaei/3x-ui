@@ -1405,24 +1405,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				localEmails = append(localEmails, filtered[i].Email)
 			}
 		}
-		if len(localEmails) > 0 {
+		commentByEmail := make(map[string]string, len(localEmails))
+		for _, batch := range chunkStrings(localEmails, sqlInChunk) {
 			var localMeta []struct {
 				Email   string
 				Comment string `gorm:"column:comment"`
 			}
 			if err := tx.Table("clients").
 				Select("email, comment").
-				Where("email IN ?", localEmails).
-				Find(&localMeta).Error; err == nil {
-				commentByEmail := make(map[string]string, len(localMeta))
-				for _, m := range localMeta {
-					commentByEmail[m.Email] = m.Comment
-				}
-				for i := range filtered {
-					if cmt, ok := commentByEmail[filtered[i].Email]; ok {
-						filtered[i].Comment = cmt
-					}
-				}
+				Where("email IN ?", batch).
+				Find(&localMeta).Error; err != nil {
+				continue
+			}
+			for _, m := range localMeta {
+				commentByEmail[m.Email] = m.Comment
+			}
+		}
+		for i := range filtered {
+			if cmt, ok := commentByEmail[filtered[i].Email]; ok {
+				filtered[i].Comment = cmt
 			}
 		}
 		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {

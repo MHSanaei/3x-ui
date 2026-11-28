@@ -84,6 +84,25 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL inbound add orphan cleanup
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestAddInboundClient(BoundedOrphanCleanup|OrphanProbePreservesConcurrentRecreation)Postgres$' -count=1 -v | tee /tmp/postgres-add-orphans.log
+          passed=$(grep -c -- '^--- PASS: TestAddInboundClient' /tmp/postgres-add-orphans.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected both PostgreSQL inbound add orphan cleanup tests to pass, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL client traffic lifecycle edits
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientTrafficLifecyclePostgres$' -count=1 -v | tee /tmp/postgres-client-traffic-lifecycle.log
+          if ! grep -q -- '^--- PASS: TestClientTrafficLifecyclePostgres ' /tmp/postgres-client-traffic-lifecycle.log; then
+            echo "expected the PostgreSQL client traffic lifecycle suite to pass" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL batched stats identities
         run: |
           set -o pipefail
@@ -101,6 +120,16 @@ jobs:
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-client-ip-sync.log || true)
           if [ "$passed" -ne 2 ]; then
             echo "expected 2 passing PostgreSQL client IP sync tests, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL Xray traffic retry
+        run: |
+          set -o pipefail
+          go test -p=1 ./internal/web/job ./internal/web/service -run '^TestXrayTraffic(PollRetriesRolledBackSample|BatchSurvivesFullQueueAndWriterRestart|BatchRetriesDeferredCommitFailure)Postgres$' -count=1 -v | tee /tmp/postgres-xray-traffic-retry.log
+          passed=$(grep -c -- '^--- PASS: TestXrayTraffic' /tmp/postgres-xray-traffic-retry.log || true)
+          if [ "$passed" -ne 3 ]; then
+            echo "expected 3 passing PostgreSQL Xray traffic retry tests, got $passed" >&2
             exit 1
           fi
 
@@ -134,25 +163,15 @@ jobs:
             exit 1
           fi
 
-      - name: PostgreSQL deferred-commit test
-        run: |
-          set -o pipefail
-          go test ./internal/web/service/outbound -run '^TestAddTrafficReturnsDeferredCommitFailure$' -count=1 -v | tee /tmp/postgres-outbound.log
-          passed=$(grep -c -- '^--- PASS' /tmp/postgres-outbound.log || true)
-          if [ "$passed" -lt 1 ]; then
-            echo "expected at least 1 passing deferred-commit test, got $passed" >&2
-            exit 1
-          fi
-
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence)$' -count=1 -v | tee /tmp/postgres-schema.log
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres|TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres|TestClientKeepAlivePostgresMigrationPreservesLegacyScalars|TestPostgresModelSettled_TracksSchemaPresence|TestEnsureClientGroupRows_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
           # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
           passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
-          if [ "$passed" -lt 6 ]; then
-            echo "expected at least 6 passing PostgreSQL schema tests, got $passed" >&2
+          if [ "$passed" -lt 7 ]; then
+            echo "expected at least 7 passing PostgreSQL schema tests, got $passed" >&2
             exit 1
           fi
 

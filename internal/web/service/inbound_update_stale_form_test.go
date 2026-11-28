@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -166,5 +167,22 @@ func TestInboundFormSaveKeepsEnableToggledWhileOpen(t *testing.T) {
 	}
 	if saved.Enable || saved.Remark != "edited" {
 		t.Fatalf("after save: enable=%v remark=%q, want disabled and edited", saved.Enable, saved.Remark)
+	}
+}
+
+// A null settings payload is not an object the stored clients can be put back
+// into; the save must refuse it like any other empty settings.
+func TestInboundFormSaveRefusesNullSettings(t *testing.T) {
+	setupBulkDB(t)
+	ib := seedRenewableNeighbour(t, 23209, nil)
+	form := *ib
+	form.Settings = "null"
+
+	_, _, err := (&InboundService{}).UpdateInbound(&form)
+	if err == nil || strings.TrimSpace(err.Error()) != "inbound settings is empty" {
+		t.Fatalf("UpdateInbound err = %v, want %q", err, "inbound settings is empty")
+	}
+	if _, ok := settingsClient(t, ib.Id, "y@stale"); !ok {
+		t.Fatal("the refused save dropped a stored client")
 	}
 }

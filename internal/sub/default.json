@@ -49,8 +49,7 @@
       "tag": "direct",
       "protocol": "freedom",
       "settings": {
-        "redirect": "",
-        "noises": []
+        "redirect": ""
       }
     },
     {

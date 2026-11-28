@@ -138,9 +138,9 @@ func TestMergeFinalMask_EmptyExtraTcpKeepsBase(t *testing.T) {
 	}
 }
 
-// --- service.go:69-77 — configuredPublicHost priority: subDomain > webDomain > "" ---
+// --- link host of a wildcard-listen inbound: subDomain > webDomain > request host ---
 
-func TestConfiguredPublicHost_Priority(t *testing.T) {
+func TestWildcardInboundLinkHost_Priority(t *testing.T) {
 	initMutDB(t)
 	db := database.GetDB()
 	set := func(key, val string) {
@@ -148,23 +148,23 @@ func TestConfiguredPublicHost_Priority(t *testing.T) {
 			t.Fatalf("save %s: %v", key, err)
 		}
 	}
-
-	s := &SubService{}
-
-	// Both empty → "".
-	if got := s.configuredPublicHost(); got != "" {
-		t.Fatalf("no domains configured: got %q, want empty", got)
+	linkHost := func() string {
+		s := &SubService{}
+		s.PrepareForRequest("192.168.1.50")
+		return s.resolveInboundAddress(&model.Inbound{Listen: ""})
 	}
 
-	// Only webDomain → webDomain wins (exercises the second branch, service.go:73).
+	if got := linkHost(); got != "192.168.1.50" {
+		t.Fatalf("no domains configured: got %q, want the request host", got)
+	}
+
 	set("webDomain", "web.example.com")
-	if got := s.configuredPublicHost(); got != "web.example.com" {
+	if got := linkHost(); got != "web.example.com" {
 		t.Fatalf("webDomain fallback: got %q, want web.example.com", got)
 	}
 
-	// subDomain set → subDomain takes precedence over webDomain (service.go:70).
 	set("subDomain", "sub.example.com")
-	if got := s.configuredPublicHost(); got != "sub.example.com" {
+	if got := linkHost(); got != "sub.example.com" {
 		t.Fatalf("subDomain priority: got %q, want sub.example.com", got)
 	}
 }

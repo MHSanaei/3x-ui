@@ -22,6 +22,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { AllSettingSchema } from '@/schemas/setting';
+import { PanelRestartSchema } from '@/generated/zod';
 import AppSidebar from '@/layouts/AppSidebar';
 import GeneralTab from './GeneralTab';
 import SecurityTab from './SecurityTab';
@@ -32,10 +33,12 @@ import WechatTab from './WechatTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
 import SubscriptionBalancersTab from './SubscriptionBalancersTab';
+import { panelUrlAfterRestart } from './restart-url';
 import './SettingsPage.css';
 
 interface ApiMsg {
   success?: boolean;
+  obj?: unknown;
 }
 
 const tabSlugs = [
@@ -49,22 +52,6 @@ const tabSlugs = [
   'subscription-formats',
   'subscription-balancers',
 ];
-
-function isIp(h: string): boolean {
-  if (typeof h !== 'string') return false;
-  const v4 = h.split('.');
-  if (v4.length === 4 && v4.every((p) => /^\d{1,3}$/.test(p) && Number(p) <= 255)) return true;
-  if (!h.includes(':') || h.includes(':::')) return false;
-  const parts = h.split('::');
-  if (parts.length > 2) return false;
-  const split = (s: string) => (s ? s.split(':').filter(Boolean) : []);
-  const head = split(parts[0]);
-  const tail = split(parts[1]);
-  const valid = (seg: string) => /^[0-9a-fA-F]{1,4}$/.test(seg);
-  if (![...head, ...tail].every(valid)) return false;
-  const groups = head.length + tail.length;
-  return parts.length === 2 ? groups < 8 : groups === 8;
-}
 
 function scrollTarget() {
   return document.getElementById('content-layout') as HTMLElement;
@@ -92,39 +79,10 @@ export default function SettingsPage() {
     savePayload,
   } = useAllSettings();
 
-  const [entryHost] = useState(() => window.location.hostname);
-  const [entryPort] = useState(() => window.location.port);
-  const [entryIsIP] = useState(() => isIp(window.location.hostname));
-
   const [alertVisible, setAlertVisible] = useState(true);
   const location = useLocation();
   const slug = location.hash.replace(/^#/, '');
   const activeSlug = tabSlugs.includes(slug) ? slug : 'general';
-
-  function rebuildUrlAfterRestart(): string {
-    const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = allSetting;
-    const newProtocol = webCertFile || webKeyFile ? 'https:' : 'http:';
-
-    let base = webBasePath ? webBasePath.replace(/^\//, '') : '';
-    if (base && !base.endsWith('/')) base += '/';
-
-    if (!entryIsIP) {
-      const url = new URL(window.location.href);
-      url.pathname = `/${base}panel/settings`;
-      url.protocol = newProtocol;
-      return url.toString();
-    }
-
-    let finalHost = entryHost;
-    let finalPort = entryPort || '';
-    if (webDomain && isIp(webDomain)) finalHost = webDomain;
-    if (webPort && Number(webPort) !== Number(entryPort)) finalPort = String(webPort);
-
-    const url = new URL(`${newProtocol}//${finalHost}`);
-    if (finalPort) url.port = finalPort;
-    url.pathname = `/${base}panel/settings`;
-    return url.toString();
-  }
 
   async function onSave() {
     const result = AllSettingSchema.safeParse(allSetting);
@@ -150,8 +108,10 @@ export default function SettingsPage() {
         try {
           const msg = (await HttpUtil.post('/panel/api/setting/restartPanel')) as ApiMsg;
           if (!msg?.success) return;
-          await PromiseUtil.sleep(5000);
-          window.location.replace(rebuildUrlAfterRestart());
+          const restart = PanelRestartSchema.safeParse(msg.obj);
+          const target = panelUrlAfterRestart(window.location.href, restart.data, allSetting);
+          await PromiseUtil.waitForPanel(target);
+          window.location.replace(target);
         } finally {
           setSpinning(false);
         }

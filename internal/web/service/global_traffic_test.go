@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -353,5 +355,110 @@ func TestDisableInvalidClientsSurvivesAnInboundWithBrokenSettings(t *testing.T) 
 	db.Where("tag = ?", "local").First(&bob)
 	if !strings.Contains(bob.Settings, `"enable":false`) {
 		t.Fatalf("local inbound settings = %s, want bob disabled", bob.Settings)
+	}
+}
+
+// Xray reports every email that ever connected, moved bytes or not; one IN list over all
+// of them overran the bind limit and no client was counted until the core restarted.
+func TestAddTrafficPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	seedClientRow(t, "alice", 1, 10, 20, 0)
+	const n = 33000
+	report := make([]*xray.ClientTraffic, 0, n+1)
+	for i := range n {
+		report = append(report, &xray.ClientTraffic{Email: fmt.Sprintf("idle-%d", i)})
+	}
+	report = append(report, &xray.ClientTraffic{Email: "alice", Up: 5, Down: 7})
+	if _, _, err := (&InboundService{}).AddTraffic(nil, report); err != nil {
+		t.Fatalf("AddTraffic with %d reported emails: %v", len(report), err)
+	}
+	assertUpDown(t, readTraffic(t, db, "alice"), 15, 27, "after a poll reporting more emails than one statement binds")
+}
+
+// The TUIC sidecar meters by traffic_id; one IN list over a large inbound's emails
+// overran the bind limit and the inbound could no longer be built for the runtime.
+func TestTuicRuntimeInboundPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	const n = 33000
+	var settings strings.Builder
+	settings.WriteString(`{"clients":[`)
+	for i := 1; i <= n; i++ {
+		if i > 1 {
+			settings.WriteByte(',')
+		}
+		fmt.Fprintf(&settings, `{"email":"c%d","id":"00000000-0000-4000-8000-%012d","password":"p","enable":true}`, i, i)
+	}
+	settings.WriteString(`]}`)
+	inbound := &model.Inbound{UserId: 1, Tag: "tuic-big", Port: 41300, Protocol: model.TUIC, Enable: true, Settings: settings.String()}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	if err := db.Exec(`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		INSERT INTO client_traffics (inbound_id, email, enable) SELECT 1, 'c' || i, true FROM seq`, n).Error; err != nil {
+		t.Fatalf("seed traffic rows: %v", err)
+	}
+	built, err := (&InboundService{}).buildInboundForLocalRuntime(db, inbound)
+	if err != nil {
+		t.Fatalf("buildInboundForLocalRuntime: %v", err)
+	}
+	var runtimeSettings struct {
+		Clients []struct {
+			Email     string `json:"email"`
+			TrafficID int    `json:"traffic_id"`
+		} `json:"clients"`
+	}
+	if err := json.Unmarshal([]byte(built.Settings), &runtimeSettings); err != nil {
+		t.Fatalf("decode runtime settings: %v", err)
+	}
+	if len(runtimeSettings.Clients) != n {
+		t.Fatalf("runtime inbound has %d clients, want %d", len(runtimeSettings.Clients), n)
+	}
+	last := runtimeSettings.Clients[n-1]
+	if want := readTraffic(t, db, last.Email).Id; last.TrafficID != want {
+		t.Fatalf("%s traffic_id = %d, want its stats row id %d", last.Email, last.TrafficID, want)
+	}
+}
+
+// A node's snapshot carries no comments; one IN list over a large inbound's emails
+// overran the bind limit and the lookup that keeps the hub's comments was skipped.
+func TestNodeSnapshotKeepsCommentsPastTheSQLVariableLimit(t *testing.T) {
+	db := initTrafficTestDB(t)
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	const n = 33000
+	var central, reported strings.Builder
+	central.WriteString(`{"clients":[`)
+	reported.WriteString(`{"clients":[`)
+	for i := 1; i <= n; i++ {
+		if i > 1 {
+			central.WriteByte(',')
+			reported.WriteByte(',')
+		}
+		fmt.Fprintf(&central, `{"email":"c%d","id":"00000000-0000-4000-8000-%012d","enable":true,"comment":"note %d"}`, i, i, i)
+		fmt.Fprintf(&reported, `{"email":"c%d","id":"00000000-0000-4000-8000-%012d","enable":true}`, i, i)
+	}
+	central.WriteString(`]}`)
+	reported.WriteString(`]}`)
+	createNodeInboundWithSettings(t, db, 1, "n1-big", 41301, central.String())
+	for _, stmt := range []string{
+		`WITH RECURSIVE seq(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM seq WHERE i < ?)
+		 INSERT INTO clients (email, uuid, enable, sub_id, comment)
+		 SELECT 'c' || i, '00000000-0000-4000-8000-' || printf('%012d', i), true, '', 'note ' || i FROM seq`,
+	} {
+		if err := db.Exec(stmt, n).Error; err != nil {
+			t.Fatalf("seed clients: %v", err)
+		}
+	}
+	if err := db.Exec(`INSERT INTO client_inbounds (client_id, inbound_id) SELECT id, 1 FROM clients`).Error; err != nil {
+		t.Fatalf("link clients: %v", err)
+	}
+
+	syncNodeWithSettings(t, &InboundService{}, 1, "n1-big", reported.String())
+
+	var row model.ClientRecord
+	if err := db.Where("email = ?", fmt.Sprintf("c%d", n)).First(&row).Error; err != nil {
+		t.Fatalf("lookup client: %v", err)
+	}
+	if want := fmt.Sprintf("note %d", n); row.Comment != want {
+		t.Fatalf("comment after the node sync = %q, want %q", row.Comment, want)
 	}
 }

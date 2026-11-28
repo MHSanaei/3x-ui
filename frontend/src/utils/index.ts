@@ -180,6 +180,33 @@ export class PromiseUtil {
       setTimeout(resolve, timeout);
     });
   }
+
+  // After the restart delay, polls a same-origin target until it answers below 500; false on
+  // timeout. connect-src 'self' blocks every other origin, so such a target gets the delay only.
+  static async waitForPanel(
+    url: string,
+    { delay = 5000, interval = 2000, timeout = 90_000 } = {},
+  ): Promise<boolean> {
+    await PromiseUtil.sleep(delay);
+    const target = new URL(url, window.location.href);
+    if (target.origin !== window.location.origin) return false;
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(target, {
+          cache: 'no-store',
+          redirect: 'manual',
+          mode: 'same-origin',
+          signal: AbortSignal.timeout(Math.max(interval, 1000)),
+        });
+        if (res.type === 'opaqueredirect' || res.status < 500) return true;
+      } catch {
+        /* not listening yet */
+      }
+      await PromiseUtil.sleep(interval);
+    }
+    return false;
+  }
 }
 
 export interface RandomSeqOptions {

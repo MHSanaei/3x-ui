@@ -53,7 +53,7 @@ func (j *NodeHeartbeatJob) Run() {
 	}
 	defer j.running.Unlock()
 
-	nodes, err := j.nodeService.GetAll()
+	nodes, err := j.nodeService.ListOperational()
 	if err != nil {
 		logger.Warning("node heartbeat: load nodes failed:", err)
 		return

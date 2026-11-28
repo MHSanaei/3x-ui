@@ -1171,8 +1171,8 @@
       "totalUpDown": "Toplam yükleme / indirme",
       "addGroup": "Grup ekle",
       "createSuccess": "«{name}» grubu oluşturuldu.",
-      "rename": "Yeniden adlandır",
-      "renameTitle": "{name} yeniden adlandır",
+      "editGroup": "Edit group",
+      "editGroupTitle": "Edit group \"{name}\"",
       "renameCollision": "«{name}» adında bir grup zaten var.",
       "renameSuccess": "{count} kullanıcının grubu yeniden adlandırıldı.",
       "deleteConfirmTitle": "{name} Grubunu Sil?",
@@ -1198,7 +1198,11 @@
       "removeFromGroup": "Kullanıcı Çıkar…",
       "removeFromGroupTitle": "«{name}» Grubundan Kullanıcı Çıkar",
       "removeFromGroupDesc": "Bu gruptan çıkarılacak üyeleri seçin. Kullanıcılar korunur (tamamen kaldırmak için «Gruptaki kullanıcıları sil» kullanın).",
-      "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
+      "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı.",
+      "hostRules": "Host rules",
+      "hostRulesHint": "Select the host rules every client in this group should receive. These replace the inbound's default host pool for members; other clients are unaffected.",
+      "hostRulesPlaceholder": "Select host rules",
+      "hostRulesSaved": "Host rules updated for {name}."
     },
     "nodes": {
       "restartXray": "Xray yeniden başlat",

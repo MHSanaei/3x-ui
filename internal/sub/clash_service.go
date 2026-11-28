@@ -91,7 +91,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				continue
 			}
 			if subReq.hostsFirst {
-				variants, closed := subReq.clientHostVariants(inbound, client, "clash")
+				variants, closed := subReq.selectHostVariants(inbound, client, "clash")
 				hasBoundClosed = hasBoundClosed || closed
 				for _, variant := range variants {
 					render := func() []map[string]any {
@@ -102,7 +102,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				continue
 			}
 			effective := inbound
-			if effectiveEps, bound := subReq.clientHostEndpoints(inbound, client, "clash", baseEps); bound {
+			if effectiveEps, bound := subReq.selectHostEndpoints(inbound, client, "clash", baseEps); bound {
 				if len(effectiveEps) == 0 {
 					hasBoundClosed = true
 					continue

@@ -216,7 +216,7 @@ _openapi:
         group_name values currently set on clients. Sorted alphabetically
         (case-insensitive).
       url: >-
-        #list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+        #list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
     - depth: 2
       title: >-
         Return just the email list of clients that currently belong to the given
@@ -230,7 +230,7 @@ _openapi:
         client forms and the filter drawer even before any client is added to
         it. Errors if a group with the same name already exists.
       url: >-
-        #create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+        #create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
     - depth: 2
       title: >-
         Rename a group. The new name is applied to the client_groups row AND
@@ -238,7 +238,7 @@ _openapi:
         client entry inside every owning inbound's settings JSON) in a single
         transaction. Returns the number of clients whose label was updated.
       url: >-
-        #rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+        #rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
     - depth: 2
       title: >-
         Remove a group. Deletes the client_groups row and clears the group label
@@ -514,7 +514,7 @@ _openapi:
           distinct group_name values currently set on clients. Sorted
           alphabetically (case-insensitive).
         id: >-
-          list-all-client-groups-with-their-member-counts-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
+          list-all-client-groups-with-their-member-counts-and-the-host-groups-bound-to-each-merges-persisted-groups-rows-in-client_groups-including-empty-placeholders-with-the-distinct-group_name-values-currently-set-on-clients-sorted-alphabetically-case-insensitive
       - content: >-
           Return just the email list of clients that currently belong to the
           given group. Useful for fanning a single bulk action over an entire
@@ -526,14 +526,14 @@ _openapi:
           in client forms and the filter drawer even before any client is added
           to it. Errors if a group with the same name already exists.
         id: >-
-          create-a-new-empty-placeholder-group-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-errors-if-a-group-with-the-same-name-already-exists
+          create-a-new-group-optionally-with-host-rules-bound-to-it-the-group-becomes-selectable-in-client-forms-and-the-filter-drawer-even-before-any-client-is-added-to-it-host-group-ids-are-validated-before-the-group-is-created-errors-if-a-group-with-the-same-name-already-exists
       - content: >-
           Rename a group. The new name is applied to the client_groups row AND
           propagated to every matching client (both clients.group_name and the
           client entry inside every owning inbound's settings JSON) in a single
           transaction. Returns the number of clients whose label was updated.
         id: >-
-          rename-a-group-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-in-a-single-transaction-returns-the-number-of-clients-whose-label-was-updated
+          rename-a-group-and-optionally-replace-its-host-rules-in-one-transaction-the-new-name-is-applied-to-the-client_groups-row-and-propagated-to-every-matching-client-both-clientsgroup_name-and-the-client-entry-inside-every-owning-inbounds-settings-json-omit-hostgroupids-to-leave-the-bindings-unchanged-send-an-empty-array-to-clear-them-returns-the-number-of-clients-whose-label-was-updated
       - content: >-
           Remove a group. Deletes the client_groups row and clears the group
           label from every matching client (both clients.group_name and the
