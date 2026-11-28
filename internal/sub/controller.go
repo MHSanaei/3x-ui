@@ -506,7 +506,10 @@ func dedupeEmails(emails []string) []string {
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
-	loon := strings.EqualFold(c.Query("format"), "loon")
+	requestedFormat := c.Query("format")
+	loon := strings.EqualFold(requestedFormat, "loon") ||
+		requestedFormat == "" && strings.HasPrefix(strings.ToLower(userAgent), "loon/")
+	c.Writer.Header().Add("Vary", "User-Agent")
 	if a.maybeServeSubInfo(c) {
 		logSubscriptionRoute(userAgent, "info")
 		return

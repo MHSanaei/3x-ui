@@ -57,7 +57,7 @@ func loonRealityNode(raw string) (name, node string, ok bool) {
 	port, portErr := strconv.ParseUint(u.Port(), 10, 16)
 	id, idErr := uuid.Parse(u.User.Username())
 	if portErr != nil || port == 0 || idErr != nil || host == "" || key == "" ||
-		(flow != "" && flow != "xtls-rprx-vision") {
+		(flow != "" && flow != "xtls-rprx-vision" && flow != "xtls-rprx-vision-udp443") {
 		return "", "", false
 	}
 	for _, value := range []string{host, key, serverName, shortID} {
