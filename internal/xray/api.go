@@ -139,6 +139,15 @@ func (x *XrayAPI) Init(apiPort int) error {
 	return nil
 }
 
+// ResetTrafficForManagedProcess starts counter tracking at zero for a fresh panel-owned core.
+func (x *XrayAPI) ResetTrafficForManagedProcess() {
+	x.StatsLastValues = make(map[string]int64)
+	x.statsBaselined = make(map[string]bool, len(statsFamilies))
+	for _, family := range statsFamilies {
+		x.statsBaselined[family] = true
+	}
+}
+
 // Close closes the gRPC connection and resets the XrayAPI client state.
 func (x *XrayAPI) Close() {
 	if x.grpcClient != nil {
@@ -1123,11 +1132,8 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 
 // GetTraffic queries traffic statistics from the Xray core and reports what
 // accrued since the previous call; the counters themselves are never reset.
-// The first call of a process only records baselines, since it may be reading
-// counters that already hold traffic the panel cannot attribute. After that a
-// name the panel has not seen — xray creates a counter on a user's first use —
-// and a counter that moved backwards because the core restarted both count
-// from zero, so no client's traffic is dropped for a whole polling interval.
+// An untracked core's first response establishes a baseline. Fresh managed
+// cores, new counter names and counters that move backwards count from zero.
 func (x *XrayAPI) GetTraffic() ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")

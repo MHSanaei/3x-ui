@@ -89,6 +89,10 @@ type XrayService struct {
 	settingService SettingService
 	nodeService    NodeService
 	xrayAPI        xray.XrayAPI
+
+	trafficMu      sync.Mutex
+	trafficAPI     xray.XrayAPI
+	trafficProcess *xray.Process
 }
 
 // IsXrayRunning checks if the Xray process is currently running.
@@ -1384,23 +1388,34 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
+	s.trafficMu.Lock()
+	defer s.trafficMu.Unlock()
+
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
 		err := ErrXrayNotRunning
 		logger.Debug("Attempted to fetch Xray traffic, but Xray is not running:", err)
 		return nil, nil, err
 	}
+	if s.trafficProcess != process {
+		s.trafficAPI.ResetTrafficForManagedProcess()
+		s.trafficProcess = process
+	}
 	apiPort := process.GetAPIPort()
-	if err := s.xrayAPI.Init(apiPort); err != nil {
+	if err := s.trafficAPI.Init(apiPort); err != nil {
 		logger.Debug("Failed to initialize Xray API:", err)
 		return nil, nil, err
 	}
-	defer s.xrayAPI.Close()
+	defer s.trafficAPI.Close()
 
-	traffic, clientTraffic, err := s.xrayAPI.GetTraffic()
+	traffic, clientTraffic, err := s.trafficAPI.GetTraffic()
 	if err != nil {
 		logger.Debug("Failed to fetch Xray traffic:", err)
 		return nil, nil, err
+	}
+	// A restarted core can reuse this port between the family RPCs.
+	if currentXrayProcess() != process {
+		return nil, nil, errors.New("Xray process changed during traffic collection")
 	}
 	return traffic, clientTraffic, nil
 }
@@ -1582,7 +1597,6 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	invalidateTuicRelayReadiness(xrayConfig)
 	process = xray.NewProcess(xrayConfig)
 	xrayState.replace(process)
-	s.xrayAPI.StatsLastValues = nil
 	err = process.Start()
 	if err != nil {
 		return err
