@@ -2254,6 +2254,115 @@ run_speedtest() {
     speedtest
 }
 
+run_librespeed() { 
+    local nc=$'\033[0m'
+    local ls_user="librespeed" # username
+    local ls_bin="/usr/local/bin/librespeed-cli" # path to binary file
+    local action launch=0
+
+    if [ "$(id -u)" -ne 0 ]; then # block launch as root
+        echo -e "${red}Run as root (needed for install and user management).${nc}"
+        return 1
+    fi
+
+    echo -e "${yellow}What do you want to do?\n1) Use\n2) Install/Update\n3) Delete${nc}" # Menu section
+    read -rp ": " action 
+
+    case "$action" in #Launch
+        1)
+            if [ -x "$ls_bin" ]; then
+                launch=1
+            else
+                echo -e "${red}LibreSpeed is not installed!${nc}"
+                return 1
+            fi
+            ;;
+
+        2)
+            echo -e "${yellow}Installing/Updating LibreSpeed...${nc}"
+            (
+                set -euo pipefail
+
+                for dep in curl jq tar sha256sum install awk; do
+                    command -v "$dep" &>/dev/null || { echo -e "${red}Missing dependency: $dep${nc}"; exit 1; }
+                done
+
+                # Architecture detection
+                local arch
+                case "$(uname -m)" in
+                    x86_64|amd64)   arch=amd64 ;;
+                    aarch64|arm64)  arch=arm64 ;;
+                    armv7l|armv8l)  arch=armv7 ;;
+                    armv6l)         arch=armv6 ;;
+                    i386|i686)      arch=386 ;;
+                    *) echo -e "${red}Unsupported architecture: $(uname -m)${nc}"; exit 1 ;;
+                esac
+
+                local tmp release_json version asset url sums_url expected actual
+                local curl_opts=(--proto '=https' --tlsv1.2 -fsSL)
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+
+                release_json=$(curl "${curl_opts[@]}" "https://api.github.com/repos/librespeed/speedtest-cli/releases/latest") # official github api
+                version=$(jq -r '.tag_name | ltrimstr("v")' <<<"$release_json")
+                asset="librespeed-cli_${version}_linux_${arch}.tar.gz"
+
+                url=$(jq -r --arg n "$asset" '.assets[] | select(.name==$n) | .browser_download_url' <<<"$release_json")
+                [ -n "$url" ] || { echo -e "${red}No release asset named $asset${nc}"; exit 1; }
+
+                echo -e "${yellow}Downloading $asset...${nc}"
+                curl "${curl_opts[@]}" -o "$tmp/$asset" "$url"
+
+                # checking hashsum, but it'll stil empty for else function 
+                sums_url=$(jq -r '[.assets[] | select(.name | test("checksum|sha256";"i"))][0].browser_download_url // empty' <<<"$release_json")
+                if [ -n "$sums_url" ]; then
+                    curl "${curl_opts[@]}" -o "$tmp/checksums" "$sums_url"
+                    expected=$(awk -v f="$asset" '$2==f || $2=="*" f {print $1}' "$tmp/checksums")
+                else
+                    expected=$(jq -r --arg n "$asset" '.assets[] | select(.name==$n) | .digest // empty' <<<"$release_json")
+                    expected=${expected#sha256:}
+                fi
+                [ -n "$expected" ] || { echo -e "${red}No checksum available, aborting.${nc}"; exit 1; }
+
+                actual=$(sha256sum "$tmp/$asset" | awk '{print $1}')
+                if [ "$actual" != "$expected" ]; then
+                    echo -e "${red}Checksum mismatch!\n expected: $expected\n actual:   $actual${nc}" #something is wrong with hashsum
+                    exit 1
+                fi
+                echo -e "${green}Checksum OK.${nc}" # all good with hashsum
+
+                # Extract only the binary; install root-owned so the service user can't modify it
+                tar -xzf "$tmp/$asset" -C "$tmp" librespeed-cli
+                install -o root -g root -m 0755 "$tmp/librespeed-cli" "$ls_bin" # very low privilage permissions
+                rm -f /usr/bin/librespeed-cli   
+            ) || { echo -e "${red}Install failed.${nc}"; return 1; } 
+            launch=1
+            ;;
+
+        3)
+            rm -f "$ls_bin" /usr/bin/librespeed-cli # Deleting librespeed-cli
+            id -u "$ls_user" &>/dev/null && userdel "$ls_user"
+            echo -e "${green}LibreSpeed was deleted!${nc}" 
+            ;;
+
+        *)
+            echo -e "${red}Invalid option.${nc}"
+            return 1
+            ;;
+    esac
+
+    if [ "$launch" -eq 1 ]; then
+        # Create the locked-down system account
+        if ! id -u "$ls_user" &>/dev/null; then
+            useradd --system --no-create-home --home-dir /nonexistent \
+                    --shell "$(command -v nologin || echo /usr/sbin/nologin)" "$ls_user" \
+                || { echo -e "${red}Could not create user $ls_user${nc}"; return 1; }
+        fi
+        echo -e "${green}Starting LibreSpeed...${nc}"
+        runuser -u "$ls_user" -- env -i HOME=/nonexistent PATH=/usr/bin:/bin "$ls_bin"
+    fi
+}
+
 ip_validation() {
     ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
     ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
@@ -3629,10 +3738,11 @@ show_menu() {
 │  ${green}26.${plain} Enable BBR                               │
 │  ${green}27.${plain} Update Geo Files                         │
 │  ${green}28.${plain} Speedtest by Ookla                       │
+│  ${green}29.${plain} Librespeed                               │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-28]: " num
+    echo && read -rp "Please enter your selection [0-29]: " num
 
     case "${num}" in
         0)
@@ -3722,8 +3832,11 @@ show_menu() {
         28)
             run_speedtest
             ;;
+        29)
+            run_librespeed
+            ;;
         *)
-            LOGE "Please enter the correct number [0-28]"
+            LOGE "Please enter the correct number [0-29]"
             ;;
     esac
 }
