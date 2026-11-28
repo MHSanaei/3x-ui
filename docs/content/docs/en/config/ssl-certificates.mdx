@@ -80,6 +80,55 @@ No domain? Choose **Get SSL for IP Address** to obtain a short-lived
 certificate (valid ~6 days, renewed automatically) bound to the server's IP.
 Useful for reaching the panel over HTTPS before you've set up a domain.
 
+The menu and interactive installer detect locally assigned public IPv6 addresses
+using `iproute2`. They prefer stable addresses, label the default-route source
+when available, and ask **`Include … in the SSL certificate? [y/N]`**. Confirm with
+`y`; rejecting the suggestion offers manual entry or skipping. Multiple candidates
+are numbered so you can select just one, enter an address manually, or skip.
+No IPv6 echo service is required, and an outgoing route does not prove which
+address clients should connect to: confirm the server's actual incoming address.
+
+Only individual public IPv6 literals are accepted. A provider's routed `/64`
+is a pool from which addresses can be assigned, not a certificate identifier.
+Loopback, link-local, private, documentation, tentative, deprecated, and failed-DAD
+addresses are not offered. Temporary privacy addresses are offered only when no
+suitable stable address exists; their changing lifetime can prevent renewal.
+Invalid manual input produces an error and another prompt.
+
+For unattended installation, set `XUI_SSL_IPV6` to a specific public IPv6 literal
+to include it. Leaving it unset or empty keeps IPv4-only issuance with no new
+prompts or automatic IPv6 inclusion. `auto` is not a supported override. Invalid
+explicit values fail SSL setup. IP mode retains IPv4 as its primary identifier.
+
+Dual-stack orders require **acme.sh 3.1.5 or newer** and socat. Both
+`--listen-v4` and `--listen-v6` are passed: these versions open separate IPv4 and
+IPv6 sockets and persist both settings for cron renewal. Older clients fail
+clearly rather than dropping a confirmed IPv6. The local preflight checks both
+families on the selected HTTP listener port. External **port 80 must be reachable
+over both addresses**; forward it to the selected internal port on both families
+when using a custom port. In containers, enable IPv6 networking and publish the
+validation port for both families. Local listener success cannot verify an
+external firewall, NAT, or the provider's routing.
+
+The resulting certificate's IP SANs, validity, and matching private key are
+checked before configuring the panel. Existing live certificate files are backed
+up during installation and restored after a failed or invalid copy; failed
+issuance does not remove certificates or ACME account data. Renewal still copies
+to the usual `/root/cert/ip/` paths, with a persisted SAN/key check before the
+panel reload command. The private key remains mode `600` and the chain `644`.
+If IP setup fails in the installer, a previously running panel is started again;
+an inactive panel is not started on failure.
+
+Inspect both IP SAN entries after issuance:
+
+```bash
+openssl x509 -in /root/cert/ip/fullchain.pem -noout -ext subjectAltName
+```
+
+Use brackets around an IPv6 literal in an access URL, for example
+`https://[2001:db8::10]:2053/`. This example uses a documentation prefix; issue a
+certificate for your own assigned public address.
+
 ## Cloudflare (DNS-01 wildcard)
 
 DNS validation proves you control the domain by creating a TXT record instead of
