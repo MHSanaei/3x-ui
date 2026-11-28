@@ -167,7 +167,8 @@ func (s *ClientService) ListAttachCandidates(ctx context.Context, p AttachCandid
 		if err := rows.Err(); err != nil {
 			return nil, err
 		}
-		resp.ScopeToken = hex.EncodeToString(h.Sum(nil))
+		writeAttachID(h, resp.MaxID)
+		resp.ScopeToken = strconv.Itoa(resp.MaxID) + "." + hex.EncodeToString(h.Sum(nil))
 		return resp, nil
 	}
 	if err := eligible.Count(&resp.Eligible).Error; err != nil {
@@ -243,7 +244,10 @@ func (s *ClientService) BulkAttachSelection(ctx context.Context, inboundSvc *Inb
 			records = append(records, part...)
 		}
 	case "allMatching":
-		if len(selection.ScopeToken) != sha256.Size*2 || len(selection.ClientIDs) > 0 || len(selection.ExcludedClientIDs) > 50_000 {
+		cutoff, digest, ok := strings.Cut(selection.ScopeToken, ".")
+		maxID, parseErr := strconv.Atoi(cutoff)
+		if !ok || parseErr != nil || maxID < 0 || len(digest) != sha256.Size*2 || len(selection.ClientIDs) > 0 ||
+			len(selection.ExcludedClientIDs) > 50_000 {
 			return nil, false, fmt.Errorf("invalid all-clients attachment selection")
 		}
 		excluded := make(map[int]struct{}, len(selection.ExcludedClientIDs))
@@ -251,9 +255,9 @@ func (s *ClientService) BulkAttachSelection(ctx context.Context, inboundSvc *Inb
 			excluded[id] = struct{}{}
 		}
 		h := attachScopeHash(selection.SourceID, targets)
-		// Find hydrates stored client settings through the model's read hooks.
+		// Find runs the model's read hooks. The cutoff excludes newer clients.
 		var eligibleRecords []*model.ClientRecord
-		if err := q.Order("c.id").Find(&eligibleRecords).Error; err != nil {
+		if err := q.Where("c.id <= ?", maxID).Order("c.id").Find(&eligibleRecords).Error; err != nil {
 			return nil, false, err
 		}
 		records = eligibleRecords[:0]
@@ -265,7 +269,8 @@ func (s *ClientService) BulkAttachSelection(ctx context.Context, inboundSvc *Inb
 			}
 			records = append(records, record)
 		}
-		if len(excluded) > 0 || hex.EncodeToString(h.Sum(nil)) != selection.ScopeToken {
+		writeAttachID(h, maxID)
+		if len(excluded) > 0 || hex.EncodeToString(h.Sum(nil)) != digest {
 			return nil, false, stale
 		}
 	default:

@@ -87,14 +87,17 @@ func testAttachCandidatesSelection(t *testing.T) {
 	if err := svc.ApplyInboundClientDelta(nil, source.Id, []model.Client{extra}, nil); err != nil {
 		t.Fatal(err)
 	}
+	if err := svc.ApplyInboundClientDelta(nil, source.Id, nil, []string{clients[2].Email}); err != nil {
+		t.Fatal(err)
+	}
 	if _, _, err := svc.BulkAttachSelection(ctx, inboundSvc, []int{target.Id}, request); err == nil {
-		t.Fatal("a new eligible client should invalidate the selection")
+		t.Fatal("a client that leaves the frozen scope should invalidate the selection")
 	}
 	var linked int64
 	if err := db.Model(&model.ClientInbound{}).Where("inbound_id = ?", target.Id).Count(&linked).Error; err != nil || linked != 1 {
 		t.Fatalf("stale selection mutated target: links=%d err=%v", linked, err)
 	}
-	if err := svc.ApplyInboundClientDelta(nil, source.Id, nil, []string{extra.Email}); err != nil {
+	if err := svc.ApplyInboundClientDelta(nil, source.Id, clients[2:3], nil); err != nil {
 		t.Fatal(err)
 	}
 	result, _, err := svc.BulkAttachSelection(ctx, inboundSvc, []int{target.Id}, request)

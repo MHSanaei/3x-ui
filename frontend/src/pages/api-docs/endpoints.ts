@@ -1701,7 +1701,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/bulkAttach',
         summary:
-          'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Explicit email requests return per-email lists. Alternatively submit selection with explicit clientIds or a frozen allMatching scopeToken plus excludedClientIds. Scoped requests start a background job and return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection error. Stale selections are rejected before applying changes. Triggers a single Xray restart if any target inbound was running.',
+          'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Explicit email requests return per-email lists. Alternatively submit selection with explicit clientIds or a frozen allMatching scopeToken plus excludedClientIds. Scoped requests start a background job and return {jobId}. Poll GET /bulkAttach/:id for counts or a stale-selection error. Newer IDs stay outside the frozen scope. Changes to the frozen membership are rejected before applying changes. Triggers a single Xray restart if any target inbound was running.',
         params: [
           {
             name: 'emails',
