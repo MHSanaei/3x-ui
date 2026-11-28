@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "Bellek",
       "netUp": "Ağ Yükleme (KB/s)",
+      "networkSpeed": "Ağ hızı",
       "netDown": "Ağ İndirme (KB/s)",
       "uptime": "Çalışma Süresi",
       "latency": "Gecikme",

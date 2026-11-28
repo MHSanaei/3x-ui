@@ -4544,6 +4544,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "heartbeatAgeMillis": {
+        "example": 1250,
+        "format": "int64",
+        "nullable": true,
+        "type": "integer"
+      },
       "id": {
         "example": 1,
         "type": "integer"

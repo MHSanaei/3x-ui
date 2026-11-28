@@ -4570,6 +4570,12 @@
             "example": true,
             "type": "boolean"
           },
+          "heartbeatAgeMillis": {
+            "example": 1250,
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
           "id": {
             "example": 1,
             "type": "integer"
@@ -13125,6 +13131,7 @@
                       "enable": true,
                       "guid": "node-guid",
                       "hasApiToken": true,
+                      "heartbeatAgeMillis": 1250,
                       "id": 1,
                       "inboundCount": 3,
                       "inboundSyncMode": "all",
@@ -13329,6 +13336,7 @@
                     "enable": true,
                     "guid": "node-guid",
                     "hasApiToken": true,
+                    "heartbeatAgeMillis": 1250,
                     "id": 1,
                     "inboundCount": 3,
                     "inboundSyncMode": "all",
@@ -13482,6 +13490,7 @@
                     "enable": true,
                     "guid": "node-guid",
                     "hasApiToken": true,
+                    "heartbeatAgeMillis": 1250,
                     "id": 1,
                     "inboundCount": 3,
                     "inboundSyncMode": "all",
@@ -19270,6 +19279,7 @@
                   "enable": true,
                   "guid": "node-guid",
                   "hasApiToken": true,
+                  "heartbeatAgeMillis": 1250,
                   "id": 1,
                   "inboundCount": 3,
                   "inboundSyncMode": "all",

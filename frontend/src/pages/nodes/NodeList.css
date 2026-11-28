@@ -142,3 +142,19 @@
   align-items: center;
   gap: 8px;
 }
+
+.node-network-speed {
+  display: inline-grid;
+  row-gap: 2px;
+  text-align: start;
+  line-height: 1.25;
+}
+
+.node-network-direction {
+  display: grid;
+  grid-template-columns: 1em auto;
+  column-gap: 4px;
+  align-items: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

@@ -1374,13 +1374,10 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 				State    string `json:"state"`
 				ErrorMsg string `json:"errorMsg"`
 			} `json:"xray"`
-			PanelVersion string `json:"panelVersion"`
-			PanelGuid    string `json:"panelGuid"`
-			Uptime       uint64 `json:"uptime"`
-			NetIO        struct {
-				Up   uint64 `json:"up"`
-				Down uint64 `json:"down"`
-			} `json:"netIO"`
+			PanelVersion string          `json:"panelVersion"`
+			PanelGuid    string          `json:"panelGuid"`
+			Uptime       uint64          `json:"uptime"`
+			NetIO        json.RawMessage `json:"netIO"`
 		} `json:"obj"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, maxProbeBodyBytes)).Decode(&envelope); err != nil {
@@ -1413,8 +1410,19 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 	}
 	patch.Guid = o.PanelGuid
 	patch.UptimeSecs = o.Uptime
-	patch.NetUp = o.NetIO.Up
-	patch.NetDown = o.NetIO.Down
+	var network map[string]json.RawMessage
+	_ = json.Unmarshal(o.NetIO, &network)
+	for _, metric := range []struct {
+		key, direction string
+		value          *uint64
+	}{{"netUp", "up", &patch.NetUp}, {"netDown", "down", &patch.NetDown}} {
+		var value *uint64
+		if json.Unmarshal(network[metric.direction], &value) == nil && value != nil {
+			*metric.value = *value
+		} else if !slices.Contains(patch.UnavailableMetrics, metric.key) {
+			patch.UnavailableMetrics = append(patch.UnavailableMetrics, metric.key)
+		}
+	}
 	return patch, nil
 }
 

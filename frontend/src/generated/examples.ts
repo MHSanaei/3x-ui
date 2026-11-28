@@ -1172,6 +1172,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "enable": true,
     "guid": "node-guid",
     "hasApiToken": true,
+    "heartbeatAgeMillis": 1250,
     "id": 1,
     "inboundCount": 3,
     "inboundSyncMode": "all",

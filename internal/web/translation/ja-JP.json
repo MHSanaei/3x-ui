@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "メモリ",
       "netUp": "送信 (KB/s)",
+      "networkSpeed": "ネットワーク速度",
       "netDown": "受信 (KB/s)",
       "uptime": "稼働時間",
       "latency": "レイテンシ",

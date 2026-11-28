@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -184,7 +185,14 @@ func (s *NodeService) GetNodeTreeView() ([]*NodeView, error) {
 	if err != nil {
 		return nil, err
 	}
-	return toNodeViews(nodes), nil
+	views := toNodeViews(nodes)
+	now := time.Now()
+	for _, view := range views {
+		if view.LastHeartbeat > 0 && !view.Transitive {
+			view.HeartbeatAgeMillis = new(max(0, now.Sub(time.Unix(view.LastHeartbeat, 0)).Milliseconds()))
+		}
+	}
+	return views, nil
 }
 
 // recountByGuid recomputes InboundCount/OnlineCount/DepletedCount for every node

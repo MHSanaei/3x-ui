@@ -1248,6 +1248,7 @@
       "cpu": "CPU",
       "mem": "Bộ nhớ",
       "netUp": "Mạng lên (KB/s)",
+      "networkSpeed": "Tốc độ mạng",
       "netDown": "Mạng xuống (KB/s)",
       "uptime": "Thời gian hoạt động",
       "latency": "Độ trễ",
