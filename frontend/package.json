@@ -75,7 +75,7 @@
     "lint-staged": "^17.6.2",
     "msw": "^3.0.7",
     "oxfmt": "0.78.0",
-    "oxlint": "1.90.0",
+    "oxlint": "1.94.0",
     "oxlint-tsgolint": "^7.0.2008",
     "playwright": "^1.65.1",
     "storybook": "^10.6.8",
