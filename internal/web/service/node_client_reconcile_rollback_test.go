@@ -1,8 +1,13 @@
 package service
 
 import (
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"slices"
+	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
@@ -147,8 +152,28 @@ func TestNodeRefusedFirstAdoptionKeepsNodeSettingsPostgres(t *testing.T) {
 func testNodeRefusedFirstAdoptionKeepsNodeSettings(t *testing.T) {
 	t.Helper()
 	db := initTrafficTestDB(t)
-	node := &model.Node{Name: "first-adoption-7219", Address: "127.0.0.1", Port: 2096, ApiToken: "test", Enable: true}
+	var nodeCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		nodeCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true}`))
+	}))
+	t.Cleanup(srv.Close)
+	host, portString, err := net.SplitHostPort(srv.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node := &model.Node{
+		Name: "first-adoption-7219", Scheme: "http", Address: host, Port: port, BasePath: "/",
+		ApiToken: "test", Enable: true, AllowPrivateAddress: true,
+	}
 	seedNodeRow(t, db, node)
+	remote := runtime.NewRemote(node, nil)
+	useTestRuntimeManager(t).SetRuntimeOverride(node.Id, remote)
 	svc := &InboundService{}
 
 	newClient := func(email string) model.Client {
@@ -160,7 +185,10 @@ func testNodeRefusedFirstAdoptionKeepsNodeSettings(t *testing.T) {
 	healthy := newClient("healthy@first-adoption")
 
 	nodeInbound := func(tag string, port int, protocol model.Protocol, clients ...model.Client) *model.Inbound {
-		return &model.Inbound{Tag: tag, Port: port, Protocol: protocol, Enable: true, Settings: clientsSettings(t, clients)}
+		return &model.Inbound{
+			Tag: tag, Port: port, Protocol: protocol, Enable: true, Settings: clientsSettings(t, clients),
+			TrafficReset: "never", TrafficResetDay: 1,
+		}
 	}
 	merge := func(up int64, extra ...*model.Inbound) {
 		t.Helper()
@@ -204,6 +232,16 @@ func testNodeRefusedFirstAdoptionKeepsNodeSettings(t *testing.T) {
 	}
 	if got := lookupClientRecord(t, shared.Email); links != 0 || got.UUID != sharedBefore.UUID {
 		t.Errorf("refused first adoption left %d links and shared UUID %q, want 0 and %q", links, got.UUID, sharedBefore.UUID)
+	}
+	// The node refuses the blob it reported inconsistently, and a failed push keeps it dirty for good.
+	payload, err := svc.buildInboundForNodePush(db, &rows[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodeCalls.Store(0)
+	pushed, err := remote.ReconcileInbound(t.Context(), payload, true)
+	if err != nil || pushed || nodeCalls.Load() != 0 {
+		t.Errorf("reconcile of the refused inbound pushed=%t err=%v after %d node calls, want nothing sent", pushed, err, nodeCalls.Load())
 	}
 	var sibling model.Inbound
 	if err := db.Where("node_id = ? AND tag = ?", node.Id, "first-healthy").Take(&sibling).Error; err != nil {

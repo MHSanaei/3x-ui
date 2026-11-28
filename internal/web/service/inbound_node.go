@@ -1430,6 +1430,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if rejected != nil {
 			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, rejected)
 			syncFailedInbounds[c.Id] = struct{}{}
+			// The row holds what the node reported: pushing it back gets refused there and keeps the node dirty.
+			if isNew {
+				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, p.wireSettings))
+			}
 			continue
 		}
 		if len(updates) > 0 {
