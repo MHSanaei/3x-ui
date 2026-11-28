@@ -84,6 +84,16 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL inbound add orphan cleanup
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestAddInboundClient(BoundedOrphanCleanup|OrphanProbePreservesConcurrentRecreation)Postgres$' -count=1 -v | tee /tmp/postgres-add-orphans.log
+          passed=$(grep -c -- '^--- PASS: TestAddInboundClient' /tmp/postgres-add-orphans.log || true)
+          if [ "$passed" -ne 2 ]; then
+            echo "expected both PostgreSQL inbound add orphan cleanup tests to pass, got $passed" >&2
+            exit 1
+          fi
+
       - name: PostgreSQL client traffic lifecycle edits
         run: |
           set -o pipefail
