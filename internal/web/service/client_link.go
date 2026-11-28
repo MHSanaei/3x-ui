@@ -399,6 +399,10 @@ func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wanted
 		})
 	}
 
+	// A restored, still-attached client must lose its legacy mark before it loses its link.
+	if err := clearSyncOrphanMarks(tx, toDelete); err != nil {
+		return nil, err
+	}
 	for _, batch := range chunkInts(toDelete, sqlInChunk) {
 		if err := tx.Where("inbound_id = ? AND client_id IN ?", inboundId, batch).
 			Delete(&model.ClientInbound{}).Error; err != nil {
@@ -422,18 +426,6 @@ func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wanted
 			DoUpdates: clause.AssignmentColumns([]string{"flow_override"}),
 		}).CreateInBatches(toInsert, 200).Error; err != nil {
 			return nil, err
-		}
-		// Not left to the next node merge: there may never be one, and a mark that outlives the
-		// attach hands the client to the reaper on its next detach.
-		linked := make([]int, 0, len(toInsert))
-		for _, link := range toInsert {
-			linked = append(linked, link.ClientId)
-		}
-		for _, batch := range chunkInts(linked, sqlInChunk) {
-			if err := tx.Model(&model.ClientRecord{}).Where("id IN ? AND sync_orphaned_at > 0", batch).
-				Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error; err != nil {
-				return nil, err
-			}
 		}
 	}
 
@@ -529,7 +521,11 @@ func settleRecordFlows(tx *gorm.DB, clientIds []int) error {
 
 func (s *ClientService) DetachInbound(tx *gorm.DB, inboundId int) error {
 	if tx == nil {
-		tx = database.GetDB()
+		return runSerializedTx(func(tx *gorm.DB) error { return s.DetachInbound(tx, inboundId) })
+	}
+	linked := tx.Model(&model.ClientInbound{}).Select("client_id").Where("inbound_id = ?", inboundId)
+	if err := clearAttachedSyncOrphanMarks(tx.Model(&model.ClientRecord{}).Where("id IN (?)", linked)); err != nil {
+		return err
 	}
 	return tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error
 }

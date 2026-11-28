@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -18,6 +19,82 @@ func TestSyncOrphanRecoveryScope(t *testing.T) {
 
 func TestSyncOrphanRecoveryScopePostgres(t *testing.T) {
 	testSyncOrphanRecoveryScope(t, durablePostgresDB(t))
+}
+
+func TestLegacySyncOrphanMarksAcrossLinkChanges(t *testing.T) {
+	testLegacySyncOrphanMarksAcrossLinkChanges(t, initTrafficTestDB(t))
+}
+
+func TestLegacySyncOrphanMarksAcrossLinkChangesPostgres(t *testing.T) {
+	cleanup, err := testpg.IsolatePackage("legacy_sync_orphan_marks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cleanup)
+	testLegacySyncOrphanMarksAcrossLinkChanges(t, durablePostgresDB(t))
+}
+
+func testLegacySyncOrphanMarksAcrossLinkChanges(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	clientSvc, inboundSvc := &ClientService{}, &InboundService{}
+	for _, action := range []string{"detach client", "delete inbound", "reattach client"} {
+		t.Run(action, func(t *testing.T) {
+			client := model.Client{Email: fmt.Sprintf("legacy-mark-%d@x", time.Now().UnixNano())}
+			ib := durableTestInbound(nil, client.Email, 42534)
+			ib.Enable = false
+			if action != "reattach client" {
+				ib.Settings = clientsSettings(t, []model.Client{client})
+			}
+			if err := db.Create(ib).Error; err != nil {
+				t.Fatal(err)
+			}
+			if action == "reattach client" {
+				record := model.ClientRecord{Email: client.Email}
+				if err := db.Create(&record).Error; err != nil {
+					t.Fatal(err)
+				}
+			} else if err := clientSvc.SyncInbound(nil, ib.Id, []model.Client{client}); err != nil {
+				t.Fatal(err)
+			}
+			backdateOrphanMark(t, db, client.Email)
+
+			switch action {
+			case "detach client":
+				if _, err := clientSvc.DetachByEmail(inboundSvc, ib.Id, client.Email); err != nil {
+					t.Fatal(err)
+				}
+			case "delete inbound":
+				if _, err := inboundSvc.DelInbound(ib.Id); err != nil {
+					t.Fatal(err)
+				}
+			case "reattach client":
+				writes := 0
+				const callback = "test:reattach-mark-writes"
+				if err := db.Callback().Update().After("gorm:update").Register(callback, func(tx *gorm.DB) {
+					sql := strings.NewReplacer("`", "", "\"", "").Replace(tx.Statement.SQL.String())
+					if strings.Contains(sql, "SET sync_orphaned_at=") {
+						writes++
+					}
+				}); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = db.Callback().Update().Remove(callback) })
+				if err := clientSvc.SyncInbound(nil, ib.Id, []model.Client{client}); err != nil {
+					t.Fatal(err)
+				}
+				if writes != 1 {
+					t.Errorf("reattachment issued %d mark clears, want 1", writes)
+				}
+			}
+
+			if reaped, err := clientSvc.ReapSyncOrphans(); err != nil || reaped != 0 {
+				t.Fatalf("legacy mark after %s: reaped=%d err=%v", action, reaped, err)
+			}
+			if got := readOrphanMark(t, db, client.Email); got != 0 {
+				t.Fatalf("legacy mark after %s was %d, want zero", action, got)
+			}
+		})
+	}
 }
 
 func testSyncOrphanRecoveryScope(t *testing.T, db *gorm.DB) {

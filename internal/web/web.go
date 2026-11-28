@@ -62,6 +62,9 @@ var distFS embed.FS
 
 var startTime = time.Now()
 
+// A scheduler reload must retain the unacknowledged sample and its collector baselines.
+var xrayTrafficJob = job.NewXrayTrafficJob()
+
 // cronPanicLogger adapts the package logger to cron's Printf-style logger so a
 // panicking scheduled job is recovered and logged instead of crashing the panel.
 type cronPanicLogger struct{}
@@ -339,7 +342,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+		_, _ = s.cron.AddJob(cadenceXrayTraffic, xrayTrafficJob)
 	}()
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic

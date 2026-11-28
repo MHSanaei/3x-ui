@@ -38,13 +38,17 @@ func markSyncOrphan(tx *gorm.DB, email string, nodeID int, nowMs int64) error {
 // concluded — this is what makes a bad merge recoverable instead of fatal.
 func clearSyncOrphanMarks(tx *gorm.DB, ids []int) error {
 	for _, batch := range chunkInts(ids, sqlInChunk) {
-		if err := tx.Model(&model.ClientRecord{}).
-			Where("id IN ? AND sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)", batch).
-			Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error; err != nil {
+		scope := tx.Model(&model.ClientRecord{}).Where("id IN ?", batch)
+		if err := clearAttachedSyncOrphanMarks(scope); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func clearAttachedSyncOrphanMarks(scope *gorm.DB) error {
+	return scope.Where("sync_orphaned_at > 0 AND EXISTS (SELECT 1 FROM client_inbounds WHERE client_inbounds.client_id = clients.id)").
+		Updates(map[string]any{"sync_orphaned_at": 0, "sync_orphaned_by": 0}).Error
 }
 
 func reapableSyncOrphans(tx *gorm.DB, cutoff int64) *gorm.DB {
