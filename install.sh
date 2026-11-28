@@ -1228,17 +1228,7 @@ config_after_install() {
             fi
             if [[ "$db_choice" == "2" ]]; then
                 local xui_env_file
-                case "${release}" in
-                    ubuntu | debian | armbian)
-                        xui_env_file="/etc/default/x-ui"
-                        ;;
-                    arch | manjaro | parch | alpine)
-                        xui_env_file="/etc/conf.d/x-ui"
-                        ;;
-                    *)
-                        xui_env_file="/etc/sysconfig/x-ui"
-                        ;;
-                esac
+                xui_env_file=$(xui_env_file_path)
 
                 local xui_dsn=""
                 local pg_mode=""
@@ -1487,35 +1477,33 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
-# setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
-# by invoking the freshly installed x-ui CLI. IP Limit is load-bearing on
-# fail2ban (without it the panel disables the limitIp field and zeroes existing
-# limits), so a fresh install should make it work out of the box, just like the
-# Docker image already does. Non-fatal by design: a fail2ban failure must never
-# abort the panel install.
+xui_env_file_path() {
+    case "$release" in
+        ubuntu | debian | armbian) printf '/etc/default/x-ui\n' ;;
+        arch | manjaro | parch | alpine) printf '/etc/conf.d/x-ui\n' ;;
+        *) printf '/etc/sysconfig/x-ui\n' ;;
+    esac
+}
+
+load_xui_env() {
+    local envfile="${1:-}"
+    [[ -n "$envfile" ]] || envfile=$(xui_env_file_path)
+    if [[ -r "$envfile" ]]; then
+        set -a
+        # shellcheck disable=SC1090
+        source "$envfile"
+        set +a
+    fi
+}
+
+# Delegate only to releases that can honor and persist the administrator's choice.
 setup_fail2ban() {
-    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
-        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
+    if [[ ! -x /usr/bin/x-ui ]] || ! grep -Fq 'setup_fail2ban_for_lifecycle()' /usr/bin/x-ui; then
+        echo -e "${yellow}This release does not support the persistent IP Limit setup policy. Skipping automatic setup.${plain}"
         return 0
     fi
-
-    if [[ ! -x /usr/bin/x-ui ]]; then
-        echo -e "${yellow}x-ui CLI not found; skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    # Scripts older than v3.4.0 have no setup-fail2ban and exit 0 from the
-    # usage banner, which would read as success here.
-    if ! grep -q '"setup-fail2ban")' /usr/bin/x-ui; then
-        echo -e "${yellow}This x-ui.sh predates 'x-ui setup-fail2ban'; skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
-    if /usr/bin/x-ui setup-fail2ban; then
-        echo -e "${green}Fail2ban setup complete.${plain}"
-    else
-        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' and open the IP Limit menu. Continuing.${plain}"
+    if ! /usr/bin/x-ui setup-fail2ban "${1:-install}"; then
+        echo -e "${yellow}Fail2ban setup did not finish. Use the IP Limit menu to check its configuration.${plain}"
     fi
     return 0
 }
@@ -1587,25 +1575,7 @@ _xui_service_write_paths_dropin() {
     local db_folder log_folder bin_folder main_folder
     local path line="" whitespace_paths="" seen_paths="" escaped_path
 
-    if [[ -z "$env_file" ]]; then
-        case "${release}" in
-            ubuntu | debian | armbian)
-                env_file="/etc/default/x-ui"
-                ;;
-            arch | manjaro | parch | alpine)
-                env_file="/etc/conf.d/x-ui"
-                ;;
-            *)
-                env_file="/etc/sysconfig/x-ui"
-                ;;
-        esac
-    fi
-    if [[ -r "$env_file" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_file"
-        set +a
-    fi
+    load_xui_env "$env_file"
 
     # XUI_* wins over the script's own default: the unit hands that same env
     # file to the panel through EnvironmentFile=, so these are the folders it
@@ -1784,6 +1754,11 @@ require_repo_files() {
 
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
+    local fail2ban_mode=install
+    if [[ -x "${xui_folder}/x-ui" ]]; then
+        fail2ban_mode=update
+    fi
+    load_xui_env
 
     # Download resources
     if [ $# == 0 ]; then
@@ -1986,6 +1961,7 @@ install_x-ui() {
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
     config_after_install
+    setup_fail2ban "$fail2ban_mode"
 
     # Etckeeper compatibility
     if [ -d "/etc/.git" ]; then
@@ -2023,7 +1999,7 @@ install_x-ui() {
         fi
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
-        rc-service x-ui start
+        rc-service x-ui restart
     else
         # Install systemd service file
         service_installed=false
@@ -2092,16 +2068,12 @@ install_x-ui() {
             chmod 644 ${xui_service}/x-ui.service > /dev/null 2>&1
             systemctl daemon-reload
             systemctl enable x-ui
-            systemctl start x-ui
+            systemctl restart x-ui
         else
             echo -e "${red}Failed to install x-ui.service file${plain}"
             exit 1
         fi
     fi
-
-    # IP Limit relies on fail2ban; install + configure it now so the feature
-    # works out of the box (no-op when XUI_ENABLE_FAIL2BAN=false). Never fatal.
-    setup_fail2ban
 
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""

@@ -54,6 +54,16 @@ func TestFail2banEnforcementStateSeparatesAbsentFromUnrunnable(t *testing.T) {
 }
 
 func TestResetIpLimitsKeepsConfiguredLimitsWhenProbeFails(t *testing.T) {
+	testResetIpLimitsKeepsConfiguredLimits(t, 0)
+}
+
+func TestResetIpLimitsKeepsConfiguredLimitsWhenOptedOut(t *testing.T) {
+	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	testResetIpLimitsKeepsConfiguredLimits(t, 1)
+}
+
+func testResetIpLimitsKeepsConfiguredLimits(t *testing.T, wantHistory int64) {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("fail2ban shell fixtures are Unix-only")
 	}
@@ -103,7 +113,7 @@ func TestResetIpLimitsKeepsConfiguredLimitsWhenProbeFails(t *testing.T) {
 	if err := db.Model(&model.HistoryOfSeeders{}).Where("seeder_name = ?", "ResetIpLimitNoFail2ban").Count(&count).Error; err != nil {
 		t.Fatalf("count seeder history: %v", err)
 	}
-	if count != 0 {
-		t.Fatalf("seeder history rows = %d, want 0", count)
+	if count != wantHistory {
+		t.Fatalf("seeder history rows = %d, want %d", count, wantHistory)
 	}
 }

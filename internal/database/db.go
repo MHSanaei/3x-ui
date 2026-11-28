@@ -1851,6 +1851,11 @@ func resetIpLimitsWithoutFail2ban() error {
 		return nil
 	}
 
+	// An explicit enforcement choice can change independently of client limits.
+	if _, configured := os.LookupEnv("XUI_ENABLE_FAIL2BAN"); configured {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error
+	}
+
 	state, probeErr := fail2banEnforcementState()
 	if state == fail2banEnforcing {
 		return db.Create(&model.HistoryOfSeeders{SeederName: "ResetIpLimitNoFail2ban"}).Error

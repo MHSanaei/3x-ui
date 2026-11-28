@@ -2277,7 +2277,8 @@ iplimit_main() {
             show_menu
             ;;
         1)
-            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
+            echo "IP Limit bans apply host-wide and can interrupt other clients behind a shared relay."
+            confirm "Enable IP Limit and restart the running panel to apply the choice?" "n"
             if [[ $? == 0 ]]; then
                 install_iplimit
             else
@@ -2285,14 +2286,15 @@ iplimit_main() {
             fi
             ;;
         2)
+            local preference
+            if ! preference=$(read_fail2ban_preference) || [[ "$preference" == "false" ]] || ! iplimit_jail_configured; then
+                LOGE "Enable IP Limit before changing its ban duration."
+                iplimit_main
+                return
+            fi
             read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
-                create_iplimit_jails ${NUM}
-                if [[ $release == "alpine" ]]; then
-                    rc-service fail2ban restart
-                else
-                    systemctl restart fail2ban
-                fi
+                create_iplimit_jails "$NUM" && fail2ban-client reload 3x-ipl
             else
                 echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
@@ -2363,15 +2365,80 @@ iplimit_main() {
     esac
 }
 
-setup_fail2ban_iplimit() {
-    # Honor the same toggle the panel uses (isFail2BanEnabled): enabled when the
-    # var is unset or exactly "true"; any other explicit value means the operator
-    # opted out, so do nothing rather than install a fail2ban the panel ignores.
-    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
-        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban setup.${plain}\n"
+read_fail2ban_preference() {
+    (
+        local envfile
+        envfile=$(xui_env_file_path)
+        if [[ -e "$envfile" ]]; then
+            # shellcheck disable=SC1090
+            source "$envfile" || return 1
+        fi
+        if [[ ${XUI_ENABLE_FAIL2BAN+x} ]]; then
+            if [[ "$XUI_ENABLE_FAIL2BAN" == "true" ]]; then
+                printf 'true\n'
+            else
+                printf 'false\n'
+            fi
+        fi
+    )
+}
+
+persist_fail2ban_preference() {
+    local choice="$1" envfile temp
+    envfile=$(xui_env_file_path)
+    if [[ -L "$envfile" ]]; then
+        envfile=$(readlink -f -- "$envfile") || return 1
+    fi
+    mkdir -p -- "${envfile%/*}" || return 1
+    temp=$(mktemp "${envfile}.XXXXXX") || return 1
+    if [[ -e "$envfile" ]] && ! {
+        cp -p -- "$envfile" "$temp" &&
+            awk '!/^[[:space:]]*(export[[:space:]]+)?XUI_ENABLE_FAIL2BAN=/' "$envfile" > "$temp"
+    }; then
+        rm -f -- "$temp"
+        return 1
+    fi
+    if ! printf 'XUI_ENABLE_FAIL2BAN=%s\n' "$choice" >> "$temp" || ! mv -f -- "$temp" "$envfile"; then
+        rm -f -- "$temp"
+        return 1
+    fi
+}
+
+iplimit_jail_configured() {
+    [[ -f /etc/fail2ban/jail.d/3x-ipl.conf ]] ||
+        grep -Eq '^[[:space:]]*\[3x-ipl\]' /etc/fail2ban/jail.conf /etc/fail2ban/jail.local 2>/dev/null ||
+        fail2ban-client status 3x-ipl > /dev/null 2>&1
+}
+
+setup_fail2ban_for_lifecycle() {
+    local mode="$1" choice
+    choice=$(read_fail2ban_preference) || return 1
+    if [[ -z "$choice" ]] && iplimit_jail_configured; then
+        # Preserve legacy jails, including later overrides to their enabled state.
         return 0
     fi
+    if [[ -z "$choice" ]]; then
+        choice=false
+        if [[ "$mode" == "install" && "${NONINTERACTIVE:-1}" == "0" ]]; then
+            echo "IP Limit bans apply host-wide and can interrupt other clients behind a shared relay."
+            if confirm "Install Fail2ban and enable IP Limit?" "n"; then
+                choice=true
+            fi
+        fi
+    fi
+    persist_fail2ban_preference "$choice" || return 1
+    if [[ "$choice" == "false" ]]; then
+        echo "IP Limit enforcement is opted out."
+        return 0
+    fi
+    if command -v fail2ban-client > /dev/null 2>&1 && iplimit_jail_configured; then
+        fail2ban-client status 3x-ipl > /dev/null 2>&1 || start_iplimit_jail
+        return
+    fi
+    XUI_ENABLE_FAIL2BAN=true setup_fail2ban_iplimit
+}
 
+setup_fail2ban_iplimit() {
     if ! command -v fail2ban-client &> /dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
 
@@ -2389,6 +2456,9 @@ setup_fail2ban_iplimit() {
                 if [[ "${os_version}" -ge 2400 ]]; then
                     apt-get install python3-pip -y
                     python3 -m pip install pyasynchat --break-system-packages
+                fi
+                if [[ "$os_version" -ge 2200 ]]; then
+                    apt-get install -y python3-systemd
                 fi
                 apt-get install fail2ban nftables -y
                 ;;
@@ -2453,107 +2523,142 @@ setup_fail2ban_iplimit() {
     echo -e "${green}Configuring IP Limit...${plain}\n"
 
     # make sure there's no conflict for jail files
-    iplimit_remove_conflicts
+    iplimit_remove_conflicts || return 1
 
     # Check if log file exists
     if ! test -f "${iplimit_banned_log_path}"; then
-        touch ${iplimit_banned_log_path}
+        touch "$iplimit_banned_log_path" || return 1
     fi
 
     # Check if service log file exists so fail2ban won't return error
     if ! test -f "${iplimit_log_path}"; then
-        touch ${iplimit_log_path}
+        touch "$iplimit_log_path" || return 1
     fi
 
     # Create the iplimit jail files
     # we didn't pass the bantime here to use the default value
-    create_iplimit_jails
+    create_iplimit_jails || return 1
 
-    # Launching fail2ban
-    if [[ $release == "alpine" ]]; then
-        if [[ $(rc-service fail2ban status | grep -F 'status: started' -c) == 0 ]]; then
-            rc-service fail2ban start
-        else
-            rc-service fail2ban restart
-        fi
-        rc-update add fail2ban
-    else
-        if ! systemctl is-active --quiet fail2ban; then
-            systemctl start fail2ban
-        else
-            systemctl restart fail2ban
-        fi
-        systemctl enable fail2ban
-    fi
+    start_iplimit_jail || return 1
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     return 0
 }
 
-# install_iplimit is the interactive (menu) entry point: it runs the shared
-# setup and then returns to the menu. The non-interactive installer path uses
-# setup_fail2ban_iplimit directly via `x-ui setup-fail2ban`.
+configure_default_sshd_backend() {
+    local config_dir="$1" auth_log="$2" jail_file
+    local override="$config_dir/jail.d/3x-ipl-backend.conf"
+    [[ ( "$release" == "debian" && ${os_version:-0} -ge 12 ) || ( "$release" == "ubuntu" && ${os_version:-0} -ge 2200 ) ]] || return 0
+    [[ ! -e "$auth_log" && ! -e "$override" && ! -L "$override" && ! -e "$config_dir/paths-overrides.local" ]] || return 0
+
+    # Repair the distro's stock SSH jail for journal-only hosts.
+    awk '
+        /^[[:space:]]*\[/ { section = $0 }
+        section ~ /\[DEFAULT\]/ && /^[[:space:]]*backend[[:space:]]*=[[:space:]]*auto[[:space:]]*$/ { stock_backend = 1 }
+        section ~ /\[sshd\]/ && /^[[:space:]]*backend[[:space:]]*=[[:space:]]*%[(]sshd_backend[)]s[[:space:]]*$/ { stock_ssh = 1 }
+        section ~ /\[sshd\]/ && /^[[:space:]]*logpath[[:space:]]*=[[:space:]]*%[(]sshd_log[)]s[[:space:]]*$/ { stock_log = 1 }
+        END { exit !(stock_backend && stock_ssh && stock_log) }
+    ' "$config_dir/jail.conf" 2>/dev/null || return 0
+
+    for jail_file in "$config_dir/jail.local" "$config_dir/jail.d/"*.conf "$config_dir/jail.d/"*.local; do
+        [[ -f "$jail_file" ]] || continue
+        if awk '
+            /^[[:space:]]*\[/ { section = $0 }
+            section ~ /\[(DEFAULT|sshd)\]/ && /^[[:space:]]*(backend|logpath)[[:space:]]*=/ { custom = 1 }
+            END { exit !custom }
+        ' "$jail_file"; then
+            return 0
+        fi
+    done
+
+    if ! /usr/bin/python3 -c 'from systemd import journal' > /dev/null 2>&1; then
+        apt-get install -y python3-systemd || return 1
+    fi
+    printf '[sshd]\nbackend = systemd\n' > "$override"
+}
+
+start_iplimit_jail() {
+    if fail2ban-client ping > /dev/null 2>&1; then
+        fail2ban-client reload --if-exists 3x-ipl || return 1
+    else
+        configure_default_sshd_backend /etc/fail2ban /var/log/auth.log || return 1
+        if [[ $release == "alpine" ]]; then
+            rc-service fail2ban start && rc-update add fail2ban || return 1
+        else
+            systemctl start fail2ban && systemctl enable fail2ban || return 1
+        fi
+    fi
+    fail2ban-client status 3x-ipl > /dev/null 2>&1
+}
+
+apply_iplimit_preference() {
+    local choice="$1"
+    persist_fail2ban_preference "$choice" || {
+        LOGE "Could not save the IP Limit preference."
+        return 1
+    }
+    export XUI_ENABLE_FAIL2BAN="$choice"
+}
+
 install_iplimit() {
-    setup_fail2ban_iplimit
+    if apply_iplimit_preference true && setup_fail2ban_iplimit; then
+        if check_status; then restart 0; fi
+    else
+        LOGE "IP Limit setup did not finish."
+    fi
     before_show_menu
+}
+
+iplimit_can_uninstall() {
+    local status dump jails
+    status=$(LC_ALL=C fail2ban-client status 2>/dev/null) || return 1
+    jails=$(sed -nE 's/^.*Jail list:[[:space:]]*//p' <<< "$status")
+    [[ "$jails" == "3x-ipl" ]] || return 1
+    dump=$(LC_ALL=C fail2ban-client -d 2>/dev/null) || return 1
+    jails=$(grep -E "^\[['\"]add['\"]," <<< "$dump")
+    # Require a known dump containing only the managed jail before removing the package.
+    [[ "$jails" == "['add', '3x-ipl', "* && "$jails" != *$'\n'* ]]
+}
+
+remove_iplimit_jail() {
+    if fail2ban-client status 3x-ipl > /dev/null 2>&1; then
+        fail2ban-client stop 3x-ipl || return 1
+    fi
+    iplimit_remove_conflicts || return 1
+    rm -f -- /etc/fail2ban/filter.d/3x-ipl.conf /etc/fail2ban/action.d/3x-ipl.conf /etc/fail2ban/jail.d/3x-ipl.conf
 }
 
 remove_iplimit() {
     echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
     echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -rp "Choose an option: " num
+    local num uninstall_package=false
+    read -rp "Choose an option (a running panel will restart to apply the change): " num
     case "$num" in
-        1)
-            rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-            rm -f /etc/fail2ban/action.d/3x-ipl.conf
-            rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            if [[ $release == "alpine" ]]; then
-                rc-service fail2ban restart
-            else
-                systemctl restart fail2ban
+        1 | 2)
+            if [[ "$num" == "2" ]] && iplimit_can_uninstall; then
+                uninstall_package=true
             fi
-            echo -e "${green}IP Limit removed successfully!${plain}\n"
-            before_show_menu
-            ;;
-        2)
-            rm -rf /etc/fail2ban
-            if [[ $release == "alpine" ]]; then
-                rc-service fail2ban stop
-            else
-                systemctl stop fail2ban
+            if ! apply_iplimit_preference false || ! remove_iplimit_jail; then
+                LOGE "IP Limit removal did not finish."
+                return 1
             fi
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    apt-get remove -y fail2ban
-                    apt-get purge -y fail2ban -y
-                    apt-get autoremove -y
-                    ;;
-                fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-                    dnf remove fail2ban -y
-                    dnf autoremove -y
-                    ;;
-                centos)
-                    if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                        yum remove fail2ban -y
-                        yum autoremove -y
-                    else
-                        dnf remove fail2ban -y
-                        dnf autoremove -y
-                    fi
-                    ;;
-                arch | manjaro | parch)
-                    pacman -Rns --noconfirm fail2ban
-                    ;;
-                alpine)
-                    apk del fail2ban
-                    ;;
-                *)
-                    echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
-                    exit 1
-                    ;;
-            esac
-            echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
+            if [[ "$uninstall_package" == "true" ]]; then
+                case "${release}" in
+                    ubuntu | debian | armbian) apt-get remove -y fail2ban ;;
+                    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol) dnf remove -y fail2ban ;;
+                    centos)
+                        if [[ "${VERSION_ID}" =~ ^7 ]]; then yum remove -y fail2ban; else dnf remove -y fail2ban; fi
+                        ;;
+                    arch | manjaro | parch) pacman -R --noconfirm fail2ban ;;
+                    alpine) apk del fail2ban ;;
+                    *) false ;;
+                esac || LOGE "Could not uninstall Fail2ban."
+            elif [[ "$num" == "2" ]]; then
+                echo "Keeping Fail2ban because other jails are present or its configuration could not be verified."
+            fi
+            if check_status; then restart 0; fi
+            echo -e "${green}IP Limit removed. Future updates will respect this choice.${plain}\n"
             before_show_menu
             ;;
         0)
@@ -2608,20 +2713,7 @@ create_iplimit_jails() {
     # Use default bantime if not passed => 30 minutes
     local bantime="${1:-30}"
 
-    # Uncomment 'allowipv6 = auto' in fail2ban.conf
-    sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
-
-    # Debian 12+ / Ubuntu 22.04+ log sshd to the journal only; a jail.d override
-    # survives package upgrades. Only the stock 'backend = auto' is overridden.
-    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]] &&
-        sed -n '0,/action =/p' /etc/fail2ban/jail.conf | grep -q '^backend = auto'; then
-        cat << EOF > /etc/fail2ban/jail.d/3x-ipl-backend.conf
-[DEFAULT]
-backend = systemd
-EOF
-    fi
-
-    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf || return 1
 [3x-ipl]
 enabled=true
 backend=auto
@@ -2633,7 +2725,7 @@ findtime=32
 bantime=${bantime}m
 EOF
 
-    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf || return 1
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
@@ -2652,7 +2744,7 @@ EOF
     local exempt_ports="${ssh_ports}"
     [[ -n "${panel_port}" ]] && exempt_ports="${exempt_ports},${panel_port}"
 
-    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf || return 1
 [INCLUDES]
 before = iptables-allports.conf
 
@@ -2690,11 +2782,20 @@ iplimit_remove_conflicts() {
         /etc/fail2ban/jail.local
     )
 
+    local file temp
     for file in "${jail_files[@]}"; do
-        # Check for [3x-ipl] config in jail file then remove it
-        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
-            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
-            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
+        [[ -f "$file" ]] && grep -Eq '^[[:space:]]*\[3x-ipl\]' "$file" || continue
+        if [[ -L "$file" ]]; then
+            file=$(readlink -f -- "$file") || return 1
+        fi
+        temp=$(mktemp "${file}.XXXXXX") || return 1
+        if ! {
+            cp -p -- "$file" "$temp" &&
+                awk '/^[[:space:]]*\[/ { managed = ($0 ~ /^[[:space:]]*\[3x-ipl\]/) } !managed' "$file" > "$temp" &&
+                mv -f -- "$temp" "$file"
+        }; then
+            rm -f -- "$temp"
+            return 1
         fi
     done
 }
@@ -3761,7 +3862,7 @@ if [[ $# -gt 0 ]]; then
             check_install 0 && show_banlog 0
             ;;
         "setup-fail2ban")
-            setup_fail2ban_iplimit
+            setup_fail2ban_for_lifecycle "${2:-update}"
             ;;
         "update")
             check_install 0 && update 0

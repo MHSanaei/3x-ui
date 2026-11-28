@@ -253,36 +253,14 @@ config_after_update() {
     fi
 }
 
-# setup_fail2ban auto-installs and configures fail2ban for the IP Limit feature
-# by invoking the freshly downloaded x-ui CLI. IP Limit is load-bearing on
-# fail2ban (without it the panel disables the limitIp field and zeroes existing
-# limits), so updating an older install should make it work without a manual
-# trip through the IP Limit menu. Non-fatal: a fail2ban failure must never abort
-# the update. XUI_ENABLE_FAIL2BAN is honored (load_xui_env exports it from the
-# persisted env file, so a deliberate opt-out survives updates).
+# Delegate only to releases that can honor and persist the administrator's choice.
 setup_fail2ban() {
-    if [[ -n "${XUI_ENABLE_FAIL2BAN+x}" && "${XUI_ENABLE_FAIL2BAN}" != "true" ]]; then
-        echo -e "${yellow}XUI_ENABLE_FAIL2BAN=${XUI_ENABLE_FAIL2BAN}, skipping Fail2ban auto-setup.${plain}"
+    if [[ ! -x /usr/bin/x-ui ]] || ! grep -Fq 'setup_fail2ban_for_lifecycle()' /usr/bin/x-ui; then
+        echo -e "${yellow}This release does not support the persistent IP Limit setup policy. Skipping automatic setup.${plain}"
         return 0
     fi
-
-    if [[ ! -x /usr/bin/x-ui ]]; then
-        echo -e "${yellow}x-ui CLI not found; skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    # Scripts older than v3.4.0 have no setup-fail2ban and exit 0 from the
-    # usage banner, which would read as success here.
-    if ! grep -q '"setup-fail2ban")' /usr/bin/x-ui; then
-        echo -e "${yellow}This x-ui.sh predates 'x-ui setup-fail2ban'; skipping Fail2ban auto-setup.${plain}"
-        return 0
-    fi
-
-    echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
-    if /usr/bin/x-ui setup-fail2ban; then
-        echo -e "${green}Fail2ban setup complete.${plain}"
-    else
-        echo -e "${yellow}Fail2ban setup did not finish; IP Limit stays disabled until you run 'x-ui' and open the IP Limit menu. Continuing.${plain}"
+    if ! /usr/bin/x-ui setup-fail2ban update; then
+        echo -e "${yellow}Fail2ban setup did not finish. Use the IP Limit menu to check its configuration.${plain}"
     fi
     return 0
 }
@@ -706,6 +684,7 @@ update_x-ui() {
     # config_after_update's CLI calls never run them on the same database at once (#6728).
     echo -e "${green}Migrating database...${plain}"
     "${xui_folder}/x-ui" migrate
+    setup_fail2ban
 
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Installing startup unit x-ui.rc...${plain}"
@@ -783,11 +762,6 @@ update_x-ui() {
     fi
 
     config_after_update
-
-    # IP Limit relies on fail2ban; install + configure it now so the feature
-    # works out of the box on update too (no-op when XUI_ENABLE_FAIL2BAN=false).
-    # Never fatal.
-    setup_fail2ban
 
     echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
     echo -e ""

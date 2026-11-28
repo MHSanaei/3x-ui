@@ -129,6 +129,7 @@ chmod() { :; }
 [() { if [[ "${2:-}" == /etc/* ]]; then return 1; fi; builtin [ "$@"; }
 _install_xui_service_unit() { printf 'unit\n' >> "$TEST_SETTINGS_DIR/lifecycle"; }
 setup_fail2ban() { printf 'fail2ban\n' >> "$TEST_SETTINGS_DIR/lifecycle"; }
+fail2ban_mode=install
 `
 	driver += scriptFunction(t, script, "gen_random_string") + scriptFunction(t, script, function)
 	if script == "install.sh" {
@@ -142,7 +143,11 @@ setup_fail2ban() { printf 'fail2ban\n' >> "$TEST_SETTINGS_DIR/lifecycle"; }
 			parent = "install_x-ui"
 		}
 		body := scriptFunction(t, script, parent)
-		start := strings.Index(body, "\n    "+function)
+		startCall := function
+		if script == "update.sh" {
+			startCall = "setup_fail2ban"
+		}
+		start := strings.Index(body, "\n    "+startCall)
 		if start < 0 {
 			t.Fatalf("%s: missing configuration call in %s", script, parent)
 		}
@@ -269,10 +274,9 @@ func TestScriptConfigReadFailureKeepsServiceSetup(t *testing.T) {
 			if err != nil || !strings.Contains(out, "Unable to read webBasePath") {
 				t.Errorf("service setup should continue after the settings warning: %v\n%s", err, out)
 			}
-			wantLifecycle, wantServices := "fail2ban\n", ""
+			wantLifecycle, wantServices := "fail2ban\nunit\n", "daemon-reload\nenable x-ui\nstart x-ui\n"
 			if script == "install.sh" {
-				wantLifecycle = "unit\nfail2ban\n"
-				wantServices = "daemon-reload\nenable x-ui\nstart x-ui\n"
+				wantServices = "daemon-reload\nenable x-ui\nrestart x-ui\n"
 			}
 			for name, want := range map[string]string{
 				"path": "/a/", "username": "admin", "password": "admin", "writes": "",
