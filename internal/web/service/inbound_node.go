@@ -457,9 +457,8 @@ func (s *InboundService) GetNodeInboundTrafficTotals() (map[string][2]int64, err
 	return out, nil
 }
 
-func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
-	return c.Settings != adoptedSettings ||
-		c.Enable != snapIb.Enable ||
+func adoptedWireConfigChanged(c, snapIb *model.Inbound) bool {
+	return c.Enable != snapIb.Enable ||
 		c.Remark != snapIb.Remark ||
 		c.SubSortIndex != normalizeSubSortIndex(snapIb.SubSortIndex) ||
 		c.Listen != snapIb.Listen ||
@@ -472,6 +471,31 @@ func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
 		c.TrafficReset != snapIb.TrafficReset ||
 		c.TrafficResetDay != normalizeTrafficResetDay(snapIb.TrafficResetDay) ||
 		(snapIb.PreserveClientTraffic != nil && c.PreservesClientTraffic() != snapIb.PreservesClientTraffic())
+}
+
+func nodeInboundConfigUpdates(c, snapIb *model.Inbound) map[string]any {
+	if !adoptedWireConfigChanged(c, snapIb) && c.LastTrafficResetTime == snapIb.LastTrafficResetTime {
+		return nil
+	}
+	updates := map[string]any{
+		"enable":                  snapIb.Enable,
+		"remark":                  snapIb.Remark,
+		"sub_sort_index":          normalizeSubSortIndex(snapIb.SubSortIndex),
+		"listen":                  snapIb.Listen,
+		"port":                    snapIb.Port,
+		"protocol":                snapIb.Protocol,
+		"total":                   snapIb.Total,
+		"expiry_time":             snapIb.ExpiryTime,
+		"stream_settings":         snapIb.StreamSettings,
+		"sniffing":                snapIb.Sniffing,
+		"traffic_reset":           snapIb.TrafficReset,
+		"traffic_reset_day":       normalizeTrafficResetDay(snapIb.TrafficResetDay),
+		"last_traffic_reset_time": snapIb.LastTrafficResetTime,
+	}
+	if snapIb.PreserveClientTraffic != nil && c.PreservesClientTraffic() != snapIb.PreservesClientTraffic() {
+		updates["preserve_client_traffic"] = snapIb.PreservesClientTraffic()
+	}
+	return updates
 }
 
 // adoptedWireInbound is the central inbound as it reads after adopting the
@@ -731,16 +755,16 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 
 	structuralChange := false
+	adoptedSettingsChanged := false
 	lifecycleLifted := false
 	var sweptTags []string
 
 	var adoptedInbounds []*model.Inbound
 	type pendingAdopt struct {
-		central      *model.Inbound
-		snapIb       *model.Inbound
 		wireSettings string
+		config       map[string]any
 	}
-	var pendingAdopts []pendingAdopt
+	pendingAdopts := make(map[int]pendingAdopt)
 	degradedInbounds := map[int]string{}
 
 	newInboundIDs := make(map[int]struct{})
@@ -891,6 +915,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 			newInboundIDs[newIb.Id] = struct{}{}
+			pendingAdopts[newIb.Id] = pendingAdopt{wireSettings: snapIb.Settings}
 			mergedCentral[newIb.Id] = struct{}{}
 			structuralChange = true
 			continue
@@ -912,30 +937,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		if !dirty && snapshotDropsEveryHubClient(tx, c.Id, adoptedSettings) {
 			degradedInbounds[c.Id] = c.Tag
 		} else if !dirty {
-			// Defer lifecycle lift until after client_traffics absorbs this tick's
-			// deltas so quota stale-disable matches SQL (#6228).
-			pendingAdopts = append(pendingAdopts, pendingAdopt{
-				central: c, snapIb: snapIb, wireSettings: adoptedSettings,
-			})
-			updates["enable"] = snapIb.Enable
-			updates["remark"] = snapIb.Remark
-			updates["sub_sort_index"] = normalizeSubSortIndex(snapIb.SubSortIndex)
-			updates["listen"] = snapIb.Listen
-			updates["port"] = snapIb.Port
-			updates["protocol"] = snapIb.Protocol
-			updates["total"] = snapIb.Total
-			updates["expiry_time"] = snapIb.ExpiryTime
-			updates["stream_settings"] = snapIb.StreamSettings
-			updates["sniffing"] = snapIb.Sniffing
-			updates["traffic_reset"] = snapIb.TrafficReset
-			updates["traffic_reset_day"] = normalizeTrafficResetDay(snapIb.TrafficResetDay)
-			if snapIb.PreserveClientTraffic != nil && c.PreservesClientTraffic() != snapIb.PreservesClientTraffic() {
-				updates["preserve_client_traffic"] = snapIb.PreservesClientTraffic()
-				structuralChange = true
-			}
-			updates["last_traffic_reset_time"] = snapIb.LastTrafficResetTime
+			pendingAdopts[c.Id] = pendingAdopt{wireSettings: adoptedSettings, config: nodeInboundConfigUpdates(c, snapIb)}
 		}
-		if !inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down) {
+		if (snapIb.Up != c.Up || snapIb.Down != c.Down) && (!inGrace || (snapIb.Up+snapIb.Down) <= (c.Up+c.Down)) {
 			updates["up"] = snapIb.Up
 			updates["down"] = snapIb.Down
 		}
@@ -944,15 +948,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		// once to backfill an existing row, then stays equal (#4983).
 		if og := originGuidFor(snapIb); c.OriginNodeGuid != og {
 			updates["origin_node_guid"] = og
-		}
-
-		if !dirty && (c.Remark != snapIb.Remark ||
-			c.Listen != snapIb.Listen ||
-			c.Port != snapIb.Port ||
-			c.Total != snapIb.Total ||
-			c.ExpiryTime != snapIb.ExpiryTime ||
-			c.Enable != snapIb.Enable) {
-			structuralChange = true
 		}
 
 		if len(updates) > 0 {
@@ -1320,30 +1315,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}
 	var perInboundOld []oldSet
 	syncFailedInbounds := map[int]struct{}{}
-	for _, p := range pendingAdopts {
-		lifted, liftChanged := liftClientLifecycleInSettings(p.wireSettings, statByEmail)
-		adoptedSettings := p.wireSettings
-		if liftChanged {
-			adoptedSettings = lifted
-			lifecycleLifted = true
-		}
-		if p.central.Settings != adoptedSettings {
-			if err := tx.Model(model.Inbound{}).
-				Where("id = ?", p.central.Id).
-				Update("settings", adoptedSettings).Error; err != nil {
-				return false, err
-			}
-			structuralChange = true
-			// Adopted wire settings feed subscription bodies; drop snapshots
-			// so the adopted rows are served this tick, not after the TTL.
-			InvalidateSubData()
-		}
-		// The fingerprint stamps the un-lifted wire blob on purpose: a lift must leave reconcile
-		// a mismatch to re-push against. A refused claim must not: the push would delete it on the node.
-		if liftChanged || adoptedWireChanged(p.central, p.snapIb, p.wireSettings) {
-			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.wireSettings))
-		}
-	}
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -1372,6 +1343,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		clients, gcErr := s.GetClients(snapIb)
 		if gcErr != nil {
 			logger.Warningf("setRemoteTraffic: parse clients for tag %q failed: %v", snapIb.Tag, gcErr)
+			syncFailedInbounds[c.Id] = struct{}{}
 			continue
 		}
 		csByEmail := make(map[string]xray.ClientTraffic, len(snapIb.ClientStats))
@@ -1426,9 +1398,52 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				filtered[i].Comment = cmt
 			}
 		}
-		if err := s.clientService.SyncInbound(tx, c.Id, filtered); err != nil {
-			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, err)
+		p := pendingAdopts[c.Id]
+		_, isNew := newInboundIDs[c.Id]
+		adoptedSettings := p.wireSettings
+		liftChanged := false
+		if !isNew {
+			// Use the traffic deltas just applied to this transaction (#6228).
+			if lifted, changed := liftClientLifecycleInSettings(p.wireSettings, statByEmail); changed {
+				adoptedSettings, liftChanged = lifted, true
+			}
+		}
+		updates := p.config
+		settingsChanged := c.Settings != adoptedSettings
+		if settingsChanged {
+			if updates == nil {
+				updates = make(map[string]any, 1)
+			}
+			updates["settings"] = adoptedSettings
+		}
+		rejected, err := withClientSyncSavepoint(tx, func() error {
+			if len(updates) > 0 {
+				if err := tx.Model(model.Inbound{}).Where("id = ?", c.Id).Updates(updates).Error; err != nil {
+					return err
+				}
+			}
+			return s.clientService.SyncInbound(tx, c.Id, filtered)
+		})
+		if err != nil {
+			return false, err
+		}
+		if rejected != nil {
+			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, rejected)
 			syncFailedInbounds[c.Id] = struct{}{}
+			// The row holds what the node reported: pushing it back gets refused there and keeps the node dirty.
+			if isNew {
+				adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, p.wireSettings))
+			}
+			continue
+		}
+		if len(updates) > 0 {
+			structuralChange = true
+		}
+		adoptedSettingsChanged = adoptedSettingsChanged || settingsChanged
+		lifecycleLifted = lifecycleLifted || liftChanged
+		// Stamp the un-lifted wire blob so reconciliation can push lifecycle lifts.
+		if !isNew && (liftChanged || c.Settings != p.wireSettings || adoptedWireConfigChanged(c, snapIb)) {
+			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, p.wireSettings))
 		}
 	}
 
@@ -1485,6 +1500,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	committed = true
+	if adoptedSettingsChanged {
+		InvalidateSubData()
+	}
 
 	if len(degradedInbounds) > 0 {
 		if mgr := runtime.GetManager(); mgr != nil {
