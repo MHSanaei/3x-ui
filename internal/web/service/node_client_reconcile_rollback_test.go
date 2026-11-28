@@ -133,18 +133,18 @@ func testNodeClientReconcileRollback(t *testing.T) {
 	}
 }
 
-func TestNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
-	testNodeRejectedFirstAdoptionLeavesNoInbound(t)
+func TestNodeRefusedFirstAdoptionKeepsNodeSettings(t *testing.T) {
+	testNodeRefusedFirstAdoptionKeepsNodeSettings(t)
 }
 
-func TestNodeRejectedFirstAdoptionLeavesNoInboundPostgres(t *testing.T) {
+func TestNodeRefusedFirstAdoptionKeepsNodeSettingsPostgres(t *testing.T) {
 	if os.Getenv("XUI_DB_TYPE") != "postgres" || os.Getenv("XUI_DB_DSN") == "" {
 		t.Skip("requires a disposable PostgreSQL database")
 	}
-	testNodeRejectedFirstAdoptionLeavesNoInbound(t)
+	testNodeRefusedFirstAdoptionKeepsNodeSettings(t)
 }
 
-func testNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
+func testNodeRefusedFirstAdoptionKeepsNodeSettings(t *testing.T) {
 	t.Helper()
 	db := initTrafficTestDB(t)
 	node := &model.Node{Name: "first-adoption-7219", Address: "127.0.0.1", Port: 2096, ApiToken: "test", Enable: true}
@@ -186,13 +186,24 @@ func testNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
 	const tag = "first-vless"
 	collision := shared
 	collision.ID = otherTuic.ID
-	merge(11, nodeInbound(tag, 45112, model.VLESS, collision, attempted))
+	refused := nodeInbound(tag, 45112, model.VLESS, collision, attempted)
+	sharedBefore := lookupClientRecord(t, shared.Email)
+	merge(11, refused)
 
-	if rows := storedFor(tag); len(rows) != 0 {
-		t.Errorf("rejected first adoption stored inbound %q with settings %q, want no row", tag, rows[0].Settings)
+	// A reconcile pushes the stored blob, so anything but the node's own would cost it clients.
+	rows := storedFor(tag)
+	if len(rows) != 1 || rows[0].Settings != refused.Settings {
+		t.Fatalf("refused first adoption stored %d rows for %q, want one holding the node's settings", len(rows), tag)
 	}
 	if got, _ := countClientRows(t, db, attempted.Email); got != 0 {
-		t.Errorf("rejected first adoption persisted %d client rows, want 0", got)
+		t.Errorf("refused first adoption persisted %d client rows, want 0", got)
+	}
+	var links int64
+	if err := db.Model(&model.ClientInbound{}).Where("inbound_id = ?", rows[0].Id).Count(&links).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got := lookupClientRecord(t, shared.Email); links != 0 || got.UUID != sharedBefore.UUID {
+		t.Errorf("refused first adoption left %d links and shared UUID %q, want 0 and %q", links, got.UUID, sharedBefore.UUID)
 	}
 	var sibling model.Inbound
 	if err := db.Where("node_id = ? AND tag = ?", node.Id, "first-healthy").Take(&sibling).Error; err != nil {
@@ -208,7 +219,7 @@ func testNodeRejectedFirstAdoptionLeavesNoInbound(t *testing.T) {
 
 	corrected := nodeInbound(tag, 45112, model.VLESS, shared, attempted)
 	merge(11, corrected)
-	rows := storedFor(tag)
+	rows = storedFor(tag)
 	if len(rows) != 1 || rows[0].Settings != corrected.Settings || linkCount(t, db, attempted.Email) != 1 {
 		t.Fatalf("corrected snapshot stored %d rows for %q, want one adopted inbound with its client linked", len(rows), tag)
 	}

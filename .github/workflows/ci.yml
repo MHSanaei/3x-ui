@@ -146,7 +146,7 @@ jobs:
       - name: PostgreSQL node client reconciliation rollback
         run: |
           set -o pipefail
-          go test ./internal/web/service -run '^TestNode(ClientReconcileRollback|RejectedFirstAdoptionLeavesNoInbound)Postgres$' -count=1 -v | tee /tmp/postgres-node-client-rollback.log
+          go test ./internal/web/service -run '^TestNode(ClientReconcileRollback|RefusedFirstAdoptionKeepsNodeSettings)Postgres$' -count=1 -v | tee /tmp/postgres-node-client-rollback.log
           passed=$(grep -c -- '^--- PASS: TestNode' /tmp/postgres-node-client-rollback.log || true)
           if [ "$passed" -ne 2 ]; then
             echo "expected both PostgreSQL node client reconciliation rollback tests to pass, got $passed" >&2

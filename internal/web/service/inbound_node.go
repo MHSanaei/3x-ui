@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -554,34 +553,10 @@ func snapshotAttachedEmails(settings string) (map[string]struct{}, bool) {
 	return emails, true
 }
 
-// refusedAdoptionError names the node inbounds whose first client sync was rejected.
-type refusedAdoptionError struct{ tags []string }
-
-func (e *refusedAdoptionError) Error() string {
-	return fmt.Sprintf("first adoption refused for node inbounds %q", e.tags)
-}
-
-// A refused first adoption rolls the whole merge back and repeats it with that inbound
-// left unadopted, so its reserved row and the rows keyed to it never commit.
 func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil
 	}
-	unadoptable := make(map[string]struct{})
-	for range len(snap.Inbounds) + 1 {
-		changed, err := s.mergeRemoteTraffic(nodeID, snap, dirty, justPushed, unadoptable)
-		var refused *refusedAdoptionError
-		if !errors.As(err, &refused) {
-			return changed, err
-		}
-		for _, tag := range refused.tags {
-			unadoptable[tag] = struct{}{}
-		}
-	}
-	return false, fmt.Errorf("setRemoteTraffic: node %d merge kept refusing adoptions", nodeID)
-}
-
-func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool, unadoptable map[string]struct{}) (bool, error) {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
 
@@ -772,7 +747,6 @@ func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSna
 	// The raw blob stays for the usage-only lookup: those entries are refused from the stored
 	// settings, yet the node's usage under them still counts.
 	rawSettings := make(map[*model.Inbound]string, len(snap.Inbounds))
-	reportedInbounds := slices.Clone(snap.Inbounds)
 	for _, snapIb := range snap.Inbounds {
 		if snapIb != nil {
 			rawSettings[snapIb] = snapIb.Settings
@@ -859,9 +833,6 @@ func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSna
 		}
 		if !ok {
 			if dirty {
-				continue
-			}
-			if _, refused := unadoptable[snapIb.Tag]; refused {
 				continue
 			}
 			// Try snap.Tag first; on collision fall back to the n<id>-
@@ -1344,7 +1315,6 @@ func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSna
 	}
 	var perInboundOld []oldSet
 	syncFailedInbounds := map[int]struct{}{}
-	var refusedAdoptions []string
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -1460,9 +1430,6 @@ func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSna
 		if rejected != nil {
 			logger.Warningf("setRemoteTraffic: sync clients for tag %q failed: %v", snapIb.Tag, rejected)
 			syncFailedInbounds[c.Id] = struct{}{}
-			if isNew {
-				refusedAdoptions = append(refusedAdoptions, snapIb.Tag)
-			}
 			continue
 		}
 		if len(updates) > 0 {
@@ -1474,14 +1441,6 @@ func (s *InboundService) mergeRemoteTraffic(nodeID int, snap *runtime.TrafficSna
 		if !isNew && (liftChanged || c.Settings != p.wireSettings || adoptedWireConfigChanged(c, snapIb)) {
 			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(c, snapIb, p.wireSettings))
 		}
-	}
-
-	if len(refusedAdoptions) > 0 {
-		copy(snap.Inbounds, reportedInbounds)
-		for snapIb, raw := range rawSettings {
-			snapIb.Settings = raw
-		}
-		return false, &refusedAdoptionError{tags: refusedAdoptions}
 	}
 
 	for _, old := range perInboundOld {
