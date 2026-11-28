@@ -19,8 +19,9 @@ icon: ShieldCheck
 ## Fail2ban 与 IP 限制
 
 为每个客户端设置一个 **IP 限制**（参见[客户端](/docs/config/clients)），以限制同时使用的源
-IP 数量。限制的执行由 **Fail2ban** 负责，3x-ui 会为你安装并配置好它（脚本安装时默认启用，
-Docker 安装时通过 `XUI_ENABLE_FAIL2BAN=true` 启用）。
+IP 数量。由 **Fail2ban** 执行限制，3x-ui 会在你同意后安装并配置它。首次通过脚本安装时，
+选择 **Yes** 以启用限制。对于无人值守和 Docker 安装，请设置 `XUI_ENABLE_FAIL2BAN=true`。
+脚本会在更新和重新安装时保留你的选择。源 IP 跟踪独立运行。
 
 可从 `x-ui` 菜单（**22 — IP Limit Management**）进行管理：安装/配置、修改封锁时长
 （默认 **30 分钟**）、封锁/解封某个 IP、查看封锁日志，以及检查状态。其底层机制如下：

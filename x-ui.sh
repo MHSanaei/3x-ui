@@ -2432,7 +2432,8 @@ setup_fail2ban_for_lifecycle() {
         return 0
     fi
     if command -v fail2ban-client > /dev/null 2>&1 && iplimit_jail_configured; then
-        return 0
+        fail2ban-client status 3x-ipl > /dev/null 2>&1 || start_iplimit_jail
+        return
     fi
     XUI_ENABLE_FAIL2BAN=true setup_fail2ban_iplimit
 }
@@ -2455,6 +2456,9 @@ setup_fail2ban_iplimit() {
                 if [[ "${os_version}" -ge 2400 ]]; then
                     apt-get install python3-pip -y
                     python3 -m pip install pyasynchat --break-system-packages
+                fi
+                if [[ "$os_version" -ge 2200 ]]; then
+                    apt-get install -y python3-systemd
                 fi
                 apt-get install fail2ban nftables -y
                 ;;
@@ -2535,17 +2539,56 @@ setup_fail2ban_iplimit() {
     # we didn't pass the bantime here to use the default value
     create_iplimit_jails || return 1
 
-    # Launching fail2ban
-    if fail2ban-client ping > /dev/null 2>&1; then
-        fail2ban-client reload --if-exists 3x-ipl || return 1
-    elif [[ $release == "alpine" ]]; then
-        rc-service fail2ban start && rc-update add fail2ban || return 1
-    else
-        systemctl start fail2ban && systemctl enable fail2ban || return 1
-    fi
+    start_iplimit_jail || return 1
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     return 0
+}
+
+configure_default_sshd_backend() {
+    local config_dir="$1" auth_log="$2" jail_file
+    local override="$config_dir/jail.d/3x-ipl-backend.conf"
+    [[ ( "$release" == "debian" && ${os_version:-0} -ge 12 ) || ( "$release" == "ubuntu" && ${os_version:-0} -ge 2200 ) ]] || return 0
+    [[ ! -e "$auth_log" && ! -e "$override" && ! -L "$override" && ! -e "$config_dir/paths-overrides.local" ]] || return 0
+
+    # Repair the distro's stock SSH jail for journal-only hosts.
+    awk '
+        /^[[:space:]]*\[/ { section = $0 }
+        section ~ /\[DEFAULT\]/ && /^[[:space:]]*backend[[:space:]]*=[[:space:]]*auto[[:space:]]*$/ { stock_backend = 1 }
+        section ~ /\[sshd\]/ && /^[[:space:]]*backend[[:space:]]*=[[:space:]]*%[(]sshd_backend[)]s[[:space:]]*$/ { stock_ssh = 1 }
+        section ~ /\[sshd\]/ && /^[[:space:]]*logpath[[:space:]]*=[[:space:]]*%[(]sshd_log[)]s[[:space:]]*$/ { stock_log = 1 }
+        END { exit !(stock_backend && stock_ssh && stock_log) }
+    ' "$config_dir/jail.conf" 2>/dev/null || return 0
+
+    for jail_file in "$config_dir/jail.local" "$config_dir/jail.d/"*.conf "$config_dir/jail.d/"*.local; do
+        [[ -f "$jail_file" ]] || continue
+        if awk '
+            /^[[:space:]]*\[/ { section = $0 }
+            section ~ /\[(DEFAULT|sshd)\]/ && /^[[:space:]]*(backend|logpath)[[:space:]]*=/ { custom = 1 }
+            END { exit !custom }
+        ' "$jail_file"; then
+            return 0
+        fi
+    done
+
+    if ! /usr/bin/python3 -c 'from systemd import journal' > /dev/null 2>&1; then
+        apt-get install -y python3-systemd || return 1
+    fi
+    printf '[sshd]\nbackend = systemd\n' > "$override"
+}
+
+start_iplimit_jail() {
+    if fail2ban-client ping > /dev/null 2>&1; then
+        fail2ban-client reload --if-exists 3x-ipl || return 1
+    else
+        configure_default_sshd_backend /etc/fail2ban /var/log/auth.log || return 1
+        if [[ $release == "alpine" ]]; then
+            rc-service fail2ban start && rc-update add fail2ban || return 1
+        else
+            systemctl start fail2ban && systemctl enable fail2ban || return 1
+        fi
+    fi
+    fail2ban-client status 3x-ipl > /dev/null 2>&1
 }
 
 apply_iplimit_preference() {

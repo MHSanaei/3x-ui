@@ -21,8 +21,10 @@ See [First login](/docs/guide/first-login) for the full checklist.
 
 Set an **IP limit** per client (see [Clients](/docs/config/clients)) to cap the
 number of simultaneous source IPs. Enforcement is handled by **Fail2ban**, which
-3x-ui installs and configures for you (enabled by default on script installs, and
-on Docker via `XUI_ENABLE_FAIL2BAN=true`).
+3x-ui installs and configures when you opt in. On a fresh native install,
+answer **Yes** to enable enforcement, or set `XUI_ENABLE_FAIL2BAN=true` for
+unattended and Docker installs. The native installer remembers your choice across
+updates and reinstalls. Source IP tracking continues independently of enforcement.
 
 Manage it from the `x-ui` menu (**22 — IP Limit Management**): install/configure,
 change the ban duration (default **30 minutes**), ban/unban an IP, view ban logs,

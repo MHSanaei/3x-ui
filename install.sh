@@ -1228,17 +1228,7 @@ config_after_install() {
             fi
             if [[ "$db_choice" == "2" ]]; then
                 local xui_env_file
-                case "${release}" in
-                    ubuntu | debian | armbian)
-                        xui_env_file="/etc/default/x-ui"
-                        ;;
-                    arch | manjaro | parch | alpine)
-                        xui_env_file="/etc/conf.d/x-ui"
-                        ;;
-                    *)
-                        xui_env_file="/etc/sysconfig/x-ui"
-                        ;;
-                esac
+                xui_env_file=$(xui_env_file_path)
 
                 local xui_dsn=""
                 local pg_mode=""
@@ -1487,13 +1477,17 @@ EOF
     ${xui_folder}/x-ui migrate
 }
 
-load_xui_env() {
-    local envfile
+xui_env_file_path() {
     case "$release" in
-        ubuntu | debian | armbian) envfile=/etc/default/x-ui ;;
-        arch | manjaro | parch | alpine) envfile=/etc/conf.d/x-ui ;;
-        *) envfile=/etc/sysconfig/x-ui ;;
+        ubuntu | debian | armbian) printf '/etc/default/x-ui\n' ;;
+        arch | manjaro | parch | alpine) printf '/etc/conf.d/x-ui\n' ;;
+        *) printf '/etc/sysconfig/x-ui\n' ;;
     esac
+}
+
+load_xui_env() {
+    local envfile="${1:-}"
+    [[ -n "$envfile" ]] || envfile=$(xui_env_file_path)
     if [[ -r "$envfile" ]]; then
         set -a
         # shellcheck disable=SC1090
@@ -1581,25 +1575,7 @@ _xui_service_write_paths_dropin() {
     local db_folder log_folder bin_folder main_folder
     local path line="" whitespace_paths="" seen_paths="" escaped_path
 
-    if [[ -z "$env_file" ]]; then
-        case "${release}" in
-            ubuntu | debian | armbian)
-                env_file="/etc/default/x-ui"
-                ;;
-            arch | manjaro | parch | alpine)
-                env_file="/etc/conf.d/x-ui"
-                ;;
-            *)
-                env_file="/etc/sysconfig/x-ui"
-                ;;
-        esac
-    fi
-    if [[ -r "$env_file" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_file"
-        set +a
-    fi
+    load_xui_env "$env_file"
 
     # XUI_* wins over the script's own default: the unit hands that same env
     # file to the panel through EnvironmentFile=, so these are the folders it
